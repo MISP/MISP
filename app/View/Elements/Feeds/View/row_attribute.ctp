@@ -58,7 +58,7 @@ if ($object['value'] == 'MERGE') debug($object);
                 foreach ($object['warnings'][$component] as $warning) $temp .= '<span class=\'bold\'>' . h($valueParts[$valuePart]) . '</span>: <span class=\'red\'>' . h($warning) . '</span><br />';
               }
             }
-            echo ' <span class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
+            echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
           }
         ?>
       </div>
@@ -84,7 +84,7 @@ if ($object['value'] == 'MERGE') debug($object);
     </td>
     <td class="short">
       <div id = "Attribute_<?php echo $object['uuid']; ?>_to_ids_solid" class="inline-field-solid");">
-        <?php echo $object['to_ids'] ? 'Yes' : 'No'; ?>
+        <?php echo $object['to_ids'] ? __('Yes') : __('No'); ?>
       </div>
     </td>
   </td>

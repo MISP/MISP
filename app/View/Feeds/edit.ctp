@@ -65,6 +65,7 @@
             <?php
             echo $this->Form->input('url', array(
                     'div' => 'input clear',
+                    'label' => __('URL'),
                     'placeholder' => __('URL of the feed'),
                     'class' => 'form-control span6'
             ));
@@ -198,7 +199,7 @@
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'edit'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'edit'));
 ?>
 <script type="text/javascript">
 //

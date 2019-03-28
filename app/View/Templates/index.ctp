@@ -41,8 +41,8 @@ foreach ($list as $item): ?>
         <td onclick="document.location.href ='<?php echo $baseurl."/templates/view/".$item['Template']['id']; ?>'"><?php echo h($item['Template']['description']); ?>&nbsp;</td>
         <?php if ($isAclTemplate): ?>
         <td class="short action-links">
-            <?php echo $this->Html->link('', array('action' => 'edit', $item['Template']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
-            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Template']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete Template #' . $item['Template']['id'] . '?'));?>
+            <?php echo $this->Html->link('', array('action' => 'edit', $item['Template']['id']), array('class' => 'fa fa-edit', 'title' => 'Edit'));?>
+            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Template']['id']), array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete Template #' . $item['Template']['id'] . '?'));?>
         </td>
         <?php endif; ?>
     </tr><?php
@@ -67,4 +67,4 @@ endforeach; ?>
 
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'templates', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'templates', 'menuItem' => 'index'));

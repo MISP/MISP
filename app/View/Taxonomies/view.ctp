@@ -26,9 +26,9 @@
             <?php echo $taxonomy['enabled'] ? '<span class="green">'. __('Yes') . '</span>&nbsp;&nbsp;' : '<span class="red">' . __('No') . '</span>&nbsp;&nbsp;';
                 if ($isSiteAdmin) {
                     if ($taxonomy['enabled']) {
-                        echo $this->Form->postLink('(disable)', array('action' => 'disable', h($taxonomy['id'])), array('title' => __('Disable')), (__('Are you sure you want to disable this taxonomy library?')));
+                        echo $this->Form->postLink(__('(disable)'), array('action' => 'disable', h($taxonomy['id'])), array('title' => __('Disable')), (__('Are you sure you want to disable this taxonomy library?')));
                     } else {
-                        echo $this->Form->postLink('(enable)', array('action' => 'enable', h($taxonomy['id'])), array('title' => __('Enable')), (__('Are you sure you want to enable this taxonomy library?')));
+                        echo $this->Form->postLink(__('(enable)'), array('action' => 'enable', h($taxonomy['id'])), array('title' => __('Enable')), (__('Are you sure you want to enable this taxonomy library?')));
                     }
                 }
             ?>
@@ -64,18 +64,28 @@
             <div style="float:right !important;overflow:hidden;border:0px;padding:0px;padding-right:200px;">
                     <input type="text" id="quickFilterField" class="tabMenuFilterField taxFilter" value="<?php echo h($filter);?>" /><span id="quickFilterButton" class="useCursorPointer taxFilterButton" onClick='quickFilterTaxonomy("<?php echo h($taxonomy['id']);?>");'><?php echo __('Filter');?></span>
             </div>
+            <span class="tabMenuFixed tabMenuFixedLeft tabMenuSides useCursorPointer  noPrint mass-select" style="margin-left:50px;">
+                <span id="multi-edit-button" title="<?php echo __('Hide selected tags');?>" role="button" tabindex="1" aria-label="<?php echo __('Hide selected tags');?>" class="useCursorPointer" onClick="hideSelectedTags(<?php echo $taxonomy['id']; ?>);">
+                    <?php echo __('Hide selected tags');?>
+                </span>
+            </span>
+            <span class="tabMenuFixed tabMenuFixedLeft tabMenuSides useCursorPointer  noPrint mass-select">
+                <span id="multi-edit-button" title="<?php echo __('Unhide selected tags');?>" role="button" tabindex="2" aria-label="<?php echo __('Unhide selected tags');?>" class="useCursorPointer" onClick="unhideSelectedTags(<?php echo $taxonomy['id']; ?>);">
+                    <?php echo __('Unhide selected tags');?>
+                </span>
+            </span>
         </div>
         <table class="table table-striped table-hover table-condensed">
             <tr>
                 <?php if ($isAclTagger && !empty($entries)): ?>
                     <th><input class="select_all" type="checkbox" onClick="toggleAllTaxonomyCheckboxes();" /></th>
                 <?php endif;?>
-                    <th><?php echo $this->Paginator->sort('tag');?></th>
-                    <th><?php echo $this->Paginator->sort('expanded');?></th>
-					<th><?php echo $this->Paginator->sort('numerical_value');?></th>
+                    <th><?php echo $this->Paginator->sort('tag', __('Tag'));?></th>
+                    <th><?php echo $this->Paginator->sort('expanded', __('Expanded'));?></th>
+                    <th><?php echo $this->Paginator->sort('numerical_value', __('Numerical value'));?></th>
                     <th><?php echo $this->Paginator->sort('events');?></th>
                     <th><?php echo $this->Paginator->sort('attributes');?></th>
-                    <th><?php echo $this->Paginator->sort('tag');?></th>
+                    <th><?php echo $this->Paginator->sort('tag', __('Tags'));?></th>
                     <th><?php echo __('Action');?></th>
             </tr><?php
             foreach ($entries as $k => $item): ?>
@@ -87,12 +97,12 @@
             <?php endif; ?>
                 <td id="tag_<?php echo h($k); ?>" class="short"><?php echo h($item['tag']); ?></td>
                 <td><?php echo h($item['expanded']); ?>&nbsp;</td>
-				<td class="short"><?php echo isset($item['numerical_value']) ? h($item['numerical_value']) : ''; ?>&nbsp;</td>
+                <td class="short"><?php echo isset($item['numerical_value']) ? h($item['numerical_value']) : ''; ?>&nbsp;</td>
                 <td class="short">
                 <?php
                     if ($item['existing_tag']) {
                 ?>
-                    <a href='<?php echo $baseurl."/events/index/searchtag:". h($item['existing_tag']['Tag']['id']);?>'><?php echo count($item['existing_tag']['EventTag']);?></a>
+                    <a href='<?php echo $baseurl."/events/index/searchtag:". h($item['existing_tag']['Tag']['id']);?>'><?php echo h($item['events']);?></a>
                 <?php
                     } else {
                         echo __('N/A');
@@ -103,7 +113,7 @@
                 <?php
                     if ($item['existing_tag']):
                 ?>
-                        <a href='<?php echo $baseurl."/attributes/search/tags:". h($item['existing_tag']['Tag']['id']);?>'><?php echo count($item['existing_tag']['AttributeTag']);?></a>
+                        <a href='<?php echo $baseurl."/attributes/search/tags:". h($item['existing_tag']['Tag']['id']);?>'><?php echo h($item['attributes']);?></a>
                 <?php
                     else:
                         echo __('N/A');
@@ -141,7 +151,7 @@
                                 echo $this->Form->input('taxonomy_id', array('type' => 'hidden', 'value' => $taxonomy['id']));
                                 echo $this->Form->end();
                         ?>
-                                <span class="icon-refresh useCursorPointer" title="<?php echo __('Refresh');?>" role="button" tabindex="0" aria-label="<?php echo __('Refresh');?>" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
+                                <span class="fa fa-sync useCursorPointer" title="<?php echo __('Refresh');?>" role="button" tabindex="0" aria-label="<?php echo __('Refresh');?>" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
                                 <span class="icon-minus useCursorPointer" title="<?php echo __('Disable');?>" role="button" tabindex="0" aria-label="<?php echo __('Disable');?>" onClick="submitQuickTag('<?php echo 'quick_disable_' . h($k); ?>');"></span>
                         <?php
                             else:
@@ -186,5 +196,5 @@
     });
 </script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'taxonomies', 'menuItem' => 'view'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'taxonomies', 'menuItem' => 'view'));
 ?>

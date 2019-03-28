@@ -19,9 +19,9 @@
                                 echo nl2br(preg_replace('#https?:\/\/[^\s]*#i', '<a href="$0">$0</a>', $message));
                                 if ($isSiteAdmin):
                             ?>
-                                    <br /><a href="<?php echo $baseurl; ?>/news/edit/<?php echo h($newsItem['News']['id']);?>" class="icon-edit" title="<?php echo __('Edit news message');?>"></a>
+                                    <br /><a href="<?php echo $baseurl; ?>/news/edit/<?php echo h($newsItem['News']['id']);?>" class="fa fa-edit" title="<?php echo __('Edit news message');?>"></a>
                             <?php
-                                    echo $this->Form->postLink('', array('action' => 'delete', $newsItem['News']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete news item # %s?', $newsItem['News']['id']));
+                                    echo $this->Form->postLink('', array('action' => 'delete', $newsItem['News']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete news item # %s?', $newsItem['News']['id']));
                                 endif;
                             ?>
                         </div>
@@ -50,5 +50,5 @@
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'news', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'news', 'menuItem' => 'index'));
 ?>

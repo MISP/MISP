@@ -27,7 +27,7 @@
             <th><?php echo $this->Paginator->sort('user_id', __('Email'));?></th>
             <?php endif; ?>
             <th class="filter">
-                <?php echo $this->Paginator->sort('date', 'Date', array('direction' => 'desc'));?>
+                <?php echo $this->Paginator->sort('date', __('Date'), array('direction' => 'desc'));?>
             </th>
             <th class="filter">
                 <?php echo $this->Paginator->sort('info');?>
@@ -100,4 +100,4 @@
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewProposalIndex'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewProposalIndex'));

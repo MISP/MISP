@@ -21,8 +21,8 @@
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo __('Default');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
-            <th><?php echo $this->Paginator->sort('restricted_to_site_admin');?></th>
-            <th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
+            <th><?php echo $this->Paginator->sort('restricted_to_site_admin', __('Restricted to site admins'));?></th>
+            <th><?php echo $this->Paginator->sort('permission', __('Permissions'));?></th>
             <?php
                 foreach ($permFlags as $k => $flags):
             ?>
@@ -30,8 +30,8 @@
             <?php
                 endforeach;
             ?>
-            <th><?php echo $this->Paginator->sort('memory_limit');?></th>
-            <th><?php echo $this->Paginator->sort('max_execution_time');?></th>
+            <th><?php echo $this->Paginator->sort('memory_limit', __('Memory limit'));?></th>
+            <th><?php echo $this->Paginator->sort('max_execution_time', __('Max execution time'));?></th>
             <th class="actions"><?php echo __('Actions');?></th>
     </tr><?php
 foreach ($list as $item): ?>
@@ -63,8 +63,8 @@ foreach ($list as $item): ?>
             ?>
         </td>
         <td class="short action-links">
-            <?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Role']['id']), array('class' => 'icon-edit', 'title' => 'Edit')); ?>
-            <?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Role']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>
+            <?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Role']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit'))); ?>
+            <?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Role']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>
         </td>
     </tr><?php
 endforeach; ?>
@@ -87,4 +87,4 @@ endforeach; ?>
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'indexRole'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'indexRole'));

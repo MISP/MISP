@@ -2,12 +2,12 @@
     <?php
         if (!$worker_array['proc_accessible']):
     ?>
-	<div style="background-color:red !important;color:white;"><b><?php echo __('Warning');?></b>: <?php echo __('MISP cannot access your /proc directory to check the status of the worker processes, which means that dead workers will not be detected by the diagnostic tool. If you would like to regain this functionality, make sure that the open_basedir directive is not set, or that /proc is included in it.');?></div>
+    <div style="background-color:red !important;color:white;"><b><?php echo __('Warning');?></b>: <?php echo __('MISP cannot access your /proc directory to check the status of the worker processes, which means that dead workers will not be detected by the diagnostic tool. If you would like to regain this functionality, make sure that the open_basedir directive is not set, or that /proc is included in it.');?></div>
 <?php
-	endif;
-	if (!$worker_array['controls']):
+    endif;
+    if (!$worker_array['controls']):
 ?>
-	<div><b><?php echo __('Note:');?></b>: <?php echo  __('You have set the "manage_workers" variable to "false", therefore worker controls have been disabled.');?></div>
+    <div><b><?php echo __('Note:');?></b>: <?php echo  __('You have set the "manage_workers" variable to "false", therefore worker controls have been disabled.');?></div>
 <?php
         endif;
         foreach ($worker_array as $type => $data):
@@ -38,7 +38,7 @@
             <?php
                 echo h($data['jobCount']);
                 if ($data['jobCount'] > 0 && $worker_array['controls']) {
-                    echo $this->Form->postLink('<span class="icon-trash useCursorPointer"></span>', $baseurl . '/servers/clearWorkerQueue/' . h($type), array('escape' => false, 'inline' => true, 'style' => 'margin-left:2px;'));
+                    echo $this->Form->postLink('<span class="fa fa-trash useCursorPointer"></span>', $baseurl . '/servers/clearWorkerQueue/' . h($type), array('escape' => false, 'inline' => true, 'style' => 'margin-left:2px;'));
                 }
             ?>
         </span>
@@ -102,9 +102,9 @@
             <td style="<?php echo $style; ?>"><?php echo $message; ?></td>
             <td class="actions short" style="<?php echo $style; ?>">
 <?php
-		if ($worker_array['controls']) {
-			echo $this->Form->postLink('', '/servers/stopWorker/' . h($worker['pid']), array('class' => 'icon-trash' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
-		}
+        if ($worker_array['controls']) {
+            echo $this->Form->postLink('', '/servers/stopWorker/' . h($worker['pid']), array('class' => 'fa fa-trash' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
+        }
             ?>
             </td>
         </tr>
@@ -114,11 +114,11 @@
     ?>
     </table>
     <?php
-	    if ($worker_array['controls']) {
-		    echo $this->Form->create('Server', array('url' => '/servers/startWorker/' . h($type)));
-		    echo $this->Form->button(__('Start a worker'), array('class' => 'btn btn-inverse'));
-		    echo $this->Form->end();
-	    }
+        if ($worker_array['controls']) {
+            echo $this->Form->create('Server', array('url' => '/servers/startWorker/' . h($type)));
+            echo $this->Form->button(__('Start a worker'), array('class' => 'btn btn-inverse'));
+            echo $this->Form->end();
+        }
         endforeach;
     ?>
 
@@ -126,8 +126,8 @@
 
 <?php
 if ($worker_array['controls']) {
-	echo $this->Form->create('Server', array('url' => '/servers/restartWorkers'));
-	echo $this->Form->button(__('Restart all workers'), array('class' => 'btn btn-primary'));
-	echo $this->Form->end();
+    echo $this->Form->create('Server', array('url' => '/servers/restartWorkers'));
+    echo $this->Form->button(__('Restart all workers'), array('class' => 'btn btn-primary'));
+    echo $this->Form->end();
 }
 ?>

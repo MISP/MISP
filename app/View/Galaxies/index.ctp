@@ -19,26 +19,48 @@
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
-            <th><?php echo $this->Paginator->sort('icon');?></th>
+            <th><?php echo $this->Paginator->sort('icon', __('Icon'));?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo $this->Paginator->sort('version');?></th>
-            <th><?php echo $this->Paginator->sort('namespace');?></th>
-            <th><?php echo $this->Paginator->sort('description');?></th>
-            <th class="actions"><?php echo $this->Paginator->sort('description');?></th>
-    </tr><?php
-foreach ($list as $item):?>
-    <tr>
-        <td class="short"><?php echo h($item['Galaxy']['id']);?>&nbsp;</td>
-        <td class="short"><span class="fa fa-<?php echo h($item['Galaxy']['icon']); ?>"></span></td>
-        <td><?php echo h($item['Galaxy']['name']);?>&nbsp;</td>
-        <td class="short"><?php echo h($item['Galaxy']['version']);?>&nbsp;</td>
-        <td class="short"><?php echo h($item['Galaxy']['namespace']);?>&nbsp;</td>
-        <td><?php echo h($item['Galaxy']['description']);?>&nbsp;</td>
-        <td class="short action-links">
-            <?php echo $this->Html->link('', array('action' => 'view', $item['Galaxy']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
-        </td>
-    </tr><?php
-endforeach;?>
+            <th><?php echo $this->Paginator->sort('namespace', __('Namespace'));?></th>
+            <th class="description"><?php echo $this->Paginator->sort('description');?></th>
+            <th><?php echo __('Actions');?></th>
+    </tr>
+    <?php
+        foreach ($list as $item) {
+            $row = sprintf(
+                '<tr><td class="short">%s</td>',
+                h($item['Galaxy']['id'])
+            );
+            $row .= sprintf(
+                '<td class="short"><span class="%s fa-%s"></span></td>',
+                $this->FontAwesome->findNamespace($item['Galaxy']['icon']),
+                h($item['Galaxy']['icon'])
+            );
+            $row .= sprintf(
+                '<td class="short">%s</td>',
+                h($item['Galaxy']['name'])
+            );
+            $row .= sprintf(
+                '<td class="short">%s</td>',
+                h($item['Galaxy']['version'])
+            );
+            $row .= sprintf(
+                '<td class="short">%s</td>',
+                h($item['Galaxy']['namespace'])
+            );
+            $row .= sprintf(
+                '<td>%s</td>',
+                h($item['Galaxy']['description'])
+            );
+            $row .= sprintf(
+                '<td class="short action-links">%s%s</td></tr>',
+                $this->Form->postLink('', array('action' => 'delete', $item['Galaxy']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), sprintf(__('Are you sure you want to delete the Galaxy (%s)?'), $item['Galaxy']['name'])),
+                $this->Html->link('', array('action' => 'view', $item['Galaxy']['id']), array('class' => 'fa fa-eye', 'title' => __('View')))
+            );
+            echo $row;
+        }
+    ?>
     </table>
     <p>
     <?php
@@ -58,5 +80,5 @@ endforeach;?>
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'galaxies', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'index'));
 ?>

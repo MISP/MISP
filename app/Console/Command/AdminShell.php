@@ -129,6 +129,11 @@ class AdminShell extends AppShell
 		$this->Job->saveField('status', 4);
 	}
 
+	public function getWorkers() {
+		$result = $this->Server->workerDiagnostics($workerIssueCount);
+		echo json_encode($result, JSON_PRETTY_PRINT) . PHP_EOL;
+  }
+
 	public function getSetting() {
 		$param = empty($this->args[0]) ? 'all' : $this->args[0];
 		$settings = $this->Server->serverSettingsRead();
@@ -143,18 +148,29 @@ class AdminShell extends AppShell
 			}
 		}
 		echo json_encode($result, JSON_PRETTY_PRINT) . PHP_EOL;
-	}
+  }
 
 	public function setSetting() {
-		$setting = !isset($this->args[0]) ? null : $this->args[0];
+		$setting_name = !isset($this->args[0]) ? null : $this->args[0];
 		$value = !isset($this->args[1]) ? null : $this->args[1];
 		if ($value === 'false') $value = 0;
 		if ($value === 'true') $value = 1;
-		if (empty($setting) || $value === null) {
+        $cli_user = array('id' => 0, 'email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'));
+		if (empty($setting_name) || $value === null) {
 			echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setSetting [setting_name] [setting_value]';
 		} else {
-			$this->Server->serverSettingsSaveValue($setting, $value);
+            $setting = $this->Server->getSettingData($setting_name);
+            if (empty($setting)) {
+                echo 'Invalid setting. Please make sure that the setting that you are attempting to change exists.';
+            }
+            $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value);
+            if ($result === true) {
+                echo 'Setting changed.';
+            } else {
+                echo $result;
+            }
 		}
+        echo PHP_EOL;
 	}
 
 	public function setDatabaseVersion() {
@@ -172,6 +188,12 @@ class AdminShell extends AppShell
 			}
 		}
 	}
+
+    public function updateDatabase() {
+        echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
+        $this->Server->runUpdates(true);
+        echo 'All updates completed.' . PHP_EOL;
+    }
 
     public function getAuthkey() {
         if (empty($this->args[0])) {

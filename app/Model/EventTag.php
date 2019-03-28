@@ -26,8 +26,10 @@ class EventTag extends AppModel
     public function afterSave($created, $options = array())
     {
         parent::afterSave($created, $options);
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('EventTag.id' => $this->id),
@@ -35,15 +37,24 @@ class EventTag extends AppModel
             ));
             $tag['Tag']['event_id'] = $tag['EventTag']['event_id'];
             $tag = array('Tag' => $tag['Tag']);
-            $pubSubTool->tag_save($tag, 'attached to event');
+            if ($pubToZmq) {
+                $pubSubTool = $this->getPubSubTool();
+                $pubSubTool->tag_save($tag, 'attached to event');
+            }
+            if ($pubToKafka) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $tag, 'attached to event');
+            }
         }
     }
 
     public function beforeDelete($cascade = true)
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             if (!empty($this->id)) {
-                $pubSubTool = $this->getPubSubTool();
                 $tag = $this->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('EventTag.id' => $this->id),
@@ -51,9 +62,21 @@ class EventTag extends AppModel
                 ));
                 $tag['Tag']['event_id'] = $tag['EventTag']['event_id'];
                 $tag = array('Tag' => $tag['Tag']);
-                $pubSubTool->tag_save($tag, 'detached from event');
+                if ($pubToZmq) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->tag_save($tag, 'detached from event');
+                }
+                if ($pubToKafka) {
+                    $kafkaPubTool = $this->getKafkaPubTool();
+                    $kafkaPubTool->publishJson($kafkaTopic, $tag, 'detached from event');
+                }
             }
         }
+    }
+
+    public function softDelete($id)
+    {
+        $this->delete($id);
     }
 
     // take an array of tag names to be included and an array with tagnames to be excluded and find all event IDs that fit the criteria

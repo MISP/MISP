@@ -44,12 +44,12 @@ class AppController extends Controller
 
     public $debugMode = false;
 
-    public $helpers = array('Utility', 'OrgImg');
+    public $helpers = array('Utility', 'OrgImg', 'FontAwesome');
 
-    private $__queryVersion = '54';
-    public $pyMispVersion = '2.4.99';
-    public $phpmin = '5.6.5';
-    public $phprec = '7.0.16';
+    private $__queryVersion = '64';
+    public $pyMispVersion = '2.4.103';
+    public $phpmin = '7.0';
+    public $phprec = '7.2';
 
     public $baseurl = '';
     public $sql_dump = false;
@@ -103,6 +103,21 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        if (Configure::read('Security.allow_cors')) {
+            // Add CORS headers
+            $this->response->cors($this->request,
+                    explode(',', Configure::read('Security.cors_origins')),
+                    ['*'],
+                    ['Origin', 'Content-Type', 'Authorization', 'Accept']);
+
+            if ($this->request->is('options')) {
+                // Stop here!
+                // CORS only needs the headers
+                $this->response->send();
+                $this->_stop();
+            }
+        }
+
         if (!empty($this->params['named']['sql'])) {
             $this->sql_dump = 1;
         }
@@ -333,6 +348,9 @@ class AppController extends Controller
             }
         } else {
             if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
+                if (!$this->request->is('ajax')) {
+                    $this->Session->write('pre_login_requested_url', $this->here);
+                }
                 $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
             }
         }
@@ -424,6 +442,7 @@ class AppController extends Controller
             $this->set('isAclSharingGroup', $role['perm_sharing_group']);
             $this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
+            $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->userRole = $role;
         } else {
             $this->set('me', false);
@@ -628,13 +647,16 @@ class AppController extends Controller
                     $data[$p] = str_replace(';', ':', $data[$p]);
                 }
                 if (isset($options['named_params'][$p])) {
-                    $data[$p] = $options['named_params'][$p];
+                    $data[$p] = str_replace(';', ':', $options['named_params'][$p]);
                 }
             }
         }
         foreach ($data as $k => $v) {
             if (!is_array($data[$k])) {
                 $data[$k] = trim($data[$k]);
+                if (strpos($data[$k], '||')) {
+                    $data[$k] = explode('||', $data[$k]);
+                }
             }
         }
         if (!empty($options['additional_delimiters'])) {

@@ -39,12 +39,12 @@
         ?>
     </fieldset>
 <?php
-    echo $this->Form->button('Edit', array('class' => 'btn btn-primary'));
+    echo $this->Form->button(__('Edit'), array('class' => 'btn btn-primary'));
     echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editRole'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'editRole'));
 ?>
 
 <script type="text/javascript">

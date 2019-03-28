@@ -444,6 +444,13 @@ sudo pip3 install pyzmq
 sudo pip3 install redis
 ```
 
+#### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+```bash
+apt-get install librdkafka-dev php-dev
+pecl install rdkafka
+find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
+```
+
 #### Experimental ssdeep correlations
 ```bash
 # installing ssdeep

@@ -55,12 +55,16 @@
                 $branchColour = $branch == '2.4' ? 'green' : 'red bold';
             ?>
             <span class="<?php echo h($branchColour); ?>">
-                <?=($branch == '2.4') ? h($branch) : "You are not on a branch, Update MISP will fail"; ?>
+                <?=($branch == '2.4') ? h($branch) : __('You are not on a branch, Update MISP will fail'); ?>
             </span>
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
     </div>
+    <h3><?php echo __('Submodules version');?><it id="refreshSubmoduleStatus" class="fa fa-refresh useCursorPointer" style="font-size: small; margin-left: 5px;"></it></h3>
+    <div id="divSubmoduleVersions" style="background-color:#f7f7f9;">
+    </div>
+
     <h3><?php echo __('Writeable Directories and files');?></h3>
     <p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
     <p><b><?php echo __('Directories');?></b></p>
@@ -144,6 +148,7 @@
     <p><span class="bold"><?php echo __('PHP ini path');?></span>:… <span class="green"><?php echo h($php_ini); ?></span><br />
     <span class="bold"><?php echo __('PHP Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['web']['phpcolour']; ?>"><?php echo h($phpversions['web']['phpversion']) . ' (' . $phpversions['web']['phptext'] . ')';?></span><br />
     <span class="bold"><?php echo __('PHP CLI Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['cli']['phpcolour']; ?>"><?php echo h($phpversions['cli']['phpversion']) . ' (' . $phpversions['cli']['phptext'] . ')';?></span></p>
+    <p class="red bold"><?php echo __('Please note that the we will be dropping support for Python 2.7 and PHP 7.1 as of 2020-01-01 and are henceforth considered deprecated (but supported until the end of 2019). Both of these versions will by then reached End of Life and will become a liability. Furthermore, by dropping support for these outdated versions of the languages, we\'ll be able to phase out support for legacy code that exists solely to support them. Make sure that you plan ahead accordingly. More info: ');?><a href="https://secure.php.net/supported-versions.php">PHP</a>, <a href="https://www.python.org/dev/peps/pep-0373">Python</a>.</p>
     <p><?php echo __('The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.');?></p>
     <?php
         foreach ($phpSettings as $settingName => &$phpSetting):
@@ -203,6 +208,7 @@
     <b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br />
     <b>mixbox</b>: <?php echo $stix['mixbox']['expected'];?><br />
     <b>maec</b>: <?php echo $stix['maec']['expected'];?><br />
+    <b>STIX2</b>: <?php echo $stix['stix2']['expected'];?><br />
     <b>PyMISP</b>: <?php echo $stix['pymisp']['expected'];?><br />
     <?php echo __('Other versions might work but are not tested / recommended.');?></p>
     <div style="background-color:#f7f7f9;width:400px;">
@@ -221,7 +227,7 @@
             if (!$testReadError) {
                 $error_count = 0;
                 $libraries = '';
-                foreach (array('stix', 'cybox', 'mixbox', 'maec', 'pymisp') as $package) {
+                foreach (array('stix', 'cybox', 'mixbox', 'maec', 'stix2', 'pymisp') as $package) {
                     $lib_colour = 'green';
                     if ($stix[$package]['status'] == 0) {
                         $lib_colour = 'red';
@@ -330,7 +336,7 @@
     <?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">' . __('Clean cache') . '</span>', $baseurl . '/events/cleanModelCaches', array('escape' => false));?>
     <h3><?php echo __('Overwritten objects');?></h3>
     <p><?php echo __('Prior to 2.4.89, due to a bug a situation could occur where objects got overwritten on a sync pull. This tool allows you to inspect whether you are affected and if yes, remedy the issue.');?></p>
-    <a href="<?php echo $baseurl; ?>/objects/orphanedObjectDiagnostics"><span class="btn btn-inverse">Reconstruct overwritten objects</span></a>
+    <a href="<?php echo $baseurl; ?>/objects/orphanedObjectDiagnostics"><span class="btn btn-inverse"><?php echo __('Reconstruct overwritten objects');?></span></a>
     <h3><?php echo __('Orphaned attributes');?></h3>
     <p><?php echo __('In some rare cases attributes can remain in the database after an event is deleted becoming orphaned attributes. This means that they do not belong to any event, which can cause issues with the correlation engine (known cases include event deletion directly in the database without cleaning up the attributes and situations involving a race condition with an event deletion happening before all attributes are synchronised over).');?></p>
     <div style="background-color:#f7f7f9;width:400px;">
@@ -355,3 +361,17 @@
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check bad link on attachments');?>" title="<?php echo __('Check bad link on attachments');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();"><?php echo __('Check bad link on attachments');?></span>
 
 </div>
+
+<script>
+    $(document).ready(function() {
+        updateSubModulesStatus();
+    });
+
+    $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
+    function updateSubModulesStatus() {
+        $('#divSubmoduleVersions').empty().append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');
+        $.get('<?php echo $baseurl . '/servers/getSubmodulesStatus/'; ?>', function(html){
+            $('#divSubmoduleVersions').html(html);
+        });
+    }
+</script>

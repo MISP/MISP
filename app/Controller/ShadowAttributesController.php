@@ -68,6 +68,7 @@ class ShadowAttributesController extends AppController
         if (empty($shadow)) {
             return array('false' => true, 'errors' => 'Proposal not found or you are not authorised to accept it.');
         }
+        $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $shadow, 'accept');
         $shadow = $shadow['ShadowAttribute'];
         if ($this->ShadowAttribute->typeIsAttachment($shadow['type'])) {
             $encodedFile = $this->ShadowAttribute->base64EncodeAttachment($shadow);
@@ -229,6 +230,7 @@ class ShadowAttributesController extends AppController
         if (empty($sa)) {
             return false;
         }
+        $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $sa, 'discard');
         $eventId = $sa['ShadowAttribute']['event_id'];
         $this->loadModel('Event');
         $this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
@@ -347,7 +349,7 @@ class ShadowAttributesController extends AppController
             if (!$this->_isRest() && (isset($this->request->data['ShadowAttribute']['batch_import']) && $this->request->data['ShadowAttribute']['batch_import'] == 1)) {
                 // make array from value field
                 $attributes = explode("\n", $this->request->data['ShadowAttribute']['value']);
-                $fails = "";	// will be used to keep a list of the lines that failed or succeeded
+                $fails = "";    // will be used to keep a list of the lines that failed or succeeded
                 $successes = "";
                 // TODO loopholes
                 // the value null value thing
@@ -824,7 +826,7 @@ class ShadowAttributesController extends AppController
             $id = $temp['Attribute']['id'];
         }
 
-        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array('Attriute.id' => $id));
+        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
         if (empty($existingAttribute)) {
             throw new NotFoundException(__('Invalid attribute.'));
         }
@@ -833,6 +835,7 @@ class ShadowAttributesController extends AppController
             if (empty($existingAttribute)) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid Attribute.')), 'status'=>200, 'type' => 'json'));
             }
+            $existingAttribute = $existingAttribute[0];
             $this->ShadowAttribute->create();
             $sa = array(
                     'old_id' => $existingAttribute['Attribute']['id'],
@@ -861,6 +864,7 @@ class ShadowAttributesController extends AppController
             if (empty($existingAttribute)) {
                 throw new NotFoundException(__('Invalid Attribute'));
             }
+            $existingAttribute = $existingAttribute[0];
             $this->set('id', $id);
             $this->set('event_id', $existingAttribute['Attribute']['event_id']);
             $this->render('ajax/deletionProposalConfirmationForm');

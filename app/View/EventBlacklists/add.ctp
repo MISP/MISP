@@ -6,6 +6,7 @@
     <?php
         echo $this->Form->input('uuids', array(
                 'type' => 'textarea',
+                'label' => __('UUIDs'),
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
                 'placeholder' => __('Enter a single or a list of UUIDs')
@@ -20,7 +21,7 @@
                 'type' => 'textarea',
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
-                'label' => 'Event info',
+                'label' => __('Event info'),
                 'placeholder' => __('(Optional) the event info of the event that you would like to block. It\'s best to leave this empty if you are adding a list of UUIDs.')
         ));
         echo $this->Form->input('comment', array(
@@ -37,5 +38,5 @@ echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlacklistsAdd'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlacklistsAdd'));
 ?>

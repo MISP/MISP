@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('RandomTool', 'Tools');
 
 class Feed extends AppModel
 {
@@ -372,7 +373,7 @@ class Feed extends AppModel
             $results = $pipe->exec();
             if (!$overrideLimit && count($objects) > 10000) {
                 foreach ($results as $k => $result) {
-                    if ($result) {
+                    if ($result && empty($objects[$k]['disable_correlation'])) {
                         if (isset($event['FeedCount'])) {
                             $event['FeedCount']++;
                         } else {
@@ -383,7 +384,7 @@ class Feed extends AppModel
                 }
             } else {
                 foreach ($results as $k => $result) {
-                    if ($result) {
+                    if ($result && empty($objects[$k]['disable_correlation'])) {
                         $hitIds[] = $k;
                     }
                 }
@@ -1024,6 +1025,10 @@ class Feed extends AppModel
                 $job->saveField('progress', 50 + round((50 * ((($k + 1) * 100) / count($data)))));
             }
         }
+        if (!empty($data)) {
+            unset($event['Event']['timestamp']);
+            $this->Event->save($event);
+        }
         if ($feed['Feed']['publish']) {
             $this->Event->publishRouter($event['Event']['id'], null, $user);
         }
@@ -1388,5 +1393,113 @@ class Feed extends AppModel
             $this->save($feed);
         }
         return true;
+    }
+
+    public function getFeedCoverage($id, $source_scope = 'feed', $dataset = 'all')
+    {
+        $redis = $this->setupRedis();
+        if ($redis === false) {
+            return 'Could not reach Redis.';
+        }
+        $this->Server = ClassRegistry::init('Server');
+        $feed_conditions = array('Feed.caching_enabled' => 1);
+        $server_conditions = array('Server.caching_enabled' => 1);
+        if ($source_scope === 'feed') {
+            $feed_conditions['NOT'] = array('Feed.id' => $id);
+        } else {
+            $server_conditions['NOT'] = array('Server.id' => $id);
+        }
+        if ($dataset !== 'all') {
+            if (empty($dataset['Feed'])) {
+                $feed_conditions['OR'] = array('Feed.id' => -1);
+            } else {
+                $feed_conditions['OR'] = array('Feed.id' => $dataset['Feed']);
+            }
+            if (empty($dataset['Server'])) {
+                $server_conditions['OR'] = array('Server.id' => -1);
+            } else {
+                $server_conditions['OR'] = array('Server.id' => $dataset['Server']);
+            }
+        }
+        $other_feeds = $this->find('list', array(
+            'recursive' => -1,
+            'conditions' => $feed_conditions,
+            'fields' => array('Feed.id', 'Feed.id')
+        ));
+        $other_servers = $this->Server->find('list', array(
+            'recursive' => -1,
+            'conditions' => $server_conditions,
+            'fields' => array('Server.id', 'Server.id')
+        ));
+        $feed_element_count = $redis->scard('misp:feed_cache:' . $id);
+        $temp_store = (new RandomTool())->random_str(false, 12);
+        $params = array('misp:feed_temp:' . $temp_store);
+        foreach ($other_feeds as $other_feed) {
+            $params[] = 'misp:feed_cache:' . $other_feed;
+        }
+        foreach ($other_servers as $other_server) {
+            $params[] = 'misp:server_cache:' . $other_server;
+        }
+        if (count($params) != 1 && $feed_element_count > 0) {
+            call_user_func_array(array($redis, 'sunionstore'), $params);
+            call_user_func_array(array($redis, 'sinterstore'), array('misp:feed_temp:' . $temp_store . '_intersect', 'misp:feed_cache:' . $id, 'misp:feed_temp:' . $temp_store));
+            $cardinality_intersect = $redis->scard('misp:feed_temp:' . $temp_store . '_intersect');
+            $coverage = round(100 * $cardinality_intersect / $feed_element_count, 2);
+            $redis->del('misp:feed_temp:' . $temp_store);
+            $redis->del('misp:feed_temp:' . $temp_store . '_intersect');
+        } else {
+            $coverage = 0;
+        }
+        return $coverage;
+    }
+
+    public function getCachedElements($feedId)
+    {
+        $redis = $this->setupRedis();
+        $cardinality = $redis->sCard('misp:feed_cache:' . $feedId);
+        return $cardinality;
+    }
+
+    public function getAllCachingEnabledFeeds($feedId, $intersectingOnly = false) {
+        if ($intersectingOnly) {
+            $redis = $this->setupRedis();
+        }
+        $result['Feed'] = $this->find('all', array(
+            'conditions' => array(
+                'Feed.id !=' => $feedId,
+                'caching_enabled' => 1
+            ),
+            'recursive' => -1,
+            'fields' => array('Feed.id', 'Feed.name', 'Feed.url')
+        ));
+        $this->Server = ClassRegistry::init('Server');
+        $result['Server'] = $this->Server->find('all', array(
+            'conditions' => array(
+                'caching_enabled' => 1
+            ),
+            'recursive' => -1,
+            'fields' => array('Server.id', 'Server.name', 'Server.url')
+        ));
+        $scopes = array('Feed', 'Server');
+        foreach ($scopes as $scope) {
+            foreach ($result[$scope] as $k => $v) {
+                $result[$scope][$k] = $v[$scope];
+            }
+        }
+        if ($intersectingOnly) {
+            foreach ($scopes as $scope) {
+                if (!empty($result[$scope])) {
+                    foreach ($result[$scope] as $k => $feed) {
+                        $intersect = $redis->sInter('misp:feed_cache:' . $feedId, 'misp:' . lcfirst($scope) . '_cache:' . $feed['id']);
+                        if (empty($intersect)) {
+                            unset($result[$scope][$k]);
+                        } else {
+                            $result[$scope][$k]['matching_values'] = count($intersect);
+                        }
+                    }
+                }
+            }
+        }
+        return $result;
     }
 }

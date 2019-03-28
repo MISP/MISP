@@ -107,15 +107,6 @@ sudo a2enmod ssl rewrite
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
-# Switch to python3 by default (optional)
-
-sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
-sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
-```
-
-To flip between the 2 pythons use *update-alternatives*
-```bash
-sudo update-alternatives --config python
 ```
 
 #### Apply all changes
@@ -422,7 +413,8 @@ sudo apt install ruby-pygments.rb -y
 sudo gem install asciidoctor-pdf --pre
 
 # install STIX2.0 library to support STIX 2.0 export:
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install stix2
+cd ${PATH_TO_MISP}/cti-python-stix2
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I .
 
 # install additional dependencies for extended object generation and extraction
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
@@ -432,7 +424,7 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kba
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 ```
 
-{!generic/misp-modules.md!}
+{!generic/misp-modules-debian.md!}
 
 ```bash
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
@@ -494,6 +486,13 @@ In case you are using a virtualenv make sure pyzmq is installed therein.
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
+#### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+```bash
+apt-get install librdkafka-dev php-dev
+pecl install rdkafka
+find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
+```
+
 {!generic/misp-dashboard-debian.md!}
 
 {!generic/viper-debian.md!}
@@ -501,5 +500,7 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 {!generic/ssdeep-debian.md!}
 
 {!generic/mail_to_misp-debian.md!}
+
+{!generic/upgrading.md!}
 
 {!generic/hardening.md!}

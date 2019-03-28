@@ -7,6 +7,7 @@
     <?php
         echo $this->Form->input('json', array(
                 'div' => 'input clear',
+                'label' => __('JSON'),
                 'placeholder' => __('Tag collection JSON'),
                 'class' => 'form-control span6',
                 'type' => 'textarea',
@@ -21,4 +22,4 @@
     ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'tag-collections', 'menuItem' => 'import'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'tag-collections', 'menuItem' => 'import'));

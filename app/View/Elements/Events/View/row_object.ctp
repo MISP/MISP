@@ -66,9 +66,10 @@
     <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_collapsible"></span>
     <br />
     <div id="Object_<?php echo $object['id']; ?>_collapsible" class="collapse">
-      <span class="bold"><?php echo __('Meta-category: ');?></span><?php echo h($object['meta-category']);?><br />
-      <span class="bold"><?php echo __('Description: ');?></span><?php echo h($object['description']);?><br />
-      <span class="bold"><?php echo __('Template: ');?></span><?php echo h($object['name']) . ' v' . h($object['template_version']) . ' (' . h($object['template_uuid']) . ')'; ?>
+        <span class="bold"><?php echo __('UUID');?>: </span><?php echo h($object['uuid']);?><br />
+        <span class="bold"><?php echo __('Meta-category: ');?></span><?php echo h($object['meta-category']);?><br />
+        <span class="bold"><?php echo __('Description: ');?></span><?php echo h($object['description']);?><br />
+        <span class="bold"><?php echo __('Template: ');?></span><?php echo h($object['name']) . ' v' . h($object['template_version']) . ' (' . h($object['template_uuid']) . ')'; ?>
     </div>
     <?php
       echo $this->element('/Events/View/row_object_reference', array(
@@ -115,12 +116,12 @@
     <?php
       if ($mayModify && empty($object['deleted'])) {
         echo sprintf(
-          '<a href="%s/objects/edit/%s" title="Edit" class="icon-edit icon-white useCursorPointer"></a>',
+          '<a href="%s/objects/edit/%s" title="Edit" class="fa fa-edit icon-white useCursorPointer"></a>',
           $baseurl,
           h($object['id'])
         );
         echo sprintf(
-          '<span class="icon-trash icon-white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
+          '<span class="fa fa-trash icon-white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
           (empty($event['Event']['publish_timestamp']) ? __('Permanently delete object') : __('Soft delete object')),
           sprintf(
             'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',

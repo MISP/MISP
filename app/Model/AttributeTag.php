@@ -30,8 +30,10 @@ class AttributeTag extends AppModel
     public function afterSave($created, $options = array())
     {
         parent::afterSave($created, $options);
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('AttributeTag.id' => $this->id),
@@ -40,15 +42,24 @@ class AttributeTag extends AppModel
             $tag['Tag']['attribute_id'] = $tag['AttributeTag']['attribute_id'];
             $tag['Tag']['event_id'] = $tag['AttributeTag']['event_id'];
             $tag = array('Tag' => $tag['Tag']);
-            $pubSubTool->tag_save($tag, 'attached to attribute');
+            if ($pubToZmq) {
+                $pubSubTool = $this->getPubSubTool();
+                $pubSubTool->tag_save($tag, 'attached to attribute');
+            }
+            if ($pubToKafka) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $tag, 'attached to attribute');
+            }
         }
     }
 
     public function beforeDelete($cascade = true)
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             if (!empty($this->id)) {
-                $pubSubTool = $this->getPubSubTool();
                 $tag = $this->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('AttributeTag.id' => $this->id),
@@ -57,9 +68,21 @@ class AttributeTag extends AppModel
                 $tag['Tag']['attribute_id'] = $tag['AttributeTag']['attribute_id'];
                 $tag['Tag']['event_id'] = $tag['AttributeTag']['event_id'];
                 $tag = array('Tag' => $tag['Tag']);
-                $pubSubTool->tag_save($tag, 'detached from attribute');
+                if ($pubToZmq) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->tag_save($tag, 'detached from attribute');
+                }
+                if ($pubToKafka) {
+                    $kafkaPubTool = $this->getKafkaPubTool();
+                    $kafkaPubTool->publishJson($kafkaTopic, $tag, 'detached from attribute');
+                }
             }
         }
+    }
+
+    public function softDelete($id)
+    {
+        $this->delete($id);
     }
 
     public function attachTagToAttribute($attribute_id, $event_id, $tag_id)
@@ -126,63 +149,66 @@ class AttributeTag extends AppModel
 
 
     // find all tags that belong to a list of attributes (contained in the same event)
-    public function getAttributesTags($user, $requestedEventId, $attributeIds) {
-        if (is_array($attributeIds) && empty($attributeIds)) {
-            throw new NotFoundException(__('Invalid attributes'));
+    public function getAttributesTags($user, $requestedEventId, $attributeIds=false) {
+        $conditions = array('Attribute.event_id' => $requestedEventId);
+        if (is_array($attributeIds) && $attributeIds !== false) {
+            $conditions['Attribute.id'] = $attributeIds;
         }
 
         $allTags = array();
-        $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $attributeIds, 'Attribute.event_id' => $requestedEventId)));
+        $attributes = $this->Attribute->fetchAttributes($user, array(
+            'conditions' => $conditions,
+            'flatten' => 1,
+        ));
+
+        if (empty($attributes)) {
+            return array();
+        }
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $cluster_names = $this->GalaxyCluster->find('list', array(
+                'recursive' => -1,
+                'fields' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id'),
+        ));
+
+        $allTags = array();
         foreach ($attributes as $attribute) {
-            $attributeTags = $this->find('all', array(
-                'conditions' => array(
-                    'attribute_id' => $attribute['Attribute']['id']
-                ),
-                'contain' => array('Tag.id', 'Tag.colour', 'Tag.name')
-            ));
-            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+            $attributeTags = $attribute['AttributeTag'];
             foreach ($attributeTags as $k => $attributeTag) {
-                if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                    unset($attributeTags[$k]);
+                if (!isset($cluster_names[$attributeTag['Tag']['name']])) {
+                    $allTags[$attributeTag['Tag']['id']] = $attributeTag['Tag'];
                 }
-            }
-            foreach ($attributeTags as $k => $attributeTag) {
-                $allTags[$attributeTag['Tag']['id']] = $attributeTag['Tag'];
             }
         }
         return $allTags;
     }
 
     // find all galaxies that belong to a list of attributes (contains in the same event)
-    public function getAttributesClusters($user, $requestedEventId, $attributeIds) {
-        if ($attributeIds === null) {
-            throw new NotFoundException(__('Invalid attributes'));
+    public function getAttributesClusters($user, $requestedEventId, $attributeIds=false) {
+        $conditions = array('Attribute.event_id' => $requestedEventId);
+        if (is_array($attributeIds) && $attributeIds !== false) {
+            $conditions['Attribute.id'] = $attributeIds;
         }
 
-        $allClusters = array();
-        foreach ($attributeIds as $id) {
-            $attribute = $this->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $id)));
-            if (empty($attribute)) {
-                throw new MethodNotAllowedException('Invalid attribute.');
-            }
-            $eventId = $attribute[0]['Attribute']['event_id'];
-            if ($eventId != $requestedEventId) { // only takes tags of attributes belonging to the same event
-                continue;
-            }
-            $attributeTags = $this->find('all', array(
-                'conditions' => array(
-                    'attribute_id' => $id
-                ),
-                'contain' => array('Tag'),
-                'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
-            ));
+        $attributes = $this->Attribute->fetchAttributes($user, array(
+            'conditions' => $conditions,
+            'flatten' => 1,
+        ));
+        if (empty($attributes)) {
+            return array();
+        }
 
-            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $cluster_names = $this->GalaxyCluster->find('list', array(
+                'recursive' => -1,
+                'fields' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id'),
+        ));
+
+        $allClusters = array();
+        foreach ($attributes as $attribute) {
+            $attributeTags = $attribute['AttributeTag'];
 
             foreach ($attributeTags as $k => $attributeTag) {
-                if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+                if (isset($cluster_names[$attributeTag['Tag']['name']])) {
                     $cluster = $this->GalaxyCluster->find('first', array(
                             'conditions' => array('GalaxyCluster.tag_name' => $attributeTag['Tag']['name']),
                             'fields' => array('value', 'description', 'type'),

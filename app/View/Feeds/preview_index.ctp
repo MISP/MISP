@@ -18,23 +18,30 @@
         </ul>
     </div>
     <?php
-        $tab = "Center";
-        $filtered = false;
-        if (count($passedArgsArray) > 0) {
-            $tab = "Left";
-            $filtered = true;
+        $data = array(
+            'children' => array(
+                array(
+                    'type' => 'search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
+                    'data' => '',
+                )
+            )
+        );
+        if (!$ajax) {
+            echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
         }
     ?>
 
     <table class="table table-striped table-hover table-condensed">
         <tr>
-            <th class="filter"><?php echo $this->Paginator->sort('Org', 'org'); ?></th>
-            <th class="filter">Tags</th>
+            <th class="filter"><?php echo $this->Paginator->sort('Org', __('Org')); ?></th>
+            <th class="filter"><?php echo __('Tags');?></th>
             <th class="filter"><?php echo $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
             <th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id');?></th>
             <th class="filter" title="<?php echo $eventDescriptions['analysis']['desc']; ?>"><?php echo $this->Paginator->sort('analysis');?></th>
             <th class="filter"><?php echo $this->Paginator->sort('info');?></th>
-            <th class="filter"><?php echo $this->Paginator->sort('timestamp', null, array('direction' => 'desc'));?></th>
+            <th class="filter"><?php echo $this->Paginator->sort('timestamp', __('Timestamp'), array('direction' => 'desc'));?></th>
             <th class="actions"><?php echo __('Actions');?></th>
 
         </tr>
@@ -62,8 +69,8 @@
             </td>
             <td ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'" class="short"><?php echo h($event['timestamp']); ?></td>
             <td class="short action-links">
-                <?php if ($feed['Feed']['enabled'] && $isSiteAdmin) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download', 'title' => 'Fetch the event'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
-                <a href='<?php echo $eventViewURL . h($uuid);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
+                <?php if ($feed['Feed']['enabled'] && $isSiteAdmin) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'fa fa-arrow-circle-down', 'title' => __('Fetch the event')), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
+                <a href='<?php echo $eventViewURL . h($uuid);?>' class = "fa fa-eye" title = "<?php echo __('View');?>"></a>
             </td>
         </tr>
         <?php endforeach; ?>
@@ -86,5 +93,18 @@
         </ul>
     </div>
 </div>
+<script type="text/javascript">
+    var passedArgsArray = <?php echo $passedArgs; ?>;
+    $(document).ready(function() {
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter('<?php echo '/' . h($feed['Feed']['id']);?>');
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter('<?php echo '/' . h($feed['Feed']['id']);?>');
+            }
+        });
+    });
+</script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewIndex', 'id' => $id));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewIndex', 'id' => $id));

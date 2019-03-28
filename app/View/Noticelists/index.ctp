@@ -63,7 +63,7 @@
                 $input = '<input id="checkBox_' . h($item['Noticelist']['id']) . '" type="checkbox" ' . $onClick . ' ' . ($item['Noticelist']['enabled'] ? 'checked' : '') . ' />';
                 echo '<td class="short" id="checkbox_row_' . h($item['Noticelist']['id']) . '">' . $input . '</td>';
                 $actions = '';
-                $actions .= '<a href="' . $baseurl . "/noticelists/view/" . h($item['Noticelist']['id']) . '" class="icon-list-alt" title="' . __('View') . '"></a>';
+                $actions .= '<a href="' . $baseurl . "/noticelists/view/" . h($item['Noticelist']['id']) . '" class="fa fa-eye" title="' . __('View') . '"></a>';
                 echo '<td class="short action-links">' . $actions . '</td>';
                 echo '</tr>';
 
@@ -88,5 +88,5 @@
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'noticelist', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'noticelist', 'menuItem' => 'index'));
 ?>

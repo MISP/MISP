@@ -70,7 +70,7 @@
                         </td>
                         <td class="short">
                             <?php
-                                echo $this->Form->postLink('', array('controller' => 'servers', 'action' => 'deleteFile' , $k , $f['filename']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $f['filename']));
+                                echo $this->Form->postLink('', array('controller' => 'servers', 'action' => 'deleteFile' , $k , $f['filename']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $f['filename']));
                             ?>
                         </td>
                     </tr>
@@ -89,7 +89,7 @@
                     ?>
                 </fieldset>
             <?php
-            echo $this->Form->button('Upload', array('class' => 'btn btn-primary'));
+            echo $this->Form->button(__('Upload'), array('class' => 'btn btn-primary'));
             echo $this->Form->end();
         endforeach;
     ?>

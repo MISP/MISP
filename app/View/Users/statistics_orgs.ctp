@@ -41,14 +41,7 @@
         <tr class="org_row" data-orgid="<?php echo h($data['id']); ?>">
             <td class="short">
                 <?php
-                    if (isset($data['logo'])):
-                ?>
-                        <img src="<?php echo $baseurl; ?>/img/orgs/<?php echo h($data['name']); ?>.png" height="24" width="24" />
-                <?php
-                    else:
-                        echo '&nbsp;';
-                    endif;
-
+                    echo $this->OrgImg->getOrgImg(array('name' => $data['name'], 'id' => $data['id'], 'size' => 24));
                 ?>
             </td>
             <td class="short"><?php echo h($data['name']); ?></td>
@@ -64,7 +57,7 @@
     </table>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
 ?>
 <script type="text/javascript">
     $('.org_row').click(function() {

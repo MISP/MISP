@@ -4,6 +4,10 @@
 ### 0/ MISP CentOS 7 Minimal NetInstall - Status
 --------------------------------------------
 
+{!generic/community.md!}
+
+{!generic/rhelVScentos.md!}
+
 !!! notice
     Semi-maintained and tested by @SteveClement, CentOS 7.5-1804 on 20181113<br />
     It is still considered experimental as not everything works seemlessly.
@@ -55,7 +59,13 @@ sudo yum install centos-release-scl -y
 sudo yum install vim -y
 
 # Install the dependencies:
-sudo yum install gcc git httpd zip redis mariadb mariadb-server python-devel python-pip python-zmq libxslt-devel zlib-devel ssdeep-devel -y
+sudo yum install gcc git zip \
+       httpd \
+       mod_ssl \
+       redis \
+       mariadb mariadb-server \
+       python-devel python-pip python-zmq \
+       libxslt-devel zlib-devel ssdeep-devel -y
 
 # Install PHP 7.1 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php71/
 sudo yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysqlnd rh-php71-php-mbstring rh-php71-php-xml rh-php71-php-bcmath rh-php71-php-opcache -y
@@ -64,13 +74,8 @@ sudo yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysql
 # https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
 sudo yum install rh-python36 -y
 
-# rh-php71-php only provided mod_ssl mod_php for httpd24-httpd from SCL
-# if we want to use httpd from CentOS base we can use rh-php71-php-fpm instead
 sudo systemctl enable rh-php71-php-fpm.service
 sudo systemctl start  rh-php71-php-fpm.service
-
-sudo $RUN_PHP "pear channel-update pear.php.net"
-sudo $RUN_PHP "pear install Crypt_GPG"    # we need version >1.3.0
 ```
 
 !!! notice
@@ -97,7 +102,7 @@ sudo chown apache:apache $PATH_TO_MISP
 cd /var/www
 sudo -u apache git clone https://github.com/MISP/MISP.git
 cd $PATH_TO_MISP
-sudo -u apache git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+##sudo -u apache git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # if the last shortcut doesn't work, specify the latest version manually
 # example: git checkout tags/v2.4.XY
 # the message regarding a "detached HEAD state" is expected behaviour
@@ -107,6 +112,10 @@ sudo -u apache git checkout tags/$(git describe --tags `git rev-list --tags --ma
 sudo -u apache git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
 sudo -u apache git submodule foreach --recursive git config core.filemode false
+
+# Install packaged pears
+sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml"
+sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml"
 
 # Create a python3 virtualenv
 sudo -u apache $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
@@ -174,7 +183,9 @@ sudo -u apache $RUN_PHP "php composer.phar require kamisama/cake-resque:4.1.2"
 sudo -u apache $RUN_PHP "php composer.phar config vendor-dir Vendor"
 sudo -u apache $RUN_PHP "php composer.phar install"
 
-# CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis using "yum install php-redis"
+# CakeResque normally uses phpredis to connect to redis, but it has a (buggy) 
+# fallback connector through Redisent.
+# It is highly advised to install phpredis using "yum install php-redis"
 sudo $RUN_PHP "pecl install redis"
 echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php71/php-fpm.d/redis.ini
 sudo ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php71/php.d/99-redis.ini
@@ -207,9 +218,11 @@ sudo chown -R root:apache /var/www/MISP
 sudo find /var/www/MISP -type d -exec chmod g=rx {} \;
 sudo chmod -R g+r,o= /var/www/MISP
 sudo chmod -R 750 /var/www/MISP
-sudo chmod -R g+ws /var/www/MISP/app/tmp
+sudo chmod -R g+xws /var/www/MISP/app/tmp
 sudo chmod -R g+ws /var/www/MISP/app/files
 sudo chmod -R g+ws /var/www/MISP/app/files/scripts/tmp
+sudo chmod -R g+rw /var/www/MISP/venv
+sudo chmod -R g+rw /var/www/MISP/.git
 sudo chown apache:apache /var/www/MISP/app/files
 sudo chown apache:apache /var/www/MISP/app/files/terms
 sudo chown apache:apache /var/www/MISP/app/files/scripts/tmp
@@ -263,8 +276,11 @@ sudo yum remove tcl expect -y
 echo [mysqld] |sudo tee /etc/my.cnf.d/bind-address.cnf
 echo bind-address=127.0.0.1 |sudo tee -a /etc/my.cnf.d/bind-address.cnf
 sudo systemctl restart mariadb.service
+```
 
 
+#### Manual procedure:
+```bash
 # Enter the mysql shell
 mysql -u root -p
 ```
@@ -276,8 +292,7 @@ MariaDB [(none)]> grant all privileges on misp.* to misp@localhost ;
 MariaDB [(none)]> exit
 ```
 
-#### copy/paste:
-
+#### Same as Manual but for copy/paste foo:
 ```bash
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
@@ -310,6 +325,21 @@ sudo -u apache cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DB
 # A sample vhost can be found in /var/www/MISP/INSTALL/apache.misp.centos7
 
 sudo cp /var/www/MISP/INSTALL/apache.misp.centos7.ssl /etc/httpd/conf.d/misp.ssl.conf
+sudo rm /etc/httpd/conf.d/ssl.conf
+sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
+sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
+echo $OPENSSL_CN
+sudo systemctl start httpd.service
+sudo openssl dhparam -out /etc/pki/tls/certs/dhparam.pem 4096
+sudo openssl genrsa -des3 -passout pass:x -out /tmp/misp.local.key 4096
+sudo openssl rsa -passin pass:x -in /tmp/misp.local.key -out /etc/pki/tls/private/misp.local.key
+sudo rm /tmp/misp.local.key
+sudo openssl req -new -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" -key /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.csr
+sudo openssl x509 -req -days 365 -in /etc/pki/tls/certs/misp.local.csr -signkey /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.crt
+sudo ln -s /etc/pki/tls/certs/misp.local.csr /etc/pki/tls/certs/misp-chain.crt
+cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.crt 
+
+sudo systemctl restart httpd.service
 
 # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
 sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
@@ -322,8 +352,11 @@ sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files
 sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/terms
 sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/scripts/tmp
 sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Plugin/CakeResque/tmp
+sudo chcon -t httpd_sys_script_exec_t /var/www/MISP/app/Console/cake
 sudo chcon -R -t usr_t /var/www/MISP/venv
+sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/.git
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
+sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/Config
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp/logs
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/orgs
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/custom
@@ -338,6 +371,9 @@ sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
 
 # Allow httpd to connect to the redis server and php-fpm over tcp/ip
 sudo setsebool -P httpd_can_network_connect on
+
+# Allow httpd to send emails from php
+sudo setsebool -P httpd_can_sendmail on
 
 # Enable and start the httpd service
 sudo systemctl enable httpd.service
@@ -482,23 +518,25 @@ sudo yum install -y openjpeg-devel
 sudo chmod 2777 /usr/local/src
 sudo chown root:users /usr/local/src
 cd /usr/local/src/
-git clone https://github.com/MISP/misp-modules.git
+sudo -u apache git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip install
-sudo -u apache $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
-sudo -u apache $PATH_TO_MISP/venv/bin/pip install .
+sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
+sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install .
 sudo yum install rubygem-rouge rubygem-asciidoctor -y
 ##sudo gem install asciidoctor-pdf --pre
 
 # install additional dependencies for extended object generation and extraction
-sudo -u apache ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
-sudo -u apache ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+sudo -H -u apache ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
+sudo -H -u apache ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
 sudo -u apache ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 
 sudo sed -i -e '$i \sudo -u apache /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
 ```
+
+{!generic/misp-dashboard-centos.md!}
 
 {!generic/MISP_CAKE_init_centos.md!}
 

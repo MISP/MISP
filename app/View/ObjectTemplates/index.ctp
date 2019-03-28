@@ -25,16 +25,27 @@
         }
     ?>
     </div>
-    <div class="tabMenuFixedContainer" style="display:inline-block;">
-        <?php
-            if ($isSiteAdmin):
-        ?>
-                <span role="button" tabindex="0" aria-label="<?php echo __('Enabled');?>" title="<?php echo __('Enabled');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if (!$all) echo 'tabMenuActive';?>" onClick="window.location='/objectTemplates/index'"><?php echo __('Enabled');?></span>
-                <span role="button" tabindex="0" aria-label="<?php echo __('All');?>" title="<?php echo __('All');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($all) echo 'tabMenuActive';?>" onClick="window.location='/objectTemplates/index/all'"><?php echo __('All');?></span>
-        <?php
-            endif;
-        ?>
-    </div>
+    <?php
+        $data = array(
+            'children' => array(
+                array(
+                    'children' => array(
+                        array(
+                            'url' => '/objectTemplates/index',
+                            'text' => __('Enabled'),
+                            'active' => !$all
+                        ),
+                        array(
+                            'url' => '/objectTemplates/index/all',
+                            'text' => __('All'),
+                            'active' => $all
+                        )
+                    )
+                )
+            )
+        );
+        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+    ?>
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <?php
@@ -101,11 +112,11 @@ foreach ($list as $template):
             ?>
         </td>
         <td class="short action-links">
-            <a href='/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
+            <a href='/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "fa fa-eye" title = "<?php echo __('View');?>"></a>
             <?php
                 if ($isSiteAdmin):
-                    echo $this->Form->postLink('', array('action' => 'update', $template['ObjectTemplate']['name'], 1), array('class' => 'icon-refresh', 'title' => 'Force update'), __('Are you sure you want to force an update for template # %s?', $template['ObjectTemplate']['id']));
-                    echo $this->Form->postLink('', array('action' => 'delete', $template['ObjectTemplate']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete template # %s?', $template['ObjectTemplate']['id']));
+                    echo $this->Form->postLink('', array('action' => 'update', $template['ObjectTemplate']['name'], 1), array('class' => 'fa fa-sync', 'title' => 'Force update'), __('Are you sure you want to force an update for template # %s?', $template['ObjectTemplate']['id']));
+                    echo $this->Form->postLink('', array('action' => 'delete', $template['ObjectTemplate']['id']), array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete template # %s?', $template['ObjectTemplate']['id']));
                 endif;
             ?>
         </td>
@@ -131,4 +142,4 @@ endforeach; ?>
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'objectTemplates', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'objectTemplates', 'menuItem' => 'index'));

@@ -8,6 +8,7 @@
         'select_options' => array(
             // 'multiple' => '', // set to add possibility to pick multiple options in the select
             //'placeholder' => '' // set to replace the default placeholder text
+            // additionalData => '' // Additional data valid for all options which will be passed to the callback functionName
         ),
         'chosen_options' => array(
             'width' => '85%',
@@ -23,6 +24,15 @@
         'disabledSubmitButton' => false, // wether to not draw the submit button
         'flag_redraw_chosen' => false // should chosen picker be redraw at drawing time
     );
+    /**
+    * Supported default option in <Option> fields:
+    *   - name: The name of the item (will be used by the search algo)
+    *   - value: The value when sent when the item is selected
+    *   - template: The template to apply for custom chosen item
+    *   - templateData: Data that will be passed to the template construction function
+    *   - additionalData: Additional data to pass to the callback functionName
+    */
+
     /** prevent exception if not set **/
     $options = isset($options) ? $options : array();
     $items = isset($items) ? $items : array();
@@ -38,6 +48,9 @@
         $select_threshold = 0;
     }
     $use_select = count($items) > $select_threshold;
+    $countThresholdReached = count($items) > 1000;
+    $option_templates = array();
+    $options_additionalData = array();
 ?>
 
 <script>
@@ -78,8 +91,8 @@ function setupChosen(id, redrawChosen) {
 
     // hack to add template into the div
     var $chosenContainer = $elem.parent().find('.chosen-container');
-    $elem.on('chosen:showing_dropdown chosen:searchdone keyup change', function() {
-        redrawChosenWithTemplate($elem, $chosenContainer)
+    $elem.on('chosen:searchdone chosen:picked keyup change', function(e) {
+        redrawChosenWithTemplate($elem, $chosenContainer, e.type)
     });
 
     if (redrawChosen) {
@@ -87,13 +100,18 @@ function setupChosen(id, redrawChosen) {
     }
 }
 
-function redrawChosenWithTemplate($select, $chosenContainer) {
+function redrawChosenWithTemplate($select, $chosenContainer, eventType) {
     var optionLength = $select.find('option').length;
     if (optionLength > 1000) {
         $chosenContainer.parent().find('.generic-picker-wrapper-warning-text').show(0)
     } else {
         $chosenContainer.find('.generic-picker-wrapper-warning-text').hide(0)
-        var $matches = $chosenContainer.find('.chosen-results .active-result, .chosen-single > span, .search-choice > span');
+        var $matches;
+        if (eventType == 'chosen:picked' || eventType == 'change') {
+            $matches = $chosenContainer.find('.chosen-single > span, .search-choice > span');
+        } else {
+            $matches = $chosenContainer.find('.chosen-results .active-result');
+        }
         $matches.each(function() {
             var $item = $(this);
             var index = $item.data('option-array-index');
@@ -102,16 +120,15 @@ function redrawChosenWithTemplate($select, $chosenContainer) {
                 $option = $select.find('option:eq(' + index + ')');
             } else { // if it is a `chosen-single span`, don't have index
                 var text = $item.text();
-                $option = $select.find('option:contains(' + text + ')');
+                $option = $select.find('option').filter(function(index) {
+                    var temp = $.trim($(this).text());
+                    return temp === text;
+                });
             }
-            var template = $option.data('template');
+            var template = options_templates[$select.attr('id')][$option.val()];
             var res = "";
             if (template !== undefined && template !== '') {
-                var template = atob(template);
-                var temp = doT.template(template);
-                var templateData = JSON.parse(atob($option.data('templatedata')));
-                res = temp(templateData);
-                $item.html(res);
+                $item.html(template);
             }
         })
     }
@@ -157,31 +174,41 @@ function fetchRequestedData(clicked) {
 }
 
 function submitFunction(clicked, callback) {
+    var selected, additionalDataOption;
     var $clicked = $(clicked);
     var $select = $clicked.parent().find('select');
-    var selected, additionalData;
-    if ($select.length > 0) {
-        selected = $select.val();
-        additionalData = $select.find(":selected").data('additionaldata');
-    } else {
+    if ($select.length == 0) {
+        $select = $clicked.parent().parent().find('select');
         selected = $clicked.attr('value');
-        additionalData = $clicked.data('additionaldata');
+    } else {
+        selected = $select.val();
     }
-    execAndClose(clicked);
-    callback(selected, additionalData);
+
+    var additionalData = $select.data('additionaldata');
+    if (additionalData !== undefined) {
+        additionalData = JSON.parse(atob(additionalData));
+    } else {
+        additionalData = {};
+    }
+    additionalDataOption = options_additionalData[$select.attr('id')][selected];
+    if (additionalData !== undefined) {
+        $.extend(additionalData, additionalDataOption);
+        execAndClose(clicked);
+        callback(selected, additionalData);
+    }
 }
 </script>
 
 <div class="generic_picker">
-    <div class='generic-picker-wrapper-warning-text alert alert-error <?php echo (count($items) > 1000 ? '' : 'hidden'); ?>' style="margin-bottom: 5px;">
+    <div class='generic-picker-wrapper-warning-text alert alert-error <?php echo ($countThresholdReached ? '' : 'hidden'); ?>' style="margin-bottom: 5px;">
         <i class="fa fa-exclamation-triangle"></i>
         <?php echo __('Due to the large number of options, no contextual information is provided.'); ?>
     </div>
+    <?php
+    $select_id = h(uniqid()); // used to only register the listener on this select (allowing nesting)
+    $flag_addPills = false;
+    ?>
     <?php if ($use_select): ?>
-        <?php
-        $select_id = h(uniqid()); // used to only register the listener on this select (allowing nesting)
-        $flag_addPills = false;
-        ?>
         <select id="<?php echo $select_id; ?>" style="height: 100px; margin-bottom: 0px;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>>
             <option></option>
             <?php
@@ -190,22 +217,36 @@ function submitFunction(clicked, callback) {
                         $flag_addPills = true;
                         continue;
                     } else {
-                        echo $this->GenericPicker->add_option($param, $defaults);
+                        echo $this->GenericPicker->add_option($param, $defaults, $countThresholdReached);
+                        if (!$countThresholdReached && isset($param['template'])) {
+                            $template = $this->GenericPicker->build_template($param);
+                            $option_templates[h($param['value'])] = $template;
+                        }
+                        if (isset($param['additionalData'])) {
+                            $additionalData = $param['additionalData'];
+                            $options_additionalData[h($param['value'])] = $additionalData;
+                        }
                     }
                 }
             ?>
         </select>
         <?php if ($defaults['multiple'] != 0 && !$defaults['disabledSubmitButton']): ?>
-            <button class="btn btn-primary" onclick="submitFunction(this, <?php echo $defaults['functionName']; ?>)"><?php echo h($defaults['submitButtonText']); ?></button>
+            <button class="btn btn-primary" onclick="submitFunction(this, <?php echo h($defaults['functionName']); ?>)"><?php echo h($defaults['submitButtonText']); ?></button>
         <?php endif; ?>
 
         <?php if ($flag_addPills): // add forced pills ?>
             <ul class="nav nav-pills">
-                <?php foreach ($items as $k => $param): ?>
-                    <?php if (isset($param['isPill']) && $param['isPill']):  ?>
-                        <?php echo $this->GenericPicker->add_pill($param, $defaults); ?>
-                    <?php endif; ?>
-                <?php endforeach; ?>
+                <?php
+                foreach ($items as $k => $param) {
+                    if (isset($param['isPill']) && $param['isPill']) {
+                        echo $this->GenericPicker->add_pill($param, $defaults);
+                        if (isset($param['additionalData'])) {
+                            $additionalData = $param['additionalData'];
+                            $options_additionalData[h($param['value'])] = $additionalData;
+                        }
+                    }
+                }
+                ?>
             </ul>
         <?php endif; ?>
 
@@ -217,9 +258,16 @@ function submitFunction(clicked, callback) {
 
     <?php elseif (count($items) > 0): ?>
         <ul class="nav nav-pills">
-            <?php foreach ($items as $k => $param): ?>
-                <?php echo $this->GenericPicker->add_pill($param, $defaults); ?>
-            <?php endforeach; ?>
+            <select id="<?php echo $select_id; ?>" style="display: none;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>></select>
+            <?php
+            foreach ($items as $k => $param) {
+                echo $this->GenericPicker->add_pill($param, $defaults);
+                if (isset($param['additionalData'])) {
+                    $additionalData = $param['additionalData'];
+                    $options_additionalData[h($param['value'])] = $additionalData;
+                }
+            }
+            ?>
         </ul>
     <?php else: ?>
         <span style="margin-left: 15px;"><?php echo __('Nothing to pick'); ?></span>
@@ -227,4 +275,12 @@ function submitFunction(clicked, callback) {
 
     <div class='generic-picker-wrapper hidden'></div>
 
+    <script>
+        if (options_templates === undefined) {
+            var options_templates = {};
+            var options_additionalData = {}
+        }
+        options_templates['<?php echo $select_id; ?>'] = <?php echo json_encode($option_templates); ?>;
+        options_additionalData['<?php echo $select_id; ?>'] = <?php echo json_encode($options_additionalData); ?>;
+    </script>
 </div>

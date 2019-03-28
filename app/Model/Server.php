@@ -106,13 +106,15 @@ class Server extends AppModel
             'console_admin_tasks' => array(
                 'data' => array(
                     'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
-                    'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]',
+                    'setSettings' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
                     'getAuthkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
                     'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
                     'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]',
-					'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
+                    'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
+                    'updateDatabase' => 'MISP/app/Console/cake Admin updateDatabase',
                     'updateGalaxies' => 'MISP/app/Console/cake Admin updateGalaxies',
                     'updateTaxonomies' => 'MISP/app/Console/cake Admin updateTaxonomies',
+                    'updateObjectTemplates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
                     'updateWarningLists' => 'MISP/app/Console/cake Admin updateWarningLists',
                     'updateNoticeLists' => 'MISP/app/Console/cake Admin updateNoticeLists'
                 ),
@@ -141,6 +143,14 @@ class Server extends AppModel
                                 'value' => '',
                                 'errorMessage' => __('The currenty set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address).'),
                                 'test' => 'testBaseURL',
+                                'type' => 'string',
+                        ),
+                        'external_baseurl' => array(
+                                'level' => 0,
+                                'description' => __('The base url of the application (in the format https://www.mymispinstance.com) as visible externally/by other MISPs. MISP will encode this URL in sharing groups when including itself. If this value is not set, the baseurl is used as a fallback.'),
+                                'value' => '',
+                                'errorMessage' => '',
+                                'test' => 'testURL',
                                 'type' => 'string',
                         ),
                         'live' => array(
@@ -239,6 +249,15 @@ class Server extends AppModel
                                 'test' => 'testDisableCache',
                                 'type' => 'boolean',
                                 'afterHook' => 'disableCacheAfterHook',
+                        ),
+                        'disable_threat_level' => array(
+                                'level' => 1,
+                                'description' => __('Disable displaying / modifications to the threat level altogether on the instance (deprecated field).'),
+                                'value' => false,
+                                'null' => true,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean'
                         ),
                         'header' => array(
                                 'level' => 3,
@@ -1104,6 +1123,24 @@ class Server extends AppModel
                             'test' => 'testBoolFalse',
                             'type' => 'boolean',
                             'null' => true
+                        ),
+                        'allow_cors' => array(
+                            'level' => 1,
+                            'description' => __('Allow cross-origin requests to this instance, matching origins given in Security.cors_origins. Set to false to totally disable'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
+                        'cors_origins' => array(
+                            'level' => 1,
+                            'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma seperate if you need more than one.'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
+                            'null' => true
                         )
                 ),
                 'SecureAuth' => array(
@@ -1238,7 +1275,7 @@ class Server extends AppModel
                         ),
                         'RPZ_ns' => array(
                                 'level' => 2,
-                                'description' => '',
+                                'description' => __('Nameserver'),
                                 'value' => 'localhost.',
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
@@ -1259,6 +1296,214 @@ class Server extends AppModel
                             'errorMessage' => '',
                             'test' => 'testForEmpty',
                             'type' => 'string',
+                        ),
+                        'Kafka_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the Kafka pub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                        ),
+                        'Kafka_brokers' => array(
+                            'level' => 2,
+                            'description' => __('A comma separated list of Kafka bootstrap brokers'),
+                            'value' => 'kafka:9092',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
+                        ),
+                        'Kafka_rdkafka_config' => array(
+                            'level' => 2,
+                            'description' => __('A path to an ini file with configuration options to be passed to rdkafka. Section headers in the ini file will be ignored.'),
+                            'value' => '/etc/rdkafka.ini',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
+                        ),
+                        'Kafka_include_attachments' => array(
+                            'level' => 2,
+                            'description' => __('Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_event_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any event creations/edits/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_event_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing event creations/edits/deletions.'),
+                            'value' => 'misp_event',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_event_publish_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('If enabled it will publish to Kafka the event at the time that the event gets published in MISP. Event actions (creation or edit) will not be published to Kafka.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_event_publish_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing event information on publish.'),
+                            'value' => 'misp_event_publish',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_object_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any object creations/edits/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_object_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing object creations/edits/deletions.'),
+                            'value' => 'misp_object',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_object_reference_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any object reference creations/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_object_reference_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing object reference creations/deletions.'),
+                            'value' => 'misp_object_reference',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_attribute_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any attribute creations/edits/soft deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_attribute_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing attribute creations/edits/soft deletions.'),
+                            'value' => 'misp_attribute',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_shadow_attribute_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any proposal creations/edits/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_shadow_attribute_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing proposal creations/edits/deletions.'),
+                            'value' => 'misp_shadow_attribute',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_tag_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_tag_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
+                            'value' => 'misp_tag',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_sighting_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of new sightings.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_sighting_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing sightings.'),
+                            'value' => 'misp_sighting',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_user_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of new/modified users.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_user_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing new/modified users.'),
+                            'value' => 'misp_user',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_organisation_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of new/modified organisations.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_organisation_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing new/modified organisations.'),
+                            'value' => 'misp_organisation',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_audit_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of log entries. Keep in mind, this can get pretty verbose depending on your logging settings.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_audit_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing log entries.'),
+                            'value' => 'misp_audit',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
                         ),
                         'ZeroMQ_enable' => array(
                             'level' => 2,
@@ -1694,7 +1939,7 @@ class Server extends AppModel
                         ),
                         'Cortex_services_enable' => array(
                                 'level' => 0,
-                                'description' => __('Enable/disable the import services'),
+                                'description' => __('Enable/disable the Cortex services'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testBool',
@@ -1711,7 +1956,7 @@ class Server extends AppModel
                         ),
                         'Cortex_timeout' => array(
                                 'level' => 1,
-                                'description' => __('Set a timeout for the import services'),
+                                'description' => __('Set a timeout for the Cortex services'),
                                 'value' => 120,
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
@@ -1912,7 +2157,7 @@ class Server extends AppModel
             if ($result) {
                 $successes[] = $eventId;
             } else {
-                $fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
+                $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
             }
         } else {
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
@@ -1945,7 +2190,7 @@ class Server extends AppModel
             $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
         } else {
             // error
-            $fails[$eventId] = 'failed downloading the event';
+            $fails[$eventId] = __('failed downloading the event');
         }
         return true;
     }
@@ -2860,6 +3105,18 @@ class Server extends AppModel
         return true;
     }
 
+    public function testURL($value)
+    {
+        // only run this check via the GUI, via the CLI it won't work
+        if (!empty($value) && !preg_match('/^http(s)?:\/\//i', $value)) {
+            return 'Invalid baseurl, please make sure that the protocol is set.';
+        }
+        if ($this->testForEmpty($value) !== true) {
+            return $this->testForEmpty($value);
+        }
+        return true;
+    }
+
     public function testDisableEmail($value)
     {
         if (isset($value) && $value) {
@@ -3158,7 +3415,7 @@ class Server extends AppModel
 
     public function customAuthBeforeHook($setting, $value)
     {
-        if ($value) {
+        if (!empty($value)) {
             $this->updateDatabase('addCustomAuth');
         }
         $this->cleanCacheFiles();
@@ -3193,6 +3450,122 @@ class Server extends AppModel
         return $value;
     }
 
+    public function getSettingData($setting_name)
+    {
+        // invalidate config.php from php opcode cache
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+        }
+        if (strpos($setting_name, 'Plugin.Enrichment') !== false || strpos($setting_name, 'Plugin.Import') !== false || strpos($setting_name, 'Plugin.Export') !== false || strpos($setting_name, 'Plugin.Cortex') !== false) {
+            $serverSettings = $this->getCurrentServerSettings();
+        } else {
+            $serverSettings = $this->serverSettings;
+        }
+        $relevantSettings = (array_intersect_key(Configure::read(), $serverSettings));
+        $setting = false;
+        foreach ($serverSettings as $k => $s) {
+            if (isset($s['branch'])) {
+                foreach ($s as $ek => $es) {
+                    if ($ek != 'branch') {
+                        if ($setting_name == $k . '.' . $ek) {
+                            $setting = $es;
+                            continue 2;
+                        }
+                    }
+                }
+            } else {
+                if ($setting_name == $k) {
+                    $setting = $s;
+                    continue;
+                }
+            }
+        }
+        if (!empty($setting)) {
+            $setting['name'] = $setting_name;
+        }
+        return $setting;
+    }
+
+    public function serverSettingsEditValue($user, $setting, $value, $forceSave = false)
+    {
+        if (isset($setting['beforeHook'])) {
+            $beforeResult = call_user_func_array(array($this, $setting['beforeHook']), array($setting['name'], $value));
+            if ($beforeResult !== true) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $result = $this->Log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Server',
+                        'model_id' => 0,
+                        'email' => $user['email'],
+                        'action' => 'serverSettingsEdit',
+                        'user_id' => $user['id'],
+                        'title' => 'Server setting issue',
+                        'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $value  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
+                ));
+                return $beforeResult;
+            }
+        }
+        $value = trim($value);
+        if ($setting['type'] == 'boolean') {
+            $value = ($value ? true : false);
+        }
+        if ($setting['type'] == 'numeric') {
+            $value = intval($value);
+        }
+        if (!empty($setting['test'])) {
+            $testResult = $this->{$setting['test']}($value);
+        } else {
+            $testResult = true;  # No test defined for this setting: cannot fail
+        }
+        if (!$forceSave && $testResult !== true) {
+            if ($testResult === false) {
+                $errorMessage = $setting['errorMessage'];
+            } else {
+                $errorMessage = $testResult;
+            }
+            return $errorMessage;
+        } else {
+            $oldValue = Configure::read($setting['name']);
+            $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            if ($settingSaveResult) {
+                $result = $this->Log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Server',
+                        'model_id' => 0,
+                        'email' => $user['email'],
+                        'action' => 'serverSettingsEdit',
+                        'user_id' => $user['id'],
+                        'title' => 'Server setting changed',
+                        'change' => $setting['name'] . ' (' . $oldValue . ') => (' . $value . ')',
+                ));
+                // execute after hook
+                if (isset($setting['afterHook'])) {
+                    $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value));
+                    if ($afterResult !== true) {
+                        $this->Log->create();
+                        $result = $this->Log->save(array(
+                                'org' => $user['Organisation']['name'],
+                                'model' => 'Server',
+                                'model_id' => 0,
+                                'email' => $user['email'],
+                                'action' => 'serverSettingsEdit',
+                                'user_id' => $user['id'],
+                                'title' => 'Server setting issue',
+                                'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
+                        ));
+                        return $afterResult;
+                    }
+                }
+                return true;
+            } else {
+                return __('Something went wrong. MISP tried to save a malformed config file. Setting change reverted.');
+            }
+        }
+    }
+
     public function serverSettingsSaveValue($setting, $value)
     {
         // validate if current config.php is intact:
@@ -3212,7 +3585,7 @@ class Server extends AppModel
             ));
             return false;
         }
-		copy(APP . 'Config' . DS . 'config.php', APP . 'Config' . DS . 'config.php.bk');
+        copy(APP . 'Config' . DS . 'config.php', APP . 'Config' . DS . 'config.php.bk');
         $settingObject = $this->getCurrentServerSettings();
         foreach ($settingObject as $branchName => $branch) {
             if (!isset($branch['level'])) {
@@ -3258,14 +3631,14 @@ class Server extends AppModel
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
-		$randomFilename = $this->generateRandomFileName();
-		// To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
+        $randomFilename = $this->generateRandomFileName();
+        // To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
         file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
-		rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
-		$config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
-		// if the saved config file is empty, restore the backup.
-		if (strlen($config_saved) < 20) {
-			copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
+        rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
+        $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
+        // if the saved config file is empty, restore the backup.
+        if (strlen($config_saved) < 20) {
+            copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
@@ -3277,9 +3650,9 @@ class Server extends AppModel
                     'user_id' => 0,
                     'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
             ));
-			return false;
-		}
-		return true;
+            return false;
+        }
+        return true;
     }
 
     public function checkVersion($newest)
@@ -3661,15 +4034,15 @@ class Server extends AppModel
         return $readableFiles;
     }
 
-    public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$pymispVersion)
+    public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'pymisp' => '>2.4.93');
+        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'stix2' => '1.1.1', 'pymisp' => '>2.4.93');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);
         if ($scriptResult == null) {
-            return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'pymisp' => array('expected' => $expected['pymisp']));
+            return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'stix2' => array('expected' => $expected['stix2']), 'pymisp' => array('expected' => $expected['pymisp']));
         }
         $scriptResult['operational'] = $scriptResult['success'];
         if ($scriptResult['operational'] == 0) {
@@ -3777,7 +4150,7 @@ class Server extends AppModel
             $syncTool = new SyncTool();
             try {
                 $HttpSocket = $syncTool->setupHttpSocket();
-                $proxyResponse = $HttpSocket->get('http://www.example.com/');
+                $proxyResponse = $HttpSocket->get('https://www.github.com/');
             } catch (Exception $e) {
                 $proxyStatus = 2;
             }
@@ -4195,20 +4568,72 @@ class Server extends AppModel
         return exec('git checkout ' . $mainBranch);
     }
 
+    public function getSubmodulesGitStatus()
+    {
+        $submodulesNames = array('misp-galaxy', 'misp-taxonomies', 'misp-objects', 'misp-noticelist', 'misp-warninglists');
+        $status = array();
+        foreach ($submodulesNames as $submoduleName) {
+            $status[$submoduleName] = $this->getSubmoduleGitStatus($submoduleName);
+        }
+        return $status;
+    }
+
+    public function getSubmoduleGitStatus($submoduleName) {
+        $acceptedSubmodulesNames = array('misp-galaxy', 'misp-taxonomies', 'misp-objects', 'misp-noticelist', 'misp-warninglists');
+        $status = array();
+        if (in_array($submoduleName, $acceptedSubmodulesNames)) {
+            $path = $this->__getSubmodulePath($submoduleName);
+            $status = array(
+                'moduleName' => $submoduleName,
+                'current' => exec(sprintf('cd %s; git rev-parse HEAD', $path)),
+                'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
+                'remoteTimestamp' => exec('timeout 3 git log origin/2.4 -1 --pretty=format:%ct'),
+                'remote' => exec(sprintf('timeout 3 git ls-remote https://github.com/MISP/%s | head -1 | sed "s/HEAD//"', $submoduleName)),
+                'upToDate' => ''
+            );
+            if (!empty($status['remote'])) {
+                if ($status['remote'] == $status['current']) {
+                    $status['upToDate'] = 'same';
+                } else {
+                    $status['upToDate'] = 'older';
+                }
+            } else {
+                $status['upToDate'] = 'error';
+            }
+            $status['timeDiff'] = (new DateTime('@' . $status['remoteTimestamp']))->diff(new DateTime('@' . $status['currentTimestamp']));
+        }
+        return $status;
+    }
+
+    private function __getSubmodulePath($submoduleName) {
+        $base = APP . 'files' . DS;
+        switch ($submoduleName) {
+            case 'misp-taxonomies':
+                return $base . 'taxonomies';
+            case 'misp-noticelist':
+                return $base . 'noticelists';
+            case 'misp-warninglists':
+                return $base . 'warninglists';
+            default:
+                return $base . $submoduleName;
+        }
+    }
+
     public function update($status)
     {
         $final = '';
+        $workingDirectoryPrefix = 'cd $(git rev-parse --show-toplevel) && ';
         $cleanup_commands = array(
             // (>^-^)> [hacky]
-            'git checkout app/composer.json 2>&1'
+            $workingDirectoryPrefix . 'git checkout app/composer.json 2>&1'
         );
         foreach ($cleanup_commands as $cleanup_command) {
             $final .= $cleanup_command . "\n\n";
             exec($cleanup_command, $output);
             $final .= implode("\n", $output) . "\n\n";
         }
-        $command1 = 'git pull origin ' . $status['branch'] . ' 2>&1';
-        $command2 = 'git submodule update --init --recursive 2>&1';
+        $command1 = $workingDirectoryPrefix . 'git pull origin ' . $status['branch'] . ' 2>&1';
+        $command2 = $workingDirectoryPrefix . 'git submodule update --init --recursive 2>&1';
         $final .= $command1 . "\n\n";
         exec($command1, $output);
         $final .= implode("\n", $output) . "\n\n=================================\n\n";

@@ -21,7 +21,7 @@
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo __('Default');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
-            <th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
+            <th><?php echo $this->Paginator->sort('permission', __('Permissions'));?></th>
             <?php
                 foreach ($permFlags as $k => $flags):
             ?>
@@ -60,4 +60,4 @@ endforeach; ?>
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'roles'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'roles'));

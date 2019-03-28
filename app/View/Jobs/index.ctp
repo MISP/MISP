@@ -57,6 +57,41 @@
             }, 3000);
         }
     </script>
+    <?php
+        $data = array(
+            'children' => array(
+                array(
+                    'children' => array(
+                        array(
+                            'url' => '/jobs/index',
+                            'text' => 'All',
+                            'title' => __('Show all queues'),
+                            'active' => !$queue
+                        ),
+                        array(
+                            'url' => '/jobs/index/default',
+                            'text' => 'Default',
+                            'title' => __('Show default queue'),
+                            'active' => $queue === 'default'
+                        ),
+                        array(
+                            'url' => '/jobs/index/email',
+                            'text' => 'Email',
+                            'titles' => __('Show email queue'),
+                            'active' => $queue === 'email'
+                        ),
+                        array(
+                            'url' => '/jobs/index/cache',
+                            'text' => 'Cache',
+                            'title' => __('Show cache queue'),
+                            'active' => $queue === 'cache'
+                        )
+                    )
+                )
+            )
+        );
+        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+    ?>
     <div id="attributeList" class="attributeListContainer">
         <div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
             <span id="filter_header" class="attribute_filter_header"><?php echo __('Filters');?>: </span>
@@ -121,7 +156,7 @@
                 echo h($item['Job']['job_status']);
                 if ($item['Job']['failed']):
             ?>
-                <div class="icon-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
+                <div class="fa fa-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
             <?php
                 endif;
             ?>
@@ -172,4 +207,4 @@
     </ul>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'jobs'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'jobs'));

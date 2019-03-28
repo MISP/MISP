@@ -10,7 +10,7 @@
             <dl>
                 <dt><?php echo __('Uuid');?></dt>
                 <dd><?php echo h($event['Event']['uuid']); ?></dd>
-                <dt><?php echo Configure::read('MISP.showorgalternate') ? 'Source Organisation' : 'Org'?></dt>
+                <dt><?php echo Configure::read('MISP.showorgalternate') ? __('Source Organisation') : __('Org')?></dt>
                 <dd><?php echo h($event['Orgc']['name']); ?></dd>
                 <?php if (Configure::read('MISP.tagging')): ?>
                     <dt><?php echo __('Tags');?></dt>
@@ -22,7 +22,7 @@
                     <?php endforeach; ?>&nbsp;
                     </dd>
                 <?php endif; ?>
-                <dt>Date</dt>
+                <dt><?php echo __('Date');?></dt>
                 <dd>
                     <?php echo h($event['Event']['date']); ?>
                     &nbsp;
@@ -88,7 +88,7 @@
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewEvent', 'id' => $event['Event']['uuid']));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewEvent', 'id' => $event['Event']['uuid']));
 ?>
 <script type="text/javascript">
 // tooltips

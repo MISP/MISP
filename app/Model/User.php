@@ -271,8 +271,10 @@ class User extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_user_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_user_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             if (!empty($this->data)) {
                 $user = $this->data;
                 if (!isset($user['User'])) {
@@ -298,7 +300,14 @@ class User extends AppModel
                     unset($user['User']['password']);
                     unset($user['User']['confirm_password']);
                 }
-                $pubSubTool->modified($user, 'user', $action);
+                if ($pubToZmq) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->modified($user, 'user', $action);
+                }
+                if ($pubToKafka) {
+                    $kafkaPubTool = $this->getKafkaPubTool();
+                    $kafkaPubTool->publishJson($kafkaTopic, $user, $action);
+                }
             }
         }
         return true;
@@ -853,7 +862,7 @@ class User extends AppModel
         // Sign the body
         require_once 'Crypt/GPG.php';
         try {
-            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));	// , 'debug' => true
+            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));   // , 'debug' => true
             if (Configure::read('GnuPG.sign')) {
                 $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
                 $body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);

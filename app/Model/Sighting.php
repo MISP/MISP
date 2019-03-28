@@ -60,8 +60,10 @@ class Sighting extends AppModel
     public function afterSave($created, $options = array())
     {
         parent::afterSave($created, $options = array());
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_sighting_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_sighting_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             $user = array(
                 'org_id' => -1,
                 'Role' => array(
@@ -69,7 +71,14 @@ class Sighting extends AppModel
                 )
             );
             $sighting = $this->getSighting($this->id, $user);
-            $pubSubTool->sighting_save($sighting, 'add');
+            if ($pubToZmq) {
+                $pubSubTool = $this->getPubSubTool();
+                $pubSubTool->sighting_save($sighting, 'add');
+            }
+            if ($pubToKafka) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $sighting, 'add');
+            }
         }
         return true;
     }
@@ -77,8 +86,10 @@ class Sighting extends AppModel
     public function beforeDelete($cascade = true)
     {
         parent::beforeDelete();
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_sighting_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_sighting_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             $user = array(
                 'org_id' => -1,
                 'Role' => array(
@@ -86,7 +97,14 @@ class Sighting extends AppModel
                 )
             );
             $sighting = $this->getSighting($this->id, $user);
-            $pubSubTool->sighting_save($sighting, 'delete');
+            if ($pubToZmq) {
+                $pubSubTool = $this->getPubSubTool();
+                $pubSubTool->sighting_save($sighting, 'delete');
+            }
+            if ($pubToKafka) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $sighting, 'delete');
+            }
         }
     }
 
@@ -267,6 +285,9 @@ class Sighting extends AppModel
         } else {
             if (!$values) {
                 return 'No valid attributes found.';
+            }
+            if (!is_array($values)) {
+                $values = array($values);
             }
             foreach ($values as $value) {
                 foreach (array('value1', 'value2') as $field) {
@@ -519,14 +540,14 @@ class Sighting extends AppModel
                     $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value'));
                     $additional_attribute_added = true;
                 }
-                
+
                 if (!isset($filters['includeEvent']) || !$filters['includeEvent']) {
                     unset($sight["Sighting"]["Event"]);
                 } else if (!$additional_event_added) {
                     $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
                     $additional_event_added = true;
                 }
-                
+
                 if (!empty($sight)) {
                     array_push($allowedSightings, $sight);
                 }

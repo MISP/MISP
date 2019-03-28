@@ -7,7 +7,7 @@ class GalaxyClustersController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'recursive' => -1,
             'order' => array(
                 'GalaxyCluster.value' => 'ASC'
@@ -143,6 +143,8 @@ class GalaxyClustersController extends AppController
                 $cluster['GalaxyCluster']['tag_count'] = count($tag['EventTag']);
                 $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
             }
+        } else {
+            throw new NotFoundException('Cluster not found.');
         }
         if ($this->_isRest()) {
             $cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];
@@ -353,5 +355,108 @@ class GalaxyClustersController extends AppController
                 }
             }
         }
+    }
+
+    public function viewGalaxyMatrix($id) {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException('This function can only be reached via AJAX.');
+        }
+
+        $cluster = $this->GalaxyCluster->find('first', array(
+            'conditions' => array('id' => $id)
+        ));
+        if (empty($cluster)) {
+            throw new Exception("Invalid Galaxy Cluster.");
+        }
+        $this->loadModel('Event');
+        $mitreAttackGalaxyId = $this->GalaxyCluster->Galaxy->getMitreAttackGalaxyId();
+        $attackPatternTagNames = $this->GalaxyCluster->find('list', array(
+            'conditions' => array('galaxy_id' => $mitreAttackGalaxyId),
+            'fields' => array('tag_name')
+        ));
+
+        $cluster = $cluster['GalaxyCluster'];
+        $tag_name = $cluster['tag_name'];
+
+        // fetch all attribute ids having the requested cluster
+        $attributeIds = $this->Event->Attribute->AttributeTag->find('list', array(
+            'contain' => array('Tag'),
+            'conditions' => array(
+                'Tag.name' => $tag_name
+            ),
+            'fields' => array('attribute_id'),
+            'recursive' => -1
+        ));
+        // fetch all related tags belonging to attack pattern
+        $attributeTags = $this->Event->Attribute->AttributeTag->find('all', array(
+            'contain' => array('Tag'),
+            'conditions' => array(
+                'attribute_id' => $attributeIds,
+                'Tag.name' => $attackPatternTagNames
+            ),
+            'fields' => array('Tag.name, COUNT(DISTINCT event_id) as tag_count'),
+            'recursive' => -1,
+            'group' => array('Tag.name')
+        ));
+
+        // fetch all event ids having the requested cluster
+        $eventIds = $this->Event->EventTag->find('list', array(
+            'contain' => array('Tag'),
+            'conditions' => array(
+                'Tag.name' => $tag_name
+            ),
+            'fields' => array('event_id'),
+            'recursive' => -1
+        ));
+        // fetch all related tags belonging to attack pattern
+        $eventTags = $this->Event->EventTag->find('all', array(
+            'contain' => array('Tag'),
+            'conditions' => array(
+                'event_id' => $eventIds,
+                'Tag.name' => $attackPatternTagNames
+            ),
+            'fields' => array('Tag.name, COUNT(DISTINCT event_id) as tag_count'),
+            'recursive' => -1,
+            'group' => array('Tag.name')
+        ));
+
+        $scores = array();
+        foreach ($attributeTags as $tag) {
+            $tagName = $tag['Tag']['name'];
+            $scores[$tagName] = intval($tag[0]['tag_count']);
+        }
+        foreach ($eventTags as $tag) {
+            $tagName = $tag['Tag']['name'];
+            if (isset($scores[$tagName])) {
+                $scores[$tagName] = $scores[$tagName] + intval($tag[0]['tag_count']);
+            } else {
+                $scores[$tagName] = intval($tag[0]['tag_count']);
+            }
+        }
+
+        $maxScore = count($scores) > 0 ? max(array_values($scores)) : 0;
+        $matrixData = $this->GalaxyCluster->Galaxy->getMatrix($mitreAttackGalaxyId);
+        $tabs = $matrixData['tabs'];
+        $matrixTags = $matrixData['matrixTags'];
+        $killChainOrders = $matrixData['killChain'];
+        $instanceUUID = $matrixData['instance-uuid'];
+
+        App::uses('ColourGradientTool', 'Tools');
+        $gradientTool = new ColourGradientTool();
+        $colours = $gradientTool->createGradientFromValues($scores);
+        $this->set('target_type', 'attribute');
+        $this->set('columnOrders', $killChainOrders);
+        $this->set('tabs', $tabs);
+        $this->set('scores', $scores);
+        $this->set('maxScore', $maxScore);
+        if (!empty($colours)) {
+            $this->set('colours', $colours['mapping']);
+            $this->set('interpolation', $colours['interpolation']);
+        }
+        $this->set('pickingMode', false);
+        $this->set('defaultTabName', 'mitre-attack');
+        $this->set('removeTrailling', 2);
+
+        $this->render('cluster_matrix');
     }
 }

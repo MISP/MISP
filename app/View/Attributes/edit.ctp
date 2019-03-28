@@ -75,7 +75,7 @@
     if (!$ajax) {
         $event['Event']['id'] = $this->request->data['Attribute']['event_id'];
         $event['Event']['published'] = $published;
-        echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
     }
 ?>
 <script type="text/javascript">

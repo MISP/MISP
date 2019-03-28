@@ -10,6 +10,7 @@
     <?php
         echo $this->Html->meta('icon');
         echo $this->Html->css('bootstrap');
+        //echo $this->Html->css('bootstrap4');
         echo $this->Html->css('bootstrap-datepicker');
         echo $this->Html->css('bootstrap-timepicker');
         echo $this->Html->css('bootstrap-colorpicker');
@@ -31,7 +32,6 @@
         echo $this->Html->script('jquery-ui'); // UI support
         echo $this->Html->css('chosen.min');
         echo $this->Html->script('chosen.jquery.min');
-        echo $this->Html->script('doT');
     ?>
 
 </head>
@@ -51,7 +51,7 @@
         ?>
     </div>
     <div id="flashContainer" style="padding-top:<?php echo $topPadding; ?>px; !important;">
-    	<div id="main-view-container" class="container-fluid ">
+        <div id="main-view-container" class="container-fluid ">
             <?php
                 $flash = $this->Flash->render();
                 echo $flash;
@@ -60,13 +60,14 @@
     </div>
     <div>
         <?php
-			echo $this->fetch('content');
-		?>
+            echo $this->fetch('content');
+        ?>
     </div>
     <?php
     echo $this->element('footer');
     echo $this->element('sql_dump');
     echo $this->Html->script('bootstrap');
+    //echo $this->Html->script('bootstrap4');
     echo $this->Html->script('bootstrap-timepicker');
     echo $this->Html->script('bootstrap-datepicker');
     echo $this->Html->script('bootstrap-colorpicker');
@@ -98,6 +99,13 @@
     ?>
         var tabIsActive = true;
         var baseurl = '<?php echo $baseurl; ?>';
+        var here = '<?php
+                if (substr($this->params['action'], 0, 6) === 'admin_') {
+                    echo $baseurl . '/admin/' . $this->params['controller'] . '/' . substr($this->params['action'], 6);
+                } else {
+                    echo $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];
+                }
+            ?>';
         $(document).ready(function(){
             $(window).blur(function() {
                 tabIsActive = false;
@@ -112,11 +120,11 @@
         <?php
             endif;
         ?>
-		if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
-			//$('#flashErrorMessage').html()
-			var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
-			$('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
-		}
+        if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
+            //$('#flashErrorMessage').html()
+            var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
+            $('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
+        }
         });
     </script>
 </body>
