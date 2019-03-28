@@ -359,11 +359,20 @@ $(document).ready(function() {
         .data([data])
         .enter()
         .append('g')
-        .attr('class', 'yolo')
         .append('circle')
         .attr('class', 'decayingGraphDot')
         .attr("cx", function(d) { return x(getReverseScore(parseInt($('#input_Threshold').val()))); })
         .attr("cy", function(d, i) { return y(parseInt($('#input_Threshold').val())); })
+        .attr("r", 5);
+
+    svg.selectAll('.decayingGraphHandleDot')
+        .data([data])
+        .enter()
+        .append('g')
+        .append('circle')
+        .attr('class', 'decayingGraphHandleDot')
+        .attr("cx", function(d) { return x(parseInt($('#input_Tau').val()/2*24)); })
+        .attr("cy", function(d) { return y(getScore(parseInt($('#input_Tau').val()/2*24))); })
         .attr("r", 5)
         .call(drag);
         // .on("mouseover", function(datum, b, c) {

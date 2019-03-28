@@ -2273,6 +2273,12 @@ table tr:hover .down-expand-button {
 
 .decayingGraphDot{
     stroke: #ffffff;
+    fill: #da4f49;
+    stroke-width: 2px;
+}
+
+.decayingGraphHandleDot{
+    stroke: #ffffff;
     fill: steelblue;
     stroke-width: 2px;
 }
