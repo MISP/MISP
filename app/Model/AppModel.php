@@ -30,6 +30,8 @@ class AppModel extends Model
 
     public $loadedPubSubTool = false;
 
+    public $loadedKafkaPubTool = false;
+
     public $start = 0;
 
     public $inserted_ids = array();
@@ -72,7 +74,8 @@ class AppModel extends Model
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
-        27 => false, 28 => false, 29 => false, 30 => false
+        27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
+        33 => false, 34 => false
     );
 
     public function afterSave($created, $options = array())
@@ -167,6 +170,9 @@ class AppModel extends Model
                 break;
             case 23:
                 $this->__bumpReferences();
+                break;
+            case 34:
+                $this->__fixServerPullPushRules();
                 break;
             default:
                 $this->updateDatabase($command);
@@ -1096,6 +1102,34 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `galaxies` MODIFY COLUMN `kill_chain_order` text";
                 $sqlArray[] = "ALTER TABLE `feeds` ADD `force_to_ids` tinyint(1) NOT NULL DEFAULT 0;";
                 break;
+            case 31:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `rest_client_histories` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `org_id` int(11) NOT NULL,
+                    `user_id` int(11) NOT NULL,
+                    `headers` text,
+                    `body` text,
+                    `url` text,
+                    `http_method` varchar(255),
+                    `timestamp` int(11) NOT NULL DEFAULT 0,
+                    `use_full_path` tinyint(1) DEFAULT 0,
+                    `show_result` tinyint(1) DEFAULT 0,
+                    `skip_ssl` tinyint(1) DEFAULT 0,
+                    `outcome` int(11) NOT NULL,
+                    `bookmark` tinyint(1) NOT NULL DEFAUlT 0,
+                    `bookmark_name` varchar(255) NULL DEFAULT '',
+                    PRIMARY KEY (`id`),
+                    KEY `org_id` (`org_id`),
+                    KEY `user_id` (`user_id`),
+                    KEY `timestamp` (`timestamp`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                break;
+            case 32:
+                $sqlArray[] = "ALTER TABLE `taxonomies` ADD `required` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 33:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_publish_kafka` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1504,6 +1538,36 @@ class AppModel extends Model
         $redis->select($database);
         $this->__redisConnection = $redis;
         return $redis;
+    }
+
+    public function getKafkaPubTool()
+    {
+        if (!$this->loadedKafkaPubTool) {
+            $this->loadKafkaPubTool();
+        }
+        return $this->loadedKafkaPubTool;
+    }
+
+    public function loadKafkaPubTool()
+    {
+        App::uses('KafkaPubTool', 'Tools');
+        $kafkaPubTool = new KafkaPubTool();
+        $rdkafkaIni = Configure::read('Plugin.Kafka_rdkafka_config');
+        $kafkaConf = array();
+        if (!empty($rdkafkaIni)) {
+            $kafkaConf = parse_ini_file($rdkafkaIni);
+        }
+        $brokers = Configure::read('Plugin.Kafka_brokers');
+        $kafkaPubTool->initTool($brokers, $kafkaConf);
+        $this->loadedKafkaPubTool = $kafkaPubTool;
+        return true;
+    }
+
+    public function publishKafkaNotification($topicName, $data, $action = false) {
+        $kafkaTopic = Configure::read('Plugin.Kafka_' . $topicName . '_notifications_topic');
+        if (Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_' . $topicName . '_notifications_enable') && !empty($kafkaTopic)) {
+            $this->getKafkaPubTool()->publishJson($kafkaTopic, $data, $action);
+        }
     }
 
     public function getPubSubTool()
@@ -1967,5 +2031,25 @@ class AppModel extends Model
             return time() + 1;
         }
         return time() - ($delta * $multiplier);
+    }
+
+    private function __fixServerPullPushRules()
+    {
+        $this->Server = ClassRegistry::init('Server');
+        $servers = $this->Server->find('all', array('recursive' => -1));
+        foreach ($servers as $server) {
+            $changed = false;
+            if (empty($server['Server']['pull_rules'])) {
+                $server['Server']['pull_rules'] = '[]';
+                $changed = true;
+            }
+            if (empty($server['Server']['push_rules'])) {
+                $server['Server']['push_rules'] = '[]';
+                $changed = true;
+            }
+            if ($changed) {
+                $this->Server->save($server);
+            }
+        }
     }
 }

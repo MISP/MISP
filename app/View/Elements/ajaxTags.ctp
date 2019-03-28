@@ -1,3 +1,24 @@
+<?php
+    if (!empty($required_taxonomies)) {
+        foreach ($required_taxonomies as $k => $v) {
+            foreach ($tags as $tag) {
+                $temp_tag = explode(':', $tag['Tag']['name']);
+                if (count($temp_tag) > 1) {
+                    if ($temp_tag[0] == $v) {
+                        unset($required_taxonomies[$k]);
+                        break;
+                    }
+                }
+            }
+        }
+        if (!empty($required_taxonomies)) {
+            echo sprintf(
+                'Missing taxonomies: <span class="red bold">%s</span><br />',
+                implode(', ', $required_taxonomies)
+            );
+        }
+    }
+?>
 <span style="display:inline-block;">
     <?php
         $full = $isAclTagger && $tagAccess;

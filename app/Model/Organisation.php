@@ -125,6 +125,8 @@ class Organisation extends AppModel
             $pubSubTool = $this->getPubSubTool();
             $pubSubTool->modified($this->data, 'organisation');
         }
+        $action = $created ? 'add' : 'edit';
+        $this->publishKafkaNotification('organisation', $this->data, $action);
         return true;
     }
 

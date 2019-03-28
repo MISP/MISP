@@ -68,7 +68,6 @@ this_module = sys.modules[__name__]
 # mappings
 status_mapping = {'0' : 'New', '1' : 'Open', '2' : 'Closed'}
 threat_level_mapping = {'1' : 'High', '2' : 'Medium', '3' : 'Low', '4' : 'Undefined'}
-TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN', '4' : 'AMBER'}
 TLP_order = {'RED' : 4, 'AMBER' : 3, 'GREEN' : 2, 'WHITE' : 1}
 confidence_mapping = {False : 'None', True : 'High'}
 
@@ -236,6 +235,9 @@ class StixBuilder(object):
             for label in labels:
                 tag_name = "MISP Tag: {}".format(label)
                 self.add_journal_entry(tag_name)
+            handling = self.set_tlp(Tags)
+            if handling is not None:
+                self.incident.handling = handling
         else:
             self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
         external_id = ExternalID(value=str(self.misp_event['id']), source="MISP Event")
@@ -243,10 +245,6 @@ class StixBuilder(object):
         incident_status_name = status_mapping.get(str(self.misp_event['analysis']), None)
         if incident_status_name is not None:
             self.incident.status = IncidentStatus(incident_status_name)
-        try:
-            self.incident.handling = self.set_tlp(self.misp_event['distribution'], event_tags)
-        except Exception:
-            pass
         self.incident.information_source = self.set_src()
         self.orgc_name = self.misp_event['Orgc'].get('name')
         self.incident.reporter = self.set_rep()
@@ -368,10 +366,9 @@ class StixBuilder(object):
         indicator.producer = self.set_prod(self.orgc_name)
         for attribute in misp_object['Attribute']:
             tlp_tags = self.merge_tags(tlp_tags, attribute)
-        try:
-            indicator.handling = self.set_tlp(misp_object['distribution'], tlp_tags)
-        except Exception:
-            pass
+        handling = self.set_tlp(tlp_tags)
+        if handling is not None:
+            indicator.handling = handling
         title = "{} (MISP Object #{})".format(misp_object['name'], misp_object['id'])
         indicator.title = title
         indicator.description = misp_object['comment'] if misp_object.get('comment') else title
@@ -517,7 +514,9 @@ class StixBuilder(object):
         indicator.producer = self.set_prod(self.orgc_name)
         if attribute.get('comment'):
             indicator.description = attribute['comment']
-        indicator.handling = self.set_tlp(attribute['distribution'], self.merge_tags(tags, attribute))
+        handling = self.set_tlp(self.merge_tags(tags, attribute))
+        if handling is not None:
+            indicator.handling = handling
         indicator.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute['value'], attribute['id'])
         indicator.description = indicator.title
         confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
@@ -1271,7 +1270,7 @@ class StixBuilder(object):
         information_source = InformationSource(identity=identity)
         return information_source
 
-    def set_tlp(self, distribution, tags):
+    def set_tlp(self, tags):
         marking_specification = MarkingSpecification()
         marking_specification.controlled_structure = "../../../descendant-or-self::node()"
         tlp = TLPMarkingStructure()
@@ -1280,17 +1279,14 @@ class StixBuilder(object):
             color = self.set_color(attr_colors)
         else:
             event_colors = self.fetch_colors(tags.get('event')) if 'event' in tags else []
-            if event_colors:
-                color = self.set_color(event_colors)
-            else:
-                color = TLP_mapping.get(str(distribution), None)
-        if color is not None:
-            tlp.color = color
-            marking_specification.marking_structures.append(tlp)
-            handling = Marking()
-            handling.add_marking(marking_specification)
-            return handling
-        return
+            if not event_colors:
+                return None
+            color = self.set_color(event_colors)
+        tlp.color = color
+        marking_specification.marking_structures.append(tlp)
+        handling = Marking()
+        handling.add_marking(marking_specification)
+        return handling
 
     def add_journal_entry(self, entry_line):
         hi = HistoryItem()
@@ -1313,10 +1309,9 @@ class StixBuilder(object):
     def create_ttp(self, attribute, tags):
         ttp = TTP(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
         ttp.id_ = "{}:ttp-{}".format(self.orgname, attribute['uuid'])
-        try:
-            ttp.handling = self.set_tlp(attribute['distribution'], self.merge_tags(tags, attribute))
-        except Exception:
-            pass
+        handling = self.set_tlp(self.merge_tags(tags, attribute))
+        if handling is not None:
+            ttp.handling = handling
         ttp.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute['value'], attribute['id'])
         return ttp
 

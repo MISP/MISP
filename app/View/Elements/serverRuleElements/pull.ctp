@@ -35,7 +35,7 @@
                 </tr>
                 <tr>
                     <td style="width:120px;">
-                        <p style="color:green;font-weight:bold;">Allowed Orgs (OR)</p>
+                        <p style="color:green;font-weight:bold;"><?php echo __('Allowed Orgs (OR)');?></p>
                         <select id="orgspullLeftValues" size="5" multiple style="width:185px;">
                         </select>
                     </td>

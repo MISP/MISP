@@ -26,7 +26,7 @@ class EventsController extends AppController
     );
 
     private $acceptedFilteringNamedParams = array('sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
-        'searchFor', 'attributeFilter', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS'
+        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS'
     );
 
     public $defaultFilteringRules =  array(
@@ -868,6 +868,7 @@ class EventsController extends AppController
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('shortDist', $this->Event->shortDist);
+        $this->set('distributionData', $this->genDistributionGraph(-1));
         if ($this->params['ext'] === 'csv') {
             App::uses('CsvExport', 'Export');
             $export = new CsvExport();
@@ -1456,6 +1457,7 @@ class EventsController extends AppController
         $orgTable = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
+        $this->set('required_taxonomies', $this->Event->getRequiredTaxonomies());
         $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
         $this->set('filters', $filters);
@@ -2362,6 +2364,18 @@ class EventsController extends AppController
             $result = $this->Event->save($event, array('fieldList' => $fieldList));
             if ($result) {
                 $message = __('Event unpublished.');
+                $kafkaTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
+                if (Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaTopic)) {
+                    $kafkaPubTool = $this->Event->getKafkaPubTool();
+                    $params = array('eventid' => $id);
+                    if (Configure::read('Plugin.Kafka_include_attachments')) {
+                        $params['includeAttachments'] = 1;
+                    }
+                    $pubEvent = $this->Event->fetchEvent($this->Auth->user(), $params);
+                    if (!empty($pubEvent)) {
+                        $kafkaPubTool->publishJson($kafkaTopic, $pubEvent[0], 'unpublish');
+                    }
+                }
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('events', 'unpublish', $id, false, $message);
                 } else {
@@ -2399,6 +2413,13 @@ class EventsController extends AppController
         $errors = array();
         // only allow form submit CSRF protection.
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (!$this->_isRest()) {
+                $publishable = $this->Event->checkIfPublishable($id);
+                if ($publishable !== true) {
+                    $this->Flash->error(__('Could not publish event - no tag for required taxonomies missing: %s', implode(', ', $publishable)));
+                    $this->redirect(array('action' => 'view', $id));
+                }
+            }
             // Performs all the actions required to publish an event
             $result = $this->Event->publishRouter($id, null, $this->Auth->user());
             if (!Configure::read('MISP.background_jobs')) {
@@ -2666,16 +2687,10 @@ class EventsController extends AppController
                     $this->Event->export_types[$k]['progress'] = 0;
                 }
             }
-            $this->set('export_types', $this->Event->export_types);
-            // generate the list of Attribute types
-            $this->loadModel('Attribute');
-            $this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
-        } else {
-            // generate the list of Attribute types
-            $this->loadModel('Attribute');
-            $this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
-            $this->render('/Events/export_alternate');
         }
+        $this->loadModel('Attribute');
+        $this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
+        $this->set('export_types', $this->Event->export_types);
     }
 
     public function downloadExport($type, $extra = null)
@@ -3530,9 +3545,6 @@ class EventsController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
-        if (!$this->request->is('post')) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
-        }
         $rearrangeRules = array(
                 'request' => false,
                 'Event' => false,
@@ -3545,112 +3557,120 @@ class EventsController extends AppController
         if ($id === false) {
             $id = $this->request->data['event'];
         }
-        if ($tag_id === false) {
-            $tag_id = $this->request->data['tag'];
-        }
-        $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
-        if (!$this->_isSiteAdmin()) {
-            $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
-            $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
-        }
-        if (!is_numeric($tag_id)) {
-            if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
-                $tagChoice = explode('_', $tag_id)[1];
-                $this->loadModel('TagCollection');
-                $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
-                if (empty($tagCollection)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
-                }
-                $tag_id_list = array();
-                foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
-                    $tag_id_list[] = $tagCollectionTag['tag_id'];
-                }
-            } else {
-                $tag_ids = json_decode($tag_id);
-                if ($tag_ids !== null) { // can decode json
-                    $tag_id_list = array();
-                    foreach ($tag_ids as $tag_id) {
-                        if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
-                            $tagChoice = explode('_', $tag_id)[1];
-                            $this->loadModel('TagCollection');
-                            $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
-                            if (empty($tagCollection)) {
-                                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
-                            }
-                            $tag_id_list = array();
-                            foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
-                                $tag_id_list[] = $tagCollectionTag['tag_id'];
-                            }
-                        } else {
-                            $tag_id_list[] = $tag_id;
-                        }
-                    }
-                } else {
-                    $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
-                    if (empty($tag)) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
-                    }
-                    $tag_id = $tag['Tag']['id'];
-                }
-            }
-        }
         $this->Event->recursive = -1;
         $event = $this->Event->read(array(), $id);
         if (empty($event)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
         }
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-            if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
-            }
-        }
-        $this->autoRender = false;
-        $error = false;
-        $success = false;
-        if (empty($tag_id_list)) {
-            $tag_id_list = array($tag_id);
-        }
-        foreach ($tag_id_list as $tag_id) {
-            $this->Event->EventTag->Tag->id = $tag_id;
-            if (!$this->Event->EventTag->Tag->exists()) {
-                $error = __('Invalid Tag.');
-                continue;
-            }
-            $tag = $this->Event->EventTag->Tag->find('first', array(
-                'conditions' => array('Tag.id' => $tag_id),
-                'recursive' => -1,
-                'fields' => array('Tag.name')
-            ));
-            $found = $this->Event->EventTag->find('first', array(
-                'conditions' => array(
-                    'event_id' => $id,
-                    'tag_id' => $tag_id
-                ),
-                'recursive' => -1,
-            ));
-            if (!empty($found)) {
-                $error = __('Tag is already attached to this event.');
-                continue;
-            }
-            $this->Event->EventTag->create();
-            if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
-                $event['Event']['published'] = 0;
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Event->save($event);
-                $log = ClassRegistry::init('Log');
-                $log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
-                $success = __('Tag(s) added.');
-            } else {
-                $fail = __('Tag could not be added.');
-            }
-        }
-        if ($success) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Tag(s) added.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
-        } elseif (empty($fail)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+        if (!$this->request->is('post')) {
+            $this->set('object_id', $id);
+            $this->set('scope', 'Event');
+            $this->layout = false;
+            $this->autoRender = false;
+            $this->render('/Events/add_tag');
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $fail)), 'status'=>200, 'type' => 'json'));
+            if ($tag_id === false) {
+                $tag_id = $this->request->data['tag'];
+            }
+            if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
+                if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+                }
+            }
+            $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
+            if (!$this->_isSiteAdmin()) {
+                $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
+            }
+            if (!is_numeric($tag_id)) {
+                if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                    $tagChoice = explode('_', $tag_id)[1];
+                    $this->loadModel('TagCollection');
+                    $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                    if (empty($tagCollection)) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                    }
+                    $tag_id_list = array();
+                    foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                        $tag_id_list[] = $tagCollectionTag['tag_id'];
+                    }
+                } else {
+                    $tag_ids = json_decode($tag_id);
+                    if ($tag_ids !== null) { // can decode json
+                        $tag_id_list = array();
+                        foreach ($tag_ids as $tag_id) {
+                            if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                                $tagChoice = explode('_', $tag_id)[1];
+                                $this->loadModel('TagCollection');
+                                $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                                if (empty($tagCollection)) {
+                                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                                }
+                                $tag_id_list = array();
+                                foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                                    $tag_id_list[] = $tagCollectionTag['tag_id'];
+                                }
+                            } else {
+                                $tag_id_list[] = $tag_id;
+                            }
+                        }
+                    } else {
+                        $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                        if (empty($tag)) {
+                            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                        }
+                        $tag_id = $tag['Tag']['id'];
+                    }
+                }
+            }
+            $this->autoRender = false;
+            $error = false;
+            $success = false;
+            if (empty($tag_id_list)) {
+                $tag_id_list = array($tag_id);
+            }
+            foreach ($tag_id_list as $tag_id) {
+                $this->Event->EventTag->Tag->id = $tag_id;
+                if (!$this->Event->EventTag->Tag->exists()) {
+                    $error = __('Invalid Tag.');
+                    continue;
+                }
+                $tag = $this->Event->EventTag->Tag->find('first', array(
+                    'conditions' => array('Tag.id' => $tag_id),
+                    'recursive' => -1,
+                    'fields' => array('Tag.name')
+                ));
+                $found = $this->Event->EventTag->find('first', array(
+                    'conditions' => array(
+                        'event_id' => $id,
+                        'tag_id' => $tag_id
+                    ),
+                    'recursive' => -1,
+                ));
+                if (!empty($found)) {
+                    $error = __('Tag is already attached to this event.');
+                    continue;
+                }
+                $this->Event->EventTag->create();
+                if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
+                    $event['Event']['published'] = 0;
+                    $date = new DateTime();
+                    $event['Event']['timestamp'] = $date->getTimestamp();
+                    $this->Event->save($event);
+                    $log = ClassRegistry::init('Log');
+                    $log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
+                    $success = __('Tag(s) added.');
+                } else {
+                    $fail = __('Tag could not be added.');
+                }
+            }
+            if ($success) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Tag(s) added.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+            } elseif (empty($fail)) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+            } else {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $fail)), 'status'=>200, 'type' => 'json'));
+            }
         }
     }
 
@@ -4667,8 +4687,7 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    public function getDistributionGraph($id, $type = 'event')
-    {
+    private function genDistributionGraph($id, $type = 'event', $extended = 0) {
         $validTools = array('event');
         if (!in_array($type, $validTools)) {
             throw new MethodNotAllowedException(__('Invalid type.'));
@@ -4677,9 +4696,6 @@ class EventsController extends AppController
         $this->loadModel('Organisation');
         App::uses('DistributionGraphTool', 'Tools');
         $grapher = new DistributionGraphTool();
-        $data = $this->request->is('post') ? $this->request->data : array();
-
-        $extended = isset($this->params['named']['extended']) ? 1 : 0;
 
         $servers = $this->Server->find('list', array(
             'fields' => array('name'),
@@ -4692,6 +4708,13 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
+        return $json;
+    }
+
+    public function getDistributionGraph($id, $type = 'event')
+    {
+        $extended = isset($this->params['named']['extended']) ? 1 : 0;
+        $json = $this->genDistributionGraph($id, $type, $extended);
         $this->response->type('json');
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
@@ -4915,7 +4938,6 @@ class EventsController extends AppController
             App::uses('ColourGradientTool', 'Tools');
             $gradientTool = new ColourGradientTool();
             $colours = $gradientTool->createGradientFromValues($scores);
-
             $this->set('eventId', $eventId);
             $this->set('target_type', $scope);
             $this->set('columnOrders', $killChainOrders);
@@ -4998,12 +5020,12 @@ class EventsController extends AppController
         if (empty($attribute)) {
             throw new MethodNotAllowedException(__('Attribute not found or you are not authorised to see it.'));
         }
+        $this->loadModel('Module');
+        $enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
+        if (!is_array($enabledModules) || empty($enabledModules)) {
+            throw new MethodNotAllowedException(__('No valid %s options found for this attribute.', $type));
+        }
         if ($this->request->is('ajax')) {
-            $this->loadModel('Module');
-            $enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
-            if (!is_array($enabledModules) || empty($enabledModules)) {
-                throw new MethodNotAllowedException(__('No valid %s options found for this attribute.', $type));
-            }
             $modules = array();
             foreach ($enabledModules['modules'] as $module) {
                 if (in_array($attribute[0]['Attribute']['type'], $module['mispattributes']['input'])) {
@@ -5016,65 +5038,16 @@ class EventsController extends AppController
             $this->set('type', $type);
             $this->render('ajax/enrichmentChoice');
         } else {
-            $this->loadModel('Module');
-            $enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
-            if (!is_array($enabledModules) || empty($enabledModules)) {
-                throw new MethodNotAllowedException(__('no valid %s options found for this attribute.', $type));
-            }
             $options = array();
             foreach ($enabledModules['modules'] as $temp) {
                 if ($temp['name'] == $module) {
+                    $format = (isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
                             $options[$conf] = Configure::read('Plugin.' . $type . '_' . $module . '_' . $conf);
                         }
                     }
-                }
-            }
-            $data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value'], 'event_id' => $attribute[0]['Attribute']['event_id'], 'attribute_uuid' => $attribute[0]['Attribute']['uuid']);
-            if ($this->Event->Attribute->typeIsAttachment($attribute[0]['Attribute']['type'])) {
-                $data['data'] = $this->Event->Attribute->base64EncodeAttachment($attribute[0]['Attribute']);
-            }
-            if (!empty($options)) {
-                $data['config'] = $options;
-            }
-            $data = json_encode($data);
-            $result = $this->Module->queryModuleServer('/query', $data, false, $type);
-            if (!$result) {
-                throw new MethodNotAllowedException(__('%s service not reachable.', $type));
-            }
-            if (isset($result['error'])) {
-                $this->Flash->error($result['error']);
-            }
-            if (!is_array($result)) {
-                throw new Exception($result);
-            }
-            $resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
-            if (isset($result['comment']) && $result['comment'] != "") {
-                $importComment = $result['comment'];
-            } else {
-                $importComment = $attribute[0]['Attribute']['value'] . __(': Enriched via the %s', $module) . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
-            }
-            $typeCategoryMapping = array();
-            foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
-                foreach ($cat['types'] as $type) {
-                    $typeCategoryMapping[$type][$k] = $k;
-                }
-            }
-            foreach ($resultArray as $key => $result) {
-                $options = array(
-                        'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
-                        'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                        'order' => false
-                );
-                $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
-                if (isset($result['data'])) {
-                    App::uses('FileAccessTool', 'Tools');
-                    $fileAccessTool = new FileAccessTool();
-                    $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
-                    $tempFile = $fileAccessTool->createTempFile($tmpdir, $prefix = 'MISP');
-                    $fileAccessTool->writeToFile($tempFile, $result['data']);
-                    $resultArray[$key]['data'] = basename($tempFile) . '|' . filesize($tempFile);
+                    break;
                 }
             }
             $distributions = $this->Event->Attribute->distributionLevels;
@@ -5084,16 +5057,139 @@ class EventsController extends AppController
             }
             $this->set('distributions', $distributions);
             $this->set('sgs', $sgs);
-            $this->set('type', $type);
-            $this->set('event', array('Event' => $attribute[0]['Event']));
-            $this->set('resultArray', $resultArray);
-            $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
-            $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
-            $this->set('typeCategoryMapping', $typeCategoryMapping);
-            $this->set('title', 'Enrichment Results');
-            $this->set('importComment', $importComment);
-            $this->render('resolved_attributes');
+            if ($format == 'misp_standard') {
+                $this->__queryEnrichment($attribute, $module, $options, $type);
+            } else {
+                $this->__queryOldEnrichment($attribute, $module, $options, $type);
+            }
         }
+    }
+
+    private function __queryEnrichment($attribute, $module, $options, $type)
+    {
+        if ($this->Event->Attribute->typeIsAttachment($attribute[0]['Attribute']['type'])) {
+            $attribute[0]['Attribute']['data'] = $this->Event->Attribute->base64EncodeAttachment($attribute[0]['Attribute']);
+        }
+        $event_id = $attribute[0]['Event']['id'];
+        $data = array('module' => $module, 'attribute' => $attribute[0]['Attribute'], 'event_id' => $event_id);
+        if (!empty($options)) {
+            $data['config'] = $options;
+        }
+        $data = json_encode($data);
+        $result = $this->Module->queryModuleServer('/query', $data, false, $type);
+        if (!$result) {
+            throw new MethodNotAllowedException(__('%s service not reachable.', $type));
+        }
+        if (isset($result['error'])) {
+            $this->Flash->error($result['error']);
+        }
+        if (!is_array($result)) {
+            throw new Exception($result);
+        }
+        $attributes = array();
+        $objects = array();
+        if (isset($result['results']['Attribute']) && !empty($result['results']['Attribute'])) {
+            foreach ($result['results']['Attribute'] as $tmp_attribute) {
+                array_push($attributes, $this->Event->Attribute->captureAttribute($tmp_attribute, $event_id, $this->Auth->user()));
+            }
+            unset($result['results']['Attribute']);
+        }
+        if (isset($result['results']['Object']) && !empty($result['results']['Object'])) {
+            foreach ($result['results']['Object'] as $tmp_object) {
+                $this->Event->Object->captureObject($tmp_object, $event_id, $this->Auth->user());
+                array_push($objects, $tmp_object);
+            }
+            unset($result['results']['Object']);
+        }
+        if (empty($attributes) && empty($objects)) {
+            $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
+        } else {
+            $this->set('attributeValue', $attribute[0]['Attribute']['value']);
+            $this->set('module', $module);
+            $event = array('Event' => $attribute[0]['Event']);
+            $event['Attribute'] = $attributes;
+            $event['Object'] = $objects;
+            $this->set('event', $event);
+            if (!empty($result['results'])) {
+                $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = true, $render_name = 'resolved_misp_format');
+            } else {
+                $this->set('menuItem', 'enrichmentResults');
+                $this->set('title', 'Enrichment Results');
+                $this->render('resolved_misp_format');
+            }
+        }
+    }
+
+    private function __queryOldEnrichment($attribute, $module, $options, $type)
+    {
+        $data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value'], 'event_id' => $attribute[0]['Attribute']['event_id'], 'attribute_uuid' => $attribute[0]['Attribute']['uuid']);
+        if ($this->Event->Attribute->typeIsAttachment($attribute[0]['Attribute']['type'])) {
+            $data['data'] = $this->Event->Attribute->base64EncodeAttachment($attribute[0]['Attribute']);
+        }
+        if (!empty($options)) {
+            $data['config'] = $options;
+        }
+        $data = json_encode($data);
+        $result = $this->Module->queryModuleServer('/query', $data, false, $type);
+        if (!$result) {
+            throw new MethodNotAllowedException(__('%s service not reachable.', $type));
+        }
+        if (isset($result['error'])) {
+            $this->Flash->error($result['error']);
+        }
+        if (!is_array($result)) {
+            throw new Exception($result);
+        }
+        $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
+    }
+
+    private function __handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = false, $renderName = 'resolved_attributes')
+    {
+        $resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
+        if (isset($result['comment']) && $result['comment'] != "") {
+            $importComment = $result['comment'];
+        } else {
+            $importComment = $attribute[0]['Attribute']['value'] . __(': Enriched via the %s', $module) . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
+        }
+        $typeCategoryMapping = array();
+        foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+            foreach ($cat['types'] as $type) {
+                $typeCategoryMapping[$type][$k] = $k;
+            }
+        }
+        foreach ($resultArray as $key => $result) {
+            $options = array(
+                    'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+                    'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+                    'order' => false
+            );
+            $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+            if (isset($result['data'])) {
+                App::uses('FileAccessTool', 'Tools');
+                $fileAccessTool = new FileAccessTool();
+                $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
+                $tempFile = $fileAccessTool->createTempFile($tmpdir, $prefix = 'MISP');
+                $fileAccessTool->writeToFile($tempFile, $result['data']);
+                $resultArray[$key]['data'] = basename($tempFile) . '|' . filesize($tempFile);
+            }
+        }
+        $this->set('type', $type);
+        if (!$event){
+            $this->set('event', array('Event' => $attribute[0]['Event']));
+        }
+        $this->set('resultArray', $resultArray);
+        $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
+        $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+        $this->set('typeCategoryMapping', $typeCategoryMapping);
+        $this->set('title', 'Enrichment Results');
+        $this->set('importComment', $importComment);
+        $this->render($renderName);
+    }
+
+    public function handleModuleResults($eventId)
+    {
+        debug($eventId);
+        debug($this->request->event);
     }
 
     public function importModule($module, $eventId)
@@ -5341,6 +5437,59 @@ class EventsController extends AppController
         }
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Events', 'pushEventToZMQ', $id, $this->response->type(), $message);
+        } else {
+            if (!empty($success)) {
+                $this->Flash->success($message);
+            } else {
+                $this->Flash->error($message);
+            }
+            $this->redirect($this->referer());
+        }
+    }
+
+    public function pushEventToKafka($id)
+    {
+        if ($this->request->is('Post')) {
+            $message = 'Kafka event publishing not enabled.';
+            if (Configure::read('Plugin.Kafka_enable')) {
+                $kafkaEventTopic = Configure::read('Plugin.Kafka_event_notifications_topic');
+                $event = $this->Event->quickFetchEvent(array('eventid' => $id));
+                if (Configure::read('Plugin.Kafka_event_notifications_enable') && !empty($kafkaEventTopic)) {
+                    $kafkaPubTool = $this->Event->getKafkaPubTool();
+                    if (!empty($event)) {
+                        $kafkaPubTool->publishJson($kafkaEventTopic, $event, 'manual_publish');
+                        $success = 1;
+                        $message = 'Event published to Kafka';
+                    } else {
+                        $success = 0;
+                        $message = 'Invalid event.';
+                    }
+                }
+                $kafkaPubTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
+                if (!empty($event['Event']['published']) && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaPubTopic)) {
+                    $kafkaPubTool = $this->Event->getKafkaPubTool();
+                    $params = array('eventid' => $id);
+                    if (Configure::read('Plugin.Kafka_include_attachments')) {
+                        $params['includeAttachments'] = 1;
+                    }
+                    $event = $this->Event->fetchEvent($this->Auth->user(), $params);
+                    if (!empty($event)) {
+                        $kafkaPubTool->publishJson($kafkaPubTopic, $event[0], 'manual_publish');
+                        if (!isset($success)) {
+                            $success = 1;
+                            $message = 'Event published to Kafka';
+                        }
+                    } else {
+                        $success = 0;
+                        $message = 'Invalid event.';
+                    }
+                }
+            }
+        } else {
+            $message = 'This functionality is only available via POST requests';
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Events', 'pushEventToKafka', $id, $this->response->type(), $message);
         } else {
             if (!empty($success)) {
                 $this->Flash->success($message);

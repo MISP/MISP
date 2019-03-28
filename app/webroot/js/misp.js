@@ -579,9 +579,11 @@ function submitForm(type, id, field, context) {
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
+    var formData = fetchFormDataAjax("/events/addTag/" + event_id);
+    $('#temp').html(formData);
     $('#EventTag').val(JSON.stringify(selected_tag_ids));
     $.ajax({
-        data: $('#EventSelectTagForm').closest("form").serialize(),
+        data: $('#EventAddTagForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -596,6 +598,7 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
             loadGalaxies(event_id, 'event');
         },
         complete:function() {
+            $('#temp').empty();
             $("#popover_form").fadeOut();
             $("#gray_out").fadeOut();
             $(".loading").hide();
@@ -603,17 +606,20 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
         type:"post",
         url:"/events/addTag/" + event_id
     });
+    $('#temp').remove();
     return false;
 }
 
 function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     var attribute_id = addData.id;
+    var formData = fetchFormDataAjax("/attributes/addTag/" + attribute_id);
+    $('#temp').html(formData);
     $('#AttributeTag').val(JSON.stringify(selected_tag_ids));
     if (attribute_id == 'selected') {
         $('#AttributeAttributeIds').val(getSelected());
     }
     $.ajax({
-        data: $('#AttributeSelectTagForm').closest("form").serialize(),
+        data: $('#AttributeAddTagForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -639,14 +645,17 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
         type:"post",
         url:"/attributes/addTag/" + attribute_id
     });
+    $('#temp').remove();
     return false;
 }
 
 function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     var tag_collection_id = addData.id;
+    var formData = fetchFormDataAjax("/tag_collections/addTag/" + tag_collection_id);
+    $('#temp').html(formData);
     $('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
     $.ajax({
-        data: $('#TagCollectionSelectTagForm').closest("form").serialize(),
+        data: $('#TagCollectionAddTagForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -666,6 +675,7 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
         type:"post",
         url:"/tag_collections/addTag/" + tag_collection_id
     });
+    $('#temp').remove();
     return false;
 }
 
@@ -3010,12 +3020,12 @@ function syncUserSelected() {
 }
 
 function filterAttributes(filter, id) {
-    url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
+    url = "/events/viewEventAttributes/" + id;
     if(filter === 'value'){
         filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     } else if(filter !== 'all') {
-        url += "/filterColumnsOverwrite:" + filter;
+        url += "/attributeFilter:" + filter
         filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     }
@@ -3563,12 +3573,15 @@ function addGalaxyListener(id) {
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
+    var formData = fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope);
+    console.log(formData);
+    $('#temp').html(formData);
     $('#GalaxyTargetIds').val(JSON.stringify(cluster_ids));
     if (target_id == 'selected') {
         $('#AttributeAttributeIds').val(getSelected());
     }
     $.ajax({
-        data: $('#GalaxySelectClusterForm').closest("form").serialize(),
+        data: $('#GalaxyAttachMultipleClustersForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -3596,6 +3609,7 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
         type:"post",
         url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
     });
+    $('#temp').remove();
     return false;
 }
 
@@ -3998,6 +4012,44 @@ function liveFilter() {
     }
 }
 
+function sparklineBar(elemId, data, lineCount) {
+    data = d3.csv.parse(data);
+    var y_max = 0;
+    data.forEach(function(e) {
+        e = parseInt(e.val);
+        y_max = e > y_max ? e : y_max;
+    });
+    var WIDTH      = 50;
+    var HEIGHT     = 25;
+    var DATA_COUNT = lineCount;
+    var BAR_WIDTH  = (WIDTH - DATA_COUNT) / DATA_COUNT;
+    var x    = d3.scale.linear().domain([0, DATA_COUNT]).range([0, WIDTH]);
+    var y    = d3.scale.linear().domain([0, y_max]).range([0, HEIGHT]);
+
+    var distributionGraphBarTooltip = d3.select("body").append("div")
+        .attr("class", "distributionGraphBarTooltip")
+        .style("opacity", 0);
+
+    var svg = d3.select(elemId).append('svg')
+      .attr('width', WIDTH)
+      .attr('height', HEIGHT)
+      .append('g');
+    svg.selectAll('.bar').data(data)
+      .enter()
+      .append('g')
+        .attr('title', function(d, i) { return d.scope + ': ' + d.val })
+        .attr('class', 'DGbar')
+      .append('rect')
+        .attr('class', 'bar')
+        .attr('x', function(d, i) { return x(i); })
+        .attr('y', function(d, i) { return HEIGHT - y(d.val); })
+        .attr('width', BAR_WIDTH)
+        .attr('height', function(d, i) { return y(d.val); })
+        .attr('fill', '#3465a4');
+
+        $('.DGbar').tooltip({container: 'body'});
+}
+
 function generic_picker_move(scope, direction) {
     if (direction === 'right') {
         $('#' + scope + 'Left option:selected').remove().appendTo('#' + scope + 'Right');
@@ -4040,6 +4092,92 @@ function submit_feed_overlap_tool(feedId) {
     });
 }
 
+function populate_rest_history(scope) {
+    if (scope === 'history') {
+        scope = '';
+        var container_class = 'history_queries';
+    } else {
+        scope = '1';
+        var container_class = 'bookmarked_queries';
+    }
+    $.get("/rest_client_history/index/" + scope, function(data) {
+        $('.' + container_class).html(data);
+    });
+}
+
+function loadRestClientHistory(k, data_container) {
+    $('#ServerMethod').val(data_container[k]['RestClientHistory']['http_method']);
+    $('#ServerUseFullPath').prop("checked", data_container[k]['RestClientHistory']['use_full_path']);
+    $('#ServerShowResult').prop("checked", data_container[k]['RestClientHistory']['show_result']);
+    $('#ServerSkipSslValidation').prop("checked", data_container[k]['RestClientHistory']['skip_ssl_validation']);
+    $('#ServerUrl').val(data_container[k]['RestClientHistory']['url']);
+    $('#ServerHeader').val(data_container[k]['RestClientHistory']['headers']);
+    $('#ServerBody').val(data_container[k]['RestClientHistory']['body']);
+    toggleRestClientBookmark();
+}
+
+function toggleRestClientBookmark() {
+    if ($('#ServerBookmark').prop("checked") == true) {
+        $('#bookmark-name').css('display', 'block');
+    } else {
+        $('#bookmark-name').css('display', 'none');
+    }
+}
+
+function removeRestClientHistoryItem(id) {
+    $.ajax({
+        data: '[]',
+        success:function (data, textStatus) {
+            populate_rest_history('bookmark');
+            populate_rest_history('history');
+        },
+        error:function() {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+        },
+        type:"post",
+        cache: false,
+        url: '/rest_client_history/delete/' + id,
+    });
+}
+
+function changeTaxonomyRequiredState(checkbox) {
+    var checkbox_state = $(checkbox).is(":checked");
+    var taxonomy_id = $(checkbox).data('taxonomy-id');
+    var formData = fetchFormDataAjax('/taxonomies/toggleRequired/' + taxonomy_id);
+    $.ajax({
+        data: $(formData).serialize(),
+        success:function (data, textStatus) {
+            handleGenericAjaxResponse({'saved':true, 'success':['Taxonomy\'s required state toggled.']});
+        },
+        error:function() {
+            $(checkbox).prop('checked', !$(checkbox).prop('checked'));
+            handleGenericAjaxResponse({'saved':false, 'errors':['Could not toggle the required state of the taxonomy.']});
+        },
+        async:"false",
+        type:"post",
+        cache: false,
+        url: '/taxonomies/toggleRequired/' + taxonomy_id,
+    });
+    formData = false;
+}
+
+function fetchFormDataAjax(url) {
+    var formData = false;
+    $.ajax({
+        data: '[]',
+        success:function (data, textStatus) {
+            formData = data;
+        },
+        error:function() {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+        },
+        async: false,
+        type:"get",
+        cache: false,
+        url: url
+    });
+    return formData;
+}
 
 (function(){
     "use strict";

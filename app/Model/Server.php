@@ -250,6 +250,15 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'afterHook' => 'disableCacheAfterHook',
                         ),
+                        'disable_threat_level' => array(
+                                'level' => 1,
+                                'description' => __('Disable displaying / modifications to the threat level altogether on the instance (deprecated field).'),
+                                'value' => false,
+                                'null' => true,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean'
+                        ),
                         'header' => array(
                                 'level' => 3,
                                 'description' => __('This setting is deprecated and can be safely removed.'),
@@ -1266,7 +1275,7 @@ class Server extends AppModel
                         ),
                         'RPZ_ns' => array(
                                 'level' => 2,
-                                'description' => '',
+                                'description' => __('Nameserver'),
                                 'value' => 'localhost.',
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
@@ -1287,6 +1296,214 @@ class Server extends AppModel
                             'errorMessage' => '',
                             'test' => 'testForEmpty',
                             'type' => 'string',
+                        ),
+                        'Kafka_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the Kafka pub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                        ),
+                        'Kafka_brokers' => array(
+                            'level' => 2,
+                            'description' => __('A comma separated list of Kafka bootstrap brokers'),
+                            'value' => 'kafka:9092',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
+                        ),
+                        'Kafka_rdkafka_config' => array(
+                            'level' => 2,
+                            'description' => __('A path to an ini file with configuration options to be passed to rdkafka. Section headers in the ini file will be ignored.'),
+                            'value' => '/etc/rdkafka.ini',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
+                        ),
+                        'Kafka_include_attachments' => array(
+                            'level' => 2,
+                            'description' => __('Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_event_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any event creations/edits/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_event_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing event creations/edits/deletions.'),
+                            'value' => 'misp_event',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_event_publish_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('If enabled it will publish to Kafka the event at the time that the event gets published in MISP. Event actions (creation or edit) will not be published to Kafka.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_event_publish_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing event information on publish.'),
+                            'value' => 'misp_event_publish',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_object_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any object creations/edits/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_object_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing object creations/edits/deletions.'),
+                            'value' => 'misp_object',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_object_reference_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any object reference creations/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_object_reference_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing object reference creations/deletions.'),
+                            'value' => 'misp_object_reference',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_attribute_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any attribute creations/edits/soft deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_attribute_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing attribute creations/edits/soft deletions.'),
+                            'value' => 'misp_attribute',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_shadow_attribute_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any proposal creations/edits/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_shadow_attribute_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing proposal creations/edits/deletions.'),
+                            'value' => 'misp_shadow_attribute',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_tag_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_tag_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
+                            'value' => 'misp_tag',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_sighting_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of new sightings.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_sighting_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing sightings.'),
+                            'value' => 'misp_sighting',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_user_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of new/modified users.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_user_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing new/modified users.'),
+                            'value' => 'misp_user',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_organisation_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of new/modified organisations.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_organisation_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing new/modified organisations.'),
+                            'value' => 'misp_organisation',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_audit_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of log entries. Keep in mind, this can get pretty verbose depending on your logging settings.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_audit_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing log entries.'),
+                            'value' => 'misp_audit',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
                         ),
                         'ZeroMQ_enable' => array(
                             'level' => 2,
@@ -1722,7 +1939,7 @@ class Server extends AppModel
                         ),
                         'Cortex_services_enable' => array(
                                 'level' => 0,
-                                'description' => __('Enable/disable the import services'),
+                                'description' => __('Enable/disable the Cortex services'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testBool',
@@ -1739,7 +1956,7 @@ class Server extends AppModel
                         ),
                         'Cortex_timeout' => array(
                                 'level' => 1,
-                                'description' => __('Set a timeout for the import services'),
+                                'description' => __('Set a timeout for the Cortex services'),
                                 'value' => 120,
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
@@ -1940,7 +2157,7 @@ class Server extends AppModel
             if ($result) {
                 $successes[] = $eventId;
             } else {
-                $fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
+                $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
             }
         } else {
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
@@ -1973,7 +2190,7 @@ class Server extends AppModel
             $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
         } else {
             // error
-            $fails[$eventId] = 'failed downloading the event';
+            $fails[$eventId] = __('failed downloading the event');
         }
         return true;
     }
@@ -4349,6 +4566,57 @@ class Server extends AppModel
     {
         $mainBranch = '2.4';
         return exec('git checkout ' . $mainBranch);
+    }
+
+    public function getSubmodulesGitStatus()
+    {
+        $submodulesNames = array('misp-galaxy', 'misp-taxonomies', 'misp-objects', 'misp-noticelist', 'misp-warninglists');
+        $status = array();
+        foreach ($submodulesNames as $submoduleName) {
+            $status[$submoduleName] = $this->getSubmoduleGitStatus($submoduleName);
+        }
+        return $status;
+    }
+
+    public function getSubmoduleGitStatus($submoduleName) {
+        $acceptedSubmodulesNames = array('misp-galaxy', 'misp-taxonomies', 'misp-objects', 'misp-noticelist', 'misp-warninglists');
+        $status = array();
+        if (in_array($submoduleName, $acceptedSubmodulesNames)) {
+            $path = $this->__getSubmodulePath($submoduleName);
+            $status = array(
+                'moduleName' => $submoduleName,
+                'current' => exec(sprintf('cd %s; git rev-parse HEAD', $path)),
+                'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
+                'remoteTimestamp' => exec('timeout 3 git log origin/2.4 -1 --pretty=format:%ct'),
+                'remote' => exec(sprintf('timeout 3 git ls-remote https://github.com/MISP/%s | head -1 | sed "s/HEAD//"', $submoduleName)),
+                'upToDate' => ''
+            );
+            if (!empty($status['remote'])) {
+                if ($status['remote'] == $status['current']) {
+                    $status['upToDate'] = 'same';
+                } else {
+                    $status['upToDate'] = 'older';
+                }
+            } else {
+                $status['upToDate'] = 'error';
+            }
+            $status['timeDiff'] = (new DateTime('@' . $status['remoteTimestamp']))->diff(new DateTime('@' . $status['currentTimestamp']));
+        }
+        return $status;
+    }
+
+    private function __getSubmodulePath($submoduleName) {
+        $base = APP . 'files' . DS;
+        switch ($submoduleName) {
+            case 'misp-taxonomies':
+                return $base . 'taxonomies';
+            case 'misp-noticelist':
+                return $base . 'noticelists';
+            case 'misp-warninglists':
+                return $base . 'warninglists';
+            default:
+                return $base . $submoduleName;
+        }
     }
 
     public function update($status)

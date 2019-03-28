@@ -55,8 +55,10 @@ class ObjectReference extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_reference_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_reference_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_object_reference_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_object_reference_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             $object_reference = $this->find('first', array(
                 'conditions' => array('ObjectReference.id' => $this->id),
                 'recursive' => -1
@@ -65,7 +67,14 @@ class ObjectReference extends AppModel
             if (!empty($this->data['ObjectReference']['deleted'])) {
                 $action = 'soft-delete';
             }
-            $pubSubTool->object_reference_save($object_reference, $action);
+            if ($pubToZmq) {
+                $pubSubTool = $this->getPubSubTool();
+                $pubSubTool->object_reference_save($object_reference, $action);
+            }
+            if ($pubToKafka) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $object_reference, $action);
+            }
         }
         return true;
     }

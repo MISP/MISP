@@ -68,6 +68,7 @@ class ShadowAttributesController extends AppController
         if (empty($shadow)) {
             return array('false' => true, 'errors' => 'Proposal not found or you are not authorised to accept it.');
         }
+        $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $shadow, 'accept');
         $shadow = $shadow['ShadowAttribute'];
         if ($this->ShadowAttribute->typeIsAttachment($shadow['type'])) {
             $encodedFile = $this->ShadowAttribute->base64EncodeAttachment($shadow);
@@ -229,6 +230,7 @@ class ShadowAttributesController extends AppController
         if (empty($sa)) {
             return false;
         }
+        $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $sa, 'discard');
         $eventId = $sa['ShadowAttribute']['event_id'];
         $this->loadModel('Event');
         $this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');

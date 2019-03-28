@@ -119,23 +119,22 @@ foreach ($servers as $server):
         <td class="short"><a href="/organisations/view/<?php echo h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
         <td class="short action-links">
             <?php
-            echo $this->Html->link('', array('action' => 'previewIndex', $server['Server']['id']), array('class' => 'icon-search', 'title' => __('Explore')));
-            if ($server['Server']['pull']) {
-                echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'update'), array('class' => 'icon-refresh', 'title' => __('Pull updates to events that already exist locally')));
-                echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'icon-download', 'title' => __('Pull all')));
-            }
-            if ($server['Server']['push']) {
-                echo $this->Html->link('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => __('Push all')));
-            }
-            if ($server['Server']['caching_enabled']) {
-                echo $this->Html->link('', array('action' => 'cache', $server['Server']['id']), array('class' => 'icon-download-alt', 'title' => __('Cache instance')));
-            }
-            ?>
-            &nbsp;
-            <?php
-            $mayModify = ($isSiteAdmin);
-            if ($mayModify) echo $this->Html->link('', array('action' => 'edit', $server['Server']['id']), array('class' => 'icon-edit', 'title' => __('Edit')));
-            if ($mayModify) echo $this->Form->postLink('', array('action' => 'delete', $server['Server']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete # %s?', $server['Server']['id']));
+                echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/previewIndex/' . h($server['Server']['id']), __('Explore'), 'fa fa-search');
+                if ($server['Server']['pull']) {
+                    echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/update', __('Pull updates to events that already exist locally'), 'fa fa-sync');
+                    echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/full', __('Pull all'), 'fa fa-circle-down');
+                }
+                if ($server['Server']['push']) {
+                    echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/push/' . h($server['Server']['id']) . '/full', __('Push all'), 'fa fa-circle-up');
+                }
+                if ($server['Server']['caching_enabled']) {
+                        echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/cache/' . h($server['Server']['id']), __('Cache instance'), 'fa fa-memory');
+                }
+                $mayModify = ($isSiteAdmin);
+                if ($mayModify) {
+                    echo sprintf('<a href="%s" title="%s"class="%s"></a>', $baseurl . '/servers/edit/' . h($server['Server']['id']), __('Edit'), 'fa fa-edit');
+                    echo $this->Form->postLink('', array('action' => 'delete', $server['Server']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete # %s?', $server['Server']['id']));
+                }
             ?>
 
         </td>

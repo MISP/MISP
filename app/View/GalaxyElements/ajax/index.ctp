@@ -19,7 +19,7 @@
 </div>
 <table class="table table-striped table-hover table-condensed">
     <tr>
-        <th class="short"><?php echo $this->Paginator->sort('key');?></th>
+        <th class="short"><?php echo $this->Paginator->sort('key', __('Key'));?></th>
         <th><?php echo $this->Paginator->sort('value');?></th>
     </tr>
 <?php

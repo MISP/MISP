@@ -21,7 +21,7 @@
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo __('Default');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
-            <th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
+            <th><?php echo $this->Paginator->sort('permission', __('Permissions'));?></th>
             <?php
                 foreach ($permFlags as $k => $flags):
             ?>

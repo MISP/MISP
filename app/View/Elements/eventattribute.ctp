@@ -137,15 +137,15 @@
             ?>
             <th class="context hidden"><?php echo $this->Paginator->sort('id');?></th>
             <th class="context hidden">UUID</th>
-            <th><?php echo $this->Paginator->sort('timestamp', 'Date', array('direction' => 'desc'));?></th>
+            <th><?php echo $this->Paginator->sort('timestamp', __('Date'), array('direction' => 'desc'));?></th>
             <?php
                 if ($extended):
             ?>
-                    <th class="event_id"><?php echo $this->Paginator->sort('event_id', 'Event');?></th>
+                    <th class="event_id"><?php echo $this->Paginator->sort('event_id', __('Event'));?></th>
             <?php
                 endif;
             ?>
-            <th><?php echo $this->Paginator->sort('Org.name', 'Org'); ?>
+            <th><?php echo $this->Paginator->sort('Org.name', __('Org')); ?>
             <th><?php echo $this->Paginator->sort('category');?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>
             <th><?php echo $this->Paginator->sort('value');?></th>

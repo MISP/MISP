@@ -32,8 +32,8 @@
             <th><?php echo $this->Paginator->sort('version');?></th>
             <th><?php echo $this->Paginator->sort('description');?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>
-            <th>Valid attributes</th>
-            <th><?php echo $this->Paginator->sort('warninglist_entry_count', 'Entries');?></th>
+            <th><?php echo __('Valid attributes');?></th>
+            <th><?php echo $this->Paginator->sort('warninglist_entry_count', __('Entries'));?></th>
             <th><?php echo $this->Paginator->sort('enabled');?></th>
             <th class="actions"><?php echo __('Actions');?></th>
     </tr><?php
@@ -57,8 +57,8 @@ foreach ($warninglists as $k => $item): ?>
             <input id="checkBox_<?php echo h($item['Warninglist']['id']); ?>" type="checkbox" <?php echo $onClick; ?> <?php echo $item['Warninglist']['enabled'] ? 'checked' : ''; ?>/>
         </td>
         <td class="short action-links">
-            <a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
-            <span class="icon-trash useCursorPointer" title="<?php echo __('Delete Warninglist');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete warninglist');?>" onClick="deleteObject('warninglists', 'delete', '<?php echo h($item['Warninglist']['id']); ?>', '<?php echo h($item['Warninglist']['id']); ?>');"></span>
+            <a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "fa fa-eye" title = "<?php echo __('View');?>"></a>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Delete Warninglist');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete warninglist');?>" onClick="deleteObject('warninglists', 'delete', '<?php echo h($item['Warninglist']['id']); ?>', '<?php echo h($item['Warninglist']['id']); ?>');"></span>
         </td>
     </tr><?php
 endforeach; ?>

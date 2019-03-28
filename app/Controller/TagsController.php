@@ -476,6 +476,7 @@ class TagsController extends AppController
                 'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'),
                 'conditions' => array('Event.id' => $id)
         ));
+        $this->set('required_taxonomies', $this->EventTag->Event->getRequiredTaxonomies());
         $this->set('event', $event);
         $this->layout = 'ajax';
         $this->render('/Events/ajax/ajaxTags');

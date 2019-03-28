@@ -441,6 +441,13 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 sudo -H -u www-data /var/www/MISP/venv/bin/pip install pyzmq
 ```
 
+#### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+```bash
+apt-get install librdkafka-dev php-dev
+pecl install rdkafka
+find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
+```
+
 !!! warning
     There is an issue with the apache config of misp-dashboard in Ubuntu 16.04
     You need to **remove** the following 3 options from **WSGIDaemonProcess**
