@@ -1433,7 +1433,7 @@ function openPopup(id) {
     var window_height = $(window).height();
     var popup_height = $(id).height();
     if (window_height < popup_height) {
-        $(id).css("top", 0);
+        $(id).css("top", 50);
         $(id).css("height", window_height);
         $(id).addClass('vertical-scroll');
     } else {
