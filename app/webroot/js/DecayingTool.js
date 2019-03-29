@@ -6,9 +6,6 @@ function multiplier() {
 }
 
 function daysToText(days) {
-    // hours = parseInt(hours);
-    // var days = parseInt(hours / multiplier());
-    // var rem_hours = parseInt(hours % multiplier());
     days = parseFloat(days);
     hours = parseInt((days - parseInt(days)) * 24);
     var text = ""
@@ -52,12 +49,8 @@ function getDeltaFromPoint(x, y, base_score) {
     if (base_score === undefined) {
         base_score = 100.0;
     }
-    // x = Math.min(parseFloat($('#input_Tau').val()), parseFloat(x)) * multiplier();
-    // y = Math.min(100.0, parseFloat(y));
-    // x = parseFloat(x) * multiplier();
     x = parseFloat(x);
     y = parseFloat(y);
-    // var tau = parseFloat($('#input_Tau').val() * multiplier());
     var tau = parseFloat($('#input_Tau').val());
     var delta = 1 / getBaseLog(x / tau, 1 - (y / base_score));
     return parseFloat(delta);
@@ -288,7 +281,6 @@ function updateData(computeFromHandle) {
     // update parameters based on the handle
     if (computeFromHandle !== undefined && computeFromHandle == 'decayingGraphHandleDot') {
         var handle = svg.select('.decayingGraphHandleDot');
-        // var hx = parseInt(handle.attr('cx')) * multiplier();
         var hx = x.invert(handle.attr('cx'));
         var hy = getValueYFromCanvas(height, parseInt(handle.attr('cy')));
         var delta = getDeltaFromPoint(hx, hy);
