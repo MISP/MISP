@@ -2292,3 +2292,7 @@ table tr:hover .down-expand-button {
 .decayingGraphAxis line {
   stroke: #000;
 }
+
+.decayingGraphAxis text {
+    user-select: none;
+}

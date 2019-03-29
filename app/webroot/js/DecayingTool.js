@@ -1,12 +1,21 @@
-function hoursToText(hours) {
-    hours = parseInt(hours);
-    var days = parseInt(hours / 24);
-    var rem_hours = parseInt(hours % 24);
+var TICK_NUM = 300;
+$('#input_Tau').data('multiplier', $('#input_Tau').val()/TICK_NUM);
+
+function multiplier() {
+    return $('#input_Tau').data('multiplier');
+}
+
+function daysToText(days) {
+    // hours = parseInt(hours);
+    // var days = parseInt(hours / multiplier());
+    // var rem_hours = parseInt(hours % multiplier());
+    days = parseFloat(days);
+    hours = parseInt((days - parseInt(days)) * 24);
     var text = ""
-        + days
+        + parseInt(days)
         + (days>1 ? " days" : " day");
-    if (rem_hours > 0) {
-        text += " and " + rem_hours + (rem_hours>1 ? " hours" : " hour");
+    if (hours > 0) {
+        text += " and " + hours + (hours>1 ? " hours" : " hour");
     }
     return text;
 }
@@ -21,13 +30,37 @@ function toggleCB(clicked, force) {
     }
 }
 
+function getValueYFromCanvas(canvas_height, curr_y) {
+    return 100 * (canvas_height - curr_y) / canvas_height;
+}
+
+// returns the score with x in days
 function getScore(x, base_score) {
     if (base_score === undefined) {
         base_score = 100;
     }
     var delta = parseFloat($('#input_Delta').val());
-    var tau = parseInt($('#input_Tau').val() * 24);
+    var tau = parseInt($('#input_Tau').val());
     return parseFloat((base_score * (1 - Math.pow(x / tau, 1/delta))).toFixed(2));
+}
+
+function getBaseLog(x, y) {
+  return parseFloat(Math.log(y) / Math.log(x));
+}
+
+function getDeltaFromPoint(x, y, base_score) {
+    if (base_score === undefined) {
+        base_score = 100.0;
+    }
+    // x = Math.min(parseFloat($('#input_Tau').val()), parseFloat(x)) * multiplier();
+    // y = Math.min(100.0, parseFloat(y));
+    // x = parseFloat(x) * multiplier();
+    x = parseFloat(x);
+    y = parseFloat(y);
+    // var tau = parseFloat($('#input_Tau').val() * multiplier());
+    var tau = parseFloat($('#input_Tau').val());
+    var delta = 1 / getBaseLog(x / tau, 1 - (y / base_score));
+    return parseFloat(delta);
 }
 
 function getReverseScore(y, base_score) {
@@ -35,14 +68,14 @@ function getReverseScore(y, base_score) {
         base_score = 100;
     }
     var delta = parseFloat($('#input_Delta').val());
-    var tau = parseInt($('#input_Tau').val() * 24);
+    var tau = parseInt($('#input_Tau').val());
     return (tau * Math.pow(1 - (y / base_score), delta)).toFixed(2);
 }
 
 function genDecay() {
     var threshold = parseInt($('#input_Threshold').val());
     return genAxis().map(function(e, x) {
-        var y = getScore(x);
+        var y = getScore(x * multiplier());
         return y >= threshold ? y : 0;
     });
 }
@@ -54,54 +87,25 @@ function genLine() {
 }
 
 function genAxis(textLabel) {
-    var tau = parseInt($('#input_Tau').val() * 24);
-
-    var data = [];
-    for (var i=0; i<(tau+1); i++) {
-        data.push(i);
-    }
-
-    return data;
+    var tau = parseInt($('#input_Tau').val());
+    return d3.range(0, tau + tau / TICK_NUM, tau / TICK_NUM);
 }
 
 function refreshGraph(updated) {
-    // var $this = $(updated);
-    // var id = $this.attr('id');
-    // var val = parseInt($this.val());
-    // var threshold = parseInt($('#input_Threshold').val());
-    // var datasetDecay = chart.data.datasets[0];
-    // var updateOption = {};
-    // switch(id) {
-    //     case 'input_Threshold':
-    //         for(var i=0; i<chart.data.datasets[1].data.length; i++) {
-    //             chart.data.datasets[1].data[i] = threshold;
-    //         }
-    //         chart.data.datasets[0].data = genDecay();
-    //         break;
-    //     case 'input_Tau':
-    //         chart.data.labels = genAxis();
-    //         chart.data.datasets[0].data = genDecay();
-    //         chart.data.datasets[1].data = genLine();
-    //         updateOption['duration'] = 0;
-    //         break;
-    //     case 'input_Delta':
-    //         chart.data.datasets[0].data = genDecay();
-    //         break;
-    //     default:
-    //         break;
-    // }
-    // $('#'+id+'_range').val($this.val());
-    //
-    // refreshInfoCells(threshold);
-    // chart.update(updateOption);
+    if ($(updated).attr('id') == 'input_Tau') {
+        $(updated).data('multiplier', $(updated).val()/TICK_NUM);
+    }
+    updateData();
+    var threshold = parseInt($('#input_Threshold').val());
+    refreshInfoCells(threshold);
 }
 
 function refreshInfoCells(threshold) {
     if (threshold === undefined) {
         threshold = parseInt($('#input_Threshold').val());
     }
-    $('#infoCellHalved').text(hoursToText(getReverseScore((100-threshold)/2 + threshold)));
-    $('#infoCellExpired').text(hoursToText(getReverseScore(threshold)));
+    $('#infoCellHalved').text(daysToText(getReverseScore((100-threshold)/2 + threshold)));
+    $('#infoCellExpired').text(daysToText(getReverseScore(threshold)));
     highlightMatchingRow();
 }
 
@@ -280,49 +284,106 @@ function fetchFormAndSubmit($clicked, type, model_id, formData) {
 function applyModel(clicked) {
     var $row = $(clicked).parent().parent();
     var rowData = getDataFromRow($row);
-
 }
+
+function updateData(computeFromHandle) {
+    // update parameters based on the handle
+    if (computeFromHandle !== undefined && computeFromHandle == 'decayingGraphHandleDot') {
+        var handle = svg.select('.decayingGraphHandleDot');
+        // var hx = parseInt(handle.attr('cx')) * multiplier();
+        var hx = x.invert(handle.attr('cx'));
+        var hy = getValueYFromCanvas(height, parseInt(handle.attr('cy')));
+        var delta = getDeltaFromPoint(hx, hy);
+        $('#input_Delta').val(delta);
+    } else if (computeFromHandle !== undefined && computeFromHandle == 'decayingGraphDot') {
+        var handle = svg.select('.decayingGraphDot');
+        var hx = parseInt(handle.attr('cx'));
+        var hy = parseInt(getValueYFromCanvas(height, parseInt(handle.attr('cy'))));
+        $('#input_Threshold').val(hy);
+    }
+
+    var decay = genDecay();
+    var axe = genAxis();
+    var thres = genLine();
+    var data = [];
+    for (var i=0; i<decay.length; i++) {
+        data.push({x: axe[i], y: decay[i], yThres: thres[i]});
+    }
+
+    // scale the range of the data
+    x.domain(d3.extent(data, function(d) { return d.x; }));
+    y.domain([0, d3.max(data, function(d) { return d.y; })]);
+
+    svg.select(".decayingGraphLine")
+        .data([data])
+        .attr("d", valueline);
+    svg.select(".decayingGraphLineThres")
+        .data([data])
+        .attr("d", valuelineThres);
+
+    svg.select(".decayingGraphAreaThres")
+        .data([data])
+        .attr("d", areaThres);
+
+    svg.select('.decayingGraphDot')
+        .data([data])
+        .attr("cx", function(d) { return x(getReverseScore(parseInt($('#input_Threshold').val()))); })
+        .attr("cy", function(d, i) { return y(parseInt($('#input_Threshold').val())); });
+
+    if (computeFromHandle === undefined) {
+        svg.select('.decayingGraphHandleDot')
+            .attr("cx", function(d) { return x(parseFloat($('#input_Tau').val()/2)); })
+            .attr("cy", function(d) { return y(getScore(parseInt($('#input_Tau').val()/2))); });
+    }
+
+    svg.select(".axis-x")
+        .call(xAxis);
+}
+
 
 var chart;
 var data = [];
+var svg, valueline, valuelineThres, area, areaThres, xAxis;
+var x, y;
+var height, width;
 $(document).ready(function() {
     $('[data-toggle="tooltip"]').tooltip();
     var container = '#decayGraph';
     var $container = $(container);
     var margin = {top: 10, right: 10, bottom: 20, left: 30};
-    var width = $container.width() - margin.left - margin.right;
-    var height = 380 - margin.top - margin.bottom;
-    var x = d3.scale.linear().range([0, width]);
-    var y = d3.scale.linear().range([height, 0]);
-    var xAxis = d3.svg.axis().scale(x).orient('bottom');
+    width = $container.width() - margin.left - margin.right;
+    height = 380 - margin.top - margin.bottom;
+    x = d3.scale.linear().range([0, width]);
+    y = d3.scale.linear().range([height, 0]);
+    xAxis = d3.svg.axis().scale(x).orient('bottom');
     var yAxis = d3.svg.axis().scale(y).orient("left");
 
     var drag = d3.behavior.drag()
         .on("drag", dragmove);
 
     // define the area
-    var area = d3.svg.area()
+    area = d3.svg.area()
         .interpolate("monotone")
         .x(function(d) { return x(d.x); })
         .y0(height)
         .y1(function(d) { return y(d.y); });
-    var areaThres = d3.svg.area()
+    areaThres = d3.svg.area()
         .interpolate("monotone")
         .x(function(d) { return x(d.x); })
         .y0(height)
         .y1(function(d) { return y(d.yThres); });
 
     // define the line
-    var valueline = d3.svg.line()
+    valueline = d3.svg.line()
         .interpolate("monotone")
         .x(function(d) { return x(d.x); })
         .y(function(d) { return y(d.y); });
-    var valuelineThres = d3.svg.line()
+    valuelineThres = d3.svg.line()
         .interpolate("monotone")
         .x(function(d) { return x(d.x); })
         .y(function(d) { return y(d.yThres); });
 
-    var svg = d3.select(container)
+    svg = d3.select(container)
         .append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
@@ -360,19 +421,22 @@ $(document).ready(function() {
         .enter()
         .append('g')
         .append('circle')
+        .attr('id', 'decayingGraphDot')
         .attr('class', 'decayingGraphDot')
         .attr("cx", function(d) { return x(getReverseScore(parseInt($('#input_Threshold').val()))); })
         .attr("cy", function(d, i) { return y(parseInt($('#input_Threshold').val())); })
-        .attr("r", 5);
+        .attr("r", 5)
+        .call(drag);
 
     svg.selectAll('.decayingGraphHandleDot')
         .data([data])
         .enter()
         .append('g')
         .append('circle')
+        .attr('id', 'decayingGraphHandleDot')
         .attr('class', 'decayingGraphHandleDot')
-        .attr("cx", function(d) { return x(parseInt($('#input_Tau').val()/2*24)); })
-        .attr("cy", function(d) { return y(getScore(parseInt($('#input_Tau').val()/2*24))); })
+        .attr("cx", function(d) { return x(parseFloat($('#input_Tau').val()/2)); })
+        .attr("cy", function(d) { return y(getScore(parseInt($('#input_Tau').val()/2))); })
         .attr("r", 5)
         .call(drag);
         // .on("mouseover", function(datum, b, c) {
@@ -382,96 +446,24 @@ $(document).ready(function() {
 
     // add the X Axis
     svg.append("g")
-        .attr("class", "decayingGraphAxis")
+        .attr("class", "decayingGraphAxis axis-x")
         .attr("transform", "translate(0," + height + ")")
         .call(xAxis);
 
     // add the Y Axis
     svg.append("g")
-        .attr("class", "decayingGraphAxis")
+        .attr("class", "decayingGraphAxis axis-y")
         .call(yAxis);
 
 
     function dragmove(d) {
-        d3.select(this)
-            .attr("cx", function() { return d3.event.x; })
-            .attr("cy", function() { return d3.event.y; });
+        var point = d3.select(this);
+        var id = point.attr('id');
+        point.attr("cx", function() { return Math.max(Math.min(d3.event.x, width), 0); })
+            .attr("cy", function() { return Math.max(Math.min(d3.event.y, height), 0); });
+        updateData(id);
     }
 
-
-    // var ctx = $('#decayGraph');
-    // chart = new Chart(ctx, {
-    //     type: 'line',
-    //     data: {
-    //         labels: genAxis(),
-    //         datasets: [
-    //             {
-    //                 label: 'Decay over time',
-    //                 data: genDecay(),
-    //                 borderColor: 'rgba(91, 183, 91, 0.7)',
-    //                 backgroundColor: 'rgba(91, 183, 91, 0.3)',
-    //                 cubicInterpolationMode: 'monotone',
-    //                 fill: 1,
-    //                 pointRadius: 0
-    //             },
-    //             {
-    //                 label: 'Threshold',
-    //                 data: genLine(),
-    //                 borderColor: 'rgba(255, 99, 132, 0.7)',
-    //                 backgroundColor: 'rgba(255, 99, 132, 0.3)',
-    //                 pointRadius: 0
-    //             },
-    //         ]
-    //     },
-    //     options: {
-    //         responsive: true,
-    //         title: {
-    //             display: false
-    //         },
-    //         scales: {
-    //             xAxes: [{
-    //                 scaleLabel: {
-    //                     display: true,
-    //                     labelString: 'Days',
-    //                 },
-    //                 ticks: {
-    //                     callback: function(hour, index, values) {
-    //                         var d = parseInt(hour / 24);
-    //                         return hour % 24 == 0 ? d : null;
-    //                     }
-    //                 }
-    //             }],
-    //             yAxes: [{
-    //                 scaleLabel: {
-    //                     display: true,
-    //                     labelString: 'Decay Score',
-    //                 },
-    //                 ticks: {
-    //                     suggestedMin: 0,
-    //                     suggestedMax: 100
-    //                 }
-    //             }]
-    //         },
-    //         tooltips: {
-    //             position: 'nearest',
-    //             mode: 'index',
-    //             intersect: false,
-    //             callbacks: {
-    //                 title: function(tooltipItem, data)  {
-    //                     return hoursToText(tooltipItem[0].index);
-    //                 },
-    //                 label: function(tooltipItem, data)  {
-    //                     var label = data.datasets[tooltipItem.datasetIndex].label;
-    //                     if (label != 'Threshold') {
-    //                         label = "Score";
-    //                     }
-    //                     label += ": " + data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-    //                     return label;
-    //                 }
-    //             }
-    //         },
-    //     }
-    // });
     refreshInfoCells();
     $("#attributeTypeTableBody").selectable({
         filter: "tr:not(.hidden)",
