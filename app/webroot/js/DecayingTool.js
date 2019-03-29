@@ -121,16 +121,14 @@ function loadModel(clicked) {
     var desc = tr.find('td.DMDescription')[0].innerHTML;
 
     $('#input_Tau').val(parameters.tau);
+    $('#input_Tau').data('multiplier', $('#input_Tau').val()/TICK_NUM);
     $('#input_Delta').val(parameters.delta);
     $('#input_Threshold').val(parameters.threshold);
     var $form = $('#saveForm');
     $form.find('[name="name"]').val(name);
     $form.find('[name="description"]').val(desc);
-    chart.data.labels = genAxis();
-    chart.data.datasets[0].data = genDecay();
-    chart.data.datasets[1].data = genLine();
     refreshInfoCells(parameters.threshold);
-    chart.update();
+    updateData();
 }
 
 function retreiveData() {
@@ -332,8 +330,8 @@ function updateData(computeFromHandle) {
 
     if (computeFromHandle === undefined) {
         svg.select('.decayingGraphHandleDot')
-            .attr("cx", function(d) { return x(parseFloat($('#input_Tau').val()/2)); })
-            .attr("cy", function(d) { return y(getScore(parseInt($('#input_Tau').val()/2))); });
+            .attr("cx", function(d) { return x(parseFloat($('#input_Tau').val()/2))-2.5; })
+            .attr("cy", function(d) { return y(getScore(parseInt($('#input_Tau').val()/2)))-2.5; });
     }
 
     svg.select(".axis-x")
