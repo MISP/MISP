@@ -184,11 +184,13 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => $menuItem));
 ?>
 <script type="text/javascript">
-    $('.distributionToggle').change(function() {
-        if ($(this).val() == 4) {
-            $(this).next().show();
-        } else {
-            $(this).next().hide();
-        }
+    $(document).ready(function() {
+      $('.distributionToggle').change(function() {
+          if ($(this).val() == 4) {
+              $(this).next().show();
+          } else {
+              $(this).next().hide();
+          }
+      });
     });
 </script>
