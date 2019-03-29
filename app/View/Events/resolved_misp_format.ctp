@@ -28,13 +28,6 @@
     <div style="margin-bottom:20px;">
         <?php
             $attributeFields = array('category', 'type', 'value', 'uuid');
-            $defaultDistribution = 5;
-            if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
-                $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
-                if ($defaultDistribution == 'event') {
-                    $defaultDistribution = 5;
-                }
-            }
             if (isset($event['Object']) && !empty($event['Object'])) {
         ?>
         <table class="table table-condensed table-stripped">
@@ -67,14 +60,10 @@
                         foreach ($object['Attribute'] as $a => $attribute) {
                             echo '<tr>';
                             echo '<td>' . h($attribute['object_relation']) . '</td>';
-                            if (isset($attribute['distribution'])) {
-                                if ($attribute['distribution'] != 4) {
-                                    $attribute['distribution'] = $distributions[$attribute['distribution']];
-                                } else {
-                                    $attribute['distribution'] = $sgs[$attribute['sharing_group_id']];
-                                }
+                            if ($attribute['distribution'] != 4) {
+                                $attribute['distribution'] = $distributions[$attribute['distribution']];
                             } else {
-                                $attribute['distribution'] = $distributions[$defaultDistribution];
+                                $attribute['distribution'] = $sgs[$attribute['sharing_group_id']];
                             }
                             foreach ($attributeFields as $field) {
                                 if (isset($attribute[$field])) {
@@ -138,10 +127,10 @@
           <?php
                 foreach ($event['Attribute'] as $a => $attribute) {
                     echo '<tr>';
-                    if (isset($attribute['distribution'])) {
-                        $attribute['distribution'] = ($attribute['distribution'] != 4 ? $distributions[$attribute['distribution']] : $sgs[$attribute['sharing_group_id']]);
+                    if ($attribute['distribution'] != 4) {
+                        $attribute['distribution'] = $distributions[$attribute['distribution']];
                     } else {
-                        $attribute['distribution'] = $distributions[$defaultDistribution];
+                        $attribute['distribution'] = $sgs[$attribute['sharing_group_id']];
                     }
                     foreach ($attributeFields as $field) {
                         if (isset($attribute[$field])) {

@@ -5087,17 +5087,27 @@ class EventsController extends AppController
         if (!is_array($result)) {
             throw new Exception($result);
         }
+        $defaultDistribution = 5;
+        if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
+            $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
+            if ($defaultDistribution == 'event') {
+                $defaultDistribution = 5;
+            }
+        }
         $attributes = array();
         $objects = array();
         if (isset($result['results']['Attribute']) && !empty($result['results']['Attribute'])) {
-            foreach ($result['results']['Attribute'] as $tmp_attribute) {
-                array_push($attributes, $this->Event->Attribute->captureAttribute($tmp_attribute, $event_id, $this->Auth->user()));
+            foreach ($result['results']['Attribute'] as &$tmp_attribute) {
+                $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
+                array_push($attributes, $tmp_attribute);
             }
             unset($result['results']['Attribute']);
         }
         if (isset($result['results']['Object']) && !empty($result['results']['Object'])) {
             foreach ($result['results']['Object'] as $tmp_object) {
-                $this->Event->Object->captureObject($tmp_object, $event_id, $this->Auth->user());
+                foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
+                    $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
+                }
                 array_push($objects, $tmp_object);
             }
             unset($result['results']['Object']);
@@ -5119,6 +5129,20 @@ class EventsController extends AppController
                 $this->render('resolved_misp_format');
             }
         }
+    }
+
+    private function __fillAttribute($attribute, $defaultDistribution)
+    {
+        if (!isset($attribute['category'])) {
+            $attribute['category'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['default_category'];
+        }
+        if (!isset($attribute['to_ids'])) {
+            $attribute['to_ids'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
+        }
+        if (!isset($attribute['distribution'])) {
+            $attribute['distribution'] = $defaultDistribution;
+        }
+        return $attribute;
     }
 
     private function __queryOldEnrichment($attribute, $module, $options, $type)
