@@ -170,7 +170,7 @@
                     if (isset($extensions[$context]['extensions'])):
                         foreach ($extensions[$context]['extensions'] as $extension => $status):
                 ?>
-                            <?php echo h($extension); ?>:… <span style="color:<?php echo $status ? 'green' : 'red';?>;font-weight:bold;"><?php echo $status ? __('OK') : __('Not loaded'); ?></span>
+                            <?php echo h($extension); ?>:… <span style="color:<?php echo $status ? 'green' : 'red';?>;font-weight:bold;"><?php echo $status ? __('OK') : __('Not loaded'); ?></span><br />
                 <?php
                         endforeach;
                     else:

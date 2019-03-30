@@ -1174,15 +1174,15 @@ class AttributesController extends AppController
         if (!$this->Attribute->exists()) {
             throw new NotFoundException('Invalid attribute');
         }
+        $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
+        $conditions['includeAllTags'] = false;
+        $conditions['includeAttributeUuid'] = true;
+        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
+        if (empty($attribute)) {
+            throw new MethodNotAllowedException('Invalid attribute');
+        }
+        $attribute = $attribute[0];
         if ($this->_isRest()) {
-            $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
-            $conditions['includeAllTags'] = false;
-            $conditions['includeAttributeUuid'] = true;
-            $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
-            if (empty($attribute)) {
-                throw new MethodNotAllowedException('Invalid attribute');
-            }
-            $attribute = $attribute[0];
             if (isset($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $k => $tag) {
                     $attribute['Attribute']['Tag'][$k] = $tag['Tag'];
@@ -1193,7 +1193,94 @@ class AttributesController extends AppController
             $this->set('Attribute', $attribute['Attribute']);
             $this->set('_serialize', array('Attribute'));
         } else {
-            $this->redirect('/events/view/' . $this->Attribute->data['Attribute']['event_id']);
+            $this->redirect('/events/view/' . $attribute['Attribute']['event_id']);
+        }
+    }
+
+    public function viewPicture($id, $thumbnail=false, $width=200, $height=200)
+    {
+        if (Validation::uuid($id)) {
+            $temp = $this->Attribute->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Attribute.uuid' => $id),
+                'fields' => array('Attribute.id', 'Attribute.uuid')
+            ));
+            if (empty($temp)) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
+            $id = $temp['Attribute']['id'];
+        } elseif (!is_numeric($id)) {
+            throw new NotFoundException(__('Invalid attribute id.'));
+        }
+        $this->Attribute->id = $id;
+        if (!$this->Attribute->exists()) {
+            throw new NotFoundException('Invalid attribute');
+        }
+        $conditions = array(
+            'conditions' => array(
+                'Attribute.id' => $id,
+                'Attribute.type' => 'attachment'
+            ),
+            'withAttachments' => true,
+            'includeAllTags' => false,
+            'includeAttributeUuid' => true,
+            'flatten' => true
+        );
+        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
+        if (empty($attribute)) {
+            throw new MethodNotAllowedException('Invalid attribute');
+        }
+        $attribute = $attribute[0];
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
+        } else {
+            $extension = explode('.', $attribute['Attribute']['value']);
+            $extension = end($extension);
+            if (extension_loaded('gd')) {
+                $image = ImageCreateFromString(base64_decode($attribute['Attribute']['data']));
+                if (!$thumbnail) {
+                    ob_start ();
+                    switch ($extension) {
+                        case 'gif':
+                            imagegif($image);
+                            break;
+                        case 'jpg':
+                        case 'jpeg':
+                            imagejpeg($image);
+                            break;
+                        case 'png':
+                            imagepng($image);
+                            break;
+                        default:
+                            break;
+                        }
+                        $image_data = $extension != 'gif' ? ob_get_contents() : base64_decode($attribute['Attribute']['data']);
+                        ob_end_clean ();
+                        imagedestroy($image);
+                } else { // thumbnail requested, resample picture with desired dimension
+                    $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 150;
+                    $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 150;
+                    if ($extension == 'gif') {
+                        $image_data = base64_decode($attribute['Attribute']['data']);
+                    } else {
+                        $extension = 'jpg';
+                        $imageTC = ImageCreateTrueColor($width, $height);
+                        ImageCopyResampled($imageTC, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
+                        ob_start ();
+                        imagejpeg ($imageTC);
+                        $image_data = ob_get_contents();
+                        ob_end_clean ();
+                        imagedestroy($image);
+                        imagedestroy($imageTC);
+                    }
+                }
+            } else {
+                $image_data = base64_decode($attribute['Attribute']['data']);
+            }
+            $this->response->type(strtolower(h($extension)));
+            $this->response->body($image_data);
+            $this->autoRender = false;
         }
     }
 

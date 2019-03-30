@@ -68,7 +68,7 @@ sudo yum install gcc git zip \
        libxslt-devel zlib-devel ssdeep-devel -y
 
 # Install PHP 7.1 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php71/
-sudo yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysqlnd rh-php71-php-mbstring rh-php71-php-xml rh-php71-php-bcmath rh-php71-php-opcache -y
+sudo yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysqlnd rh-php71-php-mbstring rh-php71-php-xml rh-php71-php-bcmath rh-php71-php-opcache rh-php71-php-gd -y
 
 # Install Python 3.6 from SCL, see
 # https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
