@@ -427,7 +427,9 @@ class ACLComponent extends Component
                     'tagStatistics' => array('*'),
                     'view' => array('*'),
                     'viewGraph' => array('*'),
-                    'viewTag' => array('*')
+                    'viewTag' => array('*'),
+                    'massEditSelected' => array(),
+                    'editSelected' => array(),
             ),
             'tasks' => array(
                     'index' => array(),

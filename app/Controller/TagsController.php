@@ -1036,6 +1036,52 @@ class TagsController extends AppController
         $this->render('/Events/view_graph');
     }
 
+    public function massEditSelected()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new NotFoundException('You don\'t have permission to do that.');
+        }
+        $this->render('ajax/tag_mass_edit');
+    }
+
+    public function editSelected()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new NotFoundException('You don\'t have permission to do that.');
+        }
+
+        if (empty($this->request->data['Tag']['tag_ids']))
+            $this->redirect($this->referer());
+
+        $tag_ids = json_decode($this->request->data['Tag']['tag_ids']);
+        $tags = $this->Tag->find('all', array(
+            'conditions' => array(
+                'Tag.id' => $tag_ids
+            ),
+            'recursive' => -1,
+        ));
+
+        // The default value is 2 (do not change)
+        $hidden = empty($this->request->data['Tag']['hidden']) 
+            ? 2 : $this->request->data['Tag']['hidden'];
+        $exportable = empty($this->request->data['Tag']['exportable']) 
+            ? 2 : $this->request->data['Tag']['exportable'];
+
+        $result = true;
+        foreach ($tags as $key => $tag) {
+            $n_hidden = ($hidden == 0 | $hidden == 1) ? $hidden : $tag['Tag']['hide_tag'];
+            $n_exportable = ($exportable == 0 | $exportable == 1) ? $exportable : $tag['Tag']['exportable'];
+            $result &= $this->Tag->quickEdit($tag, $tag['Tag']['name'], $tag['Tag']['colour'], $n_hidden, $n_exportable);
+        }
+
+        if ($result) {
+            $this->Flash->success('The tag(s) has been saved.');
+        } else {
+            $this->Flash->error('The tag(s) could not be saved. Please, try again.');
+        }
+        $this->redirect($this->referer());
+    }
+    
     public function search($tag = false)
     {
         if (isset($this->request->data['Tag'])) {

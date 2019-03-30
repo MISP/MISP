@@ -367,13 +367,16 @@ class Tag extends AppModel
         return ($this->save($data));
     }
 
-    public function quickEdit($tag, $name, $colour, $hide = false)
+    public function quickEdit($tag, $name, $colour, $hide = false, $exportable = false)
     {
-        if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false) {
+        if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false || $exportable !== false) {
             $tag['Tag']['name'] = $name;
             $tag['Tag']['colour'] = $colour;
             if ($hide !== false) {
                 $tag['Tag']['hide_tag'] = $hide;
+            }
+            if ($exportable !== false) {
+                $tag['Tag']['exportable'] = $exportable;
             }
             return ($this->save($tag['Tag']));
         }
