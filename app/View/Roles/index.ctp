@@ -36,9 +36,21 @@ foreach ($list as $item): ?>
         <td class="short" style="text-align:center;width:20px;"><div class="icon-<?php echo $default_role_id == $item['Role']['id'] ? __('ok') : __('remove') ?>"></div></td>
         <td><?php echo h($item['Role']['name']); ?>&nbsp;</td>
         <td class="short"><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
-        <?php foreach ($permFlags as $k => $flags): ?>
-            <td class="short"><span class="<?php if ($item['Role'][$k]) echo 'icon-ok'; ?>"></span>&nbsp;</td>
-        <?php endforeach; ?>
+        <?php
+            foreach ($permFlags as $k => $flags) {
+                $flagName = Inflector::Humanize(substr($k, 5));
+                echo sprintf(
+                    '<td class="short"><span class="%s" title="%s"></span>&nbsp;</td>',
+                    ($item['Role'][$k]) ? 'icon-ok' : '',
+                    sprintf(
+                        __('%s permission %s'),
+                        h($flagName),
+                        $item['Role'][$k] ? 'granted' : 'denied'
+                    )
+
+                );
+            }
+        ?>
     </tr><?php
 endforeach; ?>
     </table>
