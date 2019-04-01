@@ -2296,3 +2296,13 @@ table tr:hover .down-expand-button {
 .decayingGraphAxis text {
     user-select: none;
 }
+
+.decayingGraphAxis.grid line {
+    stroke: lightgrey;
+    stroke-opacity: 0.7;
+    shape-rendering: crispEdges;
+}
+
+.decayingGraphAxis.grid path {
+    stroke-width: 0;
+}

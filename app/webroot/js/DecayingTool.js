@@ -103,6 +103,14 @@
                 this.y = d3.scale.linear().range([this.height, 0]);
                 this.xAxis = d3.svg.axis().scale(this.x).orient('bottom');
                 this.yAxis = d3.svg.axis().scale(this.y).orient("left");
+                this.yGrid = d3.svg.axis().scale(this.x).orient("bottom")
+                    .ticks(5)
+                    .tickSize(-this.height)
+                    .tickFormat("");
+                this.xGrid = d3.svg.axis().scale(this.y).orient("left")
+                    .ticks(3)
+                    .tickSize(-this.width)
+                    .tickFormat("");
 
                 this.drag = d3.behavior.drag().on("drag", this.dragmove);
 
@@ -140,6 +148,18 @@
                 // scale the range of the data
                 this.x.domain(d3.extent(data, function(d) { return d.x; }));
                 this.y.domain([0, d3.max(data, function(d) { return d.y; })]);
+
+
+                // add the Y gridlines
+                this.svg.append("g")
+                    .attr("class", "decayingGraphAxis grid grid-x")
+                    .call(this.xGrid);
+
+                // add the X gridlines
+                this.svg.append("g")
+                    .attr("class", "decayingGraphAxis grid grid-y")
+                    .attr("transform", "translate(0," + this.height + ")")
+                    .call(this.yGrid);
 
                 // add the valueline path.
                 this.svg.append("path")
@@ -216,6 +236,11 @@
                 this.x.domain(d3.extent(data, function(d) { return d.x; }));
                 this.y.domain([0, d3.max(data, function(d) { return d.y; })]);
 
+                this.svg.select(".decayingGraphAxis.grid-x")
+                    .call(this.xGrid);
+                this.svg.select(".decayingGraphAxis.grid-y")
+                    .call(this.yGrid);
+
                 this.svg.select(".decayingGraphLine")
                     .data([data])
                     .attr("d", this.valueline);
@@ -240,6 +265,7 @@
 
                 this.svg.select(".axis-x")
                     .call(this.xAxis);
+
                 this.refreshInfoCells();
             },
             dragmove: function(d) {
