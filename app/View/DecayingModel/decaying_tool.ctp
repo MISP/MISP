@@ -126,9 +126,9 @@
                                 <td class="DMParameterDelta"><?php echo h($model['DecayingModel']['parameters']['delta']); ?></td>
                                 <td class="DMParameterThreshold"><?php echo h($model['DecayingModel']['parameters']['threshold']); ?></td>
                                 <td>
-                                    <button class="btn btn-success btn-small" onclick="loadModel(this);"><span class="fa fa-line-chart"><?php echo __(' Load model') ?></span></button>
-                                    <button class="btn btn-danger btn-small" data-save-type="edit" data-model-id="<?php echo h($model['DecayingModel']['id']); ?>" onclick="saveModel(this);"><span class="fa fa-paste"><?php echo __(' Overwrite model') ?></span></button>
-                                    <button class="btn btn-info btn-small" onclick="applyModel(this);" title="<?php echo __(' Apply model to selected attribute type') ?>"><span class="fa fa-upload"><?php echo __(' Apply model') ?></span></button>
+                                    <button class="btn btn-success btn-small" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"><?php echo __(' Load model') ?></span></button>
+                                    <button class="btn btn-danger btn-small" data-save-type="edit" data-model-id="<?php echo h($model['DecayingModel']['id']); ?>" onclick="decayingTool.saveModel(this);"><span class="fa fa-paste"><?php echo __(' Overwrite model') ?></span></button>
+                                    <button class="btn btn-info btn-small" onclick="decayingTool.applyModel(this);" title="<?php echo __(' Apply model to selected attribute type') ?>"><span class="fa fa-upload"><?php echo __(' Apply model') ?></span></button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
