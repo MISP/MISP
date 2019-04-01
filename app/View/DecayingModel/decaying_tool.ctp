@@ -3,17 +3,18 @@
 <h2>Decaying Of Indicator Fine Tuning Tool</h2>
 
 <div class="row">
-    <div class="span7" style="border: 1px solid #ddd; border-radius: 4px;">
+    <div class="span7 form-inline" style="border: 1px solid #ddd; border-radius: 4px;">
         <label class="checkbox inline">
             <input id="table_toggle_all_type" type="checkbox"></input>
-            <?php echo __('Show All Attribute Types'); ?>
+            <?php echo __('Show All Types'); ?>
         </label>
         <label class="checkbox inline">
             <input id="table_toggle_objects" type="checkbox"></input>
             <?php echo __('Show MISP Objects'); ?>
         </label>
+        <input id="table_type_search" class="input" style="width: 250px; margin-left: 5px;" type="text" placeholder="<?php echo _('Search Attribute Type'); ?>"></input>
         <div style="height: calc(100vh - 175px - 25px); overflow-y: scroll;">
-            <table class="table table-striped table-bordered">
+            <table id="table_attribute_type" class="table table-striped table-bordered">
                 <thead>
                     <tr>
                         <th><input id="checkAll" type="checkbox" title="<?php echo __('Check all'); ?>"></input></th>
@@ -36,7 +37,7 @@
                         ?>
                         <tr class="<?php echo $class; ?>">
                             <td><input type="checkbox"></input></td>
-                            <td class="useCursorPointer">
+                            <td class="useCursorPointer isFilteringField">
                                 <?php if(isset($info['isObject']) && $info['isObject']): ?>
                                     <it class="fa fa-cube" title="<?php echo __('Belong to a MISP Object'); ?>"></it>
                                 <?php endif; ?>
@@ -45,7 +46,7 @@
                                     <it class="fa fa-flag fa-pull-right" title="<?php echo __('To IDS flag set'); ?>"></it>
                                 <?php endif; ?>
                             </td>
-                            <td class="useCursorPointer"><?php echo h($info['default_category']); ?></td>
+                            <td class="useCursorPointer isFilteringField"><?php echo h($info['default_category']); ?></td>
                             <td></td>
                         </tr>
                     <?php endforeach; ?>

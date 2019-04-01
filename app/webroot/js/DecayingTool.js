@@ -406,6 +406,29 @@
                     cb.prop('checked', force);
                 }
             },
+            filterTableType: function(table, searchString) {
+                var $table = $(table);
+                var $body = $table.find('tbody');
+                if (searchString === '') {
+                    $body.find('tr.isNotToIDS').forceClass('hidden', !$('#table_toggle_all_type').is(':checked'));
+                    $body.find('tr.isObject').forceClass('hidden', !$('#table_toggle_objects').is(':checked'));
+                    $body.find('tr:not(".isObject, .isNotToIDS")').forceClass('hidden', false);
+                } else {
+                    // hide everything
+                    $body.find('tr').each(function() {
+                        $(this).forceClass('hidden', true);
+                    });
+                    // show only matching elements
+                    var $cells = $table.find('tbody > tr > td.isFilteringField');
+                    $cells.each(function() {
+                        if ($(this).text().indexOf(searchString) != -1) {
+                            $(this).parent().filter('.isNotToIDS').forceClass('hidden', !$('#table_toggle_all_type').is(':checked'));
+                            $(this).parent().filter('.isObject').forceClass('hidden', !$('#table_toggle_objects').is(':checked'));
+                            $(this).parent().filter(':not(".isObject, .isNotToIDS")').forceClass('hidden', false);
+                        }
+                    });
+                }
+            },
 
             /* UTIL */
             refreshInfoCells: function() {
@@ -453,8 +476,7 @@
                     }
                 }
                 return flag_same;
-            }
-
+            },
         };
 
         $.DecayingTool = DecayingTool;
@@ -478,6 +500,16 @@
         $.fn.decayingTool.constructor = DecayingTool;
     })
 );
+
+jQuery.fn.forceClass = function(className, state) {
+    var o = this // It's your element
+    if (state) {
+        o.addClass(className);
+    } else {
+        o.removeClass(className);
+    }
+    return this; // This is needed so others can keep chaining off of this
+};
 
 function refreshGraph(updated) {
     decayingTool.redrawGraph();
@@ -520,10 +552,14 @@ $(document).ready(function() {
     });
 
     $('#table_toggle_all_type').change(function() {
-        $('#attributeTypeTableBody').find('tr.isNotToIDS').toggleClass('hidden', !this.checked);
+        decayingTool.filterTableType('#table_attribute_type', $('#table_type_search').val());
     });
 
     $('#table_toggle_objects').change(function() {
-        $('#attributeTypeTableBody').find('tr.isObject').toggleClass('hidden', !this.checked);
+        decayingTool.filterTableType('#table_attribute_type', $('#table_type_search').val());
+    });
+
+    $('#table_type_search').on('input', function() {
+        decayingTool.filterTableType('#table_attribute_type', this.value);
     });
 });
