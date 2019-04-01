@@ -232,6 +232,13 @@
 
                 var data = this.genAll();
 
+                if (data.length == 0) {
+                    $(this.container).hide();
+                    return;
+                } else {
+                    $(this.container).show();
+                }
+
                 // scale the range of the data
                 this.x.domain(d3.extent(data, function(d) { return d.x; }));
                 this.y.domain([0, d3.max(data, function(d) { return d.y; })]);
