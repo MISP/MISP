@@ -101,7 +101,7 @@ class FeedsController extends AppController
         $this->set('other_feeds', $feeds);
         $this->set('feed', $feed);
     }
-    
+
     public function feedCoverage($feedId)
     {
         if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
@@ -947,5 +947,48 @@ class FeedsController extends AppController
             $this->set('enable', $enable);
             $this->render('ajax/feedToggleConfirmation');
         }
+    }
+
+    public function searchCaches()
+    {
+        if (isset($this->passedArgs['pages'])) {
+            $currentPage = $this->passedArgs['pages'];
+        } else {
+            $currentPage = 1;
+        }
+        $urlparams = '';
+        App::uses('CustomPaginationTool', 'Tools');
+        $customPagination = new CustomPaginationTool();
+        $passedArgs = array();
+        $hits = array();
+        $value = false;
+        if ($this->request->is('post')) {
+            if (isset($this->request->data['Feed'])) {
+                $this->request->data = $this->request->data['Feed'];
+            }
+            if (isset($this->request->data['value'])) {
+                $this->request->data = $this->request->data['value'];
+            }
+            $value = $this->request->data;
+        }
+        if (!empty($this->params['named']['value'])) {
+            $value = $this->params['named']['value'];
+        }
+        $hits = $this->Feed->searchCaches($value);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($hits, $this->response->type());
+        } else {
+            $this->set('hits', $hits);
+        }
+        $params = $customPagination->createPaginationRules($hits, $this->passedArgs, $this->alias);
+        $this->params->params['paging'] = array('Feed' => $params);
+        $hits = $customPagination->sortArray($hits, $params, true);
+        if (is_array($hits)) {
+            $customPagination->truncateByPagination($hits, $params);
+        }
+        $pageCount = count($hits);
+        $this->set('urlparams', $urlparams);
+        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgsArray', $passedArgs);
     }
 }

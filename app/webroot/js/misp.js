@@ -1865,8 +1865,12 @@ function runIndexQuickFilter(preserveParams) {
     if (!passedArgsArray) {
         var passedArgsArray = [];
     }
+    var searchKey = 'searchall';
+    if ($('#quickFilterField').data('searchkey')) {
+        searchKey = $('#quickFilterField').data('searchkey');
+    }
     if ( $('#quickFilterField').val().trim().length > 0){
-        passedArgsArray["searchall"] = $('#quickFilterField').val().trim();
+        passedArgsArray[searchKey] = $('#quickFilterField').val().trim();
     }
     url = here;
     if (typeof preserveParams !== "undefined") {
