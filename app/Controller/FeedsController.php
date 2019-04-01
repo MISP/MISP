@@ -951,6 +951,9 @@ class FeedsController extends AppController
 
     public function searchCaches()
     {
+        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
+            throw NotAllowedException('You don\'t have access to this feature.');
+        }
         if (isset($this->passedArgs['pages'])) {
             $currentPage = $this->passedArgs['pages'];
         } else {
