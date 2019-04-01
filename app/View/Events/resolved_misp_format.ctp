@@ -36,12 +36,58 @@
         <?php
                 foreach ($event['Object'] as $o => $object) {
         ?>
-        <table class="table table-condensed table-stripped">
+        <table class="MISPObject" style="width:100%;">
           <tbody>
             <tr>
               <td class="bold"><?php echo __('Name');?></td>
-              <td><?php echo h($object['name']); ?></td>
+              <td class='ObjectName'><?php echo h($object['name']); ?></td>
             </tr>
+            <tr>
+              <td class="bold"><?php echo __('UUID');?></td>
+              <td class='ObjectUUID'><?php echo h($object['uuid']); ?></td>
+            </tr>
+            <?php if (isset($object['ObjectReference']) && !empty($object['ObjectReference'])) { ?>
+              <tr>
+                <td class="bold"><?php echo __('References:'); ?></td>
+              </tr>
+              <table class="table table-condensed" style="margin-bottom:0px;">
+                <thead>
+                  <th><?php echo __('Referenced name/type'); ?></th>
+                  <th><?php echo __('Referenced uuid'); ?></th>
+                  <th><?php echo __('Relationship'); ?></th>
+                </thead>
+                <tbody>
+            <?php
+                    foreach ($object['ObjectReference'] as $reference) {
+                        echo '<tr class="ObjectReference">';
+                        $referenced_uuid = $reference['referenced_uuid'];
+                        foreach ($event['Object'] as $object_reference) {
+                            if ($referenced_uuid === $object_reference['uuid']) {
+                                $name = $object_reference['name'];
+                                break;
+                            }
+                        }
+                        if (!isset($name)) {
+                            foreach ($event['Attribute'] as $attribute_reference) {
+                                if ($referenced_uuid === $attribute_reference['uuid']) {
+                                    $name = $attribute_reference['type'];
+                                    break;
+                                }
+                            }
+                            if (!isset($name)) {
+                                $name = '';
+                            }
+                        }
+                        echo '<td class="ReferencedName">' . h($name) . '</td>';
+                        unset($name);
+                        echo '<td class="ReferencedUUID">' . h($referenced_uuid) . '</td>';
+                        echo '<td class="Relationship">' . h($reference['relationship_type']) . '</td>';
+                        echo '</tr>';
+                    }
+                echo '</tbody>';
+                echo '</table>';
+                }
+            ?>
             <tr>
               <table class="table table-condensed table-striped">
                 <thead>
