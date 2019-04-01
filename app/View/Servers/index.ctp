@@ -122,10 +122,10 @@ foreach ($servers as $server):
                 echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/previewIndex/' . h($server['Server']['id']), __('Explore'), 'fa fa-search');
                 if ($server['Server']['pull']) {
                     echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/update', __('Pull updates to events that already exist locally'), 'fa fa-sync');
-                    echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/full', __('Pull all'), 'fa fa-circle-down');
+                    echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/full', __('Pull all'), 'fa fa-arrow-circle-down');
                 }
                 if ($server['Server']['push']) {
-                    echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/push/' . h($server['Server']['id']) . '/full', __('Push all'), 'fa fa-circle-up');
+                    echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/push/' . h($server['Server']['id']) . '/full', __('Push all'), 'fa fa-arrow-circle-up');
                 }
                 if ($server['Server']['caching_enabled']) {
                         echo sprintf('<a href="%s" title="%s" class="%s"></a>', $baseurl . '/servers/cache/' . h($server['Server']['id']), __('Cache instance'), 'fa fa-memory');

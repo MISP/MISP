@@ -50,7 +50,19 @@ class FeedsController extends AppController
                 );
             }
         }
-        $data = $this->paginate();
+        if ($this->_isRest()) {
+            $keepFields = array('conditions', 'contain', 'recursive', 'sort');
+            $searchParams = array();
+            foreach ($keepFields as $field) {
+                if (!empty($this->paginate[$field])) {
+                    $searchParams[$field] = $this->paginate[$field];
+                }
+            }
+
+            $data = $this->Feed->find('all', $searchParams);
+        } else {
+            $data = $this->paginate();
+        }
         $this->loadModel('Event');
         foreach ($data as $key => $value) {
             if ($value['Feed']['event_id'] != 0 && $value['Feed']['fixed_event']) {

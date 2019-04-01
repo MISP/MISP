@@ -4521,7 +4521,7 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         $results = array();
-        $extensions = array('redis');
+        $extensions = array('redis', 'gd');
         foreach ($extensions as $extension) {
             $results['web']['extensions'][$extension] = extension_loaded($extension);
         }
@@ -4570,25 +4570,38 @@ class Server extends AppModel
 
     public function getSubmodulesGitStatus()
     {
-        $submodulesNames = array('misp-galaxy', 'misp-taxonomies', 'misp-objects', 'misp-noticelist', 'misp-warninglists');
+        exec('cd ' . APP . '../; git submodule |cut -f3 -d\ ', $submodulesNames);
         $status = array();
         foreach ($submodulesNames as $submoduleName) {
+          $temp = $this->getSubmoduleGitStatus($submoduleName);
+          if ( ! empty($temp) ) {
             $status[$submoduleName] = $this->getSubmoduleGitStatus($submoduleName);
+          }
         }
         return $status;
     }
 
     public function getSubmoduleGitStatus($submoduleName) {
-        $acceptedSubmodulesNames = array('misp-galaxy', 'misp-taxonomies', 'misp-objects', 'misp-noticelist', 'misp-warninglists');
+        $acceptedSubmodulesNames = array('PyMISP',
+                                         'app/files/misp-galaxy',
+                                         'app/files/taxonomies',
+                                         'app/files/misp-objects',
+                                         'app/files/noticelists',
+                                         'app/files/warninglists',
+                                         'cti-python-stix2'
+                                       );
         $status = array();
         if (in_array($submoduleName, $acceptedSubmodulesNames)) {
-            $path = $this->__getSubmodulePath($submoduleName);
+            $path = APP . '../' . $submoduleName;
+            $submoduleName=(strpos($submoduleName, '/') >= 0 ? explode('/', $submoduleName) : $submoduleName);
+            $submoduleName=end($submoduleName);
+            $submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
             $status = array(
                 'moduleName' => $submoduleName,
                 'current' => exec(sprintf('cd %s; git rev-parse HEAD', $path)),
                 'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
                 'remoteTimestamp' => exec('timeout 3 git log origin/2.4 -1 --pretty=format:%ct'),
-                'remote' => exec(sprintf('timeout 3 git ls-remote https://github.com/MISP/%s | head -1 | sed "s/HEAD//"', $submoduleName)),
+                'remote' => exec(sprintf('timeout 3 git ls-remote %s | head -1 | sed "s/HEAD//"', $submoduleRemote)),
                 'upToDate' => ''
             );
             if (!empty($status['remote'])) {
@@ -4605,6 +4618,7 @@ class Server extends AppModel
         return $status;
     }
 
+    // Potentially obsolete. Ideally it is more uniform to get the path of the submodules.
     private function __getSubmodulePath($submoduleName) {
         $base = APP . 'files' . DS;
         switch ($submoduleName) {

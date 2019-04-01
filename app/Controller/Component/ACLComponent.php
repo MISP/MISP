@@ -68,6 +68,7 @@ class ACLComponent extends Component
                     'toggleToIDS' => array('perm_add'),
                     'updateAttributeValues' => array('perm_add'),
                     'view' => array('*'),
+                    'viewPicture' => array('*'),
             ),
             'eventBlacklists' => array(
                     'add' => array(),

@@ -4412,7 +4412,8 @@ class Event extends AppModel
         $correlatedShadowAttributes,
         $filterType = false,
         &$eventWarnings,
-        $warningLists
+        $warningLists,
+        $sightingsData
     ) {
         $attribute['objectType'] = 'attribute';
         $include = true;
@@ -4460,6 +4461,15 @@ class Event extends AppModel
                 $include = $include && ($filterType['server'] == 1);
             } else { // `exclude`
                 $include = $include && ($filterType['server'] == 2);
+            }
+
+            /* sightings */
+            if ($filterType['sighting'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (isset($sightingsData['data'][$attribute['id']])) { // `include only`
+                $include = $include && ($filterType['sighting'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['sighting'] == 2);
             }
 
             /* TypeGroupings */
@@ -4574,7 +4584,8 @@ class Event extends AppModel
         $correlatedShadowAttributes,
         $filterType = false,
         &$eventWarnings,
-        $warningLists
+        $warningLists,
+        $sightingsData
     ) {
         $object['category'] = $object['meta-category'];
         $proposal['objectType'] = 'object';
@@ -4590,7 +4601,8 @@ class Event extends AppModel
                     $correlatedShadowAttributes,
                     false,
                     $eventWarnings,
-                    $warningLists
+                    $warningLists,
+                    $sightingsData
                 );
                 if ($result['include']) {
                     $temp[] = $result['data'];
@@ -4604,16 +4616,17 @@ class Event extends AppModel
             || $filterType['correlation'] != 0
             || $filterType['proposal'] != 0
             || $filterType['warning'] != 0
+            || $filterType['sighting'] != 0
             || $filterType['feed'] != 0
             || $filterType['server'] != 0
         ) {
-            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
+            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData);
         }
 
         return array('include' => $include, 'data' => $object);
     }
 
-    private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes)
+    private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData)
     {
         $include = true;
 
@@ -4683,6 +4696,35 @@ class Event extends AppModel
                     foreach ($attribute['ShadowAttribute'] as $k => $shadowAttribute) {
                         if (in_array($shadowAttribute['id'], $correlatedShadowAttributes)) {
                             $flagKeep = ($filterType['correlation'] == 1); // keep if correlations are included
+                            break;
+                        }
+                    }
+                }
+                if ($flagKeep) {
+                    break;
+                }
+            }
+            if (!$flagKeep) {
+                $include = false;
+                return $include;
+            }
+        }
+
+        /* sighting */
+        if ($filterType['sighting'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['sighting'] == 1 || $filterType['sighting'] == 2) {
+            $flagKeep = false;
+            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+                if (isset($sightingsData['data'][$attribute['id']])) {
+                    $flagKeep = ($filterType['sighting'] == 1); // keep if server are included
+                } else {
+                    $flagKeep = ($filterType['sighting'] == 2); // keep if server are excluded
+                }
+                if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
+                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
+                        if (isset($sightingsData['data'][$attribute['id']])) {
+                            $flagKeep = ($filterType['sighting'] == 1); // do not keep if server are excluded
                             break;
                         }
                     }
@@ -4769,10 +4811,15 @@ class Event extends AppModel
             if (!empty($object['data'])) {
                 $object['image'] = $object['data'];
             } else {
-                if ($object['objectType'] === 'proposal') {
-                    $object['image'] = $this->ShadowAttribute->base64EncodeAttachment($object);
+                if (extension_loaded('gd')) {
+                    // if extention is loaded, the data is not passed to the view because it is asynchronously fetched
+                    $object['image'] = true; // tell the view that it is an image despite not having the actual data
                 } else {
-                    $object['image'] = $this->Attribute->base64EncodeAttachment($object);
+                    if ($object['objectType'] === 'proposal') {
+                        $object['image'] = $this->ShadowAttribute->base64EncodeAttachment($object);
+                    } else {
+                        $object['image'] = $this->Attribute->base64EncodeAttachment($object);
+                    }
                 }
             }
         }
@@ -4790,7 +4837,7 @@ class Event extends AppModel
         return $object;
     }
 
-    public function rearrangeEventForView(&$event, $passedArgs = array(), $all = false)
+    public function rearrangeEventForView(&$event, $passedArgs = array(), $all = false, $sightingsData=array())
     {
         $this->Warninglist = ClassRegistry::init('Warninglist');
         $warningLists = $this->Warninglist->fetchForEventView();
@@ -4807,6 +4854,7 @@ class Event extends AppModel
             'warning' => isset($passedArgs['warning']) ? $passedArgs['warning'] : 0,
             'deleted' => isset($passedArgs['deleted']) ? $passedArgs['deleted'] : 0,
             'toIDS' => isset($passedArgs['toIDS']) ? $passedArgs['toIDS'] : 0,
+            'sighting' => isset($passedArgs['sighting']) ? $passedArgs['sighting'] : 0,
             'feed' => isset($passedArgs['feed']) ? $passedArgs['feed'] : 0,
             'server' => isset($passedArgs['server']) ? $passedArgs['server'] : 0
         );
@@ -4827,7 +4875,8 @@ class Event extends AppModel
                 $correlatedShadowAttributes,
                 $filterType,
                 $eventWarnings,
-                $warningLists
+                $warningLists,
+                $sightingsData
             );
             if ($result['include']) {
                 $event['objects'][] = $result['data'];
@@ -4855,7 +4904,8 @@ class Event extends AppModel
                     $correlatedShadowAttributes,
                     $filterType,
                     $eventWarnings,
-                    $warningLists
+                    $warningLists,
+                    $sightingsData
                 );
                 if ($result['include']) {
                     $event['objects'][] = $result['data'];

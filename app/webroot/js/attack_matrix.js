@@ -181,15 +181,19 @@
 		minOverwrite = minOverwrite !== undefined ? minOverwrite : minWidth;
 		minOverwrite = minWidth > minOverwrite ? minWidth : minOverwrite;
 		if($(window).width()*0.5+700 <= minOverwrite) {
-			$('#popover_form_large').css('position', 'absolute');
-			$('#popover_form_large').css('left', '10px');
 			var topOff = $('#popover_form_large').offset().top;
 			savedTopOffset =  topOff >= $(document).scrollTop() ? topOff - $(document).scrollTop() : topOff;
-			$('#popover_form_large').css('top', savedTopOffset+$(document).scrollTop()+'px');
+			$('#popover_form_large').css({
+				position: 'absolute',
+				left: '10px',
+				top: savedTopOffset+$(document).scrollTop()+'px'
+			});
 		} else {
-			$('#popover_form_large').css('position', 'fixed');
-			$('#popover_form_large').css('left', '');
-			$('#popover_form_large').css('top', savedTopOffset);
+			$('#popover_form_large').css({
+				position: 'absolute',
+				left: '',
+				top: savedTopOffset
+			});
 		}
 	}
 

@@ -79,13 +79,22 @@ function genericPopup(url, popupTarget, callback) {
     });
 }
 
-function screenshotPopup(screenshotData, title) {
-    popupHtml = '<img src="' + screenshotData + '" id="screenshot-image" title="' + title + '" />';
+function screenshotPopup(url, title) {
+    if (!url.startsWith('data:image/')) {
+        url = url.slice(0, -1);
+    }
+    popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>'
+    popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" id="screenshot-image" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();"/>';
     popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+    if (!url.startsWith('data:image/')) {
+        popupHtml += '<a class="close-icon useCursorPointer fa fa-expand" style="right: 20px; background: black; color: white; text-decoration: none;" target="_blank" href="' + url + '" ></a>';
+    }
+    popupHtml += '<div style="height: 20px;"></div>'; // see bottom of image for large one
     $('#screenshot_box').html(popupHtml);
-    $('#screenshot_box').show();
-    left = ($(window).width() / 2) - ($('#screenshot-image').width() / 2);
-    $('#screenshot_box').css({'left': left + 'px'});
+    $('#screenshot_box').css({
+        display: 'block',
+        top: (document.documentElement.scrollTop + 100) + 'px'
+    });
     $("#gray_out").fadeIn();
 }
 
@@ -1433,7 +1442,7 @@ function openPopup(id) {
     var window_height = $(window).height();
     var popup_height = $(id).height();
     if (window_height < popup_height) {
-        $(id).css("top", 0);
+        $(id).css("top", 50);
         $(id).css("height", window_height);
         $(id).addClass('vertical-scroll');
     } else {
@@ -4093,54 +4102,6 @@ function submit_feed_overlap_tool(feedId) {
         type:"post",
         cache: false,
         url:"/feeds/feedCoverage/" + feedId,
-    });
-}
-
-function populate_rest_history(scope) {
-    if (scope === 'history') {
-        scope = '';
-        var container_class = 'history_queries';
-    } else {
-        scope = '1';
-        var container_class = 'bookmarked_queries';
-    }
-    $.get("/rest_client_history/index/" + scope, function(data) {
-        $('.' + container_class).html(data);
-    });
-}
-
-function loadRestClientHistory(k, data_container) {
-    $('#ServerMethod').val(data_container[k]['RestClientHistory']['http_method']);
-    $('#ServerUseFullPath').prop("checked", data_container[k]['RestClientHistory']['use_full_path']);
-    $('#ServerShowResult').prop("checked", data_container[k]['RestClientHistory']['show_result']);
-    $('#ServerSkipSslValidation').prop("checked", data_container[k]['RestClientHistory']['skip_ssl_validation']);
-    $('#ServerUrl').val(data_container[k]['RestClientHistory']['url']);
-    $('#ServerHeader').val(data_container[k]['RestClientHistory']['headers']);
-    $('#ServerBody').val(data_container[k]['RestClientHistory']['body']);
-    toggleRestClientBookmark();
-}
-
-function toggleRestClientBookmark() {
-    if ($('#ServerBookmark').prop("checked") == true) {
-        $('#bookmark-name').css('display', 'block');
-    } else {
-        $('#bookmark-name').css('display', 'none');
-    }
-}
-
-function removeRestClientHistoryItem(id) {
-    $.ajax({
-        data: '[]',
-        success:function (data, textStatus) {
-            populate_rest_history('bookmark');
-            populate_rest_history('history');
-        },
-        error:function() {
-            handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
-        },
-        type:"post",
-        cache: false,
-        url: '/rest_client_history/delete/' + id,
     });
 }
 
