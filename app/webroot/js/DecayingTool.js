@@ -449,8 +449,8 @@ $(document).ready(function() {
     function dragmove(d) {
         var point = d3.select(this);
         var id = point.attr('id');
-        point.attr("cx", function() { return Math.max(Math.min(d3.event.x, width), 0); })
-            .attr("cy", function() { return Math.max(Math.min(d3.event.y, height), 0); });
+        point.attr("cx", function() { return Math.max(Math.min(d3.event.x, width-1), 1); })
+            .attr("cy", function() { return Math.min(Math.max(d3.event.y, 0), height-1); });
         updateData(id);
     }
 
