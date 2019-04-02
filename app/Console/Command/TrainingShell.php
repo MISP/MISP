@@ -87,6 +87,9 @@ class TrainingShell extends AppShell {
     {
         $org = str_replace('$ID', $id, $this->__config['org_blueprint']);
         $org_id = $this->Organisation->createOrgFromName($org, 1, true);
+        if (empty($org_id)) {
+            sprintf("Something went wrong. Could not create organisation with the following input: \n\n", $org);
+        }
         $org_data = $this->Organisation->find('first', array(
             'recursive' => -1,
             'fields' => array('name', 'uuid', 'local', 'id'),
@@ -321,7 +324,7 @@ class TrainingShell extends AppShell {
         $sync_role = $this->User->Role->find('first', array('recursive' => -1, 'conditions' => array('Role.name' => 'Sync user')));
         $sync_role = $sync_role['Role']['id'];
         $this->User->create();
-        $this->User->save(array(
+        $result = $this->User->save(array(
                 'external_auth_required' => 0,
                 'external_auth_key' => '',
                 'server_id' => 0,
@@ -338,6 +341,9 @@ class TrainingShell extends AppShell {
                 'role_id' => $sync_role,
                 'email' => 'sync_user@' . $org . '.test'
         ));
+        if (!$result) {
+            echo 'Could not add sync user due to validation error. Error: ' . json_encode($this->User->validationErrors) . PHP_EOL . PHP_EOL;
+        }
         $user = $this->User->find('first', array('recursive' => -1, 'conditions' => array('User.email' => 'sync_user@' . $org . '.test')));
         return $user;
     }
@@ -478,6 +484,7 @@ class TrainingShell extends AppShell {
             if (isset($org_data['Organisation'])) {
                 $org_data = $org_data['Organisation'];
             }
+            unset($org_idata['id']);
             $options = array(
                 'body' => $org_data,
                 'url' => $this->__currentUrl . '/admin/organisations/add',
