@@ -4570,13 +4570,16 @@ class Server extends AppModel
 
     public function getSubmodulesGitStatus()
     {
-        exec('cd ' . APP . '../; git submodule |cut -f3 -d\ ', $submodulesNames);
+        exec('cd ' . APP . '../; git submodule status | cut -b 2- | cut -d " " -f 1,2 ', $submodulesNames);
         $status = array();
-        foreach ($submodulesNames as $submoduleName) {
-          $temp = $this->getSubmoduleGitStatus($submoduleName);
-          if ( ! empty($temp) ) {
-            $status[$submoduleName] = $this->getSubmoduleGitStatus($submoduleName);
-          }
+        foreach ($submodulesNames as $submoduleNameInfo) {
+            $submoduleNameInfo = explode(' ', $submoduleNameInfo);
+            $submoduleCommitId = $submoduleNameInfo[0];
+            $submoduleName = $submoduleNameInfo[1];
+            $temp = $this->getSubmoduleGitStatus($submoduleName);
+            if ( !empty($temp) ) {
+                $status[$submoduleName] = $this->getSubmoduleGitStatus($submoduleName);
+            }
         }
         return $status;
     }
