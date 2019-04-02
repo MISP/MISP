@@ -29,7 +29,11 @@
                         $class = 'warning';
                     }
                     $versionText = __('Outdated version');
-                    $versionText .= sprintf(_(' (%s days, %s hours older than super project)'), $status['timeDiff']->format('%d'), $status['timeDiff']->format('%h'));
+                    $versionText .= sprintf(_(' (%s days, %s hours older than super project)'), $status['timeDiff']->format('%a'), $status['timeDiff']->format('%h'));
+                    break;
+                case 'younger':
+                    $class = 'warning';
+                    $versionText = __('Newer version. Make sure to update MISP');
                     break;
                 case 'error':
                     $class = 'error bold';

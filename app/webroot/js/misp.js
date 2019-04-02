@@ -3725,7 +3725,9 @@ function submitSubmoduleUpdate(clicked) {
         },
         data: formData,
         success:function (data, textStatus) {
-            showMessage('success', data.output);
+            if (data.output !== '') {
+                showMessage('success', data.output);
+            }
             updateSubModulesStatus();
         },
         complete:function() {
