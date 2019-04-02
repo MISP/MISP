@@ -486,7 +486,7 @@ class TrainingShell extends AppShell {
             if (isset($org_data['Organisation'])) {
                 $org_data = $org_data['Organisation'];
             }
-            unset($org_idata['id']);
+            unset($org_data['id']);
             $options = array(
                 'body' => $org_data,
                 'url' => $this->__currentUrl . '/admin/organisations/add',
@@ -497,7 +497,7 @@ class TrainingShell extends AppShell {
                 $this->__responseError($response, $options);
             }
             $options = array(
-                'url' => $this->__currentUrl . '/organisations/view/' . $org_data['Organisation']['uuid'],
+                'url' => $this->__currentUrl . '/organisations/view/' . $org_data['uuid'],
                 'method' => 'GET'
             );
             $response = $this->__queryRemoteMISP($options, true);
