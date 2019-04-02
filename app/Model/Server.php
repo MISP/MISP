@@ -4570,22 +4570,22 @@ class Server extends AppModel
 
     public function getSubmodulesGitStatus()
     {
-        exec('cd ' . APP . '../; git submodule status --cached | cut -b 2- | cut -d " " -f 1,2 ', $submodulesNames);
+        exec('cd ' . APP . '../; git submodule status --cached | cut -b 2- | cut -d " " -f 1,2 ', $submodules_names);
         $status = array();
-        foreach ($submodulesNames as $submoduleNameInfo) {
-            $submoduleNameInfo = explode(' ', $submoduleNameInfo);
-            $superProjectSubmoduleCommitId = $submoduleNameInfo[0];
-            $submoduleName = $submoduleNameInfo[1];
-            $temp = $this->getSubmoduleGitStatus($submoduleName, $superProjectSubmoduleCommitId);
+        foreach ($submodules_names as $submodule_name_info) {
+            $submodule_name_info = explode(' ', $submodule_name_info);
+            $superproject_submodule_commit_id = $submodule_name_info[0];
+            $submodule_name = $submodule_name_info[1];
+            $temp = $this->getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id);
             if ( !empty($temp) ) {
-                $status[$submoduleName] = $temp;
+                $status[$submodule_name] = $temp;
             }
         }
         return $status;
     }
 
     private function _isAcceptedSubmodule($submodule) {
-        $acceptedSubmodulesNames = array('PyMISP',
+        $accepted_submodules_names = array('PyMISP',
             'app/files/misp-galaxy',
             'app/files/taxonomies',
             'app/files/misp-objects',
@@ -4593,24 +4593,24 @@ class Server extends AppModel
             'app/files/warninglists',
             'cti-python-stix2'
         );
-        return in_array($submodule, $acceptedSubmodulesNames);
+        return in_array($submodule, $accepted_submodules_names);
     }
 
-    public function getSubmoduleGitStatus($submoduleName, $superProjectSubmoduleCommitId) {
+    public function getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id) {
         $status = array();
-        if ($this->_isAcceptedSubmodule($submoduleName)) {
-            $path = APP . '../' . $submoduleName;
-            $submoduleName=(strpos($submoduleName, '/') >= 0 ? explode('/', $submoduleName) : $submoduleName);
-            $submoduleName=end($submoduleName);
+        if ($this->_isAcceptedSubmodule($submodule_name)) {
+            $path = APP . '../' . $submodule_name;
+            $submodule_name=(strpos($submodule_name, '/') >= 0 ? explode('/', $submodule_name) : $submodule_name);
+            $submodule_name=end($submodule_name);
             $submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
-            exec(sprintf('cd %s; git rev-parse HEAD', $path), $submoduleCurrentCommitId);
-            $submoduleCurrentCommitId = $submoduleCurrentCommitId[0];
+            exec(sprintf('cd %s; git rev-parse HEAD', $path), $submodule_current_commit_id);
+            $submodule_current_commit_id = $submodule_current_commit_id[0];
             $status = array(
-                'moduleName' => $submoduleName,
-                'current' => $submoduleCurrentCommitId,
+                'moduleName' => $submodule_name,
+                'current' => $submodule_current_commit_id,
                 'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
-                'remoteTimestamp' => exec(sprintf('cd %s; git show -s --pretty=format:%%ct %s', $path, $superProjectSubmoduleCommitId)),
-                'remote' => $superProjectSubmoduleCommitId,
+                'remoteTimestamp' => exec(sprintf('cd %s; git show -s --pretty=format:%%ct %s', $path, $superproject_submodule_commit_id)),
+                'remote' => $superproject_submodule_commit_id,
                 'upToDate' => ''
             );
             if (!empty($status['remote'])) {
@@ -4629,15 +4629,15 @@ class Server extends AppModel
         return $status;
     }
 
-    public function updateSubmodule($submoduleName=false) {
+    public function updateSubmodule($submodule_name=false) {
         $path = APP . '../';
-        if ($submoduleName == false) {
+        if ($submodule_name == false) {
             $command = sprintf('cd %s; git submodule update', $path);
             exec($command, $output);
             $output = implode("\n", $output);
             $res = array('status' => true, 'output' => $output);
-        } else if ($this->_isAcceptedSubmodule($submoduleName)) {
-            $command = sprintf('cd %s; git submodule update -- %s', $path, $submoduleName);
+        } else if ($this->_isAcceptedSubmodule($submodule_name)) {
+            $command = sprintf('cd %s; git submodule update -- %s', $path, $submodule_name);
             exec($command, $output);
             $output = implode("\n", $output);
             $res = array('status' => true, 'output' => $output);
