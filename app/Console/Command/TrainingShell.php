@@ -334,7 +334,7 @@ class TrainingShell extends AppShell {
                 'change_pw' => 1,
                 'authkey' => $this->User->generateAuthKey(),
                 'termsaccepted' => 0,
-                'org_id' => $remote_org_id,
+                'org_id' => $org,
                 'role_id' => $sync_role,
                 'email' => 'sync_user@' . $org . '.test'
         ));
