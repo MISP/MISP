@@ -89,7 +89,7 @@ class TrainingShell extends AppShell {
         $org_id = $this->Organisation->createOrgFromName($org, 1, true);
         $org_data = $this->Organisation->find('first', array(
             'recursive' => -1,
-            'fields' => array('name', 'uuid', 'local'),
+            'fields' => array('name', 'uuid', 'local', 'id'),
             'conditions' => array('Organisation.id' => $org_id)
         ));
         $org_data['Organisation']['remote_org_id'] = $this->__createOrg($org_data);
@@ -263,7 +263,7 @@ class TrainingShell extends AppShell {
         return $user;
     }
 
-    private function __addSyncConnectionLocally($baseurl, $org_name, $remote_org_id_on_local, $sync_user)
+    private function __addSyncConnectionLocally($baseurl, $org_name, $remote_org_id_on_local, $sync_user, $host_org_id_on_local)
     {
         $this->Server->create();
         $server = array(
