@@ -475,6 +475,9 @@ class TrainingShell extends AppShell {
                     return $existingOrg['Organisation']['id'];
                 }
             }
+            if (isset($org_data['Organisation'])) {
+                $org_data = $org_data['Organisation'];
+            }
             $options = array(
                 'body' => $org_data,
                 'url' => $this->__currentUrl . '/admin/organisations/add',
