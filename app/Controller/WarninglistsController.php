@@ -205,7 +205,12 @@ class WarninglistsController extends AppController
         }
         $this->Warninglist->saveField('enabled', $enable);
         $this->Warninglist->regenerateWarninglistCaches($id);
-        $this->Flash->success('Warninglist enabled');
+        if ($enable === 0) {
+            $this->Flash->success(__('Warninglist disabled'));
+        }
+        else {
+            $this->Flash->success(__('Warninglist enabled'));
+        }
         $this->redirect(array('controller' => 'warninglists', 'action' => 'view', $id));
     }
 
@@ -243,10 +248,10 @@ class WarninglistsController extends AppController
             $id = intval($id);
             $result = $this->Warninglist->quickDelete($id);
             if ($result) {
-                $this->Flash->success('Warninglist successfuly deleted.');
+                $this->Flash->success(__('Warninglist successfuly deleted.'));
                 $this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
             } else {
-                $this->Flash->error('Warninglists could not be deleted.');
+                $this->Flash->error(__('Warninglists could not be deleted.'));
                 $this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
             }
         } else {
