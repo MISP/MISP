@@ -70,7 +70,7 @@
             <?php
                                     }
                                     if ($post['date_created'] != $post['date_modified']) {
-                                        echo '<span style="font-style:italic">Message edited at ' . h($post['date_modified']) . '<span>';
+                                        echo '<span style="font-style:italic">' . __('Message edited at ') . h($post['date_modified']) . '<span>';
                                     }
             ?>
                             </td>
@@ -80,7 +80,7 @@
                                 <table style="width:100%">
                                     <tr>
                                         <td>
-                                            <?php echo !empty($post['user_email']) ? h($post['user_email']) : 'User ' . h($post['user_id']) . ' (' . (h($post['org_name'])) . ')'; ?>
+                                            <?php echo !empty($post['user_email']) ? h($post['user_email']) : __('User ') . h($post['user_id']) . ' (' . (h($post['org_name'])) . ')'; ?>
                                         </td>
                                         <td style="text-align:right">
             <?php
@@ -95,7 +95,7 @@
                                             }
                                         } else {
                                             echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'fa fa-edit', 'title' => __('Edit')));
-                                            echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
+                                            echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete this post?'));
             ?>
                                                 <a href = "<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "<?php echo __('Reply');?>"></a>
             <?php
