@@ -274,7 +274,7 @@ class TrainingShell extends AppShell {
             "pull" => 1,
             "remote_org_id" => $sync_user['org_id'],
             "self_signed" => 1,
-            "org_id" => $host_org_id_on_local
+            "org_id" => Configure::read('MISP.host_org_id')
         );
         $result = $this->Server->save($server);
         if (!$result) {
