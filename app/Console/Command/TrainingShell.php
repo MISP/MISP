@@ -324,7 +324,7 @@ class TrainingShell extends AppShell {
         $sync_role = $this->User->Role->find('first', array('recursive' => -1, 'conditions' => array('Role.name' => 'Sync user')));
         $sync_role = $sync_role['Role']['id'];
         $this->User->create();
-        $result = $this->User->save(array(
+        $user = array(
                 'external_auth_required' => 0,
                 'external_auth_key' => '',
                 'server_id' => 0,
@@ -340,9 +340,11 @@ class TrainingShell extends AppShell {
                 'org_id' => $org,
                 'role_id' => $sync_role,
                 'email' => 'sync_user@' . $org . '.test'
-        ));
+        );
+        $result = $this->User->save($user);
         if (!$result) {
             echo 'Could not add sync user due to validation error. Error: ' . json_encode($this->User->validationErrors) . PHP_EOL . PHP_EOL;
+            echo 'Input was: ' . json_encode($user, true) . PHP_EOL . PHP_EOL;
         }
         $user = $this->User->find('first', array('recursive' => -1, 'conditions' => array('User.email' => 'sync_user@' . $org . '.test')));
         return $user;
@@ -499,6 +501,9 @@ class TrainingShell extends AppShell {
                 'method' => 'GET'
             );
             $response = $this->__queryRemoteMISP($options, true);
+            if ($response->code != 200) {
+                $this->__responseError($response, $options);
+            }
             $response_data = json_decode($response->body, true);
             return $response_data['Organisation']['id'];
         }
