@@ -4570,48 +4570,56 @@ class Server extends AppModel
 
     public function getSubmodulesGitStatus()
     {
-        exec('cd ' . APP . '../; git submodule status | cut -b 2- | cut -d " " -f 1,2 ', $submodulesNames);
+        exec('cd ' . APP . '../; git submodule status --cached | cut -b 2- | cut -d " " -f 1,2 ', $submodulesNames);
         $status = array();
         foreach ($submodulesNames as $submoduleNameInfo) {
             $submoduleNameInfo = explode(' ', $submoduleNameInfo);
-            $submoduleCommitId = $submoduleNameInfo[0];
+            $superProjectSubmoduleCommitId = $submoduleNameInfo[0];
             $submoduleName = $submoduleNameInfo[1];
-            $temp = $this->getSubmoduleGitStatus($submoduleName);
+            $temp = $this->getSubmoduleGitStatus($submoduleName, $superProjectSubmoduleCommitId);
             if ( !empty($temp) ) {
-                $status[$submoduleName] = $this->getSubmoduleGitStatus($submoduleName);
+                $status[$submoduleName] = $temp;
             }
         }
         return $status;
     }
 
-    public function getSubmoduleGitStatus($submoduleName) {
+    private function _isAcceptedSubmodule($submodule) {
         $acceptedSubmodulesNames = array('PyMISP',
-                                         'app/files/misp-galaxy',
-                                         'app/files/taxonomies',
-                                         'app/files/misp-objects',
-                                         'app/files/noticelists',
-                                         'app/files/warninglists',
-                                         'cti-python-stix2'
-                                       );
+            'app/files/misp-galaxy',
+            'app/files/taxonomies',
+            'app/files/misp-objects',
+            'app/files/noticelists',
+            'app/files/warninglists',
+            'cti-python-stix2'
+        );
+        return in_array($submodule, $acceptedSubmodulesNames);
+    }
+
+    public function getSubmoduleGitStatus($submoduleName, $superProjectSubmoduleCommitId) {
         $status = array();
-        if (in_array($submoduleName, $acceptedSubmodulesNames)) {
+        if ($this->_isAcceptedSubmodule($submoduleName)) {
             $path = APP . '../' . $submoduleName;
             $submoduleName=(strpos($submoduleName, '/') >= 0 ? explode('/', $submoduleName) : $submoduleName);
             $submoduleName=end($submoduleName);
             $submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
+            exec(sprintf('cd %s; git rev-parse HEAD', $path), $submoduleCurrentCommitId);
+            $submoduleCurrentCommitId = $submoduleCurrentCommitId[0];
             $status = array(
                 'moduleName' => $submoduleName,
-                'current' => exec(sprintf('cd %s; git rev-parse HEAD', $path)),
+                'current' => $submoduleCurrentCommitId,
                 'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
-                'remoteTimestamp' => exec('timeout 3 git log origin/2.4 -1 --pretty=format:%ct'),
-                'remote' => exec(sprintf('timeout 3 git ls-remote %s | head -1 | sed "s/HEAD//"', $submoduleRemote)),
+                'remoteTimestamp' => exec(sprintf('cd %s; git show -s --pretty=format:%%ct %s', $path, $superProjectSubmoduleCommitId)),
+                'remote' => $superProjectSubmoduleCommitId,
                 'upToDate' => ''
             );
             if (!empty($status['remote'])) {
                 if ($status['remote'] == $status['current']) {
                     $status['upToDate'] = 'same';
-                } else {
+                } else if ($status['currentTimestamp'] < $status['remoteTimestamp']) {
                     $status['upToDate'] = 'older';
+                } else {
+                    $status['upToDate'] = 'younger';
                 }
             } else {
                 $status['upToDate'] = 'error';
@@ -4621,19 +4629,22 @@ class Server extends AppModel
         return $status;
     }
 
-    // Potentially obsolete. Ideally it is more uniform to get the path of the submodules.
-    private function __getSubmodulePath($submoduleName) {
-        $base = APP . 'files' . DS;
-        switch ($submoduleName) {
-            case 'misp-taxonomies':
-                return $base . 'taxonomies';
-            case 'misp-noticelist':
-                return $base . 'noticelists';
-            case 'misp-warninglists':
-                return $base . 'warninglists';
-            default:
-                return $base . $submoduleName;
+    public function updateSubmodule($submoduleName=false) {
+        $path = APP . '../';
+        if ($submoduleName == false) {
+            $command = sprintf('cd %s; git submodule update', $path);
+            exec($command, $output);
+            $output = implode("\n", $output);
+            $res = array('status' => true, 'output' => $output);
+        } else if ($this->_isAcceptedSubmodule($submoduleName)) {
+            $command = sprintf('cd %s; git submodule update -- %s', $path, $submoduleName);
+            exec($command, $output);
+            $output = implode("\n", $output);
+            $res = array('status' => true, 'output' => $output);
+        } else {
+            $res = array('status' => false);
         }
+        return $res;
     }
 
     public function update($status)

@@ -3715,6 +3715,28 @@ function submitMISPUpdate() {
     });
 }
 
+function submitSubmoduleUpdate(clicked) {
+    var $clicked = $(clicked);
+    var $form = $clicked.parent().find('form');
+    var formData = $form.serialize();
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            $clicked.addClass('fa-spin');
+        },
+        data: formData,
+        success:function (data, textStatus) {
+            showMessage('success', data.output);
+            updateSubModulesStatus();
+        },
+        complete:function() {
+            $clicked.removeClass('fa-spin');
+        },
+        type:"post",
+        cache: false,
+        url:$form.attr('action'),
+    });
+}
+
 $(".cortex-json").click(function() {
     var cortex_data = $(this).data('cortex-json');
     cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
