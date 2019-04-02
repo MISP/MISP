@@ -59,7 +59,7 @@ class TrainingShell extends AppShell {
             $this->__report['remote_orgs'][] = array('id' => $org['Organisation']['remote_org_id'], 'name' => $org['Organisation']['name']);
             $role_id = $this->__createRole($this->__config['role_blueprint']);
             $this->__report['servers'][$this->__currentUrl]['training_role_id'] = $role_id;
-            $sync_user = $this->__createSyncUserLocally($org['Organisation']['remote_org_id'], $org['Organisation']['name']);
+            $sync_user = $this->__createSyncUserLocally($org['Organisation']['remote_org_id'], $org['Organisation']['name'], $org['Organisation']['id']);
             $this->__report['users'][] = $sync_user;
             $local_host_org = $this->__getLocalHostOrgId();
             $hub_org_id_on_remote = $this->__createOrg($local_host_org);
@@ -319,7 +319,7 @@ class TrainingShell extends AppShell {
         }
     }
 
-    private function __createSyncUserLocally($remote_org_id, $org)
+    private function __createSyncUserLocally($remote_org_id, $org, $local_org_id)
     {
         $sync_role = $this->User->Role->find('first', array('recursive' => -1, 'conditions' => array('Role.name' => 'Sync user')));
         $sync_role = $sync_role['Role']['id'];
@@ -337,7 +337,7 @@ class TrainingShell extends AppShell {
                 'change_pw' => 1,
                 'authkey' => $this->User->generateAuthKey(),
                 'termsaccepted' => 0,
-                'org_id' => $org,
+                'org_id' => $local_org_id,
                 'role_id' => $sync_role,
                 'email' => 'sync_user@' . $org . '.test'
         );
