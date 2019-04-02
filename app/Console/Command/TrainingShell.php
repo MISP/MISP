@@ -494,6 +494,12 @@ class TrainingShell extends AppShell {
             if ($response->code != 200) {
                 $this->__responseError($response, $options);
             }
+            $options = array(
+                'url' => $this->__currentUrl . '/organisations/view/' . $org_data['Organisation']['uuid'],
+                'method' => 'GET'
+            );
+            $response = $this->__queryRemoteMISP($options, true);
+            $response_data = json_decode($response->body, true);
             return $response_data['Organisation']['id'];
         }
     }
