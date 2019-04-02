@@ -266,7 +266,7 @@ foreach ($feeds as $item):
                 endif;
                 if ($item['Feed']['caching_enabled'] && $isSiteAdmin):
             ?>
-                    <a href="<?php echo $baseurl;?>/feeds/cacheFeeds/<?php echo h($item['Feed']['id']); ?>" title="Cache feed"><span class="fa fa-memory"></span></a>
+                    <a href="<?php echo $baseurl;?>/feeds/cacheFeeds/<?php echo h($item['Feed']['id']); ?>" title="Cache feed"><span class="black fa fa-memory"></span></a>
             <?php
                 endif;
             ?>

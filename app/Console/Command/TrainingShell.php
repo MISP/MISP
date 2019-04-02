@@ -23,6 +23,37 @@ class TrainingShell extends AppShell {
         $this->setup();
     }
 
+    public function changePasswords()
+    {
+        $this->__verbose = !empty($this->params['verbose']);
+        $this->__interactive = !empty($this->params['interactive']);
+        $this->__config = file_get_contents(APP . 'Console/Command/training.json');
+        $this->__config = json_decode($this->__config, true);
+        $this->__report = array();
+        for ($i = $this->__config['ID_start']; $i < ($this->__config['ID_start'] + $this->__config['number_of_misps_to_configure']); $i++) {
+            $id = $i;
+            if ($this->__config['ID_zero_out']) {
+                if ($id < 10) {
+                    $id = '0' . $id;
+                }
+            }
+            $this->__currentUrl = str_replace('$ID', $id, $this->__config['server_blueprint']);
+            if ($this->__interactive) {
+                $question = sprintf('Configure instance at %s?', $this->__currentUrl);
+                $input = $this->__user_input($question, array('y', 'n'));
+                if ($input === 'n') {
+                    $this->__printReport('Stopping execution. Data created so far:' . PHP_EOL . PHP_EOL);
+                    die();
+                }
+            }
+            if ($this->__verbose) {
+                echo 'INFO - Instance to configure' . $this->__currentUrl . PHP_EOL;
+            }
+            $this->__report['servers'][$this->__currentUrl]['users'] = $this->__resetPasswords($org['Organisation']['remote_org_id'], $role_id, $org['Organisation']['name'], $id);
+        }
+        $this->__printReport('Password change complete. Please find the modifications below:' . PHP_EOL . PHP_EOL);
+    }
+
     public function setup()
     {
         $this->__verbose = !empty($this->params['verbose']);
@@ -59,7 +90,7 @@ class TrainingShell extends AppShell {
             $this->__report['remote_orgs'][] = array('id' => $org['Organisation']['remote_org_id'], 'name' => $org['Organisation']['name']);
             $role_id = $this->__createRole($this->__config['role_blueprint']);
             $this->__report['servers'][$this->__currentUrl]['training_role_id'] = $role_id;
-            $sync_user = $this->__createSyncUserLocally($org['Organisation']['remote_org_id'], $org['Organisation']['name']);
+            $sync_user = $this->__createSyncUserLocally($org['Organisation']['remote_org_id'], $org['Organisation']['name'], $org['Organisation']['id']);
             $this->__report['users'][] = $sync_user;
             $local_host_org = $this->__getLocalHostOrgId();
             $hub_org_id_on_remote = $this->__createOrg($local_host_org);
@@ -87,9 +118,12 @@ class TrainingShell extends AppShell {
     {
         $org = str_replace('$ID', $id, $this->__config['org_blueprint']);
         $org_id = $this->Organisation->createOrgFromName($org, 1, true);
+        if (empty($org_id)) {
+            sprintf("Something went wrong. Could not create organisation with the following input: \n\n", $org);
+        }
         $org_data = $this->Organisation->find('first', array(
             'recursive' => -1,
-            'fields' => array('name', 'uuid', 'local'),
+            'fields' => array('name', 'uuid', 'local', 'id'),
             'conditions' => array('Organisation.id' => $org_id)
         ));
         $org_data['Organisation']['remote_org_id'] = $this->__createOrg($org_data);
@@ -263,7 +297,7 @@ class TrainingShell extends AppShell {
         return $user;
     }
 
-    private function __addSyncConnectionLocally($baseurl, $org_name, $remote_org_id_on_local, $sync_user)
+    private function __addSyncConnectionLocally($baseurl, $org_name, $remote_org_id_on_local, $sync_user, $host_org_id_on_local)
     {
         $this->Server->create();
         $server = array(
@@ -274,7 +308,7 @@ class TrainingShell extends AppShell {
             "pull" => 1,
             "remote_org_id" => $sync_user['org_id'],
             "self_signed" => 1,
-            "org_id" => $host_org_id_on_local
+            "org_id" => Configure::read('MISP.host_org_id')
         );
         $result = $this->Server->save($server);
         if (!$result) {
@@ -316,12 +350,12 @@ class TrainingShell extends AppShell {
         }
     }
 
-    private function __createSyncUserLocally($remote_org_id, $org)
+    private function __createSyncUserLocally($remote_org_id, $org, $local_org_id)
     {
         $sync_role = $this->User->Role->find('first', array('recursive' => -1, 'conditions' => array('Role.name' => 'Sync user')));
         $sync_role = $sync_role['Role']['id'];
         $this->User->create();
-        $this->User->save(array(
+        $user = array(
                 'external_auth_required' => 0,
                 'external_auth_key' => '',
                 'server_id' => 0,
@@ -334,10 +368,15 @@ class TrainingShell extends AppShell {
                 'change_pw' => 1,
                 'authkey' => $this->User->generateAuthKey(),
                 'termsaccepted' => 0,
-                'org_id' => $remote_org_id,
+                'org_id' => $local_org_id,
                 'role_id' => $sync_role,
                 'email' => 'sync_user@' . $org . '.test'
-        ));
+        );
+        $result = $this->User->save($user);
+        if (!$result) {
+            echo 'Could not add sync user due to validation error. Error: ' . json_encode($this->User->validationErrors) . PHP_EOL . PHP_EOL;
+            echo 'Input was: ' . json_encode($user, true) . PHP_EOL . PHP_EOL;
+        }
         $user = $this->User->find('first', array('recursive' => -1, 'conditions' => array('User.email' => 'sync_user@' . $org . '.test')));
         return $user;
     }
@@ -360,6 +399,59 @@ class TrainingShell extends AppShell {
         }
         $this->__printReport('Setup failed. Output of what has been created:' . PHP_EOL . PHP_EOL);
         die();
+    }
+
+    private function __resetPasswords($remote_org_id, $role_id, $org, $i)
+    {
+        $summary = array();
+        for ($j = 1; $j < (1 + $this->__config['user_count']); $j++) {
+            $email = $this->__config['user_blueprint'];
+            $email = str_replace('$ID', $i, $email);
+            $email = str_replace('$ORGNAME', $org, $email);
+            $email = str_replace('$USER_ITERATOR', $j, $email);
+            $options = array(
+                'url' => $this->__currentUrl . '/admin/users/index/searchall:' . $email,
+                'method' => 'GET'
+            );
+            $response = $this->__queryRemoteMISP($options, true);
+            if ($response->code != 200) {
+                $this->__responseError($response, $options);
+            }
+            $newKey = $this->User->generateRandomPassword(32);
+            $user = json_decode($response->body, true);
+            if (!empty($user)) {
+                $user = $user[0];
+                $user['User']['password'] = $newKey;
+                $user['User']['confirm_password'] = $newKey;
+                $options = array(
+                    'url' => $this->__currentUrl . '/admin/users/edit/' . $user['User']['id'],
+                    'method' => 'POST',
+                    'body' => $user
+                );
+                $response = $this->__queryRemoteMISP($options, true);
+                if ($response->code != 200) {
+                    $this->__responseError($response, $options);
+                } else {
+                    $response_data = json_decode($response->body, true);
+                    if ($this->__simulate) {
+                        $summary[] = array(
+                            'id' => $user['User']['id'],
+                            'email' => $user['User']['email'],
+                            'password' => $newKey,
+                        );
+                    } else {
+                        $user['User']['authkey'] = $response_data['User']['authkey'];
+                        $summary[] = array(
+                            'id' => $user['User']['id'],
+                            'email' => $user['User']['email'],
+                            'password' => $newKey,
+                            'authkey' => $user['User']['autkey']
+                        );
+                    }
+                }
+            }
+        }
+        return $summary;
     }
 
     private function __createUsers($remote_org_id, $role_id, $org, $i)
@@ -475,6 +567,10 @@ class TrainingShell extends AppShell {
                     return $existingOrg['Organisation']['id'];
                 }
             }
+            if (isset($org_data['Organisation'])) {
+                $org_data = $org_data['Organisation'];
+            }
+            unset($org_data['id']);
             $options = array(
                 'body' => $org_data,
                 'url' => $this->__currentUrl . '/admin/organisations/add',
@@ -484,6 +580,15 @@ class TrainingShell extends AppShell {
             if ($response->code != 200) {
                 $this->__responseError($response, $options);
             }
+            $options = array(
+                'url' => $this->__currentUrl . '/organisations/view/' . $org_data['uuid'],
+                'method' => 'GET'
+            );
+            $response = $this->__queryRemoteMISP($options, true);
+            if ($response->code != 200) {
+                $this->__responseError($response, $options);
+            }
+            $response_data = json_decode($response->body, true);
             return $response_data['Organisation']['id'];
         }
     }

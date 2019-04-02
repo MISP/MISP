@@ -34,6 +34,16 @@ class AdminShell extends AppShell
 		$this->ShadowAttribute->generateCorrelation($jobId);
 	}
 
+    public function updateMISP() {
+        $status = array('branch' => '2.4');
+        echo $this->Server->update($status) . PHP_EOL;
+    }
+
+    public function restartWorkers() {
+        $this->Server->restartWorkers();
+        echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
+    }
+
 	public function updateGalaxies() {
 		// The following is 7.x upwards only
 		//$value = $this->args[0] ?? $this->args[0] ?? 0;

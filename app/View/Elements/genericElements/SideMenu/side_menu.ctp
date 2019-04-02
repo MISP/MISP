@@ -874,6 +874,10 @@
                         'url' => '/feeds/index',
                         'text' => __('List Feeds')
                     ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/feeds/searchCaches',
+                        'text' => __('Search Feed Caches')
+                    ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/feeds/add',
