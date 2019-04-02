@@ -23,6 +23,37 @@ class TrainingShell extends AppShell {
         $this->setup();
     }
 
+    public function changePasswords()
+    {
+        $this->__verbose = !empty($this->params['verbose']);
+        $this->__interactive = !empty($this->params['interactive']);
+        $this->__config = file_get_contents(APP . 'Console/Command/training.json');
+        $this->__config = json_decode($this->__config, true);
+        $this->__report = array();
+        for ($i = $this->__config['ID_start']; $i < ($this->__config['ID_start'] + $this->__config['number_of_misps_to_configure']); $i++) {
+            $id = $i;
+            if ($this->__config['ID_zero_out']) {
+                if ($id < 10) {
+                    $id = '0' . $id;
+                }
+            }
+            $this->__currentUrl = str_replace('$ID', $id, $this->__config['server_blueprint']);
+            if ($this->__interactive) {
+                $question = sprintf('Configure instance at %s?', $this->__currentUrl);
+                $input = $this->__user_input($question, array('y', 'n'));
+                if ($input === 'n') {
+                    $this->__printReport('Stopping execution. Data created so far:' . PHP_EOL . PHP_EOL);
+                    die();
+                }
+            }
+            if ($this->__verbose) {
+                echo 'INFO - Instance to configure' . $this->__currentUrl . PHP_EOL;
+            }
+            $this->__report['servers'][$this->__currentUrl]['users'] = $this->__resetPasswords($org['Organisation']['remote_org_id'], $role_id, $org['Organisation']['name'], $id);
+        }
+        $this->__printReport('Password change complete. Please find the modifications below:' . PHP_EOL . PHP_EOL);
+    }
+
     public function setup()
     {
         $this->__verbose = !empty($this->params['verbose']);
@@ -368,6 +399,59 @@ class TrainingShell extends AppShell {
         }
         $this->__printReport('Setup failed. Output of what has been created:' . PHP_EOL . PHP_EOL);
         die();
+    }
+
+    private function __resetPasswords($remote_org_id, $role_id, $org, $i)
+    {
+        $summary = array();
+        for ($j = 1; $j < (1 + $this->__config['user_count']); $j++) {
+            $email = $this->__config['user_blueprint'];
+            $email = str_replace('$ID', $i, $email);
+            $email = str_replace('$ORGNAME', $org, $email);
+            $email = str_replace('$USER_ITERATOR', $j, $email);
+            $options = array(
+                'url' => $this->__currentUrl . '/admin/users/index/searchall:' . $email,
+                'method' => 'GET'
+            );
+            $response = $this->__queryRemoteMISP($options, true);
+            if ($response->code != 200) {
+                $this->__responseError($response, $options);
+            }
+            $newKey = $this->User->generateRandomPassword(32);
+            $user = json_decode($response->body, true);
+            if (!empty($user)) {
+                $user = $user[0];
+                $user['User']['password'] = $newKey;
+                $user['User']['confirm_password'] = $newKey;
+                $options = array(
+                    'url' => $this->__currentUrl . '/admin/users/edit/' . $user['User']['id'],
+                    'method' => 'POST',
+                    'body' => $user
+                );
+                $response = $this->__queryRemoteMISP($options, true);
+                if ($response->code != 200) {
+                    $this->__responseError($response, $options);
+                } else {
+                    $response_data = json_decode($response->body, true);
+                    if ($this->__simulate) {
+                        $summary[] = array(
+                            'id' => $user['User']['id'],
+                            'email' => $user['User']['email'],
+                            'password' => $newKey,
+                        );
+                    } else {
+                        $user['User']['authkey'] = $response_data['User']['authkey'];
+                        $summary[] = array(
+                            'id' => $user['User']['id'],
+                            'email' => $user['User']['email'],
+                            'password' => $newKey,
+                            'authkey' => $user['User']['autkey']
+                        );
+                    }
+                }
+            }
+        }
+        return $summary;
     }
 
     private function __createUsers($remote_org_id, $role_id, $org, $i)
