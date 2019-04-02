@@ -357,7 +357,7 @@
       <?php
             endif;
       ?>
-            <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="<?php echo __('Propose Edit');?>" class="fa fa-comment useCursorPointer"></a>
+            <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="<?php echo __('Propose Edit');?>" aria-label="<?php echo __('Propose Edit');?>" class="fa fa-comment useCursorPointer"></a>
             <span class="fa fa-trash useCursorPointer" title="<?php echo __('Propose Deletion');?>" role="button" tabindex="0" aria-label="Propose deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
       <?php
             if ($isSiteAdmin):
@@ -377,7 +377,7 @@
       <?php
             endif;
       ?>
-            <a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="<?php echo __('Edit');?>" class="fa fa-edit useCursorPointer"></a>
+            <a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="<?php echo __('Edit');?>" aria-label="<?php echo __('Edit');?>" class="fa fa-edit useCursorPointer"></a>
           <?php
             if (empty($event['Event']['publish_timestamp'])):
           ?>

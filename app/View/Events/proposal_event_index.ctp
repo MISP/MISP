@@ -42,11 +42,11 @@
                 <?php
                 if ($event['Event']['published'] == 1) {
                 ?>
-                    <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "<?php echo __('View');?>"></a>
+                    <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
                 <?php
                 } else {
                 ?>
-                    <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "<?php echo __('View');?>"></a>
+                    <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
                 <?php
                 }?>&nbsp;
             </td>
