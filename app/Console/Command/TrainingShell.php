@@ -445,7 +445,7 @@ class TrainingShell extends AppShell {
                             'id' => $user['User']['id'],
                             'email' => $user['User']['email'],
                             'password' => $newKey,
-                            'authkey' => $user['User']['autkey']
+                            'authkey' => $user['User']['authkey']
                         );
                     }
                 }
