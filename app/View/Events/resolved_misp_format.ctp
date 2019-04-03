@@ -147,7 +147,7 @@
               <select id="<?php echo 'Object' . $o . 'Attribute' . $a . 'Distribution'; ?>" class='distributionToggle' style='padding:0px;height:20px;margin-bottom:0px;'>
                 <?php
                         foreach ($distributions as $distKey => $distValue) {
-                            echo '<option value="' . $distKey . '" ' . ($distValue == $attribute['distribution'] ? 'selected="selected"' : '') . '>' . $distValue . '</option>';
+                            echo '<option value="' . $distKey . '" ' . ($distKey == $attribute['distribution'] ? 'selected="selected"' : '') . '>' . $distValue . '</option>';
                         }
                 ?>
               </select>
@@ -212,7 +212,7 @@
             <select id="<?php echo 'Attribute' . $a . 'Distribution'; ?>" class='distributionToggle' style='padding:0px;height:20px;margin-bottom:0px;'>
             <?php
                 foreach ($distributions as $distKey => $distValue) {
-                    echo '<option value="' . $distKey . '" ' . ($distValue == $attribute['distribution'] ? 'selected="selected"' : '') . '>' . $distValue . '</option>';
+                    echo '<option value="' . $distKey . '" ' . ($distKey == $attribute['distribution'] ? 'selected="selected"' : '') . '>' . $distValue . '</option>';
                 }
             ?>
             </select>
