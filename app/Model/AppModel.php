@@ -1102,8 +1102,11 @@ class AppModel extends Model
                     `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
                     `name` text,
                     `parameters` text,
+                    `attribute_types` text,
                     `description` text,
                     `org_id` int(11),
+                    `ref` text COLLATE utf8_unicode_ci,
+                    `formula` varchar(255) COLLATE utf8_bin NOT NULL,
                     `version` varchar(255) COLLATE utf8_bin NOT NULL
                     PRIMARY KEY (id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";

@@ -13,7 +13,9 @@
     $table_data[] = array('key' => __('Name'), 'value' => $decaying_model['DecayingModel']['name']);
     $table_data[] = array('key' => __('Description'), 'value' => $decaying_model['DecayingModel']['description']);
     $table_data[] = array('key' => __('Parameters'), 'value' => json_encode($decaying_model['DecayingModel']['parameters']), 'class' => 'json-transform');
-    $table_data[] = array('key' => __('Associated types'), 'value' => json_encode($decaying_model['DecayingModelMapping']), 'class' => 'json-transform');
+    $table_data[] = array('key' => __('Formula'), 'value' => $decaying_model['DecayingModel']['formula']);
+    $table_data[] = array('key' => __('Reference(s)'), 'html' => implode('<br/>', (empty($decaying_model['DecayingModel']['ref']) ? array() : $decaying_model['DecayingModel']['ref'])));
+    $table_data[] = array('key' => __('Associated types'), 'value' => json_encode($decaying_model['DecayingModel']['attribute_types']), 'class' => 'json-transform');
 ?>
 <div class='view'>
     <div class="row-fluid">

@@ -861,17 +861,19 @@
                         'url' => '/decayingModel/index',
                         'text' => __('List Decaying Models')
                     ));
-                    if ($isSiteAdmin || $isAclDecayingModel) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'event_id' => 'update',
-                            'url' => '/decayingModel/update',
-                            'text' => __('Update Default Models')
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'event_id' => 'update',
-                            'url' => '/decayingModel/update/true',
-                            'text' => __('Force Update Default Models')
-                        ));
+                    if ($isSiteAdmin) {
+                        if (($menuItem === 'view' || $menuItem === 'index')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                                'event_id' => 'update',
+                                'url' => '/decayingModel/update',
+                                'text' => __('Update Default Models')
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                                'event_id' => 'update',
+                                'url' => '/decayingModel/update/true',
+                                'text' => __('Force Update Default Models')
+                            ));
+                        }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/decayingModel/add',
                             'text' => __('Add Decaying Model')
@@ -887,7 +889,7 @@
                             'url' => '/decayingModel/view/' . h($id),
                             'text' => __('View Decaying Model')
                         ));
-                        if ($isAclDecayingModel) {
+                        if ($isSiteAdmin) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit',
                                 'url' => '/decayingModel/edit/' . h($id),

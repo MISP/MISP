@@ -23,6 +23,20 @@ class DecayingModel extends AppModel
                 }
                 $results[$k]['DecayingModel']['parameters'] = $decoded;
             }
+            if (!empty($v['DecayingModel']['attribute_types'])) {
+                $decoded = json_decode($v['DecayingModel']['attribute_types'], true);
+                if ($decoded === null) {
+                    $decoded = array();
+                }
+                $results[$k]['DecayingModel']['attribute_types'] = $decoded;
+            }
+            if (!empty($v['DecayingModel']['ref'])) {
+                $decoded = json_decode($v['DecayingModel']['ref'], true);
+                if ($decoded === null) {
+                    $decoded = array();
+                }
+                $results[$k]['DecayingModel']['ref'] = $decoded;
+            }
         }
         return $results;
     }
@@ -36,11 +50,24 @@ class DecayingModel extends AppModel
             }
             return false;
         }
+        if (!empty($this->data['DecayingModel']['attribute_types']) && !is_array($this->data['DecayingModel']['attribute_types'])) {
+            $encoded = json_decode($this->data['DecayingModel']['attribute_types'], true);
+            if ($encoded !== null) {
+                return true;
+            }
+            return false;
+        }
     }
 
     public function beforeSave($options = array()) {
         if (isset($this->data['DecayingModel']['parameters']) && is_array($this->data['DecayingModel']['parameters'])) {
             $this->data['DecayingModel']['parameters'] = json_encode($this->data['DecayingModel']['parameters']);
+        }
+        if (isset($this->data['DecayingModel']['attribute_types']) && is_array($this->data['DecayingModel']['attribute_types'])) {
+            $this->data['DecayingModel']['attribute_types'] = json_encode($this->data['DecayingModel']['attribute_types']);
+        }
+        if (isset($this->data['DecayingModel']['ref']) && is_array($this->data['DecayingModel']['ref'])) {
+            $this->data['DecayingModel']['ref'] = json_encode($this->data['DecayingModel']['ref']);
         }
         if (!isset($this->data['DecayingModel']['org_id'])) {
             $this->data['DecayingModel']['org_id'] = Configure::read('MISP.host_org_id');
@@ -62,7 +89,7 @@ class DecayingModel extends AppModel
         return $models;
     }
 
-    public function update($force = false)
+    public function update($force=false)
     {
         $new_models = $this->__load_models($force);
         $temp = $this->find('all', array(
@@ -114,8 +141,6 @@ class DecayingModel extends AppModel
         if (empty($decayingModel)) {
             return false;
         }
-
-
 
         //if the user is a site admin, return the template without question
         if ($user['Role']['perm_site_admin']) {
