@@ -4570,7 +4570,7 @@ class Server extends AppModel
 
     public function getSubmodulesGitStatus()
     {
-        exec('cd ' . APP . '../; git submodule |cut -f3 -d\ ', $submodulesNames);
+        exec('cd ' . APP . '../; git submodule |grep -v ^- |cut -f3 -d\ ', $submodulesNames);
         $status = array();
         foreach ($submodulesNames as $submoduleName) {
           $temp = $this->getSubmoduleGitStatus($submoduleName);
@@ -4602,10 +4602,11 @@ class Server extends AppModel
                 'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
                 'remoteTimestamp' => exec('timeout 3 git log origin/2.4 -1 --pretty=format:%ct'),
                 'remote' => exec(sprintf('timeout 3 git ls-remote %s | head -1 | sed "s/HEAD//"', $submoduleRemote)),
+                'local' => exec(sprintf('timeout 3 git submodule| grep %s| grep -v ^- |cut -f3 -d\ ', $submoduleName)),
                 'upToDate' => ''
             );
             if (!empty($status['remote'])) {
-                if ($status['remote'] == $status['current']) {
+                if ($status['local'] == $status['current']) {
                     $status['upToDate'] = 'same';
                 } else {
                     $status['upToDate'] = 'older';
