@@ -90,7 +90,7 @@ systemctl enable --now rh-mariadb102-mariadb.service
 
 ## 2.04/ Install PHP 7.2 from SCL
 ```bash
-yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache
+yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache rh-php72-php-gd
 ```
 
 !!! note
