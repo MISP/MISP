@@ -3956,7 +3956,7 @@ function queryEventLock(event_id, user_org_id) {
 
 function checkIfLoggedIn() {
     if (tabIsActive) {
-        $.get("/users/checkIfLoggedIn", function(data) {
+        $.get("/users/checkIfLoggedIn.json", function(data) {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }
