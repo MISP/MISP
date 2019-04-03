@@ -1,18 +1,19 @@
 <?php
     $table_data = array();
-    $table_data[] = array('key' => __('Model ID'), 'value' => $decayingModel['DecayingModel']['id']);
+    $table_data[] = array('key' => __('Model ID'), 'value' => $decaying_model['DecayingModel']['id']);
     $table_data[] = array(
         'key' => __('Creator org'),
         'html' => sprintf(
             '<a href="%s/organisations/view/%s">%s</a>',
             $baseurl,
-            h($decayingModel['DecayingModel']['org_id']),
-            h($decayingModel['DecayingModel']['org_id'])
+            h($decaying_model['DecayingModel']['org_id']),
+            h($decaying_model['DecayingModel']['org_id'])
         )
     );
-    $table_data[] = array('key' => __('Name'), 'value' => $decayingModel['DecayingModel']['name']);
-    $table_data[] = array('key' => __('Description'), 'value' => $decayingModel['DecayingModel']['description']);
-    $table_data[] = array('key' => __('Parameters'), 'value' => json_encode($decayingModel['DecayingModel']['parameters']), 'class' => 'json-transform');
+    $table_data[] = array('key' => __('Name'), 'value' => $decaying_model['DecayingModel']['name']);
+    $table_data[] = array('key' => __('Description'), 'value' => $decaying_model['DecayingModel']['description']);
+    $table_data[] = array('key' => __('Parameters'), 'value' => json_encode($decaying_model['DecayingModel']['parameters']), 'class' => 'json-transform');
+    $table_data[] = array('key' => __('Associated types'), 'value' => json_encode($decaying_model['DecayingModelMapping']), 'class' => 'json-transform');
 ?>
 <div class='view'>
     <div class="row-fluid">

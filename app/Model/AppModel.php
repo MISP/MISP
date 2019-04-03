@@ -72,7 +72,7 @@ class AppModel extends Model
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
-        27 => false, 28 => false, 29 => false, 30 => false, 31 => false
+        27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false
     );
 
     public function afterSave($created, $options = array())
@@ -1099,10 +1099,21 @@ class AppModel extends Model
             case 31:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS decaying_models (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
                     `name` text,
                     `parameters` text,
                     `description` text,
+                    `org_id` int(11),
+                    `version` varchar(255) COLLATE utf8_bin NOT NULL
+                    PRIMARY KEY (id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                break;
+            case 32:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS decaying_model_mappings (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
                     `org_id` int(11) NOT NULL,
+                    `attribute_type` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `model_id` int(11) NOT NULL,
                     PRIMARY KEY (id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;

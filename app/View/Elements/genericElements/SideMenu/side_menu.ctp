@@ -862,6 +862,16 @@
                         'text' => __('List Decaying Models')
                     ));
                     if ($isSiteAdmin || $isAclDecayingModel) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'event_id' => 'update',
+                            'url' => '/decayingModel/update',
+                            'text' => __('Update Default Models')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'event_id' => 'update',
+                            'url' => '/decayingModel/update/true',
+                            'text' => __('Force Update Default Models')
+                        ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/decayingModel/add',
                             'text' => __('Add Decaying Model')

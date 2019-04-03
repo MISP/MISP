@@ -23,6 +23,7 @@
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo $this->Paginator->sort('description');?></th>
             <th><?php echo $this->Paginator->sort('parameters');?></th>
+            <th><?php echo $this->Paginator->sort('version');?></th>
             <?php if ($isAclTemplate): ?>
                 <th class="actions"><?php echo __('Actions');?></th>
             <?php endif; ?>
@@ -39,6 +40,7 @@ foreach ($decayingModel as $item): ?>
         <td><a href="<?php echo $baseurl."/decayingModel/view/".$item['DecayingModel']['id']; ?>"><?php echo h($item['DecayingModel']['name']); ?>&nbsp;</a></td>
         <td><?php echo h($item['DecayingModel']['description']); ?>&nbsp;</td>
         <td data-toggle="json" onclick="document.location.href ='<?php echo $baseurl."/decayingModels/view/".$item['DecayingModel']['id']; ?>'"><?php echo json_encode($item['DecayingModel']['parameters']); ?>&nbsp;</td>
+        <td><?php echo h($item['DecayingModel']['version']); ?>&nbsp;</td>
         <?php if ($isAclTemplate): ?>
         <td class="short action-links">
             <?php echo $this->Html->link('', array('action' => 'view', $item['DecayingModel']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>

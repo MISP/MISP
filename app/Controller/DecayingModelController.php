@@ -13,18 +13,38 @@ class DecayingModelController extends AppController
             )
     );
 
+    public function update($force=false) {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(_('You are not authorised to edit it.'));
+        }
+
+        if ($this->request->is('post')) {
+            $this->DecayingModel->update($force);
+            $message = 'Default decaying models updated';
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('DecayingModel', 'update', false, $this->response->type(), $message);
+            } else {
+                $this->Flash->success($message);
+                $this->redirect(array('controller' => 'decayingModel', 'action' => 'index'));
+                // return $this->RestResponse->viewData($message, $this->response->type());
+            }
+        } else {
+            throw new Exception("This method is not allowed");
+        }
+    }
+
     public function view($id) {
         if (!$this->request->is('get')) {
             throw new Exception("This method is not allowed");
         }
 
-        $decayingModel = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id);
+        $decaying_model = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id, true);
         if (!$this->_isSiteAdmin() && !$decModel) {
             throw new MethodNotAllowedException('No Decaying Model with the provided ID exists, or you are not authorised to edit it.');
         }
         $this->set('mayModify', true);
         $this->set('id', $id);
-        $this->set('decayingModel', $decayingModel);
+        $this->set('decaying_model', $decaying_model);
     }
 
     public function index() {

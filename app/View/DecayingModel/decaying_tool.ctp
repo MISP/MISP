@@ -4,15 +4,17 @@
 
 <div class="row">
     <div class="span7 form-inline" style="border: 1px solid #ddd; border-radius: 4px;">
-        <label class="checkbox inline">
-            <input id="table_toggle_all_type" type="checkbox"></input>
-            <?php echo __('Show All Types'); ?>
-        </label>
-        <label class="checkbox inline">
-            <input id="table_toggle_objects" type="checkbox"></input>
-            <?php echo __('Show MISP Objects'); ?>
-        </label>
-        <input id="table_type_search" class="input" style="width: 250px; margin-left: 5px;" type="text" placeholder="<?php echo _('Search Attribute Type'); ?>"></input>
+        <div style="border-bottom: 1px solid #ddd;">
+            <label class="checkbox inline">
+                <input id="table_toggle_all_type" type="checkbox"></input>
+                <?php echo __('Show All Types'); ?>
+            </label>
+            <label class="checkbox inline">
+                <input id="table_toggle_objects" type="checkbox"></input>
+                <?php echo __('Show MISP Objects'); ?>
+            </label>
+            <input id="table_type_search" class="input" style="width: 250px; margin-left: 5px;" type="text" placeholder="<?php echo _('Search Attribute Type'); ?>"></input>
+        </div>
         <div style="height: calc(100vh - 175px - 25px); overflow-y: scroll;">
             <table id="table_attribute_type" class="table table-striped table-bordered">
                 <thead>

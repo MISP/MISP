@@ -7,6 +7,11 @@ class DecayingModel extends AppModel
     public $actsAs = array('Containable');
 
     public $hasMany = array(
+        'DecayingModelMapping' => array(
+            'className' => 'DecayingModelMapping',
+            'foreignKey' => 'model_id',
+            'dependent' => true
+        )
     );
 
     public function afterFind($results, $primary = false) {
@@ -23,12 +28,61 @@ class DecayingModel extends AppModel
     }
 
     public function beforeValidate($options = array()) {
-        if (!empty($this->data['DecayingModel']['parameters'])) {
+        parent::beforeValidate();
+        if (!empty($this->data['DecayingModel']['parameters']) && !is_array($this->data['DecayingModel']['parameters'])) {
             $encoded = json_decode($this->data['DecayingModel']['parameters'], true);
             if ($encoded !== null) {
                 return true;
             }
             return false;
+        }
+    }
+
+    public function beforeSave($options = array()) {
+        if (isset($this->data['DecayingModel']['parameters']) && is_array($this->data['DecayingModel']['parameters'])) {
+            $this->data['DecayingModel']['parameters'] = json_encode($this->data['DecayingModel']['parameters']);
+        }
+        if (!isset($this->data['DecayingModel']['org_id'])) {
+            $this->data['DecayingModel']['org_id'] = Configure::read('MISP.host_org_id');
+        }
+
+        return true;
+    }
+
+    private function __load_models($force = false)
+    {
+        $dir = new Folder(APP . 'files' . DS . 'misp-decaying-models' . DS . 'models');
+        $files = $dir->find('.*\.json');
+        $models = array();
+        foreach ($files as $file) {
+            $file = new File($dir->pwd() . DS . $file);
+            $models[] = json_decode($file->read(), true);
+            $file->close();
+        }
+        return $models;
+    }
+
+    public function update($force = false)
+    {
+        $new_models = $this->__load_models($force);
+        $temp = $this->find('all', array(
+            'recursive' => -1
+        ));
+        $existing_models = array();
+        foreach ($temp as $k => $model) {
+            $existing_models[$model['DecayingModel']['uuid']] = $model['DecayingModel'];
+        }
+        foreach ($new_models as $k => $new_model) {
+            if (isset($existing_models[$new_model['uuid']])) {
+                $existing_model = $existing_models[$new_model['uuid']];
+                if ($force || $new_model['version'] > $existing_model['version']) {
+                    $new_model['id'] = $existing_model['id'];
+                    $this->save($new_model);
+                }
+            } else {
+                $this->create();
+                $this->save($new_model);
+            }
         }
     }
 
@@ -49,17 +103,19 @@ class DecayingModel extends AppModel
         return $decayingModel;
     }
 
-    public function checkAuthorisation($user, $id) {
+    public function checkAuthorisation($user, $id, $full=true) {
         // fetch the bare template
         $decayingModel = $this->find('first', array(
             'conditions' => array('id' => $id),
-            'recursive' => -1,
+            // 'recursive' => -1,
         ));
 
         // if not found return false
         if (empty($decayingModel)) {
             return false;
         }
+
+
 
         //if the user is a site admin, return the template without question
         if ($user['Role']['perm_site_admin']) {
