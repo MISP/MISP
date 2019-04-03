@@ -46,6 +46,27 @@
               <td class="bold"><?php echo __('UUID');?></td>
               <td class='ObjectUUID'><?php echo h($object['uuid']); ?></td>
             </tr>
+            <tr>
+              <td class="bold"><?php echo __('Distribution');?></td>
+              <td style="width:60px;text-align:center;">
+                <select class='ObjectDistribution' style='padding:0px;height:20px;margin-bottom:0px;'>
+                  <?php
+                      foreach ($distributions as $distKey => $distValue) {
+                          echo '<option value="' . $distKey . '" ' . ($distKey == $object['distribution'] ? 'selected="selected"' : '') . '>' . $distValue . '</option>';
+                      }
+                  ?>
+                </select>
+              </td>
+              <div style="display:none;">
+                <select class='ObjectSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+                  <?php
+                        foreach ($sgs as $sgKey => $sgValue) {
+                            echo '<option value="' . h($sgKey) . '">' . h($sgValue) . '</option>';
+                        }
+                  ?>
+                </select>
+              </div>
+            </tr>
           </tbody>
         </table>
         <?php if (isset($object['ObjectReference']) && !empty($object['ObjectReference'])) { ?>
