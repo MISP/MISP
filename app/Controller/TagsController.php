@@ -573,7 +573,6 @@ class TagsController extends AppController
         if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
             throw new NotFoundException('You don\'t have permission to do that.');
         }
-
         $items = array();
         $favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
         if ($favourites) {
@@ -596,19 +595,16 @@ class TagsController extends AppController
         $this->loadModel('Taxonomy');
         $options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
         foreach ($options as $k => $option) {
-            $tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
-            if (!empty($tags)) {
-                $items[] = array(
-                    'name' => __('Taxonomy Library') . ":" . h($option),
-                    'value' => "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope)
-                );
-            }
+            $items[] = array(
+                'name' => __('Taxonomy Library') . ":" . h($option),
+                'value' => "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope)
+            );
         }
         $this->set('items', $items);
         $this->set('options', array( // set chosen (select picker) options
             'select_options' => array(
                 'multiple' => 0,
-            ),
+            )
         ));
         $this->render('/Elements/generic_picker');
     }
