@@ -2424,6 +2424,91 @@ function freetextImportResultsSubmit(id, count) {
     });
 }
 
+function moduleResultsSubmit(id) {
+    var data_collected = {};
+    var temp;
+    if ($('.MISPObjects').length) {
+        var objects = [];
+        $(".MISPObject").each(function(o) {
+            var object_uuid = $(this).find('.ObjectUUID').text();
+            temp = {
+                uuid: object_uuid,
+                name: $(this).find('.ObjectName').text(),
+                meta-category: $(this).find('.ObjectMetaCategory').text(),
+                distribution: $(this).find('.ObjectDistribution').val(),
+                sharing_group_id: $(this).find('.ObjectSharingGroup').val()
+            }
+            if ($(this).has('.ObjectID').length) {
+                temp['id'] = $(this).find('.ObjectID').text();
+            }
+            if ($(this).has('.ObjectReferences').length) {
+                var references = [];
+                $(this).find('.ObjectReference').each(function() {
+                    var reference = {
+                        object_uuid: object_uuid,
+                        referenced_uuid: $(this).find('.ReferencedUUID').text(),
+                        relationhip_type: $(this).find('.Relationship').text()
+                    };
+                    references.push(reference);
+                });
+                temp['ObjectReference'] = references;
+            }
+            if ($(this).find('.ObjectAttributes').length) {
+                var object_attributes = [];
+                $(this).find('.ObjectAttribute').each(function(a) {
+                    attribute = {
+                        category: $(this).find('.AttributeCategory').text(),
+                        type: $(this).find('.AttributeType').text(),
+                        value: $(this).find('.AttributeValue').text(),
+                        uuid: $(this).find('.AttributeUuid').text(),
+                        to_ids: $(this).find('.AttributeToIds')[0].checked,
+                        disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
+                        comment: $(this).find('.AttributeComment').val(),
+                        distribution: $(this).find('.AttributeDistribution').val(),
+                        sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                    }
+                    object_attributes.push(attribute);
+                });
+                temp['Attribute'] = object_attributes;
+            }
+            objects.push(temp);
+        });
+        data_collected['Object'] = objects;
+    }
+    if ($('.MISPAttributes').length) {
+        var attributes = [];
+        $('.MISPAttribute').each(function(a) {
+            temp = {
+                category: $(this).find('.AttributeCategory').text(),
+                type: $(this).find('.AttributeType').text(),
+                value: $(this).find('.AttributeValue').text(),
+                uuid: $(this).find('.AttributeUuid').text(),
+                to_ids: $(this).find('.AttributeToIds')[0].checked,
+                disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
+                comment: $(this).find('.AttributeComment').val(),
+                distribution: $(this).find('.AttributeDistribution').val(),
+                sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+            }
+            attributes.push(temp);
+        });
+        data_collected['Attribute'] = attributes;
+    }
+    $.ajax({
+        type: "post",
+        cache: false,
+        url: "/events/handleModuleResults/" + id,
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        success:function (data, textStatus) {
+            window.location = '/events/view/' + id;
+        },
+        complete:function() {
+            $(".loading").hide();
+        }
+    });
+}
+
 function objectTemplateViewContent(context, id) {
     var url = "/objectTemplateElements/viewElements/" + id + "/" + context;
     $.ajax({
