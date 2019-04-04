@@ -388,7 +388,7 @@ class ServersController extends AppController
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
         }
     }
-    
+
     public function edit($id = null)
     {
         $this->Server->id = $id;
@@ -1141,6 +1141,14 @@ class ServersController extends AppController
         }
     }
 
+    public function getSubmodulesStatus() {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException();
+        }
+        $this->set('submodules', $this->Server->getSubmodulesGitStatus());
+        $this->render('ajax/submoduleStatus');
+    }
+
     public function serverSettingsEdit($setting_name, $id = false, $forceSave = false)
     {
         if (!$this->_isSiteAdmin()) {
@@ -1531,6 +1539,21 @@ class ServersController extends AppController
             $branch = $this->Server->getCurrentBranch();
             $this->set('branch', $branch);
             $this->render('ajax/update');
+        }
+    }
+
+    public function updateSubmodule()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException();
+        }
+        if ($this->request->is('post')) {
+            $request = $this->request->data;
+            $submodule = $request['Server']['submodule'];
+            $res = $this->Server->updateSubmodule($submodule);
+            return new CakeResponse(array('body'=> json_encode($res), 'type' => 'json'));
+        } else {
+            throw new MethodNotAllowedException();
         }
     }
 

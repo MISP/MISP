@@ -34,7 +34,7 @@
         }
         $dataFields = implode(' ', $dataFields);
         echo sprintf(
-            '<a class="btn btn-small %s %s" %s href="%s" %s %s %s>%s%s%s</a>',
+            '<a class="btn btn-small %s %s" %s href="%s" %s %s %s %s>%s%s%s</a>',
             empty($data['class']) ? '' : h($data['class']),
             empty($data['active']) ? 'btn-inverse' : 'btn-primary',   // Change the default class for highlighted/active toggles here
             empty($data['id']) ? '' : 'id="' . h($data['id']) . '"',
@@ -42,6 +42,7 @@
             empty($onClick) ? '' : $onClick,    // pass $data['onClick'] for the function name to call and $data['onClickParams'] for the parameter list
             empty($dataFields) ? '' : $dataFields,
             empty($data['title']) ? '' : sprintf('title="%s"', h($data['title'])),
+            !empty($data['text']) ? '' : !empty($data['title']) ? sprintf('aria-label="%s"', h($data['title'])) : '',	    
             empty($data['fa-icon']) ? '' : sprintf(
                 '<i class="%s fa-%s"></i> ',
                 empty($data['fa-source']) ? 'fas' : h($data['fa-source']),

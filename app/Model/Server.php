@@ -4521,7 +4521,7 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         $results = array();
-        $extensions = array('redis');
+        $extensions = array('redis', 'gd');
         foreach ($extensions as $extension) {
             $results['web']['extensions'][$extension] = extension_loaded($extension);
         }
@@ -4566,6 +4566,85 @@ class Server extends AppModel
     {
         $mainBranch = '2.4';
         return exec('git checkout ' . $mainBranch);
+    }
+
+    public function getSubmodulesGitStatus()
+    {
+        exec('cd ' . APP . '../; git submodule status --cached | cut -b 2- | cut -d " " -f 1,2 ', $submodules_names);
+        $status = array();
+        foreach ($submodules_names as $submodule_name_info) {
+            $submodule_name_info = explode(' ', $submodule_name_info);
+            $superproject_submodule_commit_id = $submodule_name_info[0];
+            $submodule_name = $submodule_name_info[1];
+            $temp = $this->getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id);
+            if ( !empty($temp) ) {
+                $status[$submodule_name] = $temp;
+            }
+        }
+        return $status;
+    }
+
+    private function _isAcceptedSubmodule($submodule) {
+        $accepted_submodules_names = array('PyMISP',
+            'app/files/misp-galaxy',
+            'app/files/taxonomies',
+            'app/files/misp-objects',
+            'app/files/noticelists',
+            'app/files/warninglists',
+            'cti-python-stix2'
+        );
+        return in_array($submodule, $accepted_submodules_names);
+    }
+
+    public function getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id) {
+        $status = array();
+        if ($this->_isAcceptedSubmodule($submodule_name)) {
+            $path = APP . '../' . $submodule_name;
+            $submodule_name=(strpos($submodule_name, '/') >= 0 ? explode('/', $submodule_name) : $submodule_name);
+            $submodule_name=end($submodule_name);
+            $submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
+            exec(sprintf('cd %s; git rev-parse HEAD', $path), $submodule_current_commit_id);
+            $submodule_current_commit_id = $submodule_current_commit_id[0];
+            $status = array(
+                'moduleName' => $submodule_name,
+                'current' => $submodule_current_commit_id,
+                'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
+                'remoteTimestamp' => exec(sprintf('cd %s; git show -s --pretty=format:%%ct %s', $path, $superproject_submodule_commit_id)),
+                'remote' => $superproject_submodule_commit_id,
+                'upToDate' => ''
+            );
+            if (!empty($status['remote'])) {
+                if ($status['remote'] == $status['current']) {
+                    $status['upToDate'] = 'same';
+                } else if ($status['currentTimestamp'] < $status['remoteTimestamp']) {
+                    $status['upToDate'] = 'older';
+                } else {
+                    $status['upToDate'] = 'younger';
+                }
+            } else {
+                $status['upToDate'] = 'error';
+            }
+            $status['timeDiff'] = (new DateTime('@' . $status['remoteTimestamp']))->diff(new DateTime('@' . $status['currentTimestamp']));
+        }
+        return $status;
+    }
+
+    public function updateSubmodule($submodule_name=false) {
+        $path = APP . '../';
+        if ($submodule_name == false) {
+            $command = sprintf('cd %s; git submodule update', $path);
+            exec($command, $output);
+            $output = implode("\n", $output);
+            $res = array('status' => true, 'output' => $output);
+        } else if ($this->_isAcceptedSubmodule($submodule_name)) {
+            $command = sprintf('cd %s; git submodule update -- %s', $path, $submodule_name);
+            exec($command, $output);
+            $output = implode("\n", $output);
+            $res = array('status' => true, 'output' => $output);
+        } else {
+            $res = array('status' => false);
+        }
+        return $res;
     }
 
     public function update($status)

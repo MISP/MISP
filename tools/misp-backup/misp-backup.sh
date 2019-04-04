@@ -127,11 +127,11 @@ if [[ -z $PATH_TO_MISP ]]; then
   if [[ "$(locate > /dev/null 2> /dev/null ; echo $?)" != "127" ]]; then
     if [[ "$(locate MISP/app/webroot/index.php |wc -l)" > 1 ]]; then
       echo "We located more then 1 MISP/app/webroot, reverting to manual"
-      PATH_TO_MISP=${PATH_TO_MISP:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
       echo -n 'Please enter the base path of your MISP install (e.g /var/www/MISP): '
       read PATH_TO_MISP
       space
     fi
+   PATH_TO_MISP=${PATH_TO_MISP:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
   fi
 fi
 

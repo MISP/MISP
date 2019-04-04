@@ -221,6 +221,11 @@
                         'text' => __('List Feeds'),
                         'url' => '/feeds/index',
                         'requirement' => ($isSiteAdmin || $hostOrgUser)
+                    ),
+                    array(
+                        'text' => __('Search Feed Caches'),
+                        'url' => '/feeds/searchCaches',
+                        'requirement' => ($isSiteAdmin || $hostOrgUser)
                     )
                 )
             ),

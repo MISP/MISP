@@ -79,13 +79,22 @@ function genericPopup(url, popupTarget, callback) {
     });
 }
 
-function screenshotPopup(screenshotData, title) {
-    popupHtml = '<img src="' + screenshotData + '" id="screenshot-image" title="' + title + '" />';
+function screenshotPopup(url, title) {
+    if (!url.startsWith('data:image/')) {
+        url = url.slice(0, -1);
+    }
+    popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>'
+    popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" id="screenshot-image" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();"/>';
     popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+    if (!url.startsWith('data:image/')) {
+        popupHtml += '<a class="close-icon useCursorPointer fa fa-expand" style="right: 20px; background: black; color: white; text-decoration: none;" target="_blank" href="' + url + '" ></a>';
+    }
+    popupHtml += '<div style="height: 20px;"></div>'; // see bottom of image for large one
     $('#screenshot_box').html(popupHtml);
-    $('#screenshot_box').show();
-    left = ($(window).width() / 2) - ($('#screenshot-image').width() / 2);
-    $('#screenshot_box').css({'left': left + 'px'});
+    $('#screenshot_box').css({
+        display: 'block',
+        top: (document.documentElement.scrollTop + 100) + 'px'
+    });
     $("#gray_out").fadeIn();
 }
 
@@ -1433,7 +1442,7 @@ function openPopup(id) {
     var window_height = $(window).height();
     var popup_height = $(id).height();
     if (window_height < popup_height) {
-        $(id).css("top", 0);
+        $(id).css("top", 50);
         $(id).css("height", window_height);
         $(id).addClass('vertical-scroll');
     } else {
@@ -1865,8 +1874,12 @@ function runIndexQuickFilter(preserveParams) {
     if (!passedArgsArray) {
         var passedArgsArray = [];
     }
+    var searchKey = 'searchall';
+    if ($('#quickFilterField').data('searchkey')) {
+        searchKey = $('#quickFilterField').data('searchkey');
+    }
     if ( $('#quickFilterField').val().trim().length > 0){
-        passedArgsArray["searchall"] = $('#quickFilterField').val().trim();
+        passedArgsArray[searchKey] = $('#quickFilterField').val().trim();
     }
     url = here;
     if (typeof preserveParams !== "undefined") {
@@ -2381,6 +2394,7 @@ function freetextImportResultsSubmit(id, count) {
                 category:$('#Attribute' + i + 'Category').val(),
                 type:$('#Attribute' + i + 'Type').val(),
                 to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
+                disable_correlation:$('#Attribute' + i + 'Disable_correlation')[0].checked,
                 comment:$('#Attribute' + i + 'Comment').val(),
                 distribution:$('#Attribute' + i + 'Distribution').val(),
                 sharing_group_id:$('#Attribute' + i + 'SharingGroupId').val(),
@@ -2407,6 +2421,91 @@ function freetextImportResultsSubmit(id, count) {
         complete:function() {
             $(".loading").hide();
         },
+    });
+}
+
+function moduleResultsSubmit(id) {
+    var data_collected = {};
+    var temp;
+    if ($('.MISPObjects').length) {
+        var objects = [];
+        $(".MISPObject").each(function(o) {
+            var object_uuid = $(this).find('.ObjectUUID').text();
+            temp = {
+                uuid: object_uuid,
+                name: $(this).find('.ObjectName').text(),
+                meta_category: $(this).find('.ObjectMetaCategory').text(),
+                distribution: $(this).find('.ObjectDistribution').val(),
+                sharing_group_id: $(this).find('.ObjectSharingGroup').val()
+            }
+            if ($(this).has('.ObjectID').length) {
+                temp['id'] = $(this).find('.ObjectID').text();
+            }
+            if ($(this).has('.ObjectReferences').length) {
+                var references = [];
+                $(this).find('.ObjectReference').each(function() {
+                    var reference = {
+                        object_uuid: object_uuid,
+                        referenced_uuid: $(this).find('.ReferencedUUID').text(),
+                        relationhip_type: $(this).find('.Relationship').text()
+                    };
+                    references.push(reference);
+                });
+                temp['ObjectReference'] = references;
+            }
+            if ($(this).find('.ObjectAttributes').length) {
+                var object_attributes = [];
+                $(this).find('.ObjectAttribute').each(function(a) {
+                    attribute = {
+                        category: $(this).find('.AttributeCategory').text(),
+                        type: $(this).find('.AttributeType').text(),
+                        value: $(this).find('.AttributeValue').text(),
+                        uuid: $(this).find('.AttributeUuid').text(),
+                        to_ids: $(this).find('.AttributeToIds')[0].checked,
+                        disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
+                        comment: $(this).find('.AttributeComment').val(),
+                        distribution: $(this).find('.AttributeDistribution').val(),
+                        sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                    }
+                    object_attributes.push(attribute);
+                });
+                temp['Attribute'] = object_attributes;
+            }
+            objects.push(temp);
+        });
+        data_collected['Object'] = objects;
+    }
+    if ($('.MISPAttributes').length) {
+        var attributes = [];
+        $('.MISPAttribute').each(function(a) {
+            temp = {
+                category: $(this).find('.AttributeCategory').text(),
+                type: $(this).find('.AttributeType').text(),
+                value: $(this).find('.AttributeValue').text(),
+                uuid: $(this).find('.AttributeUuid').text(),
+                to_ids: $(this).find('.AttributeToIds')[0].checked,
+                disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
+                comment: $(this).find('.AttributeComment').val(),
+                distribution: $(this).find('.AttributeDistribution').val(),
+                sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+            }
+            attributes.push(temp);
+        });
+        data_collected['Attribute'] = attributes;
+    }
+    $.ajax({
+        type: "post",
+        cache: false,
+        url: "/events/handleModuleResults/" + id,
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        success:function (data, textStatus) {
+            window.location = '/events/view/' + id;
+        },
+        complete:function() {
+            $(".loading").hide();
+        }
     });
 }
 
@@ -3706,6 +3805,30 @@ function submitMISPUpdate() {
     });
 }
 
+function submitSubmoduleUpdate(clicked) {
+    var $clicked = $(clicked);
+    var $form = $clicked.parent().find('form');
+    var formData = $form.serialize();
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            $clicked.addClass('fa-spin');
+        },
+        data: formData,
+        success:function (data, textStatus) {
+            if (data.output !== '') {
+                showMessage('success', data.output);
+            }
+            updateSubModulesStatus();
+        },
+        complete:function() {
+            $clicked.removeClass('fa-spin');
+        },
+        type:"post",
+        cache: false,
+        url:$form.attr('action'),
+    });
+}
+
 $(".cortex-json").click(function() {
     var cortex_data = $(this).data('cortex-json');
     cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
@@ -3942,7 +4065,7 @@ function queryEventLock(event_id, user_org_id) {
 
 function checkIfLoggedIn() {
     if (tabIsActive) {
-        $.get("/users/checkIfLoggedIn", function(data) {
+        $.get("/users/checkIfLoggedIn.json", function(data) {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }
@@ -4089,54 +4212,6 @@ function submit_feed_overlap_tool(feedId) {
         type:"post",
         cache: false,
         url:"/feeds/feedCoverage/" + feedId,
-    });
-}
-
-function populate_rest_history(scope) {
-    if (scope === 'history') {
-        scope = '';
-        var container_class = 'history_queries';
-    } else {
-        scope = '1';
-        var container_class = 'bookmarked_queries';
-    }
-    $.get("/rest_client_history/index/" + scope, function(data) {
-        $('.' + container_class).html(data);
-    });
-}
-
-function loadRestClientHistory(k, data_container) {
-    $('#ServerMethod').val(data_container[k]['RestClientHistory']['http_method']);
-    $('#ServerUseFullPath').prop("checked", data_container[k]['RestClientHistory']['use_full_path']);
-    $('#ServerShowResult').prop("checked", data_container[k]['RestClientHistory']['show_result']);
-    $('#ServerSkipSslValidation').prop("checked", data_container[k]['RestClientHistory']['skip_ssl_validation']);
-    $('#ServerUrl').val(data_container[k]['RestClientHistory']['url']);
-    $('#ServerHeader').val(data_container[k]['RestClientHistory']['headers']);
-    $('#ServerBody').val(data_container[k]['RestClientHistory']['body']);
-    toggleRestClientBookmark();
-}
-
-function toggleRestClientBookmark() {
-    if ($('#ServerBookmark').prop("checked") == true) {
-        $('#bookmark-name').css('display', 'block');
-    } else {
-        $('#bookmark-name').css('display', 'none');
-    }
-}
-
-function removeRestClientHistoryItem(id) {
-    $.ajax({
-        data: '[]',
-        success:function (data, textStatus) {
-            populate_rest_history('bookmark');
-            populate_rest_history('history');
-        },
-        error:function() {
-            handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
-        },
-        type:"post",
-        cache: false,
-        url: '/rest_client_history/delete/' + id,
     });
 }
 
