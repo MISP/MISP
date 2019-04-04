@@ -2434,7 +2434,7 @@ function moduleResultsSubmit(id) {
             temp = {
                 uuid: object_uuid,
                 name: $(this).find('.ObjectName').text(),
-                meta-category: $(this).find('.ObjectMetaCategory').text(),
+                meta_category: $(this).find('.ObjectMetaCategory').text(),
                 distribution: $(this).find('.ObjectDistribution').val(),
                 sharing_group_id: $(this).find('.ObjectSharingGroup').val()
             }
