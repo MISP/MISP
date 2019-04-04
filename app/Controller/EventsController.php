@@ -5105,11 +5105,8 @@ class EventsController extends AppController
         }
         if (isset($result['results']['Object']) && !empty($result['results']['Object'])) {
             foreach ($result['results']['Object'] as $tmp_object) {
-                if (!isset($tmp_object['distribution'])) {
-                    $tmp_object['distribution'] = $defaultDistribution;
-                } else {
-                    $tmp_object['distribution'] = (int)$tmp_object['distribution'];
-                }
+                $tmp_object['distribution'] = (isset($tmp_object['distribution']) ? (int)$tmp_object['distribution'] : $defaultDistribution);
+                $tmp_object['sharing_group_id'] = (isset($tmp_object['sharing_group_id']) ? (int)$tmp_object['sharing_group_id'] : 0);
                 if (isset($tmp_object['Attribute']) && $tmp_object['Attribute']) {
                     foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
                         $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
@@ -5146,9 +5143,8 @@ class EventsController extends AppController
         if (!isset($attribute['to_ids'])) {
             $attribute['to_ids'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
         }
-        if (!isset($attribute['distribution'])) {
-            $attribute['distribution'] = $defaultDistribution;
-        }
+        $attribute['distribution'] = (isset($attribute['distribution']) ? (int)$attribute['distribution'] : $defaultDistribution);
+        $attribute['sharing_group_id'] = (isset($attribute['sharing_group_id']) ? (int)$attribute['sharing_group_id'] : 0);
         return $attribute;
     }
 

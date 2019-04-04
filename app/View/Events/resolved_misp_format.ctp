@@ -61,18 +61,18 @@
               <td style="width:60px;text-align:center;">
                 <select class='ObjectDistribution' style='padding:0px;height:20px;margin-bottom:0px;'>
                   <?php
-                      foreach ($distributions as $distKey => $distValue) {
-                          echo '<option value="' . $distKey . '" ' . ($distKey == $object['distribution'] ? 'selected="selected"' : '') . '>' . $distValue . '</option>';
-                      }
+                    foreach ($distributions as $distKey => $distValue) {
+                        echo '<option value="' . h($distKey) . '" ' . ($distKey == $object['distribution'] ? 'selected="selected"' : '') . '>' . h($distValue) . '</option>';
+                    }
                   ?>
                 </select>
               </td>
               <div style="display:none;">
                 <select class='ObjectSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
                   <?php
-                        foreach ($sgs as $sgKey => $sgValue) {
-                            echo '<option value="' . h($sgKey) . '">' . h($sgValue) . '</option>';
-                        }
+                    foreach ($sgs as $sgKey => $sgValue) {
+                        echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $object['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
+                    }
                   ?>
                 </select>
               </div>
@@ -141,11 +141,6 @@
                     foreach ($object['Attribute'] as $a => $attribute) {
                         echo '<tr class="ObjectAttribute">';
                         echo '<td class="ObjectRelation">' . h($attribute['object_relation']) . '</td>';
-                        if ($attribute['distribution'] != 4) {
-                            $attribute['distribution'] = $distributions[$attribute['distribution']];
-                        } else {
-                            $attribute['distribution'] = $sgs[$attribute['sharing_group_id']];
-                        }
                         foreach ($attributeFields as $field) {
                             echo '<td class="Attribute' . ucfirst($field) . '">' . (isset($attribute[$field]) ? h($attribute[$field]) : '') . '</td>';
                         }
@@ -163,7 +158,7 @@
               <select class='AttributeDistribution' style='padding:0px;height:20px;margin-bottom:0px;'>
                 <?php
                         foreach ($distributions as $distKey => $distValue) {
-                            echo '<option value="' . $distKey . '" ' . ($distKey == $attribute['distribution'] ? 'selected="selected"' : '') . '>' . $distValue . '</option>';
+                            echo '<option value="' . h($distKey) . '" ' . ($distKey == $attribute['distribution'] ? 'selected="selected"' : '') . '>' . h($distValue) . '</option>';
                         }
                 ?>
               </select>
@@ -171,7 +166,7 @@
                 <select class='AttributeSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
                   <?php
                         foreach ($sgs as $sgKey => $sgValue) {
-                            echo '<option value="' . h($sgKey) . '">' . h($sgValue) . '</option>';
+                            echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $attribute['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
                         }
                   ?>
                 </select>
@@ -210,11 +205,6 @@
           <?php
             foreach ($event['Attribute'] as $a => $attribute) {
                 echo '<tr class="MISPAttribute">';
-                if ($attribute['distribution'] != 4) {
-                    $attribute['distribution'] = $distributions[$attribute['distribution']];
-                } else {
-                    $attribute['distribution'] = $sgs[$attribute['sharing_group_id']];
-                }
                 foreach ($attributeFields as $field) {
                     echo '<td class="Attribute' . ucfirst($field) . '">' . (isset($attribute[$field]) ? h($attribute[$field]) : '') . '</td>';
                 }
@@ -232,7 +222,7 @@
             <select class='AttributeDistribution' style='padding:0px;height:20px;margin-bottom:0px;'>
             <?php
                 foreach ($distributions as $distKey => $distValue) {
-                    echo '<option value="' . $distKey . '" ' . ($distKey == $attribute['distribution'] ? 'selected="selected"' : '') . '>' . $distValue . '</option>';
+                    echo '<option value="' . h($distKey) . '" ' . ($distKey == $attribute['distribution'] ? 'selected="selected"' : '') . '>' . h($distValue) . '</option>';
                 }
             ?>
             </select>
@@ -240,7 +230,7 @@
               <select class='AttributeSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
                 <?php
                 foreach ($sgs as $sgKey => $sgValue) {
-                    echo '<option value="' . h($sgKey) . '">' . h($sgValue) . '</option>';
+                    echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $attribute['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
                 }
                 ?>
               </select>
