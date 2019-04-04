@@ -3815,10 +3815,18 @@ function submitSubmoduleUpdate(clicked) {
         },
         data: formData,
         success:function (data, textStatus) {
-            if (data.output !== '') {
-                showMessage('success', data.output);
+            if (data.status) {
+                updateSubModulesStatus(data.output);
+            } else {
+                showMessage('error', 'Something went wrong');
+                $('#submoduleGitResultDiv').show();
+                $('#submoduleGitResult').removeClass('green').addClass('red').text(data.output);
             }
-            updateSubModulesStatus();
+        },
+        error: function (data) {
+            showMessage('error', 'Something went wrong');
+            $('#submoduleGitResultDiv').show();
+            $('#submoduleGitResult').removeClass('green').addClass('red').text(data.output);
         },
         complete:function() {
             $clicked.removeClass('fa-spin');

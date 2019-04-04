@@ -368,10 +368,14 @@
     });
 
     $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
-    function updateSubModulesStatus() {
+    function updateSubModulesStatus(message) {
         $('#divSubmoduleVersions').empty().append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');
         $.get('<?php echo $baseurl . '/servers/getSubmodulesStatus/'; ?>', function(html){
             $('#divSubmoduleVersions').html(html);
+            if (message !== undefined) {
+                $('#submoduleGitResultDiv').show();
+                $('#submoduleGitResult').text(message);
+            }
         });
     }
 </script>

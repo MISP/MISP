@@ -1550,6 +1550,8 @@ class ServersController extends AppController
         if ($this->request->is('post')) {
             $request = $this->request->data;
             $submodule = $request['Server']['submodule'];
+            exec('cat ' . APP .'files/misp-galaxy/README.md 2>&1', $resp, $return_code);
+            // $res = array('status' => ($return_code ? false : true), 'output' => implode('\n', $resp));
             $res = $this->Server->updateSubmodule($submodule);
             return new CakeResponse(array('body'=> json_encode($res), 'type' => 'json'));
         } else {
