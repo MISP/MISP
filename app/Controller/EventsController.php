@@ -5115,17 +5115,12 @@ class EventsController extends AppController
         }
         if (isset($result['results']['Object']) && !empty($result['results']['Object'])) {
             foreach ($result['results']['Object'] as $tmp_object) {
-<<<<<<< HEAD
                 $tmp_object['distribution'] = (isset($tmp_object['distribution']) ? (int)$tmp_object['distribution'] : $defaultDistribution);
                 $tmp_object['sharing_group_id'] = (isset($tmp_object['sharing_group_id']) ? (int)$tmp_object['sharing_group_id'] : 0);
                 if (isset($tmp_object['Attribute']) && $tmp_object['Attribute']) {
                     foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
                         $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
                     }
-=======
-                foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
-                    $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
->>>>>>> df59c69134c5ce3731891927bebb9eec50e500d9
                 }
                 array_push($objects, $tmp_object);
             }
