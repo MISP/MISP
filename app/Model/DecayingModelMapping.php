@@ -43,20 +43,44 @@ class DecayingModelMapping extends AppModel
     }
 
     // Delete all DEFAULT mapping associated to the model and re-create them
-    public function resetMappingFromDefaultModel($new_model) {
+    // public function resetMappingFromDefaultModel($new_model) {
+    //     $this->deleteAll(array(
+    //         'DecayingModelMapping.org_id' => null,
+    //         'model_id' => $new_model['id']
+    //     ));
+    //
+    //     foreach ($new_model['attribute_types'] as $type) {
+    //         $this->create();
+    //         $to_save = array(
+    //             'attribute_type' => $type,
+    //             'model_id' => $new_model['id']
+    //         );
+    //         $this->save($to_save);
+    //     }
+    // }
+    public function resetMappingForModel($new_model) {
+        if (!isset($new_model['org_id'])) {
+            $new_model['org_id'] = null;
+        }
         $this->deleteAll(array(
-            'DecayingModelMapping.org_id' => null,
-            'model_id' => $new_model['id']
+            'DecayingModelMapping.org_id' => $new_model['org_id'],
+            'model_id' => $new_model['model_id']
         ));
 
         foreach ($new_model['attribute_types'] as $type) {
-            $this->create();
             $to_save = array(
                 'attribute_type' => $type,
-                'model_id' => $new_model['id']
+                'model_id' => $new_model['model_id']
             );
-            $this->save($to_save);
+            if (!is_null($new_model['org_id'])) {
+                $to_save['org_id'] = $new_model['org_id'];
+            }
+            $data[] = $to_save;
         }
+
+        $this->saveMany($data, array(
+            'atomic' => true
+        ));
     }
 
     public function getAssociatedTypes($user, $model_id) {
@@ -72,10 +96,7 @@ class DecayingModelMapping extends AppModel
             $associated_types = $decaying_model['attribute_types'];
             $temp = $this->find('list', array(
                 'conditions' => array(
-                    'OR' => array(
-                        'org_id' => $user['Organisation']['id'],
-                        'org_id' => NULL,
-                    ),
+                    'org_id' => array($user['Organisation']['id'], NULL),
                     'model_id' => $model_id
                 ),
                 'recursive' => -1,

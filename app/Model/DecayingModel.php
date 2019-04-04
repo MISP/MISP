@@ -106,14 +106,16 @@ class DecayingModel extends AppModel
                 $existing_model = $existing_models[$new_model['uuid']];
                 if ($force || $new_model['version'] > $existing_model['version']) {
                     $new_model['id'] = $existing_model['id'];
+                    $new_model['model_id'] = $existing_model['id'];
                     $this->save($new_model);
-                    $this->DecayingModelMapping->resetMappingFromDefaultModel($new_model);
+                    $this->DecayingModelMapping->resetMappingForModel($new_model);
                 }
             } else {
                 $this->create();
                 $this->save($new_model);
                 $new_model['id'] = $this->Model->id;
-                $this->DecayingModelMapping->resetMappingFromDefaultModel($new_model);
+                $new_model['model_id'] = $this->Model->id;
+                $this->DecayingModelMapping->resetMappingForModel($new_model);
             }
         }
     }

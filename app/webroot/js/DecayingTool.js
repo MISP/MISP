@@ -340,9 +340,9 @@
                 }
                 this.fetchFormAndSubmit($clicked, type, model_id, data);
             },
-            fetchFormAndSubmit: function($clicked, type, model_id, formData) {
+            fetchFormAndSubmit: function($clicked, type, model_id, formData, url) {
                 var that = this;
-                var url = "/decayingModel/";
+                var url = url === undefined ? "/decayingModel/" : url;
                 if (type == "add") {
                     url += type;
                 } else {
@@ -363,7 +363,9 @@
                         },
                         success: function(data, textStatus) {
                             showMessage('success', 'Network has been saved');
-                            that.refreshRow(data);
+                            if (url == "/decayingModel/") {
+                                that.refreshRow(data);
+                            }
                         },
                         error: function( jqXhr, textStatus, errorThrown ){
                             showMessage('fail', 'Could not save network');
@@ -381,10 +383,15 @@
             applyModel: function(clicked) {
                 var $row = $(clicked).parent().parent();
                 var rowData = this.getDataFromRow($row);
+                var selected_types = this.getSelected();
+                var model_id = rowData.id;
+                var data = { 'attributetypes': selected_types };
+                this.fetchFormAndSubmit($(clicked), 'linkAttributeTypeToModel', model_id, data, "/decayingModelMapping/");
                 // TODO: Implement
             },
             getDataFromRow: function($row) {
                 var data = {};
+                data.id = $row.find('td.DMId').text();
                 data.name = $row.find('td.DMName').text();
                 data.description = $row.find('td.DMDescription').text();
                 data.parameters = {};
@@ -447,6 +454,14 @@
                     $cb.prop('checked', force);
                 }
             },
+            getSelected: function() {
+                var $selected_td = $('#table_attribute_type > tbody > tr.info > td:nth-child(2)');
+                var selected_types = [];
+                $selected_td.each(function() {
+                    selected_types.push($(this).text().trim());
+                });
+                return selected_types;
+            },
             filterTableType: function(table, searchString) {
                 var $table = $(table);
                 var $body = $table.find('tbody');
@@ -506,10 +521,12 @@
                 return text;
             },
             injectData: function($form, data) {
+                var prefixkey = $form.attr('action').split('/')[1].ucfirst();
                 Object.keys(data).forEach(function(k) {
                     var v = data[k];
-                    var field = k.charAt(0).toUpperCase() + k.slice(1);
-                    $('#DecayingModel'+field).val(v);
+                    v = Array.isArray(v) ? JSON.stringify(v) : v;
+                    var field = k.ucfirst();
+                    $('#'+prefixkey+field).val(v);
                 });
             },
             simpleCompareObject: function(obj1, obj2) { // recursively compare object equality on their value
