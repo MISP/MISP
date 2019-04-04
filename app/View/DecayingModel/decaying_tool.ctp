@@ -20,9 +20,9 @@
                 <thead>
                     <tr>
                         <th><input id="checkAll" type="checkbox" title="<?php echo __('Check all'); ?>"></input></th>
-                        <th>Attribute Type</th>
-                        <th>Category</th>
-                        <th>Model Name</th>
+                        <th><?php echo _('Attribute Type'); ?></th>
+                        <th><?php echo _('Category'); ?></th>
+                        <th><?php echo _('Model ID'); ?></th>
                     </tr>
                 </thead>
                 <tbody id="attributeTypeTableBody">
@@ -49,7 +49,13 @@
                                 <?php endif; ?>
                             </td>
                             <td class="useCursorPointer isFilteringField"><?php echo h($info['default_category']); ?></td>
-                            <td></td>
+                            <td>
+                                <?php if (isset($associated_models[$type])): ?>
+                                    <?php foreach ($associated_models[$type] as $ids): ?>
+                                        <a href="href="<?php echo $baseurl; ?>/decayingModel/view/<?php echo h($ids); ?>"><?php echo h($ids); ?></a>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

@@ -31,33 +31,7 @@ class DecayingModelMapping extends AppModel
     );
 
     private $__default_type_mapping_reverse = array();
-    // private $default_type_mapping_reverse = array_flip($this->__default_type_mapping);
 
-    private function __setup() {
-        // foreach ($this->__default_type_mapping as $type => $model_id) {
-        //     if (!isset($this->__default_type_mapping_reverse[$model_id])) {
-        //         $this->__default_type_mapping_reverse[$model_id] = array();
-        //     }
-        //     $this->__default_type_mapping_reverse[$model_id][] = $type;
-        // }
-    }
-
-    // Delete all DEFAULT mapping associated to the model and re-create them
-    // public function resetMappingFromDefaultModel($new_model) {
-    //     $this->deleteAll(array(
-    //         'DecayingModelMapping.org_id' => null,
-    //         'model_id' => $new_model['id']
-    //     ));
-    //
-    //     foreach ($new_model['attribute_types'] as $type) {
-    //         $this->create();
-    //         $to_save = array(
-    //             'attribute_type' => $type,
-    //             'model_id' => $new_model['id']
-    //         );
-    //         $this->save($to_save);
-    //     }
-    // }
     public function resetMappingForModel($new_model) {
         if (!isset($new_model['org_id'])) {
             $new_model['org_id'] = null;
@@ -84,7 +58,6 @@ class DecayingModelMapping extends AppModel
     }
 
     public function getAssociatedTypes($user, $model_id) {
-        $this->__setup();
         $decaying_model = $this->DecayingModel->find('first', array(
             'conditions' => array('id' => $model_id),
             'recursive' => -1,
