@@ -244,14 +244,10 @@
         </tbody>
       </table>
     </div>
-    <button class="btn btn-primary" style="float:left;" onClick="moduleResultsSubmit('<?php echo h($event['Event']['id']); ?>');"><?php echo __('Submit oui'); ?></button>
+    <span>
+      <button class="btn btn-primary" style="float:left;" onClick="moduleResultsSubmit('<?php echo h($event['Event']['id']); ?>');"><?php echo __('Submit oui'); ?></button>
+    </span>
 </div>
-<?php
-    if (!isset($menuItem)) {
-        $menuItem = 'freetextResults';
-    }
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => $menuItem));
-?>
 <script type="text/javascript">
     $(document).ready(function() {
       $('.AttributeDistribution').change(function() {
@@ -270,3 +266,9 @@
       });
     });
 </script>
+<?php
+    if (!isset($menuItem)) {
+        $menuItem = 'freetextResults';
+    }
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => $menuItem));
+?>
