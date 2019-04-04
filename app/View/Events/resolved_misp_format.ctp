@@ -66,16 +66,16 @@
                     }
                   ?>
                 </select>
+                <div style="display:none;">
+                  <select class='ObjectSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+                    <?php
+                      foreach ($sgs as $sgKey => $sgValue) {
+                          echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $object['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
+                      }
+                    ?>
+                  </select>
+                </div>
               </td>
-              <div style="display:none;">
-                <select class='ObjectSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
-                  <?php
-                    foreach ($sgs as $sgKey => $sgValue) {
-                        echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $object['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
-                    }
-                  ?>
-                </select>
-              </div>
             </tr>
           </tbody>
         </table>
