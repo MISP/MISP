@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS `event_blacklists` (
 -- Table structure for `event_locks`
 --
 
-CREATE TABLE IF NOT EXISTS event_locks (
+CREATE TABLE IF NOT EXISTS `event_locks` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `event_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
@@ -294,7 +294,7 @@ CREATE TABLE IF NOT EXISTS `fuzzy_correlate_ssdeep` (
 -- Table structure for `galaxies`
 --
 
-CREATE TABLE IF NOT EXISTS galaxies (
+CREATE TABLE IF NOT EXISTS `galaxies` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `uuid` varchar(255) COLLATE utf8_bin NOT NULL,
   `name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
@@ -317,7 +317,7 @@ CREATE TABLE IF NOT EXISTS galaxies (
 --
 
 
-CREATE TABLE IF NOT EXISTS galaxy_clusters (
+CREATE TABLE IF NOT EXISTS `galaxy_clusters` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `uuid` varchar(255) COLLATE utf8_bin NOT NULL,
   `type` varchar(255) COLLATE utf8_bin NOT NULL,
@@ -343,7 +343,7 @@ CREATE TABLE IF NOT EXISTS galaxy_clusters (
 -- Table structure for `galaxy_elements`
 --
 
-CREATE TABLE IF NOT EXISTS galaxy_elements (
+CREATE TABLE IF NOT EXISTS `galaxy_elements` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `galaxy_cluster_id` int(11) NOT NULL,
   `key` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
@@ -360,7 +360,7 @@ CREATE TABLE IF NOT EXISTS galaxy_elements (
 -- Table structure for `galaxy_reference`
 --
 
-CREATE TABLE IF NOT EXISTS galaxy_reference (
+CREATE TABLE IF NOT EXISTS `galaxy_reference` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `galaxy_cluster_id` int(11) NOT NULL,
   `referenced_galaxy_cluster_id` int(11) NOT NULL,
@@ -488,7 +488,7 @@ CREATE TABLE IF NOT EXISTS `org_blacklists` (
 -- Table structure for table `objects`
 --
 
-CREATE TABLE IF NOT EXISTS objects (
+CREATE TABLE IF NOT EXISTS `objects` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
@@ -520,7 +520,7 @@ CREATE TABLE IF NOT EXISTS objects (
 -- Table structure for table `object_object_references`
 --
 
-CREATE TABLE IF NOT EXISTS object_references (
+CREATE TABLE IF NOT EXISTS `object_references` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
   `timestamp` int(11) NOT NULL DEFAULT 0,
@@ -548,7 +548,7 @@ CREATE TABLE IF NOT EXISTS object_references (
 -- Table structure for table `object_relationships`
 --
 
-CREATE TABLE IF NOT EXISTS object_relationships (
+CREATE TABLE IF NOT EXISTS `object_relationships` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `version` int(11) NOT NULL,
   `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
@@ -564,7 +564,7 @@ CREATE TABLE IF NOT EXISTS object_relationships (
 -- Table structure for table `object_templates`
 --
 
-CREATE TABLE IF NOT EXISTS object_templates (
+CREATE TABLE IF NOT EXISTS `object_templates` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
   `org_id` int(11) NOT NULL,
@@ -590,7 +590,7 @@ CREATE TABLE IF NOT EXISTS object_templates (
 -- Table structure for table `object_template_elements`
 --
 
-CREATE TABLE IF NOT EXISTS object_template_elements (
+CREATE TABLE IF NOT EXISTS `object_template_elements` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `object_template_id` int(11) NOT NULL,
   `object_relation` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin,
@@ -876,7 +876,7 @@ CREATE TABLE `sharing_groups` (
 -- Table structure for table sightings
 --
 
-CREATE TABLE IF NOT EXISTS sightings (
+CREATE TABLE IF NOT EXISTS `sightings` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `attribute_id` int(11) NOT NULL,
   `event_id` int(11) NOT NULL,
