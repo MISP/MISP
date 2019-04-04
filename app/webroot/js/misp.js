@@ -2438,6 +2438,9 @@ function moduleResultsSubmit(id) {
                 distribution: $(this).find('.ObjectDistribution').val(),
                 sharing_group_id: $(this).find('.ObjectSharingGroup').val()
             }
+            if (temp['distribution'] != '4') {
+                temp['sharing_group_id'] = '0';
+            }
             if ($(this).has('.ObjectID').length) {
                 temp['id'] = $(this).find('.ObjectID').text();
             }
@@ -2467,6 +2470,9 @@ function moduleResultsSubmit(id) {
                         distribution: $(this).find('.AttributeDistribution').val(),
                         sharing_group_id: $(this).find('.AttributeSharingGroup').val()
                     }
+                    if (attribute['distribution'] != '4') {
+                        attribute['sharing_group_id'] = '0';
+                    }
                     object_attributes.push(attribute);
                 });
                 temp['Attribute'] = object_attributes;
@@ -2489,14 +2495,20 @@ function moduleResultsSubmit(id) {
                 distribution: $(this).find('.AttributeDistribution').val(),
                 sharing_group_id: $(this).find('.AttributeSharingGroup').val()
             }
+            if (temp['distribution'] != '4') {
+                temp['sharing_group_id'] = '0';
+            }
             attributes.push(temp);
         });
         data_collected['Attribute'] = attributes;
     }
+    $("#EventJsonObject").val(JSON.stringify(data_collected));
+    var formData = $('.mainForm').serialize();
     $.ajax({
         type: "post",
         cache: false,
         url: "/events/handleModuleResults/" + id,
+        data: formData,
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
