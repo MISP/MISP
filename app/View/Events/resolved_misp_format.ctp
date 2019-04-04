@@ -8,6 +8,21 @@
             'value' => json_encode($event, true)
         );
         echo $this->Form->input('data', $formSettings);
+        echo $this->Form->input('JsonObject', array(
+                'label' => false,
+                'type' => 'text',
+                'style' => 'display:none;',
+                'value' => ''
+        ));
+        if (!isset($importComment)) {
+            $importComment = $attributeValue . ': Enriched via the ' . $module . ' module';
+        }
+        echo $this->Form->input('default_comment', array(
+                'label' => false,
+                'type' => 'text',
+                'style' => 'display:none;',
+                'value' => $importComment
+        ));
         echo $this->Form->end();
         $scope = !empty($proposals) ? 'proposals of' : '';
         $objects_array = array();
@@ -21,9 +36,6 @@
             $scope .= __('simplified attributes and');
         }
         $scope .= !empty($objects_array) ? join(' and ', $objects_array) : 'simplified attributes';
-        if (!isset($importComment)) {
-            $importComment = $attributeValue . ': Enriched via the ' . $module . ' module';
-        }
     ?>
     <p><?php echo __('Below you can see the %s that are to be created, from the results of the enrichment module.', $scope);?></p>
     <?php
@@ -245,7 +257,7 @@
       </table>
     </div>
     <span>
-      <button class="btn btn-primary" style="float:left;" onClick="moduleResultsSubmit('<?php echo h($event['Event']['id']); ?>');"><?php echo __('Submit oui'); ?></button>
+      <button class="btn btn-primary" style="float:left;" onClick="moduleResultsSubmit('<?php echo h($event['Event']['id']); ?>');"><?php echo __('Submit'); ?></button>
     </span>
 </div>
 <script type="text/javascript">
