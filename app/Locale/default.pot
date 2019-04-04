@@ -16,7 +16,7 @@ msgstr ""
 #: Console/Command/EventShell.php:13
 #: Controller/AttributesController.php:125;129;133
 #: Controller/EventGraphController.php:34;69
-#: Controller/EventsController.php:1084;1489;1493;1497;1543;2049;2125;2129;2133;2351;2400;2471;2553;3077;5414;5635;5639;5648
+#: Controller/EventsController.php:1085;1490;1494;1498;1544;2050;2126;2130;2134;2352;2401;2472;2554;3078;5439;5660;5664;5673
 #: Controller/PostsController.php:56
 #: Model/Galaxy.php:292
 msgid "Invalid event"
@@ -31,11 +31,11 @@ msgstr ""
 msgid "ERROR: %s"
 msgstr ""
 
-#: Console/Command/TrainingShell.php:576
+#: Console/Command/TrainingShell.php:681
 msgid "verbose mode"
 msgstr ""
 
-#: Console/Command/TrainingShell.php:580
+#: Console/Command/TrainingShell.php:685
 msgid "interactive mode"
 msgstr ""
 
@@ -44,14 +44,14 @@ msgid "Something went wrong. Your user account that you are authenticated with d
 msgstr ""
 
 #: Controller/AppController.php:602
-#: Controller/AttributesController.php:2006;2115;2165;2248;2334
-#: Controller/EventsController.php:2786;2902;2964;3319;3935;3998
+#: Controller/AttributesController.php:2093;2202;2252;2335;2421
+#: Controller/EventsController.php:2787;2903;2965;3320;3936;3999
 msgid "This authentication key is not authorized to be used for exports. Contact your administrator."
 msgstr ""
 
 #: Controller/AppController.php:611
-#: Controller/AttributesController.php:2169;2252;2338
-#: Controller/EventsController.php:2790;2907;2969;3323;3939;4002
+#: Controller/AttributesController.php:2256;2339;2425
+#: Controller/EventsController.php:2791;2908;2970;3324;3940;4003
 msgid "You have to be logged in to do that."
 msgstr ""
 
@@ -64,12 +64,12 @@ msgid "All done. attribute_count generated from scratch for "
 msgstr ""
 
 #: Controller/AppController.php:872
-#: Controller/AttributesController.php:2392
+#: Controller/AttributesController.php:2479
 #: Controller/ShadowAttributesController.php:1278
 msgid "Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs)."
 msgstr ""
 
-#: Controller/AttributesController.php:116;1407
+#: Controller/AttributesController.php:116;1494
 #: Controller/EventGraphController.php:19;77
 msgid "No event ID set."
 msgstr ""
@@ -80,12 +80,12 @@ msgstr ""
 
 #: Controller/AttributesController.php:139;492;672
 #: Controller/EventGraphController.php:88
-#: Controller/EventsController.php:1932;1953;1987
+#: Controller/EventsController.php:1933;1954;1988
 #: Controller/ObjectsController.php:456
 msgid "You do not have permission to do that."
 msgstr ""
 
-#: Controller/AttributesController.php:415;870;875;879;1087;1167;2408;2422;2455;2477;2486;3079;3087;3187;3191
+#: Controller/AttributesController.php:415;870;875;879;1087;1167;1209;2495;2509;2542;2564;2573;3166;3174;3274;3278
 #: Controller/ShadowAttributesController.php:824;1069;1093;1126;1136
 #: Controller/TagsController.php:492
 msgid "Invalid attribute"
@@ -100,8 +100,8 @@ msgstr ""
 msgid "Attribute not an attachment or malware-sample"
 msgstr ""
 
-#: Controller/AttributesController.php:489;656;947;1416
-#: Controller/EventsController.php:4635;4649;5363;5377
+#: Controller/AttributesController.php:489;656;947;1503
+#: Controller/EventsController.php:4636;4650;5388;5402
 msgid "Invalid Event."
 msgstr ""
 
@@ -149,7 +149,7 @@ msgid "Invalid event id."
 msgstr ""
 
 #: Controller/AttributesController.php:1121
-#: Controller/EventsController.php:2273
+#: Controller/EventsController.php:2274
 #: Controller/ShadowAttributesController.php:731
 msgid "Invalid input."
 msgstr ""
@@ -158,150 +158,151 @@ msgstr ""
 msgid "Invalid field."
 msgstr ""
 
-#: Controller/AttributesController.php:1171
+#: Controller/AttributesController.php:1171;1213
 msgid "Invalid attribute id."
 msgstr ""
 
-#: Controller/AttributesController.php:1246;1256
+#: Controller/AttributesController.php:1333;1343
 msgid "Attribute deleted"
 msgstr ""
 
-#: Controller/AttributesController.php:1251;1253
+#: Controller/AttributesController.php:1338;1340
 msgid "Attribute was not deleted"
 msgstr ""
 
-#: Controller/AttributesController.php:1278;2879
+#: Controller/AttributesController.php:1365;2966
 #: Controller/ShadowAttributesController.php:865
 msgid "Invalid Attribute"
 msgstr ""
 
-#: Controller/AttributesController.php:1305
+#: Controller/AttributesController.php:1392
 msgid "Could not restore the attribute"
 msgstr ""
 
-#: Controller/AttributesController.php:1326;1333;1337
+#: Controller/AttributesController.php:1413;1420;1424
 msgid "Attribute not found or not authorised."
 msgstr ""
 
-#: Controller/AttributesController.php:1387
+#: Controller/AttributesController.php:1474
 msgid "This function is only accessible via POST requests."
 msgstr ""
 
-#: Controller/AttributesController.php:1442
+#: Controller/AttributesController.php:1529
 msgid "No matching attributes found."
 msgstr ""
 
-#: Controller/AttributesController.php:1476
+#: Controller/AttributesController.php:1563
 msgid "This method can only be accessed via AJAX."
 msgstr ""
 
-#: Controller/AttributesController.php:1486
+#: Controller/AttributesController.php:1573
 msgid "You are not authorized to edit this event."
 msgstr ""
 
-#: Controller/AttributesController.php:1584
+#: Controller/AttributesController.php:1671
 msgid "No event ID provided."
 msgstr ""
 
-#: Controller/AttributesController.php:1629
+#: Controller/AttributesController.php:1716
 #: Controller/GalaxiesController.php:225
 msgid "Synonyms: "
 msgstr ""
 
-#: Controller/AttributesController.php:2001;2108
+#: Controller/AttributesController.php:2088;2195
 msgid "You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml."
 msgstr ""
 
-#: Controller/AttributesController.php:2014
+#: Controller/AttributesController.php:2101
 msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct accept and content type headers)."
 msgstr ""
 
-#: Controller/AttributesController.php:2034
+#: Controller/AttributesController.php:2121
 msgid "You don't have access to that event."
 msgstr ""
 
-#: Controller/AttributesController.php:2097
+#: Controller/AttributesController.php:2184
 msgid "No matches."
 msgstr ""
 
-#: Controller/AttributesController.php:2119;2128
+#: Controller/AttributesController.php:2206;2215
 msgid "Invalid attribute or no authorisation to view it."
 msgstr ""
 
-#: Controller/AttributesController.php:2196
+#: Controller/AttributesController.php:2283
 msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct headers based on content type."
 msgstr ""
 
-#: Controller/AttributesController.php:2260
+#: Controller/AttributesController.php:2347
 msgid "Invalid event ID format."
 msgstr ""
 
-#: Controller/AttributesController.php:2369
+#: Controller/AttributesController.php:2456
 #: Controller/ShadowAttributesController.php:1256
 msgid "All done. "
 msgstr ""
 
-#: Controller/AttributesController.php:2401;2448
+#: Controller/AttributesController.php:2488;2535
 #: Controller/ShadowAttributesController.php:1064
 msgid "Invalid field requested."
 msgstr ""
 
-#: Controller/AttributesController.php:2404;2451
+#: Controller/AttributesController.php:2491;2538
 msgid "This function can only be accessed via AJAX."
 msgstr ""
 
-#: Controller/AttributesController.php:2516;2524
-#: Controller/EventsController.php:3762;3911
+#: Controller/AttributesController.php:2603;2611
+#: Controller/EventsController.php:3763;3912
 msgid "Event not found or you don't have permissions to create attributes"
 msgstr ""
 
-#: Controller/AttributesController.php:2545
+#: Controller/AttributesController.php:2632
 msgid "This action can only be accessed via AJAX."
 msgstr ""
 
-#: Controller/AttributesController.php:2554;2805;2819;2830
+#: Controller/AttributesController.php:2641;2892;2906;2917
 #: Controller/OrganisationsController.php:418
 #: Controller/ServersController.php:623;691
 msgid "You are not authorised to do that."
 msgstr ""
 
-#: Controller/AttributesController.php:2659
-#: Controller/EventsController.php:4428
+#: Controller/AttributesController.php:2746
+#: Controller/EventsController.php:4429
 msgid "This functionality requires API key access."
 msgstr ""
 
-#: Controller/AttributesController.php:2667
+#: Controller/AttributesController.php:2754
 msgid "This action is for the API only. Please refer to the automation page for information on how to use it."
 msgstr ""
 
-#: Controller/AttributesController.php:2679
+#: Controller/AttributesController.php:2766
 msgid "No hash or event ID received. You need to set at least one of the two."
 msgstr ""
 
-#: Controller/AttributesController.php:2840
+#: Controller/AttributesController.php:2927
 msgid "Invalid script."
 msgstr ""
 
-#: Controller/AttributesController.php:2907
+#: Controller/AttributesController.php:2994
 msgid "No valid enrichment options found for this attribute."
 msgstr ""
 
-#: Controller/AttributesController.php:2975
+#: Controller/AttributesController.php:3062
 msgid "Invalid type requested."
 msgstr ""
 
-#: Controller/AttributesController.php:3254
-#: Controller/EventsController.php:5359
+#: Controller/AttributesController.php:3341
+#: Controller/EventsController.php:5384
 msgid "Disabling the correlation is not permitted on this instance."
 msgstr ""
 
-#: Controller/AttributesController.php:3258;3273
+#: Controller/AttributesController.php:3345;3360
 #: Controller/ShadowAttributesController.php:679
 msgid "Invalid Attribute."
 msgstr ""
 
-#: Controller/AttributesController.php:3261;3276
-#: Controller/EventsController.php:5366;5380
+#: Controller/AttributesController.php:3348;3363
+#: Controller/EventsController.php:5391;5405
+#: Controller/PostsController.php:60;84
 #: Controller/TaxonomiesController.php:99;130;162;244;274;304;334;364;373;382
 msgid "You don't have permission to do that."
 msgstr ""
@@ -310,286 +311,286 @@ msgstr ""
 msgid "Event Blacklisting is not currently enabled on this instance."
 msgstr ""
 
-#: Controller/EventsController.php:854
+#: Controller/EventsController.php:855
 msgid "No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:856
+#: Controller/EventsController.php:857
 msgid "No GnuPG key set in your profile. To receive emails, submit your public key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:862
+#: Controller/EventsController.php:863
 msgid "No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:864
+#: Controller/EventsController.php:865
 msgid "No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:1567
+#: Controller/EventsController.php:1568
 msgid "You are currently logged in as a site administrator and editing an event not belonging to your organisation, which goes against the sharing model of MISP. Please only use this as a last resort and use normal user account for day to day work."
 msgstr ""
 
-#: Controller/EventsController.php:1777
+#: Controller/EventsController.php:1778
 msgid "You don't have permissions to create events"
 msgstr ""
 
-#: Controller/EventsController.php:1783
+#: Controller/EventsController.php:1784
 msgid "No valid event data received."
 msgstr ""
 
-#: Controller/EventsController.php:1819
+#: Controller/EventsController.php:1820
 msgid "Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group)."
 msgstr ""
 
-#: Controller/EventsController.php:1823;1827
+#: Controller/EventsController.php:1824;1828
 msgid "Invalid Sharing Group or not authorised."
 msgstr ""
 
-#: Controller/EventsController.php:1851
+#: Controller/EventsController.php:1852
 msgid "Event blocked by local blacklist."
 msgstr ""
 
-#: Controller/EventsController.php:1864;1941;2205
+#: Controller/EventsController.php:1865;1942;2206
 msgid "The event has been saved"
 msgstr ""
 
-#: Controller/EventsController.php:1872
+#: Controller/EventsController.php:1873
 msgid "Event already exists, if you would like to edit it, use the url in the location header."
 msgstr ""
 
-#: Controller/EventsController.php:1878
+#: Controller/EventsController.php:1879
 msgid "A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance"
 msgstr ""
 
-#: Controller/EventsController.php:1880;2208
+#: Controller/EventsController.php:1881;2209
 msgid "The event could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/EventsController.php:1920
+#: Controller/EventsController.php:1921
 msgid "The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published."
 msgstr ""
 
-#: Controller/EventsController.php:1967
+#: Controller/EventsController.php:1968
 msgid "You may only upload MISP XML or MISP JSON files."
 msgstr ""
 
-#: Controller/EventsController.php:1968
+#: Controller/EventsController.php:1969
 msgid "File upload failed or file does not have the expected extension (.xml / .json)."
 msgstr ""
 
-#: Controller/EventsController.php:2017
+#: Controller/EventsController.php:2018
 msgid "STIX document imported, event's created: "
 msgstr ""
 
-#: Controller/EventsController.php:2020
+#: Controller/EventsController.php:2021
 msgid "STIX document imported."
 msgstr ""
 
-#: Controller/EventsController.php:2023
+#: Controller/EventsController.php:2024
 msgid "Could not import STIX document: "
 msgstr ""
 
-#: Controller/EventsController.php:2030
+#: Controller/EventsController.php:2031
 msgid "File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn't exceed the maximum file size of "
 msgstr ""
 
-#: Controller/EventsController.php:2054;2139
+#: Controller/EventsController.php:2055;2140
 msgid "You are not authorised to do that. Please consider using the 'propose attribute' feature."
 msgstr ""
 
-#: Controller/EventsController.php:2062
+#: Controller/EventsController.php:2063
 msgid "Invalid event ID entered."
 msgstr ""
 
-#: Controller/EventsController.php:2067
+#: Controller/EventsController.php:2068
 msgid "You are not authorised to read the selected event."
 msgstr ""
 
-#: Controller/EventsController.php:2357;2407;2477
+#: Controller/EventsController.php:2358;2408;2478
 msgid "You don't have the permission to do that."
 msgstr ""
 
-#: Controller/EventsController.php:2366
+#: Controller/EventsController.php:2367
 msgid "Event unpublished."
 msgstr ""
 
-#: Controller/EventsController.php:2419
+#: Controller/EventsController.php:2420
 msgid "Could not publish event - no tag for required taxonomies missing: %s"
 msgstr ""
 
-#: Controller/EventsController.php:2564
+#: Controller/EventsController.php:2565
 msgid "Email sent to the reporter."
 msgstr ""
 
-#: Controller/EventsController.php:2566
+#: Controller/EventsController.php:2567
 msgid "Sending of email failed"
 msgstr ""
 
-#: Controller/EventsController.php:2699
+#: Controller/EventsController.php:2700
 msgid "This feature is currently disabled"
 msgstr ""
 
-#: Controller/EventsController.php:2741;4012
+#: Controller/EventsController.php:2742;4013
 msgid "Either specify the search terms in the url, or POST an xml (with the root element being \"request\")."
 msgstr ""
 
-#: Controller/EventsController.php:2777
+#: Controller/EventsController.php:2778
 msgid "Invalid Event ID."
 msgstr ""
 
-#: Controller/EventsController.php:2824
+#: Controller/EventsController.php:2825
 msgid "No events found that match the passed parameters."
 msgstr ""
 
-#: Controller/EventsController.php:2849
+#: Controller/EventsController.php:2850
 msgid "Either specify the search terms in the url, or POST a json or xml with the filter parameters. Valid filters: id (event ID), tags (list of tags), from (from date in YYYY-MM-DD format), to (to date in YYYY-MM-DD format), last (events with a published timestamp newer than - valid options are in time + unit format such as 6d or 2w, etc)"
 msgstr ""
 
-#: Controller/EventsController.php:2924
+#: Controller/EventsController.php:2925
 msgid "Either specify the search terms in the url, or POST a json or xml with the filter parameters."
 msgstr ""
 
-#: Controller/EventsController.php:2943
-#: Model/Attribute.php:1990
+#: Controller/EventsController.php:2944
+#: Model/Attribute.php:2000
 msgid "Invalid hash type."
 msgstr ""
 
-#: Controller/EventsController.php:3046
+#: Controller/EventsController.php:3047
 msgid "Filename not allowed."
 msgstr ""
 
-#: Controller/EventsController.php:3066
+#: Controller/EventsController.php:3067
 msgid "Problem with writing the ioc file. Please report to administrator."
 msgstr ""
 
-#: Controller/EventsController.php:3160
+#: Controller/EventsController.php:3161
 msgid "This is not a valid MISP XML file."
 msgstr ""
 
-#: Controller/EventsController.php:3312
+#: Controller/EventsController.php:3313
 msgid "Not yet implemented"
 msgstr ""
 
-#: Controller/EventsController.php:3330;3334
+#: Controller/EventsController.php:3331;3335
 msgid "Invalid event or not authorised."
 msgstr ""
 
-#: Controller/EventsController.php:3354;3424
+#: Controller/EventsController.php:3355;3425
 msgid "You don't have the privileges to access this."
 msgstr ""
 
-#: Controller/EventsController.php:3635
+#: Controller/EventsController.php:3636
 #: Controller/TagCollectionsController.php:311
 msgid "Invalid Tag."
 msgstr ""
 
-#: Controller/EventsController.php:3651
+#: Controller/EventsController.php:3652
 #: Controller/TagCollectionsController.php:327
 msgid "Tag is already attached to this event."
 msgstr ""
 
-#: Controller/EventsController.php:3662;3668
+#: Controller/EventsController.php:3663;3669
 #: Controller/TagCollectionsController.php:334
 msgid "Tag(s) added."
 msgstr ""
 
-#: Controller/EventsController.php:3664
+#: Controller/EventsController.php:3665
 msgid "Tag could not be added."
 msgstr ""
 
-#: Controller/EventsController.php:3670
+#: Controller/EventsController.php:3671
 #: Controller/TagCollectionsController.php:342
 msgid "All tags are already present, nothing to add."
 msgstr ""
 
-#: Controller/EventsController.php:3915;5200;5693;5697
+#: Controller/EventsController.php:3916;5225;5718;5722
 #: Controller/ObjectsController.php:46;140;144;452
 msgid "Invalid event."
 msgstr ""
 
-#: Controller/EventsController.php:3944
+#: Controller/EventsController.php:3945
 msgid "Either specify the search terms in the url, or POST an xml (with the root element being \"request\"."
 msgstr ""
 
-#: Controller/EventsController.php:4075;4105;4121
+#: Controller/EventsController.php:4076;4106;4122
 msgid "You do not have the permission to do that."
 msgstr ""
 
-#: Controller/EventsController.php:4186;4326
+#: Controller/EventsController.php:4187;4327
 msgid "Invalid ID"
 msgstr ""
 
-#: Controller/EventsController.php:4190;4330
+#: Controller/EventsController.php:4191;4331
 msgid "Event not found or you are not authorised to view it."
 msgstr ""
 
-#: Controller/EventsController.php:4431;4438
+#: Controller/EventsController.php:4432;4439
 msgid "Please POST the samples as described on the automation page."
 msgstr ""
 
-#: Controller/EventsController.php:4467
+#: Controller/EventsController.php:4468
 msgid "No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page."
 msgstr ""
 
-#: Controller/EventsController.php:4475
+#: Controller/EventsController.php:4476
 msgid "Event not found"
 msgstr ""
 
-#: Controller/EventsController.php:4498
+#: Controller/EventsController.php:4499
 msgid "Event not found."
 msgstr ""
 
-#: Controller/EventsController.php:4508
+#: Controller/EventsController.php:4509
 msgid "Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event."
 msgstr ""
 
-#: Controller/EventsController.php:4533
+#: Controller/EventsController.php:4534
 msgid "The creation of a new event with the supplied information has failed."
 msgstr ""
 
-#: Controller/EventsController.php:4672;4693;4726;4751;4776;4806;4827
+#: Controller/EventsController.php:4673;4694;4727;4752;4777;4807;4828
 msgid "Invalid type."
 msgstr ""
 
-#: Controller/EventsController.php:4935
+#: Controller/EventsController.php:4936
 msgid "Invalid method."
 msgstr ""
 
-#: Controller/EventsController.php:5017
+#: Controller/EventsController.php:5018
 msgid "%s services are not enabled."
 msgstr ""
 
-#: Controller/EventsController.php:5021
+#: Controller/EventsController.php:5022
 msgid "Attribute not found or you are not authorised to see it."
 msgstr ""
 
-#: Controller/EventsController.php:5026
+#: Controller/EventsController.php:5027
 msgid "No valid %s options found for this attribute."
 msgstr ""
 
-#: Controller/EventsController.php:5081;5135
+#: Controller/EventsController.php:5082;5160
 msgid "%s service not reachable."
 msgstr ""
 
-#: Controller/EventsController.php:5152
+#: Controller/EventsController.php:5177
 msgid ": Enriched via the %s"
 msgstr ""
 
-#: Controller/EventsController.php:5286
+#: Controller/EventsController.php:5311
 msgid "Import service not reachable."
 msgstr ""
 
-#: Controller/EventsController.php:5506
+#: Controller/EventsController.php:5531
 msgid "Invalid ID."
 msgstr ""
 
-#: Controller/EventsController.php:5554
+#: Controller/EventsController.php:5579
 #: Controller/ShadowAttributesController.php:313;318;534
 msgid "Invalid Event"
 msgstr ""
 
-#: Controller/EventsController.php:5575
+#: Controller/EventsController.php:5600
 msgid "Enrichment task queued for background processing. Check back later to see the results."
 msgstr ""
 
@@ -597,119 +598,119 @@ msgstr ""
 msgid "You don't have the required privileges to do that."
 msgstr ""
 
-#: Controller/FeedsController.php:226;325
+#: Controller/FeedsController.php:238;337
 msgid "Feed added."
 msgstr ""
 
-#: Controller/FeedsController.php:234
+#: Controller/FeedsController.php:246
 msgid "Feed could not be added. Invalid field: %s"
 msgstr ""
 
-#: Controller/FeedsController.php:259;360;382;504;539;743
+#: Controller/FeedsController.php:271;372;394;516;551;755
 msgid "Invalid feed."
 msgstr ""
 
-#: Controller/FeedsController.php:333
+#: Controller/FeedsController.php:345
 msgid "Feed could not be updated. Invalid fields: %s"
 msgstr ""
 
-#: Controller/FeedsController.php:356
+#: Controller/FeedsController.php:368
 msgid "This action requires a post request."
 msgstr ""
 
-#: Controller/FeedsController.php:389;508
+#: Controller/FeedsController.php:401;520
 msgid "Feed is currently not enabled. Make sure you enable it."
 msgstr ""
 
-#: Controller/FeedsController.php:402;468
+#: Controller/FeedsController.php:414;480
 msgid "Starting fetch from Feed."
 msgstr ""
 
-#: Controller/FeedsController.php:413
+#: Controller/FeedsController.php:425
 msgid "Pull queued for background execution."
 msgstr ""
 
-#: Controller/FeedsController.php:418;420
+#: Controller/FeedsController.php:430;432
 msgid "Fetching the feed has failed."
 msgstr ""
 
-#: Controller/FeedsController.php:424
+#: Controller/FeedsController.php:436
 msgid "Fetching the feed has successfuly completed."
 msgstr ""
 
-#: Controller/FeedsController.php:485
+#: Controller/FeedsController.php:497
 msgid "Fetching the feed has successfully completed."
 msgstr ""
 
-#: Controller/FeedsController.php:515
+#: Controller/FeedsController.php:527
 msgid "Event added."
 msgstr ""
 
-#: Controller/FeedsController.php:518
+#: Controller/FeedsController.php:530
 msgid "Event already up to date."
 msgstr ""
 
-#: Controller/FeedsController.php:520
+#: Controller/FeedsController.php:532
 msgid "Event updated."
 msgstr ""
 
-#: Controller/FeedsController.php:524
+#: Controller/FeedsController.php:536
 msgid "Could not %s event."
 msgstr ""
 
-#: Controller/FeedsController.php:527
+#: Controller/FeedsController.php:539
 msgid "Download failed."
 msgstr ""
 
-#: Controller/FeedsController.php:619
+#: Controller/FeedsController.php:631
 msgid "Feed could not be fetched. The HTTP error code returned was: "
 msgstr ""
 
-#: Controller/FeedsController.php:658;709
+#: Controller/FeedsController.php:670;721
 msgid "Invalid feed type."
 msgstr ""
 
-#: Controller/FeedsController.php:775
+#: Controller/FeedsController.php:787
 msgid "This event is blocked by the Feed filters."
 msgstr ""
 
-#: Controller/FeedsController.php:777
+#: Controller/FeedsController.php:789
 msgid "Could not download the selected Event"
 msgstr ""
 
-#: Controller/FeedsController.php:813;817
+#: Controller/FeedsController.php:825;829
 msgid "Invalid Feed."
 msgstr ""
 
-#: Controller/FeedsController.php:838
+#: Controller/FeedsController.php:850
 msgid "Only POST requests are allowed."
 msgstr ""
 
-#: Controller/FeedsController.php:842
+#: Controller/FeedsController.php:854
 msgid "Feed not found."
 msgstr ""
 
-#: Controller/FeedsController.php:851
+#: Controller/FeedsController.php:863
 msgid "Data pulled."
 msgstr ""
 
-#: Controller/FeedsController.php:853
+#: Controller/FeedsController.php:865
 msgid "Could not pull the selected data. Reason: %s"
 msgstr ""
 
-#: Controller/FeedsController.php:870
+#: Controller/FeedsController.php:882
 msgid "Starting feed caching."
 msgstr ""
 
-#: Controller/FeedsController.php:885
+#: Controller/FeedsController.php:897
 msgid "Caching the feeds has failed."
 msgstr ""
 
-#: Controller/FeedsController.php:888
+#: Controller/FeedsController.php:900
 msgid "Caching the feeds has successfully completed."
 msgstr ""
 
-#: Controller/FeedsController.php:922
+#: Controller/FeedsController.php:934
 msgid "Invalid feed list received."
 msgstr ""
 
@@ -882,16 +883,52 @@ msgstr ""
 msgid "There was an error while merging the organisations. To find out more about what went wrong, refer to the audit logs. If you would like to revert the changes, you can find a .sql file"
 msgstr ""
 
+#: Controller/PostsController.php:54
+msgid "Discussion about Event #"
+msgstr ""
+
 #: Controller/PostsController.php:80
 msgid "Invalid thread"
+msgstr ""
+
+#: Controller/PostsController.php:115
+msgid "Cannot post an empty message."
 msgstr ""
 
 #: Controller/PostsController.php:176
 msgid "Post added"
 msgstr ""
 
+#: Controller/PostsController.php:189
+msgid "The post could not be added."
+msgstr ""
+
 #: Controller/PostsController.php:208;256
 msgid "Invalid post"
+msgstr ""
+
+#: Controller/PostsController.php:211
+msgid "This is not your event."
+msgstr ""
+
+#: Controller/PostsController.php:219
+msgid "Post edited"
+msgstr ""
+
+#: Controller/PostsController.php:240
+msgid "The post could not be edited. Please, try again."
+msgstr ""
+
+#: Controller/PostsController.php:261
+msgid "This post doesn't belong to you, so you cannot delete it."
+msgstr ""
+
+#: Controller/PostsController.php:274
+msgid "Post and thread deleted"
+msgstr ""
+
+#: Controller/PostsController.php:283
+msgid "Post deleted"
 msgstr ""
 
 #: Controller/RegexpController.php:27
@@ -982,7 +1019,7 @@ msgstr ""
 msgid "The server could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/ServersController.php:396;593;618;627;687;1370
+#: Controller/ServersController.php:396;593;618;627;687;1378
 msgid "Invalid server"
 msgstr ""
 
@@ -1039,9 +1076,10 @@ msgid "No organisation selected."
 msgstr ""
 
 #: Controller/ServersController.php:869;870;871;872;873;874;875;876;877;878;879;880;881;882
-#: View/Elements/healthElements/diagnostics.ctp:26;155;169;194
+#: View/Elements/healthElements/diagnostics.ctp:26;159;173;198
 #: View/Elements/healthElements/workers.ctp:23;76
 #: View/Events/add_misp_export_result.ctp:23
+#: View/Servers/ajax/submoduleStatus.ctp:15
 #: View/Servers/ajax/zeromqstatus.ctp:11
 msgid "OK"
 msgstr ""
@@ -1156,31 +1194,31 @@ msgstr ""
 msgid "There are some optional tweaks that could be done to improve the looks of your MISP instance."
 msgstr ""
 
-#: Controller/ServersController.php:1267
+#: Controller/ServersController.php:1275
 msgid "File not found."
 msgstr ""
 
-#: Controller/ServersController.php:1273
+#: Controller/ServersController.php:1281
 msgid "File could not be deleted."
 msgstr ""
 
-#: Controller/ServersController.php:1296;1312
+#: Controller/ServersController.php:1304;1320
 msgid "Upload failed."
 msgstr ""
 
-#: Controller/ServersController.php:1304
+#: Controller/ServersController.php:1312
 msgid "File already exists. If you would like to replace it, remove the old one first."
 msgstr ""
 
-#: Controller/ServersController.php:1780
+#: Controller/ServersController.php:1788
 msgid "Starting server caching."
 msgstr ""
 
-#: Controller/ServersController.php:1795
+#: Controller/ServersController.php:1803
 msgid "Caching the servers has failed."
 msgstr ""
 
-#: Controller/ServersController.php:1798
+#: Controller/ServersController.php:1806
 msgid "Caching the servers has successfully completed."
 msgstr ""
 
@@ -1538,6 +1576,76 @@ msgstr ""
 msgid "E-mails sent."
 msgstr ""
 
+#: Controller/UsersController.php:1556
+msgid "Usage data"
+msgstr ""
+
+#: Controller/UsersController.php:1557
+#: View/Elements/global_menu.ctp:151
+#: View/SharingGroups/add.ctp:19
+#: View/SharingGroups/edit.ctp:19
+#: View/SharingGroups/view.ctp:39
+#: View/Users/statistics.ctp:27
+#: View/Users/statistics_data.ctp:34
+msgid "Organisations"
+msgstr ""
+
+#: Controller/UsersController.php:1558
+msgid "User and Organisation statistics"
+msgstr ""
+
+#: Controller/UsersController.php:1559
+#: View/Attributes/index.ctp:53
+#: View/Elements/eventattribute.ctp:152
+#: View/Elements/Events/eventIndexTable.ctp:37
+#: View/Elements/Feeds/eventattribute.ctp:45
+#: View/Elements/Servers/eventattribute.ctp:45
+#: View/Events/resolved_attributes.ctp:52
+#: View/Events/view.ctp:118
+#: View/Feeds/preview_event.ctp:16
+#: View/Feeds/preview_index.ctp:39
+#: View/Feeds/view.ctp:16
+#: View/Noticelists/view.ctp:43
+#: View/Pages/doc/using_the_system.ctp:164;207;318
+#: View/Servers/preview_event.ctp:27
+#: View/Servers/preview_index.ctp:94
+#: View/TagCollections/index.ctp:10
+#: View/Tags/index.ctp:10
+#: View/Taxonomies/view.ctp:88
+#: View/Templates/add.ctp:12
+#: View/Templates/edit.ctp:12
+#: View/Templates/view.ctp:19
+msgid "Tags"
+msgstr ""
+
+#: Controller/UsersController.php:1560
+msgid "Attribute histogram"
+msgstr ""
+
+#: Controller/UsersController.php:1561
+msgid "Sightings toplists"
+msgstr ""
+
+#: Controller/UsersController.php:1562
+msgid "Galaxy Matrix"
+msgstr ""
+
+#: Controller/WarninglistsController.php:209
+msgid "Warninglist disabled"
+msgstr ""
+
+#: Controller/WarninglistsController.php:212
+msgid "Warninglist enabled"
+msgstr ""
+
+#: Controller/WarninglistsController.php:251
+msgid "Warninglist successfuly deleted."
+msgstr ""
+
+#: Controller/WarninglistsController.php:254
+msgid "Warninglists could not be deleted."
+msgstr ""
+
 #: Controller/Component/AdminCrudComponent.php:20
 msgid "The %s has been saved."
 msgstr ""
@@ -1570,6 +1678,10 @@ msgstr ""
 msgid "Blacklist item added."
 msgstr ""
 
+#: Controller/Component/BlackListComponent.php:133
+msgid "Could not save the blacklist item"
+msgstr ""
+
 #: Controller/Component/BlackListComponent.php:155
 msgid "Invalid blacklist entry"
 msgstr ""
@@ -1582,152 +1694,1012 @@ msgstr ""
 msgid "Could not remove the blacklist entry"
 msgstr ""
 
-#: Model/Attribute.php:591
+#: Model/Attribute.php:59
+#: View/Events/filter_event_index.ctp:46;182
+msgid "Your organisation only"
+msgstr ""
+
+#: Model/Attribute.php:60
+#: View/Events/filter_event_index.ctp:46;183
+msgid "This community only"
+msgstr ""
+
+#: Model/Attribute.php:61
+#: View/Events/filter_event_index.ctp:46;184
+#: View/Pages/doc/using_the_system.ctp:51
+msgid "Connected communities"
+msgstr ""
+
+#: Model/Attribute.php:62
+#: View/Events/filter_event_index.ctp:46;185
+#: View/Pages/doc/using_the_system.ctp:58
+msgid "All communities"
+msgstr ""
+
+#: Model/Attribute.php:63
+#: View/Elements/view_event_distribution_graph.ctp:24
+msgid "Sharing group"
+msgstr ""
+
+#: Model/Attribute.php:64
+msgid "Inherit event"
+msgstr ""
+
+#: Model/Attribute.php:69
+msgid "Reference used by the publishing party (e.g. ticket number)"
+msgstr ""
+
+#: Model/Attribute.php:73
+msgid "Internal Attack Targeting and Compromise Information"
+msgstr ""
+
+#: Model/Attribute.php:74
+msgid "Targeting information to include recipient email, infected machines, department, and or locations."
+msgstr ""
+
+#: Model/Attribute.php:78
+msgid "All the info about how the malware is detected by the antivirus products"
+msgstr ""
+
+#: Model/Attribute.php:79
+msgid "List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%). Attachment with list of detection or link to VirusTotal could be placed here as well."
+msgstr ""
+
+#: Model/Attribute.php:83
+msgid "Information about how the malware is delivered"
+msgstr ""
+
+#: Model/Attribute.php:84
+msgid "Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here."
+msgstr ""
+
+#: Model/Attribute.php:88
+msgid "Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system"
+msgstr ""
+
+#: Model/Attribute.php:92
+msgid "Info on where the malware gets installed in the system"
+msgstr ""
+
+#: Model/Attribute.php:93
+msgid "Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e."
+msgstr ""
+
+#: Model/Attribute.php:97
+msgid "Mechanisms used by the malware to start at boot"
+msgstr ""
+
+#: Model/Attribute.php:98
+msgid "Mechanisms used by the malware to start at boot. This could be a registry key, legitimate driver modification, LNK file in startup"
+msgstr ""
+
+#: Model/Attribute.php:102
+msgid "Information about network traffic generated by the malware"
+msgstr ""
+
+#: Model/Attribute.php:106
+msgid "Information about the final payload(s)"
+msgstr ""
+
+#: Model/Attribute.php:107
+msgid "Information about the final payload(s). Can contain a function of the payload, e.g. keylogger, RAT, or a name if identified, such as Poison Ivy."
+msgstr ""
+
+#: Model/Attribute.php:111
+msgid "Identification of the group, organisation, or country behind the attack"
+msgstr ""
+
+#: Model/Attribute.php:115
+msgid "Any other result from additional analysis of the malware like tools output"
+msgstr ""
+
+#: Model/Attribute.php:116
+msgid "Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report."
+msgstr ""
+
+#: Model/Attribute.php:120
+msgid "Financial Fraud indicators"
+msgstr ""
+
+#: Model/Attribute.php:121
+msgid "Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc."
+msgstr ""
+
+#: Model/Attribute.php:125
+msgid "Tools supporting analysis or detection of the event"
+msgstr ""
+
+#: Model/Attribute.php:129
+msgid "Social networks and platforms"
+msgstr ""
+
+#: Model/Attribute.php:134
+msgid "A human being - natural person"
+msgstr ""
+
+#: Model/Attribute.php:138
+msgid "Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future"
+msgstr ""
+
+#: Model/Attribute.php:144;228
+msgid "A checksum in md5 format"
+msgstr ""
+
+#: Model/Attribute.php:144
+msgid "You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:145
+msgid "A checksum in sha1 format"
+msgstr ""
+
+#: Model/Attribute.php:145
+msgid "You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:146
+msgid "A checksum in sha256 format"
+msgstr ""
+
+#: Model/Attribute.php:146
+msgid "You are encouraged to use filename|sha256 instead. A checksum in sha256 format, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:147
+#: View/Elements/healthElements/files.ctp:29
+msgid "Filename"
+msgstr ""
+
+#: Model/Attribute.php:148
+msgid "Microsoft Program database (PDB) path information"
+msgstr ""
+
+#: Model/Attribute.php:149
+msgid "A filename and an md5 hash separated by a |"
+msgstr ""
+
+#: Model/Attribute.php:149
+msgid "A filename and an md5 hash separated by a | (no spaces)"
+msgstr ""
+
+#: Model/Attribute.php:150
+msgid "A filename and an sha1 hash separated by a |"
+msgstr ""
+
+#: Model/Attribute.php:150
+msgid "A filename and an sha1 hash separated by a | (no spaces)"
+msgstr ""
+
+#: Model/Attribute.php:151
+msgid "A filename and an sha256 hash separated by a |"
+msgstr ""
+
+#: Model/Attribute.php:151
+msgid "A filename and an sha256 hash separated by a | (no spaces)"
+msgstr ""
+
+#: Model/Attribute.php:152
+msgid "A source IP address of the attacker"
+msgstr ""
+
+#: Model/Attribute.php:153
+msgid "A destination IP address of the attacker or C&C server"
+msgstr ""
+
+#: Model/Attribute.php:153
+msgid "A destination IP address of the attacker or C&C server. Also set the IDS flag on when this IP is hardcoded in malware"
+msgstr ""
+
+#: Model/Attribute.php:154
+msgid "A full host/dnsname of an attacker"
+msgstr ""
+
+#: Model/Attribute.php:154
+msgid "A full host/dnsname of an attacker. Also set the IDS flag on when this hostname is hardcoded in malware"
+msgstr ""
+
+#: Model/Attribute.php:155
+msgid "A domain name used in the malware"
+msgstr ""
+
+#: Model/Attribute.php:155
+msgid "A domain name used in the malware. Use this instead of hostname when the upper domain is important or can be used to create links between events."
+msgstr ""
+
+#: Model/Attribute.php:156
+msgid "A domain name and its IP address (as found in DNS lookup) separated by a |"
+msgstr ""
+
+#: Model/Attribute.php:156
+msgid "A domain name and its IP address (as found in DNS lookup) separated by a | (no spaces)"
+msgstr ""
+
+#: Model/Attribute.php:157
+msgid "The email address used to send the malware."
+msgstr ""
+
+#: Model/Attribute.php:158
+msgid "A recipient email address"
+msgstr ""
+
+#: Model/Attribute.php:158
+msgid "A recipient email address that is not related to your constituency."
+msgstr ""
+
+#: Model/Attribute.php:159
+msgid "The subject of the email"
+msgstr ""
+
+#: Model/Attribute.php:160
+msgid "File name of the email attachment."
+msgstr ""
+
+#: Model/Attribute.php:161
+msgid "Email body"
+msgstr ""
+
+#: Model/Attribute.php:162
+msgid "A floating point value."
+msgstr ""
+
+#: Model/Attribute.php:163
+msgid "url"
+msgstr ""
+
+#: Model/Attribute.php:164
+msgid "HTTP method used by the malware (e.g. POST, GET, ...)."
+msgstr ""
+
+#: Model/Attribute.php:165
+msgid "The user-agent used by the malware in the HTTP request."
+msgstr ""
+
+#: Model/Attribute.php:166
+msgid "JA3 is a method for creating SSL/TLS client fingerprints that should be easy to produce on any platform and can be easily shared for threat intelligence."
+msgstr ""
+
+#: Model/Attribute.php:167
+msgid "hassh is a network fingerprinting standard which can be used to identify specific Client SSH implementations. The fingerprints can be easily stored, searched and shared in the form of an MD5 fingerprint."
+msgstr ""
+
+#: Model/Attribute.php:168
+msgid "hasshServer is a network fingerprinting standard which can be used to identify specific Server SSH implementations. The fingerprints can be easily stored, searched and shared in the form of an MD5 fingerprint."
+msgstr ""
+
+#: Model/Attribute.php:169
+msgid "Registry key or value"
+msgstr ""
+
+#: Model/Attribute.php:170
+msgid "Registry value + data separated by |"
+msgstr ""
+
+#: Model/Attribute.php:171
+msgid "Autonomous system"
+msgstr ""
+
+#: Model/Attribute.php:172
+msgid "An IDS rule in Snort rule-format"
+msgstr ""
+
+#: Model/Attribute.php:172
+msgid "An IDS rule in Snort rule-format. This rule will be automatically rewritten in the NIDS exports."
+msgstr ""
+
+#: Model/Attribute.php:173
+msgid "An NIDS rule in the Bro rule-format"
+msgstr ""
+
+#: Model/Attribute.php:173
+msgid "An NIDS rule in the Bro rule-format."
+msgstr ""
+
+#: Model/Attribute.php:174
+msgid "An NIDS rule in the Zeek rule-format"
+msgstr ""
+
+#: Model/Attribute.php:174
+msgid "An NIDS rule in the Zeek rule-format."
+msgstr ""
+
+#: Model/Attribute.php:175
+msgid "Pattern in file that identifies the malware"
+msgstr ""
+
+#: Model/Attribute.php:176
+msgid "Pattern in network traffic that identifies the malware"
+msgstr ""
+
+#: Model/Attribute.php:177
+msgid "Pattern in memory dump that identifies the malware"
+msgstr ""
+
+#: Model/Attribute.php:178
+msgid "Yara signature"
+msgstr ""
+
+#: Model/Attribute.php:179
+msgid "STIX 2 pattern"
+msgstr ""
+
+#: Model/Attribute.php:180
+msgid "Sigma - Generic Signature Format for SIEM Systems"
+msgstr ""
+
+#: Model/Attribute.php:181
+msgid "GENE - Go Evtx sigNature Engine"
+msgstr ""
+
+#: Model/Attribute.php:182
+msgid "A media type (also MIME type and content type) is a two-part identifier for file formats and format contents transmitted on the Internet"
+msgstr ""
+
+#: Model/Attribute.php:183
+msgid "Identity card number"
+msgstr ""
+
+#: Model/Attribute.php:184
+msgid "HTTP cookie as often stored on the user web client. This can include authentication cookie or session cookie."
+msgstr ""
+
+#: Model/Attribute.php:185
+msgid "A reference to the vulnerability used in the exploit"
+msgstr ""
+
+#: Model/Attribute.php:186
+msgid "Attachment with external information"
+msgstr ""
+
+#: Model/Attribute.php:186;187
+msgid "Please upload files using the <em>Upload Attachment</em> button."
+msgstr ""
+
+#: Model/Attribute.php:187
+msgid "Attachment containing encrypted malware sample"
+msgstr ""
+
+#: Model/Attribute.php:188
+msgid "Link to an external information"
+msgstr ""
+
+#: Model/Attribute.php:189
+msgid "Comment or description in a human language"
+msgstr ""
+
+#: Model/Attribute.php:189
+msgid "Comment or description in a human language.  This will not be correlated with other attributes"
+msgstr ""
+
+#: Model/Attribute.php:190
+msgid "Name, ID or a reference"
+msgstr ""
+
+#: Model/Attribute.php:191
+msgid "A value in hexadecimal format"
+msgstr ""
+
+#: Model/Attribute.php:192
+msgid "Other attribute"
+msgstr ""
+
+#: Model/Attribute.php:193
+msgid "Named pipe, use the format \\.\\pipe\\<PipeName>"
+msgstr ""
+
+#: Model/Attribute.php:194
+msgid "Mutex, use the format \\BaseNamedObjects\\<Mutex>"
+msgstr ""
+
+#: Model/Attribute.php:195
+msgid "Attack Targets Username(s)"
+msgstr ""
+
+#: Model/Attribute.php:196
+msgid "Attack Targets Email(s)"
+msgstr ""
+
+#: Model/Attribute.php:197
+msgid "Attack Targets Machine Name(s)"
+msgstr ""
+
+#: Model/Attribute.php:198
+msgid "Attack Targets Department or Organization(s)"
+msgstr ""
+
+#: Model/Attribute.php:199
+msgid "Attack Targets Physical Location(s)"
+msgstr ""
+
+#: Model/Attribute.php:200
+msgid "External Target Organizations Affected by this Attack"
+msgstr ""
+
+#: Model/Attribute.php:201
+msgid "Bitcoin Address"
+msgstr ""
+
+#: Model/Attribute.php:202
+msgid "Monero Address"
+msgstr ""
+
+#: Model/Attribute.php:203
+msgid "International Bank Account Number"
+msgstr ""
+
+#: Model/Attribute.php:204
+msgid "Bank Identifier Code Number also known as SWIFT-BIC, SWIFT code or ISO 9362 code"
+msgstr ""
+
+#: Model/Attribute.php:205
+msgid "Bank account number without any routing number"
+msgstr ""
+
+#: Model/Attribute.php:206
+msgid "ABA routing transit number"
+msgstr ""
+
+#: Model/Attribute.php:207
+msgid "Bank Identification Number"
+msgstr ""
+
+#: Model/Attribute.php:208
+msgid "Credit-Card Number"
+msgstr ""
+
+#: Model/Attribute.php:209
+msgid "Premium-Rate Telephone Number"
+msgstr ""
+
+#: Model/Attribute.php:210
+msgid "Telephone Number"
+msgstr ""
+
+#: Model/Attribute.php:211
+msgid "A string identifying the threat actor"
+msgstr ""
+
+#: Model/Attribute.php:212
+msgid "Associated campaign name"
+msgstr ""
+
+#: Model/Attribute.php:213
+msgid "Associated campaign ID"
+msgstr ""
+
+#: Model/Attribute.php:215
+msgid "Uniform Resource Identifier"
+msgstr ""
+
+#: Model/Attribute.php:216
+msgid "Authenticode executable signature hash"
+msgstr ""
+
+#: Model/Attribute.php:216
+msgid "You are encouraged to use filename|authentihash instead. Authenticode executable signature hash, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:217;229
+msgid "A checksum in ssdeep format"
+msgstr ""
+
+#: Model/Attribute.php:217
+msgid "You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:218;230
+msgid "Import hash - a hash created based on the imports in the sample."
+msgstr ""
+
+#: Model/Attribute.php:218
+msgid "You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:219
+msgid "PEhash - a hash calculated based of certain pieces of a PE executable file"
+msgstr ""
+
+#: Model/Attribute.php:220
+msgid "A fuzzy hash of import table of Portable Executable format"
+msgstr ""
+
+#: Model/Attribute.php:220
+msgid "You are encouraged to use filename|impfuzzy instead. A fuzzy hash created based on the imports in the sample, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:221
+msgid "A checksum in sha-224 format"
+msgstr ""
+
+#: Model/Attribute.php:221
+msgid "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:222
+msgid "A checksum in sha-384 format"
+msgstr ""
+
+#: Model/Attribute.php:222
+msgid "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:223
+msgid "A checksum in sha-512 format"
+msgstr ""
+
+#: Model/Attribute.php:223
+msgid "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:224
+msgid "A checksum in the sha-512/224 format"
+msgstr ""
+
+#: Model/Attribute.php:224
+msgid "You are encouraged to use filename|sha512/224 instead. A checksum in sha512/224 format, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:225
+msgid "A checksum in the sha-512/256 format"
+msgstr ""
+
+#: Model/Attribute.php:225
+msgid "You are encouraged to use filename|sha512/256 instead. A checksum in sha512/256 format, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:226
+msgid "A checksum in the Trend Micro Locality Sensitive Hash format"
+msgstr ""
+
+#: Model/Attribute.php:226
+msgid "You are encouraged to use filename|tlsh instead. A checksum in the Trend Micro Locality Sensitive Hash format, only use this if you don't know the correct filename"
+msgstr ""
+
+#: Model/Attribute.php:227
+msgid "An Apple Code Directory Hash, identifying a code-signed Mach-O executable file"
+msgstr ""
+
+#: Model/Attribute.php:231
+msgid "Import fuzzy hash - a fuzzy hash created based on the imports in the sample."
+msgstr ""
+
+#: Model/Attribute.php:232
+msgid "A filename and a PEhash separated by a |"
+msgstr ""
+
+#: Model/Attribute.php:233
+msgid "A filename and a sha-224 hash separated by a |"
+msgstr ""
+
+#: Model/Attribute.php:234
+msgid "A filename and a sha-384 hash separated by a |"
+msgstr ""
+
+#: Model/Attribute.php:235
+msgid "A filename and a sha-512 hash separated by a |"
+msgstr ""
+
+#: Model/Attribute.php:236
+msgid "A filename and a sha-512/224 hash separated by a |"
+msgstr ""
+
+#: Model/Attribute.php:237
+msgid "A filename and a sha-512/256 hash separated by a |"
+msgstr ""
+
+#: Model/Attribute.php:238
+msgid "A filename and a Trend Micro Locality Sensitive Hash separated by a |"
+msgstr ""
+
+#: Model/Attribute.php:239
+msgid "A scheduled task in windows"
+msgstr ""
+
+#: Model/Attribute.php:240
+msgid "A windows service name. This is the name used internally by windows. Not to be confused with the windows-service-displayname."
+msgstr ""
+
+#: Model/Attribute.php:241
+msgid "A windows service's displayname, not to be confused with the windows-service-name. This is the name that applications will generally display as the service's name in applications."
+msgstr ""
+
+#: Model/Attribute.php:242
+msgid "The e-mail of a domain's registrant, obtained from the WHOIS information."
+msgstr ""
+
+#: Model/Attribute.php:243
+msgid "The phone number of a domain's registrant, obtained from the WHOIS information."
+msgstr ""
+
+#: Model/Attribute.php:244
+msgid "The name of a domain's registrant, obtained from the WHOIS information."
+msgstr ""
+
+#: Model/Attribute.php:245
+msgid "The org of a domain's registrant, obtained from the WHOIS information."
+msgstr ""
+
+#: Model/Attribute.php:246
+msgid "The registrar of the domain, obtained from the WHOIS information."
+msgstr ""
+
+#: Model/Attribute.php:247
+msgid "The date of domain's creation, obtained from the WHOIS information."
+msgstr ""
+
+#: Model/Attribute.php:252
+msgid "X509 fingerprint in SHA-1 format"
+msgstr ""
+
+#: Model/Attribute.php:253
+msgid "X509 fingerprint in MD5 format"
+msgstr ""
+
+#: Model/Attribute.php:254
+msgid "X509 fingerprint in SHA-256 format"
+msgstr ""
+
+#: Model/Attribute.php:255
+msgid "RFC1035 mandates that DNS zones should have a SOA (Statement Of Authority) record that contains an email address where a PoC for the domain could be contacted. This can sometimes be used for attribution/linkage between different domains even if protected by whois privacy"
+msgstr ""
+
+#: Model/Attribute.php:256
+msgid "Size expressed in bytes"
+msgstr ""
+
+#: Model/Attribute.php:257
+msgid "An integer counter, generally to be used in objects"
+msgstr ""
+
+#: Model/Attribute.php:258
+msgid "Datetime in the ISO 8601 format"
+msgstr ""
+
+#: Model/Attribute.php:259
+msgid "Common platform enumeration"
+msgstr ""
+
+#: Model/Attribute.php:260
+msgid "Port number"
+msgstr ""
+
+#: Model/Attribute.php:261
+msgid "IP destination and port number seperated by a |"
+msgstr ""
+
+#: Model/Attribute.php:262
+msgid "IP source and port number seperated by a |"
+msgstr ""
+
+#: Model/Attribute.php:263
+msgid "Hostname and port number seperated by a |"
+msgstr ""
+
+#: Model/Attribute.php:264
+msgid "Mac address"
+msgstr ""
+
+#: Model/Attribute.php:265
+msgid "Mac EUI-64 address"
+msgstr ""
+
+#: Model/Attribute.php:267
+msgid "Email destination display name"
+msgstr ""
+
+#: Model/Attribute.php:268
+msgid "Email source display name"
+msgstr ""
+
+#: Model/Attribute.php:269
+msgid "Email header"
+msgstr ""
+
+#: Model/Attribute.php:270
+msgid "Email reply to header"
+msgstr ""
+
+#: Model/Attribute.php:271
+msgid "Email x-mailer header"
+msgstr ""
+
+#: Model/Attribute.php:272
+msgid "The email mime boundary separating parts in a multipart email"
+msgstr ""
+
+#: Model/Attribute.php:273
+msgid "The email thread index header"
+msgstr ""
+
+#: Model/Attribute.php:274
+msgid "The email message ID"
+msgstr ""
+
+#: Model/Attribute.php:275
+msgid "A github user name"
+msgstr ""
+
+#: Model/Attribute.php:276
+msgid "A github repository"
+msgstr ""
+
+#: Model/Attribute.php:277
+msgid "A github organisation"
+msgstr ""
+
+#: Model/Attribute.php:278
+msgid "Jabber ID"
+msgstr ""
+
+#: Model/Attribute.php:279
+msgid "Twitter ID"
+msgstr ""
+
+#: Model/Attribute.php:280
+msgid "First name of a natural person"
+msgstr ""
+
+#: Model/Attribute.php:281
+msgid "Middle name of a natural person"
+msgstr ""
+
+#: Model/Attribute.php:282
+msgid "Last name of a natural person"
+msgstr ""
+
+#: Model/Attribute.php:283
+msgid "Date of birth of a natural person (in YYYY-MM-DD format)"
+msgstr ""
+
+#: Model/Attribute.php:284
+msgid "Place of birth of a natural person"
+msgstr ""
+
+#: Model/Attribute.php:285
+msgid "The gender of a natural person (Male, Female, Other, Prefer not to say)"
+msgstr ""
+
+#: Model/Attribute.php:286
+msgid "The passport number of a natural person"
+msgstr ""
+
+#: Model/Attribute.php:287
+msgid "The country in which the passport was issued"
+msgstr ""
+
+#: Model/Attribute.php:288
+msgid "The expiration date of a passport"
+msgstr ""
+
+#: Model/Attribute.php:289
+msgid "The Redress Control Number is the record identifier for people who apply for redress through the DHS Travel Redress Inquiry Program (DHS TRIP). DHS TRIP is for travelers who have been repeatedly identified for additional screening and who want to file an inquiry to have erroneous information corrected in DHS systems"
+msgstr ""
+
+#: Model/Attribute.php:290
+msgid "The nationality of a natural person"
+msgstr ""
+
+#: Model/Attribute.php:291
+msgid "Visa number"
+msgstr ""
+
+#: Model/Attribute.php:292
+msgid "The date on which the visa was issued"
+msgstr ""
+
+#: Model/Attribute.php:293
+msgid "The primary residence of a natural person"
+msgstr ""
+
+#: Model/Attribute.php:294
+msgid "The country of residence of a natural person"
+msgstr ""
+
+#: Model/Attribute.php:295
+msgid "A Special Service Request is a function to an airline to provide a particular facility for A Passenger or passengers. "
+msgstr ""
+
+#: Model/Attribute.php:296
+msgid "The frequent flyer number of a passenger"
+msgstr ""
+
+#: Model/Attribute.php:299
+msgid "Travel details"
+msgstr ""
+
+#: Model/Attribute.php:300
+msgid "Payment details"
+msgstr ""
+
+#: Model/Attribute.php:301
+msgid "The orignal port of embarkation"
+msgstr ""
+
+#: Model/Attribute.php:302
+msgid "The port of clearance"
+msgstr ""
+
+#: Model/Attribute.php:303
+msgid "A Port where the passenger is transiting to"
+msgstr ""
+
+#: Model/Attribute.php:304
+msgid "The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers."
+msgstr ""
+
+#: Model/Attribute.php:305
+msgid "The application id of a mobile application"
+msgstr ""
+
+#: Model/Attribute.php:306
+msgid "Cortex analysis result"
+msgstr ""
+
+#: Model/Attribute.php:307
+msgid "Boolean value - to be used in objects"
+msgstr ""
+
+#: Model/Attribute.php:308
+msgid "Anonymised value - described with the anonymisation object via a relationship"
+msgstr ""
+
+#: Model/Attribute.php:308
+msgid "Anonymised value - described with the anonymisation object via a relationship."
+msgstr ""
+
+#: Model/Attribute.php:601
 msgid "Composite type, but value not explodable"
 msgstr ""
 
-#: Model/Attribute.php:716
+#: Model/Attribute.php:726
 msgid "Delete of file attachment failed. Please report to administrator."
 msgstr ""
 
-#: Model/Attribute.php:846
+#: Model/Attribute.php:856
 msgid "The entered string is too long and would get truncated. Please consider adding the data as an attachment instead"
 msgstr ""
 
-#: Model/Attribute.php:971
+#: Model/Attribute.php:981
 msgid "Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:978
+#: Model/Attribute.php:988
 msgid "Checksum has an invalid length or format (expected: at least 35 hexadecimal characters). Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:985
+#: Model/Attribute.php:995
 msgid "The input doesn't match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!"
 msgstr ""
 
-#: Model/Attribute.php:996
+#: Model/Attribute.php:1006
 msgid "Invalid SSDeep hash. The format has to be blocksize:hash:hash"
 msgstr ""
 
-#: Model/Attribute.php:1007
+#: Model/Attribute.php:1017
 msgid "Invalid impfuzzy format. The format has to be imports:hash:hash"
 msgstr ""
 
-#: Model/Attribute.php:1014
+#: Model/Attribute.php:1024
 msgid "The input doesn't match the expected format (expected: 40 or more hexadecimal characters)"
 msgstr ""
 
-#: Model/Attribute.php:1029
+#: Model/Attribute.php:1039
 msgid "The input doesn't match the expected filename|sha1 format (expected: filename|40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!"
 msgstr ""
 
-#: Model/Attribute.php:1047
+#: Model/Attribute.php:1057
 msgid "Checksum has an invalid length or format (expected: filename|%s hexadecimal characters). Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:1052
+#: Model/Attribute.php:1062
 msgid "Invalid composite type. The format has to be %s."
 msgstr ""
 
-#: Model/Attribute.php:1063
+#: Model/Attribute.php:1073
 msgid "Invalid SSDeep hash (expected: blocksize:hash:hash)."
 msgstr ""
 
-#: Model/Attribute.php:1071
+#: Model/Attribute.php:1081
 msgid "Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:1082
+#: Model/Attribute.php:1092
 msgid "Invalid CIDR notation value found."
 msgstr ""
 
-#: Model/Attribute.php:1089;1140
+#: Model/Attribute.php:1099;1150
 msgid "IP address has an invalid format."
 msgstr ""
 
-#: Model/Attribute.php:1094
+#: Model/Attribute.php:1104
 msgid "Port numbers have to be positive integers between 1 and 65535."
 msgstr ""
 
-#: Model/Attribute.php:1123
+#: Model/Attribute.php:1133
 msgid " name has an invalid format. Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:1143
+#: Model/Attribute.php:1153
 msgid "Domain name has an invalid format."
 msgstr ""
 
-#: Model/Attribute.php:1156
+#: Model/Attribute.php:1166
 msgid "Email address has an invalid format. Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:1164
+#: Model/Attribute.php:1174
 msgid "Invalid format. Expected: CVE-xxxx-xxxx..."
 msgstr ""
 
-#: Model/Attribute.php:1175
+#: Model/Attribute.php:1185
 msgid "Invalid format. Only values shorter than 256 characters that don't include any forward or backward slashes are allowed."
 msgstr ""
 
-#: Model/Attribute.php:1290
+#: Model/Attribute.php:1300
 msgid "Datetime has to be in the ISO 8601 format."
 msgstr ""
 
-#: Model/Attribute.php:1296
+#: Model/Attribute.php:1306
 msgid "The value has to be a number greater or equal 0."
 msgstr ""
 
-#: Model/Attribute.php:1303
+#: Model/Attribute.php:1313
 msgid "The value has to be a number between 0 and 10."
 msgstr ""
 
-#: Model/Attribute.php:1986;2054
+#: Model/Attribute.php:1996;2064
 msgid "Could not read user."
 msgstr ""
 
-#: Model/Attribute.php:2634
+#: Model/Attribute.php:2644
 msgid "This field is mandatory."
 msgstr ""
 
-#: Model/Attribute.php:3088
+#: Model/Attribute.php:3098
 msgid "Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample."
 msgstr ""
 
-#: Model/Event.php:5436
+#: Model/Event.php:5486
 msgid "Issues while loading the stix file. "
 msgstr ""
 
-#: Model/Event.php:5438
+#: Model/Event.php:5488
 msgid "Issues with the maec library. "
 msgstr ""
 
-#: Model/Event.php:5440
+#: Model/Event.php:5490
 msgid "Issues executing the ingestion script or invalid input. "
 msgstr ""
 
-#: Model/Event.php:5443
+#: Model/Event.php:5493
 msgid "Please ask your administrator to "
 msgstr ""
 
-#: Model/Event.php:5445
+#: Model/Event.php:5495
 msgid "Please "
 msgstr ""
 
-#: Model/Event.php:5447
+#: Model/Event.php:5497
 msgid "check whether the dependencies for STIX are met via the diagnostic tool."
 msgstr ""
 
-#: Model/Event.php:5479
+#: Model/Event.php:5529
 msgid "#"
 msgstr ""
 
-#: Model/Event.php:5488
+#: Model/Event.php:5538
 msgid "%s not set"
 msgstr ""
 
-#: Model/Event.php:5711
+#: Model/Event.php:5761
 msgid "Could not add tags."
+msgstr ""
+
+#: Model/Feed.php:1544;1588
+msgid "Event %s"
+msgstr ""
+
+#: Model/Feed.php:1558
+msgid "Feed %s"
 msgstr ""
 
 #: Model/Galaxy.php:219;276;286;300
@@ -2818,6 +3790,8 @@ msgstr ""
 #: View/Objects/revise_object.ctp:85
 #: View/Organisations/admin_add.ctp:49
 #: View/Organisations/admin_edit.ctp:60
+#: View/Posts/add.ctp:66
+#: View/Posts/edit.ctp:20
 #: View/Servers/add.ctp:119
 #: View/Servers/edit.ctp:164
 #: View/SharingGroups/add.ctp:115
@@ -2946,7 +3920,7 @@ msgstr ""
 
 #: View/Attributes/alternate_search_result.ctp:8
 #: View/EventBlacklists/add.ctp:24
-#: View/EventBlacklists/edit.ctp:17
+#: View/EventBlacklists/edit.ctp:25
 #: View/Events/add_misp_export_result.ctp:5
 msgid "Event info"
 msgstr ""
@@ -3031,7 +4005,7 @@ msgstr ""
 
 #: View/Attributes/index.ctp:2
 #: View/Elements/histogram.ctp:4
-#: View/Events/resolved_misp_format.ctp:127
+#: View/Events/resolved_misp_format.ctp:162
 #: View/Events/view.ctp:468
 #: View/Objects/orphaned_object_diagnostics.ctp:44
 #: View/Pages/doc/using_the_system.ctp:242
@@ -3079,6 +4053,7 @@ msgstr ""
 #: View/Elements/generic_table_row.ctp:16
 #: View/Elements/Feeds/eventattribute.ctp:20;86
 #: View/Elements/Servers/eventattribute.ctp:20;86
+#: View/Elements/genericElements/IndexTable/pagination.ctp:10
 #: View/EventBlacklists/index.ctp:13;54
 #: View/Events/index.ctp:12;115
 #: View/Events/proposal_event_index.ctp:12;95
@@ -3089,7 +4064,7 @@ msgstr ""
 #: View/Galaxies/index.ctp:13;75
 #: View/GalaxyClusters/ajax/index.ctp:11;97
 #: View/GalaxyElements/ajax/index.ctp:11;44
-#: View/Jobs/index.ctp:33;197
+#: View/Jobs/index.ctp:31;195
 #: View/Logs/admin_index.ctp:37;127
 #: View/Logs/event_index.ctp:17;61
 #: View/News/index.ctp:39
@@ -3100,8 +4075,8 @@ msgstr ""
 #: View/Organisations/index.ctp:42;159
 #: View/Regexp/admin_index.ctp:13;51
 #: View/Regexp/index.ctp:13;45
-#: View/Roles/admin_index.ctp:13;82
-#: View/Roles/index.ctp:13;55
+#: View/Roles/admin_index.ctp:13;94
+#: View/Roles/index.ctp:13;67
 #: View/Servers/index.ctp:13;155
 #: View/Servers/preview_index.ctp:15;190
 #: View/ShadowAttributes/index.ctp:12;118
@@ -3127,6 +4102,7 @@ msgstr ""
 #: View/Elements/generic_table_row.ctp:18
 #: View/Elements/Feeds/eventattribute.ctp:22;88
 #: View/Elements/Servers/eventattribute.ctp:22;88
+#: View/Elements/genericElements/IndexTable/pagination.ctp:12
 #: View/EventBlacklists/index.ctp:15;56
 #: View/Events/index.ctp:14;117
 #: View/Events/proposal_event_index.ctp:14;97
@@ -3137,7 +4113,7 @@ msgstr ""
 #: View/Galaxies/index.ctp:15;77
 #: View/GalaxyClusters/ajax/index.ctp:13;99
 #: View/GalaxyElements/ajax/index.ctp:13;46
-#: View/Jobs/index.ctp:35;199
+#: View/Jobs/index.ctp:33;197
 #: View/Logs/admin_index.ctp:39;129
 #: View/Logs/event_index.ctp:19;63
 #: View/News/index.ctp:41
@@ -3148,8 +4124,8 @@ msgstr ""
 #: View/Organisations/index.ctp:44;161
 #: View/Regexp/admin_index.ctp:15;53
 #: View/Regexp/index.ctp:15;47
-#: View/Roles/admin_index.ctp:15;84
-#: View/Roles/index.ctp:15;57
+#: View/Roles/admin_index.ctp:15;96
+#: View/Roles/index.ctp:15;69
 #: View/Servers/index.ctp:15;157
 #: View/Servers/preview_index.ctp:17;192
 #: View/ShadowAttributes/index.ctp:14;120
@@ -3166,29 +4142,6 @@ msgstr ""
 #: View/Whitelists/admin_index.ctp:16;49
 #: View/Whitelists/index.ctp:16;44
 msgid "next"
-msgstr ""
-
-#: View/Attributes/index.ctp:53
-#: View/Elements/eventattribute.ctp:152
-#: View/Elements/Events/eventIndexTable.ctp:37
-#: View/Elements/Feeds/eventattribute.ctp:45
-#: View/Elements/Servers/eventattribute.ctp:45
-#: View/Events/resolved_attributes.ctp:52
-#: View/Events/view.ctp:118
-#: View/Feeds/preview_event.ctp:16
-#: View/Feeds/preview_index.ctp:39
-#: View/Feeds/view.ctp:16
-#: View/Noticelists/view.ctp:43
-#: View/Pages/doc/using_the_system.ctp:164;207;318
-#: View/Servers/preview_event.ctp:27
-#: View/Servers/preview_index.ctp:94
-#: View/TagCollections/index.ctp:10
-#: View/Tags/index.ctp:10
-#: View/Taxonomies/view.ctp:88
-#: View/Templates/add.ctp:12
-#: View/Templates/edit.ctp:12
-#: View/Templates/view.ctp:19
-msgid "Tags"
 msgstr ""
 
 #: View/Attributes/index.ctp:54
@@ -3282,6 +4235,7 @@ msgstr ""
 #: View/Elements/eventdiscussion.ctp:119
 #: View/Elements/generic_table.ctp:53
 #: View/Elements/generic_table_row.ctp:45
+#: View/Elements/genericElements/IndexTable/pagination_counter.ctp:5
 #: View/EventBlacklists/index.ctp:47
 #: View/Events/index.ctp:108
 #: View/Events/proposal_event_index.ctp:88
@@ -3291,7 +4245,7 @@ msgstr ""
 #: View/Galaxies/index.ctp:68
 #: View/GalaxyClusters/ajax/index.ctp:91
 #: View/GalaxyElements/ajax/index.ctp:38
-#: View/Jobs/index.ctp:190
+#: View/Jobs/index.ctp:188
 #: View/Logs/admin_index.ctp:120
 #: View/Logs/event_index.ctp:54
 #: View/News/index.ctp:33
@@ -3302,8 +4256,8 @@ msgstr ""
 #: View/Organisations/index.ctp:152
 #: View/Regexp/admin_index.ctp:43
 #: View/Regexp/index.ctp:38
-#: View/Roles/admin_index.ctp:75
-#: View/Roles/index.ctp:48
+#: View/Roles/admin_index.ctp:87
+#: View/Roles/index.ctp:60
 #: View/Servers/index.ctp:148
 #: View/Servers/preview_index.ctp:182
 #: View/ShadowAttributes/index.ctp:111
@@ -3400,8 +4354,8 @@ msgid "Are you sure you want to soft-delete Attribute #%s? The Attribute will on
 msgstr ""
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:16
-#: View/Elements/eventdiscussion.ctp:90
-#: View/Elements/Events/eventIndexTable.ctp:239
+#: View/Elements/eventdiscussion.ctp:90;98
+#: View/Elements/Events/eventIndexTable.ctp:245
 #: View/Elements/TagCollections/index_row.ctp:44
 #: View/Elements/Users/userIndexTable.ctp:91
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:558
@@ -3413,11 +4367,13 @@ msgstr ""
 #: View/Galaxies/index.ctp:58
 #: View/News/index.ctp:24
 #: View/ObjectReferences/ajax/delete.ctp:32
+#: View/ObjectTemplates/index.ctp:119
 #: View/Objects/ajax/delete.ctp:19
+#: View/OrgBlacklists/index.ctp:37
 #: View/Organisations/index.ctp:140
 #: View/Pages/doc/using_the_system.ctp:192
 #: View/Regexp/admin_index.ctp:35
-#: View/Roles/admin_index.ctp:67
+#: View/Roles/admin_index.ctp:79
 #: View/Servers/index.ctp:136
 #: View/Tags/index.ctp:125
 #: View/Whitelists/admin_index.ctp:32
@@ -3543,7 +4499,7 @@ msgstr ""
 #: View/Attributes/ajax/attributeEditMassForm.ctp:15
 #: View/Elements/eventattributecreation.ctp:30
 #: View/Events/resolved_attributes.ctp:50
-#: View/Events/resolved_misp_format.ctp:62;135
+#: View/Events/resolved_misp_format.ctp:101;170
 #: View/Events/view.ctp:149
 #: View/Feeds/add.ctp:169
 #: View/Feeds/edit.ctp:165
@@ -3744,8 +4700,8 @@ msgid "Show all attributes"
 msgstr ""
 
 #: View/Elements/eventattributetoolbar.ctp:6
-#: View/Elements/Events/eventIndexTable.ctp:210
-#: View/Jobs/index.ctp:15;98
+#: View/Elements/Events/eventIndexTable.ctp:216
+#: View/Jobs/index.ctp:13;65;96
 #: View/ObjectTemplates/index.ctp:40
 #: View/Regexp/admin_add.ctp:17
 #: View/Regexp/admin_edit.ctp:18
@@ -3868,6 +4824,7 @@ msgstr ""
 #: View/Elements/eventattributetoolbar.ctp:194
 #: View/Events/index.ctp:95
 #: View/Feeds/preview_index.ctp:26
+#: View/Feeds/search_caches.ctp:27
 #: View/Organisations/index.ctp:76
 #: View/Servers/preview_index.ctp:65
 #: View/Users/admin_index.ctp:62
@@ -3892,20 +4849,30 @@ msgstr ""
 msgid "Deactivated user"
 msgstr ""
 
+#: View/Elements/eventdiscussion.ctp:73
+msgid "Message edited at "
+msgstr ""
+
+#: View/Elements/eventdiscussion.ctp:83
+msgid "User "
+msgstr ""
+
 #: View/Elements/eventdiscussion.ctp:89;97
-#: View/Elements/Events/eventIndexTable.ctp:236
+#: View/Elements/Events/eventIndexTable.ctp:242
 #: View/Elements/Events/View/row_attribute.ctp:380
 #: View/Elements/TagCollections/index_row.ctp:43
 #: View/Elements/Users/userIndexTable.ctp:90
+#: View/EventBlacklists/edit.ctp:37
 #: View/EventBlacklists/index.ctp:38
 #: View/Feeds/edit.ctp:194
 #: View/Feeds/index.ctp:282
-#: View/OrgBlacklists/edit.ctp:22
+#: View/OrgBlacklists/edit.ctp:30
+#: View/OrgBlacklists/index.ctp:36
 #: View/Organisations/index.ctp:138
 #: View/Pages/doc/using_the_system.ctp:191
 #: View/Regexp/admin_index.ctp:34
 #: View/Roles/admin_edit.ctp:42
-#: View/Roles/admin_index.ctp:66
+#: View/Roles/admin_index.ctp:78
 #: View/Servers/index.ctp:135
 #: View/Tags/edit.ctp:36
 #: View/Tags/index.ctp:124
@@ -4030,12 +4997,11 @@ msgstr ""
 #: View/Elements/galaxyQuickView.ctp:96
 #: View/Elements/galaxyQuickViewMini.ctp:89
 #: View/EventBlacklists/add.ctp:36
-#: View/EventBlacklists/edit.ctp:29
 #: View/Events/add.ctp:70
 #: View/Events/filter_event_index.ctp:125
 #: View/Feeds/add.ctp:200
 #: View/Feeds/import_feeds.ctp:20
-#: View/OrgBlacklists/add.ctp:28
+#: View/OrgBlacklists/add.ctp:29
 #: View/Regexp/admin_add.ctp:32
 #: View/Regexp/admin_edit.ctp:42
 #: View/Roles/admin_add.ctp:44
@@ -4175,7 +5141,7 @@ msgid "Automation"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:94
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:950
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:954
 msgid "List Galaxies"
 msgstr ""
 
@@ -4235,15 +5201,6 @@ msgstr ""
 msgid "Dashboard"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:151
-#: View/SharingGroups/add.ctp:19
-#: View/SharingGroups/edit.ctp:19
-#: View/SharingGroups/view.ctp:39
-#: View/Users/statistics.ctp:27
-#: View/Users/statistics_data.ctp:34
-msgid "Organisations"
-msgstr ""
-
 #: View/Elements/global_menu.ctp:156
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:463
 #: View/Pages/doc/general.ctp:59
@@ -4251,7 +5208,7 @@ msgid "Role Permissions"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:163
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:994
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:998
 msgid "List Object Templates"
 msgstr ""
 
@@ -4289,6 +5246,7 @@ msgstr ""
 #: View/Users/statistics.ctp:7
 #: View/Users/statistics_data.ctp:7
 #: View/Users/statistics_galaxymatrix.ctp:2
+#: View/Users/statistics_histogram.ctp:7
 #: View/Users/statistics_orgs.ctp:7
 #: View/Users/statistics_sightings.ctp:2
 #: View/Users/statistics_tags.ctp:7
@@ -4322,7 +5280,12 @@ msgstr ""
 msgid "List Feeds"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:229
+#: View/Elements/global_menu.ctp:226
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:879
+msgid "Search Feed Caches"
+msgstr ""
+
+#: View/Elements/global_menu.ctp:234
 #: View/Pages/doc/administration.ctp:8
 #: View/Pages/doc/concepts.ctp:8
 #: View/Pages/doc/general.ctp:8;24;71
@@ -4332,56 +5295,56 @@ msgstr ""
 msgid "Administration"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:234
+#: View/Elements/global_menu.ctp:239
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:626
 #: View/Pages/doc/general.ctp:74
 msgid "List Users"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:238
+#: View/Elements/global_menu.ctp:243
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:621
 msgid "Add User"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:242
+#: View/Elements/global_menu.ctp:247
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:633
 #: View/Pages/doc/general.ctp:77
 msgid "Contact Users"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:249
+#: View/Elements/global_menu.ctp:254
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:450;668
 msgid "List Organisations"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:253
+#: View/Elements/global_menu.ctp:258
 msgid "Add Organisations"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:260
+#: View/Elements/global_menu.ctp:265
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:680
 #: View/Pages/doc/general.ctp:76
 msgid "List Roles"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:264
+#: View/Elements/global_menu.ctp:269
 msgid "Add Roles"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:273
+#: View/Elements/global_menu.ctp:278
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:686
 #: View/Servers/server_settings.ctp:5
 msgid "Server Settings & Maintenance"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:282
+#: View/Elements/global_menu.ctp:287
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:693
 #: View/Jobs/index.ctp:2
 #: View/Pages/doc/general.ctp:80
 msgid "Jobs"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:291
+#: View/Elements/global_menu.ctp:296
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:699
 #: View/Pages/doc/concepts.ctp:36
 #: View/Pages/doc/general.ctp:81
@@ -4389,43 +5352,43 @@ msgstr ""
 msgid "Scheduled Tasks"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:300
+#: View/Elements/global_menu.ctp:305
 msgid "Blacklist Event"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:305
+#: View/Elements/global_menu.ctp:310
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:711
 msgid "Manage Event Blacklists"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:314
+#: View/Elements/global_menu.ctp:319
 msgid "Blacklist Organisation"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:319
+#: View/Elements/global_menu.ctp:324
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:723
 msgid "Manage Org Blacklists"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:327
+#: View/Elements/global_menu.ctp:332
 #: View/Pages/doc/general.ctp:25;84
 msgid "Audit"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:331
+#: View/Elements/global_menu.ctp:336
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:732
 #: View/Pages/doc/general.ctp:86
 msgid "List Logs"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:335
+#: View/Elements/global_menu.ctp:340
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:736
 #: View/Logs/admin_search.ctp:4
 #: View/Pages/doc/general.ctp:87
 msgid "Search Logs"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:362;367
+#: View/Elements/global_menu.ctp:367;372
 #: View/Pages/doc/general.ctp:28;63
 msgid "Log out"
 msgstr ""
@@ -4464,10 +5427,6 @@ msgstr ""
 msgid "Inconsistent distribution level, fallback on the event distribution"
 msgstr ""
 
-#: View/Elements/view_event_distribution_graph.ctp:24
-msgid "Sharing group"
-msgstr ""
-
 #: View/Elements/view_event_graph.ctp:9
 #: View/Noticelists/view.ctp:40
 msgid "Scope"
@@ -4483,7 +5442,7 @@ msgstr ""
 
 #: View/Elements/view_event_graph.ctp:14
 #: View/Events/index.ctp:58
-#: View/Jobs/index.ctp:97
+#: View/Jobs/index.ctp:95
 #: View/Pages/doc/using_the_system.ctp:197
 #: View/Servers/preview_index.ctp:50
 #: View/Users/admin_index.ctp:47
@@ -4561,7 +5520,7 @@ msgstr ""
 #: View/Elements/Events/eventIndexTable.ctp:53
 #: View/Events/proposal_event_index.ctp:27
 #: View/Events/view.ctp:113
-#: View/Jobs/index.ctp:100
+#: View/Jobs/index.ctp:77;98
 #: View/Logs/admin_search.ctp:6
 #: View/Pages/doc/administration.ctp:87;104;116;181;195
 #: View/Pages/doc/using_the_system.ctp:166
@@ -4570,7 +5529,7 @@ msgstr ""
 msgid "Email"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:82;86;242
+#: View/Elements/Events/eventIndexTable.ctp:82;86;248
 #: View/Elements/Users/userIndexTable.ctp:94
 #: View/Elements/dashboard/dashboard_events.ctp:4;5
 #: View/Elements/dashboard/dashboard_notifications.ctp:4;5;9
@@ -4596,29 +5555,29 @@ msgstr ""
 msgid " correlation(s). Show filtered event with correlation only."
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:180;185
+#: View/Elements/Events/eventIndexTable.ctp:186;191
 msgid " proposal(s)"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:190
+#: View/Elements/Events/eventIndexTable.ctp:196
 msgid "NEW"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:231
+#: View/Elements/Events/eventIndexTable.ctp:237
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:128
 msgid "Publish Event"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:231
+#: View/Elements/Events/eventIndexTable.ctp:237
 #: View/Events/ajax/eventPublishConfirmationForm.ctp:16
 msgid "Are you sure this event is complete and everyone should be informed?"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:232
+#: View/Elements/Events/eventIndexTable.ctp:238
 msgid "Not published"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:239
+#: View/Elements/Events/eventIndexTable.ctp:245
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:61;347;414;559;613
 #: View/Servers/index.ctp:136
 msgid "Are you sure you want to delete # %s?"
@@ -4714,10 +5673,12 @@ msgid "Expand or Collapse"
 msgstr ""
 
 #: View/Elements/Events/View/row_object.ctp:69
-#: View/Events/resolved_misp_format.ctp:59;132
+#: View/Events/resolved_misp_format.ctp:46;98;167
 #: View/GalaxyClusters/view.ctp:19
+#: View/ObjectTemplates/index.ctp:60
 #: View/ObjectTemplates/view.ctp:6
 #: View/Objects/revise_object.ctp:49
+#: View/OrgBlacklists/index.ctp:23
 #: View/Organisations/admin_add.ctp:22
 #: View/Organisations/admin_edit.ctp:21
 #: View/Organisations/view.ctp:24
@@ -4799,23 +5760,23 @@ msgstr ""
 msgid "Advanced sightings"
 msgstr ""
 
-#: View/Elements/Events/View/value_field.ctp:46
+#: View/Elements/Events/View/value_field.ctp:52
 #: View/Elements/Servers/View/value_field.ctp:43
 msgid "Hexadecimal representation"
 msgstr ""
 
-#: View/Elements/Events/View/value_field.ctp:46
+#: View/Elements/Events/View/value_field.ctp:52
 #: View/Elements/Feeds/View/value_field.ctp:43
 #: View/Elements/Servers/View/value_field.ctp:43
 msgid "Switch to binary representation"
 msgstr ""
 
-#: View/Elements/Events/View/value_field.ctp:51
+#: View/Elements/Events/View/value_field.ctp:57
 #: View/Elements/Feeds/View/value_field.ctp:48
 msgid "Warning, this doesn't seem to be a legitimate "
 msgstr ""
 
-#: View/Elements/Events/View/value_field.ctp:51
+#: View/Elements/Events/View/value_field.ctp:57
 #: View/Elements/Feeds/View/value_field.ctp:48
 #: View/Elements/Servers/View/value_field.ctp:48
 msgid " value"
@@ -4843,6 +5804,7 @@ msgstr ""
 
 #: View/Elements/Feeds/View/row_object.ctp:20
 #: View/Elements/Servers/View/row_object.ctp:20
+#: View/ObjectTemplates/index.ctp:63
 #: View/ObjectTemplates/view.ctp:8
 #: View/Objects/revise_object.ctp:23
 msgid "Meta-category"
@@ -4868,8 +5830,9 @@ msgid "IDS"
 msgstr ""
 
 #: View/Elements/Servers/Module/type.ctp:11
-#: View/Elements/healthElements/diagnostics.ctp:276
+#: View/Elements/healthElements/diagnostics.ctp:280
 #: View/Pages/doc/administration.ctp:56;228
+#: View/Servers/ajax/submoduleStatus.ctp:6
 msgid "Status"
 msgstr ""
 
@@ -4892,7 +5855,8 @@ msgstr ""
 #: View/Elements/templateElements/templateRowAttribute.ctp:12
 #: View/Elements/templateElements/templateRowFile.ctp:12
 #: View/Elements/templateElements/templateRowText.ctp:12
-#: View/Events/resolved_misp_format.ctp:49
+#: View/Events/resolved_misp_format.ctp:42
+#: View/Feeds/search_caches.ctp:47
 #: View/Feeds/view.ctp:4
 #: View/Galaxies/view.ctp:14
 #: View/GalaxyClusters/view.ctp:13
@@ -5009,6 +5973,10 @@ msgstr ""
 msgid "Events published: "
 msgstr ""
 
+#: View/Elements/dashboard/dashboard_events.ctp:7
+msgid "Reset"
+msgstr ""
+
 #: View/Elements/dashboard/dashboard_notifications.ctp:2
 msgid "Notifications"
 msgstr ""
@@ -5041,7 +6009,7 @@ msgstr ""
 msgid "View Event"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:44;812;980
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:44;812;984
 msgid "View Correlation Graph"
 msgstr ""
 
@@ -5374,82 +6342,82 @@ msgstr ""
 msgid "Edit Template"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:880
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:884
 msgid "Add Feed"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:885
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:889
 msgid "Import Feeds from JSON"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:891
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:895
 #: View/Feeds/compare_feeds.ctp:8
 msgid "Feed overlap analysis matrix"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:896
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:900
 msgid "Export Feed settings"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:904
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:908
 msgid "Edit Feed"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:909
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:913
 msgid "View Feed"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:915
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:919
 msgid "PreviewIndex"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:921
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:925
 msgid "PreviewEvent"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:930
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:934
 msgid "View News"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:935
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:939
 #: View/News/add.ctp:6
 msgid "Add News Item"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:941
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:945
 #: View/News/edit.ctp:6
 msgid "Edit News Item"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:956
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:960
 msgid "Update Galaxies"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:957
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:961
 msgid "Are you sure you want to reimport all galaxies from the submodule?"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:962
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:966
 msgid "Force Update Galaxies"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:963
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:967
 msgid "Are you sure you want to drop and reimport all galaxies from the submodule?"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:970;986
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:974;990
 msgid "View Galaxy"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:975
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:979
 msgid "View Cluster"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:999
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:1003
 msgid "Update Objects"
 msgstr ""
 
-#: View/Elements/genericElements/SideMenu/side_menu.ctp:1005
+#: View/Elements/genericElements/SideMenu/side_menu.ctp:1009
 msgid "View Object Template"
 msgstr ""
 
@@ -5474,10 +6442,12 @@ msgid "Upcoming development version"
 msgstr ""
 
 #: View/Elements/healthElements/diagnostics.ctp:22
+#: View/Servers/ajax/submoduleStatus.ctp:23
 msgid "Outdated version"
 msgstr ""
 
 #: View/Elements/healthElements/diagnostics.ctp:30
+#: View/Servers/ajax/submoduleStatus.ctp:28
 msgid "Could not retrieve version from github"
 msgstr ""
 
@@ -5506,329 +6476,333 @@ msgid "Update MISP"
 msgstr ""
 
 #: View/Elements/healthElements/diagnostics.ctp:64
+msgid "Submodules version"
+msgstr ""
+
+#: View/Elements/healthElements/diagnostics.ctp:68
 msgid "Writeable Directories and files"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:65
+#: View/Elements/healthElements/diagnostics.ctp:69
 msgid "The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:66
+#: View/Elements/healthElements/diagnostics.ctp:70
 msgid "Directories"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:73
+#: View/Elements/healthElements/diagnostics.ctp:77
 msgid "Directory "
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:81
+#: View/Elements/healthElements/diagnostics.ctp:85
 msgid "Writeable Files"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:88;102
+#: View/Elements/healthElements/diagnostics.ctp:92;106
 msgid "File "
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:95
+#: View/Elements/healthElements/diagnostics.ctp:99
 msgid "Readable Files"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:110
+#: View/Elements/healthElements/diagnostics.ctp:114
 msgid "PHP Settings"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:113;125
+#: View/Elements/healthElements/diagnostics.ctp:117;129
 msgid "Up to date"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:119
+#: View/Elements/healthElements/diagnostics.ctp:123
 #: View/Elements/healthElements/workers.ctp:83;85
 #: View/Organisations/view.ctp:26
 msgid "Unknown"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:121
+#: View/Elements/healthElements/diagnostics.ctp:125
 msgid "Issues determining version"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:128;137
+#: View/Elements/healthElements/diagnostics.ctp:132;141
 msgid "Update highly recommended"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:131;140
+#: View/Elements/healthElements/diagnostics.ctp:135;144
 msgid "Version unsupported, update ASAP"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:144
+#: View/Elements/healthElements/diagnostics.ctp:148
 msgid "PHP ini path"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:145
+#: View/Elements/healthElements/diagnostics.ctp:149
 msgid "PHP Version"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:145;146
+#: View/Elements/healthElements/diagnostics.ctp:149;150
 msgid "recommended"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:146
+#: View/Elements/healthElements/diagnostics.ctp:150
 msgid "PHP CLI Version"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:147
+#: View/Elements/healthElements/diagnostics.ctp:151
 msgid "Please note that the we will be dropping support for Python 2.7 and PHP 7.1 as of 2020-01-01 and are henceforth considered deprecated (but supported until the end of 2019). Both of these versions will by then reached End of Life and will become a liability. Furthermore, by dropping support for these outdated versions of the languages, we'll be able to phase out support for legacy code that exists solely to support them. Make sure that you plan ahead accordingly. More info: "
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:148
+#: View/Elements/healthElements/diagnostics.ctp:152
 msgid "The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:155
+#: View/Elements/healthElements/diagnostics.ctp:159
 #: View/Events/filter_event_index.ctp:32;190
 #: View/Pages/doc/using_the_system.ctp:66;171
 msgid "Low"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:159
+#: View/Elements/healthElements/diagnostics.ctp:163
 msgid "PHP Extensions"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:169
+#: View/Elements/healthElements/diagnostics.ctp:173
 msgid "Not loaded"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:174
+#: View/Elements/healthElements/diagnostics.ctp:178
 msgid "Issues reading PHP settings. This could be due to the test script not being readable."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:182
+#: View/Elements/healthElements/diagnostics.ctp:186
 msgid "Advanced attachment handler"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:183
+#: View/Elements/healthElements/diagnostics.ctp:187
 msgid "The advanced attachment tools are used by the add attachment functionality to extract additional data about the uploaded sample."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:188
+#: View/Elements/healthElements/diagnostics.ctp:192
 msgid "PyMISP"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:188
+#: View/Elements/healthElements/diagnostics.ctp:192
 msgid "Not installed or version outdated."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:200
+#: View/Elements/healthElements/diagnostics.ctp:204
 msgid "STIX and Cybox libraries"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:201
+#: View/Elements/healthElements/diagnostics.ctp:205
 msgid "Mitre's STIX and Cybox python libraries have to be installed in order for MISP's STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:202
+#: View/Elements/healthElements/diagnostics.ctp:206
 msgid "If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file. The required versions are"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:209
+#: View/Elements/healthElements/diagnostics.ctp:213
 msgid "Other versions might work but are not tested / recommended."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:218
+#: View/Elements/healthElements/diagnostics.ctp:222
 msgid "STIX and CyBox"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:218
+#: View/Elements/healthElements/diagnostics.ctp:222
 msgid "Could not read test script (stixtest.py)."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:232
+#: View/Elements/healthElements/diagnostics.ctp:236
 msgid " library version"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:249
+#: View/Elements/healthElements/diagnostics.ctp:253
 msgid "GnuPG"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:250
+#: View/Elements/healthElements/diagnostics.ctp:254
 msgid "This tool tests whether your GnuPG is set up correctly or not."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:258
+#: View/Elements/healthElements/diagnostics.ctp:262
 msgid "GnuPG installation and settings"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:261
+#: View/Elements/healthElements/diagnostics.ctp:265
 msgid "ZeroMQ"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:262
+#: View/Elements/healthElements/diagnostics.ctp:266
 msgid "This tool tests whether the ZeroMQ extension is installed and functional."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:270
+#: View/Elements/healthElements/diagnostics.ctp:274
 msgid "ZeroMQ settings"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:274
+#: View/Elements/healthElements/diagnostics.ctp:278
 msgid "Start ZMQ service"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:274
+#: View/Elements/healthElements/diagnostics.ctp:278
 msgid "Start ZeroMQ service"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:274
+#: View/Elements/healthElements/diagnostics.ctp:278
 msgid "Start"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:275
+#: View/Elements/healthElements/diagnostics.ctp:279
 msgid "Stop ZeroMQ service"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:275
+#: View/Elements/healthElements/diagnostics.ctp:279
 msgid "Stop"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:276
+#: View/Elements/healthElements/diagnostics.ctp:280
 msgid "Check ZeroMQ service status"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:278
+#: View/Elements/healthElements/diagnostics.ctp:282
 msgid "Proxy"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:279
+#: View/Elements/healthElements/diagnostics.ctp:283
 msgid "This tool tests whether your HTTP proxy settings are correct."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:287
+#: View/Elements/healthElements/diagnostics.ctp:291
 #: View/Pages/doc/administration.ctp:35
 msgid "Proxy settings"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:290
+#: View/Elements/healthElements/diagnostics.ctp:294
 msgid "Module System"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:291
+#: View/Elements/healthElements/diagnostics.ctp:295
 msgid "This tool tests the various module systems and whether they are reachable based on the module settings."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:306
+#: View/Elements/healthElements/diagnostics.ctp:310
 msgid " module system"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:312
+#: View/Elements/healthElements/diagnostics.ctp:316
 msgid "Session table"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:313
+#: View/Elements/healthElements/diagnostics.ctp:317
 msgid "This tool checks how large your database's session table is. <br />Sessions in CakePHP rely on PHP's garbage collection for clean-up and in certain distributions this can be disabled by default resulting in an ever growing cake session table. <br />If you are affected by this, just click the clean session table button below."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:320
+#: View/Elements/healthElements/diagnostics.ctp:324
 msgid "Expired sessions"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:326
+#: View/Elements/healthElements/diagnostics.ctp:330
 msgid "Purge sessions"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:330
+#: View/Elements/healthElements/diagnostics.ctp:334
 msgid "Clean model cache"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:331
+#: View/Elements/healthElements/diagnostics.ctp:335
 msgid "If you ever run into issues with missing database fields / tables, please run the following script to clean the model cache."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:332
+#: View/Elements/healthElements/diagnostics.ctp:336
 msgid "Clean cache"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:333
+#: View/Elements/healthElements/diagnostics.ctp:337
 msgid "Overwritten objects"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:334
+#: View/Elements/healthElements/diagnostics.ctp:338
 msgid "Prior to 2.4.89, due to a bug a situation could occur where objects got overwritten on a sync pull. This tool allows you to inspect whether you are affected and if yes, remedy the issue."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:335
+#: View/Elements/healthElements/diagnostics.ctp:339
 msgid "Reconstruct overwritten objects"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:336;339
+#: View/Elements/healthElements/diagnostics.ctp:340;343
 msgid "Orphaned attributes"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:337
+#: View/Elements/healthElements/diagnostics.ctp:341
 msgid "In some rare cases attributes can remain in the database after an event is deleted becoming orphaned attributes. This means that they do not belong to any event, which can cause issues with the correlation engine (known cases include event deletion directly in the database without cleaning up the attributes and situations involving a race condition with an event deletion happening before all attributes are synchronised over)."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:339;355
+#: View/Elements/healthElements/diagnostics.ctp:343;359
 msgid "Run the test below"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:341
+#: View/Elements/healthElements/diagnostics.ctp:345
 msgid "Check for orphaned attribute"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:341
+#: View/Elements/healthElements/diagnostics.ctp:345
 msgid "Check for orphaned attributes"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:342
+#: View/Elements/healthElements/diagnostics.ctp:346
 msgid "Remove orphaned attributes"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:343;345
+#: View/Elements/healthElements/diagnostics.ctp:347;349
 #: View/Pages/administration.ctp:17
 msgid "Verify GnuPG keys"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:344
+#: View/Elements/healthElements/diagnostics.ctp:348
 msgid "Run a full validation of all GnuPG keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:345
+#: View/Elements/healthElements/diagnostics.ctp:349
 #: View/Pages/administration.ctp:17
 msgid "Check whether every user's GnuPG key is usable"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:346
+#: View/Elements/healthElements/diagnostics.ctp:350
 msgid "Database cleanup scripts"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:347
+#: View/Elements/healthElements/diagnostics.ctp:351
 msgid "If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:348
+#: View/Elements/healthElements/diagnostics.ctp:352
 msgid "Prune upgrade logs"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:349;351
+#: View/Elements/healthElements/diagnostics.ctp:353;355
 msgid "Legacy Administrative Tools"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:350
+#: View/Elements/healthElements/diagnostics.ctp:354
 msgid "Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:352
+#: View/Elements/healthElements/diagnostics.ctp:356
 msgid "Verify bad link on attachments"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:353
+#: View/Elements/healthElements/diagnostics.ctp:357
 msgid "Verify each attachment referenced in database is accessible on filesystem."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:355
+#: View/Elements/healthElements/diagnostics.ctp:359
 msgid "Non existing attachments referenced in Database"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:357
+#: View/Elements/healthElements/diagnostics.ctp:361
 msgid "Check bad link on attachments"
 msgstr ""
 
@@ -5846,10 +6820,6 @@ msgstr ""
 
 #: View/Elements/healthElements/files.ctp:14
 msgid "Files set for each relevant setting"
-msgstr ""
-
-#: View/Elements/healthElements/files.ctp:29
-msgid "Filename"
 msgstr ""
 
 #: View/Elements/healthElements/files.ctp:30
@@ -5871,7 +6841,7 @@ msgstr ""
 #: View/Elements/healthElements/files.ctp:73
 #: View/Organisations/index.ctp:140
 #: View/Regexp/admin_index.ctp:35
-#: View/Roles/admin_index.ctp:67
+#: View/Roles/admin_index.ctp:79
 #: View/SharingGroups/index.ctp:87
 msgid "Are you sure you want to delete %s?"
 msgstr ""
@@ -5908,7 +6878,7 @@ msgstr ""
 #: View/Elements/healthElements/settings_table.ctp:5
 #: View/Events/filter_event_index.ctp:134
 #: View/Events/resolved_attributes.ctp:45
-#: View/Events/resolved_misp_format.ctp:58;131
+#: View/Events/resolved_misp_format.ctp:97;166
 #: View/Events/show_i_o_c_results.ctp:13
 #: View/Feeds/freetext_index.ctp:33
 #: View/Noticelists/view.ctp:42
@@ -6216,9 +7186,10 @@ msgstr ""
 #: View/Elements/templateElements/populateTemplateAttribute.ctp:13
 #: View/Events/export.ctp:26
 #: View/Events/resolved_attributes.ctp:48
-#: View/Events/resolved_misp_format.ctp:57;130
+#: View/Events/resolved_misp_format.ctp:96;165
 #: View/Events/show_i_o_c_results.ctp:12
 #: View/Feeds/freetext_index.ctp:32
+#: View/Feeds/search_caches.ctp:41
 #: View/Objects/revise_object.ctp:45
 #: View/Organisations/ajax/merge.ctp:59;66
 #: View/Pages/doc/administration.ctp:237
@@ -6290,7 +7261,7 @@ msgid "s"
 msgstr ""
 
 #: View/Elements/templateElements/templateRowAttribute.ctp:4
-#: View/Events/resolved_misp_format.ctp:55
+#: View/Events/resolved_misp_format.ctp:94
 #: View/ObjectReferences/ajax/add.ctp:86
 #: View/Objects/revise_object.ctp:43
 #: View/Pages/doc/administration.ctp:168
@@ -6301,7 +7272,7 @@ msgstr ""
 #: View/Elements/templateElements/templateRowAttribute.ctp:30
 #: View/Elements/templateElements/templateRowFile.ctp:30
 #: View/Events/resolved_attributes.ctp:47
-#: View/Events/resolved_misp_format.ctp:56;129
+#: View/Events/resolved_misp_format.ctp:95;164
 #: View/Events/show_i_o_c_results.ctp:11
 #: View/Feeds/freetext_index.ctp:31
 #: View/Objects/add.ctp:95
@@ -6392,23 +7363,22 @@ msgid "PDO error"
 msgstr ""
 
 #: View/EventBlacklists/add.ctp:4
-#: View/EventBlacklists/edit.ctp:4
-#: View/OrgBlacklists/edit.ctp:4
 msgid "Add Event Blacklist Entries"
 msgstr ""
 
 #: View/EventBlacklists/add.ctp:5
-#: View/EventBlacklists/edit.ctp:5
-#: View/OrgBlacklists/edit.ctp:5
 msgid "Simply paste a list of all the event UUIDs that you wish to block from being entered."
 msgstr ""
 
 #: View/EventBlacklists/add.ctp:9
+#: View/EventBlacklists/edit.ctp:9
+#: View/OrgBlacklists/add.ctp:9
+#: View/OrgBlacklists/edit.ctp:9
 msgid "UUIDs"
 msgstr ""
 
 #: View/EventBlacklists/add.ctp:12
-#: View/OrgBlacklists/add.ctp:11
+#: View/OrgBlacklists/add.ctp:12
 msgid "Enter a single or a list of UUIDs"
 msgstr ""
 
@@ -6421,12 +7391,22 @@ msgid "(Optional) the event info of the event that you would like to block. It's
 msgstr ""
 
 #: View/EventBlacklists/add.ctp:31
-#: View/OrgBlacklists/add.ctp:23
+#: View/OrgBlacklists/add.ctp:24
 msgid "(Optional) Any comments you would like to add regarding this (or these) entries."
 msgstr ""
 
-#: View/EventBlacklists/edit.ctp:10
-#: View/OrgBlacklists/edit.ctp:10
+#: View/EventBlacklists/edit.ctp:4
+#: View/OrgBlacklists/edit.ctp:4
+msgid "Edit Event Blacklist Entries"
+msgstr ""
+
+#: View/EventBlacklists/edit.ctp:5
+#: View/OrgBlacklists/edit.ctp:5
+msgid "List of all the event UUIDs that you wish to block from being entered."
+msgstr ""
+
+#: View/EventBlacklists/edit.ctp:18
+#: View/OrgBlacklists/edit.ctp:18
 msgid "Creating organisation"
 msgstr ""
 
@@ -6624,7 +7604,7 @@ msgid "Details"
 msgstr ""
 
 #: View/Events/add_misp_export_result.ctp:15
-#: View/Jobs/index.ctp:124
+#: View/Jobs/index.ctp:122
 msgid "Failed"
 msgstr ""
 
@@ -7357,12 +8337,13 @@ msgid "Loading…"
 msgstr ""
 
 #: View/Events/export.ctp:78
+#: View/Jobs/index.ctp:129
 msgid "Queued"
 msgstr ""
 
 #: View/Events/export.ctp:83
 #: View/Events/filter_event_index.ctp:39;196
-#: View/Jobs/index.ctp:9;136
+#: View/Jobs/index.ctp:7;134
 #: View/Pages/doc/using_the_system.ctp:74;182
 msgid "Completed"
 msgstr ""
@@ -7489,24 +8470,6 @@ msgstr ""
 msgid "Ongoing"
 msgstr ""
 
-#: View/Events/filter_event_index.ctp:46;182
-msgid "Your organisation only"
-msgstr ""
-
-#: View/Events/filter_event_index.ctp:46;183
-msgid "This community only"
-msgstr ""
-
-#: View/Events/filter_event_index.ctp:46;184
-#: View/Pages/doc/using_the_system.ctp:51
-msgid "Connected communities"
-msgstr ""
-
-#: View/Events/filter_event_index.ctp:46;185
-#: View/Pages/doc/using_the_system.ctp:58
-msgid "All communities"
-msgstr ""
-
 #: View/Events/filter_event_index.ctp:133
 #: View/Feeds/index.ctp:104
 #: View/Users/admin_filter_user_index.ctp:70
@@ -7597,6 +8560,7 @@ msgstr ""
 
 #: View/Events/index.ctp:94
 #: View/Feeds/preview_index.ctp:25
+#: View/Feeds/search_caches.ctp:26
 #: View/GalaxyClusters/ajax/index.ctp:40
 #: View/Organisations/index.ctp:75
 #: View/Servers/preview_index.ctp:64
@@ -7983,7 +8947,7 @@ msgid "Similar Attributes"
 msgstr ""
 
 #: View/Events/resolved_attributes.ctp:51
-#: View/Events/resolved_misp_format.ctp:61;134
+#: View/Events/resolved_misp_format.ctp:100;169
 #: View/ObjectReferences/ajax/add.ctp:30
 #: View/Objects/add.ctp:61;100
 #: View/Objects/revise_object.ctp:37;48
@@ -8020,11 +8984,27 @@ msgstr ""
 msgid "Below you can see the %s that are to be created, from the results of the enrichment module."
 msgstr ""
 
-#: View/Events/resolved_misp_format.ctp:41
+#: View/Events/resolved_misp_format.ctp:34
 msgid "Objects"
 msgstr ""
 
-#: View/Events/resolved_misp_format.ctp:60;133
+#: View/Events/resolved_misp_format.ctp:51
+msgid "References:"
+msgstr ""
+
+#: View/Events/resolved_misp_format.ctp:55
+msgid "Referenced name/type"
+msgstr ""
+
+#: View/Events/resolved_misp_format.ctp:56
+msgid "Referenced uuid"
+msgstr ""
+
+#: View/Events/resolved_misp_format.ctp:57
+msgid "Relationship"
+msgstr ""
+
+#: View/Events/resolved_misp_format.ctp:99;168
 #: View/Objects/revise_object.ctp:47
 msgid "To IDS"
 msgstr ""
@@ -8752,7 +9732,7 @@ msgid "Feed Format"
 msgstr ""
 
 #: View/Feeds/index.ctp:101
-#: View/Jobs/index.ctp:111
+#: View/Jobs/index.ctp:109
 #: View/Pages/doc/administration.ctp:225
 msgid "Input"
 msgstr ""
@@ -8830,6 +9810,7 @@ msgstr ""
 msgid "Fetch the event"
 msgstr ""
 
+#: View/Feeds/search_caches.ctp:35
 #: View/Feeds/view.ctp:3
 #: View/ObjectTemplates/view.ctp:3
 #: View/Organisations/view.ctp:5
@@ -8841,6 +9822,22 @@ msgstr ""
 #: View/Users/view.ctp:3
 #: View/Warninglists/view.ctp:9
 msgid "Id"
+msgstr ""
+
+#: View/Feeds/search_caches.ctp:53
+msgid "Feed URL"
+msgstr ""
+
+#: View/Feeds/search_caches.ctp:58
+msgid "Link to correlation"
+msgstr ""
+
+#: View/Feeds/search_caches.ctp:64
+msgid "Feed Cache Search"
+msgstr ""
+
+#: View/Feeds/search_caches.ctp:65
+msgid "Search for values potentially contained in the cached feeds and servers."
 msgstr ""
 
 #: View/Feeds/view.ctp:7
@@ -8953,49 +9950,90 @@ msgstr ""
 msgid "Start the galaxy matrix picker"
 msgstr ""
 
-#: View/Jobs/index.ctp:12
+#: View/Jobs/index.ctp:3
+msgid "Purge job entries:"
+msgstr ""
+
+#: View/Jobs/index.ctp:10
 msgid "Are you sure you want to purge all completed job entries? Job entries are considered as log entries and have no impact on actual job execution."
 msgstr ""
 
-#: View/Jobs/index.ctp:18
+#: View/Jobs/index.ctp:16
 msgid "Are you sure you want to purge all job entries? Job entries are considered as log entries and have no impact on actual job execution."
 msgstr ""
 
-#: View/Jobs/index.ctp:52
+#: View/Jobs/index.ctp:50
 msgid "Completed."
 msgstr ""
 
-#: View/Jobs/index.ctp:68;98
+#: View/Jobs/index.ctp:66;96
 msgid "Show all queues"
 msgstr ""
 
-#: View/Jobs/index.ctp:74;99
-msgid "Show default queue"
-msgstr ""
-
-#: View/Jobs/index.ctp:80;100
-msgid "Show email queue"
-msgstr ""
-
-#: View/Jobs/index.ctp:86;101
-msgid "Show cache queue"
-msgstr ""
-
-#: View/Jobs/index.ctp:99
+#: View/Jobs/index.ctp:71;97
 #: View/Roles/admin_index.ctp:22
 #: View/Roles/index.ctp:22
 msgid "Default"
 msgstr ""
 
-#: View/Jobs/index.ctp:101
+#: View/Jobs/index.ctp:72;97
+msgid "Show default queue"
+msgstr ""
+
+#: View/Jobs/index.ctp:78;98
+msgid "Show email queue"
+msgstr ""
+
+#: View/Jobs/index.ctp:83;99
 msgid "Cache"
 msgstr ""
 
-#: View/Jobs/index.ctp:127
+#: View/Jobs/index.ctp:84;99
+msgid "Show cache queue"
+msgstr ""
+
+#: View/Jobs/index.ctp:104
+msgid "Date created"
+msgstr ""
+
+#: View/Jobs/index.ctp:105
+msgid "Date modified"
+msgstr ""
+
+#: View/Jobs/index.ctp:106
+msgid "Process ID"
+msgstr ""
+
+#: View/Jobs/index.ctp:107
+#: View/Pages/doc/administration.ctp:223
+msgid "Worker"
+msgstr ""
+
+#: View/Jobs/index.ctp:108
+msgid "Job type"
+msgstr ""
+
+#: View/Jobs/index.ctp:111
+#: View/OrgBlacklists/add.ctp:17
+#: View/OrgBlacklists/index.ctp:22
+#: View/Organisations/view.ctp:6
+msgid "Organisation name"
+msgstr ""
+
+#: View/Jobs/index.ctp:113
+#: View/Pages/doc/administration.ctp:229
+msgid "Retries"
+msgstr ""
+
+#: View/Jobs/index.ctp:125
 msgid "No worker active"
 msgstr ""
 
-#: View/Jobs/index.ctp:159
+#: View/Jobs/index.ctp:129
+msgid "Running"
+msgstr ""
+
+#: View/Jobs/index.ctp:157
 msgid "View stacktrace"
 msgstr ""
 
@@ -9119,6 +10157,10 @@ msgstr ""
 msgid "Noticelists"
 msgstr ""
 
+#: View/Noticelists/index.ctp:32
+msgid "Expanded name"
+msgstr ""
+
 #: View/Noticelists/index.ctp:33
 msgid "ref"
 msgstr ""
@@ -9134,6 +10176,30 @@ msgstr ""
 #: View/Noticelists/index.ctp:36
 #: View/Pages/doc/using_the_system.ctp:371
 msgid "enabled"
+msgstr ""
+
+#: View/Noticelists/view.ctp:21
+#: View/Taxonomies/view.ctp:29
+msgid "(disable)"
+msgstr ""
+
+#: View/Noticelists/view.ctp:21
+#: View/Taxonomies/index.ctp:43
+#: View/Taxonomies/view.ctp:29;155
+#: View/Warninglists/view.ctp:23
+msgid "Disable"
+msgstr ""
+
+#: View/Noticelists/view.ctp:23
+#: View/Taxonomies/view.ctp:31
+msgid "(enable)"
+msgstr ""
+
+#: View/Noticelists/view.ctp:23
+#: View/Taxonomies/index.ctp:45
+#: View/Taxonomies/view.ctp:31;159
+#: View/Warninglists/view.ctp:23
+msgid "Enable"
 msgstr ""
 
 #: View/Noticelists/ajax/delete_confirmation.ctp:9
@@ -9181,6 +10247,18 @@ msgstr ""
 msgid " The Attribute will be permanently deleted and unrecoverable. Also, this will prevent the deletion to be propagated to other instances."
 msgstr ""
 
+#: View/ObjectTemplateElements/ajax/view_elements.ctp:19
+msgid "Object relation"
+msgstr ""
+
+#: View/ObjectTemplateElements/ajax/view_elements.ctp:21
+msgid "Multiple"
+msgstr ""
+
+#: View/ObjectTemplateElements/ajax/view_elements.ctp:22
+msgid "UI-priority"
+msgstr ""
+
 #: View/ObjectTemplateElements/ajax/view_elements.ctp:24
 #: View/Pages/doc/categories_and_types.ctp:40
 #: View/Pages/doc/md/categories_and_types.ctp:23
@@ -9203,9 +10281,17 @@ msgstr ""
 msgid "Object Template index"
 msgstr ""
 
+#: View/ObjectTemplates/index.ctp:54
+msgid "Active"
+msgstr ""
+
 #: View/ObjectTemplates/index.ctp:65
 #: View/ObjectTemplates/view.ctp:26
 msgid "Requirements"
+msgstr ""
+
+#: View/ObjectTemplates/index.ctp:118
+msgid "Force update"
 msgstr ""
 
 #: View/ObjectTemplates/index.ctp:118
@@ -9312,12 +10398,7 @@ msgstr ""
 msgid "Simply paste a list of all the organisation UUIDs that you wish to block from being entered."
 msgstr ""
 
-#: View/OrgBlacklists/add.ctp:16
-#: View/Organisations/view.ctp:6
-msgid "Organisation name"
-msgstr ""
-
-#: View/OrgBlacklists/add.ctp:17
+#: View/OrgBlacklists/add.ctp:18
 msgid "(Optional) The organisation name that the organisation is associated with"
 msgstr ""
 
@@ -10589,10 +11670,6 @@ msgid "The process's ID."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:223
-msgid "Worker"
-msgstr ""
-
-#: View/Pages/doc/administration.ctp:223
 msgid "The name of the worker queue. There are 3+1 workers running if background jobs are enabled: default, cache, email, and a special Scheduler (this should never show up in the jobs table)."
 msgstr ""
 
@@ -10618,10 +11695,6 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:228
 msgid "The status reported by the worker."
-msgstr ""
-
-#: View/Pages/doc/administration.ctp:229
-msgid "Retries"
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:229
@@ -12715,6 +13788,10 @@ msgstr ""
 msgid ""
 msgstr ""
 
+#: View/Posts/edit.ctp:12
+msgid "Contents"
+msgstr ""
+
 #: View/Regexp/admin_add.ctp:4
 msgid "Add Import Regexp"
 msgstr ""
@@ -12755,6 +13832,11 @@ msgstr ""
 
 #: View/Roles/admin_index.ctp:34
 msgid "Max execution time"
+msgstr ""
+
+#: View/Roles/admin_index.ctp:51
+#: View/Roles/index.ctp:46
+msgid "%s permission %s"
 msgstr ""
 
 #: View/Roles/index.ctp:36
@@ -13128,6 +14210,14 @@ msgstr ""
 
 #: View/Servers/ajax/fetch_servers_for_sg.ctp:26
 msgid "Add servers to sharing group"
+msgstr ""
+
+#: View/Servers/ajax/submoduleStatus.ctp:4
+msgid "Submodule"
+msgstr ""
+
+#: View/Servers/ajax/submoduleStatus.ctp:5
+msgid "Current Version"
 msgstr ""
 
 #: View/Servers/ajax/update.ctp:7
@@ -13583,20 +14673,8 @@ msgid "Are you sure you want to enable every tag associated to this taxonomy?"
 msgstr ""
 
 #: View/Taxonomies/index.ctp:43
-#: View/Taxonomies/view.ctp:29;155
-#: View/Warninglists/view.ctp:23
-msgid "Disable"
-msgstr ""
-
-#: View/Taxonomies/index.ctp:43
 #: View/Taxonomies/view.ctp:29
 msgid "Are you sure you want to disable this taxonomy library?"
-msgstr ""
-
-#: View/Taxonomies/index.ctp:45
-#: View/Taxonomies/view.ctp:31;159
-#: View/Warninglists/view.ctp:23
-msgid "Enable"
 msgstr ""
 
 #: View/Taxonomies/index.ctp:45
@@ -13606,14 +14684,6 @@ msgstr ""
 
 #: View/Taxonomies/index.ctp:50
 msgid "Delete taxonomy"
-msgstr ""
-
-#: View/Taxonomies/view.ctp:29
-msgid "(disable)"
-msgstr ""
-
-#: View/Taxonomies/view.ctp:31
-msgid "(enable)"
 msgstr ""
 
 #: View/Taxonomies/view.ctp:62
@@ -13870,8 +14940,16 @@ msgstr ""
 msgid "Shareable"
 msgstr ""
 
+#: View/Threads/index.ctp:23
+msgid "Last Post On"
+msgstr ""
+
 #: View/Threads/index.ctp:24
 msgid "Last Post By"
+msgstr ""
+
+#: View/Threads/index.ctp:25
+msgid "Thread started On"
 msgstr ""
 
 #: View/Threads/index.ctp:26
@@ -14021,6 +15099,14 @@ msgstr ""
 
 #: View/Users/admin_email.ctp:19
 msgid "All users of the same organisation"
+msgstr ""
+
+#: View/Users/admin_email.ctp:30
+msgid "Recipient Email"
+msgstr ""
+
+#: View/Users/admin_email.ctp:33
+msgid "Recipient Organisation Name"
 msgstr ""
 
 #: View/Users/admin_email.ctp:39
@@ -14178,6 +15264,10 @@ msgstr ""
 #: View/Users/statistics.ctp:117
 #: View/Users/statistics_data.ctp:128
 msgid "The above graph will not work correctly on Internet Explorer 9.0 and earlier. Please download Chrome, Firefox or upgrade to a newer version of Internet Explorer."
+msgstr ""
+
+#: View/Users/statistics_data.ctp:24
+msgid "Attributes / event"
 msgstr ""
 
 #: View/Users/statistics_data.ctp:32

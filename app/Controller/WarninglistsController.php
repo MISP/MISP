@@ -7,7 +7,7 @@ class WarninglistsController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
             'contain' => array(
                 'WarninglistType'
             ),
@@ -39,7 +39,7 @@ class WarninglistsController extends AppController
     public function update()
     {
         if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException('This action is only accessible via POST requests.');
+            throw new MethodNotAllowedException(__('This action is only accessible via POST requests.'));
         }
         $result = $this->Warninglist->update();
         $this->Log = ClassRegistry::init('Log');
@@ -61,7 +61,7 @@ class WarninglistsController extends AppController
                             'email' => $this->Auth->user('email'),
                             'action' => 'update',
                             'user_id' => $this->Auth->user('id'),
-                            'title' => 'Warning list updated',
+                            'title' => __('Warning list updated'),
                             'change' => $change,
                     ));
                     $successes++;
@@ -77,8 +77,8 @@ class WarninglistsController extends AppController
                             'email' => $this->Auth->user('email'),
                             'action' => 'update',
                             'user_id' => $this->Auth->user('id'),
-                            'title' => 'Warning list failed to update',
-                            'change' => $fail['name'] . ' could not be installed/updated. Error: ' . $fail['fail'],
+                            'title' => __('Warning list failed to update'),
+                            'change' => $fail['name'] . __(' could not be installed/updated. Error: ') . $fail['fail'], // TODO: needs to be optimized for non-SVO languages
                     ));
                     $fails++;
                 }
@@ -92,21 +92,21 @@ class WarninglistsController extends AppController
                     'email' => $this->Auth->user('email'),
                     'action' => 'update',
                     'user_id' => $this->Auth->user('id'),
-                    'title' => 'Warninglist update (nothing to update)',
-                    'change' => 'Executed an update of the warning lists, but there was nothing to update.',
+                    'title' => __('Warninglist update (nothing to update)'),
+                    'change' => __('Executed an update of the warning lists, but there was nothing to update.'),
             ));
         }
         if ($successes == 0 && $fails == 0) {
             $flashType = 'info';
-            $message = 'All warninglists are up to date already.';
+            $message = __('All warninglists are up to date already.');
         } elseif ($successes == 0) {
             $flashType = 'error';
-            $message = 'Could not update any of the warning lists';
+            $message = __('Could not update any of the warning lists');
         } else {
             $flashType = 'success';
-            $message = 'Successfully updated ' . $successes . ' warninglists.';
+            $message = __('Successfully updated ' . $successes . ' warninglists.');
             if ($fails != 0) {
-                $message . ' However, could not update ' . $fails . ' warning list.';
+                $message . __(' However, could not update ') . $fails . ' warning list.'; // TODO: non-SVO languages need to be considered
             }
         }
         if ($this->_isRest()) {
@@ -129,7 +129,7 @@ class WarninglistsController extends AppController
     public function toggleEnable()
     {
         if (!$this->request->is('post')) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'This function only accepts POST requests.')), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('This function only accepts POST requests.'))), 'status' => 200, 'type' => 'json'));
         }
         if (isset($this->request->data['Warninglist']['data'])) {
             $id = $this->request->data['Warninglist']['data'];
@@ -157,11 +157,11 @@ class WarninglistsController extends AppController
             $enabled = $this->request->data['enabled'];
         }
         if (empty($id)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Warninglist not found.'))), 'status' => 200, 'type' => 'json'));
         }
         $currentState = $this->Warninglist->find('all', array('conditions' => array('id' => $id), 'recursive' => -1));
         if (empty($currentState)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist(s) not found.')), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Warninglist(s) not found.'))), 'status' => 200, 'type' => 'json'));
         }
         $success = 0;
         foreach ($currentState as $warningList) {
@@ -187,9 +187,9 @@ class WarninglistsController extends AppController
         }
         if ($success) {
             $this->Warninglist->regenerateWarninglistCaches($id);
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success . ' warninglist(s) ' . $message)), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success . __(' warninglist(s) ') . $message)), 'status' => 200, 'type' => 'json')); // TODO: non-SVO lang considerations
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist(s) could not be toggled.')), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Warninglist(s) could not be toggled.'))), 'status' => 200, 'type' => 'json'));
         }
     }
 
@@ -197,7 +197,7 @@ class WarninglistsController extends AppController
     {
         $this->Warninglist->id = $id;
         if (!$this->Warninglist->exists()) {
-            throw new NotFoundException('Invalid Warninglist.');
+            throw new NotFoundException(__('Invalid Warninglist.'));
         }
         // DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
         if ($enable === false) {
@@ -205,14 +205,19 @@ class WarninglistsController extends AppController
         }
         $this->Warninglist->saveField('enabled', $enable);
         $this->Warninglist->regenerateWarninglistCaches($id);
-        $this->Flash->success('Warninglist enabled');
+        if ($enable === 0) {
+            $this->Flash->success(__('Warninglist disabled'));
+        }
+        else {
+            $this->Flash->success(__('Warninglist enabled'));
+        }
         $this->redirect(array('controller' => 'warninglists', 'action' => 'view', $id));
     }
 
     public function getToggleField()
     {
         if (!$this->request->is('ajax')) {
-            throw new MethodNotAllowedException('This action is available via AJAX only.');
+            throw new MethodNotAllowedException(__('This action is available via AJAX only.'));
         }
         $this->layout = 'ajax';
         $this->render('ajax/getToggleField');
@@ -221,11 +226,11 @@ class WarninglistsController extends AppController
     public function view($id)
     {
         if (!is_numeric($id)) {
-            throw new NotFoundException('Invalid ID.');
+            throw new NotFoundException(__('Invalid ID.'));
         }
         $warninglist = $this->Warninglist->find('first', array('contain' => array('WarninglistEntry', 'WarninglistType'), 'conditions' => array('id' => $id)));
         if (empty($warninglist)) {
-            throw new NotFoundException('Warninglist not found.');
+            throw new NotFoundException(__('Warninglist not found.'));
         }
         if ($this->_isRest()) {
             $warninglist['Warninglist']['WarninglistEntry'] = $warninglist['WarninglistEntry'];
@@ -243,10 +248,10 @@ class WarninglistsController extends AppController
             $id = intval($id);
             $result = $this->Warninglist->quickDelete($id);
             if ($result) {
-                $this->Flash->success('Warninglist successfuly deleted.');
+                $this->Flash->success(__('Warninglist successfuly deleted.'));
                 $this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
             } else {
-                $this->Flash->error('Warninglists could not be deleted.');
+                $this->Flash->error(__('Warninglists could not be deleted.'));
                 $this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
             }
         } else {
@@ -254,7 +259,7 @@ class WarninglistsController extends AppController
                 $this->set('id', $id);
                 $this->render('ajax/delete_confirmation');
             } else {
-                throw new MethodNotAllowedException('This function can only be reached via AJAX.');
+                throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
             }
         }
     }
@@ -264,7 +269,7 @@ class WarninglistsController extends AppController
         if ($this->request->is('post')) {
             $warninglists = $this->Warninglist->getWarninglists(array());
             if (empty($this->request->data)) {
-                throw new NotFoundException('No valid data received.');
+                throw new NotFoundException(__('No valid data received.'));
             }
             $data = $this->request->data;
             if (!is_array($data)) {
