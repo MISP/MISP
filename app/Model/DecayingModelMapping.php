@@ -69,7 +69,10 @@ class DecayingModelMapping extends AppModel
             $associated_types = $decaying_model['attribute_types'];
             $temp = $this->find('list', array(
                 'conditions' => array(
-                    'org_id' => array($user['Organisation']['id'], NULL),
+                    'OR' => array(
+                        array('org_id' => $user['Organisation']['id']),
+                        array('org_id' => null),
+                    ),
                     'model_id' => $model_id
                 ),
                 'recursive' => -1,
@@ -80,18 +83,23 @@ class DecayingModelMapping extends AppModel
         return $associated_types;
     }
 
-    public function getAssociatedModels($user, $attribute_type) {
+    public function getAssociatedModels($user, $attribute_type = array()) {
+        $conditions = array(
+            'OR' => array(
+                array('org_id' => $user['Organisation']['id']),
+                array('org_id' => null),
+            )
+        );
+        if (!empty($attribute_type)) {
+            $conditions['attribute_type'] = $attribute_type;
+        }
         $associated_models = $this->find('all', array(
-            'conditions' => array(
-                'OR' => array(
-                    'org_id' => $user['Organisation']['id'],
-                    'org_id' => NULL,
-                ),
-                'model_id' => $attribute_type
-            ),
+            'conditions' => $conditions,
             'recursive' => -1,
-            'fields' => array('attribute_type')
+            // 'group' => 'attribute_type',
+            'fields' => array('attribute_type', 'model_id')
         ));
+        $associated_models = Hash::combine($associated_models, '{n}.DecayingModelMapping.model_id', '{n}.DecayingModelMapping.model_id', '{n}.DecayingModelMapping.attribute_type');
         return $associated_models;
     }
 

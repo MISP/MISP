@@ -3,7 +3,7 @@
 <h2>Decaying Of Indicator Fine Tuning Tool</h2>
 
 <div class="row">
-    <div class="span7 form-inline" style="border: 1px solid #ddd; border-radius: 4px;">
+    <div class="span9 form-inline" style="border: 1px solid #ddd; border-radius: 4px;">
         <div style="border-bottom: 1px solid #ddd;">
             <label class="checkbox inline">
                 <input id="table_toggle_all_type" type="checkbox"></input>
@@ -52,7 +52,7 @@
                             <td>
                                 <?php if (isset($associated_models[$type])): ?>
                                     <?php foreach ($associated_models[$type] as $ids): ?>
-                                        <a href="href="<?php echo $baseurl; ?>/decayingModel/view/<?php echo h($ids); ?>"><?php echo h($ids); ?></a>
+                                        <a href="<?php echo $baseurl; ?>/decayingModel/view/<?php echo h($ids); ?>"><?php echo h($ids); ?></a>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </td>
@@ -62,7 +62,7 @@
             </table>
         </div>
     </div>
-    <div class="span10">
+    <div class="span12">
         <div style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
             <div id="decayGraph" style="width: 100%;"></div>
         </div>

@@ -168,7 +168,7 @@ class DecayingModelController extends AppController
         $this->set('parameters', $parameters);
         $this->set('types', $types);
         $this->set('savedModels', $savedDecayingModels);
-        $this->set('associated_models', array());
+        $this->set('associated_models', $this->DecayingModel->DecayingModelMapping->getAssociatedModels($this->Auth->user()));
     }
 
 }
