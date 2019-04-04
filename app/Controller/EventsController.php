@@ -5223,8 +5223,17 @@ class EventsController extends AppController
 
     public function handleModuleResults($eventId)
     {
-        debug($eventId);
-        debug($this->request->event);
+        if (!$this->userRole['perm_add']) {
+            throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
+        }
+        if ($this->request->is('post')) {
+            if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
+                throw new MethodNotAllowedException(__('Invalid event.'));
+            }
+            $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+        } else {
+            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+        }
     }
 
     public function importModule($module, $eventId)
