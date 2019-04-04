@@ -29,7 +29,7 @@
         <tr>
                 <th><?php echo $this->Paginator->sort('id'); ?></th>
                 <th><?php echo $this->Paginator->sort('name'); ?></th>
-                <th><?php echo $this->Paginator->sort('expanded_name'); ?></th>
+                <th><?php echo $this->Paginator->sort('expanded_name', __('Expanded name')); ?></th>
                 <th><?php echo __('ref');?></th>
                 <th><?php echo __('geographical_area');?></th>
                 <th><?php echo __('version');?></th>

@@ -130,7 +130,7 @@ class BlackListComponent extends Component
                 if ($rest) {
                     throw new MethodNotAllowedException('Could not save the blacklist item.');
                 } else {
-                    $this->controller->Session->setFlash('Could not save the blacklist item');
+                    $this->controller->Session->setFlash(__('Could not save the blacklist item'));
                     $this->controller->redirect(array('action' => 'index'));
                 }
             }
