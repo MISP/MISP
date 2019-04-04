@@ -29,7 +29,7 @@ class DecayingModelController extends AppController
                 // return $this->RestResponse->viewData($message, $this->response->type());
             }
         } else {
-            throw new Exception("This method is not allowed");
+            throw new Exception(_("This method is not allowed"));
         }
     }
 
@@ -40,7 +40,7 @@ class DecayingModelController extends AppController
 
         $decaying_model = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id, true);
         if (!$this->_isSiteAdmin() && !$decModel) {
-            throw new MethodNotAllowedException('No Decaying Model with the provided ID exists, or you are not authorised to edit it.');
+            throw new MethodNotAllowedException(_('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
         }
         $this->set('mayModify', true);
         $this->set('id', $id);
@@ -67,7 +67,7 @@ class DecayingModelController extends AppController
             }
 
             if (empty($this->request->data['DecayingModel']['name'])) {
-                throw new MethodNotAllowedException("The model must have a name");
+                throw new MethodNotAllowedException(_("The model must have a name"));
             }
 
             if ($this->DecayingModel->save($this->request->data)) {
@@ -76,7 +76,7 @@ class DecayingModelController extends AppController
                     $response = array('data' => $saved, 'action' => 'add');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 } else {
-                    $this->Flash->success('The model has been saved.');
+                    $this->Flash->success(_('The model has been saved.'));
                     $this->redirect(array('action' => 'index'));
                 }
             }
@@ -86,7 +86,7 @@ class DecayingModelController extends AppController
     public function edit($id) {
         $decayingModel = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id);
         if (!$this->_isSiteAdmin() && !$decModel) {
-            throw new NotFoundException('No Decaying Model with the provided ID exists, or you are not authorised to edit it.');
+            throw new NotFoundException(_('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
         }
         $this->set('mayModify', true);
 
@@ -97,15 +97,15 @@ class DecayingModelController extends AppController
                 $this->request->data['DecayingModel']['parameters'] = array();
             } else {
                 if (!isset($this->request->data['DecayingModel']['parameters']['tau'])) {
-                    $this->Flash->error('Invalid parameter `tau`.');
+                    $this->Flash->error(_('Invalid parameter `tau`.'));
                     return true;
                 }
                 if (!isset($this->request->data['DecayingModel']['parameters']['delta'])) {
-                    $this->Flash->error('Invalid parameter `delta`.');
+                    $this->Flash->error(_('Invalid parameter `delta`.'));
                     return true;
                 }
                 if (!isset($this->request->data['DecayingModel']['parameters']['threshold'])) {
-                    $this->Flash->error('Invalid parameter `threshold`.');
+                    $this->Flash->error(_('Invalid parameter `threshold`.'));
                     return true;
                 }
             }
@@ -118,7 +118,7 @@ class DecayingModelController extends AppController
                     $response = array('data' => $saved, 'action' => 'edit');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 } else {
-                    $this->Flash->success('The model has been saved.');
+                    $this->Flash->success(_('The model has been saved.'));
                     $this->redirect(array('action' => 'index'));
                 }
             }
@@ -132,14 +132,14 @@ class DecayingModelController extends AppController
         if ($this->request->is('post')) {
             $decayingModel = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id);
             if (!$this->_isSiteAdmin() && !$decModel) {
-                throw new MethodNotAllowedException('No Decaying Model with the provided ID exists, or you are not authorised to edit it.');
+                throw new MethodNotAllowedException(_('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
             }
 
             if ($this->DecayingModel->delete($id, true)) {
-                $this->Flash->success('Decaying Model deleted.');
+                $this->Flash->success(_('Decaying Model deleted.'));
                 $this->redirect(array('action' => 'index'));
             } else {
-                $this->Flash->error('The Decaying Model could not be deleted.');
+                $this->Flash->error(_('The Decaying Model could not be deleted.'));
                 $this->redirect(array('action' => 'index'));
             }
         }
