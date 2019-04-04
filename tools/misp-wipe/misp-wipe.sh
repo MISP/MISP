@@ -92,6 +92,9 @@ curl --header "Authorization: $AuthKey" --header "Accept: application/json" --he
 echo "Updating warninglists"
 curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/warninglists/update
 
+echo "Updating noticelists"
+curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/noticelists/update
+
 echo "Updating galaxies"
 curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/galaxies/update
 
