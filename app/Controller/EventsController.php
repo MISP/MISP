@@ -5224,7 +5224,7 @@ class EventsController extends AppController
         $this->render($renderName);
     }
 
-    public function handleModuleResults($eventId)
+    public function handleModuleResults($id)
     {
         if (!$this->userRole['perm_add']) {
             throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
