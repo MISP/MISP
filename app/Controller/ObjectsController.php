@@ -612,7 +612,7 @@ class ObjectsController extends AppController
         if ($this->_isRest()) {
             $objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
             if (!empty($objects)) {
-                return $this->RestResponse->viewData($objects, $this->response->type());
+                return $this->RestResponse->viewData($objects[0], $this->response->type());
             }
         }
     }
