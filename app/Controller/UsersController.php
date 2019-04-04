@@ -500,8 +500,17 @@ class UsersController extends AppController
                 }
                 $required_fields = array('role_id', 'email');
                 foreach ($required_fields as $field) {
+                    $set_field_via_other_means = false;
                     if (empty($this->request->data['User'][$field])) {
-                        return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
+                        if ($field === 'role_id') {
+                            if (!empty($default_role_id)) {
+                                $this->request->data['User'][$field] = $default_role_id;
+                                $set_field_via_other_means = true;
+                            }
+                        }
+                        if (!$set_field_via_other_means) {
+                            return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
+                        }
                     }
                 }
                 if (isset($this->request->data['User']['password'])) {
