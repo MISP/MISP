@@ -5110,8 +5110,10 @@ class EventsController extends AppController
                 } else {
                     $tmp_object['distribution'] = (int)$tmp_object['distribution'];
                 }
-                foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
-                    $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
+                if (isset($tmp_object['Attribute']) && $tmp_object['Attribute']) {
+                    foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
+                        $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
+                    }
                 }
                 array_push($objects, $tmp_object);
             }

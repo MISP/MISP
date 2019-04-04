@@ -120,7 +120,10 @@
             ?>
           </tbody>
         </table>
-        <?php } ?>
+        <?php
+                }
+                if (!empty($object['Attribute'])) {
+        ?>
         <table class="ObjectAttributes table table-condensed table-striped" style="text-align:left;margin-bottom:20px;">
           <thead>
             <th><?php echo __('Attribute');?></th>
@@ -135,7 +138,6 @@
           </thead>
           <tbody>
             <?php
-                if (!empty($object['Attribute'])) {
                     foreach ($object['Attribute'] as $a => $attribute) {
                         echo '<tr class="ObjectAttribute">';
                         echo '<td class="ObjectRelation">' . h($attribute['object_relation']) . '</td>';
