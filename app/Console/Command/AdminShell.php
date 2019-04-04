@@ -2,7 +2,7 @@
 App::uses('AppShell', 'Console/Command');
 class AdminShell extends AppShell
 {
-	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce');
+	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role');
 
 	public function jobGenerateCorrelation() {
 		$jobId = $this->args[0];
@@ -236,4 +236,35 @@ class AdminShell extends AppShell
 			echo 'Something went wrong, could not delete bruteforce entries for ' . $target . '.' . PHP_EOL;
 		}
 	}
+
+    public function setDefaultRole()
+    {
+        if (empty($this->args[0]) || !is_numeric($this->args[0])) {
+            $roles = $this->Role->find('list', array(
+                'fields' => array('id', 'name')
+            ));
+            foreach ($roles as $k => $role) {
+                $roles[$k] = $k . '. ' . $role;
+            }
+            $roles = implode(PHP_EOL, $roles);
+            echo "Roles:\n" . $roles . $this->separator();
+            echo 'Usage: ' . APP . 'cake ' . 'Admin setDefaultRole [role_id]' . PHP_EOL;
+        } else {
+            $role = $this->Role->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Role.id' => $this->args[0])
+            ));
+            if (!empty($role)) {
+                $result = $this->AdminSetting->changeSetting('default_role', $role['Role']['id']);
+                echo 'Default Role updated to ' . escapeshellcmd($role['Role']['name']) . PHP_EOL;
+            } else {
+                echo 'Something went wrong, invalid Role.' . PHP_EOL;
+            }
+        }
+    }
+
+    private function separator()
+    {
+        return PHP_EOL . '---------------------------------------------------------------' . PHP_EOL;
+    }
 }
