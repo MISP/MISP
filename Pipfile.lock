@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "7a6ddeb923d52e723cb879b1e50154001ba42316df7e9d987caf195d3f21acbc"
+            "sha256": "c927ad078b97ebe317e66dbdddb57f5288db85a0d954dfa88f3d724ae9f954db"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -20,9 +20,6 @@
             ],
             "index": "pypi",
             "version": "==2.1.0.17"
-        },
-        "lief": {
-            "file": "https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip"
         },
         "lxml": {
             "hashes": [
@@ -83,8 +80,11 @@
             "ref": "bc0d33bff4b45718b4c5f2c79d4715d92a427eda"
         },
         "pymisp": {
+            "extras": [
+                "fileobjects"
+            ],
             "git": "https://github.com/MISP/PyMISP.git",
-            "ref": "64bcaad0e578129543cdffad532a232722615f6c"
+            "ref": "a68bd80ab9dceaee9674bd9a2b0bffc4f387fcdc"
         },
         "python-dateutil": {
             "hashes": [
@@ -92,14 +92,6 @@
                 "sha256:c89805f6f4d64db21ed966fda138f8a5ed7a4fdbc1a8ee329ce1b74e3c74da9e"
             ],
             "version": "==2.8.0"
-        },
-        "python-magic": {
-            "hashes": [
-                "sha256:f2674dcfad52ae6c49d4803fa027809540b130db1dec928cfbb9240316831375",
-                "sha256:f3765c0f582d2dfc72c15f3b5a82aecfae9498bd29ca840d72f37d7bd38bfcd5"
-            ],
-            "index": "pypi",
-            "version": "==0.4.15"
         },
         "six": {
             "hashes": [
@@ -117,7 +109,7 @@
         },
         "stix2": {
             "git": "https://github.com/MISP/cti-python-stix2",
-            "ref": "407f346eb8118d57b43035ef0da47e2ff77ed00e"
+            "ref": "61e9fc0748691f6b768acf47c18ef01b5dc0a854"
         }
     },
     "develop": {}

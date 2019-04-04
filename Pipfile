@@ -6,12 +6,11 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-pymisp = {git = "https://github.com/MISP/PyMISP.git", ref = "64bcaad0e578129543cdffad532a232722615f6c"}
 mixbox = "*"
 cybox = "*"
 stix = "*"
 maec = "*"
-stix2 = {git = "https://github.com/MISP/cti-python-stix2", ref = "407f346eb8118d57b43035ef0da47e2ff77ed00e"}
-python-magic = "*"
-lief = {file = "https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip"}
+
+pymisp = {git = "https://github.com/MISP/PyMISP.git", ref = "a68bd80ab9dceaee9674bd9a2b0bffc4f387fcdc", extras=["fileobjects"]}
+stix2 = {git = "https://github.com/MISP/cti-python-stix2", ref = "61e9fc0748691f6b768acf47c18ef01b5dc0a854"}
 pydeep = {git = "https://github.com/kbandla/pydeep.git"}
