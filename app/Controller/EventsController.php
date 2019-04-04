@@ -1238,9 +1238,15 @@ class EventsController extends AppController
         $this->set('emptyEvent', $emptyEvent);
         $attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
         $objectCount = isset($event['Object']) ? count($event['Object']) : 0;
+        $oldest_timestamp = false;
         if (!empty($event['Object'])) {
             foreach ($event['Object'] as $k => $object) {
                 if (!empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $attribute) {
+                        if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+                            $oldest_timestamp = $attribute['timestamp'];
+                        }
+                    }
                     $attributeCount += count($object['Attribute']);
                 }
             }
@@ -1320,6 +1326,9 @@ class EventsController extends AppController
         $startDate = null;
         $modificationMap = array();
         foreach ($event['Attribute'] as $k => $attribute) {
+            if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+                $oldest_timestamp = $attribute['timestamp'];
+            }
             if ($startDate === null || $attribute['timestamp'] < $startDate) {
                 $startDate = $attribute['timestamp'];
             }
@@ -1458,6 +1467,7 @@ class EventsController extends AppController
         $orgTable = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
+        $this->set('oldest_timestamp', $oldest_timestamp);
         $this->set('required_taxonomies', $this->Event->getRequiredTaxonomies());
         $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
@@ -5105,12 +5115,17 @@ class EventsController extends AppController
         }
         if (isset($result['results']['Object']) && !empty($result['results']['Object'])) {
             foreach ($result['results']['Object'] as $tmp_object) {
+<<<<<<< HEAD
                 $tmp_object['distribution'] = (isset($tmp_object['distribution']) ? (int)$tmp_object['distribution'] : $defaultDistribution);
                 $tmp_object['sharing_group_id'] = (isset($tmp_object['sharing_group_id']) ? (int)$tmp_object['sharing_group_id'] : 0);
                 if (isset($tmp_object['Attribute']) && $tmp_object['Attribute']) {
                     foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
                         $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
                     }
+=======
+                foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
+                    $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
+>>>>>>> df59c69134c5ce3731891927bebb9eec50e500d9
                 }
                 array_push($objects, $tmp_object);
             }
@@ -5216,8 +5231,17 @@ class EventsController extends AppController
 
     public function handleModuleResults($eventId)
     {
-        debug($eventId);
-        debug($this->request->event);
+        if (!$this->userRole['perm_add']) {
+            throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
+        }
+        if ($this->request->is('post')) {
+            if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
+                throw new MethodNotAllowedException(__('Invalid event.'));
+            }
+            $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+        } else {
+            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+        }
     }
 
     public function importModule($module, $eventId)
