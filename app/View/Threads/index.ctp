@@ -20,9 +20,9 @@
     <tr>
             <th><?php echo $this->Paginator->sort('org');?></th>
             <th><?php echo __('Title');?></th>
-            <th><?php echo $this->Paginator->sort('date_modified', 'Last Post On');?></th>
+            <th><?php echo $this->Paginator->sort('date_modified', __('Last Post On'));?></th>
             <th><?php echo __('Last Post By');?></th>
-            <th><?php echo $this->Paginator->sort('date_created', 'Thread started On');?></th>
+            <th><?php echo $this->Paginator->sort('date_created', __('Thread started On'));?></th>
             <th><?php echo __('Posts');?></th>
             <th><?php echo __('Distribution');?></th>
             <th><?php echo __('Actions');?></th>

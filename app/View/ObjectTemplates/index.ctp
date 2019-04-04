@@ -51,16 +51,16 @@
             <?php
                 if ($isSiteAdmin):
             ?>
-                    <th><?php echo $this->Paginator->sort('active');?></th>
+                    <th><?php echo $this->Paginator->sort('active', __('Active'));?></th>
             <?php
                 endif;
             ?>
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
-            <th><?php echo $this->Paginator->sort('uuid');?></th>
+            <th><?php echo $this->Paginator->sort('uuid', __('UUID'));?></th>
             <th><?php echo $this->Paginator->sort('org_id', __('Organisation'));?></th>
             <th><?php echo $this->Paginator->sort('version');?></th>
-            <th><?php echo $this->Paginator->sort('meta-category');?></th>
+            <th><?php echo $this->Paginator->sort('meta-category', __('Meta-category'));?></th>
             <th><?php echo $this->Paginator->sort('description');?></th>
             <th><?php echo __('Requirements');?></th>
             <th class="actions"><?php echo __('Actions');?></th>
@@ -112,11 +112,11 @@ foreach ($list as $template):
             ?>
         </td>
         <td class="short action-links">
-            <a href='/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "fa fa-eye" title = "<?php echo __('View');?>"></a>
+            <a href='/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
             <?php
                 if ($isSiteAdmin):
-                    echo $this->Form->postLink('', array('action' => 'update', $template['ObjectTemplate']['name'], 1), array('class' => 'fa fa-sync', 'title' => 'Force update'), __('Are you sure you want to force an update for template # %s?', $template['ObjectTemplate']['id']));
-                    echo $this->Form->postLink('', array('action' => 'delete', $template['ObjectTemplate']['id']), array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete template # %s?', $template['ObjectTemplate']['id']));
+                    echo $this->Form->postLink('', array('action' => 'update', $template['ObjectTemplate']['name'], 1), array('class' => 'fa fa-sync', 'title' => __('Force update')), __('Are you sure you want to force an update for template # %s?', $template['ObjectTemplate']['id']));
+                    echo $this->Form->postLink('', array('action' => 'delete', $template['ObjectTemplate']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete template # %s?', $template['ObjectTemplate']['id']));
                 endif;
             ?>
         </td>

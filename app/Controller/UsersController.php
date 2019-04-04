@@ -1553,7 +1553,13 @@ class UsersController extends AppController
     public function statistics($page = 'data')
     {
         $this->set('page', $page);
-        $pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'users' => 'User and Organisation statistics', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'galaxyMatrix' => 'Galaxy Matrix');
+        $pages = array('data' => __('Usage data'),
+                       'orgs' => __('Organisations'),
+                       'users' => __('User and Organisation statistics'),
+                       'tags' => __('Tags'),
+                       'attributehistogram' => __('Attribute histogram'),
+                       'sightings' => __('Sightings toplists'),
+                       'galaxyMatrix' => __('Galaxy Matrix'));
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             unset($pages['orgs']);
         }

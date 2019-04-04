@@ -49,7 +49,8 @@ class TrainingShell extends AppShell {
             if ($this->__verbose) {
                 echo 'INFO - Instance to configure' . $this->__currentUrl . PHP_EOL;
             }
-            $this->__report['servers'][$this->__currentUrl]['users'] = $this->__resetPasswords($org['Organisation']['remote_org_id'], $role_id, $org['Organisation']['name'], $id);
+            $org = str_replace('$ID', $id, $this->__config['org_blueprint']);
+            $this->__report['servers'][$this->__currentUrl]['users'] = $this->__resetPasswords($org, $id);
         }
         $this->__printReport('Password change complete. Please find the modifications below:' . PHP_EOL . PHP_EOL);
     }
@@ -401,7 +402,7 @@ class TrainingShell extends AppShell {
         die();
     }
 
-    private function __resetPasswords($remote_org_id, $role_id, $org, $i)
+    private function __resetPasswords($org, $i)
     {
         $summary = array();
         for ($j = 1; $j < (1 + $this->__config['user_count']); $j++) {
@@ -445,7 +446,7 @@ class TrainingShell extends AppShell {
                             'id' => $user['User']['id'],
                             'email' => $user['User']['email'],
                             'password' => $newKey,
-                            'authkey' => $user['User']['autkey']
+                            'authkey' => $user['User']['authkey']
                         );
                     }
                 }

@@ -79,8 +79,8 @@
 foreach ($list as $k => $item): ?>
     <tr>
         <td class="short"><?php echo h($item['Tag']['id']); ?>&nbsp;</td>
-        <td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-        <td class="short"><span class="icon-<?php echo $item['Tag']['hide_tag'] ? 'ok' : 'remove'; ?>"></span></td>
+        <td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($item['Tag']['exportable'] ? 'Yes' : 'No'); ?>"></span></td>
+        <td class="short"><span class="icon-<?php echo $item['Tag']['hide_tag'] ? 'ok' : 'remove'; ?>" role="img" aria-label="<?php echo $item['Tag']['hide_tag'] ? 'Yes' : 'No'; ?>"></span></td>
         <td><a href="<?php echo $baseurl . "/events/index/searchtag:" . $item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>" title="<?php echo isset($item['Tag']['Taxonomy']['expanded']) ? h($item['Tag']['Taxonomy']['expanded']) : h($item['Tag']['name']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
         <td class="short">
             <?php if ($item['Tag']['org_id']): ?>
@@ -116,13 +116,13 @@ foreach ($list as $k => $item): ?>
             <?php echo $this->element('sparkline', array('id' => $item['Tag']['id'], 'csv' => isset($csv[$k]) ? $csv[$k] : $emptyDate)); ?>
         </td>
         <td class="short" id ="checkbox_row_<?php echo h($item['Tag']['id']);?>">
-            <input id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
+            <input id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" aria-label="<?php echo __('Favourite'); ?>" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
         </td>
         <?php if ($isSiteAdmin): ?>
         <td class="short action-links">
-            <?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['Tag']['id']), array('class' => 'fa fa-share-alt', 'title' => __('View graph')));?>
-            <?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit')));?>
-            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
+            <?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['Tag']['id']), array('class' => 'fa fa-share-alt', 'title' => __('View graph'), 'aria-label' => __('View graph')));?>
+            <?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit')));?>
+            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
         </td>
         <?php endif; ?>
     </tr><?php
