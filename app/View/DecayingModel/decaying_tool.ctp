@@ -64,7 +64,7 @@
             <div class="span6" style="margin-bottom: 20px;">
                 <?php foreach ($parameters as $param => $config): ?>
                     <div class="input-prepend input-append">
-                        <span class="add-on" data-toggle="tooltip" data-placement="left" style="min-width: 100px;" title="<?php echo isset($config['info']) ? h($config['info']) : ''?>">
+                        <span class="add-on param-name" data-toggle="tooltip" data-placement="left" style="min-width: 100px;" title="<?php echo isset($config['info']) ? h($config['info']) : ''?>">
                             <?php echo h($config['name']) . (isset($config['greek']) ? ' <strong>'.h($config['greek']).'</strong>' : ''); ?>
                         </span>
                         <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="refreshGraph(this);" ></input>
@@ -107,6 +107,7 @@
                 <table class="table table-striped table-bordered">
                     <thead>
                         <tr>
+                            <th rowspan="2">ID</th>
                             <th rowspan="2">Model Name</th>
                             <th rowspan="2">Org id</th>
                             <th rowspan="2">Description</th>
@@ -122,6 +123,7 @@
                     <tbody id="modelTableBody">
                         <?php foreach ($savedModels as $k => $model): ?>
                             <tr id="modelId_<?php echo h($model['DecayingModel']['id']); ?>">
+                                <td class="DMId"><a href="<?php echo $baseurl; ?>/decayingModel/view/<?php echo h($model['DecayingModel']['id']); ?>"><?php echo h($model['DecayingModel']['id']); ?></a></td>
                                 <td class="DMName"><?php echo h($model['DecayingModel']['name']); ?></td>
                                 <td class="DMOrg"><?php echo $this->OrgImg->getOrgImg(array('name' => $model['DecayingModel']['org_id'], 'size' => 24)); ?> </td>
                                 <td class="DMDescription"><?php echo h($model['DecayingModel']['description']); ?></td>

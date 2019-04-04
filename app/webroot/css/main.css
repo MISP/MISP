@@ -1053,6 +1053,10 @@ li .generic-picker-item-element-check {
     z-index:-111;
 }
 
+span.success {
+    background-color: #d0e9c6 !important;
+}
+
 .ajaxMessage {
     display:none;
     margin-left:10px;

@@ -6,13 +6,6 @@ class DecayingModelMappingController extends AppController
 {
     public $components = array('Security' ,'RequestHandler');
 
-    public $belongsTo = array(
-        'DecayingModel' => array(
-            'className' => 'DecayingModel',
-            'foreignKey' => 'id'
-        )
-    );
-
     public $paginate = array(
             'limit' => 50,
             'order' => array(

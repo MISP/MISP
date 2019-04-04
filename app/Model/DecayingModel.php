@@ -29,6 +29,8 @@ class DecayingModel extends AppModel
                     $decoded = array();
                 }
                 $results[$k]['DecayingModel']['attribute_types'] = $decoded;
+            } else {
+                $results[$k]['DecayingModel']['attribute_types'] = array();
             }
             if (!empty($v['DecayingModel']['ref'])) {
                 $decoded = json_decode($v['DecayingModel']['ref'], true);
@@ -105,10 +107,13 @@ class DecayingModel extends AppModel
                 if ($force || $new_model['version'] > $existing_model['version']) {
                     $new_model['id'] = $existing_model['id'];
                     $this->save($new_model);
+                    $this->DecayingModelMapping->resetMappingFromDefaultModel($new_model);
                 }
             } else {
                 $this->create();
                 $this->save($new_model);
+                $new_model['id'] = $this->Model->id;
+                $this->DecayingModelMapping->resetMappingFromDefaultModel($new_model);
             }
         }
     }
@@ -142,7 +147,11 @@ class DecayingModel extends AppModel
             return false;
         }
 
-        //if the user is a site admin, return the template without question
+        if ($full) {
+            $decayingModel['DecayingModel']['attribute_types'] = $this->DecayingModelMapping->getAssociatedTypes($user, $decayingModel['DecayingModel']['id']);
+        }
+
+        //if the user is a site admin, return the model without question
         if ($user['Role']['perm_site_admin']) {
             return $decayingModel;
         }

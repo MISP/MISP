@@ -288,15 +288,17 @@
 
             /* MODEL TABLE */
             loadModel: function(clicked) {
+                var that = this;
                 var $clicked = $(clicked);
                 var tr = $clicked.closest('tr');
                 var parameters = {
-                    tau: parseFloat(tr.find('td.DMParameterTau')[0].innerHTML),
-                    delta: parseFloat(tr.find('td.DMParameterDelta')[0].innerHTML),
-                    threshold: parseInt(tr.find('td.DMParameterThreshold')[0].innerHTML)
+                    tau: parseFloat(tr.find('td.DMParameterTau').text()),
+                    delta: parseFloat(tr.find('td.DMParameterDelta').text()),
+                    threshold: parseInt(tr.find('td.DMParameterThreshold').text())
                 };
-                var name = tr.find('td.DMName')[0].innerHTML;
-                var desc = tr.find('td.DMDescription')[0].innerHTML;
+                var name = tr.find('td.DMName').text();
+                var desc = tr.find('td.DMDescription').text();
+                var model_id = tr.find('td.DMId').text();
 
                 $('#input_Tau').val(parameters.tau);
                 $('#input_Tau').data('multiplier', $('#input_Tau').val()/this.options.TICK_NUM);
@@ -307,6 +309,10 @@
                 $form.find('[name="description"]').val(desc);
                 this.refreshInfoCells(parameters.threshold);
                 this.redrawGraph();
+                // highlight attribute types
+                $.getJSON('/decayingModelMapping/viewAssociatedTypes/' + model_id, function(j) {
+                    that.highlightAttributeType(j);
+                });
             },
             retreiveData: function() {
                 var $form = $('#saveForm')
@@ -394,12 +400,14 @@
                 delete data['description'];
                 var $rows = $('#modelTableBody').find('tr');
                 $rows.removeClass('success');
+                $('div.input-prepend > span.param-name').removeClass('success');
                 $rows.each(function(i) {
                     var rowData = that.getDataFromRow($(this));
                     delete rowData['name'];
                     delete rowData['description'];
                     if (that.simpleCompareObject(data, rowData)) {
                         $(this).addClass('success');
+                        $('div.input-prepend > span.param-name').addClass('success');
                     }
                 });
             },
@@ -432,11 +440,11 @@
             /* TYPE TABLE */
             toggleCB: function(clicked, force) {
                 var $clicked = $(clicked);
-                var cb = $clicked.first().find('input');
+                var $cb = $clicked.first().find('input');
                 if (force === undefined) {
-                    cb.prop('checked', !cb.is(':checked'));
+                    $cb.prop('checked', !$cb.is(':checked'));
                 } else {
-                    cb.prop('checked', force);
+                    $cb.prop('checked', force);
                 }
             },
             filterTableType: function(table, searchString) {
@@ -454,13 +462,29 @@
                     // show only matching elements
                     var $cells = $table.find('tbody > tr > td.isFilteringField');
                     $cells.each(function() {
-                        if ($(this).text().indexOf(searchString) != -1) {
+                        if ($(this).text().trim().indexOf(searchString) != -1) {
                             $(this).parent().filter('.isNotToIDS').forceClass('hidden', !$('#table_toggle_all_type').is(':checked'));
                             $(this).parent().filter('.isObject').forceClass('hidden', !$('#table_toggle_objects').is(':checked'));
                             $(this).parent().filter(':not(".isObject, .isNotToIDS")').forceClass('hidden', false);
                         }
                     });
                 }
+            },
+            highlightAttributeType: function(types) {
+                var that = this;
+                var $checkboxes = $('#attributeTypeTableBody').find('input[type="checkbox"]');
+                $checkboxes.prop('checked', false);
+                var $row = $($checkboxes).closest('tr');
+                $row.removeClass('info');
+
+                var $cells = $('#table_attribute_type').find('tbody > tr > td.isFilteringField');
+                $cells.each(function() {
+                    var value = $(this).text().trim();
+                    if (types.includes(value)) {
+                        that.toggleCB($(this).parent(), true);
+                        $(this).parent().forceClass('info', true)
+                    }
+                });
             },
 
             /* UTIL */
@@ -580,7 +604,7 @@ $(document).ready(function() {
     $('#checkAll').change(function() {
         var $checkboxes = $('#attributeTypeTableBody').find('input[type="checkbox"]');
         $checkboxes.prop('checked', this.checked);
-        $row = $($checkboxes).closest('tr');
+        var $row = $($checkboxes).closest('tr');
         $row.toggleClass('info', this.checked);
     });
 
