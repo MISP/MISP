@@ -1542,6 +1542,11 @@ class ServersController extends AppController
         }
     }
 
+    public function getSubmoduleQuickUpdateForm($submodule_path=false) {
+        $this->set('submodule', base64_decode($submodule_path));
+        $this->render('ajax/submodule_quick_update_form');
+    }
+
     public function updateSubmodule()
     {
         if (!$this->_isSiteAdmin()) {
