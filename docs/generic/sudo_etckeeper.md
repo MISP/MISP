@@ -16,6 +16,7 @@ checkSudoKeeper () {
     echo "We added $MISP_USER to group sudo and now we need to log out and in again."
     exit
   else
+    sudo apt update
     sudo apt install etckeeper -y
   fi
 }
