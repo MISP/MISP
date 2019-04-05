@@ -3,7 +3,7 @@
 <h2>Decaying Of Indicator Fine Tuning Tool</h2>
 
 <div class="row">
-    <div class="span9 form-inline" style="border: 1px solid #ddd; border-radius: 4px;">
+    <div class="span9 form-inline" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 15px;">
         <div style="border-bottom: 1px solid #ddd;">
             <label class="checkbox inline">
                 <input id="table_toggle_all_type" type="checkbox"></input>
@@ -51,8 +51,8 @@
                             <td class="useCursorPointer isFilteringField"><?php echo h($info['default_category']); ?></td>
                             <td>
                                 <?php if (isset($associated_models[$type])): ?>
-                                    <?php foreach ($associated_models[$type] as $ids): ?>
-                                        <a href="<?php echo $baseurl; ?>/decayingModel/view/<?php echo h($ids); ?>"><?php echo h($ids); ?></a>
+                                    <?php foreach ($associated_models[$type] as $id): ?>
+                                        <a href="#" onclick="$('#modelId_<?php echo h($id); ?>').find('.decayingLoadBtn').click();"><?php echo h($id); ?></a>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </td>
@@ -63,7 +63,7 @@
         </div>
     </div>
     <div class="span12">
-        <div style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
+        <div class="span10" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
             <div id="decayGraph" style="width: 100%;"></div>
         </div>
         <div class="row">
@@ -82,7 +82,7 @@
                     </div>
                 <?php endforeach; ?>
             </div>
-            <div class="span4">
+            <div class="span6">
                 <table class="table table-striped table-bordered">
                     <tbody>
                         <tr>
@@ -99,17 +99,17 @@
         </div>
 
         <div class="row">
-            <div class="span10">
+            <div class="span12">
                 <form id="saveForm" class="form-inline">
                     <input type="text" name="name" class="input" placeholder="Model name" required>
                     <textarea  rows="1" name="description" class="input" placeholder="Description"></textarea>
-                    <span class="btn btn-success" data-save-type="add" onclick="saveModel(this)"><i class="fa fa-save"> Save</i></span>
+                    <span class="btn btn-success" data-save-type="add" onclick="decayingTool.saveModel(this)"><i class="fa fa-save"> Save</i></span>
                 </form>
             </div>
         </div>
 
         <div class="row">
-            <div class="span10">
+            <div class="span12">
                 <table class="table table-striped table-bordered">
                     <thead>
                         <tr>
@@ -137,7 +137,7 @@
                                 <td class="DMParameterDelta"><?php echo h($model['DecayingModel']['parameters']['delta']); ?></td>
                                 <td class="DMParameterThreshold"><?php echo h($model['DecayingModel']['parameters']['threshold']); ?></td>
                                 <td>
-                                    <button class="btn btn-success btn-small" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"><?php echo __(' Load model') ?></span></button>
+                                    <button class="btn btn-success btn-small decayingLoadBtn" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"><?php echo __(' Load model') ?></span></button>
                                     <button class="btn btn-danger btn-small" data-save-type="edit" data-model-id="<?php echo h($model['DecayingModel']['id']); ?>" onclick="decayingTool.saveModel(this);"><span class="fa fa-paste"><?php echo __(' Overwrite model') ?></span></button>
                                     <button class="btn btn-info btn-small" onclick="decayingTool.applyModel(this);" title="<?php echo __(' Apply model to selected attribute type') ?>"><span class="fa fa-upload"><?php echo __(' Apply model') ?></span></button>
                                 </td>

@@ -598,6 +598,7 @@ $(document).ready(function() {
 
     $("#attributeTypeTableBody").selectable({
         filter: "tr:not(.hidden)",
+        cancel: "a",
         selected: function( event, ui ) {
             if (event.ctrlKey) {
                 $(ui.selected).toggleClass("info");

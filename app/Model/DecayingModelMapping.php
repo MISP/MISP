@@ -78,7 +78,7 @@ class DecayingModelMapping extends AppModel
                 'recursive' => -1,
                 'fields' => array('attribute_type')
             ));
-            $associated_types = array_unique(array_merge($associated_types, $temp));
+            $associated_types = array_values(array_unique(array_merge($associated_types, $temp)));
         }
         return $associated_types;
     }
