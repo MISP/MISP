@@ -37,7 +37,11 @@
                     break;
                 case 'error':
                     $class = 'error bold';
-                    $versionText = __('Could not retrieve version from github');
+                    if (!$status['isReadable']) {
+                        $versionText = __('Invalid file permission.');
+                    } else {
+                        $versionText = __('Could not retrieve version');
+                    }
                     break;
                 default:
                     $class = '';
@@ -49,13 +53,10 @@
                 <td><?php echo h($submodule) ?></td>
                 <td><?php echo h($status['current']) ?></td>
                 <td><?php echo h($versionText) ?></td>
-                <td>
+                <td class="updateActionCell">
                     <?php
-                    if ($status['upToDate'] != 'same') {
-                        echo $this->Form->create('Server', array('url' => array('action' => 'updateSubmodule'), 'div' => false, 'style' => 'margin: 0px; display: inline-block;'));
-                        echo $this->Form->hidden('submodule', array('value' => h($submodule)));
-                        echo $this->Form->end();
-                        echo '<it class="fas fa-sync useCursorPointer" title="' . __('Update submodule') . '" aria-label="Update" onclick="submitSubmoduleUpdate(this);"></it>';
+                    if ($status['upToDate'] != 'same' && $status['isReadable']) {
+                        echo '<it class="fas fa-sync useCursorPointer" title="' . __('Update submodule') . '" aria-label="Update" data-submodule="' . h($submodule) . '" onclick="submitSubmoduleUpdate(this);"></it>';
                     }
                     ?>
                 </td>

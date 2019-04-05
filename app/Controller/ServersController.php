@@ -1542,6 +1542,11 @@ class ServersController extends AppController
         }
     }
 
+    public function getSubmoduleQuickUpdateForm($submodule_path=false) {
+        $this->set('submodule', base64_decode($submodule_path));
+        $this->render('ajax/submodule_quick_update_form');
+    }
+
     public function updateSubmodule()
     {
         if (!$this->_isSiteAdmin()) {
@@ -1550,8 +1555,6 @@ class ServersController extends AppController
         if ($this->request->is('post')) {
             $request = $this->request->data;
             $submodule = $request['Server']['submodule'];
-            exec('cat ' . APP .'files/misp-galaxy/README.md 2>&1', $resp, $return_code);
-            // $res = array('status' => ($return_code ? false : true), 'output' => implode('\n', $resp));
             $res = $this->Server->updateSubmodule($submodule);
             return new CakeResponse(array('body'=> json_encode($res), 'type' => 'json'));
         } else {

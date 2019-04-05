@@ -4611,8 +4611,10 @@ class Server extends AppModel
                 'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
                 'remoteTimestamp' => exec(sprintf('cd %s; git show -s --pretty=format:%%ct %s', $path, $superproject_submodule_commit_id)),
                 'remote' => $superproject_submodule_commit_id,
-                'upToDate' => ''
+                'upToDate' => '',
+                'isReadable' => is_readable($path) && is_readable($path . '/.git'),
             );
+
             if (!empty($status['remote'])) {
                 if ($status['remote'] == $status['current']) {
                     $status['upToDate'] = 'same';
@@ -4624,7 +4626,12 @@ class Server extends AppModel
             } else {
                 $status['upToDate'] = 'error';
             }
-            $status['timeDiff'] = (new DateTime('@' . $status['remoteTimestamp']))->diff(new DateTime('@' . $status['currentTimestamp']));
+
+            if ($status['isReadable'] && !empty($status['remoteTimestamp']) && !empty($status['currentTimestamp'])) {
+                $status['timeDiff'] = (new DateTime('@' . $status['remoteTimestamp']))->diff(new DateTime('@' . $status['currentTimestamp']));
+            } else {
+                $status['upToDate'] = 'error';
+            }
         }
         return $status;
     }
@@ -4632,17 +4639,17 @@ class Server extends AppModel
     public function updateSubmodule($submodule_name=false) {
         $path = APP . '../';
         if ($submodule_name == false) {
-            $command = sprintf('cd %s; git submodule update', $path);
-            exec($command, $output);
+            $command = sprintf('cd %s; git submodule update 2>&1', $path);
+            exec($command, $output, $return_code);
             $output = implode("\n", $output);
-            $res = array('status' => true, 'output' => $output);
+            $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
         } else if ($this->_isAcceptedSubmodule($submodule_name)) {
-            $command = sprintf('cd %s; git submodule update -- %s', $path, $submodule_name);
-            exec($command, $output);
+            $command = sprintf('cd %s; git submodule update -- %s 2>&1', $path, $submodule_name);
+            exec($command, $output, $return_code);
             $output = implode("\n", $output);
-            $res = array('status' => true, 'output' => $output);
+            $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
         } else {
-            $res = array('status' => false);
+            $res = array('status' => false, 'output' => _('Invalid submodule.'));
         }
         return $res;
     }
