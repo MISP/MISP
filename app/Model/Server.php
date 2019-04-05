@@ -4636,22 +4636,76 @@ class Server extends AppModel
         return $status;
     }
 
-    public function updateSubmodule($submodule_name=false) {
+    public function updateSubmodule($user, $submodule_name=false) {
         $path = APP . '../';
         if ($submodule_name == false) {
             $command = sprintf('cd %s; git submodule update 2>&1', $path);
-            exec($command, $output, $return_code);
+            // exec($command, $output, $return_code);
+            $return_code = 0;
+            $output = array();
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
+            if ($return_code == 0) { // update all DB
+                $this->updateDatabaseAfterPullRouter($submodule_name, $user);
+            }
         } else if ($this->_isAcceptedSubmodule($submodule_name)) {
             $command = sprintf('cd %s; git submodule update -- %s 2>&1', $path, $submodule_name);
-            exec($command, $output, $return_code);
+            // exec($command, $output, $return_code);
+            $return_code = 0;
+            $output = array();
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
+            if ($return_code == 0) { // update DB if necessary
+                $this->updateDatabaseAfterPullRouter($submodule_name, $user);
+            }
         } else {
             $res = array('status' => false, 'output' => __('Invalid submodule.'));
         }
         return $res;
+    }
+
+    public function updateDatabaseAfterPullRouter($submodule_name, $user) {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $eventModel = ClassRegistry::init('Event');
+            $data = array(
+                    'worker' => $eventModel->__getPrioWorkerIfPossible(),
+                    'job_type' => __('update_after_pull'),
+                    'job_input' => __('Updating: ' . $submodule_name),
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => $user['org_id'],
+                    'org' => $user['Organisation']['name'],
+                    'message' => 'Update database after PULL.',
+            );
+            $job->save($data);
+            $jobId = $job->id;
+            $process_id = CakeResque::enqueue(
+                    'prio',
+                    'AdminShell',
+                    array('updateAfterPull', $submodule_name, $jobId, $user['id']),
+                    true
+            );
+            $job->saveField('process_id', $process_id);
+            return $process_id;
+        } else {
+            $result = $this->updateAfterPull($submodule_name, $userId);
+            return $result;
+        }
+    }
+
+    public function updateAfterPull($submodule_name, $userId) {
+        $user = $this->User->getAuthUser($userId);
+        if ($user['Role']['perm_site_admin']) {
+            if (empty($submodule_name)) { // update all
+                
+            } else { // update specific
+
+            }
+        } else {
+            return false;
+        }
     }
 
     public function update($status)

@@ -44,6 +44,24 @@ class AdminShell extends AppShell
         echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
     }
 
+    public function updateAfterPull() {
+        $this->loadModel('Job');
+        $this->loadModel('Server');
+        $submodule_name = $this->args[0];
+        $jobId = $this->args[1];
+        $userId = $this->args[2];
+        $this->Job->id = $jobId;
+        $result = $this->Server->updateAfterPull($submodule_name, $userId) . PHP_EOL;
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("y-m-d H:i:s");
+        if ($result) {
+            $job['Job']['message'] = __('Database updated.');
+        } else {
+            $job['Job']['message'] = __('Could not update the database.');
+        }
+        $this->Job->save($job);
+    }
+
 	public function updateGalaxies() {
 		// The following is 7.x upwards only
 		//$value = $this->args[0] ?? $this->args[0] ?? 0;
