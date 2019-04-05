@@ -71,7 +71,8 @@ curl gcc git gnupg-agent make openssl redis-server vim zip libyara-dev \
 apache2 apache2-doc apache2-utils \
 libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
 jq ntp ntpdate imagemagick tesseract-ocr \
-libxml2-dev libxslt1-dev zlib1g-dev
+libxml2-dev libxslt1-dev zlib1g-dev \
+net-tools
 
 sudo apt -t testing install -y libapache2-mod-php7.3 php7.3 php7.3-cli php7.3-mbstring php7.3-dev php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php-redis php-gnupg php-gd
 
@@ -135,6 +136,72 @@ sudo a2enmod headers
 sudo systemctl restart apache2
 ```
 
+#### Fix redis-server
+
+For some reason or another, redis-server startup scripts are broken, the below will fix this.
+
+```bash
+fixRedis () {
+  # As of 20190124 redis-server init.d scripts are broken and need to be replaced
+  sudo mv /etc/init.d/redis-server /etc/init.d/redis-server_`date +%Y%m%d`
+
+  echo '#! /bin/sh
+### BEGIN INIT INFO
+# Provides:		redis-server
+# Required-Start:	$syslog
+# Required-Stop:	$syslog
+# Should-Start:		$local_fs
+# Should-Stop:		$local_fs
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description:	redis-server - Persistent key-value db
+# Description:		redis-server - Persistent key-value db
+### END INIT INFO
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/bin/redis-server
+DAEMON_ARGS=/etc/redis/redis.conf
+NAME=redis-server
+DESC=redis-server
+PIDFILE=/var/run/redis.pid
+test -x $DAEMON || exit 0
+test -x $DAEMONBOOTSTRAP || exit 0
+set -e
+case "$1" in
+  start)
+	echo -n "Starting $DESC: "
+	touch $PIDFILE
+	chown redis:redis $PIDFILE
+	if start-stop-daemon --start --quiet --umask 007 --pidfile $PIDFILE --chuid redis:redis --exec $DAEMON -- $DAEMON_ARGS
+	then
+		echo "$NAME."
+	else
+		echo "failed"
+	fi
+	;;
+  stop)
+	echo -n "Stopping $DESC: "
+	if start-stop-daemon --stop --retry 10 --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON
+	then
+		echo "$NAME."
+	else
+		echo "failed"
+	fi
+	rm -f $PIDFILE
+	;;
+  restart|force-reload)
+	${0} stop
+	${0} start
+	;;
+  *)
+	echo "Usage: /etc/init.d/$NAME {start|stop|restart|force-reload}" >&2
+	exit 1
+	;;
+esac
+exit 0' | sudo tee /etc/init.d/redis-server
+  sudo chmod 755 /etc/init.d/redis-server
+  sudo /etc/init.d/redis-server start
+}
+```
 
 ### 3/ MISP code
 ------------
@@ -506,7 +573,7 @@ sudo apt-get -t testing install librdkafka-dev php-dev
 sudo pecl install rdkafka
 echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
 sudo phpenmod rdkafka
-#find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | sudo tee -a "$f"; done
+sudo service apache2 restart
 ```
 
 {!generic/misp-dashboard-debian.md!}

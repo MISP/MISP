@@ -7,7 +7,7 @@
 !!! notice
     This is mostly the install [@SteveClement](https://twitter.com/SteveClement)
     uses for testing, qc and random development.
-    Maintained and tested by @SteveClement on 20181023
+    Maintained and tested by @SteveClement on 20190405
 
 !!! warning
     PHP 7.3.0RC4 is not working at the moment with the packaged composer.phar<br />
@@ -68,7 +68,7 @@ libxml2-dev libxslt1-dev zlib1g-dev
 
 # Start haveged to get more entropy (optional)
 sudo apt install haveged -y
-sudo service havegd start
+sudo service haveged start
 
 sudo apt install expect -y
 
@@ -103,7 +103,7 @@ sudo apt-get purge -y expect ; sudo apt autoremove -y
 
 # Enable modules, settings, and default of SSL in Apache
 sudo a2dismod status
-sudo a2enmod ssl rewrite
+sudo a2enmod ssl rewrite headers
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
@@ -112,73 +112,6 @@ sudo a2ensite default-ssl
 #### Apply all changes
 ```bash
 sudo systemctl restart apache2
-```
-
-#### Fix redis-server
-
-For some reason or another, redis-server startup scripts are broken, the below will fix this.
-
-```bash
-fixRedis () {
-  # As of 20190124 redis-server init.d scripts are broken and need to be replaced
-  sudo mv /etc/init.d/redis-server /etc/init.d/redis-server_`date +%Y%m%d`
-
-  echo '#! /bin/sh
-### BEGIN INIT INFO
-# Provides:		redis-server
-# Required-Start:	$syslog
-# Required-Stop:	$syslog
-# Should-Start:		$local_fs
-# Should-Stop:		$local_fs
-# Default-Start:	2 3 4 5
-# Default-Stop:		0 1 6
-# Short-Description:	redis-server - Persistent key-value db
-# Description:		redis-server - Persistent key-value db
-### END INIT INFO
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/usr/bin/redis-server
-DAEMON_ARGS=/etc/redis/redis.conf
-NAME=redis-server
-DESC=redis-server
-PIDFILE=/var/run/redis.pid
-test -x $DAEMON || exit 0
-test -x $DAEMONBOOTSTRAP || exit 0
-set -e
-case "$1" in
-  start)
-	echo -n "Starting $DESC: "
-	touch $PIDFILE
-	chown redis:redis $PIDFILE
-	if start-stop-daemon --start --quiet --umask 007 --pidfile $PIDFILE --chuid redis:redis --exec $DAEMON -- $DAEMON_ARGS
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	;;
-  stop)
-	echo -n "Stopping $DESC: "
-	if start-stop-daemon --stop --retry 10 --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	rm -f $PIDFILE
-	;;
-  restart|force-reload)
-	${0} stop
-	${0} start
-	;;
-  *)
-	echo "Usage: /etc/init.d/$NAME {start|stop|restart|force-reload}" >&2
-	exit 1
-	;;
-esac
-exit 0' | sudo tee /etc/init.d/redis-server
-  sudo chmod 755 /etc/init.d/redis-server
-  sudo /etc/init.d/redis-server start
-}
 ```
 
 ### 3/ MISP code
@@ -225,6 +158,10 @@ sudo -u www-data git submodule foreach --recursive git config core.filemode fals
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+
+# Install Crypt_GPG and Console_CommandLine
+sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 ```
 
 ### 4/ CakePHP
@@ -459,36 +396,9 @@ sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' 
 sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
 sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
 sudo sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
-sudo sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
 
 # Start the workers
 sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh
-
-# some misp-modules dependencies
-sudo apt-get install -y libpq5 libjpeg-dev libfuzzy-dev
-
-sudo chmod 2775 /usr/local/src
-sudo chown root:staff /usr/local/src
-cd /usr/local/src/
-git clone https://github.com/MISP/misp-modules.git
-cd misp-modules
-# pip install
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
-sudo apt install ruby-pygments.rb -y
-sudo gem install asciidoctor-pdf --pre
-
-# install STIX2.0 library to support STIX 2.0 export:
-cd ${PATH_TO_MISP}/cti-python-stix2
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I .
-
-# install additional dependencies for extended object generation and extraction
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec python-magic pathlib
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
-
-# Start misp-modules
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 ```
 
 {!generic/misp-modules-debian.md!}
@@ -555,9 +465,11 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
 ```bash
-apt-get install librdkafka-dev php-dev
-pecl install rdkafka
-find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
+sudo apt-get install librdkafka-dev php-dev
+sudo pecl install rdkafka
+echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
+sudo phpenmod rdkafka
+sudo service apache2 restart
 ```
 
 {!generic/misp-dashboard-debian.md!}
