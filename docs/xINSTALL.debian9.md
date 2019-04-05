@@ -1,14 +1,17 @@
 # INSTALLATION INSTRUCTIONS
-## for Debian 9.5 "stretch"
+## for Debian 9.8 "stretch"
 
 ### 0/ MISP debian stable install - Status
 --------------------------------------
 
 !!! notice
-    Maintained and tested by @SteveClement on 20190221
+    Maintained and tested by @SteveClement on 20190405
 
 !!! warning
-    This install document is NOT working. There are Python issues
+    This install document is NOT working as expected. There are Python issues as we "only" have python 3.5 but need at least python 3.6
+    This guide effectively converts your "stretch" install into a partial "testing" install.
+    Thus following the "testing" install guide is a better choice, but not for production.
+    One manual work-around is to install Python >3.5 from source.
 
 ### 1/ Minimal Debian install
 -------------------------
@@ -17,14 +20,14 @@
 - OpenSSH server
 - This guide assumes a user name of 'misp' with sudo working
 
-{!generic/sudo_etckeeper.md!}
-
 {!generic/globalVariables.md!}
 
 ```bash
-PHP_ETC_BASE=/etc/php/7.0
+PHP_ETC_BASE=/etc/php/7.3
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 ```
+
+{!generic/sudo_etckeeper.md!}
 
 {!generic/ethX.md!}
 
@@ -56,38 +59,37 @@ You need to update python3.5 to python3.7 for [PyMISP](https://github.com/MISP/P
 FIXME: The below breaks redis-server and mariadb-server
 
 ```bash
-#echo "deb http://ftp.de.debian.org/debian testing main" | sudo tee -a /etc/apt/sources.list
-#echo 'APT::Default-Release "stable";' | sudo tee -a /etc/apt/apt.conf.d/00local
-#sudo apt update
-#sudo apt-get -t testing install python3
-#sudo apt-get -t testing install python3-setuptools python3-dev python3-pip python3-redis python3-zmq virtualenv
+echo "deb http://ftp.de.debian.org/debian testing main" | sudo tee -a /etc/apt/sources.list
+echo 'APT::Default-Release "stable";' | sudo tee -a /etc/apt/apt.conf.d/00local
+sudo apt update
+sudo apt-get -t testing install -y python3 python3-setuptools python3-dev python3-pip python3-redis python3-zmq virtualenv
 ```
 
 ```bash
-sudo apt install -y \
+sudo apt -t testing install -y \
 curl gcc git gnupg-agent make openssl redis-server vim zip libyara-dev \
 apache2 apache2-doc apache2-utils \
 libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
 jq ntp ntpdate imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev
 
-#sudo systemctl disable redis-server
+sudo apt -t testing install -y libapache2-mod-php7.3 php7.3 php7.3-cli php7.3-mbstring php7.3-dev php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php-redis php-gnupg php-gd
 
-#sudo apt -y -f install
-
-#sudo /etc/init.d/redis-server restart
-
-sudo apt install -y libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-mbstring php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-opcache php7.0-readline php-redis php-gnupg php-gd
-
-sudo apt install -y \
+sudo apt -t testing install -y \
 mariadb-client \
 mariadb-server
 
-sudo apt install -y jupyter-notebook
+# This is maybe needed. If mysql does not start and you find a solution, please contribute.
+# What did work for me was running mysqld interactively: sudo mysqld
+mkdir -p /var/run/mysqld
+chown mysql /var/run/mysqld
+sudo /etc/init.d/mysql restart
+
+sudo apt -t testing install -y jupyter-notebook
 
 # Start haveged to get more entropy (optional)
 sudo apt install haveged -y
-sudo service havegd start
+sudo service haveged start
 
 sudo apt install expect -y
 
@@ -193,6 +195,11 @@ sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 cd $PATH_TO_MISP/app
 # Make composer cache happy
 sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
+# Update composer.phar
+sudo -H -u www-data php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+sudo -H -u www-data php composer-setup.php
+sudo -H -u www-data php -r "unlink('composer-setup.php');"
 sudo -H -u www-data php composer.phar require kamisama/cake-resque:4.1.2
 sudo -H -u www-data php composer.phar config vendor-dir Vendor
 sudo -H -u www-data php composer.phar install
@@ -310,7 +317,7 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 sudo a2dissite default-ssl
 sudo a2ensite misp-ssl
 
-# Recommended: Change some PHP settings in /etc/php/7.0/apache2/php.ini
+# Recommended: Change some PHP settings in /etc/php/7.3/apache2/php.ini
 # max_execution_time = 300
 # memory_limit = 512M
 # upload_max_filesize = 50M
@@ -421,11 +428,12 @@ cd misp-modules
 # pip install
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
-sudo apt install ruby-pygments.rb -y
+sudo apt -t testing install ruby-pygments.rb -y
 sudo gem install asciidoctor-pdf --pre
 
 # install additional dependencies for extended object generation and extraction
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec python-magic pathlib
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
@@ -491,10 +499,14 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+
+# Tested but some issues arose
 ```bash
-apt-get install librdkafka-dev php-dev
-pecl install rdkafka
-find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
+sudo apt-get -t testing install librdkafka-dev php-dev
+sudo pecl install rdkafka
+echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
+sudo phpenmod rdkafka
+#find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | sudo tee -a "$f"; done
 ```
 
 {!generic/misp-dashboard-debian.md!}

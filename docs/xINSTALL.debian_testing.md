@@ -114,6 +114,72 @@ sudo a2ensite default-ssl
 sudo systemctl restart apache2
 ```
 
+#### Fix redis-server
+
+For some reason or another, redis-server startup scripts are broken, the below will fix this.
+
+```bash
+fixRedis () {
+  # As of 20190124 redis-server init.d scripts are broken and need to be replaced
+  sudo mv /etc/init.d/redis-server /etc/init.d/redis-server_`date +%Y%m%d`
+
+  echo '#! /bin/sh
+### BEGIN INIT INFO
+# Provides:		redis-server
+# Required-Start:	$syslog
+# Required-Stop:	$syslog
+# Should-Start:		$local_fs
+# Should-Stop:		$local_fs
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description:	redis-server - Persistent key-value db
+# Description:		redis-server - Persistent key-value db
+### END INIT INFO
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/bin/redis-server
+DAEMON_ARGS=/etc/redis/redis.conf
+NAME=redis-server
+DESC=redis-server
+PIDFILE=/var/run/redis.pid
+test -x $DAEMON || exit 0
+test -x $DAEMONBOOTSTRAP || exit 0
+set -e
+case "$1" in
+  start)
+	echo -n "Starting $DESC: "
+	touch $PIDFILE
+	chown redis:redis $PIDFILE
+	if start-stop-daemon --start --quiet --umask 007 --pidfile $PIDFILE --chuid redis:redis --exec $DAEMON -- $DAEMON_ARGS
+	then
+		echo "$NAME."
+	else
+		echo "failed"
+	fi
+	;;
+  stop)
+	echo -n "Stopping $DESC: "
+	if start-stop-daemon --stop --retry 10 --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON
+	then
+		echo "$NAME."
+	else
+		echo "failed"
+	fi
+	rm -f $PIDFILE
+	;;
+  restart|force-reload)
+	${0} stop
+	${0} start
+	;;
+  *)
+	echo "Usage: /etc/init.d/$NAME {start|stop|restart|force-reload}" >&2
+	exit 1
+	;;
+esac
+exit 0' | sudo tee /etc/init.d/redis-server
+  sudo chmod 755 /etc/init.d/redis-server
+  sudo /etc/init.d/redis-server start
+}
+```
 
 ### 3/ MISP code
 ------------
@@ -177,7 +243,7 @@ cd $PATH_TO_MISP/app
 sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
 # Update composer.phar
 sudo -H -u www-data php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '93b54496392c062774670ac18b134c3b3a95e5a5e5c8f1a9f115f203b75bf9a129d5daa8ba6a13e2cc8a1da0806388a8') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 sudo -H -u www-data php composer-setup.php
 sudo -H -u www-data php -r "unlink('composer-setup.php');"
 sudo -H -u www-data php composer.phar require kamisama/cake-resque:4.1.2
@@ -417,7 +483,8 @@ cd ${PATH_TO_MISP}/cti-python-stix2
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I .
 
 # install additional dependencies for extended object generation and extraction
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec python-magic pathlib
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
