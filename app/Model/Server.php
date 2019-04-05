@@ -4649,7 +4649,7 @@ class Server extends AppModel
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
         } else {
-            $res = array('status' => false, 'output' => _('Invalid submodule.'));
+            $res = array('status' => false, 'output' => __('Invalid submodule.'));
         }
         return $res;
     }
