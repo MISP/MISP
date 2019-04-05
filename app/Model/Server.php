@@ -4644,7 +4644,7 @@ class Server extends AppModel
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
             if ($return_code == 0) { // update all DB
-                $this->updateDatabaseAfterPullRouter($submodule_name, $user);
+                $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
             }
         } else if ($this->_isAcceptedSubmodule($submodule_name)) {
             $command = sprintf('cd %s; git submodule update -- %s 2>&1', $path, $submodule_name);
@@ -4652,10 +4652,10 @@ class Server extends AppModel
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
             if ($return_code == 0) { // update DB if necessary
-                $this->updateDatabaseAfterPullRouter($submodule_name, $user);
+                $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
             }
         } else {
-            $res = array('status' => false, 'output' => __('Invalid submodule.'));
+            $res = array('status' => false, 'output' => __('Invalid submodule.'), 'job_sent' => false, 'sync_result' => __('unknown'));
         }
         return $res;
     }
@@ -4684,37 +4684,37 @@ class Server extends AppModel
                     true
             );
             $job->saveField('process_id', $process_id);
-            return $process_id;
+            return array('job_sent' => true, 'sync_result' => __('unknown'));
         } else {
-            $result = $this->updateAfterPull($submodule_name, $userId);
-            return $result;
+            $result = $this->updateAfterPull($submodule_name, $user['id']);
+            return array('job_sent' => false, 'sync_result' => $result);
         }
     }
 
     public function updateAfterPull($submodule_name, $userId) {
         $user = $this->User->getAuthUser($userId);
-        $result = false;
+        $result = '';
         if ($user['Role']['perm_site_admin']) {
             $updateAll = empty($submodule_name);
             if ($submodule_name == 'app/files/misp-galaxy' || $updateAll) {
                 $this->Galaxy = ClassRegistry::init('Galaxy');
-                $result = $this->Galaxy->update();
+                $result .= ($this->Galaxy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/misp-objects' || $updateAll) {
                 $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
-                $result = $this->ObjectTemplate->update($user, false, false);
+                $result .= ($this->ObjectTemplate->update($user, false, false) ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/noticelists' || $updateAll) {
                 $this->Noticelist = ClassRegistry::init('Noticelist');
-                $result = $this->Noticelist->update();
+                $result .= ($this->Noticelist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/taxonomies' || $updateAll) {
                 $this->Taxonomy = ClassRegistry::init('Taxonomy');
-                $result = $this->Taxonomy->update();
+                $result .= ($this->Taxonomy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/warninglists' || $updateAll) {
                 $this->Warninglist = ClassRegistry::init('Warninglist');
-                $result = $this->Warninglist->update();
+                $result .= ($this->Warninglist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
         }
         return $result;
