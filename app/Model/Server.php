@@ -4640,9 +4640,7 @@ class Server extends AppModel
         $path = APP . '../';
         if ($submodule_name == false) {
             $command = sprintf('cd %s; git submodule update 2>&1', $path);
-            // exec($command, $output, $return_code);
-            $return_code = 0;
-            $output = array();
+            exec($command, $output, $return_code);
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
             if ($return_code == 0) { // update all DB
@@ -4650,9 +4648,7 @@ class Server extends AppModel
             }
         } else if ($this->_isAcceptedSubmodule($submodule_name)) {
             $command = sprintf('cd %s; git submodule update -- %s 2>&1', $path, $submodule_name);
-            // exec($command, $output, $return_code);
-            $return_code = 0;
-            $output = array();
+            exec($command, $output, $return_code);
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
             if ($return_code == 0) { // update DB if necessary
@@ -4697,15 +4693,31 @@ class Server extends AppModel
 
     public function updateAfterPull($submodule_name, $userId) {
         $user = $this->User->getAuthUser($userId);
+        $result = false;
         if ($user['Role']['perm_site_admin']) {
-            if (empty($submodule_name)) { // update all
-                
-            } else { // update specific
-
+            $updateAll = empty($submodule_name);
+            if ($submodule_name == 'app/files/misp-galaxy' || $updateAll) {
+                $this->Galaxy = ClassRegistry::init('Galaxy');
+                $result = $this->Galaxy->update();
             }
-        } else {
-            return false;
+            if ($submodule_name == 'app/files/misp-objects' || $updateAll) {
+                $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+                $result = $this->ObjectTemplate->update($user, false, false);
+            }
+            if ($submodule_name == 'app/files/noticelists' || $updateAll) {
+                $this->Noticelist = ClassRegistry::init('Noticelist');
+                $result = $this->Noticelist->update();
+            }
+            if ($submodule_name == 'app/files/taxonomies' || $updateAll) {
+                $this->Taxonomy = ClassRegistry::init('Taxonomy');
+                $result = $this->Taxonomy->update();
+            }
+            if ($submodule_name == 'app/files/warninglists' || $updateAll) {
+                $this->Warninglist = ClassRegistry::init('Warninglist');
+                $result = $this->Warninglist->update();
+            }
         }
+        return $result;
     }
 
     public function update($status)

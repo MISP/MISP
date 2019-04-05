@@ -51,15 +51,14 @@ class AdminShell extends AppShell
         $jobId = $this->args[1];
         $userId = $this->args[2];
         $this->Job->id = $jobId;
-        $result = $this->Server->updateAfterPull($submodule_name, $userId) . PHP_EOL;
-        $job['Job']['progress'] = 100;
-        $job['Job']['date_modified'] = date("y-m-d H:i:s");
+        $result = $this->Server->updateAfterPull($submodule_name, $userId);
+        $this->Job->saveField('progress', 100);
+        $this->Job->saveField('date_modified', date("y-m-d H:i:s"));
         if ($result) {
-            $job['Job']['message'] = __('Database updated.');
+            $this->Job->saveField('message', __('Database updated: ' . $submodule_name));
         } else {
-            $job['Job']['message'] = __('Could not update the database.');
+            $this->Job->saveField('message', __('Could not update the database: ' . $submodule_name));
         }
-        $this->Job->save($job);
     }
 
 	public function updateGalaxies() {
@@ -89,7 +88,7 @@ class AdminShell extends AppShell
 	}
 
 	public function updateWarningLists() {
-		$result = $this->Galaxy->update();
+		$result = $this->Warninglist->update();
 		if ($result) {
 			echo 'Warning lists updated';
 		} else {
