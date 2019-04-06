@@ -109,7 +109,7 @@ class Server extends AppModel
                     'setSettings' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
                     'getAuthkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
                     'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
-                    'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]',
+                    'changePassword' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
                     'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
                     'updateDatabase' => 'MISP/app/Console/cake Admin updateDatabase',
                     'updateGalaxies' => 'MISP/app/Console/cake Admin updateGalaxies',
