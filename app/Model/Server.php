@@ -116,7 +116,8 @@ class Server extends AppModel
                     'updateTaxonomies' => 'MISP/app/Console/cake Admin updateTaxonomies',
                     'updateObjectTemplates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
                     'updateWarningLists' => 'MISP/app/Console/cake Admin updateWarningLists',
-                    'updateNoticeLists' => 'MISP/app/Console/cake Admin updateNoticeLists'
+                    'updateNoticeLists' => 'MISP/app/Console/cake Admin updateNoticeLists',
+                    'setDefaultRole' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]'
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')
