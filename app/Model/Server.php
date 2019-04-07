@@ -109,14 +109,15 @@ class Server extends AppModel
                     'setSettings' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
                     'getAuthkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
                     'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
-                    'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]',
+                    'changePassword' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
                     'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
                     'updateDatabase' => 'MISP/app/Console/cake Admin updateDatabase',
                     'updateGalaxies' => 'MISP/app/Console/cake Admin updateGalaxies',
                     'updateTaxonomies' => 'MISP/app/Console/cake Admin updateTaxonomies',
                     'updateObjectTemplates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
                     'updateWarningLists' => 'MISP/app/Console/cake Admin updateWarningLists',
-                    'updateNoticeLists' => 'MISP/app/Console/cake Admin updateNoticeLists'
+                    'updateNoticeLists' => 'MISP/app/Console/cake Admin updateNoticeLists',
+                    'setDefaultRole' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]'
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')
