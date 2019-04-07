@@ -267,4 +267,33 @@ class AdminShell extends AppShell
     {
         return PHP_EOL . '---------------------------------------------------------------' . PHP_EOL;
     }
+
+    public function change_authkey()
+    {
+        if (empty($this->args[0])) {
+            echo 'MISP apikey command line tool.' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Password [email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Password [email] [authkey]';
+            die();
+        }
+        if (!empty($this->args[1])) {
+            $authKey = $this->args[1];
+        } else {
+            $authKey = $this->User->generateAuthKey();
+        }
+        $user = $this->User->find('first', array(
+            'conditions' => array('email' => $this->args[0]),
+            'recursive' => -1,
+            'fields' => array('User.id', 'User.email', 'User.authkey')
+        ));
+        if (empty($user)) {
+            echo 'Invalid e-mail, user not found.';
+            die();
+        }
+        $user['User']['authkey'] = $authKey;
+        $fields = array('id', 'email', 'authkey');
+        if (!$this->User->save($user, true, $fields)) {
+            echo 'Could not update authkey, reason:' . PHP_EOL . json_encode($this->User->validationErrors) . PHP_EOL;
+            die();
+        }
+        echo 'Updated, new key:' . PHP_EOL . $authKey . PHP_EOL;
+    }
 }
