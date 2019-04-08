@@ -657,7 +657,7 @@ $(document).ready(function() {
 
     decayingTool.selectable_widget = $("#attributeTypeTableBody").selectable({
         filter: "tr:not(.hidden)",
-        cancel: "a",
+        cancel: "a, input",
         selected: function( event, ui ) {
             if (event.ctrlKey) {
                 $(ui.selected).toggleClass("info");
@@ -678,14 +678,15 @@ $(document).ready(function() {
 
     $('#attributeTypeTableBody').find('input[type="checkbox"]').change(function() {
         $row = $(this).closest('tr');
-        $row.toggleClass('info', this.checked);
+        $row.toggleClass('info ui-selectee ui-selected', this.checked);
+        decayingTool.backupSelection();
     });
 
     $('#checkAll').change(function() {
         var $checkboxes = $('#attributeTypeTableBody').find('input[type="checkbox"]');
         $checkboxes.prop('checked', this.checked);
         var $row = $($checkboxes).closest('tr');
-        $row.toggleClass('info', this.checked);
+        $row.toggleClass('info ui-selectee ui-selected', this.checked);
     });
 
     $('#table_toggle_all_type').change(function() {
