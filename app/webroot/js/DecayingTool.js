@@ -97,6 +97,11 @@
                 return data;
             },
 
+            /* BASE SCORE */
+            toggleBasescoreForm: function() {
+
+            },
+
             /* CANVAS */
             _init: function() {
                 var that = this;
@@ -186,7 +191,7 @@
                     .append('g')
                     .append('circle')
                     .attr('id', 'decayingGraphDot')
-                    .attr('class', 'decayingGraphDot')
+                    .attr('class', 'decayingGraphDot useCursorPointer')
                     .attr("cx", function(d) { return that.x(that.getReverseScore(parseInt($('#input_Threshold').val()))); })
                     .attr("cy", function(d, i) { return that.y(parseInt($('#input_Threshold').val())); })
                     .attr("r", 5)
@@ -198,7 +203,7 @@
                     .append('g')
                     .append('circle')
                     .attr('id', 'decayingGraphHandleDot')
-                    .attr('class', 'decayingGraphHandleDot')
+                    .attr('class', 'decayingGraphHandleDot useCursorPointer')
                     .attr("cx", function(d) { return that.x(parseFloat($('#input_Tau').val()/2)); })
                     .attr("cy", function(d) { return that.y(that.getScore(parseInt($('#input_Tau').val()/2))); })
                     .attr("r", 5)

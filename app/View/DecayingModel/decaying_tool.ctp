@@ -84,7 +84,7 @@
 
                     </div>
                 <?php endforeach; ?>
-                <button class="btn btn-primary" onclick="toggleBasescoreForm()">
+                <button class="btn btn-primary" onclick="decayingTool.toggleBasescoreForm()">
                     <span class="fa fa-tags"> <?php echo __('Adjust base  score'); ?></span>
                 </button>
             </div>
