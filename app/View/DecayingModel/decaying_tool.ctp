@@ -84,6 +84,9 @@
 
                     </div>
                 <?php endforeach; ?>
+                <button class="btn btn-primary" onclick="toggleBasescoreForm()">
+                    <span class="fa fa-tags"> <?php echo __('Adjust base  score'); ?></span>
+                </button>
             </div>
             <div class="span6">
                 <table class="table table-striped table-bordered">
@@ -121,6 +124,7 @@
                             <th rowspan="2">Org id</th>
                             <th rowspan="2">Description</th>
                             <th colspan="3">Parameters</th>
+                            <th rowspan="2"># Types</th>
                             <th rowspan="2">Action</th>
                         </tr>
                         <tr>
@@ -139,6 +143,7 @@
                                 <td class="DMParameterTau"><?php echo h($model['DecayingModel']['parameters']['tau']); ?></td>
                                 <td class="DMParameterDelta"><?php echo h($model['DecayingModel']['parameters']['delta']); ?></td>
                                 <td class="DMParameterThreshold"><?php echo h($model['DecayingModel']['parameters']['threshold']); ?></td>
+                                <td class="DMNumType"><?php echo isset($associated_types[$model['DecayingModel']['id']]) ? count($associated_types[$model['DecayingModel']['id']]) : 0; ?></td>
                                 <td>
                                     <button class="btn btn-success btn-small decayingLoadBtn" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"><?php echo __(' Load model') ?></span></button>
                                     <button class="btn btn-danger btn-small" data-save-type="edit" data-model-id="<?php echo h($model['DecayingModel']['id']); ?>" onclick="decayingTool.saveModel(this);"><span class="fa fa-paste"><?php echo __(' Overwrite model') ?></span></button>
