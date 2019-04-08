@@ -1027,6 +1027,7 @@ class Feed extends AppModel
         }
         if (!empty($data)) {
             unset($event['Event']['timestamp']);
+            unset($event['Event']['attribute_count']);
             $this->Event->save($event);
         }
         if ($feed['Feed']['publish']) {

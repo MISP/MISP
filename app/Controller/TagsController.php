@@ -573,7 +573,6 @@ class TagsController extends AppController
         if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
             throw new NotFoundException('You don\'t have permission to do that.');
         }
-
         $items = array();
         $favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
         if ($favourites) {
@@ -589,6 +588,10 @@ class TagsController extends AppController
             );
         }
         $items[] = array(
+            'name' => __('Custom Tags'),
+            'value' => "/tags/selectTag/" . h($id) . "/0/" . h($scope)
+        );
+        $items[] = array(
             'name' => __('All Tags'),
             'value' => "/tags/selectTag/" . h($id) . "/all/" . h($scope)
         );
@@ -596,19 +599,16 @@ class TagsController extends AppController
         $this->loadModel('Taxonomy');
         $options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
         foreach ($options as $k => $option) {
-            $tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
-            if (!empty($tags)) {
-                $items[] = array(
-                    'name' => __('Taxonomy Library') . ":" . h($option),
-                    'value' => "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope)
-                );
-            }
+            $items[] = array(
+                'name' => __('Taxonomy Library') . ":" . h($option),
+                'value' => "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope)
+            );
         }
         $this->set('items', $items);
         $this->set('options', array( // set chosen (select picker) options
             'select_options' => array(
                 'multiple' => 0,
-            ),
+            )
         ));
         $this->render('/Elements/generic_picker');
     }
@@ -662,7 +662,12 @@ class TagsController extends AppController
             }
         } else {
             if ($taxonomy_id === '0') {
-                $tags = $this->Taxonomy->getAllTaxonomyTags(true);
+                $temp = $this->Taxonomy->getAllTaxonomyTags(true, false, true);
+                $tags = array();
+                foreach ($temp as $tag) {
+                    $tags[$tag['Tag']['id']] = $tag['Tag'];
+                }
+                unset($temp);
                 $expanded = $tags;
             } elseif ($taxonomy_id === 'favourites') {
                 $tags = array();
@@ -678,15 +683,25 @@ class TagsController extends AppController
                     $expanded = $tags;
                 }
             } elseif ($taxonomy_id === 'all') {
-                $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
-                $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
+                if (!$this->_isSiteAdmin()) {
+                    $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
+                    $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
+                }
                 $conditions['Tag.hide_tag'] = 0;
-                $allTags = $this->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1, 'order' => array('name asc')));
-                $allTags = $this->Tag->EventTag->Event->massageTags(array('EventTag' => $allTags), 'Event', false);
-                $allTags = $allTags['EventTag'];
+                $allTags = $this->Tag->find('all', array(
+                    'conditions' => $conditions,
+                    'recursive' => -1,
+                    'order' => array('name asc'),
+                    'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
+                ));
                 $tags = array();
-                foreach ($allTags as $i => $tag) {
-                    if (!empty($tag['Tag'])) {
+                foreach ($allTags as $k => $tag) {
+                    $temp = explode(':', $tag['Tag']['name']);
+                    if (count($temp) > 1) {
+                        if ($temp[0] !== 'misp-galaxy') {
+                            $tags[$tag['Tag']['id']] = $tag['Tag'];
+                        }
+                    } else {
                         $tags[$tag['Tag']['id']] = $tag['Tag'];
                     }
                 }

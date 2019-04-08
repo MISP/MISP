@@ -2394,6 +2394,7 @@ function freetextImportResultsSubmit(id, count) {
                 category:$('#Attribute' + i + 'Category').val(),
                 type:$('#Attribute' + i + 'Type').val(),
                 to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
+                disable_correlation:$('#Attribute' + i + 'Disable_correlation')[0].checked,
                 comment:$('#Attribute' + i + 'Comment').val(),
                 distribution:$('#Attribute' + i + 'Distribution').val(),
                 sharing_group_id:$('#Attribute' + i + 'SharingGroupId').val(),
@@ -2420,6 +2421,91 @@ function freetextImportResultsSubmit(id, count) {
         complete:function() {
             $(".loading").hide();
         },
+    });
+}
+
+function moduleResultsSubmit(id) {
+    var data_collected = {};
+    var temp;
+    if ($('.MISPObjects').length) {
+        var objects = [];
+        $(".MISPObject").each(function(o) {
+            var object_uuid = $(this).find('.ObjectUUID').text();
+            temp = {
+                uuid: object_uuid,
+                name: $(this).find('.ObjectName').text(),
+                meta_category: $(this).find('.ObjectMetaCategory').text(),
+                distribution: $(this).find('.ObjectDistribution').val(),
+                sharing_group_id: $(this).find('.ObjectSharingGroup').val()
+            }
+            if ($(this).has('.ObjectID').length) {
+                temp['id'] = $(this).find('.ObjectID').text();
+            }
+            if ($(this).has('.ObjectReferences').length) {
+                var references = [];
+                $(this).find('.ObjectReference').each(function() {
+                    var reference = {
+                        object_uuid: object_uuid,
+                        referenced_uuid: $(this).find('.ReferencedUUID').text(),
+                        relationhip_type: $(this).find('.Relationship').text()
+                    };
+                    references.push(reference);
+                });
+                temp['ObjectReference'] = references;
+            }
+            if ($(this).find('.ObjectAttributes').length) {
+                var object_attributes = [];
+                $(this).find('.ObjectAttribute').each(function(a) {
+                    attribute = {
+                        category: $(this).find('.AttributeCategory').text(),
+                        type: $(this).find('.AttributeType').text(),
+                        value: $(this).find('.AttributeValue').text(),
+                        uuid: $(this).find('.AttributeUuid').text(),
+                        to_ids: $(this).find('.AttributeToIds')[0].checked,
+                        disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
+                        comment: $(this).find('.AttributeComment').val(),
+                        distribution: $(this).find('.AttributeDistribution').val(),
+                        sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                    }
+                    object_attributes.push(attribute);
+                });
+                temp['Attribute'] = object_attributes;
+            }
+            objects.push(temp);
+        });
+        data_collected['Object'] = objects;
+    }
+    if ($('.MISPAttributes').length) {
+        var attributes = [];
+        $('.MISPAttribute').each(function(a) {
+            temp = {
+                category: $(this).find('.AttributeCategory').text(),
+                type: $(this).find('.AttributeType').text(),
+                value: $(this).find('.AttributeValue').text(),
+                uuid: $(this).find('.AttributeUuid').text(),
+                to_ids: $(this).find('.AttributeToIds')[0].checked,
+                disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
+                comment: $(this).find('.AttributeComment').val(),
+                distribution: $(this).find('.AttributeDistribution').val(),
+                sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+            }
+            attributes.push(temp);
+        });
+        data_collected['Attribute'] = attributes;
+    }
+    $.ajax({
+        type: "post",
+        cache: false,
+        url: "/events/handleModuleResults/" + id,
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        success:function (data, textStatus) {
+            window.location = '/events/view/' + id;
+        },
+        complete:function() {
+            $(".loading").hide();
+        }
     });
 }
 
@@ -3719,6 +3805,48 @@ function submitMISPUpdate() {
     });
 }
 
+function submitSubmoduleUpdate(clicked) {
+    var $clicked = $(clicked);
+    var submodule_path = $clicked.data('submodule');
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            $clicked.addClass('fa-spin');
+        },
+        dataType:"html",
+        cache: false,
+        success:function (formHTML, textStatus) {
+            var $form = $(formHTML);
+            $('body').append($form);
+            var formData = $form.serialize();
+            $.ajax({
+                data: formData,
+                success:function (data, textStatus) {
+                    if (data.status) {
+                        updateSubModulesStatus(data.output);
+                    } else {
+                        showMessage('error', 'Something went wrong');
+                        $('#submoduleGitResultDiv').show();
+                        $('#submoduleGitResult').removeClass('green').addClass('red').text(data.output);
+                    }
+                },
+                error: function (data) {
+                    showMessage('error', 'Something went wrong');
+                    $('#submoduleGitResultDiv').show();
+                    $('#submoduleGitResult').removeClass('green').addClass('red').text(data.output);
+                },
+                complete:function() {
+                    $clicked.removeClass('fa-spin');
+                    $form.remove();
+                },
+                type:"post",
+                cache: false,
+                url:$form.attr('action'),
+            });
+        },
+        url:'/servers/getSubmoduleQuickUpdateForm/' + (submodule_path !== undefined ? btoa(submodule_path) : ''),
+    });
+}
+
 $(".cortex-json").click(function() {
     var cortex_data = $(this).data('cortex-json');
     cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
@@ -3955,7 +4083,7 @@ function queryEventLock(event_id, user_org_id) {
 
 function checkIfLoggedIn() {
     if (tabIsActive) {
-        $.get("/users/checkIfLoggedIn", function(data) {
+        $.get("/users/checkIfLoggedIn.json", function(data) {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }

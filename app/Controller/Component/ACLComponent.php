@@ -337,6 +337,7 @@ class ACLComponent extends Component
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
                     'getSubmodulesStatus' => array('perm_site_admin'),
+                    'getSubmoduleQuickUpdateForm' => array('perm_site_admin'),
                     'getVersion' => array('*'),
                     'index' => array('OR' => array('perm_sync', 'perm_admin')),
                     'postTest' => array('perm_sync'),
@@ -357,6 +358,7 @@ class ACLComponent extends Component
                     'stopZeroMQServer' => array(),
                     'testConnection' => array('perm_sync'),
                     'update' => array(),
+                    'updateSubmodule' => array(),
                     'uploadFile' => array(),
                     'clearWorkerQueue' => array()
             ),

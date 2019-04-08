@@ -61,7 +61,7 @@
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
     </div>
-    <h3><?php echo __('Submodules version');?><it id="refreshSubmoduleStatus" class="fa fa-refresh useCursorPointer" style="font-size: small; margin-left: 5px;"></it></h3>
+    <h3><?php echo __('Submodules version');?><it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;"></it></h3>
     <div id="divSubmoduleVersions" style="background-color:#f7f7f9;">
     </div>
 
@@ -368,10 +368,14 @@
     });
 
     $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
-    function updateSubModulesStatus() {
+    function updateSubModulesStatus(message) {
         $('#divSubmoduleVersions').empty().append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');
         $.get('<?php echo $baseurl . '/servers/getSubmodulesStatus/'; ?>', function(html){
             $('#divSubmoduleVersions').html(html);
+            if (message !== undefined) {
+                $('#submoduleGitResultDiv').show();
+                $('#submoduleGitResult').text(message);
+            }
         });
     }
 </script>
