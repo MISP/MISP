@@ -5233,6 +5233,10 @@ class EventsController extends AppController
             if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
                 throw new MethodNotAllowedException(__('Invalid event.'));
             }
+            $resolved_data = json_decode($this->request->data['Event']['JsonObject'], true);
+            $default_comment = $this->request->data['Event']['default_comment'];
+            $flashMessage = $this->Event->processModuleResultsDataRouter($this->Auth->user(), $resolved_data, $id, $default_comment);
+            $this->Flash->info($flashMessage);
             $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
         } else {
             throw new MethodNotAllowedException('This endpoint requires a POST request.');

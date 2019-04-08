@@ -5820,27 +5820,46 @@ class Event extends AppModel
         return $message;
     }
 
+    public function processModuleResultsData($user, $resolved_data, $id, $default_comment = '', $jobId = false, $adhereToWarninglists = false)
+    {
+        if ($jobId) {
+            $this->Job = ClassRegistry::init('Job');
+            $this->Job->id = $jobId;
+        }
+        if (isset($resolved_data['Object']) && !empty($resolved_data['Object'])) {
+            $total_objects = count($resolved_data['Object']);
+            foreach ($resolved_data['Object'] as $o => $object) {
+                if (isset($object['Attribute']) && !empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $object_attribute) {
+                        if (empty($object_attribute['comment'])) {
+                            $object_attribute['comment'] = $default_comment;
+                        }
+                    }
+                }
+                $this->Object->captureObject($object, $id, $user);
+                if ($jobId) {
+                    $this->Job->saveField('message', 'Object ' . ($o + 1) . '/' . $total_objects);
+                }
+            }
+        }
+        if (isset($resolved_data['Attribute']) && !empty($resolved_data['Attribute'])) {
+            $total_attributes = count($resolved_data['Attribute']);
+            foreach ($resolved_data['Attribute'] as $a => $attribute) {
+                if (empty($attribute['comment'])) {
+                    $attribute['comment'] = $default_comment;
+                }
+                $this->Attribute->captureAttribute($attribute, $id, $user);
+                if ($jobId) {
+                    $this->Job->saveField('message', 'Attribute ' . ($a + 1) . '/' . $total_attributes);
+                }
+            }
+        }
+    }
+
     public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false)
     {
         if (Configure::read('MISP.background_jobs')) {
-            $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'process_freetext_data',
-                    'job_input' => 'Event: ' . $id,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Processing...',
-            );
-            $job->save($data);
-            $randomFileName = $this->generateRandomFileName() . '.json';
-            App::uses('Folder', 'Utility');
-            App::uses('File', 'Utility');
-            $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0755);
-            $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
+            list($job, $randomFileName, $tempFile) = $this->__initiateProcessJob($user, $id);
             $tempData = array(
                     'user' => $user,
                     'attributes' => $attributes,
@@ -5867,6 +5886,57 @@ class Event extends AppModel
         } else {
             return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
         }
+    }
+
+    public function processModuleResultsDataRouter($user, $resolved_data, $id, $default_comment = '', $adhereToWarninglists = false)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            list($job, $randomFileName, $tempFile) = $this->__initiateProcessJob($user, $id, 'module_results');
+            $tempData = array(
+                    'user' => $user,
+                    'misp_format' => $resolved_data,
+                    'id' => $id,
+                    'default_comment' => $default_comment,
+                    'jobId' => $job->id
+            );
+            $writeResult = $tempFile->write(json_encode($tempData));
+            if ($writeResult) {
+                $tempFile->close();
+                $process_id = CakeResque::enqueue(
+                        'prio',
+                        'EventShell',
+                        array('processmoduleresult', $randomFileName),
+                        true
+                );
+                $job->saveField('process_id', $process_id);
+                return 'Module results ingestion queued for background processing. Related data will be added to the event as it is being processed.';
+            }
+            $tempFile->delete();
+        }
+        return ($this->processModuleResultsData($user, $attributes, $id, $default_comment = ''));
+    }
+
+    private function __initiateProcessJob($user, $id, $format = 'freetext')
+    {
+        $job = ClassRegistry::init('Job');
+        $job->create();
+        $data = array(
+                'worker' => 'default',
+                'job_type' => __('process_' . $format . '_data'),
+                'job_input' => 'Event: ' . $id,
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
+                'message' => 'Processing...'
+        );
+        $job->save($data);
+        $randomFileName = $this->generateRandomFileName() . '.json';
+        App::uses('Folder', 'Utility');
+        App::uses('File', 'Utility');
+        $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0755);
+        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
+        return array($job, $randomFileName, $tempFile);
     }
 
     private function __attachReferences($user, &$event, $sgids, $fields)
