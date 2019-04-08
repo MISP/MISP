@@ -87,10 +87,10 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         'class' => empty($user['User']['disabled']) ? '' : 'background-red',
         'boolean' => $user['User']['disabled']
     );
-    echo $this->Html->script('vis');
-    echo $this->Html->css('vis');
-    echo $this->Html->css('distribution-graph');
-    echo $this->Html->script('network-distribution-graph');
+    echo $this->element('genericElements/assetLoader', array(
+        'css' => array('vis', 'distribution-graph'),
+        'js' => array('vis', 'network-distribution-graph')
+    ));
     echo sprintf(
         '<div class="users view row-fluid"><div class="span8" style="margin:0px;">%s%s</div>%s</div>%s',
         sprintf(
