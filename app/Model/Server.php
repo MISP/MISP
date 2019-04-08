@@ -4571,7 +4571,7 @@ class Server extends AppModel
 
     public function getSubmodulesGitStatus()
     {
-        exec('cd ' . APP . '../; git submodule status --cached | cut -b 2- | cut -d " " -f 1,2 ', $submodules_names);
+        exec('cd ' . APP . '../; git submodule status --cached | grep -v ^- | cut -b 2- | cut -d " " -f 1,2 ', $submodules_names);
         $status = array();
         foreach ($submodules_names as $submodule_name_info) {
             $submodule_name_info = explode(' ', $submodule_name_info);
