@@ -5856,7 +5856,6 @@ class Event extends AppModel
                 return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
             }
             $tempFile->close();
-            $jobId = $job->id;
             $process_id = CakeResque::enqueue(
                     'prio',
                     'EventShell',
