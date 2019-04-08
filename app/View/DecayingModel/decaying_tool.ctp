@@ -39,7 +39,7 @@
                         ?>
                         <tr class="<?php echo $class; ?>">
                             <td><input type="checkbox"></input></td>
-                            <td class="useCursorPointer isFilteringField">
+                            <td class="useCursorPointer isFilteringField isAttributeTypeField">
                                 <?php if(isset($info['isObject']) && $info['isObject']): ?>
                                     <it class="fa fa-cube" title="<?php echo __('Belong to a MISP Object'); ?>"></it>
                                 <?php endif; ?>
@@ -49,7 +49,7 @@
                                 <?php endif; ?>
                             </td>
                             <td class="useCursorPointer isFilteringField"><?php echo h($info['default_category']); ?></td>
-                            <td>
+                            <td class="isFilteringField isModelIdField">
                                 <?php if (isset($associated_models[$type])): ?>
                                     <?php foreach ($associated_models[$type] as $id): ?>
                                         <a href="#" onclick="$('#modelId_<?php echo h($id); ?>').find('.decayingLoadBtn').click();"><?php echo h($id); ?></a>

@@ -340,9 +340,9 @@
                 }
                 this.fetchFormAndSubmit($clicked, type, model_id, data);
             },
-            fetchFormAndSubmit: function($clicked, type, model_id, formData, url) {
+            fetchFormAndSubmit: function($clicked, type, model_id, formData, baseurl) {
                 var that = this;
-                var url = url === undefined ? "/decayingModel/" : url;
+                var url = baseurl === undefined ? "/decayingModel/" : baseurl;
                 if (type == "add") {
                     url += type;
                 } else {
@@ -363,8 +363,10 @@
                         },
                         success: function(data, textStatus) {
                             showMessage('success', 'Network has been saved');
-                            if (url == "/decayingModel/") {
+                            if (baseurl == "/decayingModel/") {
                                 that.refreshRow(data);
+                            } else if (baseurl == "/decayingModelMapping/") {
+                                that.refreshTypeMappingTable(model_id);
                             }
                         },
                         error: function( jqXhr, textStatus, errorThrown ){
@@ -485,20 +487,51 @@
                     });
                 }
             },
-            highlightAttributeType: function(types) {
+            highlightAttributeType: function(obj) {
                 var that = this;
-                var $checkboxes = $('#attributeTypeTableBody').find('input[type="checkbox"]');
-                $checkboxes.prop('checked', false);
-                var $row = $($checkboxes).closest('tr');
-                $row.removeClass('info');
+                if (obj instanceof jQuery) {
+                    var $tr = obj;
+                } else { // obj is list of type
+                    var $tr = this.findMatchingAttributeType(obj);
+                }
+                var $all_tr = $('#attributeTypeTableBody').find('tr');
+                var $all_checkboxes = $all_tr.find('input[type="checkbox"]');
+                $all_checkboxes.prop('checked', false);
+                $all_tr.removeClass('info');
+                $tr.forceClass('info', true)
+                    .find('input[type="checkbox"]').prop('checked', true);
+            },
+            refreshModelId: function(model_id, obj) {
+                if (obj instanceof jQuery) {
+                    var $tr = obj;
+                } else { // obj is list of type
+                    var $tr = this.findMatchingAttributeType(obj);
+                }
+                var $all_tr = $('#attributeTypeTableBody').find('tr');
+                $all_tr.find("td.isModelIdField > a:contains('" + model_id + "')").remove();
+                var $a = $('<a href="#" onclick="$(\'#modelId_' + model_id + '\').find(\'.decayingLoadBtn\').click();">' + model_id + '</a>')
+                $tr.find('td.isModelIdField').append($a);
 
-                var $cells = $('#table_attribute_type').find('tbody > tr > td.isFilteringField');
-                $cells.each(function() {
+            },
+            findMatchingAttributeType: function(types) {
+                var $cells = $('#table_attribute_type').find('tbody > tr > td.isAttributeTypeField');
+                var matching = $cells.filter(function() {
                     var value = $(this).text().trim();
                     if (types.includes(value)) {
-                        that.toggleCB($(this).parent(), true);
-                        $(this).parent().forceClass('info', true)
+                        return true;
+                    } else {
+                        return false;
                     }
+                });
+                return matching.parent();
+            },
+            refreshTypeMappingTable: function(model_id) {
+                var that = this;
+                $.getJSON('/decayingModelMapping/viewAssociatedTypes/' + model_id, function(j) {
+                    // ensure that the row contains the model ID
+                    var $tr = that.findMatchingAttributeType(j);
+                    that.highlightAttributeType($tr);
+                    that.refreshModelId(model_id, $tr);
                 });
             },
 
