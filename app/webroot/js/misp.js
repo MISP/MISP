@@ -3819,25 +3819,43 @@ function submitMISPUpdate() {
 
 function submitSubmoduleUpdate(clicked) {
     var $clicked = $(clicked);
-    var $form = $clicked.parent().find('form');
-    var formData = $form.serialize();
+    var submodule_path = $clicked.data('submodule');
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
             $clicked.addClass('fa-spin');
         },
-        data: formData,
-        success:function (data, textStatus) {
-            if (data.output !== '') {
-                showMessage('success', data.output);
-            }
-            updateSubModulesStatus();
-        },
-        complete:function() {
-            $clicked.removeClass('fa-spin');
-        },
-        type:"post",
+        dataType:"html",
         cache: false,
-        url:$form.attr('action'),
+        success:function (formHTML, textStatus) {
+            var $form = $(formHTML);
+            $('body').append($form);
+            var formData = $form.serialize();
+            $.ajax({
+                data: formData,
+                success:function (data, textStatus) {
+                    if (data.status) {
+                        updateSubModulesStatus(data.output);
+                    } else {
+                        showMessage('error', 'Something went wrong');
+                        $('#submoduleGitResultDiv').show();
+                        $('#submoduleGitResult').removeClass('green').addClass('red').text(data.output);
+                    }
+                },
+                error: function (data) {
+                    showMessage('error', 'Something went wrong');
+                    $('#submoduleGitResultDiv').show();
+                    $('#submoduleGitResult').removeClass('green').addClass('red').text(data.output);
+                },
+                complete:function() {
+                    $clicked.removeClass('fa-spin');
+                    $form.remove();
+                },
+                type:"post",
+                cache: false,
+                url:$form.attr('action'),
+            });
+        },
+        url:'/servers/getSubmoduleQuickUpdateForm/' + (submodule_path !== undefined ? btoa(submodule_path) : ''),
     });
 }
 

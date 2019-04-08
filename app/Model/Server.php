@@ -109,14 +109,15 @@ class Server extends AppModel
                     'setSettings' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
                     'getAuthkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
                     'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
-                    'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]',
+                    'changePassword' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
                     'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
                     'updateDatabase' => 'MISP/app/Console/cake Admin updateDatabase',
                     'updateGalaxies' => 'MISP/app/Console/cake Admin updateGalaxies',
                     'updateTaxonomies' => 'MISP/app/Console/cake Admin updateTaxonomies',
                     'updateObjectTemplates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
                     'updateWarningLists' => 'MISP/app/Console/cake Admin updateWarningLists',
-                    'updateNoticeLists' => 'MISP/app/Console/cake Admin updateNoticeLists'
+                    'updateNoticeLists' => 'MISP/app/Console/cake Admin updateNoticeLists',
+                    'setDefaultRole' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]'
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')
@@ -4037,7 +4038,7 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'stix2' => '1.1.1', 'pymisp' => '>2.4.93');
+        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'stix2' => '1.1.2', 'pymisp' => '>2.4.93');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);
@@ -4570,7 +4571,7 @@ class Server extends AppModel
 
     public function getSubmodulesGitStatus()
     {
-        exec('cd ' . APP . '../; git submodule status --cached | cut -b 2- | cut -d " " -f 1,2 ', $submodules_names);
+        exec('cd ' . APP . '../; git submodule status --cached | grep -v ^- | cut -b 2- | cut -d " " -f 1,2 ', $submodules_names);
         $status = array();
         foreach ($submodules_names as $submodule_name_info) {
             $submodule_name_info = explode(' ', $submodule_name_info);
@@ -4611,8 +4612,10 @@ class Server extends AppModel
                 'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
                 'remoteTimestamp' => exec(sprintf('cd %s; git show -s --pretty=format:%%ct %s', $path, $superproject_submodule_commit_id)),
                 'remote' => $superproject_submodule_commit_id,
-                'upToDate' => ''
+                'upToDate' => '',
+                'isReadable' => is_readable($path) && is_readable($path . '/.git'),
             );
+
             if (!empty($status['remote'])) {
                 if ($status['remote'] == $status['current']) {
                     $status['upToDate'] = 'same';
@@ -4624,7 +4627,12 @@ class Server extends AppModel
             } else {
                 $status['upToDate'] = 'error';
             }
-            $status['timeDiff'] = (new DateTime('@' . $status['remoteTimestamp']))->diff(new DateTime('@' . $status['currentTimestamp']));
+
+            if ($status['isReadable'] && !empty($status['remoteTimestamp']) && !empty($status['currentTimestamp'])) {
+                $status['timeDiff'] = (new DateTime('@' . $status['remoteTimestamp']))->diff(new DateTime('@' . $status['currentTimestamp']));
+            } else {
+                $status['upToDate'] = 'error';
+            }
         }
         return $status;
     }
@@ -4632,17 +4640,17 @@ class Server extends AppModel
     public function updateSubmodule($submodule_name=false) {
         $path = APP . '../';
         if ($submodule_name == false) {
-            $command = sprintf('cd %s; git submodule update', $path);
-            exec($command, $output);
+            $command = sprintf('cd %s; git submodule update 2>&1', $path);
+            exec($command, $output, $return_code);
             $output = implode("\n", $output);
-            $res = array('status' => true, 'output' => $output);
+            $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
         } else if ($this->_isAcceptedSubmodule($submodule_name)) {
-            $command = sprintf('cd %s; git submodule update -- %s', $path, $submodule_name);
-            exec($command, $output);
+            $command = sprintf('cd %s; git submodule update -- %s 2>&1', $path, $submodule_name);
+            exec($command, $output, $return_code);
             $output = implode("\n", $output);
-            $res = array('status' => true, 'output' => $output);
+            $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
         } else {
-            $res = array('status' => false);
+            $res = array('status' => false, 'output' => __('Invalid submodule.'));
         }
         return $res;
     }
