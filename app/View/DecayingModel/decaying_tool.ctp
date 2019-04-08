@@ -14,6 +14,9 @@
                 <?php echo __('Show MISP Objects'); ?>
             </label>
             <input id="table_type_search" class="input" style="width: 250px; margin-left: 5px;" type="text" placeholder="<?php echo _('Search Attribute Type'); ?>"></input>
+            <div style="position: relative; display: inline-block">
+                <button class="btn btn-primary btn-small" onclick="decayingTool.restoreSelection()"><span class="fa fa-history"></span></button>
+            </div>
         </div>
         <div style="height: calc(100vh - 175px - 25px); overflow-y: scroll;">
             <table id="table_attribute_type" class="table table-striped table-bordered">

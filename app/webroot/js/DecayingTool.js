@@ -18,6 +18,10 @@
                 margin: {top: 10, right: 10, bottom: 20, left: 30},
             };
             this.options = $.extend(true, {}, default_options, options);
+            this._backup = {
+                selection_history1: [],
+                selection_history2: []
+            };
             this._init();
         };
 
@@ -494,11 +498,12 @@
                 } else { // obj is list of type
                     var $tr = this.findMatchingAttributeType(obj);
                 }
+                decayingTool.backupSelection();
                 var $all_tr = $('#attributeTypeTableBody').find('tr');
                 var $all_checkboxes = $all_tr.find('input[type="checkbox"]');
                 $all_checkboxes.prop('checked', false);
                 $all_tr.removeClass('info');
-                $tr.forceClass('info', true)
+                $tr.forceClass('info ui-selectee ui-selected', true)
                     .find('input[type="checkbox"]').prop('checked', true);
             },
             refreshModelId: function(model_id, obj) {
@@ -533,6 +538,15 @@
                     that.highlightAttributeType($tr);
                     that.refreshModelId(model_id, $tr);
                 });
+            },
+            backupSelection: function() {
+                this._backup.selection_history2 = this._backup.selection_history1;
+                this._backup.selection_history1 = $('#table_attribute_type').find('tbody > tr.info');
+            },
+            restoreSelection: function() {
+                if (this._backup.selection_history2.length > 0) {
+                    selectSelectableElement(this._backup.selection_history2);
+                }
             },
 
             /* UTIL */
@@ -622,6 +636,18 @@ function refreshGraph(updated) {
     decayingTool.redrawGraph();
 }
 
+function selectSelectableElement(elementToSelect) {
+    // add unselecting class to all elements in the styleboard canvas except current one
+    $('#table_attribute_type').find('tbody > tr.info').removeClass("ui-selected").addClass("ui-unselecting");
+
+    // add ui-selecting class to the element to select
+    elementToSelect.addClass("ui-selecting");
+
+    decayingTool.selectable_widget.selectable('refresh');
+    // trigger the mouse stop event (this will select all .ui-selecting elements, and deselect all .ui-unselecting elements)
+    decayingTool.selectable_widget.selectable( "instance" )._mouseStop(null);
+}
+
 var decayingTool;
 $(document).ready(function() {
     $('[data-toggle="tooltip"]').tooltip();
@@ -629,7 +655,7 @@ $(document).ready(function() {
     $(container).decayingTool();
     decayingTool = $(container).data('decayingTool');
 
-    $("#attributeTypeTableBody").selectable({
+    decayingTool.selectable_widget = $("#attributeTypeTableBody").selectable({
         filter: "tr:not(.hidden)",
         cancel: "a",
         selected: function( event, ui ) {
@@ -644,6 +670,9 @@ $(document).ready(function() {
         unselected: function( event, ui ) {
             $(ui.unselected).removeClass("info");
             decayingTool.toggleCB($(ui.unselected), false);
+        },
+        stop: function( event, ui) {
+            decayingTool.backupSelection();
         }
     });
 
