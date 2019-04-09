@@ -192,12 +192,10 @@
           </tbody>
         </table>
       </div>
-      <?php
-            }
-        }
-      ?>
+      <?php } ?>
     </div>
     <?php
+        }
         if (isset($event['Attribute']) && !empty($event['Attribute'])) {
     ?>
     <div class='MISPAttributes'>
@@ -251,11 +249,11 @@
           <?php
                 echo '</tr>';
             }
-        }
           ?>
         </tbody>
       </table>
     </div>
+    <?php } ?>
     <span>
       <button class="btn btn-primary" style="float:left;" onClick="moduleResultsSubmit('<?php echo h($event['Event']['id']); ?>');"><?php echo __('Submit'); ?></button>
     </span>
