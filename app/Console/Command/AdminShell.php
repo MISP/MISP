@@ -39,9 +39,62 @@ class AdminShell extends AppShell
         echo $this->Server->update($status) . PHP_EOL;
     }
 
-    public function restartWorkers() {
+    public function restartWorkers()
+    {
         $this->Server->restartWorkers();
         echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
+    }
+
+    public function restartWorker()
+    {
+        if (empty($this->args[0]) || !is_numeric($this->args[0])) {
+            echo 'Usage: ' . APP . '/cake ' . 'Admin restartWorker [PID]';
+        }
+        $pid = $this->args[0];
+        $result = $this->Server->restartWorker($pid);
+        if ($result === true) {
+            $response = __('Worker restarted.');
+        } else {
+            $response = __('Could not restart the worker. Reason: %s', $result);
+        }
+        echo sprintf(
+            '%s%s%s',
+            PHP_EOL,
+            $response,
+            PHP_EOL
+        );
+    }
+
+    public function killWorker()
+    {
+        if (empty($this->args[0]) || !is_numeric($this->args[0])) {
+            echo 'Usage: ' . APP . '/cake ' . 'Admin killWorker [PID]';
+            die();
+        }
+        $pid = $this->args[0];
+        $result = $this->Server->killWorker($pid, false);
+        echo sprintf(
+            '%s%s%s',
+            PHP_EOL,
+            __('Worker killed.'),
+            PHP_EOL
+        );
+    }
+
+    public function startWorker()
+    {
+        if (empty($this->args[0])) {
+            echo 'Usage: ' . APP . '/cake ' . 'Admin startWorker [queue]';
+            die();
+        }
+        $queue = $this->args[0];
+        $this->Server->startWorker($queue);
+        echo sprintf(
+            '%s%s%s',
+            PHP_EOL,
+            __('Worker started.'),
+            PHP_EOL
+        );
     }
 
 	public function updateGalaxies() {
@@ -141,8 +194,27 @@ class AdminShell extends AppShell
 
 	public function getWorkers() {
 		$result = $this->Server->workerDiagnostics($workerIssueCount);
+        $query = 'all';
+        if (!empty($this->args[0])) {
+            $query = $this->args[0];
+        }
+        if ($query === 'dead') {
+            $dead_workers = array();
+            foreach ($result as $queue => $data) {
+                if (!empty($data['workers'])) {
+                    foreach ($data['workers'] as $k => $worker) {
+                        if ($worker['alive']) {
+                            unset($result[$queue]['workers'][$k]);
+                        }
+                    }
+                }
+                if (empty($result[$queue]['workers'])) {
+                    unset($result[$queue]);
+                }
+            }
+        }
 		echo json_encode($result, JSON_PRETTY_PRINT) . PHP_EOL;
-  }
+    }
 
 	public function getSetting() {
 		$param = empty($this->args[0]) ? 'all' : $this->args[0];
