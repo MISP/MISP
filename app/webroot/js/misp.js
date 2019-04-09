@@ -2444,6 +2444,12 @@ function moduleResultsSubmit(id) {
             if ($(this).has('.ObjectID').length) {
                 temp['id'] = $(this).find('.ObjectID').text();
             }
+            if ($(this).has('.TemplateVersion').length) {
+                temp['template_version'] = $(this).find('.TemplateVersion').text();
+            }
+            if ($(this).has('.TemplateUUID').length) {
+                temp['template_uuid'] = $(this).find('.TemplateUUID').text();
+            }
             if ($(this).has('.ObjectReferences').length) {
                 var references = [];
                 $(this).find('.ObjectReference').each(function() {

@@ -55,6 +55,16 @@
               <td class="bold"><?php echo __('ID');?></td>
               <td class='ObjectID'><?php echo h($object['id']); ?></td>
             </tr>
+            <?php
+                }
+                if (isset($object['template_version']) && !empty($object['template_version'])) {
+            ?>
+            <div style="display:none;" class="TemplateVersion"><?php echo h($object['template_version']); ?></div>
+            <?php
+                }
+                if (isset($object['template_uuid']) && !empty($object['template_uuid'])) {
+            ?>
+            <div style="display:none;" class="TemplateUUID"><?php echo h($object['template_uuid']); ?></div>
             <?php } ?>
             <tr>
               <td class="bold"><?php echo __('Name');?></td>
