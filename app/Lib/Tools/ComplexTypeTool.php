@@ -3,19 +3,76 @@
 class ComplexTypeTool
 {
     private $__refangRegexTable = array(
-        '/^hxxp/i' => 'http',
-        '/^meow/i' => 'http',
-        '/^h\[tt\]p/i' => 'http',
-        '/\[\.\]/' => '.',
-        '/\[dot\]/' => '.',
-        '/\(dot\)/' => '.',
-        '/\\\\\./' => '.',
-        '/\.+/' => '.',
-        '/\[hxxp:\/\/\]/' => 'http://',
-        '/\\\/' => '',
-        '/[\@]/' => '@',
-        '/\[:\]/' => ':'
+        array(
+            'from' => '/^hxxp/i',
+            'to' => 'http',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/^meow/i',
+            'to' => 'http',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/^h\[tt\]p/i',
+            'to' => 'http',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/\[\.\]/',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\[dot\]/',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\(dot\)/',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\\\\\./',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\.+/',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\[hxxp:\/\/\]/',
+            'to' => 'http://',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/\\\/',
+            'to' => ''
+        ),
+        array(
+            'from' => '/[\@]/',
+            'to' => '@',
+            'types' => array('email-src', 'email-dst')
+        ),
+        array(
+            'from' => '/\[:\]/',
+            'to' => ':',
+            'types' => array('url', 'link')
+        )
     );
+
+    public function refangValue($value, $type)
+    {
+        foreach ($this->__refangRegexTable as $regex) {
+            if (!isset($regex['type']) || in_array($type, $regex['types'])) {
+                $value = preg_replace($regex['from'], $regex['to'], $value);
+            }
+        }
+        return $value;
+    }
 
     private $__tlds = array();
 
@@ -329,8 +386,8 @@ class ComplexTypeTool
     private function __refangInput($input)
     {
         $input['refanged'] = $input['raw'];
-        foreach ($this->__refangRegexTable as $regex => $replacement) {
-            $input['refanged'] = preg_replace($regex, $replacement, $input['refanged']);
+        foreach ($this->__refangRegexTable as $regex) {
+            $input['refanged'] = preg_replace($regex['from'], $regex['to'], $input['refanged']);
         }
         $input['refanged'] = rtrim($input['refanged'], ".");
 		$input['refanged'] = preg_replace_callback(
