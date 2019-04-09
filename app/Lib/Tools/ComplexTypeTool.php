@@ -67,7 +67,7 @@ class ComplexTypeTool
     public function refangValue($value, $type)
     {
         foreach ($this->__refangRegexTable as $regex) {
-            if (!isset($regex['type']) || in_array($type, $regex['types'])) {
+            if (!isset($regex['types']) || in_array($type, $regex['types'])) {
                 $value = preg_replace($regex['from'], $regex['to'], $value);
             }
         }
