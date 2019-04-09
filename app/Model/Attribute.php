@@ -1585,7 +1585,7 @@ class Attribute extends AppModel
         }
     }
 
-    public function base64EncodeAttachment($attribute)
+    public function getAttachment($attribute, $path_suffix='')
     {
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {
@@ -1596,21 +1596,20 @@ class Attribute extends AppModel
             // S3 - we have to first get the object then we can encode it
             $s3 = $this->getS3Client();
             // This will return the content of the object
-            $content = $s3->download($attribute['event_id'] . DS . $attribute['id']);
+            $content = $s3->download($attribute['event_id'] . DS . $attribute['id'] . $path_suffix);
         } else {
             // Standard filesystem
-            $filepath = $attachments_dir . DS . $attribute['event_id'] . DS . $attribute['id'];
+            $filepath = $attachments_dir . DS . $attribute['event_id'] . DS . $attribute['id'] . $path_suffix;
             $file = new File($filepath);
             if (!$file->readable()) {
                 return '';
             }
             $content = $file->read();
         }
-
-        return base64_encode($content);
+        return $content;
     }
 
-    public function saveBase64EncodedAttachment($attribute)
+    public function saveAttachment($attribute, $path_suffix)
     {
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {
@@ -1622,17 +1621,17 @@ class Attribute extends AppModel
             // We don't need your fancy directory structures and
             // PEE AICH PEE meddling
             $s3 = $this->getS3Client();
-            $data = base64_decode($attribute['data']);
-            $key = $attribute['event_id'] . DS . $attribute['id'];
+            $data = $attribute['data'];
+            $key = $attribute['event_id'] . DS . $attribute['id'] . $path_suffix;
             $s3->upload($key, $data);
             return true;
         } else {
             // Plebian filesystem operations
             $rootDir = $attachments_dir . DS . $attribute['event_id'];
             $dir = new Folder($rootDir, true);                      // create directory structure
-            $destpath = $rootDir . DS . $attribute['id'];
+            $destpath = $rootDir . DS . $attribute['id'] . $path_suffix;
             $file = new File($destpath, true);                      // create the file
-            $decodedData = base64_decode($attribute['data']);       // decode
+            $decodedData = $attribute['data'];       // decode
             if ($file->write($decodedData)) {                       // save the data
                 return true;
             } else {
@@ -1640,6 +1639,74 @@ class Attribute extends AppModel
                 return false;
             }
         }
+    }
+
+    public function base64EncodeAttachment($attribute)
+    {
+        return base64_encode($this->getAttachment($attribute));
+    }
+
+    public function saveBase64EncodedAttachment($attribute)
+    {
+        $attribute['data'] = base64_decode($attribute['data']);
+        return $this->saveAttachment($attribute);
+    }
+
+    public function getPictureData($attribute, $thumbnail=false, $width=200, $height=200)
+    {
+        $extension = explode('.', $attribute['Attribute']['value']);
+        $extension = end($extension);
+        if (extension_loaded('gd')) {
+            if (!$thumbnail) {
+                $data = $this->getAttachment($attribute['Attribute']);
+                $image = ImageCreateFromString($data);
+                ob_start ();
+                switch ($extension) {
+                    case 'gif':
+                        // php-gd doesn't support animated gif. Skipping...
+                        break;
+                    case 'jpg':
+                    case 'jpeg':
+                        imagejpeg($image);
+                        break;
+                    case 'png':
+                        imagepng($image);
+                        break;
+                    default:
+                        break;
+                    }
+                    $image_data = $extension != 'gif' ? ob_get_contents() : $data;
+                    ob_end_clean ();
+            } else { // thumbnail requested, resample picture with desired dimension and save result
+                $thumbnail_exists = $this->getAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
+                if ($width == 200 && $height == 200 && $thumbnail_exists !== '') { // check if thumbnail already exists
+                    $image_data = $thumbnail_exists;
+                } else {
+                    $data = $this->getAttachment($attribute['Attribute']);
+                    if ($extension == 'gif') {
+                        // $image_data = base64_decode($data);
+                        $image_data = $data;
+                    } else {
+                        $image = ImageCreateFromString($data);
+                        $extension = 'jpg';
+                        $imageTC = ImageCreateTrueColor($width, $height);
+                        ImageCopyResampled($imageTC, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
+                        ob_start ();
+                        imagejpeg ($imageTC);
+                        $image_data = ob_get_contents();
+                        ob_end_clean ();
+                        imagedestroy($image);
+                        imagedestroy($imageTC);
+                    }
+                    // save thumbnail
+                    $attribute['Attribute']['data'] = $image_data;
+                    $this->saveAttachment($attribute['Attribute'], '_thumbnail');
+                }
+            }
+        } else {
+            $image_data = $this->getAttachment($attribute['Attribute']);
+        }
+        return $image_data;
     }
 
     public function __beforeSaveCorrelation($a)
