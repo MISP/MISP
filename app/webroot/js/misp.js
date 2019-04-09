@@ -2460,6 +2460,7 @@ function moduleResultsSubmit(id) {
                 var object_attributes = [];
                 $(this).find('.ObjectAttribute').each(function(a) {
                     attribute = {
+                        object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
                         type: $(this).find('.AttributeType').text(),
                         value: $(this).find('.AttributeValue').text(),
