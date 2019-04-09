@@ -1684,7 +1684,6 @@ class Attribute extends AppModel
                 } else {
                     $data = $this->getAttachment($attribute['Attribute']);
                     if ($extension == 'gif') {
-                        // $image_data = base64_decode($data);
                         $image_data = $data;
                     } else {
                         $image = ImageCreateFromString($data);
@@ -1698,7 +1697,7 @@ class Attribute extends AppModel
                         imagedestroy($image);
                         imagedestroy($imageTC);
                     }
-                    // save thumbnail
+                    // save thumbnail for later reuse
                     $attribute['Attribute']['data'] = $image_data;
                     $this->saveAttachment($attribute['Attribute'], '_thumbnail');
                 }
