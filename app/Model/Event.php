@@ -5826,33 +5826,72 @@ class Event extends AppModel
             $this->Job = ClassRegistry::init('Job');
             $this->Job->id = $jobId;
         }
-        if (isset($resolved_data['Object']) && !empty($resolved_data['Object'])) {
-            $total_objects = count($resolved_data['Object']);
-            foreach ($resolved_data['Object'] as $o => $object) {
-                if (isset($object['Attribute']) && !empty($object['Attribute'])) {
-                    foreach ($object['Attribute'] as $object_attribute) {
-                        if (empty($object_attribute['comment'])) {
-                            $object_attribute['comment'] = $default_comment;
-                        }
-                    }
-                }
-                $this->Object->captureObject($object, $id, $user);
-                if ($jobId) {
-                    $this->Job->saveField('message', 'Object ' . ($o + 1) . '/' . $total_objects);
-                }
+        $failed_attributes = $failed_objects = $saved_attributes = $saved_objects = 0;
+        $items_count = 0;
+        foreach (array('Attribute', 'Object') as $feature) {
+            if (isset($resolved_data[$feature])) {
+                $items_count += count($resolved_data[$feature]);
             }
         }
         if (isset($resolved_data['Attribute']) && !empty($resolved_data['Attribute'])) {
             $total_attributes = count($resolved_data['Attribute']);
             foreach ($resolved_data['Attribute'] as $a => $attribute) {
+                $this->Attribute->create();
                 if (empty($attribute['comment'])) {
                     $attribute['comment'] = $default_comment;
                 }
-                $this->Attribute->captureAttribute($attribute, $id, $user);
+                $attribute['event_id'] = $id;
+                if ($this->Attribute->save($attribute)) {
+                    $saved_attributes++;
+                } else {
+                    $failed_attributes++;
+                }
                 if ($jobId) {
-                    $this->Job->saveField('message', 'Attribute ' . ($a + 1) . '/' . $total_attributes);
+                    $current = ($a + 1);
+                    $this->Job->saveField('message', 'Attribute ' . $current . '/' . $total_attributes);
+                    $this->Job->saveField('progress', ($current * 100 / $items_count));
                 }
             }
+        } else {
+            $total_attributes = 0;
+        }
+        if (isset($resolved_data['Object']) && !empty($resolved_data['Object'])) {
+            $total_objects = count($resolved_data['Object']);
+            foreach ($resolved_data['Object'] as $o => $object) {
+                $this->Object->create();
+                $object['event_id'] = $id;
+                $object['meta-category'] = $object['meta_category'];
+                unset($object['meta_category']);
+                if ($this->Object->save($object)) {
+                    $object_id = $this->Object->id;
+                    if (isset($object['Attribute']) && !empty($object['Attribute'])) {
+                        foreach ($object['Attribute'] as $object_attribute) {
+                            $object_attribute['object_id'] = $object_id;
+                            $object_attribute['event_id'] = $id;
+                            if (empty($object_attribute['comment'])) {
+                                $object_attribute['comment'] = $default_comment;
+                            }
+                            $this->Attribute->create();
+                            if ($this->Attribute->save($object_attribute)) {
+                                $saved_attributes++;
+                            } else {
+                                $failed_attributes++;
+                            }
+                        }
+                    }
+                    $saved_objects++;
+                } else {
+                    $failed_objects++;
+                }
+                if ($jobId) {
+                    $current = ($o + 1);
+                    $this->Job->saveField('message', 'Object ' . $current . '/' . $total_objects);
+                    $this->Job->saveField('progress', (($current + $total_attributes) * 100 / $items_count));
+                }
+            }
+        }
+        if ($jobId) {
+            $this->Job->saveField('message', 'Processing complete');
         }
     }
 
