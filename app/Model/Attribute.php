@@ -3531,13 +3531,6 @@ class Attribute extends AppModel
                         if ($attribute['value'] == $tmpfile->name) {
                             $result['Object'][$k]['Attribute'][$k2]['value'] = $filename;
                         }
-                        if (!empty($attribute['encrypt'])) {
-                            if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
-                                $encrypted = $this->handleMaliciousBase64($event_id, $filename, $attribute['data'], array('md5'));
-                                $result['Object'][$k]['Attribute'][$k2]['data'] = $encrypted['data'];
-                                $result['Object'][$k]['Attribute'][$k2]['value'] = $filename . '|' . $encrypted['md5'];
-                            }
-                        }
                     }
                 }
             }
