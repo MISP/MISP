@@ -1609,7 +1609,7 @@ class Attribute extends AppModel
         return $content;
     }
 
-    public function saveAttachment($attribute, $path_suffix)
+    public function saveAttachment($attribute, $path_suffix='')
     {
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {

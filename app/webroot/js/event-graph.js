@@ -328,6 +328,22 @@ class EventGraph {
                 dataHandler.fetch_data_and_update();
             }
         });
+        menu_display.add_slider({
+            id: 'slider_display_picture_size',
+            label: "Picture size",
+            tooltip: "Picture size",
+            min: 10,
+            max: 500,
+            value: 50,
+            step: 10,
+            applyButton: true,
+            event: function(value) {
+                $("#slider_display_picture_size").parent().find("span").text(value);
+            },
+            eventApply: function(value) {
+                dataHandler.fetch_data_and_update();
+            }
+        });
         return menu_display;
     }
 
@@ -748,6 +764,12 @@ class EventGraph {
                     group: group,
                     mass: 5,
                 };
+                if (node.type == 'attachment') {
+                    // fetch picture via attributes/viewPicture
+                    node_conf.group = 'attribute_image';
+                    node_conf.size = $('#slider_display_picture_size').val();
+                    node_conf.image = baseurl + '/attributes/viewPicture/' + node.id + '/1';
+                }
                 dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
             }
 
@@ -941,7 +963,7 @@ class EventGraph {
             var connected_nodes_ids = this.network.getConnectedNodes(parent_id);
             var connected_nodes = this.nodes.get(connected_nodes_ids);
             for (var node of connected_nodes) {
-                if (node.group == "obj_relation") {
+                if (node.group.slice(0, 12) == "obj_relation") {
                     // remove edge
                     var connected_edges = this.network.getConnectedEdges(node.id);
                     for (var edgeID of connected_edges) {
@@ -994,6 +1016,12 @@ class EventGraph {
                             color: getTextColour(parent_color)
                         }
                     };
+                    if (attr.type == 'attachment') {
+                        // fetch picture via attributes/viewPicture
+                        node.group = 'obj_relation_image';
+                        node.size = $('#slider_display_picture_size').val();
+                        node.image = baseurl + '/attributes/viewPicture/' + attr.id + '/1';
+                    }
                     newNodes.push(node);
                     dataHandler.mapping_obj_relation_value_to_nodeID.set(striped_value, node.id);
 
@@ -1074,17 +1102,17 @@ class EventGraph {
                 }
 
                 if (that.scope_name == 'Reference') {
-                    if (cur_group == 'attribute' || cur_group == 'object') {
-                        new_edge.from = cur_group == 'attribute' ? root_id_attr : root_id_object;
-                        that.nodes.update({id: nodeData.id, unreferenced: cur_group});
+                    if (cur_group.slice(0, 9) == 'attribute' || cur_group == 'object') {
+                        new_edge.from = cur_group.slice(0, 9) == 'attribute' ? root_id_attr : root_id_object;
+                        that.nodes.update({id: nodeData.id, unreferenced: cur_group.slice(0, 9)});
                     }
                 } else if (that.scope_name == 'Tag') {
-                    if (cur_group == 'attribute' || cur_group == 'object') {
+                    if (cur_group.slice(0, 9) == 'attribute' || cur_group == 'object') {
                         new_edge.from = root_id_tag;
                         that.nodes.update({id: nodeData.id, unreferenced: 'tag'});
                     }
                 } else {  // specified key
-                    if (cur_group == 'attribute' || cur_group == 'object') {
+                    if (cur_group.slice(0, 9) == 'attribute' || cur_group == 'object') {
                         new_edge.from = root_id_keyType;
                         that.nodes.update({id: nodeData.id, unreferenced: that.scope_name});
                     }
@@ -1265,7 +1293,7 @@ class EventGraph {
         var nodePositions = eventGraph.network.getPositions();
         eventGraph.nodes.get().forEach(function(nodeD) {
             var nodeP = nodePositions[nodeD.id];
-            if (nodeP !== undefined && nodeD.group != 'obj_relation') {
+            if (nodeP !== undefined && nodeD.group.slice(0, 12) != 'obj_relation') {
                 var temp = {
                     id: nodeD.id,
                     x: nodeP.x,
@@ -1583,7 +1611,7 @@ class MispInteraction {
         var res;
         if (this.nodes.get(id).group == "object") {
             res = true;
-        } else if (this.nodes.get(id).group == "attribute") {
+        } else if (this.nodes.get(id).group.slice(0, 9) == "attribute") {
             res = true;
         } else {
             res = false;
@@ -1609,7 +1637,7 @@ class MispInteraction {
         var selected_nodes = nodeData.nodes;
         for (var nodeID of selected_nodes) {
             var node = this.nodes.get(nodeID)
-            if (node.group == "attribute") {
+            if (node.group.slice(0, 9) == "attribute") {
                 deleteObject('attributes', 'delete', nodeID, scope_id);
             } else if (node.group == "object") {
                 deleteObject('objects', 'delete', nodeID, scope_id);
@@ -1621,7 +1649,7 @@ class MispInteraction {
         var that = mispInteraction;
         var id = nodeData.id
         var group = nodes.get(id).group;
-        if (group == 'attribute') {
+        if (group.slice(0, 9) == 'attribute') {
             simplePopup('/attributes/edit/'+id);
         } else if (group == 'object') {
             window.location = '/objects/edit/'+id;
@@ -2273,6 +2301,16 @@ var network_options = {
                 border:'black'
             },
             size: 15
+        },
+        attribute_image: {
+            shape: 'image',
+            borderWidth: 4,
+            mass: 15
+        },
+        obj_relation_image: {
+            shape: 'image',
+            borderWidth: 4,
+            mass: 15
         },
         tag: {
             shape: 'box',
