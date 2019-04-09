@@ -49,10 +49,6 @@ class ComplexTypeTool
             'types' => array('link', 'url')
         ),
         array(
-            'from' => '/\\\/',
-            'to' => ''
-        ),
-        array(
             'from' => '/[\@]/',
             'to' => '@',
             'types' => array('email-src', 'email-dst')
