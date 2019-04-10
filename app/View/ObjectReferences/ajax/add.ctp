@@ -109,6 +109,7 @@
                                 }
                                 $options = array(
                                     'functionName' => 'changeObjectReferenceSelectOption',
+                                    'select_threshold' => 0,
                                     'chosen_options' => array('width' => '334px'),
                                     'select_options' => array('data-targetselect' => 'targetSelect')
                                 );
