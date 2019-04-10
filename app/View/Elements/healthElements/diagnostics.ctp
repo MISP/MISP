@@ -368,13 +368,26 @@
     });
 
     $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
-    function updateSubModulesStatus(message) {
+    function updateSubModulesStatus(message, job_sent, sync_result) {
+        job_sent = job_sent === undefined ? false : job_sent;
+        sync_result = sync_result === undefined ? '' : sync_result;
         $('#divSubmoduleVersions').empty().append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');
         $.get('<?php echo $baseurl . '/servers/getSubmodulesStatus/'; ?>', function(html){
             $('#divSubmoduleVersions').html(html);
             if (message !== undefined) {
                 $('#submoduleGitResultDiv').show();
                 $('#submoduleGitResult').text(message);
+
+                var $clone = $('#submoduleGitResultDiv').clone();
+                $clone.find('strong').text('Synchronization result:');
+                if (job_sent) {
+                    $clone.find('#submoduleGitResult')
+                        .html('> Synchronizing DB with <a href="/jobs/index/" target="_blank">workers</a>...');
+                } else {
+                    $clone.find('#submoduleGitResult')
+                        .text(sync_result);
+                }
+                $clone.appendTo($('#submoduleGitResultDiv').parent());
             }
         });
     }
