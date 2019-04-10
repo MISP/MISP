@@ -61,7 +61,7 @@ class AdminShell extends AppShell
             $this->Job->saveField('message', __('Could not update the database: ' . $submodule_name));
         }
     }
-    
+
     public function restartWorker()
     {
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
@@ -131,7 +131,7 @@ class AdminShell extends AppShell
                 );
             }
         }
-        echo 'All JSON structures updated. Thank you and have a very safe and productive day.';
+        echo 'All JSON structures updated. Thank you and have a very safe and productive day.' . PHP_EOL;
     }
 
     public function updateGalaxies() {
