@@ -23,12 +23,13 @@ import uuid
 import base64
 import stix2misp_mapping
 import stix.extensions.marking.ais
+from mixbox.namespaces import NamespaceNotFoundError
 from operator import attrgetter
 from stix.core import STIXPackage
 from collections import defaultdict
 
 _MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-3]])
-_PyMISP_dir = '{_MISP_dir}/PyMISP/pymisp'.format(_MISP_dir=_MISP_dir)
+_PyMISP_dir = '{_MISP_dir}/PyMISP'.format(_MISP_dir=_MISP_dir)
 _MISP_objects_path = '{_MISP_dir}/app/files/misp-objects/objects'.format(_MISP_dir=_MISP_dir)
 sys.path.append(_PyMISP_dir)
 from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
@@ -40,7 +41,7 @@ cybox_to_misp_object = {"Account": "credential", "AutonomousSystem": "asn",
 
 threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
 
-with open("{_PyMISP_dir}/data/describeTypes.json".format(_PyMISP_dir=_PyMISP_dir), 'r') as f:
+with open("{_PyMISP_dir}/pymisp/data/describeTypes.json".format(_PyMISP_dir=_PyMISP_dir), 'r') as f:
     categories = json.loads(f.read())['result'].get('categories')
 
 class StixParser():
@@ -1188,9 +1189,27 @@ class ExternalStixParser(StixParser):
             return 2
 
 
-def generate_event(filename):
+def _update_namespaces():
+    from mixbox.namespaces import Namespace, register_namespace
+    # LIST OF ADDITIONAL NAMESPACES
+    # can add additional ones whenever it is needed
+    ADDITIONAL_NAMESPACES = [
+        Namespace('http://us-cert.gov/ciscp', 'CISCP',
+                  'http://www.us-cert.gov/sites/default/files/STIX_Namespace/ciscp_vocab_v1.1.1.xsd')
+    ]
+    for namespace in ADDITIONAL_NAMESPACES:
+        register_namespace(namespace)
+
+
+def generate_event(filename, tries=0):
     try:
         return STIXPackage.from_xml(filename)
+    except NamespaceNotFoundError:
+        if tries == 1:
+            print(4)
+            sys.exit()
+        _update_namespaces()
+        return generate_event(filename, 1)
     except Exception:
         try:
             import maec

@@ -177,14 +177,14 @@ class Galaxy extends AppModel
                                 $elements[] = array(
                                     $galaxyClusterId,
                                     $key,
-                                    $v
+                                    strval($v)
                                 );
                             }
                         } else {
                             $elements[] = array(
                                 $this->GalaxyCluster->id,
                                 $key,
-                                $value
+                                strval($value)
                             );
                         }
                     }
@@ -381,6 +381,20 @@ class Galaxy extends AppModel
                 'conditions' => array('Galaxy.type' => $type, 'Galaxy.namespace' => $namespace),
         ));
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
+    }
+
+    public function getAllowedMatrixGalaxies()
+    {
+        $conditions = array(
+            'NOT' => array(
+                'kill_chain_order' => ''
+            )
+        );
+        $galaxies = $this->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+        ));
+        return $galaxies;
     }
 
     public function getMatrix($galaxy_id)

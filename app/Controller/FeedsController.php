@@ -23,6 +23,7 @@ class FeedsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'previewIndex';
+        $this->Security->unlockedActions[] = 'feedCoverage';
         if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
             throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
         }
@@ -49,7 +50,19 @@ class FeedsController extends AppController
                 );
             }
         }
-        $data = $this->paginate();
+        if ($this->_isRest()) {
+            $keepFields = array('conditions', 'contain', 'recursive', 'sort');
+            $searchParams = array();
+            foreach ($keepFields as $field) {
+                if (!empty($this->paginate[$field])) {
+                    $searchParams[$field] = $this->paginate[$field];
+                }
+            }
+
+            $data = $this->Feed->find('all', $searchParams);
+        } else {
+            $data = $this->paginate();
+        }
         $this->loadModel('Event');
         foreach ($data as $key => $value) {
             if ($value['Feed']['event_id'] != 0 && $value['Feed']['fixed_event']) {
@@ -88,12 +101,32 @@ class FeedsController extends AppController
             'recursive' => -1,
             'contain' => array('Tag')
         ));
+        $feed['Feed']['cached_elements'] = $this->Feed->getCachedElements($feed['Feed']['id']);
+        $feed['Feed']['coverage_by_other_feeds'] = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', 'all') . '%';
         if ($this->_isRest()) {
             if (empty($feed['Tag']['id'])) {
                 unset($feed['Tag']);
             }
             return $this->RestResponse->viewData($feed, $this->response->type());
         }
+        $feeds = $this->Feed->getAllCachingEnabledFeeds($feed['Feed']['id'], true);
+        $this->set('other_feeds', $feeds);
+        $this->set('feed', $feed);
+    }
+
+    public function feedCoverage($feedId)
+    {
+        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
+            throw NotAllowedException('You don\'t have access to this feature.');
+        }
+        $feed = $this->Feed->find('first', array(
+            'conditions' => array('Feed.id' => $feedId),
+            'recursive' => -1,
+            'contain' => array('Tag')
+        ));
+        $result = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', $this->request->data);
+        return $this->RestResponse->viewData($result, $this->response->type());
+
     }
 
     public function importFeeds()
@@ -238,6 +271,7 @@ class FeedsController extends AppController
             throw new NotFoundException(__('Invalid feed.'));
         }
         $this->Feed->read();
+        $this->set('feed', $this->Feed->data);
         $this->loadModel('Event');
         $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $distributionLevels = $this->Event->distributionLevels;
@@ -925,5 +959,51 @@ class FeedsController extends AppController
             $this->set('enable', $enable);
             $this->render('ajax/feedToggleConfirmation');
         }
+    }
+
+    public function searchCaches()
+    {
+        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
+            throw NotAllowedException('You don\'t have access to this feature.');
+        }
+        if (isset($this->passedArgs['pages'])) {
+            $currentPage = $this->passedArgs['pages'];
+        } else {
+            $currentPage = 1;
+        }
+        $urlparams = '';
+        App::uses('CustomPaginationTool', 'Tools');
+        $customPagination = new CustomPaginationTool();
+        $passedArgs = array();
+        $hits = array();
+        $value = false;
+        if ($this->request->is('post')) {
+            if (isset($this->request->data['Feed'])) {
+                $this->request->data = $this->request->data['Feed'];
+            }
+            if (isset($this->request->data['value'])) {
+                $this->request->data = $this->request->data['value'];
+            }
+            $value = $this->request->data;
+        }
+        if (!empty($this->params['named']['value'])) {
+            $value = $this->params['named']['value'];
+        }
+        $hits = $this->Feed->searchCaches($value);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($hits, $this->response->type());
+        } else {
+            $this->set('hits', $hits);
+        }
+        $params = $customPagination->createPaginationRules($hits, $this->passedArgs, $this->alias);
+        $this->params->params['paging'] = array('Feed' => $params);
+        $hits = $customPagination->sortArray($hits, $params, true);
+        if (is_array($hits)) {
+            $customPagination->truncateByPagination($hits, $params);
+        }
+        $pageCount = count($hits);
+        $this->set('urlparams', $urlparams);
+        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgsArray', $passedArgs);
     }
 }

@@ -32,21 +32,21 @@
             </span>
         <?php endforeach; ?>
         <span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
-            <?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'view/'. $galaxy_id), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+            <?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'view/'. $galaxy_id), array('class' => 'icon-remove', 'title' => __('Remove filters')));?>
         </span>
     <?php endif;?>
     <span style="border-right:0px !important;">
         <span id="quickFilterButton" role="button" tabindex="0" aria-label="Filter value galaxie cluster" class="tabMenuFilterFieldButton useCursorPointer"
-            onClick="quickFilter('', '<?php echo $baseurl . '/galaxies/view/' . $galaxy_id; ?>');">Filter</span>
+            onClick="quickFilter('', '<?php echo $baseurl . '/galaxies/view/' . $galaxy_id; ?>');"><?php echo __('Filter');?></span>
         <input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
     </span>
 </div>
 <table class="table table-striped table-hover table-condensed">
     <tr>
         <th><?php echo $this->Paginator->sort('value');?></th>
-        <th><?php echo $this->Paginator->sort('synonyms');?></th>
-        <th>Activity</th>
-        <th>#Events</th>
+        <th><?php echo $this->Paginator->sort('synonyms', __('Synonyms'));?></th>
+        <th><?php echo __('Activity');?></th>
+        <th><?php echo __('#Events');?></th>
         <th><?php echo $this->Paginator->sort('description');?></th>
         <th class="actions"><?php echo __('Actions');?></th>
     </tr>
@@ -77,9 +77,9 @@
             </td>
             <td><?php echo h($item['GalaxyCluster']['description']); ?>&nbsp;</td>
             <td class="short action-links">
-                <?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'viewGraph', $item['GalaxyCluster']['id']), array('class' => 'fa fa-share-alt', 'title' => 'View graph'));?>
-                <?php echo $this->Html->link('', array('action' => 'view', $item['GalaxyCluster']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
-                <span class="icon-trash useCursorPointer" title="<?php echo __('Delete galaxy cluster');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete galaxy cluster');?>" onClick="deleteObject('galaxy_clusters', 'delete', '<?php echo h($item['GalaxyCluster']['id']); ?>', '<?php echo h($item['GalaxyCluster']['id']); ?>');"></span>
+                <?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'viewGraph', $item['GalaxyCluster']['id']), array('class' => 'fa fa-share-alt', 'title' => __('View graph')));?>
+                <?php echo $this->Html->link('', array('action' => 'view', $item['GalaxyCluster']['id']), array('class' => 'fa fa-eye', 'title' => __('View')));?>
+                <span class="fa fa-trash useCursorPointer" title="<?php echo __('Delete galaxy cluster');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete galaxy cluster');?>" onClick="deleteObject('galaxy_clusters', 'delete', '<?php echo h($item['GalaxyCluster']['id']); ?>', '<?php echo h($item['GalaxyCluster']['id']); ?>');"></span>
             </td>
         </tr>
     <?php

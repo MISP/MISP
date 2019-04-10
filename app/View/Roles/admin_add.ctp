@@ -12,7 +12,7 @@
             <div class = 'input clear'></div>
         <?php
             echo $this->Form->input('name');
-            echo $this->Form->input('permission', array('type' => 'select', 'options' => $options), array('value' => '3'));
+            echo $this->Form->input('permission', array('type' => 'select', 'label' => __('Permissions'), 'options' => $options), array('value' => '3'));
         ?>
         <div class = 'input clear'></div>
         <?php

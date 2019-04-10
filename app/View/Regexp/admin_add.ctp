@@ -14,7 +14,7 @@
     <?php
         echo $this->Form->input('all', array(
             'checked' => false,
-            'label' => 'All',
+            'label' => __('All'),
         ));
     ?>
     </div>

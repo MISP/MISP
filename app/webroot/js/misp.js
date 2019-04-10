@@ -79,13 +79,22 @@ function genericPopup(url, popupTarget, callback) {
     });
 }
 
-function screenshotPopup(screenshotData, title) {
-    popupHtml = '<img src="' + screenshotData + '" id="screenshot-image" title="' + title + '" />';
+function screenshotPopup(url, title) {
+    if (!url.startsWith('data:image/')) {
+        url = url.slice(0, -1);
+    }
+    popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>'
+    popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" id="screenshot-image" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();"/>';
     popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+    if (!url.startsWith('data:image/')) {
+        popupHtml += '<a class="close-icon useCursorPointer fa fa-expand" style="right: 20px; background: black; color: white; text-decoration: none;" target="_blank" href="' + url + '" ></a>';
+    }
+    popupHtml += '<div style="height: 20px;"></div>'; // see bottom of image for large one
     $('#screenshot_box').html(popupHtml);
-    $('#screenshot_box').show();
-    left = ($(window).width() / 2) - ($('#screenshot-image').width() / 2);
-    $('#screenshot_box').css({'left': left + 'px'});
+    $('#screenshot_box').css({
+        display: 'block',
+        top: (document.documentElement.scrollTop + 100) + 'px'
+    });
     $("#gray_out").fadeIn();
 }
 
@@ -579,9 +588,11 @@ function submitForm(type, id, field, context) {
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
+    var formData = fetchFormDataAjax("/events/addTag/" + event_id);
+    $('#temp').html(formData);
     $('#EventTag').val(JSON.stringify(selected_tag_ids));
     $.ajax({
-        data: $('#EventSelectTagForm').closest("form").serialize(),
+        data: $('#EventAddTagForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -596,6 +607,7 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
             loadGalaxies(event_id, 'event');
         },
         complete:function() {
+            $('#temp').empty();
             $("#popover_form").fadeOut();
             $("#gray_out").fadeOut();
             $(".loading").hide();
@@ -603,17 +615,20 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
         type:"post",
         url:"/events/addTag/" + event_id
     });
+    $('#temp').remove();
     return false;
 }
 
 function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     var attribute_id = addData.id;
+    var formData = fetchFormDataAjax("/attributes/addTag/" + attribute_id);
+    $('#temp').html(formData);
     $('#AttributeTag').val(JSON.stringify(selected_tag_ids));
     if (attribute_id == 'selected') {
         $('#AttributeAttributeIds').val(getSelected());
     }
     $.ajax({
-        data: $('#AttributeSelectTagForm').closest("form").serialize(),
+        data: $('#AttributeAddTagForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -639,14 +654,17 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
         type:"post",
         url:"/attributes/addTag/" + attribute_id
     });
+    $('#temp').remove();
     return false;
 }
 
 function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     var tag_collection_id = addData.id;
+    var formData = fetchFormDataAjax("/tag_collections/addTag/" + tag_collection_id);
+    $('#temp').html(formData);
     $('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
     $.ajax({
-        data: $('#TagCollectionSelectTagForm').closest("form").serialize(),
+        data: $('#TagCollectionAddTagForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -666,6 +684,7 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
         type:"post",
         url:"/tag_collections/addTag/" + tag_collection_id
     });
+    $('#temp').remove();
     return false;
 }
 
@@ -1423,7 +1442,7 @@ function openPopup(id) {
     var window_height = $(window).height();
     var popup_height = $(id).height();
     if (window_height < popup_height) {
-        $(id).css("top", 0);
+        $(id).css("top", 50);
         $(id).css("height", window_height);
         $(id).addClass('vertical-scroll');
     } else {
@@ -1855,8 +1874,12 @@ function runIndexQuickFilter(preserveParams) {
     if (!passedArgsArray) {
         var passedArgsArray = [];
     }
+    var searchKey = 'searchall';
+    if ($('#quickFilterField').data('searchkey')) {
+        searchKey = $('#quickFilterField').data('searchkey');
+    }
     if ( $('#quickFilterField').val().trim().length > 0){
-        passedArgsArray["searchall"] = $('#quickFilterField').val().trim();
+        passedArgsArray[searchKey] = $('#quickFilterField').val().trim();
     }
     url = here;
     if (typeof preserveParams !== "undefined") {
@@ -1888,16 +1911,6 @@ function quickFilterRemoteEvents(passedArgs, id) {
     }
     window.location.href=url;
 }
-
-$('#quickFilterField').bind("enterKey",function(e){
-    $('#quickFilterButton').trigger("click");
-});
-$('#quickFilterField').keyup(function(e){
-    if(e.keyCode == 13)
-    {
-        $('#quickFilterButton').trigger("click");
-    }
-});
 
 function remoteIndexApplyFilters() {
     var url = actionUrl + '/' + $("#EventFilter").val();
@@ -2371,6 +2384,7 @@ function freetextImportResultsSubmit(id, count) {
                 category:$('#Attribute' + i + 'Category').val(),
                 type:$('#Attribute' + i + 'Type').val(),
                 to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
+                disable_correlation:$('#Attribute' + i + 'Disable_correlation')[0].checked,
                 comment:$('#Attribute' + i + 'Comment').val(),
                 distribution:$('#Attribute' + i + 'Distribution').val(),
                 sharing_group_id:$('#Attribute' + i + 'SharingGroupId').val(),
@@ -2397,6 +2411,91 @@ function freetextImportResultsSubmit(id, count) {
         complete:function() {
             $(".loading").hide();
         },
+    });
+}
+
+function moduleResultsSubmit(id) {
+    var data_collected = {};
+    var temp;
+    if ($('.MISPObjects').length) {
+        var objects = [];
+        $(".MISPObject").each(function(o) {
+            var object_uuid = $(this).find('.ObjectUUID').text();
+            temp = {
+                uuid: object_uuid,
+                name: $(this).find('.ObjectName').text(),
+                meta_category: $(this).find('.ObjectMetaCategory').text(),
+                distribution: $(this).find('.ObjectDistribution').val(),
+                sharing_group_id: $(this).find('.ObjectSharingGroup').val()
+            }
+            if ($(this).has('.ObjectID').length) {
+                temp['id'] = $(this).find('.ObjectID').text();
+            }
+            if ($(this).has('.ObjectReferences').length) {
+                var references = [];
+                $(this).find('.ObjectReference').each(function() {
+                    var reference = {
+                        object_uuid: object_uuid,
+                        referenced_uuid: $(this).find('.ReferencedUUID').text(),
+                        relationhip_type: $(this).find('.Relationship').text()
+                    };
+                    references.push(reference);
+                });
+                temp['ObjectReference'] = references;
+            }
+            if ($(this).find('.ObjectAttributes').length) {
+                var object_attributes = [];
+                $(this).find('.ObjectAttribute').each(function(a) {
+                    attribute = {
+                        category: $(this).find('.AttributeCategory').text(),
+                        type: $(this).find('.AttributeType').text(),
+                        value: $(this).find('.AttributeValue').text(),
+                        uuid: $(this).find('.AttributeUuid').text(),
+                        to_ids: $(this).find('.AttributeToIds')[0].checked,
+                        disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
+                        comment: $(this).find('.AttributeComment').val(),
+                        distribution: $(this).find('.AttributeDistribution').val(),
+                        sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                    }
+                    object_attributes.push(attribute);
+                });
+                temp['Attribute'] = object_attributes;
+            }
+            objects.push(temp);
+        });
+        data_collected['Object'] = objects;
+    }
+    if ($('.MISPAttributes').length) {
+        var attributes = [];
+        $('.MISPAttribute').each(function(a) {
+            temp = {
+                category: $(this).find('.AttributeCategory').text(),
+                type: $(this).find('.AttributeType').text(),
+                value: $(this).find('.AttributeValue').text(),
+                uuid: $(this).find('.AttributeUuid').text(),
+                to_ids: $(this).find('.AttributeToIds')[0].checked,
+                disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
+                comment: $(this).find('.AttributeComment').val(),
+                distribution: $(this).find('.AttributeDistribution').val(),
+                sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+            }
+            attributes.push(temp);
+        });
+        data_collected['Attribute'] = attributes;
+    }
+    $.ajax({
+        type: "post",
+        cache: false,
+        url: "/events/handleModuleResults/" + id,
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        success:function (data, textStatus) {
+            window.location = '/events/view/' + id;
+        },
+        complete:function() {
+            $(".loading").hide();
+        }
     });
 }
 
@@ -3010,12 +3109,12 @@ function syncUserSelected() {
 }
 
 function filterAttributes(filter, id) {
-    url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
+    url = "/events/viewEventAttributes/" + id;
     if(filter === 'value'){
         filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     } else if(filter !== 'all') {
-        url += "/filterColumnsOverwrite:" + filter;
+        url += "/attributeFilter:" + filter
         filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     }
@@ -3202,33 +3301,6 @@ function flashErrorPopover() {
     $("#gray_out").fadeIn();
 }
 
-$(".eventViewAttributeHover").mouseenter(function() {
-    $('#' + currentPopover).popover('destroy');
-    var type = $(this).attr('data-object-type');
-    var id = $(this).attr('data-object-id');
-
-    if (type + "_" + id in ajaxResults["hover"]) {
-        var element = $('#' + type + '_' + id + '_container');
-        element.popover({
-            title: attributeHoverTitle(id, type),
-            content: ajaxResults["hover"][type + "_" + id],
-            placement: attributeHoverPlacement(element),
-            html: true,
-            trigger: 'manual',
-            container: 'body'
-        }).popover('show');
-        currentPopover = type + '_' + id + '_container';
-    } else {
-      timer = setTimeout(function () {
-          runHoverLookup(type, id)
-        },
-        500
-      );
-    }
-}).mouseout(function() {
-    clearTimeout(timer);
-});
-
 function attributeHoverTitle(id, type) {
   return `<span>Lookup results:</span>
 		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup"
@@ -3267,15 +3339,6 @@ $('body').on('click', function (e) {
       $('#' + currentPopover).popover('destroy');
     }
   });
-});
-
-$(".queryPopover").click(function() {
-    url = $(this).data('url');
-    id = $(this).data('id');
-    $.get(url + '/' + id, function(data) {
-        $('#popover_form').html(data);
-        openPopup('#popover_form');
-    });
 });
 
 function serverOwnerOrganisationChange(host_org_id) {
@@ -3378,26 +3441,6 @@ function feedFormUpdate() {
         $('#HeadersDiv').show();
     }
 }
-
-$('.servers_default_role_checkbox').click(function() {
-    var id = $(this).data("id");
-    var state = $(this).is(":checked");
-    $(".servers_default_role_checkbox").not(this).attr('checked', false);
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            handleGenericAjaxResponse(data);
-        },
-        complete:function() {
-            $(".loading").hide();
-        },
-        type:"get",
-        cache: false,
-        url: '/admin/roles/set_default/' + (state ? id : ""),
-    });
-});
 
 function setContextFields() {
     if (showContext) {
@@ -3563,12 +3606,15 @@ function addGalaxyListener(id) {
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
+    var formData = fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope);
+    console.log(formData);
+    $('#temp').html(formData);
     $('#GalaxyTargetIds').val(JSON.stringify(cluster_ids));
     if (target_id == 'selected') {
         $('#AttributeAttributeIds').val(getSelected());
     }
     $.ajax({
-        data: $('#GalaxySelectClusterForm').closest("form").serialize(),
+        data: $('#GalaxyAttachMultipleClustersForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -3596,6 +3642,7 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
         type:"post",
         url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
     });
+    $('#temp').remove();
     return false;
 }
 
@@ -3653,16 +3700,6 @@ function checkRolePerms() {
     }
 }
 
-// clicking on an element with this class will select all of its contents in a
-// single click
-$('.quickSelect').click(function() {
-    var range = document.createRange();
-    var selection = window.getSelection();
-    range.selectNodeContents(this);
-    selection.removeAllRanges();
-    selection.addRange(range);
-});
-
 function updateMISP() {
     $.get( "/servers/update", function(data) {
         $("#confirmation_box").html(data);
@@ -3692,23 +3729,49 @@ function submitMISPUpdate() {
     });
 }
 
-$(".cortex-json").click(function() {
-    var cortex_data = $(this).data('cortex-json');
-    cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-    var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-    popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-    $('#screenshot_box').html(popupHtml);
-    $('#screenshot_box').show();
-    $('#screenshot_box').css({'padding': '5px'});
-    left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
-    if (($('#screenshot_box').height() + 250) > $(window).height()) {
-        $('#screenshot_box').height($(window).height() - 250);
-        $('#screenshot_box').css("overflow-y", "scroll");
-        $('#screenshot_box').css("overflow-x", "hidden");
-    }
-    $('#screenshot_box').css({'left': left + 'px'});
-    $("#gray_out").fadeIn();
-});
+function submitSubmoduleUpdate(clicked) {
+    var $clicked = $(clicked);
+    var submodule_path = $clicked.data('submodule');
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            $clicked.addClass('fa-spin');
+        },
+        dataType:"html",
+        cache: false,
+        success:function (formHTML, textStatus) {
+            var $form = $(formHTML);
+            $('body').append($form);
+            var formData = $form.serialize();
+            $.ajax({
+                data: formData,
+                success:function (data, textStatus) {
+                    if (data.status) {
+                        var job_sent = data.job_sent !== undefined ? data.job_sent : false;
+                        var sync_result = data.sync_result !== undefined ? data.sync_result : '';
+                        updateSubModulesStatus(data.output, job_sent, sync_result);
+                    } else {
+                        showMessage('error', 'Something went wrong');
+                        $('#submoduleGitResultDiv').show();
+                        $('#submoduleGitResult').removeClass('green').addClass('red').text(data.output);
+                    }
+                },
+                error: function (data) {
+                    showMessage('error', 'Something went wrong');
+                    $('#submoduleGitResultDiv').show();
+                    $('#submoduleGitResult').removeClass('green').addClass('red').text(data.output);
+                },
+                complete:function() {
+                    $clicked.removeClass('fa-spin');
+                    $form.remove();
+                },
+                type:"post",
+                cache: false,
+                url:$form.attr('action'),
+            });
+        },
+        url:'/servers/getSubmoduleQuickUpdateForm/' + (submodule_path !== undefined ? btoa(submodule_path) : ''),
+    });
+}
 
 // Show $(id) if the enable parameter evaluates to true. Hide it otherwise
 function checkAndEnable(id, enable) {
@@ -3850,22 +3913,6 @@ function previewEventBasedOnUuids() {
     }
 }
 
-$('.add_object_attribute_row').click(function() {
-    var template_id = $(this).data('template-id');
-    var object_relation = $(this).data('object-relation');
-    var k = $('#last-row').data('last-row');
-    var k = k+1;
-    $('#last-row').data('last-row', k);
-    url = "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
-    $.get(url, function(data) {
-        $('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
-    });
-});
-
-$('.quickToggleCheckbox').toggle(function() {
-    var url = $(this).data('checkbox-url');
-});
-
 function checkNoticeList(type) {
     var fields_to_check = {
         "attribute": ["category", "type"]
@@ -3894,6 +3941,108 @@ function checkNoticeList(type) {
 }
 
 $(document).ready(function() {
+    $('#quickFilterField').bind("enterKey",function(e){
+        $('#quickFilterButton').trigger("click");
+    });
+    $('#quickFilterField').keyup(function(e){
+        if(e.keyCode == 13)
+        {
+            $('#quickFilterButton').trigger("click");
+        }
+    });
+    $(".eventViewAttributeHover").mouseenter(function() {
+        $('#' + currentPopover).popover('destroy');
+        var type = $(this).attr('data-object-type');
+        var id = $(this).attr('data-object-id');
+
+        if (type + "_" + id in ajaxResults["hover"]) {
+            var element = $('#' + type + '_' + id + '_container');
+            element.popover({
+                title: attributeHoverTitle(id, type),
+                content: ajaxResults["hover"][type + "_" + id],
+                placement: attributeHoverPlacement(element),
+                html: true,
+                trigger: 'manual',
+                container: 'body'
+            }).popover('show');
+            currentPopover = type + '_' + id + '_container';
+        } else {
+          timer = setTimeout(function () {
+              runHoverLookup(type, id)
+            },
+            500
+          );
+        }
+    }).mouseout(function() {
+        clearTimeout(timer);
+    });
+    $(".queryPopover").click(function() {
+        url = $(this).data('url');
+        id = $(this).data('id');
+        $.get(url + '/' + id, function(data) {
+            $('#popover_form').html(data);
+            openPopup('#popover_form');
+        });
+    });
+    $('.servers_default_role_checkbox').click(function() {
+        var id = $(this).data("id");
+        var state = $(this).is(":checked");
+        $(".servers_default_role_checkbox").not(this).attr('checked', false);
+        $.ajax({
+            beforeSend: function (XMLHttpRequest) {
+                $(".loading").show();
+            },
+            success:function (data, textStatus) {
+                handleGenericAjaxResponse(data);
+            },
+            complete:function() {
+                $(".loading").hide();
+            },
+            type:"get",
+            cache: false,
+            url: '/admin/roles/set_default/' + (state ? id : ""),
+        });
+    });
+    // clicking on an element with this class will select all of its contents in a
+    // single click
+    $('.quickSelect').click(function() {
+        var range = document.createRange();
+        var selection = window.getSelection();
+        range.selectNodeContents(this);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    });
+    $(".cortex-json").click(function() {
+        var cortex_data = $(this).data('cortex-json');
+        cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
+        var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
+        popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+        $('#screenshot_box').html(popupHtml);
+        $('#screenshot_box').show();
+        $('#screenshot_box').css({'padding': '5px'});
+        left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
+        if (($('#screenshot_box').height() + 250) > $(window).height()) {
+            $('#screenshot_box').height($(window).height() - 250);
+            $('#screenshot_box').css("overflow-y", "scroll");
+            $('#screenshot_box').css("overflow-x", "hidden");
+        }
+        $('#screenshot_box').css({'left': left + 'px'});
+        $("#gray_out").fadeIn();
+    });
+    $('.add_object_attribute_row').click(function() {
+        var template_id = $(this).data('template-id');
+        var object_relation = $(this).data('object-relation');
+        var k = $('#last-row').data('last-row');
+        var k = k+1;
+        $('#last-row').data('last-row', k);
+        url = "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
+        $.get(url, function(data) {
+            $('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
+        });
+    });
+    $('.quickToggleCheckbox').toggle(function() {
+        var url = $(this).data('checkbox-url');
+    });
     $(".correlation-expand-button").on("click", function() {
         $(this).parent().children(".correlation-expanded-area").show();
         $(this).parent().children(".correlation-collapse-button").show();
@@ -3928,7 +4077,7 @@ function queryEventLock(event_id, user_org_id) {
 
 function checkIfLoggedIn() {
     if (tabIsActive) {
-        $.get("/users/checkIfLoggedIn", function(data) {
+        $.get("/users/checkIfLoggedIn.json", function(data) {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }
@@ -3950,7 +4099,6 @@ function insertHTMLRestResponse() {
 function insertJSONRestResponse() {
     $('#rest-response-container').append('<p id="json-response-container" style="border: 1px solid blue; padding:5px;" />');
     var parsedJson = syntaxHighlightJson($('#rest-response-hidden-container').text());
-    console.log(parsedJson);
     $('#json-response-container').html(parsedJson);
 }
 
@@ -3996,6 +4144,125 @@ function liveFilter() {
             }
         });
     }
+}
+
+function sparklineBar(elemId, data, lineCount) {
+    data = d3.csv.parse(data);
+    var y_max = 0;
+    data.forEach(function(e) {
+        e = parseInt(e.val);
+        y_max = e > y_max ? e : y_max;
+    });
+    var WIDTH      = 50;
+    var HEIGHT     = 25;
+    var DATA_COUNT = lineCount;
+    var BAR_WIDTH  = (WIDTH - DATA_COUNT) / DATA_COUNT;
+    var x    = d3.scale.linear().domain([0, DATA_COUNT]).range([0, WIDTH]);
+    var y    = d3.scale.linear().domain([0, y_max]).range([0, HEIGHT]);
+
+    var distributionGraphBarTooltip = d3.select("body").append("div")
+        .attr("class", "distributionGraphBarTooltip")
+        .style("opacity", 0);
+
+    var svg = d3.select(elemId).append('svg')
+      .attr('width', WIDTH)
+      .attr('height', HEIGHT)
+      .append('g');
+    svg.selectAll('.bar').data(data)
+      .enter()
+      .append('g')
+        .attr('title', function(d, i) { return d.scope + ': ' + d.val })
+        .attr('class', 'DGbar')
+      .append('rect')
+        .attr('class', 'bar')
+        .attr('x', function(d, i) { return x(i); })
+        .attr('y', function(d, i) { return HEIGHT - y(d.val); })
+        .attr('width', BAR_WIDTH)
+        .attr('height', function(d, i) { return y(d.val); })
+        .attr('fill', '#3465a4');
+
+        $('.DGbar').tooltip({container: 'body'});
+}
+
+function generic_picker_move(scope, direction) {
+    if (direction === 'right') {
+        $('#' + scope + 'Left option:selected').remove().appendTo('#' + scope + 'Right');
+    } else {
+        $('#' + scope + 'Right option:selected').remove().appendTo('#' + scope + 'Left');
+    }
+}
+
+
+function submit_feed_overlap_tool(feedId) {
+    var result = {"Feed": [], "Server": []};
+    $('#FeedLeft').children().each(function() {
+        result.Feed.push($(this).val());
+    });
+    $('#ServerLeft').children().each(function() {
+        result.Server.push($(this).val());
+    });
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        data: result,
+        success:function (data, textStatus) {
+            if (!isNaN(data)) {
+                $('#feed_coverage_bar').text(data + '%');
+                $('#feed_coverage_bar').css('width', data + '%');
+            } else {
+                handleGenericAjaxResponse({'saved':false, 'errors':['Something went wrong. Received response not in the expected format.']});
+            }
+        },
+        error:function() {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Could not complete the requested action.']});
+        },
+        complete:function() {
+            $(".loading").hide();
+        },
+        type:"post",
+        cache: false,
+        url:"/feeds/feedCoverage/" + feedId,
+    });
+}
+
+function changeTaxonomyRequiredState(checkbox) {
+    var checkbox_state = $(checkbox).is(":checked");
+    var taxonomy_id = $(checkbox).data('taxonomy-id');
+    var formData = fetchFormDataAjax('/taxonomies/toggleRequired/' + taxonomy_id);
+    $.ajax({
+        data: $(formData).serialize(),
+        success:function (data, textStatus) {
+            handleGenericAjaxResponse({'saved':true, 'success':['Taxonomy\'s required state toggled.']});
+        },
+        error:function() {
+            $(checkbox).prop('checked', !$(checkbox).prop('checked'));
+            handleGenericAjaxResponse({'saved':false, 'errors':['Could not toggle the required state of the taxonomy.']});
+        },
+        async:"false",
+        type:"post",
+        cache: false,
+        url: '/taxonomies/toggleRequired/' + taxonomy_id,
+    });
+    formData = false;
+}
+
+function fetchFormDataAjax(url) {
+    var formData = false;
+    $.ajax({
+        data: '[]',
+        success:function (data, textStatus) {
+            formData = data;
+        },
+        error:function() {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+        },
+        async: false,
+        type:"get",
+        cache: false,
+        url: url
+    });
+    return formData;
 }
 
 (function(){

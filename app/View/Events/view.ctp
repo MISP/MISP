@@ -39,6 +39,7 @@
     echo $this->Html->css('query-builder.default');
     echo $this->Html->script('query-builder');
     echo $this->Html->css('attack_matrix');
+    echo $this->Html->script('network-distribution-graph');
 ?>
 <div class="events view">
     <?php
@@ -122,7 +123,8 @@
                     array(
                         'event' => $event,
                         'tags' => $event['EventTag'],
-                        'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id'])
+                        'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id']),
+                        'required_taxonomies' => $required_taxonomies
                     )
                 )
             )
@@ -131,11 +133,13 @@
             'key' => __('Date'),
             'value' => $event['Event']['date']
         );
-        $table_data[] = array(
-            'key' => __('Threat Level'),
-            'key_title' => $eventDescriptions['threat_level_id']['desc'],
-            'value' => $event['ThreatLevel']['name']
-        );
+        if (empty(Configure::read('MISP.disable_threat_level'))) {
+            $table_data[] = array(
+                'key' => __('Threat Level'),
+                'key_title' => $eventDescriptions['threat_level_id']['desc'],
+                'value' => $event['ThreatLevel']['name']
+            );
+        }
         $table_data[] = array(
             'key' => __('Analysis'),
             'key_title' => $eventDescriptions['analysis']['desc'],
@@ -145,15 +149,24 @@
             'key' => __('Distribution'),
             'value_class' => ($event['Event']['distribution'] == 0) ? 'privateRedText' : '',
             'html' => sprintf(
-                '%s %s',
+                '%s %s %s %s',
                 ($event['Event']['distribution'] == 4) ?
                     sprintf('<a href="%s%s">%s</a>', $baseurl . '/sharing_groups/view/', h($event['SharingGroup']['id']), h($event['SharingGroup']['name'])) :
                     h($distributionLevels[$event['Event']['distribution']]),
                 sprintf(
-                    '<span class="%s" data-object-id="%s" data-object-context="event" data-shown="false"></span><div style="display: none">%s</div>',
+                    '<span id="distribution_graph_bar" style="margin-left: 5px;" data-object-id="%s" data-object-context="event"></span>',
+                    h($event['Event']['id'])
+                ),
+                sprintf(
+                    '<it class="%s" data-object-id="%s" data-object-context="event" data-shown="false"></it><div style="display: none">%s</div>',
                     'useCursorPointer fa fa-info-circle distribution_graph',
                     h($event['Event']['id']),
                     $this->element('view_event_distribution_graph')
+                ),
+                sprintf(
+                    '<it type="button" id="showAdvancedSharingButton" title="%s" class="%s" aria-hidden="true" style="margin-left: 5px;"></it>',
+                    __('Toggle advanced sharing network viewer'),
+                    'fa fa-share-alt useCursorPointer'
                 )
             )
         );
@@ -165,17 +178,17 @@
             'key' => __('Published'),
             'class' => ($event['Event']['published'] == 0) ? 'background-red bold not-published' : 'published',
             'class_value' => ($event['Event']['published'] == 0) ? '' : 'green',
-            'html' => ($event['Event']['published'] == 0) ? 'No' : '<span class="green bold">Yes</span>' . ((empty($event['Event']['publish_timestamp'])) ? 'N/A' :  ' (' . date('Y-m-d H:i:s', ($event['Event']['publish_timestamp'])) . ')')
+            'html' => ($event['Event']['published'] == 0) ? __('No') : sprintf('<span class="green bold">%s</span>', __('Yes')) . ((empty($event['Event']['publish_timestamp'])) ? __('N/A') :  ' (' . date('Y-m-d H:i:s', ($event['Event']['publish_timestamp'])) . ')')
         );
         $attribute_text = $attribute_count;
-        $attribute_text .= $object_count > 1 ? sprintf(' (%s Objects)', h($object_count)) : sprintf(' (%s Object)', h($object_count));
+        $attribute_text .= $object_count > 1 ? sprintf(__(' (%s Objects)'), h($object_count)) : sprintf(__(' (%s Object)'), h($object_count));
         $table_data[] = array(
             'key' => __('#Attributes'),
             'value' => $attribute_text
         );
         $table_data[] = array(
             'key' => __('First recorded change'),
-            'value' => date('Y-m-d H:i:s', $event['Event']['timestamp'])
+            'value' => date('Y-m-d H:i:s', $oldest_timestamp)
         );
         $table_data[] = array(
             'key' => __('Last change'),
@@ -217,7 +230,7 @@
                         $extended ? __('extended') : __('atomic')
                     ),
                     sprintf(
-                        '<a href="%s/events/view/%s%s"><span class="icon-refresh"></span></a>',
+                        '<a href="%s/events/view/%s%s"><span class="fa fa-sync"></span></a>',
                         $baseurl,
                         $event['Event']['id'],
                         ($extended ? '' : '/extended:1')
@@ -245,19 +258,19 @@
             if ($isSiteAdmin || $me['org_id'] == $delegationRequest['EventDelegation']['org_id']) {
                 if ($isSiteAdmin) {
                     $message = sprintf(
-                        '%s has requested that %s take over this event.',
+                        __('%s has requested that %s take over this event.'),
                         h($delegationRequest['RequesterOrg']['name']),
                         h($delegationRequest['Org']['name'])
                     );
                 } else {
                     $message = sprintf(
-                        '%s has requested that you take over this event.',
+                        __('%s has requested that you take over this event.'),
                         h($delegationRequest['RequesterOrg']['name'])
                     );
                 }
             } else {
                 $message = sprintf(
-                    'You have requested that %s take over this event.',
+                    __('You have requested that %s take over this event.'),
                     h($delegationRequest['Org']['name'])
                 );
             }
@@ -497,6 +510,7 @@ $(document).ready(function () {
     $.get("/threads/view/<?php echo h($event['Event']['id']); ?>/true", function(data) {
         $("#discussions_div").html(data);
     });
+
 });
 
 function enable_correlation_graph() {

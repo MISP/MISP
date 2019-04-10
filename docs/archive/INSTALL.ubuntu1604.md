@@ -103,7 +103,7 @@ sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
 # Install PHP and dependencies
-sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-mbstring -y
+sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-mbstring php-gd -y
 
 # Apply all changes
 sudo systemctl restart apache2
@@ -439,6 +439,13 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 ```bash
 sudo -H -u www-data /var/www/MISP/venv/bin/pip install pyzmq
+```
+
+#### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+```bash
+apt-get install librdkafka-dev php-dev
+pecl install rdkafka
+find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
 ```
 
 !!! warning

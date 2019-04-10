@@ -107,7 +107,8 @@ installDepsPhp72 () {
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
   php-pear \
-  php-redis php-gnupg
+  php-redis php-gnupg \
+  php-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
@@ -471,6 +472,13 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 ```bash
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
+```
+
+#### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+```bash
+apt-get install librdkafka-dev php-dev
+pecl install rdkafka
+find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
 ```
 
 {!generic/misp-dashboard-debian.md!}

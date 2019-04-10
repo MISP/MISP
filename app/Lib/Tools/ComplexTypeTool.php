@@ -3,19 +3,72 @@
 class ComplexTypeTool
 {
     private $__refangRegexTable = array(
-        '/^hxxp/i' => 'http',
-        '/^meow/i' => 'http',
-        '/^h\[tt\]p/i' => 'http',
-        '/\[\.\]/' => '.',
-        '/\[dot\]/' => '.',
-        '/\(dot\)/' => '.',
-        '/\\\\\./' => '.',
-        '/\.+/' => '.',
-        '/\[hxxp:\/\/\]/' => 'http://',
-        '/\\\/' => '',
-        '/[\@]/' => '@',
-        '/\[:\]/' => ':'
+        array(
+            'from' => '/^hxxp/i',
+            'to' => 'http',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/^meow/i',
+            'to' => 'http',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/^h\[tt\]p/i',
+            'to' => 'http',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/\[\.\]/',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\[dot\]/',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\(dot\)/',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\\\\\./',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\.+/',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\[hxxp:\/\/\]/',
+            'to' => 'http://',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/[\@]/',
+            'to' => '@',
+            'types' => array('email-src', 'email-dst')
+        ),
+        array(
+            'from' => '/\[:\]/',
+            'to' => ':',
+            'types' => array('url', 'link')
+        )
     );
+
+    public function refangValue($value, $type)
+    {
+        foreach ($this->__refangRegexTable as $regex) {
+            if (!isset($regex['types']) || in_array($type, $regex['types'])) {
+                $value = preg_replace($regex['from'], $regex['to'], $value);
+            }
+        }
+        return $value;
+    }
 
     private $__tlds = array();
 
@@ -329,8 +382,8 @@ class ComplexTypeTool
     private function __refangInput($input)
     {
         $input['refanged'] = $input['raw'];
-        foreach ($this->__refangRegexTable as $regex => $replacement) {
-            $input['refanged'] = preg_replace($regex, $replacement, $input['refanged']);
+        foreach ($this->__refangRegexTable as $regex) {
+            $input['refanged'] = preg_replace($regex['from'], $regex['to'], $input['refanged']);
         }
         $input['refanged'] = rtrim($input['refanged'], ".");
 		$input['refanged'] = preg_replace_callback(
@@ -352,7 +405,7 @@ class ComplexTypeTool
 	        // Phone numbers - for automatic recognition, needs to start with + or include dashes
 		if (!empty($input['raw'])) {
 	        if ($input['raw'][0] === '+' || strpos($input['raw'], '-')) {
-	            if (preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input['raw'])) {
+	            if (!preg_match('#^[0-9]{4}-[0-9]{2}-[0-9]{2}$#i', $input['raw']) && preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input['raw'])) {
 	                return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'categories' => array('Other'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input['raw']);
 	            }
 	        }

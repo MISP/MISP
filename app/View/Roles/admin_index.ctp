@@ -21,8 +21,8 @@
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo __('Default');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
-            <th><?php echo $this->Paginator->sort('restricted_to_site_admin');?></th>
-            <th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
+            <th><?php echo $this->Paginator->sort('restricted_to_site_admin', __('Restricted to site admins'));?></th>
+            <th><?php echo $this->Paginator->sort('permission', __('Permissions'));?></th>
             <?php
                 foreach ($permFlags as $k => $flags):
             ?>
@@ -30,20 +30,33 @@
             <?php
                 endforeach;
             ?>
-            <th><?php echo $this->Paginator->sort('memory_limit');?></th>
-            <th><?php echo $this->Paginator->sort('max_execution_time');?></th>
+            <th><?php echo $this->Paginator->sort('memory_limit', __('Memory limit'));?></th>
+            <th><?php echo $this->Paginator->sort('max_execution_time', __('Max execution time'));?></th>
             <th class="actions"><?php echo __('Actions');?></th>
     </tr><?php
 foreach ($list as $item): ?>
     <tr>
         <td><?php echo $this->Html->link(h($item['Role']['id']), array('admin' => true, 'action' => 'edit', $item['Role']['id'])); ?>&nbsp;</td>
-        <td class="short" style="text-align:center;width:20px;"><input class="servers_default_role_checkbox" type="checkbox" data-id="<?php echo h($item['Role']['id']); ?>" <?php if ($default_role_id && $default_role_id == $item['Role']['id']) echo 'checked'; ?>></td>
+        <td class="short" style="text-align:center;width:20px;"><input class="servers_default_role_checkbox" type="checkbox" aria-label="<?php echo __('Default role'); ?>" data-id="<?php echo h($item['Role']['id']); ?>" <?php if ($default_role_id && $default_role_id == $item['Role']['id']) echo 'checked'; ?>></td>
         <td><?php echo h($item['Role']['name']); ?>&nbsp;</td>
-        <td class="short"><span class="<?php if ($item['Role']['restricted_to_site_admin']) echo 'icon-ok'; ?>"></span>&nbsp;</td>
+        <td class="short"><span class="<?php if ($item['Role']['restricted_to_site_admin']) echo 'icon-ok'; ?>" role="img" aria-label="<?php echo $item['Role']['restricted_to_site_admin'] ? __('Yes') : __('No'); ?>"></span>&nbsp;</td>
         <td><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
-        <?php foreach ($permFlags as $k => $flags): ?>
-            <td class="short"><span class="<?php if ($item['Role'][$k]) echo 'icon-ok'; ?>"></span>&nbsp;</td>
-        <?php endforeach; ?>
+        <?php
+            foreach ($permFlags as $k => $flags) {
+                $flagName = Inflector::Humanize(substr($k, 5));
+                echo sprintf(
+                    '<td class="short"><span class="%s" role="img" aria-label="%s" title="%s"></span>&nbsp;</td>',
+                    ($item['Role'][$k]) ? 'icon-ok' : '',
+                    ($item['Role'][$k]) ? __('Yes') : __('No'),		    
+                    sprintf(
+                        __('%s permission %s'),
+                        h($flagName),
+                        $item['Role'][$k] ? 'granted' : 'denied'
+                    )
+
+                );
+            }
+        ?>
         <td class="short">
             <?php
                 if (empty($item['Role']['memory_limit'])) {
@@ -63,8 +76,8 @@ foreach ($list as $item): ?>
             ?>
         </td>
         <td class="short action-links">
-            <?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Role']['id']), array('class' => 'icon-edit', 'title' => 'Edit')); ?>
-            <?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Role']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>
+            <?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Role']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit'))); ?>
+            <?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Role']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>
         </td>
     </tr><?php
 endforeach; ?>

@@ -17,7 +17,7 @@
             (Configure::read('MISP.disableUserSelfManagement') && !$isAdmin) ? '' :
                 sprintf(
                     ' (%s)',
-                    $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']))
+                    $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']))
                 )
         );
     }
@@ -59,8 +59,9 @@
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
         sprintf(
-            '<a href="%s" class="btn btn-inverse" download>Download user profile for data portability</a>',
-            $baseurl . '/users/view/me.json'
+            '<a href="%s" class="btn btn-inverse" download>%s</a>',
+            $baseurl . '/users/view/me.json',
+            __('Download user profile for data portability')
         ),
         $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view'))
     );

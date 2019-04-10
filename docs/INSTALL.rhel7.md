@@ -90,7 +90,7 @@ systemctl enable --now rh-mariadb102-mariadb.service
 
 ## 2.04/ Install PHP 7.2 from SCL
 ```bash
-yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache
+yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache rh-php72-php-gd
 ```
 
 !!! note
@@ -116,22 +116,21 @@ systemctl enable --now rh-redis32-redis.service
 scl enable rh-mariadb102 'mysql_secure_installation'
 ```
 
-## 2.09/ Update the PHP extension repository and install required package
-```bash
-scl enable rh-php72 rh-redis32 bash
-pear channel-update pear.php.net
-pear install Crypt_GPG
-```
-
-## 2.10/ Install haveged and enable to start on boot to provide entropy for GPG
+## 2.09/ Optional: install haveged and enable to start on boot to provide entropy for GPG
 ```bash
 yum install haveged
 systemctl enable --now haveged
 ```
+Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
 
-## 2.11/ Install Python 3.6 from SCL
+## 2.10/ Install Python 3.6 from SCL
 ```bash
 yum install rh-python36
+```
+
+## 2.11/ Install Git 2.18 from SCL
+```bash
+yum install rh-git218
 ```
 
 # 3/ MISP Download
@@ -195,10 +194,11 @@ systemctl restart rh-php72-php-fpm.service
 ## 3.06/ Enable dependencies detection in the diagnostics page
 Add the following content to `/etc/opt/rh/rh-php72/php-fpm.d/www.conf` :
 ```
-env[PATH] =/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin
+env[PATH]=/opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin
+env[LD_LIBRARY_PATH]=/opt/rh/httpd24/root/usr/lib64/
 ```
 Then run `systemctl restart rh-php72-php-fpm.service`.
-This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
+This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings. The LD_LIBRARY_PATH setting is needed for rh-git218 to work, one might think to install httpd24 and not just httpd ...
 
 # 4/ CakePHP
 ## 4.01/ Install CakeResque along with its dependencies if you intend to use the built in background jobs
@@ -254,8 +254,6 @@ chown -R apache:apache /var/www/MISP/app/webroot/img/orgs
 chown -R apache:apache /var/www/MISP/app/webroot/img/custom
 ```
 
-
-
 # 6/ Create database and user
 ## 6.01/ Set database to listen on localhost only
 ```bash
@@ -290,14 +288,10 @@ cp /var/www/MISP/INSTALL/apache.misp.centos7 /etc/httpd/conf.d/misp.conf
 
 ## 7.02/ Since SELinux is enabled, we need to allow httpd to write to certain directories
 ```bash
-chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files
-chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/terms
-chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/scripts/tmp
-chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Plugin/CakeResque/tmp
-chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
-chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/orgs
-chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/custom
+semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/MISP(/.*)?"
+restorecon -R /var/www/MISP/
 ```
+We're providing write access to the whole MISP tree, otherwise updates via the web interface won't work.
 
 ## 7.03/ Allow httpd to connect to the redis server and php-fpm over tcp/ip
 ```bash
@@ -329,13 +323,7 @@ cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 chmod 0640 /etc/logrotate.d/misp
 ```
 
-## 8.02/ Allow logrotate to work under SELinux and modify the log files
-```bash
-semanage fcontext -a -t httpd_log_t "/var/www/MISP/app/tmp/logs(/.*)?"
-chcon -R -t httpd_log_t /var/www/MISP/app/tmp/logs
-```
-
-## 8.03/ Allow logrotate to read /var/www
+## 8.02/ Allow logrotate to read /var/www
 ```bash
 checkmodule -M -m -o /tmp/misplogrotate.mod INSTALL/misplogrotate.te
 semodule_package -o /tmp/misplogrotate.pp -m /tmp/misplogrotate.mod
@@ -381,17 +369,13 @@ cp -a config.default.php config.php
 ```
 
 ## 9.03/ If you want to be able to change configuration parameters from the webinterface:
-```
-chown apache:apache /var/www/MISP/app/Config/config.php
-chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Config/config.php
-```
+Handled by 7.02
 
 ## 9.04/ Generate an encryption key
 ```bash
 gpg --gen-key
 mv ~/.gnupg /var/www/MISP/
-chown -R apache:apache /var/www/MISP/.gnupg
-chcon -R -t httpd_sys_rw_content_t /var/www/MISP/.gnupg
+restorecon -R /var/www/MISP
 ```
 
 !!! note
@@ -443,16 +427,7 @@ systemctl enable --now misp-workers.service
 {!generic/recommended.actions.md!}
 
 # 10/ Post Install
-## 10.01/ Allow apache to write to /var/www/MISP/app/tmp/logs
-If the result from the diagnostic page is that the directory is not writable, try the following.
-```
-chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp/logs/
-```
-
-!!! note
-    This may mean that logrotate cannot access the logs directory, will require further investigation
-
-## 10.02/ Change php.ini settings to suggested limits from diagnostic page.
+## 10.01/ Change php.ini settings to suggested limits from diagnostic page.
 ```bash
 # Edit /etc/opt/rh/rh-php72/php.ini and set the following settings
 max_execution_time = 300
@@ -461,12 +436,12 @@ upload_max_filesize = 50M
 post_max_size = 50M
 ```
 
-## 10.03/ Restart rh-php72 for settings to take effect
+## 10.02/ Restart rh-php72 for settings to take effect
 ```bash
 systemctl restart rh-php72-php-fpm
 ```
 
-## 10.04/ Install pydeep and pymisp
+## 10.03/ Install pydeep and pymisp
 ```bash
 scl enable rh-python36 'python3 -m pip install pymisp git+https://github.com/kbandla/pydeep.git'
 ```

@@ -16,7 +16,6 @@ mispmodules () {
   # If you build an egg, the user you build it as need write permissions in the CWD
   sudo chgrp $WWW_USER .
   sudo chmod g+w .
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install ReportLab
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .

@@ -68,6 +68,7 @@ class ACLComponent extends Component
                     'toggleToIDS' => array('perm_add'),
                     'updateAttributeValues' => array('perm_add'),
                     'view' => array('*'),
+                    'viewPicture' => array('*'),
             ),
             'eventBlacklists' => array(
                     'add' => array(),
@@ -115,10 +116,12 @@ class ACLComponent extends Component
                     'getEventGraphReferences' => array('*'),
                     'getEventGraphTags' => array('*'),
                     'getEventGraphGeneric' => array('*'),
+                    'genDistributionGraph' => array('*'),
                     'getDistributionGraph' => array('*'),
                     'getReferenceData' => array('*'),
                     'getReferences' => array('*'),
                     'getObjectTemplate' => array('*'),
+                    'handleModuleResults' => array('*'),
                     'hids' => array('*'),
                     'index' => array('*'),
                     'importChoice' => array('*'),
@@ -129,6 +132,7 @@ class ACLComponent extends Component
                     'proposalEventIndex' => array('*'),
                     'publish' => array('perm_publish'),
                     'pushEventToZMQ' => array('perm_publish_zmq'),
+                    'pushEventToKafka' => array('perm_publish_kafka'),
                     'pushProposals' => array('perm_sync'),
                     'queryEnrichment' => array('perm_add'),
                     'removePivot' => array('*'),
@@ -165,6 +169,7 @@ class ACLComponent extends Component
                     'disable' => array(),
                     'edit' => array(),
                     'enable' => array(),
+                    'feedCoverage' => array('*'),
                     'fetchFromAllFeeds' => array(),
                     'fetchFromFeed' => array(),
                     'fetchSelectedFromFreetextIndex' => array(),
@@ -173,12 +178,14 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'previewEvent' => array('*'),
                     'previewIndex' => array('*'),
+                    'searchCaches' => array('*'),
                     'toggleSelected' => array('perm_site_admin'),
                     'view' => array('*'),
             ),
             'galaxies' => array(
                 'attachCluster' => array('perm_tagger'),
                 'attachMultipleClusters' => array('perm_tagger'),
+                'delete' => array(),
                 'index' => array('*'),
                 'selectGalaxy' => array('perm_tagger'),
                 'selectGalaxyNamespace' => array('perm_tagger'),
@@ -193,7 +200,8 @@ class ACLComponent extends Component
                 'delete' => array('perm_site_admin'),
                 'detach' => array('perm_tagger'),
                 'index' => array('*'),
-                'view' => array('*')
+                'view' => array('*'),
+                'viewGalaxyMatrix' => array('*')
             ),
             'galaxyElements' => array(
                     'index' => array('*')
@@ -302,6 +310,10 @@ class ACLComponent extends Component
                     'cleanRegexModifiers' => array('perm_regexp_access'),
                     'index' => array('*'),
             ),
+            'restClientHistory' => array(
+                    'delete' => array('*'),
+                    'index' => array('*')
+            ),
             'roles' => array(
                     'admin_add' => array(),
                     'admin_delete' => array(),
@@ -324,6 +336,8 @@ class ACLComponent extends Component
                     'getGit' => array(),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
+                    'getSubmodulesStatus' => array('perm_site_admin'),
+                    'getSubmoduleQuickUpdateForm' => array('perm_site_admin'),
                     'getVersion' => array('*'),
                     'index' => array('OR' => array('perm_sync', 'perm_admin')),
                     'postTest' => array('perm_sync'),
@@ -344,6 +358,7 @@ class ACLComponent extends Component
                     'stopZeroMQServer' => array(),
                     'testConnection' => array('perm_sync'),
                     'update' => array(),
+                    'updateSubmodule' => array(),
                     'uploadFile' => array(),
                     'clearWorkerQueue' => array()
             ),
@@ -431,6 +446,7 @@ class ACLComponent extends Component
                     'taxonomyMassConfirmation' => array('perm_tagger'),
                     'taxonomyMassHide' => array('perm_tagger'),
                     'taxonomyMassUnhide' => array('perm_tagger'),
+                    'toggleRequired' => array('perm_site_admin'),
                     'update' => array(),
                     'view' => array('*'),
                     'unhideTag' => array('perm_tagger'),

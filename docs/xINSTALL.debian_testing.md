@@ -7,7 +7,7 @@
 !!! notice
     This is mostly the install [@SteveClement](https://twitter.com/SteveClement)
     uses for testing, qc and random development.
-    Maintained and tested by @SteveClement on 20181023
+    Maintained and tested by @SteveClement on 20190405
 
 !!! warning
     PHP 7.3.0RC4 is not working at the moment with the packaged composer.phar<br />
@@ -61,14 +61,14 @@ python3-setuptools python3-dev python3-pip python3-redis python3-zmq virtualenv 
 mariadb-client \
 mariadb-server \
 apache2 apache2-doc apache2-utils \
-libapache2-mod-php7.3 php7.3 php7.3-cli php7.3-mbstring php7.3-dev php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php-redis php-gnupg \
+libapache2-mod-php7.3 php7.3 php7.3-cli php7.3-mbstring php7.3-dev php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php-redis php-gnupg php-gd \
 libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
 jq ntp ntpdate jupyter-notebook imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev
 
 # Start haveged to get more entropy (optional)
 sudo apt install haveged -y
-sudo service havegd start
+sudo service haveged start
 
 sudo apt install expect -y
 
@@ -103,7 +103,7 @@ sudo apt-get purge -y expect ; sudo apt autoremove -y
 
 # Enable modules, settings, and default of SSL in Apache
 sudo a2dismod status
-sudo a2enmod ssl rewrite
+sudo a2enmod ssl rewrite headers
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
@@ -113,7 +113,6 @@ sudo a2ensite default-ssl
 ```bash
 sudo systemctl restart apache2
 ```
-
 
 ### 3/ MISP code
 ------------
@@ -159,6 +158,10 @@ sudo -u www-data git submodule foreach --recursive git config core.filemode fals
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+
+# Install Crypt_GPG and Console_CommandLine
+sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 ```
 
 ### 4/ CakePHP
@@ -177,7 +180,7 @@ cd $PATH_TO_MISP/app
 sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
 # Update composer.phar
 sudo -H -u www-data php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '93b54496392c062774670ac18b134c3b3a95e5a5e5c8f1a9f115f203b75bf9a129d5daa8ba6a13e2cc8a1da0806388a8') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 sudo -H -u www-data php composer-setup.php
 sudo -H -u www-data php -r "unlink('composer-setup.php');"
 sudo -H -u www-data php composer.phar require kamisama/cake-resque:4.1.2
@@ -393,35 +396,9 @@ sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' 
 sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
 sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
 sudo sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
-sudo sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
 
 # Start the workers
 sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh
-
-# some misp-modules dependencies
-sudo apt-get install -y libpq5 libjpeg-dev libfuzzy-dev
-
-sudo chmod 2775 /usr/local/src
-sudo chown root:staff /usr/local/src
-cd /usr/local/src/
-git clone https://github.com/MISP/misp-modules.git
-cd misp-modules
-# pip install
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
-sudo apt install ruby-pygments.rb -y
-sudo gem install asciidoctor-pdf --pre
-
-# install STIX2.0 library to support STIX 2.0 export:
-cd ${PATH_TO_MISP}/cti-python-stix2
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I .
-
-# install additional dependencies for extended object generation and extraction
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
-
-# Start misp-modules
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 ```
 
 {!generic/misp-modules-debian.md!}
@@ -484,6 +461,15 @@ sudo apt install python3-zmq -y
 In case you are using a virtualenv make sure pyzmq is installed therein.
 ```bash
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
+```
+
+#### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+```bash
+sudo apt-get install librdkafka-dev php-dev
+sudo pecl install rdkafka
+echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
+sudo phpenmod rdkafka
+sudo service apache2 restart
 ```
 
 {!generic/misp-dashboard-debian.md!}

@@ -105,32 +105,43 @@ class Server extends AppModel
         $this->command_line_functions = array(
             'console_admin_tasks' => array(
                 'data' => array(
-                    'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
-                    'setSettings' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
-                    'getAuthkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
-                    'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
-                    'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]',
-                    'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
-                    'updateDatabase' => 'MISP/app/Console/cake Admin updateDatabase',
-                    'updateGalaxies' => 'MISP/app/Console/cake Admin updateGalaxies',
-                    'updateTaxonomies' => 'MISP/app/Console/cake Admin updateTaxonomies',
-                    'updateObjectTemplates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
-                    'updateWarningLists' => 'MISP/app/Console/cake Admin updateWarningLists',
-                    'updateNoticeLists' => 'MISP/app/Console/cake Admin updateNoticeLists'
+                    'Get setting' => 'MISP/app/Console/cake Admin getSetting [setting]',
+                    'Set setting' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
+                    'Get authkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
+                    'Set baseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
+                    'Change password' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
+                    'Clear Bruteforce Entries' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
+                    'Run database update' => 'MISP/app/Console/cake Admin updateDatabase',
+                    'Update Galaxy definitions' => 'MISP/app/Console/cake Admin updateGalaxies',
+                    'Update taxonomy definitions' => 'MISP/app/Console/cake Admin updateTaxonomies',
+                    'Update object templates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
+                    'Update Warninglists' => 'MISP/app/Console/cake Admin updateWarningLists',
+                    'Update Noticelists' => 'MISP/app/Console/cake Admin updateNoticeLists',
+                    'Set default role' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]'
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')
             ),
             'console_automation_tasks' => array(
                 'data' => array(
-                    'pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
-                    'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
-                    'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
-                    'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
-                    'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
+                    'Pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
+                    'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
+                    'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
+                    'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
+                    'Run enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
                 ),
                 'description' => __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.'),
                 'header' => __('Automating certain console tasks')
+            ),
+            'worker_management_tasks' => array(
+                'data' => array(
+                    'Get list of workers' => 'MISP/app/Console/cake Admin getWorkers [all|dead]',
+                    'Start a worker' => 'MISP/app/Console/cake Admin startWorker [queue_name]',
+                    'Restart a worker' => 'MISP/app/Console/cake Admin restartWorker [worker_pid]',
+                    'Kill a worker' => 'MISP/app/Console/cake Admin killWorker [worker_pid]',
+                ),
+                'description' => __('The background workers can be managed via the CLI in addition to the UI / API management tools'),
+                'header' => __('Managing the background workers')
             )
         );
 
@@ -249,6 +260,15 @@ class Server extends AppModel
                                 'test' => 'testDisableCache',
                                 'type' => 'boolean',
                                 'afterHook' => 'disableCacheAfterHook',
+                        ),
+                        'disable_threat_level' => array(
+                                'level' => 1,
+                                'description' => __('Disable displaying / modifications to the threat level altogether on the instance (deprecated field).'),
+                                'value' => false,
+                                'null' => true,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean'
                         ),
                         'header' => array(
                                 'level' => 3,
@@ -1266,7 +1286,7 @@ class Server extends AppModel
                         ),
                         'RPZ_ns' => array(
                                 'level' => 2,
-                                'description' => '',
+                                'description' => __('Nameserver'),
                                 'value' => 'localhost.',
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
@@ -1287,6 +1307,214 @@ class Server extends AppModel
                             'errorMessage' => '',
                             'test' => 'testForEmpty',
                             'type' => 'string',
+                        ),
+                        'Kafka_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the Kafka pub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                        ),
+                        'Kafka_brokers' => array(
+                            'level' => 2,
+                            'description' => __('A comma separated list of Kafka bootstrap brokers'),
+                            'value' => 'kafka:9092',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
+                        ),
+                        'Kafka_rdkafka_config' => array(
+                            'level' => 2,
+                            'description' => __('A path to an ini file with configuration options to be passed to rdkafka. Section headers in the ini file will be ignored.'),
+                            'value' => '/etc/rdkafka.ini',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
+                        ),
+                        'Kafka_include_attachments' => array(
+                            'level' => 2,
+                            'description' => __('Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_event_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any event creations/edits/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_event_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing event creations/edits/deletions.'),
+                            'value' => 'misp_event',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_event_publish_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('If enabled it will publish to Kafka the event at the time that the event gets published in MISP. Event actions (creation or edit) will not be published to Kafka.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_event_publish_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing event information on publish.'),
+                            'value' => 'misp_event_publish',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_object_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any object creations/edits/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_object_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing object creations/edits/deletions.'),
+                            'value' => 'misp_object',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_object_reference_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any object reference creations/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_object_reference_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing object reference creations/deletions.'),
+                            'value' => 'misp_object_reference',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_attribute_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any attribute creations/edits/soft deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_attribute_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing attribute creations/edits/soft deletions.'),
+                            'value' => 'misp_attribute',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_shadow_attribute_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any proposal creations/edits/deletions.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_shadow_attribute_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing proposal creations/edits/deletions.'),
+                            'value' => 'misp_shadow_attribute',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_tag_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_tag_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
+                            'value' => 'misp_tag',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_sighting_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of new sightings.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_sighting_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing sightings.'),
+                            'value' => 'misp_sighting',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_user_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of new/modified users.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_user_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing new/modified users.'),
+                            'value' => 'misp_user',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_organisation_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of new/modified organisations.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_organisation_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing new/modified organisations.'),
+                            'value' => 'misp_organisation',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Kafka_audit_notifications_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables the publishing of log entries. Keep in mind, this can get pretty verbose depending on your logging settings.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'Kafka_audit_notifications_topic' => array(
+                            'level' => 2,
+                            'description' => __('Topic for publishing log entries.'),
+                            'value' => 'misp_audit',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
                         ),
                         'ZeroMQ_enable' => array(
                             'level' => 2,
@@ -1722,7 +1950,7 @@ class Server extends AppModel
                         ),
                         'Cortex_services_enable' => array(
                                 'level' => 0,
-                                'description' => __('Enable/disable the import services'),
+                                'description' => __('Enable/disable the Cortex services'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testBool',
@@ -1739,7 +1967,7 @@ class Server extends AppModel
                         ),
                         'Cortex_timeout' => array(
                                 'level' => 1,
-                                'description' => __('Set a timeout for the import services'),
+                                'description' => __('Set a timeout for the Cortex services'),
                                 'value' => 120,
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
@@ -1940,7 +2168,7 @@ class Server extends AppModel
             if ($result) {
                 $successes[] = $eventId;
             } else {
-                $fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
+                $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
             }
         } else {
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
@@ -1973,7 +2201,7 @@ class Server extends AppModel
             $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
         } else {
             // error
-            $fails[$eventId] = 'failed downloading the event';
+            $fails[$eventId] = __('failed downloading the event');
         }
         return true;
     }
@@ -3820,7 +4048,7 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'stix2' => '1.1.1', 'pymisp' => '>2.4.93');
+        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'stix2' => '1.1.2', 'pymisp' => '>2.4.93');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);
@@ -4304,7 +4532,7 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         $results = array();
-        $extensions = array('redis');
+        $extensions = array('redis', 'gd');
         foreach ($extensions as $extension) {
             $results['web']['extensions'][$extension] = extension_loaded($extension);
         }
@@ -4349,6 +4577,158 @@ class Server extends AppModel
     {
         $mainBranch = '2.4';
         return exec('git checkout ' . $mainBranch);
+    }
+
+    public function getSubmodulesGitStatus()
+    {
+        exec('cd ' . APP . '../; git submodule status --cached | grep -v ^- | cut -b 2- | cut -d " " -f 1,2 ', $submodules_names);
+        $status = array();
+        foreach ($submodules_names as $submodule_name_info) {
+            $submodule_name_info = explode(' ', $submodule_name_info);
+            $superproject_submodule_commit_id = $submodule_name_info[0];
+            $submodule_name = $submodule_name_info[1];
+            $temp = $this->getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id);
+            if ( !empty($temp) ) {
+                $status[$submodule_name] = $temp;
+            }
+        }
+        return $status;
+    }
+
+    private function _isAcceptedSubmodule($submodule) {
+        $accepted_submodules_names = array('PyMISP',
+            'app/files/misp-galaxy',
+            'app/files/taxonomies',
+            'app/files/misp-objects',
+            'app/files/noticelists',
+            'app/files/warninglists',
+            'cti-python-stix2'
+        );
+        return in_array($submodule, $accepted_submodules_names);
+    }
+
+    public function getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id) {
+        $status = array();
+        if ($this->_isAcceptedSubmodule($submodule_name)) {
+            $path = APP . '../' . $submodule_name;
+            $submodule_name=(strpos($submodule_name, '/') >= 0 ? explode('/', $submodule_name) : $submodule_name);
+            $submodule_name=end($submodule_name);
+            $submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
+            exec(sprintf('cd %s; git rev-parse HEAD', $path), $submodule_current_commit_id);
+            $submodule_current_commit_id = $submodule_current_commit_id[0];
+            $status = array(
+                'moduleName' => $submodule_name,
+                'current' => $submodule_current_commit_id,
+                'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
+                'remoteTimestamp' => exec(sprintf('cd %s; git show -s --pretty=format:%%ct %s', $path, $superproject_submodule_commit_id)),
+                'remote' => $superproject_submodule_commit_id,
+                'upToDate' => '',
+                'isReadable' => is_readable($path) && is_readable($path . '/.git'),
+            );
+
+            if (!empty($status['remote'])) {
+                if ($status['remote'] == $status['current']) {
+                    $status['upToDate'] = 'same';
+                } else if ($status['currentTimestamp'] < $status['remoteTimestamp']) {
+                    $status['upToDate'] = 'older';
+                } else {
+                    $status['upToDate'] = 'younger';
+                }
+            } else {
+                $status['upToDate'] = 'error';
+            }
+
+            if ($status['isReadable'] && !empty($status['remoteTimestamp']) && !empty($status['currentTimestamp'])) {
+                $status['timeDiff'] = (new DateTime('@' . $status['remoteTimestamp']))->diff(new DateTime('@' . $status['currentTimestamp']));
+            } else {
+                $status['upToDate'] = 'error';
+            }
+        }
+        return $status;
+    }
+
+    public function updateSubmodule($user, $submodule_name=false) {
+        $path = APP . '../';
+        if ($submodule_name == false) {
+            $command = sprintf('cd %s; git submodule update 2>&1', $path);
+            exec($command, $output, $return_code);
+            $output = implode("\n", $output);
+            $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
+            if ($return_code == 0) { // update all DB
+                $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
+            }
+        } else if ($this->_isAcceptedSubmodule($submodule_name)) {
+            $command = sprintf('cd %s; git submodule update -- %s 2>&1', $path, $submodule_name);
+            exec($command, $output, $return_code);
+            $output = implode("\n", $output);
+            $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
+            if ($return_code == 0) { // update DB if necessary
+                $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
+            }
+        } else {
+            $res = array('status' => false, 'output' => __('Invalid submodule.'), 'job_sent' => false, 'sync_result' => __('unknown'));
+        }
+        return $res;
+    }
+
+    public function updateDatabaseAfterPullRouter($submodule_name, $user) {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $eventModel = ClassRegistry::init('Event');
+            $data = array(
+                    'worker' => $eventModel->__getPrioWorkerIfPossible(),
+                    'job_type' => __('update_after_pull'),
+                    'job_input' => __('Updating: ' . $submodule_name),
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => $user['org_id'],
+                    'org' => $user['Organisation']['name'],
+                    'message' => 'Update database after PULL.',
+            );
+            $job->save($data);
+            $jobId = $job->id;
+            $process_id = CakeResque::enqueue(
+                    'prio',
+                    'AdminShell',
+                    array('updateAfterPull', $submodule_name, $jobId, $user['id']),
+                    true
+            );
+            $job->saveField('process_id', $process_id);
+            return array('job_sent' => true, 'sync_result' => __('unknown'));
+        } else {
+            $result = $this->updateAfterPull($submodule_name, $user['id']);
+            return array('job_sent' => false, 'sync_result' => $result);
+        }
+    }
+
+    public function updateAfterPull($submodule_name, $userId) {
+        $user = $this->User->getAuthUser($userId);
+        $result = array();
+        if ($user['Role']['perm_site_admin']) {
+            $updateAll = empty($submodule_name);
+            if ($submodule_name == 'app/files/misp-galaxy' || $updateAll) {
+                $this->Galaxy = ClassRegistry::init('Galaxy');
+                $result[] = ($this->Galaxy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/misp-objects' || $updateAll) {
+                $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+                $result[] = ($this->ObjectTemplate->update($user, false, false) ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/noticelists' || $updateAll) {
+                $this->Noticelist = ClassRegistry::init('Noticelist');
+                $result[] = ($this->Noticelist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/taxonomies' || $updateAll) {
+                $this->Taxonomy = ClassRegistry::init('Taxonomy');
+                $result[] = ($this->Taxonomy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/warninglists' || $updateAll) {
+                $this->Warninglist = ClassRegistry::init('Warninglist');
+                $result[] = ($this->Warninglist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+        }
+        return implode('\n', $result);
     }
 
     public function update($status)
@@ -4401,6 +4781,37 @@ class Server extends AppModel
             $this->workerRemoveDead($user);
             $prepend = '';
             shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
+        }
+        return true;
+    }
+
+    public function restartWorker($pid)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+            $workers = $this->ResqueStatus->getWorkers();
+            $pid = intval($pid);
+            if (!isset($workers[$pid])) {
+                return __('Invalid worker.');
+            }
+            $currentWorker = $workers[$pid];
+            $this->killWorker($pid, false);
+            $this->startWorker($currentWorker['queue']);
+            return true;
+        }
+        return __('Background workers not enabled.');
+    }
+
+    public function startWorker($queue)
+    {
+        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio');
+        if (!in_array($queue, $validTypes)) {
+            return __('Invalid worker type.');
+        }
+        if ($queue != 'scheduler') {
+            shell_exec(APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $queue .' > /dev/null 2>&1 &');
+        } else {
+            shell_exec(APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
         }
         return true;
     }

@@ -7,6 +7,7 @@
     <?php
         echo $this->Form->input('json', array(
                 'div' => 'input clear',
+                'label' => __('JSON'),
                 'placeholder' => __('Feed metadata JSON'),
                 'class' => 'form-control span6',
                 'type' => 'textarea',

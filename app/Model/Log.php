@@ -256,10 +256,12 @@ class Log extends AppModel
 
     public function logData($data)
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
+        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_audit_notifications_enable')) {
             $pubSubTool = $this->getPubSubTool();
             $pubSubTool->publish($data, 'audit', 'log');
         }
+
+        $this->publishKafkaNotification('audit', $data, 'log');
 
         if (Configure::read('Plugin.ElasticSearch_logging_enable')) {
             // send off our logs to distributed /dev/null

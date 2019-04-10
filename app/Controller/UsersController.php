@@ -500,8 +500,17 @@ class UsersController extends AppController
                 }
                 $required_fields = array('role_id', 'email');
                 foreach ($required_fields as $field) {
+                    $set_field_via_other_means = false;
                     if (empty($this->request->data['User'][$field])) {
-                        return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
+                        if ($field === 'role_id') {
+                            if (!empty($default_role_id)) {
+                                $this->request->data['User'][$field] = $default_role_id;
+                                $set_field_via_other_means = true;
+                            }
+                        }
+                        if (!$set_field_via_other_means) {
+                            return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
+                        }
                     }
                 }
                 if (isset($this->request->data['User']['password'])) {
@@ -1148,7 +1157,7 @@ class UsersController extends AppController
             $this->_refreshAuth();
             $this->redirect($this->referer());
         } else {
-            return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'User\'s authkey has been reset.');
+            return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'Authkey updated: ' . $newkey);
         }
     }
 
@@ -1553,7 +1562,13 @@ class UsersController extends AppController
     public function statistics($page = 'data')
     {
         $this->set('page', $page);
-        $pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'users' => 'User and Organisation statistics', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'attackMatrix' => 'ATT&CK Matrix');
+        $pages = array('data' => __('Usage data'),
+                       'orgs' => __('Organisations'),
+                       'users' => __('User and Organisation statistics'),
+                       'tags' => __('Tags'),
+                       'attributehistogram' => __('Attribute histogram'),
+                       'sightings' => __('Sightings toplists'),
+                       'galaxyMatrix' => __('Galaxy Matrix'));
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             unset($pages['orgs']);
         }
@@ -1578,8 +1593,8 @@ class UsersController extends AppController
             }
         } elseif ($page == 'sightings') {
             $result = $this->__statisticsSightings($this->params['named']);
-        } elseif ($page == 'attackMatrix') {
-            $result = $this->__statisticsAttackMatrix($this->params['named']);
+        } elseif ($page == 'galaxyMatrix') {
+            $result = $this->__statisticsGalaxyMatrix($this->params['named']);
         }
         if ($this->_isRest()) {
             return $result;
@@ -1881,12 +1896,16 @@ class UsersController extends AppController
         }
     }
 
-    private function __statisticsAttackMatrix($params = array())
+    private function __statisticsGalaxyMatrix($params = array())
     {
         $this->loadModel('Event');
         $this->loadModel('Galaxy');
-
-        $galaxy_id = $this->Galaxy->getMitreAttackGalaxyId();
+        $mitre_galaxy_id = $this->Galaxy->getMitreAttackGalaxyId();
+        if (isset($params['galaxy_id'])) {
+            $galaxy_id = $params['galaxy_id'];
+        } else {
+            $galaxy_id = $mitre_galaxy_id;
+        }
         $matrixData = $this->Galaxy->getMatrix($galaxy_id);
 
         $tabs = $matrixData['tabs'];
@@ -1903,7 +1922,7 @@ class UsersController extends AppController
         $maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
         $scores = $scoresData;
         // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
-        if ($matrixData['galaxy']['id'] == $galaxy_id) {
+        if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
             $mergedScore = array();
             foreach ($scoresData as $tag => $v) {
                 $predicateValue = explode(':', $tag, 2)[1];
@@ -1963,10 +1982,17 @@ class UsersController extends AppController
                 $this->set('interpolation', $colours['interpolation']);
             }
             $this->set('pickingMode', false);
-            $this->set('defaultTabName', "mitre-attack");
+            if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
+                $this->set('defaultTabName', "mitre-attack");
+            }
             $this->set('removeTrailling', 2);
 
-            $this->render('statistics_attackmatrix');
+            $this->set('galaxyName', $matrixData['galaxy']['name']);
+            $this->set('galaxyId', $matrixData['galaxy']['id']);
+            $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
+            $this->set('matrixGalaxies', $matrixGalaxies);
+
+            $this->render('statistics_galaxymatrix');
         }
     }
 

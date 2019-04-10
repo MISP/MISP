@@ -30,8 +30,10 @@ class AttributeTag extends AppModel
     public function afterSave($created, $options = array())
     {
         parent::afterSave($created, $options);
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('AttributeTag.id' => $this->id),
@@ -40,15 +42,24 @@ class AttributeTag extends AppModel
             $tag['Tag']['attribute_id'] = $tag['AttributeTag']['attribute_id'];
             $tag['Tag']['event_id'] = $tag['AttributeTag']['event_id'];
             $tag = array('Tag' => $tag['Tag']);
-            $pubSubTool->tag_save($tag, 'attached to attribute');
+            if ($pubToZmq) {
+                $pubSubTool = $this->getPubSubTool();
+                $pubSubTool->tag_save($tag, 'attached to attribute');
+            }
+            if ($pubToKafka) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $tag, 'attached to attribute');
+            }
         }
     }
 
     public function beforeDelete($cascade = true)
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             if (!empty($this->id)) {
-                $pubSubTool = $this->getPubSubTool();
                 $tag = $this->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('AttributeTag.id' => $this->id),
@@ -57,7 +68,14 @@ class AttributeTag extends AppModel
                 $tag['Tag']['attribute_id'] = $tag['AttributeTag']['attribute_id'];
                 $tag['Tag']['event_id'] = $tag['AttributeTag']['event_id'];
                 $tag = array('Tag' => $tag['Tag']);
-                $pubSubTool->tag_save($tag, 'detached from attribute');
+                if ($pubToZmq) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->tag_save($tag, 'detached from attribute');
+                }
+                if ($pubToKafka) {
+                    $kafkaPubTool = $this->getKafkaPubTool();
+                    $kafkaPubTool->publishJson($kafkaTopic, $tag, 'detached from attribute');
+                }
             }
         }
     }

@@ -36,7 +36,7 @@ sudo mysql_secure_installation
 
 
 # Install PHP and dependencies
-sudo apt-get install libapache2-mod-php php php-cli php-crypt-gpg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml
+sudo apt-get install libapache2-mod-php php php-cli php-crypt-gpg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-gd
 
 # Apply all changes
 sudo systemctl restart apache2
@@ -269,6 +269,11 @@ Optional features
 sudo pip install pyzmq
 # ZeroMQ depends on the Python client for Redis
 sudo pip install redis
+
+# MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+apt-get install librdkafka-dev php-dev
+pecl install rdkafka
+find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
 
 # For the experimental ssdeep correlations, run the following installation:
 # installing ssdeep

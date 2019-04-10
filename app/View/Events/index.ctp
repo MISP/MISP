@@ -91,8 +91,8 @@
                 ),
                 array(
                     'type' => 'search',
-                    'button' => 'Filter',
-                    'placeholder' => 'Enter value to search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
                     'data' => '',
                 )
             )
@@ -136,6 +136,12 @@
     });
 
 </script>
+<?php
+    echo $this->Html->script('vis');
+    echo $this->Html->css('vis');
+    echo $this->Html->css('distribution-graph');
+    echo $this->Html->script('network-distribution-graph');
+?>
 
 <input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/event_index.json" />
 <?php

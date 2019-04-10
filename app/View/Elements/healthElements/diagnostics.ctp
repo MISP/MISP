@@ -55,12 +55,16 @@
                 $branchColour = $branch == '2.4' ? 'green' : 'red bold';
             ?>
             <span class="<?php echo h($branchColour); ?>">
-                <?=($branch == '2.4') ? h($branch) : "You are not on a branch, Update MISP will fail"; ?>
+                <?=($branch == '2.4') ? h($branch) : __('You are not on a branch, Update MISP will fail'); ?>
             </span>
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
     </div>
+    <h3><?php echo __('Submodules version');?><it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;"></it></h3>
+    <div id="divSubmoduleVersions" style="background-color:#f7f7f9;">
+    </div>
+
     <h3><?php echo __('Writeable Directories and files');?></h3>
     <p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
     <p><b><?php echo __('Directories');?></b></p>
@@ -166,7 +170,7 @@
                     if (isset($extensions[$context]['extensions'])):
                         foreach ($extensions[$context]['extensions'] as $extension => $status):
                 ?>
-                            <?php echo h($extension); ?>:… <span style="color:<?php echo $status ? 'green' : 'red';?>;font-weight:bold;"><?php echo $status ? __('OK') : __('Not loaded'); ?></span>
+                            <?php echo h($extension); ?>:… <span style="color:<?php echo $status ? 'green' : 'red';?>;font-weight:bold;"><?php echo $status ? __('OK') : __('Not loaded'); ?></span><br />
                 <?php
                         endforeach;
                     else:
@@ -332,7 +336,7 @@
     <?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">' . __('Clean cache') . '</span>', $baseurl . '/events/cleanModelCaches', array('escape' => false));?>
     <h3><?php echo __('Overwritten objects');?></h3>
     <p><?php echo __('Prior to 2.4.89, due to a bug a situation could occur where objects got overwritten on a sync pull. This tool allows you to inspect whether you are affected and if yes, remedy the issue.');?></p>
-    <a href="<?php echo $baseurl; ?>/objects/orphanedObjectDiagnostics"><span class="btn btn-inverse">Reconstruct overwritten objects</span></a>
+    <a href="<?php echo $baseurl; ?>/objects/orphanedObjectDiagnostics"><span class="btn btn-inverse"><?php echo __('Reconstruct overwritten objects');?></span></a>
     <h3><?php echo __('Orphaned attributes');?></h3>
     <p><?php echo __('In some rare cases attributes can remain in the database after an event is deleted becoming orphaned attributes. This means that they do not belong to any event, which can cause issues with the correlation engine (known cases include event deletion directly in the database without cleaning up the attributes and situations involving a race condition with an event deletion happening before all attributes are synchronised over).');?></p>
     <div style="background-color:#f7f7f9;width:400px;">
@@ -357,3 +361,34 @@
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check bad link on attachments');?>" title="<?php echo __('Check bad link on attachments');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();"><?php echo __('Check bad link on attachments');?></span>
 
 </div>
+
+<script>
+    $(document).ready(function() {
+        updateSubModulesStatus();
+    });
+
+    $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
+    function updateSubModulesStatus(message, job_sent, sync_result) {
+        job_sent = job_sent === undefined ? false : job_sent;
+        sync_result = sync_result === undefined ? '' : sync_result;
+        $('#divSubmoduleVersions').empty().append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');
+        $.get('<?php echo $baseurl . '/servers/getSubmodulesStatus/'; ?>', function(html){
+            $('#divSubmoduleVersions').html(html);
+            if (message !== undefined) {
+                $('#submoduleGitResultDiv').show();
+                $('#submoduleGitResult').text(message);
+
+                var $clone = $('#submoduleGitResultDiv').clone();
+                $clone.find('strong').text('Synchronization result:');
+                if (job_sent) {
+                    $clone.find('#submoduleGitResult')
+                        .html('> Synchronizing DB with <a href="/jobs/index/" target="_blank">workers</a>...');
+                } else {
+                    $clone.find('#submoduleGitResult')
+                        .text(sync_result);
+                }
+                $clone.appendTo($('#submoduleGitResultDiv').parent());
+            }
+        });
+    }
+</script>

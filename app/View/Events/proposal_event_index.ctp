@@ -27,7 +27,7 @@
             <th><?php echo $this->Paginator->sort('user_id', __('Email'));?></th>
             <?php endif; ?>
             <th class="filter">
-                <?php echo $this->Paginator->sort('date', 'Date', array('direction' => 'desc'));?>
+                <?php echo $this->Paginator->sort('date', __('Date'), array('direction' => 'desc'));?>
             </th>
             <th class="filter">
                 <?php echo $this->Paginator->sort('info');?>
@@ -42,11 +42,11 @@
                 <?php
                 if ($event['Event']['published'] == 1) {
                 ?>
-                    <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "<?php echo __('View');?>"></a>
+                    <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
                 <?php
                 } else {
                 ?>
-                    <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "<?php echo __('View');?>"></a>
+                    <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
                 <?php
                 }?>&nbsp;
             </td>
