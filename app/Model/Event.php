@@ -3841,7 +3841,7 @@ class Event extends AppModel
         }
     }
 
-    private function __getPrioWorkerIfPossible()
+    public function __getPrioWorkerIfPossible()
     {
         $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         $workers = $this->ResqueStatus->getWorkers();

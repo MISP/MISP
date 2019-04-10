@@ -3765,7 +3765,9 @@ function submitSubmoduleUpdate(clicked) {
                 data: formData,
                 success:function (data, textStatus) {
                     if (data.status) {
-                        updateSubModulesStatus(data.output);
+                        var job_sent = data.job_sent !== undefined ? data.job_sent : false;
+                        var sync_result = data.sync_result !== undefined ? data.sync_result : '';
+                        updateSubModulesStatus(data.output, job_sent, sync_result);
                     } else {
                         showMessage('error', 'Something went wrong');
                         $('#submoduleGitResultDiv').show();
