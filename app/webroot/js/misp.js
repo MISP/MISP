@@ -2446,7 +2446,7 @@ function moduleResultsSubmit(id) {
                     var reference = {
                         object_uuid: object_uuid,
                         referenced_uuid: $(this).find('.ReferencedUUID').text(),
-                        relationhip_type: $(this).find('.Relationship').text()
+                        relationship_type: $(this).find('.Relationship').text()
                     };
                     references.push(reference);
                 });
