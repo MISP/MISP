@@ -4926,7 +4926,7 @@ class Server extends AppModel
         foreach ($toUpdate as $target) {
             $this->$target = ClassRegistry::init($target);
             $result = $this->$target->update();
-            $results[$target] = $result === false ? true : false;
+            $results[$target] = $result === false ? false : true;
         }
         return $results;
     }
