@@ -45,6 +45,21 @@ class AdminShell extends AppShell
         echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
     }
 
+    public function updateAfterPull() {
+        $this->loadModel('Job');
+        $this->loadModel('Server');
+        $submodule_name = $this->args[0];
+        $jobId = $this->args[1];
+        $userId = $this->args[2];
+        $this->Job->id = $jobId;
+        $result = $this->Server->updateAfterPull($submodule_name, $userId);
+        $this->Job->saveField('progress', 100);
+        $this->Job->saveField('date_modified', date("y-m-d H:i:s"));
+        if ($result) {
+            $this->Job->saveField('message', __('Database updated: ' . $submodule_name));
+        } else {
+            $this->Job->saveField('message', __('Could not update the database: ' . $submodule_name));
+        }
     public function restartWorker()
     {
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
@@ -124,7 +139,7 @@ class AdminShell extends AppShell
 	}
 
 	public function updateWarningLists() {
-		$result = $this->Galaxy->update();
+		$result = $this->Warninglist->update();
 		if ($result) {
 			echo 'Warning lists updated';
 		} else {

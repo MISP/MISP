@@ -4647,22 +4647,88 @@ class Server extends AppModel
         return $status;
     }
 
-    public function updateSubmodule($submodule_name=false) {
+    public function updateSubmodule($user, $submodule_name=false) {
         $path = APP . '../';
         if ($submodule_name == false) {
             $command = sprintf('cd %s; git submodule update 2>&1', $path);
             exec($command, $output, $return_code);
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
+            if ($return_code == 0) { // update all DB
+                $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
+            }
         } else if ($this->_isAcceptedSubmodule($submodule_name)) {
             $command = sprintf('cd %s; git submodule update -- %s 2>&1', $path, $submodule_name);
             exec($command, $output, $return_code);
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
+            if ($return_code == 0) { // update DB if necessary
+                $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
+            }
         } else {
-            $res = array('status' => false, 'output' => __('Invalid submodule.'));
+            $res = array('status' => false, 'output' => __('Invalid submodule.'), 'job_sent' => false, 'sync_result' => __('unknown'));
         }
         return $res;
+    }
+
+    public function updateDatabaseAfterPullRouter($submodule_name, $user) {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $eventModel = ClassRegistry::init('Event');
+            $data = array(
+                    'worker' => $eventModel->__getPrioWorkerIfPossible(),
+                    'job_type' => __('update_after_pull'),
+                    'job_input' => __('Updating: ' . $submodule_name),
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => $user['org_id'],
+                    'org' => $user['Organisation']['name'],
+                    'message' => 'Update database after PULL.',
+            );
+            $job->save($data);
+            $jobId = $job->id;
+            $process_id = CakeResque::enqueue(
+                    'prio',
+                    'AdminShell',
+                    array('updateAfterPull', $submodule_name, $jobId, $user['id']),
+                    true
+            );
+            $job->saveField('process_id', $process_id);
+            return array('job_sent' => true, 'sync_result' => __('unknown'));
+        } else {
+            $result = $this->updateAfterPull($submodule_name, $user['id']);
+            return array('job_sent' => false, 'sync_result' => $result);
+        }
+    }
+
+    public function updateAfterPull($submodule_name, $userId) {
+        $user = $this->User->getAuthUser($userId);
+        $result = array();
+        if ($user['Role']['perm_site_admin']) {
+            $updateAll = empty($submodule_name);
+            if ($submodule_name == 'app/files/misp-galaxy' || $updateAll) {
+                $this->Galaxy = ClassRegistry::init('Galaxy');
+                $result[] = ($this->Galaxy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/misp-objects' || $updateAll) {
+                $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+                $result[] = ($this->ObjectTemplate->update($user, false, false) ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/noticelists' || $updateAll) {
+                $this->Noticelist = ClassRegistry::init('Noticelist');
+                $result[] = ($this->Noticelist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/taxonomies' || $updateAll) {
+                $this->Taxonomy = ClassRegistry::init('Taxonomy');
+                $result[] = ($this->Taxonomy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/warninglists' || $updateAll) {
+                $this->Warninglist = ClassRegistry::init('Warninglist');
+                $result[] = ($this->Warninglist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+        }
+        return implode('\n', $result);
     }
 
     public function update($status)
