@@ -112,6 +112,7 @@ class Server extends AppModel
                     'Change password' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
                     'Clear Bruteforce Entries' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
                     'Run database update' => 'MISP/app/Console/cake Admin updateDatabase',
+                    'Update all JSON structures' => 'MISP/app/Console/cake Admin updateJSON',
                     'Update Galaxy definitions' => 'MISP/app/Console/cake Admin updateGalaxies',
                     'Update taxonomy definitions' => 'MISP/app/Console/cake Admin updateTaxonomies',
                     'Update object templates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
