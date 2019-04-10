@@ -60,6 +60,8 @@ class AdminShell extends AppShell
         } else {
             $this->Job->saveField('message', __('Could not update the database: ' . $submodule_name));
         }
+    }
+    
     public function restartWorker()
     {
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
