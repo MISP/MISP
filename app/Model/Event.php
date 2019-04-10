@@ -5822,7 +5822,8 @@ class Event extends AppModel
             $this->Job = ClassRegistry::init('Job');
             $this->Job->id = $jobId;
         }
-        $failed_attributes = $failed_objects = $saved_attributes = $saved_objects = 0;
+        $failed_attributes = $failed_objects = $failed_object_attributes = 0;
+        $saved_attributes = $saved_objects = $saved_object_attributes = 0;
         $items_count = 0;
         foreach (array('Attribute', 'Object') as $feature) {
             if (isset($resolved_data[$feature])) {
@@ -5841,6 +5842,7 @@ class Event extends AppModel
                     $saved_attributes++;
                 } else {
                     $failed_attributes++;
+                    $lastAttributeError = $this->Attribute->validationErrors;
                 }
                 if ($jobId) {
                     $current = ($a + 1);
@@ -5869,15 +5871,17 @@ class Event extends AppModel
                             }
                             $this->Attribute->create();
                             if ($this->Attribute->save($object_attribute)) {
-                                $saved_attributes++;
+                                $saved_object_attributes++;
                             } else {
-                                $failed_attributes++;
+                                $failed_object_attributes++;
+                                $lastObjectAttributeError = $this->Attribute->validationErrors;
                             }
                         }
                     }
                     $saved_objects++;
                 } else {
                     $failed_objects++;
+                    $lastObjectError = $this->Object->validationErrors;
                 }
                 if ($jobId) {
                     $current = ($o + 1);
@@ -5886,9 +5890,59 @@ class Event extends AppModel
                 }
             }
         }
-        if ($jobId) {
-            $this->Job->saveField('message', 'Processing complete');
+        if ($saved_attributes > 0 || $saved_objects > 0) {
+            $event = $this->find('first', array(
+                    'conditions' => array('Event.id' => $id),
+                    'recursive' => -1
+            ));
+            if ($event['Event']['published'] == 1) {
+                $event['Event']['published'] = 0;
+            }
+            $date = new DateTime();
+            $event['Event']['timestamp'] = $date->getTimestamp();
+            $this->save($event);
         }
+        $message = '';
+        if ($saved_attributes > 0) {
+            $message .= $saved_attributes . ' ' . $this->__apply_inflector($saved_attributes, 'attribute') . ' created. ';
+        }
+        if ($failed_attributes > 0) {
+            if ($failed_attributes == 1) {
+                $reason = ' attribute could not be saved. Reason for the failure: ' . json_encode($lastAttributeError) . ' ';
+            } else {
+                $reason = ' attributes could not be saved. This may be due to attributes with similar values already existing. ';
+            }
+            $message .= $failed_attributes . $reason;
+        }
+        if ($saved_objects > 0) {
+            $message .= $saved_objects . ' ' . $this->__apply_inflector($saved_objects, 'object') . ' created';
+            if ($saved_object_attributes > 0) {
+                $message .= ' (including a total of ' . $saved_object_attributes . ' object ' . $this->__apply_inflector($saved_object_attributes, 'attribute') . '). ';
+            } else {
+                $message .= '. ';
+            }
+        }
+        if ($failed_objects > 0) {
+            if ($failed_objects == 1) {
+                $reason = ' object could not be saved. Reason for the failure: ';
+            } else {
+                $reason = ' objects could not be saved. An example of reason for the failure: ';
+            }
+            $message .= $failed_objects . $reason . json_encode($lastObjectError) . ' ';
+        }
+        if ($failed_object_attributes > 0) {
+            if ($failed_object_attributes == 1) {
+                $reason = 'object attribute could not be saved. Reason for the failure: ';
+            } else {
+                $reason = 'object attributes could not be saved. An example of reason for the failure: ';
+            }
+            $message .= 'Also, ' . $failed_object_attributes . $reason . json_encode($lastObjectAttributeError);
+        }
+        if ($jobId) {
+            $this->Job->saveField('message', 'Processing complete. ' . $message);
+            $this->Job->saveField('progress', 100);
+        }
+        return $message;
     }
 
     private function __apply_inflector($count, $scope)
