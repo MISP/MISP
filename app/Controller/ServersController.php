@@ -1832,4 +1832,10 @@ misp.direct_call(relative_path, body)
             $this->redirect(array('action' => 'index'));
         }
     }
+
+    public function updateJSON()
+    {
+        $results = $this->Server->updateJSON();
+        return $this->RestResponse->viewData($results, $this->response->type());
+    }
 }

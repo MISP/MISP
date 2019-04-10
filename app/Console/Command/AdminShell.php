@@ -115,19 +115,18 @@ class AdminShell extends AppShell
     }
 
     public function updateJSON() {
-        $toUpdate = array('Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate');
         echo 'Updating all JSON structures.' . PHP_EOL;
-        foreach ($toUpdate as $target) {
-            $result = $this->$target->update();
+        $results = $this->Server->updateJSON();
+        foreach ($results as $type => $result) {
             if ($result !== false) {
                 echo sprintf(
                     __('%s updated.') . PHP_EOL,
-                    Inflector::pluralize(Inflector::humanize($target))
+                    Inflector::pluralize(Inflector::humanize($type))
                 );
             } else {
                 echo sprintf(
                     __('Could not update %s.') . PHP_EOL,
-                    Inflector::pluralize(Inflector::humanize($target))
+                    Inflector::pluralize(Inflector::humanize($type))
                 );
             }
         }
@@ -404,5 +403,18 @@ class AdminShell extends AppShell
             die();
         }
         echo 'Updated, new key:' . PHP_EOL . $authKey . PHP_EOL;
+    }
+    
+    public function getOptionParser() {
+        $parser = parent::getOptionParser();
+        $parser->addSubcommand('updateJSON', array(
+            'help' => __('Update the JSON definitions of MISP.'),
+            'parser' => array(
+                'arguments' => array(
+                    'update' => array('help' => __('Update the submodules before ingestion.'), 'short' => 'u', 'boolean' => 1)
+                )
+            )
+        ));
+        return $parser;
     }
 }

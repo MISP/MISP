@@ -4918,4 +4918,16 @@ class Server extends AppModel
         }
         return $data;
     }
+
+    public function updateJSON()
+    {
+        $toUpdate = array('Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate');
+        $results = array();
+        foreach ($toUpdate as $target) {
+            $this->$target = ClassRegistry::init($target);
+            $result = $this->$target->update();
+            $results[$target] = $result === false ? true : false;
+        }
+        return $results;
+    }
 }
