@@ -98,8 +98,12 @@
             },
 
             /* BASE SCORE */
-            toggleBasescoreForm: function() {
-
+            toggleBasescoreForm: function(model_id) {
+                model_id = model_id === undefined ? '' : model_id;
+                $.get(baseurl + '/decayingModel/decayingToolBasescore', function(html) {
+                    $('#popover_form_large').html('<div class="close-icon useCursorPointer" onClick="$(\'#popover_form_large\').fadeOut();$(\'#gray_out\').fadeOut();"></div>' + html);
+                    openPopup('#popover_form_large');
+                });
             },
 
             /* CANVAS */

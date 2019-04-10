@@ -179,4 +179,7 @@ class DecayingModelController extends AppController
         $this->set('associated_types', $associated_types);
     }
 
+    public function decayingToolBasescore() {
+        $this->set('taxonomies', array());
+    }
 }
