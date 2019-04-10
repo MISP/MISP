@@ -774,6 +774,10 @@ class Attribute extends AppModel
         if (is_array($this->data['Attribute']['value'])) {
             return false;
         }
+        App::uses('ComplexTypeTool', 'Tools');
+        $this->complexTypeTool = new ComplexTypeTool();
+        $this->data['Attribute']['value'] = $this->complexTypeTool->refangValue($this->data['Attribute']['value'], $this->data['Attribute']['type']);
+
 
         if (!empty($this->data['Attribute']['object_id']) && empty($this->data['Attribute']['object_relation'])) {
             return false;
@@ -3526,13 +3530,6 @@ class Attribute extends AppModel
                     foreach ($result['Object'][$k]['Attribute'] as $k2 => $attribute) {
                         if ($attribute['value'] == $tmpfile->name) {
                             $result['Object'][$k]['Attribute'][$k2]['value'] = $filename;
-                        }
-                        if (!empty($attribute['encrypt'])) {
-                            if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
-                                $encrypted = $this->handleMaliciousBase64($event_id, $filename, $attribute['data'], array('md5'));
-                                $result['Object'][$k]['Attribute'][$k2]['data'] = $encrypted['data'];
-                                $result['Object'][$k]['Attribute'][$k2]['value'] = $filename . '|' . $encrypted['md5'];
-                            }
                         }
                     }
                 }

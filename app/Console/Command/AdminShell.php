@@ -39,7 +39,8 @@ class AdminShell extends AppShell
         echo $this->Server->update($status) . PHP_EOL;
     }
 
-    public function restartWorkers() {
+    public function restartWorkers()
+    {
         $this->Server->restartWorkers();
         echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
     }
@@ -59,6 +60,56 @@ class AdminShell extends AppShell
         } else {
             $this->Job->saveField('message', __('Could not update the database: ' . $submodule_name));
         }
+    public function restartWorker()
+    {
+        if (empty($this->args[0]) || !is_numeric($this->args[0])) {
+            echo 'Usage: ' . APP . '/cake ' . 'Admin restartWorker [PID]';
+        }
+        $pid = $this->args[0];
+        $result = $this->Server->restartWorker($pid);
+        if ($result === true) {
+            $response = __('Worker restarted.');
+        } else {
+            $response = __('Could not restart the worker. Reason: %s', $result);
+        }
+        echo sprintf(
+            '%s%s%s',
+            PHP_EOL,
+            $response,
+            PHP_EOL
+        );
+    }
+
+    public function killWorker()
+    {
+        if (empty($this->args[0]) || !is_numeric($this->args[0])) {
+            echo 'Usage: ' . APP . '/cake ' . 'Admin killWorker [PID]';
+            die();
+        }
+        $pid = $this->args[0];
+        $result = $this->Server->killWorker($pid, false);
+        echo sprintf(
+            '%s%s%s',
+            PHP_EOL,
+            __('Worker killed.'),
+            PHP_EOL
+        );
+    }
+
+    public function startWorker()
+    {
+        if (empty($this->args[0])) {
+            echo 'Usage: ' . APP . '/cake ' . 'Admin startWorker [queue]';
+            die();
+        }
+        $queue = $this->args[0];
+        $this->Server->startWorker($queue);
+        echo sprintf(
+            '%s%s%s',
+            PHP_EOL,
+            __('Worker started.'),
+            PHP_EOL
+        );
     }
 
 	public function updateGalaxies() {
@@ -158,8 +209,27 @@ class AdminShell extends AppShell
 
 	public function getWorkers() {
 		$result = $this->Server->workerDiagnostics($workerIssueCount);
+        $query = 'all';
+        if (!empty($this->args[0])) {
+            $query = $this->args[0];
+        }
+        if ($query === 'dead') {
+            $dead_workers = array();
+            foreach ($result as $queue => $data) {
+                if (!empty($data['workers'])) {
+                    foreach ($data['workers'] as $k => $worker) {
+                        if ($worker['alive']) {
+                            unset($result[$queue]['workers'][$k]);
+                        }
+                    }
+                }
+                if (empty($result[$queue]['workers'])) {
+                    unset($result[$queue]);
+                }
+            }
+        }
 		echo json_encode($result, JSON_PRETTY_PRINT) . PHP_EOL;
-  }
+    }
 
 	public function getSetting() {
 		$param = empty($this->args[0]) ? 'all' : $this->args[0];
@@ -283,5 +353,34 @@ class AdminShell extends AppShell
     private function separator()
     {
         return PHP_EOL . '---------------------------------------------------------------' . PHP_EOL;
+    }
+
+    public function change_authkey()
+    {
+        if (empty($this->args[0])) {
+            echo 'MISP apikey command line tool.' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Password [email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Password [email] [authkey]';
+            die();
+        }
+        if (!empty($this->args[1])) {
+            $authKey = $this->args[1];
+        } else {
+            $authKey = $this->User->generateAuthKey();
+        }
+        $user = $this->User->find('first', array(
+            'conditions' => array('email' => $this->args[0]),
+            'recursive' => -1,
+            'fields' => array('User.id', 'User.email', 'User.authkey')
+        ));
+        if (empty($user)) {
+            echo 'Invalid e-mail, user not found.';
+            die();
+        }
+        $user['User']['authkey'] = $authKey;
+        $fields = array('id', 'email', 'authkey');
+        if (!$this->User->save($user, true, $fields)) {
+            echo 'Could not update authkey, reason:' . PHP_EOL . json_encode($this->User->validationErrors) . PHP_EOL;
+            die();
+        }
+        echo 'Updated, new key:' . PHP_EOL . $authKey . PHP_EOL;
     }
 }
