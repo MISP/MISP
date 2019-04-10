@@ -5796,11 +5796,7 @@ class Event extends AppModel
                 }
             }
         }
-        if ($saved == 1) {
-            $messageScopeSaved = Inflector::singularize($messageScope);
-        } else {
-            $messageScopeSaved = Inflector::pluralize($messageScope);
-        }
+        $messageScopeSaved = $this-> __apply_inflector($saved, $messageScope);
         if ($failed > 0) {
             if ($failed == 1) {
                 $messageScopeFailed = Inflector::singularize($messageScope);
@@ -5893,6 +5889,11 @@ class Event extends AppModel
         if ($jobId) {
             $this->Job->saveField('message', 'Processing complete');
         }
+    }
+
+    private function __apply_inflector($count, $scope)
+    {
+        return ($count == 1 ? Inflector::singuralize($scope) : Inflector::pluralize($scope));
     }
 
     public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false)
