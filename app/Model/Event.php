@@ -5825,6 +5825,7 @@ class Event extends AppModel
         $failed_attributes = $failed_objects = $failed_object_attributes = 0;
         $saved_attributes = $saved_objects = $saved_object_attributes = 0;
         $items_count = 0;
+        $failed = array();
         foreach (array('Attribute', 'Object') as $feature) {
             if (isset($resolved_data[$feature])) {
                 $items_count += count($resolved_data[$feature]);
@@ -5843,6 +5844,7 @@ class Event extends AppModel
                 } else {
                     $failed_attributes++;
                     $lastAttributeError = $this->Attribute->validationErrors;
+                    $failed[$attribute['uuid']] = array('Attribute' => $attribute);
                 }
                 if ($jobId) {
                     $current = ($a + 1);
@@ -5855,6 +5857,7 @@ class Event extends AppModel
         }
         if (isset($resolved_data['Object']) && !empty($resolved_data['Object'])) {
             $total_objects = count($resolved_data['Object']);
+            $references = array();
             foreach ($resolved_data['Object'] as $o => $object) {
                 $this->Object->create();
                 $object['event_id'] = $id;
@@ -5878,16 +5881,72 @@ class Event extends AppModel
                             }
                         }
                     }
+                    if (isset($object['ObjectReference']) && !empty($object['ObjectReference'])) {
+                        foreach($object['ObjectReference'] as $object_reference) {
+                            array_push($references, array('objectName' => $object['name'], 'reference' => $object_reference));
+                        }
+                    }
                     $saved_objects++;
                 } else {
                     $failed_objects++;
                     $lastObjectError = $this->Object->validationErrors;
+                    $failed[$object['uuid']] = array('Object' => $object);
                 }
                 if ($jobId) {
                     $current = ($o + 1);
                     $this->Job->saveField('message', 'Object ' . $current . '/' . $total_objects);
                     $this->Job->saveField('progress', (($current + $total_attributes) * 100 / $items_count));
                 }
+            }
+        }
+        if (!empty($references)) {
+            $reference_errors = array();
+            foreach($references as $reference) {
+                $objectName = $reference['objectName'];
+                $reference = $reference['reference'];
+                if (array_key_exists($reference['referenced_uuid'], $failed)) {
+                    $referenced_uuid = $reference['referenced_uuid'];
+                    if (isset($failed[$referenced_uuid]['Attribute'])) {
+                        $referenced_object = $failed[$referenced_uuid]['Attribute'];
+                        $error = ' attribute (type: ' . $referenced_object['type'] . '), ';
+                        $target_attributes = $this->Object->Attribute->find('all', array(
+                            'conditions' => array('Attribute.type' => $referenced_object['type'],
+                                                  'Attribute.value' => $referenced_object['value'],
+                                                  'Attribute.deleted' => 0),
+                            'recursive' => -1,
+                            'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
+                        ));
+                        foreach ($target_attributes as $target_attribute) {
+                            if ($target_attribute['Attribute']['event_id'] == $id) {
+                                $target_uuid = $target_attribute['Attribute']['uuid'];
+                                break;
+                            }
+                        }
+                    } else {
+                        $error = 'other object (name: ' . $failed[$referenced_uuid]['Object']['name'] . '), ';
+                    }
+                    if (!isset($target_uuid)) {
+                        array_push($reference_errors, ($reference['relationship_type'] . ' between ' . $objectName . 'object and an' . $error));
+                        continue;
+                    }
+                    $reference['referenced_uuid'] = $target_uuid;
+                }
+                list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
+                        $reference['referenced_uuid'],
+
+                        array('Event' => array('id' => $id))
+                );
+                $reference = array(
+                    'event_id' => $id,
+                    'referenced_id' => $referenced_id,
+                    'referenced_uuid' => $referenced_uuid,
+                    'referenced_type' => $referenced_type,
+                    'object_id' => $object_id,
+                    'object_uuid' => $reference['object_uuid'],
+                    'relationship_type' => $reference['relationship_type']
+                );
+                $this->Object->ObjectReference->create();
+                $this->Object->ObjectReference->save($reference);
             }
         }
         if ($saved_attributes > 0 || $saved_objects > 0) {
@@ -5936,7 +5995,15 @@ class Event extends AppModel
             } else {
                 $reason = 'object attributes could not be saved. An example of reason for the failure: ';
             }
-            $message .= 'Also, ' . $failed_object_attributes . $reason . json_encode($lastObjectAttributeError);
+            $message .= 'By the way, ' . $failed_object_attributes . $reason . json_encode($lastObjectAttributeError) . '.';
+        }
+        if (!empty($reference_errors)) {
+            $reference_error = sizeof($reference_errors) == 1 ? 'a reference is' : 'some references are';
+            $message .= ' Also, be aware that ' . $reference_error . ' missing: ';
+            foreach ($reference_errors as $error) {
+                $message .= $error;
+            }
+            $message .= 'you can have a look at the module results view you just left, to compare.';
         }
         if ($jobId) {
             $this->Job->saveField('message', 'Processing complete. ' . $message);
