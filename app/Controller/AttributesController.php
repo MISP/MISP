@@ -25,7 +25,7 @@ class AttributesController extends AppController
         $this->Auth->allow('downloadAttachment');
         $this->Auth->allow('text');
         $this->Auth->allow('rpz');
-        $this->Auth->allow('bro');
+        $this->Auth->allow('zeek');
 
         // permit reuse of CSRF tokens on the search page.
         if ('search' == $this->request->params['action']) {
@@ -2378,7 +2378,7 @@ class AttributesController extends AppController
         $this->render('/Attributes/rpz');
     }
 
-    public function bro($key = 'download', $type = 'all', $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false)
+    public function zeek($key = 'download', $type = 'all', $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false)
     {
         if ($this->request->is('post')) {
             if ($this->request->input('json_decode', true)) {
@@ -2429,7 +2429,7 @@ class AttributesController extends AppController
         if ($eventId) {
             $filename = 'misp.' . $type . '.event_' . $eventId . '.intel';
         }
-        $responseFile = implode(PHP_EOL, $this->Attribute->bro($this->Auth->user(), $type, $tags, $eventId, $from, $to, $last, $enforceWarninglist)) . PHP_EOL;
+        $responseFile = implode(PHP_EOL, $this->Attribute->zeek($this->Auth->user(), $type, $tags, $eventId, $from, $to, $last, $enforceWarninglist)) . PHP_EOL;
         $this->response->body($responseFile);
         $this->response->type('txt');
         $this->response->download($filename);

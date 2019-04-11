@@ -35,7 +35,7 @@ class ACLComponent extends Component
                     'addTag' => array('perm_tagger'),
                     'attributeReplace' => array('perm_add'),
                     'attributeStatistics' => array('*'),
-                    'bro' => array('*'),
+                    'zeek' => array('*'),
                     'checkAttachments' => array(),
                     'checkComposites' => array('perm_admin'),
                     'checkOrphanedAttributes' => array(),

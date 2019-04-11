@@ -107,13 +107,13 @@ class Event extends AppModel
                     'params' => array('returnFormat' => 'snort'),
                     'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
             ),
-            'bro' => array(
+            'zeek' => array(
                     'extension' => '.intel',
-                    'type' => 'Bro',
+                    'type' => 'Zeek',
                     'scope' => 'Attribute',
                     'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'bro'),
-                    'description' => 'Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
+                    'params' => array('returnFormat' => 'zeek'),
+                    'description' => 'Click this to download all network related attributes that you have access to under the Zeek (Bro) rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
             ),
             'stix' => array(
                     'extension' => '.xml',

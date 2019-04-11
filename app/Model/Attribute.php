@@ -170,7 +170,7 @@ class Attribute extends AppModel
             'regkey|value' => array('desc' => __("Registry value + data separated by |"), 'default_category' => 'Persistence mechanism', 'to_ids' => 1),
             'AS' => array('desc' => __('Autonomous system'), 'default_category' => 'Network activity', 'to_ids' => 0),
             'snort' => array('desc' => __('An IDS rule in Snort rule-format'), 'formdesc' => __("An IDS rule in Snort rule-format. This rule will be automatically rewritten in the NIDS exports."), 'default_category' => 'Network activity', 'to_ids' => 1),
-            'bro' => array('desc' => __('An NIDS rule in the Bro rule-format'), 'formdesc' => __("An NIDS rule in the Bro rule-format."), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'bro' => array('desc' => __('An NIDS rule in the Zeek (Bro) rule-format'), 'formdesc' => __("An NIDS rule in the Zeek (Bro) rule-format."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'zeek' => array('desc' => __('An NIDS rule in the Zeek rule-format'), 'formdesc' => __("An NIDS rule in the Zeek rule-format."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'pattern-in-file' => array('desc' => __('Pattern in file that identifies the malware'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'pattern-in-traffic' => array('desc' => __('Pattern in network traffic that identifies the malware'), 'default_category' => 'Network activity', 'to_ids' => 1),
@@ -2342,10 +2342,10 @@ class Attribute extends AppModel
         return $values;
     }
 
-    public function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false)
+    public function zeek($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false)
     {
-        App::uses('BroExport', 'Export');
-        $export = new BroExport();
+        App::uses('ZeekExport', 'Export');
+        $export = new ZeekExport();
         if ($type == 'all') {
             $types = array_keys($export->mispTypes);
         } else {
@@ -2405,7 +2405,7 @@ class Attribute extends AppModel
             $mispTypes = $export->getMispTypes($type);
             foreach ($mispTypes as $mispType) {
                 $conditions['AND']['Attribute.type'] = $mispType[0];
-                $intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $this->whitelist, $instanceString, $enforceWarninglist));
+                $intel = array_merge($intel, $this->__zeek($user, $conditions, $mispType[1], $export, $this->whitelist, $instanceString, $enforceWarninglist));
             }
         }
         natsort($intel);
@@ -2414,7 +2414,7 @@ class Attribute extends AppModel
         return $intel;
     }
 
-    private function __bro($user, $conditions, $valueField, $export, $whitelist, $instanceString, $enforceWarninglist)
+    private function __zeek($user, $conditions, $valueField, $export, $whitelist, $instanceString, $enforceWarninglist)
     {
         $attributes = $this->fetchAttributes(
             $user,

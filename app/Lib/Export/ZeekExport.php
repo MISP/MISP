@@ -1,63 +1,63 @@
 <?php
 
-class BroExport
+class ZeekExport
 {
     public $rules = array();
 
     public $header = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url\tmeta.do_notice\tmeta.if_in";
 
-    // mapping from misp attribute type to the bro intel type
+    // mapping from misp attribute type to the zeek intel type
     // alternative mechanisms are:
-    // - alternate: array containing a detection regex and a replacement bro type
-    // - composite: for composite misp attributes (domain|ip), use the provided bro type if the second value is queried
-    // - replace: run a replacement regex on the value before generating the bro rule
+    // - alternate: array containing a detection regex and a replacement zeek type
+    // - composite: for composite misp attributes (domain|ip), use the provided zeek type if the second value is queried
+    // - replace: run a replacement regex on the value before generating the zeek rule
     private $mapping = array(
-        'ip-dst' => array('brotype' => 'ADDR', 'alternate' => array('#/#', 'SUBNET')),
-        'ip-src' => array('brotype' => 'ADDR', 'alternate' => array('#/#', 'SUBNET')),
-        'ip-dst|port' => array('brotype' => 'ADDR', 'alternate' => array('#/#', 'SUBNET'), 'composite' => 'NONE'),
-        'ip-src|port' => array('brotype' => 'ADDR', 'alternate' => array('#/#', 'SUBNET'), 'composite' => 'NONE'),
-        'email-src' => array('brotype' => 'EMAIL'),
-        'email-dst' => array('brotype' => 'EMAIL'),
-        'target-email' => array('brotype' => 'EMAIL'),
-        'email-attachment' => array('brotype' => 'FILE_NAME'),
-        'filename' => array('brotype' => 'FILE_NAME'),
-        'hostname' => array('brotype' => 'DOMAIN'),
-        'domain' => array('brotype' => 'DOMAIN'),
-        'domain|ip' => array('brotype' => 'DOMAIN', 'composite' => 'ADDR'),
-        'url' => array('brotype' => 'URL', 'replace' => array('#^https?://#', '')),
-        'user-agent' => array('brotype' => 'SOFTWARE'),
-        'md5' => array('brotype' => 'FILE_HASH'),
-        'malware-sample' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'filename|md5' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'sha1' => array('brotype' => 'FILE_HASH'),
-        'filename|sha1' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'sha256' => array('brotype' => 'FILE_HASH'),
-        'filename|sha256' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'x509-fingerprint-sha1' => array('brotype' => 'CERT_HASH'),
-        'pdb' => array('brotype' => 'FILE_NAME'),
-        'authentihash' => array('brotype' => 'FILE_HASH'),
-        'ssdeep' => array('brotype' => 'FILE_HASH'),
-        'imphash' => array('brotype' => 'FILE_HASH'),
-        'pehash' => array('brotype' => 'FILE_HASH'),
-        'impfuzzy' => array('brotype' => 'FILE_HASH'),
-        'sha224' => array('brotype' => 'FILE_HASH'),
-        'sha384' => array('brotype' => 'FILE_HASH'),
-        'sha512' => array('brotype' => 'FILE_HASH'),
-        'sha512/224' => array('brotype' => 'FILE_HASH'),
-        'sha512/256' => array('brotype' => 'FILE_HASH'),
-        'tlsh' => array('brotype' => 'FILE_HASH'),
-        'cdhash' => array('brotype' => 'FILE_HASH'),
-        'filename|authentihash' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'filename|ssdeep' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'filename|imphash' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'filename|pehash' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'filename|impfuzzy' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'filename|sha224' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'filename|sha384' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'filename|sha512' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'filename|sha512/224' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'filename|sha512/256' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
-        'filename|tlsh' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH')
+        'ip-dst' => array('zeektype' => 'ADDR', 'alternate' => array('#/#', 'SUBNET')),
+        'ip-src' => array('zeektype' => 'ADDR', 'alternate' => array('#/#', 'SUBNET')),
+        'ip-dst|port' => array('zeektype' => 'ADDR', 'alternate' => array('#/#', 'SUBNET'), 'composite' => 'NONE'),
+        'ip-src|port' => array('zeektype' => 'ADDR', 'alternate' => array('#/#', 'SUBNET'), 'composite' => 'NONE'),
+        'email-src' => array('zeektype' => 'EMAIL'),
+        'email-dst' => array('zeektype' => 'EMAIL'),
+        'target-email' => array('zeektype' => 'EMAIL'),
+        'email-attachment' => array('zeektype' => 'FILE_NAME'),
+        'filename' => array('zeektype' => 'FILE_NAME'),
+        'hostname' => array('zeektype' => 'DOMAIN'),
+        'domain' => array('zeektype' => 'DOMAIN'),
+        'domain|ip' => array('zeektype' => 'DOMAIN', 'composite' => 'ADDR'),
+        'url' => array('zeektype' => 'URL', 'replace' => array('#^https?://#', '')),
+        'user-agent' => array('zeektype' => 'SOFTWARE'),
+        'md5' => array('zeektype' => 'FILE_HASH'),
+        'malware-sample' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'filename|md5' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'sha1' => array('zeektype' => 'FILE_HASH'),
+        'filename|sha1' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'sha256' => array('zeektype' => 'FILE_HASH'),
+        'filename|sha256' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'x509-fingerprint-sha1' => array('zeektype' => 'CERT_HASH'),
+        'pdb' => array('zeektype' => 'FILE_NAME'),
+        'authentihash' => array('zeektype' => 'FILE_HASH'),
+        'ssdeep' => array('zeektype' => 'FILE_HASH'),
+        'imphash' => array('zeektype' => 'FILE_HASH'),
+        'pehash' => array('zeektype' => 'FILE_HASH'),
+        'impfuzzy' => array('zeektype' => 'FILE_HASH'),
+        'sha224' => array('zeektype' => 'FILE_HASH'),
+        'sha384' => array('zeektype' => 'FILE_HASH'),
+        'sha512' => array('zeektype' => 'FILE_HASH'),
+        'sha512/224' => array('zeektype' => 'FILE_HASH'),
+        'sha512/256' => array('zeektype' => 'FILE_HASH'),
+        'tlsh' => array('zeektype' => 'FILE_HASH'),
+        'cdhash' => array('zeektype' => 'FILE_HASH'),
+        'filename|authentihash' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'filename|ssdeep' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'filename|imphash' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'filename|pehash' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'filename|impfuzzy' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'filename|sha224' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'filename|sha384' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'filename|sha512' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'filename|sha512/224' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'filename|sha512/256' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
+        'filename|tlsh' => array('zeektype' => 'FILE_NAME', 'composite' => 'FILE_HASH')
     );
 
     // export group to misp type mapping
@@ -152,7 +152,7 @@ class BroExport
     public function export($items, $orgs, $valueField, $whitelist = array(), $instanceString)
     {
         $intel = array();
-        //For bro format organisation
+        //For zeek format organisation
         $orgsName = array();
         // generate the rules
         foreach ($items as $item) {
@@ -175,14 +175,14 @@ class BroExport
     {
         if (isset($this->mapping[$item['Attribute']['type']])) {
             if (empty($whitelist) || !$this->checkWhitelist($item['Attribute']['value' . $valueField], $whitelist)) {
-                $brotype = $this->mapping[$item['Attribute']['type']]['brotype'];
+                $zeektype = $this->mapping[$item['Attribute']['type']]['zeektype'];
                 if (isset($this->mapping[$item['Attribute']['type']]['alternate'])) {
                     if (preg_match($this->mapping[$item['Attribute']['type']]['alternate'][0], $item['Attribute']['value' . $valueField])) {
-                        $brotype = $this->mapping[$item['Attribute']['type']]['alternate'][1];
+                        $zeektype = $this->mapping[$item['Attribute']['type']]['alternate'][1];
                     }
                 }
                 if ($valueField == 2 && isset($this->mapping[$item['Attribute']['type']]['composite'])) {
-                    $brotype = $this->mapping[$item['Attribute']['type']]['composite'];
+                    $zeektype = $this->mapping[$item['Attribute']['type']]['composite'];
                 }
                 $item['Attribute']['value' . $valueField] = $this->replaceIllegalChars($item['Attribute']['value' . $valueField]);  // substitute chars not allowed in rule
                 if (isset($this->mapping[$item['Attribute']['type']]['replace'])) {
@@ -195,7 +195,7 @@ class BroExport
                 return sprintf(
                     $ruleFormat,
                                 $this->replaceIllegalChars($item['Attribute']['value' . $valueField]),    // value - for composite values only the relevant element is taken
-                                'Intel::' . $brotype,   // type
+                                'Intel::' . $zeektype,   // type
                                 $this->replaceIllegalChars($item['Event']['info']),
                                 $this->replaceIllegalChars($item['Attribute']['comment']),
                                 'T',    // meta.do_notice

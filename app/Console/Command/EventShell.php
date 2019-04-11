@@ -376,29 +376,29 @@ class EventShell extends AppShell
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
-	public function cachebro()
+	public function cachezeek()
 	{
 		$timeStart = time();
-		$broHeader = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url\tmeta.do_notice\tmeta.if_in\n";
+		$zeekHeader = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url\tmeta.do_notice\tmeta.if_in\n";
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
 		$this->Job->id = $id;
 		$this->Job->saveField('progress', 1);
-		App::uses('BroExport', 'Export');
-		$export = new BroExport();
+		App::uses('ZeekExport', 'Export');
+		$export = new ZeekExport();
 		$types = array_keys($export->mispTypes);
 		$typeCount = count($types);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/bro', true, 0750);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/zeek', true, 0750);
 		if ($user['Role']['perm_site_admin']) {
-			$file = new File($dir->pwd() . DS . 'misp.bro.ADMIN.intel');
+			$file = new File($dir->pwd() . DS . 'misp.zeek.ADMIN.intel');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel');
+			$file = new File($dir->pwd() . DS . 'misp.zeek.' . $user['Organisation']['name'] . '.intel');
 		}
 
 		$file->write('');
 		foreach ($types as $k => $type) {
-			$final = $this->Attribute->bro($user, $type);
+			$final = $this->Attribute->zeek($user, $type);
 			foreach ($final as $attribute) {
 				$file->append($attribute . PHP_EOL);
 			}

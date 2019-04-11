@@ -40,10 +40,10 @@
     </div>
     <div class="row bottom-buffer">
         <div class="span3">
-        <?php echo $this->Html->link(__('Download Bro signatures'), array('controller' => 'attributes', 'action' => 'bro', 'download'), array('class' => 'btn btn-block full-width')); ?>
+        <?php echo $this->Html->link(__('Download Zeek (Bro) signatures'), array('controller' => 'attributes', 'action' => 'zeek', 'download'), array('class' => 'btn btn-block full-width')); ?>
         </div>
         <div class="span9"><?php echo __('Click these to download all network related attributes that you
-                have access to under the Bro rule format. Only <em>published</em>
+                have access to under the Zeek (Bro) rule format. Only <em>published</em>
                 events and attributes marked as <em>IDS Signature</em> are exported.
                 Administration is able to maintain a whitelist containing host,
                 domain name and IP numbers to exclude from the NIDS export.');?>

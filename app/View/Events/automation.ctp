@@ -105,19 +105,19 @@
     <code><?php echo h('<request><tags>OSINT&&!OUTDATED</tags><policy>walled-garden</policy><walled_garden>teamliquid.net</walled_garden><refresh>5h</refresh></request>');?></code><br /><br />
     <code>{"request": {"tags": ["OSINT", "!OUTDATED"], "policy": "walled-garden", "walled_garden": "teamliquid.net", "refresh": "5h"}</code>
 
-    <h3><?php echo __('Bro IDS export');?></h3>
-    <p><?php echo __('An export of all attributes of a specific bro type to a formatted plain text file. By default only published and IDS flagged attributes are exported.');?></p>
-    <p><?php echo __('You can configure your tools to automatically download a file one of the Bro types.');?></p>
+    <h3><?php echo __('Zeek (Bro) IDS export');?></h3>
+    <p><?php echo __('An export of all attributes of a specific zeek type to a formatted plain text file. By default only published and IDS flagged attributes are exported.');?></p>
+    <p><?php echo __('You can configure your tools to automatically download a file one of the Zeek (Bro) types.');?></p>
     <pre><?php
-        foreach (array_keys($broTypes) as $broType) {
-            echo $baseurl.'/attributes/bro/download/'.$broType . "\n";
+        foreach (array_keys($zeekTypes) as $zeekType) {
+            echo $baseurl.'/attributes/zeek/download/'.$zeekType . "\n";
         }
     ?></pre>
     <p><?php echo __('To restrict the results by tags, use the usual syntax. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). To get ip values from events tagged tag1 but not tag2 use');?>:</p>
-    <pre><?php echo $baseurl.'/attributes/bro/download/ip/tag1&&!tag2'; ?></pre>
+    <pre><?php echo $baseurl.'/attributes/zeek/download/ip/tag1&&!tag2'; ?></pre>
 
-    <p><?php echo __('It is possible to restrict the bro exports on based on a set of filters. POST a JSON object or an XML at the Bro API to filter the results.');?></p>
-    <pre><?php echo $baseurl.'/attributes/bro/download'; ?></pre>
+    <p><?php echo __('It is possible to restrict the Zeek (Bro) exports on based on a set of filters. POST a JSON object or an XML at the Zeek API to filter the results.');?></p>
+    <pre><?php echo $baseurl.'/attributes/zeek/download'; ?></pre>
     <p>JSON:</p>
     <pre><?php
         echo 'Headers' . PHP_EOL;
@@ -135,10 +135,10 @@
     ?></pre>
     <code>&lt;request&gt;&lt;type&gt;ip&lt;/type&gt;&lt;eventid&gt;!51&lt;/eventid&gt;&lt;eventid&gt;!62&lt;/eventid&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code><br /><br />
     <p><?php echo __('Alternatively, it is also possible to pass the filters via the parameters in the URL, though it is highly advised to use POST requests with JSON objects instead. The format is as described below');?>:</p>
-    <pre><?php echo $baseurl.'/attributes/bro/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]'; ?></pre>
-    <b>type</b>: <?php echo __('The Bro type, any valid Bro type is accepted. The mapping between Bro and MISP types is as follows');?>:<br />
+    <pre><?php echo $baseurl.'/attributes/zeek/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]'; ?></pre>
+    <b>type</b>: <?php echo __('The Zeek (BRo) type, any valid Zeek type is accepted. The mapping between Zeek and MISP types is as follows');?>:<br />
     <pre><?php
-        foreach ($broTypes as $key => $value) {
+        foreach ($zeekTypes as $key => $value) {
             echo '<b>' . h($key) . '</b>: ' . h($value) . PHP_EOL;
         }
     ?></pre>

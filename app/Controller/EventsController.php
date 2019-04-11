@@ -2590,19 +2590,19 @@ class EventsController extends AppController
         if (!$this->userRole['perm_auth']) {
             $this->redirect(array('controller' => 'events', 'action' => 'index'));
         }
-        App::uses('BroExport', 'Export');
-        $export = new BroExport();
+        App::uses('ZeekExport', 'Export');
+        $export = new ZeekExport();
         $temp = $export->mispTypes;
-        $broTypes = array('all' => 'All types listed below.');
-        foreach ($temp as $broType => $mispTypes) {
+        $zeekTypes = array('all' => 'All types listed below.');
+        foreach ($temp as $zeekType => $mispTypes) {
             foreach ($mispTypes as $mT) {
-                $broTypes[$broType][] = $mT[0];
+                $zeekTypes[$zeekType][] = $mT[0];
             }
-            $broTypes[$broType] = implode(', ', $broTypes[$broType]);
+            $zeekTypes[$zeekType] = implode(', ', $zeekTypes[$zeekType]);
         }
         $this->loadModel('Server');
         $this->set('command_line_functions', $this->Server->command_line_functions);
-        $this->set('broTypes', $broTypes);
+        $this->set('zeekTypes', $zeekTypes);
         // generate the list of Attribute types
         $this->loadModel('Attribute');
         $this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
@@ -4285,9 +4285,9 @@ class EventsController extends AppController
                     'requiresPublished' => true,
                     'checkbox' => false,
             ),
-            'bro' => array(
-                    'url' => '/attributes/bro/download/all/false/' . $id,
-                    'text' => 'Download Bro rules',
+            'zeek' => array(
+                    'url' => '/attributes/zeek/download/all/false/' . $id,
+                    'text' => 'Download Zeek (Bro) rules',
                     'requiresPublished' => true,
                     'checkbox' => false
             ),

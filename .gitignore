@@ -89,6 +89,7 @@ tools/mkdocs
 /app/tmp/cached_exports/stix/*
 /app/tmp/cached_exports/sha256/*
 /app/tmp/cached_exports/bro/*
+/app/tmp/cached_exports/zeek/*
 /app/Plugin/CakeResque
 .gnupg
 .smime

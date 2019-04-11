@@ -49,14 +49,14 @@ class Job extends AppModel
                     array('cache', $user['id'], $id, $type),
                     true
             );
-        } elseif ($type === 'bro') {
+        } elseif ($type === 'zeek') {
             $extra = $type;
-            $type = 'bro';
+            $type = 'zeek';
             $extra2 = isset($user['nids_sid']) ? $user['nids_sid'] : 0;
             $process_id = CakeResque::enqueue(
                     'cache',
                     $shell . 'Shell',
-                    array('cachebro' . $type, $user['id'], $id, $extra, $extra2),
+                    array('cachezeek' . $type, $user['id'], $id, $extra, $extra2),
                     true
             );
         } else {
