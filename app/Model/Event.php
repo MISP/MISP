@@ -1647,7 +1647,6 @@ class Event extends AppModel
             'last',
             'to_ids',
             'includeAllTags',
-            'withAttachments',
             'includeAttachments',
             'event_uuid',
             'distribution',
