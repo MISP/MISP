@@ -1647,7 +1647,6 @@ class Event extends AppModel
             'last',
             'to_ids',
             'includeAllTags',
-            'withAttachments',
             'includeAttachments',
             'event_uuid',
             'distribution',
@@ -3841,7 +3840,7 @@ class Event extends AppModel
         }
     }
 
-    private function __getPrioWorkerIfPossible()
+    public function __getPrioWorkerIfPossible()
     {
         $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         $workers = $this->ResqueStatus->getWorkers();
