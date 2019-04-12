@@ -93,7 +93,7 @@ class StixExport
         $this->__stix_file->close();
         $this->__stix_file->delete();
         $sep_len = strlen($this->__framing['separator']);
-        $stix_event = substr($stix_event, 0, -$sep_len) . $this->__framing['footer'];
+        $stix_event = (empty($this->__filenames) ? $stix_event : substr($stix_event, 0, -$sep_len)) . $this->__framing['footer'];
         return $stix_event;
     }
 
