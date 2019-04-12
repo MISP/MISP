@@ -70,7 +70,7 @@ class StixBuilder():
                        'created_by_ref': self.identity_id, 'created': self.misp_event['date'],
                        'published': self.get_datetime_from_timestamp(self.misp_event['publish_timestamp']),
                        'interoperability': True}
-        labels = _MISP_event_tags
+        labels = [tag for tag in _MISP_event_tags]
         if self.misp_event.get('Tag'):
             markings = []
             for tag in self.misp_event['Tag']:
