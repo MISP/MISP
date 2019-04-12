@@ -1552,7 +1552,7 @@ class RestResponseComponent extends Component
         $field['values'] = $tags;
     }
     private function __overwriteNationality($scope, &$field) {
-        $field['values'] = array_keys(ClassRegistry::init("Organisation")->countries);
+        $field['values'] = ClassRegistry::init("Organisation")->countries;
     }
     private function __overwriteAction($scope, &$field) {
         $field['values'] = array_keys(ClassRegistry::init("Log")->actionDefinitions);
