@@ -5967,7 +5967,7 @@ class Event extends AppModel
         }
         if ($failed_attributes > 0) {
             if ($failed_attributes == 1) {
-                $reason = ' attribute could not be saved. Reason for the failure: ' . json_encode($lastAttributeError) . ' ';
+                $reason = ' attribute could not be saved. Reason for the failure: ' . $lastAttributeError['value'] . ' ';
             } else {
                 $reason = ' attributes could not be saved. This may be due to attributes with similar values already existing. ';
             }
@@ -5987,7 +5987,7 @@ class Event extends AppModel
             } else {
                 $reason = ' objects could not be saved. An example of reason for the failure: ';
             }
-            $message .= $failed_objects . $reason . json_encode($lastObjectError) . ' ';
+            $message .= $failed_objects . $reason . $lastObjectError['value'] . ' ';
         }
         if ($failed_object_attributes > 0) {
             if ($failed_object_attributes == 1) {
@@ -5995,7 +5995,7 @@ class Event extends AppModel
             } else {
                 $reason = 'object attributes could not be saved. An example of reason for the failure: ';
             }
-            $message .= 'By the way, ' . $failed_object_attributes . $reason . json_encode($lastObjectAttributeError) . '.';
+            $message .= 'By the way, ' . $failed_object_attributes . $reason . $lastObjectAttributeError['value'] . '.';
         }
         if (!empty($reference_errors)) {
             $reference_error = sizeof($reference_errors) == 1 ? 'a reference is' : 'some references are';
