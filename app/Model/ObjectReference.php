@@ -265,8 +265,6 @@ class ObjectReference extends AppModel
 
     public function getReferencedInfo($referencedUuid, $object)
     {
-        $tempFile = new File(APP . 'tmp/testObjectDeMort.txt');
-        $tempFile->write(json_encode($object));
         $referenced_type = 1;
         $target_object = $this->Object->find('first', array(
             'conditions' => array('Object.uuid' => $referencedUuid, 'Object.deleted' => 0),
