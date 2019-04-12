@@ -58,7 +58,7 @@ class StixExport
         $randomFileName = $this->generateRandomFileName();
         $this->__tmp_dir = $this->__scripts_dir . 'tmp/';
         $this->__framing = json_decode(shell_exec($framing_cmd), true);
-        $this->__stix_file = new File($this->__tmp_dir . $randomFileName . '.stix');
+        $this->__stix_file = new File($this->__tmp_dir . $randomFileName . '.' . $this->__return_type);
         unset($randomFileName);
         $this->__stix_file->write($this->__framing['header']);
         $this->__initialize_misp_file();
