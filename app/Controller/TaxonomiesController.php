@@ -60,6 +60,7 @@ class TaxonomiesController extends AppController
         $this->loadModel('AttributeTag');
         foreach ($taxonomy['entries'] as $key => $value) {
             $count = 0;
+            $count_a = 0;
             if (!empty($value['existing_tag'])) {
                 foreach ($value['existing_tag'] as $et) {
                     $count = $this->EventTag->find('count', array(
