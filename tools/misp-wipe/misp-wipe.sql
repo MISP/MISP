@@ -30,6 +30,9 @@ TRUNCATE `bruteforces`;
 TRUNCATE `news`;
 TRUNCATE `template_tags`;
 TRUNCATE `whitelist`;
+TRUNCATE `event_locks`;
+TRUNCATE `fuzzy_correlate_ssdeep`;
+TRUNCATE `tasks`;
 
 -- Clear tables that can be re-populated
 TRUNCATE `taxonomies`;
@@ -42,6 +45,8 @@ TRUNCATE `galaxies`;
 TRUNCATE `galaxy_clusters`;
 TRUNCATE `galaxy_elements`;
 TRUNCATE `galaxy_reference`;
+TRUNCATE `noticelists`;
+TRUNCATE `noticelist_entries`;
 
 -- Clear tables that have defaults
 TRUNCATE `feeds`;

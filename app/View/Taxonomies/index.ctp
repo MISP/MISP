@@ -23,7 +23,7 @@
             <th><?php echo $this->Paginator->sort('description');?></th>
             <th><?php echo $this->Paginator->sort('version');?></th>
             <th><?php echo $this->Paginator->sort('enabled');?></th>
-            <th><?php echo $this->Paginator->sort('required');?></th>
+            <th><?php echo $this->Paginator->sort('required', __('Required'));?></th>
             <th><?php echo __('Active Tags');?></th>
             <th class="actions"><?php echo __('Actions');?></th>
     </tr><?php
@@ -46,8 +46,8 @@ foreach ($taxonomies as $item): ?>
                     }
                 }
             ?>
-            <a href='<?php echo $baseurl."/taxonomies/view/". h($item['Taxonomy']['id']);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
-            <span class="icon-trash useCursorPointer" title="<?php echo __('Delete taxonomy');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete taxonomy');?>" onClick="deleteObject('taxonomies', 'delete', '<?php echo h($item['Taxonomy']['id']); ?>', '<?php echo h($item['Taxonomy']['id']); ?>');"></span>
+            <a href='<?php echo $baseurl."/taxonomies/view/". h($item['Taxonomy']['id']);?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Delete taxonomy');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete taxonomy');?>" onClick="deleteObject('taxonomies', 'delete', '<?php echo h($item['Taxonomy']['id']); ?>', '<?php echo h($item['Taxonomy']['id']); ?>');"></span>
         </td>
     </tr><?php
 endforeach; ?>

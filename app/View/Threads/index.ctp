@@ -20,9 +20,9 @@
     <tr>
             <th><?php echo $this->Paginator->sort('org');?></th>
             <th><?php echo __('Title');?></th>
-            <th><?php echo $this->Paginator->sort('date_modified', 'Last Post On');?></th>
+            <th><?php echo $this->Paginator->sort('date_modified', __('Last Post On'));?></th>
             <th><?php echo __('Last Post By');?></th>
-            <th><?php echo $this->Paginator->sort('date_created', 'Thread started On');?></th>
+            <th><?php echo $this->Paginator->sort('date_created', __('Thread started On'));?></th>
             <th><?php echo __('Posts');?></th>
             <th><?php echo __('Distribution');?></th>
             <th><?php echo __('Actions');?></th>
@@ -78,7 +78,7 @@ foreach ($threads as $thread):
             </td>
             <td class="short action-links">
                 <?php
-                    echo $this->Html->link('', array('action' => 'view', $thread['Thread']['id']), array('class' => 'icon-list-alt', 'title' => __('View Discussion')));
+                    echo $this->Html->link('', array('action' => 'view', $thread['Thread']['id']), array('class' => 'fa fa-eye', 'title' => __('View Discussion')));
                 ?>
             </td>
         </tr>

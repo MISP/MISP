@@ -1533,7 +1533,10 @@ class RestResponseComponent extends Component
         $field['values'] = array_keys(ClassRegistry::init("Attribute")->categoryDefinitions);
     }
     private function __overwriteDistribution($scope, &$field) {
-        $field['values'] = array_keys(ClassRegistry::init("Attribute")->distributionLevels);
+        $field['values'] = array();
+        foreach(ClassRegistry::init("Attribute")->distributionLevels as $d => $text) {
+            $field['values'][] = array('label' => $text, 'value' => $d);
+        }
     }
     private function __overwriteTags($scope, &$field) {
         $this->{$scope} = ClassRegistry::init("Tag");
@@ -1549,7 +1552,7 @@ class RestResponseComponent extends Component
         $field['values'] = $tags;
     }
     private function __overwriteNationality($scope, &$field) {
-        $field['values'] = array_keys(ClassRegistry::init("Organisation")->countries);
+        $field['values'] = ClassRegistry::init("Organisation")->countries;
     }
     private function __overwriteAction($scope, &$field) {
         $field['values'] = array_keys(ClassRegistry::init("Log")->actionDefinitions);

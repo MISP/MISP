@@ -182,7 +182,7 @@ class Taxonomy extends AppModel
 
     // returns all tags associated to a taxonomy
     // returns all tags not associated to a taxonomy if $inverse is true
-    public function getAllTaxonomyTags($inverse = false, $user = false)
+    public function getAllTaxonomyTags($inverse = false, $user = false, $full = false)
     {
         $this->Tag = ClassRegistry::init('Tag');
         $taxonomyIdList = $this->find('list', array('fields' => array('id')));
@@ -201,19 +201,45 @@ class Taxonomy extends AppModel
         if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
             $conditions['Tag.hide_tag'] = 0;
         }
-        $allTags = $this->Tag->find(
-            'list',
-            array(
-                'fields' => array('name'),
-                'order' => array('UPPER(Tag.name) ASC'),
-                'conditions' => $conditions
-            )
-        );
+        if ($full) {
+            $allTags = $this->Tag->find(
+                'all',
+                array(
+                    'fields' => array('id', 'name', 'colour'),
+                    'order' => array('UPPER(Tag.name) ASC'),
+                    'conditions' => $conditions,
+                    'recursive' => -1
+                )
+            );
+        } else {
+            $allTags = $this->Tag->find(
+                'list',
+                array(
+                    'fields' => array('name'),
+                    'order' => array('UPPER(Tag.name) ASC'),
+                    'conditions' => $conditions
+                )
+            );
+        }
         foreach ($allTags as $k => $tag) {
-            if ($inverse && in_array(strtoupper($tag), $allTaxonomyTags)) {
-                unset($allTags[$k]);
+            if ($full) {
+                $needle = $tag['Tag']['name'];
+            } else {
+                $needle = $tag;
             }
-            if (!$inverse && !in_array(strtoupper($tag), $allTaxonomyTags)) {
+            if ($inverse) {
+                if (in_array(strtoupper($needle), $allTaxonomyTags)) {
+                    unset($allTags[$k]);
+                } else {
+                    $temp = explode(':', $needle);
+                    if (count($temp) > 1) {
+                        if ($temp[0] == 'misp-galaxy') {
+                            unset($allTags[$k]);
+                        }
+                    }
+                }
+            }
+            if (!$inverse && !in_array(strtoupper($needle), $allTaxonomyTags)) {
                 unset($allTags[$k]);
             }
         }

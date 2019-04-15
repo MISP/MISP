@@ -259,7 +259,7 @@ doas pkg_add -v fcgi-cgi fcgi
     If on OpenBSD 6.3, upgrade to 6.4 to make your life much easier.
 
 ```
-doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl72-redis
+doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl72-redis php-gd
 ```
 
 #### /etc/php-7.2.ini 

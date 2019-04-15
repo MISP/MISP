@@ -500,8 +500,17 @@ class UsersController extends AppController
                 }
                 $required_fields = array('role_id', 'email');
                 foreach ($required_fields as $field) {
+                    $set_field_via_other_means = false;
                     if (empty($this->request->data['User'][$field])) {
-                        return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
+                        if ($field === 'role_id') {
+                            if (!empty($default_role_id)) {
+                                $this->request->data['User'][$field] = $default_role_id;
+                                $set_field_via_other_means = true;
+                            }
+                        }
+                        if (!$set_field_via_other_means) {
+                            return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
+                        }
                     }
                 }
                 if (isset($this->request->data['User']['password'])) {
@@ -1553,7 +1562,13 @@ class UsersController extends AppController
     public function statistics($page = 'data')
     {
         $this->set('page', $page);
-        $pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'users' => 'User and Organisation statistics', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'galaxyMatrix' => 'Galaxy Matrix');
+        $pages = array('data' => __('Usage data'),
+                       'orgs' => __('Organisations'),
+                       'users' => __('User and Organisation statistics'),
+                       'tags' => __('Tags'),
+                       'attributehistogram' => __('Attribute histogram'),
+                       'sightings' => __('Sightings toplists'),
+                       'galaxyMatrix' => __('Galaxy Matrix'));
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             unset($pages['orgs']);
         }

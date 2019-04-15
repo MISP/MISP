@@ -254,6 +254,10 @@ class AttributesController extends AppController
             }
             foreach ($attributes as $k => $attribute) {
                 if (empty($attribute['blocked'])) {
+                    if (!empty($attribute['encrypt'])) {
+                        $attribute = $this->Attribute->onDemandEncrypt($attribute);
+                    }
+                    $attributes[$k] = $attribute;
                     $this->Attribute->set($attribute);
                     $result = $this->Attribute->validates();
                     if (!$result) {
@@ -1170,15 +1174,15 @@ class AttributesController extends AppController
         if (!$this->Attribute->exists()) {
             throw new NotFoundException('Invalid attribute');
         }
+        $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
+        $conditions['includeAllTags'] = false;
+        $conditions['includeAttributeUuid'] = true;
+        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
+        if (empty($attribute)) {
+            throw new MethodNotAllowedException('Invalid attribute');
+        }
+        $attribute = $attribute[0];
         if ($this->_isRest()) {
-            $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
-            $conditions['includeAllTags'] = false;
-            $conditions['includeAttributeUuid'] = true;
-            $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
-            if (empty($attribute)) {
-                throw new MethodNotAllowedException('Invalid attribute');
-            }
-            $attribute = $attribute[0];
             if (isset($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $k => $tag) {
                     $attribute['Attribute']['Tag'][$k] = $tag['Tag'];
@@ -1189,7 +1193,60 @@ class AttributesController extends AppController
             $this->set('Attribute', $attribute['Attribute']);
             $this->set('_serialize', array('Attribute'));
         } else {
-            $this->redirect('/events/view/' . $this->Attribute->data['Attribute']['event_id']);
+            $this->redirect('/events/view/' . $attribute['Attribute']['event_id']);
+        }
+    }
+
+    public function viewPicture($id, $thumbnail=false)
+    {
+        if (Validation::uuid($id)) {
+            $temp = $this->Attribute->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Attribute.uuid' => $id),
+                'fields' => array('Attribute.id', 'Attribute.uuid')
+            ));
+            if (empty($temp)) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
+            $id = $temp['Attribute']['id'];
+        } elseif (!is_numeric($id)) {
+            throw new NotFoundException(__('Invalid attribute id.'));
+        }
+        $this->Attribute->id = $id;
+        if (!$this->Attribute->exists()) {
+            throw new NotFoundException('Invalid attribute');
+        }
+        $conditions = array(
+            'conditions' => array(
+                'Attribute.id' => $id,
+                'Attribute.type' => 'attachment'
+            ),
+            'includeAllTags' => false,
+            'includeAttributeUuid' => true,
+            'flatten' => true
+        );
+
+        if ($this->_isRest()) {
+            $conditions['withAttachments'] = true;
+        }
+
+        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
+        if (empty($attribute)) {
+            throw new MethodNotAllowedException('Invalid attribute');
+        }
+        $attribute = $attribute[0];
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
+        } else {
+            $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
+            $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
+            $image_data = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
+            $extension = explode('.', $attribute['Attribute']['value']);
+            $extension = end($extension);
+            $this->response->type(strtolower(h($extension)));
+            $this->response->body($image_data);
+            $this->autoRender = false;
         }
     }
 
@@ -3070,21 +3127,23 @@ class AttributesController extends AppController
             $success = 0;
             $fails = 0;
             foreach ($idList as $id) {
-                $this->Attribute->id = $id;
-                if (!$this->Attribute->exists()) {
+                $attribute = $this->Attribute->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0),
+                    'contain' => array('Event.orgc_id')
+                ));
+                if (empty($attribute)) {
                     throw new NotFoundException(__('Invalid attribute'));
                 }
-                $this->Attribute->read();
-                if (!$this->_isSiteAdmin() && $this->Attribute->data['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+                if (!$this->_isSiteAdmin() && $attribute['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
                     $fails++;
                     continue;
                 }
-                if ($this->Attribute->data['Attribute']['deleted']) {
-                    throw new NotFoundException(__('Invalid attribute'));
-                }
-                $eventId = $this->Attribute->data['Attribute']['event_id'];
-                $this->Attribute->Event->recursive = -1;
-                $event = $this->Attribute->Event->read(array(), $eventId);
+                $eventId = $attribute['Attribute']['event_id'];
+                $event = $this->Attribute->Event->find('first', array(
+                    'conditions' => array('Event.id' => $eventId),
+                    'recursive' => -1
+                ));
                 if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
                     if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
@@ -3093,8 +3152,6 @@ class AttributesController extends AppController
                 if (!$this->_isRest()) {
                     $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
                 }
-                $this->Attribute->recursive = -1;
-
                 foreach ($tag_id_list as $tag_id) {
                     $this->Attribute->AttributeTag->Tag->id = $tag_id;
                     if (!$this->Attribute->AttributeTag->Tag->exists()) {
@@ -3123,9 +3180,9 @@ class AttributesController extends AppController
                         $event['Event']['published'] = 0;
                         $date = new DateTime();
                         $event['Event']['timestamp'] = $date->getTimestamp();
-                        $this->Attribute->Event->save($event);
-                        $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
-                        $this->Attribute->save($this->Attribute->data);
+                        $result = $this->Attribute->Event->save($event);
+                        $attribute['Attribute']['timestamp'] = $date->getTimestamp();
+                        $this->Attribute->save($attribute);
                         $log = ClassRegistry::init('Log');
                         $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
                         $success++;

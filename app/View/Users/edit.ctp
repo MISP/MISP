@@ -7,10 +7,10 @@
     ?>
         <div class="input clear"></div>
     <?php
-        $passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
-        $passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
+        $passwordPopover = '<span class=\"blue bold\">' . __('Length') .'</span>: ' . h($length) . '<br />';
+        $passwordPopover .= '<span class=\"blue bold\">' . __('Complexity') .'</span>: ' . h($complexity);
         echo $this->Form->input('password', array(
-            'label' => 'Password <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+            'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>'
         ));
         echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
     ?>
@@ -20,7 +20,7 @@
     ?>
         <div class="input clear"></div>
     <?php
-        echo $this->Form->input('gpgkey', array('label' => 'GnuPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
+        echo $this->Form->input('gpgkey', array('label' => __('GnuPG key'), 'div' => 'clear', 'class' => 'input-xxlarge'));
         ?>
             <div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch GnuPG key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GnuPG key');?></span></div>
         <?php

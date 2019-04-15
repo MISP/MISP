@@ -75,7 +75,7 @@ class AppModel extends Model
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
-        33 => false
+        33 => false, 34 => false
     );
 
     public function afterSave($created, $options = array())
@@ -170,6 +170,9 @@ class AppModel extends Model
                 break;
             case 23:
                 $this->__bumpReferences();
+                break;
+            case 34:
+                $this->__fixServerPullPushRules();
                 break;
             default:
                 $this->updateDatabase($command);
@@ -2028,5 +2031,25 @@ class AppModel extends Model
             return time() + 1;
         }
         return time() - ($delta * $multiplier);
+    }
+
+    private function __fixServerPullPushRules()
+    {
+        $this->Server = ClassRegistry::init('Server');
+        $servers = $this->Server->find('all', array('recursive' => -1));
+        foreach ($servers as $server) {
+            $changed = false;
+            if (empty($server['Server']['pull_rules'])) {
+                $server['Server']['pull_rules'] = '[]';
+                $changed = true;
+            }
+            if (empty($server['Server']['push_rules'])) {
+                $server['Server']['push_rules'] = '[]';
+                $changed = true;
+            }
+            if ($changed) {
+                $this->Server->save($server);
+            }
+        }
     }
 }

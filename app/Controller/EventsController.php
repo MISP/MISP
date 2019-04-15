@@ -26,7 +26,7 @@ class EventsController extends AppController
     );
 
     private $acceptedFilteringNamedParams = array('sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
-        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS'
+        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting'
     );
 
     public $defaultFilteringRules =  array(
@@ -41,6 +41,7 @@ class EventsController extends AppController
         'feed' => 0,
         'server' => 0,
         'distribution' => array(0, 1, 2, 3, 4, 5),
+        'sighting' => 0,
         'taggedAttributes' => '',
         'galaxyAttachedAttributes' => ''
     );
@@ -1134,7 +1135,9 @@ class EventsController extends AppController
             $filters['sort'] = 'timestamp';
             $filters['direction'] = 'desc';
         }
-        $params = $this->Event->rearrangeEventForView($event, $filters, $all);
+        $sightingsData = $this->Event->getSightingData($event);
+        $this->set('sightingsData', $sightingsData);
+        $params = $this->Event->rearrangeEventForView($event, $filters, $all, $sightingsData);
         $this->params->params['paging'] = array($this->modelClass => $params);
         // workaround to get the event dates in to the attribute relations
         $relatedDates = array();
@@ -1165,8 +1168,6 @@ class EventsController extends AppController
                 $this->set($variable, $currentModel->{$variable});
             }
         }
-        $sightingsData = $this->Event->getSightingData($event);
-        $this->set('sightingsData', $sightingsData);
         if (Configure::read('Plugin.Enrichment_services_enable')) {
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user());
@@ -1237,9 +1238,15 @@ class EventsController extends AppController
         $this->set('emptyEvent', $emptyEvent);
         $attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
         $objectCount = isset($event['Object']) ? count($event['Object']) : 0;
+        $oldest_timestamp = false;
         if (!empty($event['Object'])) {
             foreach ($event['Object'] as $k => $object) {
                 if (!empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $attribute) {
+                        if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+                            $oldest_timestamp = $attribute['timestamp'];
+                        }
+                    }
                     $attributeCount += count($object['Attribute']);
                 }
             }
@@ -1319,6 +1326,9 @@ class EventsController extends AppController
         $startDate = null;
         $modificationMap = array();
         foreach ($event['Attribute'] as $k => $attribute) {
+            if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+                $oldest_timestamp = $attribute['timestamp'];
+            }
             if ($startDate === null || $attribute['timestamp'] < $startDate) {
                 $startDate = $attribute['timestamp'];
             }
@@ -1380,7 +1390,9 @@ class EventsController extends AppController
             }
         }
         unset($modificationMap);
-        $params = $this->Event->rearrangeEventForView($event, $filters);
+        $sightingsData = $this->Event->getSightingData($event);
+        $this->set('sightingsData', $sightingsData);
+        $params = $this->Event->rearrangeEventForView($event, $filters, false, $sightingsData);
 
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
@@ -1423,8 +1435,6 @@ class EventsController extends AppController
                                                                                         'recursive' => -1,
                                                                                         'contain' => array('Org', 'RequesterOrg'))));
         }
-        $sightingsData = $this->Event->getSightingData($event);
-        $this->set('sightingsData', $sightingsData);
         if (Configure::read('Plugin.Enrichment_services_enable')) {
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user());
@@ -1457,6 +1467,7 @@ class EventsController extends AppController
         $orgTable = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
+        $this->set('oldest_timestamp', $oldest_timestamp);
         $this->set('required_taxonomies', $this->Event->getRequiredTaxonomies());
         $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
@@ -2687,16 +2698,10 @@ class EventsController extends AppController
                     $this->Event->export_types[$k]['progress'] = 0;
                 }
             }
-            $this->set('export_types', $this->Event->export_types);
-            // generate the list of Attribute types
-            $this->loadModel('Attribute');
-            $this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
-        } else {
-            // generate the list of Attribute types
-            $this->loadModel('Attribute');
-            $this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
-            $this->render('/Events/export_alternate');
         }
+        $this->loadModel('Attribute');
+        $this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
+        $this->set('export_types', $this->Event->export_types);
     }
 
     public function downloadExport($type, $extra = null)
@@ -4199,60 +4204,60 @@ class EventsController extends AppController
         // #TODO i18n
         $exports = array(
             'xml' => array(
-                    'url' => '/events/restSearch/xml/false/false/false/false/false/false/false/false/false/' . $id . '/false.xml',
+                    'url' => '/events/restSearch/xml/eventid:' . $id . '.xml',
                     'text' => 'MISP XML (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/xml/false/false/false/false/false/false/false/false/false/' . $id . '/true.xml',
+                    'checkbox_set' => '/events/restSearch/xml/eventid:' . $id . '/withAttachments:1.xml',
                     'checkbox_default' => true
             ),
             'json' => array(
-                    'url' => '/events/restSearch/json/false/false/false/false/false/false/false/false/false/' . $id . '/false.json',
+                    'url' => '/events/restSearch/json/eventid:' . $id . '.json',
                     'text' => 'MISP JSON (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/json/false/false/false/false/false/false/false/false/false/' . $id . '/true.json',
+                    'checkbox_set' => '/events/restSearch/json/withAttachments:1/eventid:' . $id . '.json',
                     'checkbox_default' => true
             ),
             'openIOC' => array(
                     'url' => '/events/downloadOpenIOCEvent/download/' . $id,
                     'text' => 'OpenIOC (all indicators marked to IDS)',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'csv' => array(
                     'url' => '/events/csv/download/' . $id,
                     'text' => 'CSV',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
                     'checkbox_set' => '/events/csv/download/' . $id . '/1'
             ),
             'csv_with_context' => array(
-                    'url' => '/events/csv/download/' . $id . '/0/0/0/0/1',
+                    'url' => '/events/restSearch/returnFormat:csv/eventid:' . $id,
                     'text' => 'CSV with additional context',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/events/csv/download/' . $id . '/1/0/0/0/1'
+                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/eventid:' . $id
             ),
             'stix_xml' => array(
                     'url' => '/events/restSearch/stix/eventid:' . $id,
                     'text' => 'STIX XML (metadata + all attributes)',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
                     'checkbox_set' => '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1'
             ),
             'stix_json' => array(
-                    'url' => '/events/stix/download/' . $id . '.json',
+                    'url' => '/events/restSearch/stix/eventid:' . $id . '.json',
                     'text' => 'STIX JSON (metadata + all attributes)',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/stix/download/' . $id . '/true.json'
+                    'checkbox_set' => '/events/restSearch/stix/withAttachments:1/eventid:' . $id . '.json'
             ),
             'stix2_json' => array(
                     'url' => '/events/restSearch/stix2/eventid:' . $id,
@@ -4263,36 +4268,36 @@ class EventsController extends AppController
                     'checkbox_set' => '/events/restSearch/stix2/eventid:' . $id . '/withAttachments:1'
             ),
             'rpz' => array(
-                    'url' => '/attributes/rpz/download/false/' . $id,
+                    'url' => '/attributes/restSearch/returnFormat:rpz/published:1||0/eventid:' . $id,
                     'text' => 'RPZ Zone file',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'suricata' => array(
-                    'url' => '/events/nids/suricata/download/' . $id,
+                    'url' => '/events/restSearch/returnFormat:suricata/published:1||0/eventid:' . $id,
                     'text' => 'Download Suricata rules',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'snort' => array(
-                    'url' => '/events/nids/snort/download/' . $id,
+                    'url' => '/events/restSearch/returnFormat:snort/published:1||0/eventid:' . $id,
                     'text' => 'Download Snort rules',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'bro' => array(
                     'url' => '/attributes/bro/download/all/false/' . $id,
                     'text' => 'Download Bro rules',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => false
             ),
             'text' => array(
-                    'url' => '/attributes/text/download/all/false/' . $id,
                     'text' => 'Export all attribute values as a text file',
-                    'requiresPublished' => true,
+                    'url' => '/attributes/restSearch/returnFormat:text/published:1||0/eventid:' . $id,
+                    'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/attributes/text/download/all/false/' . $id . '/true'
+                    'checkbox_set' => '/attributes/restSearch/returnFormat:text/published:1||0/to_ids:1||0/eventid:' . $id
             ),
         );
         if ($event['Event']['published'] == 0) {
@@ -5092,17 +5097,27 @@ class EventsController extends AppController
         if (!is_array($result)) {
             throw new Exception($result);
         }
+        $defaultDistribution = 5;
+        if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
+            $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
+            if ($defaultDistribution == 'event') {
+                $defaultDistribution = 5;
+            }
+        }
         $attributes = array();
         $objects = array();
         if (isset($result['results']['Attribute']) && !empty($result['results']['Attribute'])) {
-            foreach ($result['results']['Attribute'] as $tmp_attribute) {
-                array_push($attributes, $this->Event->Attribute->captureAttribute($tmp_attribute, $event_id, $this->Auth->user()));
+            foreach ($result['results']['Attribute'] as &$tmp_attribute) {
+                $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
+                array_push($attributes, $tmp_attribute);
             }
             unset($result['results']['Attribute']);
         }
         if (isset($result['results']['Object']) && !empty($result['results']['Object'])) {
             foreach ($result['results']['Object'] as $tmp_object) {
-                $this->Event->Object->captureObject($tmp_object, $event_id, $this->Auth->user());
+                foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
+                    $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
+                }
                 array_push($objects, $tmp_object);
             }
             unset($result['results']['Object']);
@@ -5110,6 +5125,8 @@ class EventsController extends AppController
         if (empty($attributes) && empty($objects)) {
             $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
         } else {
+            $this->set('attributeValue', $attribute[0]['Attribute']['value']);
+            $this->set('module', $module);
             $event = array('Event' => $attribute[0]['Event']);
             $event['Attribute'] = $attributes;
             $event['Object'] = $objects;
@@ -5122,6 +5139,20 @@ class EventsController extends AppController
                 $this->render('resolved_misp_format');
             }
         }
+    }
+
+    private function __fillAttribute($attribute, $defaultDistribution)
+    {
+        if (!isset($attribute['category'])) {
+            $attribute['category'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['default_category'];
+        }
+        if (!isset($attribute['to_ids'])) {
+            $attribute['to_ids'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
+        }
+        if (!isset($attribute['distribution'])) {
+            $attribute['distribution'] = $defaultDistribution;
+        }
+        return $attribute;
     }
 
     private function __queryOldEnrichment($attribute, $module, $options, $type)
@@ -5188,6 +5219,21 @@ class EventsController extends AppController
         $this->set('title', 'Enrichment Results');
         $this->set('importComment', $importComment);
         $this->render($renderName);
+    }
+
+    public function handleModuleResults($eventId)
+    {
+        if (!$this->userRole['perm_add']) {
+            throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
+        }
+        if ($this->request->is('post')) {
+            if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
+                throw new MethodNotAllowedException(__('Invalid event.'));
+            }
+            $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+        } else {
+            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+        }
     }
 
     public function importModule($module, $eventId)

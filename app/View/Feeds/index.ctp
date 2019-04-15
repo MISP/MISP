@@ -94,12 +94,12 @@
             <?php endif;?>
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th title="<?php echo __('Enable pulling the feed into your MISP as events/attributes.'); ?>"><?php echo $this->Paginator->sort('enabled');?></th>
-            <th title="<?php echo __('Enable caching the feed into Redis - allowing for correlations to the feed to be shown.'); ?>"><?php echo $this->Paginator->sort('caching_enabled');?></th>
+            <th title="<?php echo __('Enable caching the feed into Redis - allowing for correlations to the feed to be shown.'); ?>"><?php echo $this->Paginator->sort('caching_enabled', __('Caching enabled'));?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo $this->Paginator->sort('source_format', __('Feed Format'));?></th>
-            <th><?php echo $this->Paginator->sort('provider');?></th>
+            <th><?php echo $this->Paginator->sort('provider', __('Provider'));?></th>
             <th><?php echo $this->Paginator->sort('input_source', __('Input'));?></th>
-            <th><?php echo $this->Paginator->sort('url');?></th>
+            <th><?php echo $this->Paginator->sort('url', __('URL'));?></th>
             <th><?php echo $this->Paginator->sort('headers');?></th>
             <th><?php echo __('Target');?></th>
             <th><?php echo __('Publish');?></th>
@@ -107,7 +107,7 @@
             <th><?php echo __('Override IDS');?></th>
             <th><?php echo $this->Paginator->sort('distribution');?></th>
             <th><?php echo $this->Paginator->sort('tag');?></th>
-            <th><?php echo $this->Paginator->sort('lookup_visible');?></th>
+            <th><?php echo $this->Paginator->sort('lookup_visible', __('Lookup visible'));?></th>
             <th class="actions"><?php echo __('Caching');?></th>
             <th class="actions"><?php echo __('Actions');?></th>
     </tr><?php
@@ -266,21 +266,21 @@ foreach ($feeds as $item):
                 endif;
                 if ($item['Feed']['caching_enabled'] && $isSiteAdmin):
             ?>
-                    <a href="<?php echo $baseurl;?>/feeds/cacheFeeds/<?php echo h($item['Feed']['id']); ?>" title="Cache feed"><span class="icon-download-alt"></span></a>
+                    <a href="<?php echo $baseurl;?>/feeds/cacheFeeds/<?php echo h($item['Feed']['id']); ?>" title="Cache feed"><span class="black fa fa-memory"></span></a>
             <?php
                 endif;
             ?>
         </td>
         <td class="short action-links">
             <?php
-                echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => __('Explore the events remotely')));
+                echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'fa fa-search', 'title' => __('Explore the events remotely')));
                 if (!isset($item['Feed']['event_error']) && $isSiteAdmin) {
-                    if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => __('Fetch all events')));
+                    if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'fa fa-arrow-circle-down', 'title' => __('Fetch all events')));
                 }
                 if ($isSiteAdmin):
             ?>
-                <a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="icon-edit" title="Edit">&nbsp;</span></a>
-                <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
+                <a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="black fa fa-edit" title="<?php echo __('Edit');?>">&nbsp;</span></a>
+                <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
             <?php endif; ?>
             <a href="<?php echo $baseurl;?>/feeds/view/<?php echo h($item['Feed']['id']); ?>.json" title="<?php echo __('Download feed metadata as JSON');?>" download><span class="fa fa-cloud-download black"></span></a>
         </td>

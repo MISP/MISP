@@ -2,10 +2,16 @@
   $sigDisplay = $object['value'];
   if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
     if ($object['type'] == 'attachment' && isset($object['image'])) {
-      $extension = explode('.', $object['value']);
-      $extension = end($extension);
-      $uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
-      echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '" />';
+        if (extension_loaded('gd')) {
+            $img = '<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>';
+            $img .= '<img class="screenshot screenshot-collapsed useCursorPointer img-rounded hidden" src="' . $baseurl . '/attributes/viewPicture/' . h($object['id']) . '/1' . '" title="' . h($object['value']) . '" onload="$(this).show(200); $(this).parent().find(\'.fa-spinner\').remove();"/>';
+            echo $img;
+        } else {
+            $extension = explode('.', $object['value']);
+            $extension = end($extension);
+            $uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
+            echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '" />';
+        }
     } else {
       $filenameHash = explode('|', h($object['value']));
       if (strrpos($filenameHash[0], '\\')) {

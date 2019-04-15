@@ -21,7 +21,7 @@
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo __('Default');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
-            <th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
+            <th><?php echo $this->Paginator->sort('permission', __('Permissions'));?></th>
             <?php
                 foreach ($permFlags as $k => $flags):
             ?>
@@ -33,12 +33,25 @@
 foreach ($list as $item): ?>
     <tr>
         <td class="short"><?php echo h($item['Role']['id']); ?>&nbsp;</td>
-        <td class="short" style="text-align:center;width:20px;"><div class="icon-<?php echo $default_role_id == $item['Role']['id'] ? __('ok') : __('remove') ?>"></div></td>
+        <td class="short" style="text-align:center;width:20px;"><div class="icon-<?php echo $default_role_id == $item['Role']['id'] ? __('ok') : __('remove') ?>" role="img" aria-label="<?php echo $default_role_id == $item['Role']['id'] ? __('Yes') : __('No') ?>"></div></td>
         <td><?php echo h($item['Role']['name']); ?>&nbsp;</td>
         <td class="short"><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
-        <?php foreach ($permFlags as $k => $flags): ?>
-            <td class="short"><span class="<?php if ($item['Role'][$k]) echo 'icon-ok'; ?>"></span>&nbsp;</td>
-        <?php endforeach; ?>
+        <?php
+            foreach ($permFlags as $k => $flags) {
+                $flagName = Inflector::Humanize(substr($k, 5));
+                echo sprintf(
+                    '<td class="short"><span class="%s" role="img" aria-label="%s" title="%s"></span>&nbsp;</td>',
+                    ($item['Role'][$k]) ? 'icon-ok' : '',
+	            ($item['Role'][$k]) ? __('Granted') : __('Not granted'),
+                    sprintf(
+                        __('%s permission %s'),
+                        h($flagName),
+                        $item['Role'][$k] ? 'granted' : 'denied'
+                    )
+
+                );
+            }
+        ?>
     </tr><?php
 endforeach; ?>
     </table>

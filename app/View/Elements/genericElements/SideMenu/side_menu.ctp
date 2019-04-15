@@ -594,7 +594,7 @@
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'event_id' => 'deleteUser',
-                            'url' => '/admin/delete/' . h($id),
+                            'url' => '/admin/users/delete/' . h($id),
                             'text' => __('Delete User'),
                             'message' => __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id))
                         ));
@@ -656,11 +656,6 @@
                             ));
                         }
                         if ($menuItem === 'editOrg' || $menuItem === 'viewOrg') {
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'element_id' => 'editOrg',
-                                'url' => '/organisations/edit/' . h($id),
-                                'text' => __('Edit Organisation')
-                            ));
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'viewOrg',
                                 'url' => '/organisations/view/' . h($id),
@@ -878,6 +873,10 @@
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/feeds/index',
                         'text' => __('List Feeds')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/feeds/searchCaches',
+                        'text' => __('Search Feed Caches')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(

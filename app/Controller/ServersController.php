@@ -313,6 +313,12 @@ class ServersController extends AppController
                         $this->request->data['Server']['internal'] = 0;
                     }
                     $this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
+                    if (empty($this->request->data['Server']['push_rules'])) {
+                        $this->request->data['Server']['push_rules'] = '[]';
+                    }
+                    if (empty($this->request->data['Server']['pull_rules'])) {
+                        $this->request->data['Server']['pull_rules'] = '[]';
+                    }
                     if ($this->Server->save($this->request->data)) {
                         if (isset($this->request->data['Server']['submitted_cert'])) {
                             $this->__saveCert($this->request->data, $this->Server->id, false);
@@ -644,7 +650,7 @@ class ServersController extends AppController
                         'status' => 0,
                         'retries' => 0,
                         'org' => $this->Auth->user('Organisation')['name'],
-                        'message' => 'Pulling.',
+                        'message' => __('Pulling.'),
                 );
                 $this->Job->save($data);
                 $jobId = $this->Job->id;
@@ -719,7 +725,7 @@ class ServersController extends AppController
                     'status' => 0,
                     'retries' => 0,
                     'org' => $this->Auth->user('Organisation')['name'],
-                    'message' => 'Pushing.',
+                    'message' => __('Pushing.'),
             );
             $this->Job->save($data);
             $jobId = $this->Job->id;
@@ -757,12 +763,12 @@ class ServersController extends AppController
             if (isset($server['Server'][$subm]['name'])) {
                 if ($this->request->data['Server'][$subm]['size'] != 0) {
                     if (!$this->Server->checkFilename($server['Server'][$subm]['name'])) {
-                        throw new Exception('Filename not allowed');
+                        throw new Exception(__('Filename not allowed'));
                     }
                     $file = new File($server['Server'][$subm]['name']);
                     $ext = $file->ext();
                     if (!$server['Server'][$subm]['size'] > 0) {
-                        $this->Flash->error('Incorrect extension or empty file.');
+                        $this->Flash->error(__('Incorrect extension or empty file.'));
                         $this->redirect(array('action' => 'index'));
                     }
 
@@ -844,7 +850,7 @@ class ServersController extends AppController
                 'recursive' => -1,
                 'fields' => array('Organisation.id', 'Organisation.name')
         ));
-        return array_replace(array(0 => 'No organisation selected.'), $local_orgs);
+        return array_replace(array(0 => __('No organisation selected.')), $local_orgs);
     }
 
     public function serverSettings($tab=false)
@@ -860,35 +866,35 @@ class ServersController extends AppController
                     'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
                     'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
             );
-            $writeableErrors = array(0 => 'OK', 1 => 'not found', 2 => 'is not writeable');
-            $readableErrors = array(0 => 'OK', 1 => 'not readable');
-            $gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: Failed to load GnuPG', 3 => 'FAIL: Issues with the key/passphrase', 4 => 'FAIL: encrypt failed');
-            $proxyErrors = array(0 => 'OK', 1 => 'not configured (so not tested)', 2 => 'Getting URL via proxy failed');
-            $zmqErrors = array(0 => 'OK', 1 => 'not enabled (so not tested)', 2 => 'Python ZeroMQ library not installed correctly.', 3 => 'ZeroMQ script not running.');
-            $stixOperational = array(0 => 'Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.', 1 => 'OK');
-            $stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
-            $stix2Version = array(0 => 'Incorrect STIX2 version installed, found $current, expecting $expected', 1 => 'OK');
-            $cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
-            $mixboxVersion = array(0 => 'Incorrect mixbox version installed, found $current, expecting $expected', 1 => 'OK');
-            $maecVersion = array(0 => 'Incorrect maec version installed, found $current, expecting $expected', 1 => 'OK');
-            $pymispVersion = array(0 => 'Incorrect PyMISP version installed, found $current, expecting $expected', 1 => 'OK');
-            $sessionErrors = array(0 => 'OK', 1 => 'High', 2 => 'Alternative setting used', 3 => 'Test failed');
-            $moduleErrors = array(0 => 'OK', 1 => 'System not enabled', 2 => 'No modules found');
+            $writeableErrors = array(0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable'));
+            $readableErrors = array(0 => __('OK'), 1 => __('not readable'));
+            $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: encrypt failed'));
+            $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
+            $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
+            $stixOperational = array(0 => __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.'), 1 => __('OK'));
+            $stixVersion = array(0 => __('Incorrect STIX version installed, found $current, expecting $expected'), 1 => __('OK'));
+            $stix2Version = array(0 => __('Incorrect STIX2 version installed, found $current, expecting $expected'), 1 => __('OK'));
+            $cyboxVersion = array(0 => __('Incorrect CyBox version installed, found $current, expecting $expected'), 1 => __('OK'));
+            $mixboxVersion = array(0 => __('Incorrect mixbox version installed, found $current, expecting $expected'), 1 => __('OK'));
+            $maecVersion = array(0 => __('Incorrect maec version installed, found $current, expecting $expected'), 1 => __('OK'));
+            $pymispVersion = array(0 => __('Incorrect PyMISP version installed, found $current, expecting $expected'), 1 => __('OK'));
+            $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
+            $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
 
             $finalSettings = $this->Server->serverSettingsRead();
             $issues = array(
                 'errors' => array(
                         0 => array(
                                 'value' => 0,
-                                'description' => 'MISP will not operate correctly or will be unsecure until these issues are resolved.'
+                                'description' => __('MISP will not operate correctly or will be unsecure until these issues are resolved.')
                         ),
                         1 => array(
                                 'value' => 0,
-                                'description' => 'Some of the features of MISP cannot be utilised until these issues are resolved.'
+                                'description' => __('Some of the features of MISP cannot be utilised until these issues are resolved.')
                         ),
                         2 => array(
                                 'value' => 0,
-                                'description' => 'There are some optional tweaks that could be done to improve the looks of your MISP instance.'
+                                'description' => __('There are some optional tweaks that could be done to improve the looks of your MISP instance.')
                         ),
                 ),
                 'deprecated' => array(),
@@ -1133,6 +1139,14 @@ class ServersController extends AppController
         } else {
             return false;
         }
+    }
+
+    public function getSubmodulesStatus() {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException();
+        }
+        $this->set('submodules', $this->Server->getSubmodulesGitStatus());
+        $this->render('ajax/submoduleStatus');
     }
 
     public function serverSettingsEdit($setting_name, $id = false, $forceSave = false)
@@ -1528,6 +1542,26 @@ class ServersController extends AppController
         }
     }
 
+    public function getSubmoduleQuickUpdateForm($submodule_path=false) {
+        $this->set('submodule', base64_decode($submodule_path));
+        $this->render('ajax/submodule_quick_update_form');
+    }
+
+    public function updateSubmodule()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException();
+        }
+        if ($this->request->is('post')) {
+            $request = $this->request->data;
+            $submodule = $request['Server']['submodule'];
+            $res = $this->Server->updateSubmodule($this->Auth->user(), $submodule);
+            return new CakeResponse(array('body'=> json_encode($res), 'type' => 'json'));
+        } else {
+            throw new MethodNotAllowedException();
+        }
+    }
+
     public function getInstanceUUID()
     {
         return $this->RestResponse->viewData(array('uuid' => Configure::read('MISP.uuid')), $this->response->type());
@@ -1797,5 +1831,11 @@ misp.direct_call(relative_path, body)
             $this->Flash->info($message);
             $this->redirect(array('action' => 'index'));
         }
+    }
+
+    public function updateJSON()
+    {
+        $results = $this->Server->updateJSON();
+        return $this->RestResponse->viewData($results, $this->response->type());
     }
 }

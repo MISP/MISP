@@ -4,7 +4,7 @@
             array(
                 'type' => 'root',
                 'url' => $baseurl . '/',
-                'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : 'Home')
+                'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : __('Home'))
             ),
             array(
                 'type' => 'root',
@@ -220,6 +220,11 @@
                     array(
                         'text' => __('List Feeds'),
                         'url' => '/feeds/index',
+                        'requirement' => ($isSiteAdmin || $hostOrgUser)
+                    ),
+                    array(
+                        'text' => __('Search Feed Caches'),
+                        'url' => '/feeds/searchCaches',
                         'requirement' => ($isSiteAdmin || $hostOrgUser)
                     )
                 )

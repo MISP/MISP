@@ -34,7 +34,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         h($user['User']['authkey']),
         sprintf(
             ' (%s)',
-            $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']))
+            $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']))
         )
     );
     $table_data[] = array(
@@ -87,6 +87,10 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         'class' => empty($user['User']['disabled']) ? '' : 'background-red',
         'boolean' => $user['User']['disabled']
     );
+    echo $this->element('genericElements/assetLoader', array(
+        'css' => array('vis', 'distribution-graph'),
+        'js' => array('vis', 'network-distribution-graph')
+    ));
     echo sprintf(
         '<div class="users view row-fluid"><div class="span8" style="margin:0px;">%s%s</div>%s</div>%s',
         sprintf(

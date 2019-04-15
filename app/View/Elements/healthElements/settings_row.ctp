@@ -22,6 +22,8 @@
             'setting' => array(
                 'html' => h($setting['setting']),
                 'class' => 'short live_filter_target',
+                'ondblclick' => 'serverSettingsActivateField',
+                'ondblclickParams' => array(h($setting['setting']), h($k))
             ),
             'value_passive' => array(
                 'html' => nl2br(h($setting['value'])),

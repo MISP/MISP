@@ -65,6 +65,7 @@
             <?php
             echo $this->Form->input('url', array(
                     'div' => 'input clear',
+                    'label' => __('URL'),
                     'placeholder' => __('URL of the feed'),
                     'class' => 'form-control span6'
             ));

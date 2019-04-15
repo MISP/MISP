@@ -16,12 +16,12 @@
 </div>
 <table class="table table-striped table-hover table-condensed">
     <tr>
-        <th><?php echo $this->Paginator->sort('object_relation');?></th>
+        <th><?php echo $this->Paginator->sort('object_relation', __('Object relation'));?></th>
         <th><?php echo $this->Paginator->sort('type');?></th>
-        <th><?php echo $this->Paginator->sort('multiple');?></th>
-    <th><?php echo $this->Paginator->sort('ui-priority', 'UI-priority');?></th>
-    <th><?php echo $this->Paginator->sort('description');?></th>
-    <th><?php echo __('Categories');?></th>
+        <th><?php echo $this->Paginator->sort('multiple', __('Multiple'));?></th>
+        <th><?php echo $this->Paginator->sort('ui-priority', __('UI-priority'));?></th>
+        <th><?php echo $this->Paginator->sort('description');?></th>
+        <th><?php echo __('Categories');?></th>
         <th><?php echo __('Sane defaults');?></th>
         <th><?php echo __('List of valid Values');?></th>
         <th><?php echo __('Disable correlation');?></th>
