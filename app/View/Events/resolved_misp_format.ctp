@@ -1,7 +1,8 @@
 <div class="index">
     <h2><?php echo h($title); ?></h2>
     <?php
-        $url = '/events/handleModuleResults/' . $event['Event']['id'];
+        $event_id = $event['Event']['id'];
+        $url = '/events/handleModuleResults/' . $event_id;
         echo $this->Form->create('Event', array('url' => $url, 'class' => 'mainForm'));
         $formSettings = array(
             'type' => 'hidden',
@@ -265,7 +266,7 @@
     </div>
     <?php } ?>
     <span>
-      <button class="btn btn-primary" style="float:left;" onClick="moduleResultsSubmit('<?php echo h($event['Event']['id']); ?>');"><?php echo __('Submit'); ?></button>
+      <button class="btn btn-primary" style="float:left;" onClick="moduleResultsSubmit('<?php echo h($event_id); ?>');"><?php echo __('Submit'); ?></button>
     </span>
 </div>
 <script type="text/javascript">
