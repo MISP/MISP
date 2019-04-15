@@ -81,9 +81,9 @@ sudo yum install mod_fcgid mod_proxy_fcgi
     $RUN_PHP makes php available for you if using rh-php70. e.g: $RUN_PHP "pear list | grep Crypt_GPG"
 
 ```bash
-sudo $RUN_PHP pear channel-update pear.php.net
+sudo $RUN_PHP "pear channel-update pear.php.net"
 
-sudo $RUN_PHP pear install Crypt_GPG    # we need version >1.3.0
+sudo $RUN_PHP "pear install Crypt_GPG"    # we need version >1.3.0
 
 # GPG needs lots of entropy, haveged provides entropy
 sudo yum install haveged
@@ -167,15 +167,15 @@ umask $UMASK
 #### Install CakeResque along with its dependencies if you intend to use the built in background jobs.
 ```bash
 sudo chown -R apache:apache /var/www/MISP
-sudo mkdir /usr/share/httpd/.composer
-sudo chown apache:apache /usr/share/httpd/.composer
+sudo mkdir /var/www/.composer
+sudo chown apache:apache /var/www/.composer
 cd /var/www/MISP/app
 sudo -u apache $RUN_PHP "php composer.phar require kamisama/cake-resque:4.1.2"
 sudo -u apache $RUN_PHP "php composer.phar config vendor-dir Vendor"
 sudo -u apache $RUN_PHP "php composer.phar install"
 
 # CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis
-sudo $RUN_PHP "pecl install redis-2.2.8"
+sudo $RUN_PHP "pecl install redis"
 echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php70/php-fpm.d/redis.ini
 sudo ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php70/php.d/99-redis.ini
 sudo service rh-php70-php-fpm restart
@@ -185,15 +185,15 @@ echo 'date.timezone = "Europe/Luxembourg"' |sudo tee /etc/opt/rh/rh-php70/php-fp
 sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php70/php.d/99-timezone.ini
 
 # Recommended: Change some PHP settings in /etc/opt/rh/rh-php70/php.ini
-# max_execution_time = 300
-# memory_limit = 512M
-# upload_max_filesize = 50M
-# post_max_size = 50M
+max_execution_time=300
+memory_limit=512M
+upload_max_filesize=50M
+post_max_size=50M
 for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
 do
     sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
 done
-sudo systemctl restart rh-php70-php-fpm.service
+sudo service rh-php70-php-fpm restart
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 ```
@@ -260,9 +260,9 @@ sudo -u apache cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DB
 -----------------------
 ```bash
 # Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
-# A sample vhost can be found in /var/www/MISP/INSTALL/apache.misp.centos6
+# A sample vhost can be found in /var/www/MISP/INSTALL/old/apache.misp.centos6
 
-sudo cp /var/www/MISP/INSTALL/apache.misp.centos6 /etc/httpd/conf.d/misp.conf
+sudo cp /var/www/MISP/INSTALL/old/apache.misp.centos6 /etc/httpd/conf.d/misp.conf
 
 # Allow httpd to connect to the redis server and php-fpm over tcp/ip
 sudo setsebool -P httpd_can_network_connect on
