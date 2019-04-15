@@ -1,6 +1,7 @@
 <div class="row" style="padding: 15px;">
     <div class="span8" style="height: calc(90vh); overflow-y: scroll; border: 1px solid #ddd;">
         <input id="table_taxonomy_search" class="input" style="width: 250px; margin: 0px;" type="text" placeholder="<?php echo _('Search Taxonomy'); ?>"></input>
+        <it class="fa fa-times useCursorPointer" title="<?php echo __('Clear search field'); ?>" onclick="$('#table_taxonomy_search').val('').trigger('input');"></it>
         <table id="tableTaxonomy" class="table table-striped table-bordered table-condensed">
             <thead>
                 <tr>
@@ -97,14 +98,14 @@ function updateTree(new_data) {
 
     nodes.enter()
         .append("div")
-        .attr("class", "node")
+        .attr("class", "node useCursorPointer")
         .style("background", function(d) { return !d.children ? color(d.name) : null; })
         .attr("id", function(d) { return d.name + '-node'})
         .on('click', function() { $('#table_taxonomy_search').val(d3.select(this).data()[0].name).trigger('input');})
     nodes.transition().duration(100)
         .call(position)
         .attr("title", function(d) { return d.name + ': ' + d.size})
-        .text(function(d) { return d.children ? null : d.name + '('+parseInt(d.ratio*100)+'%)'; });
+        .text(function(d) { return d.children ? null : d.name + ' ('+parseInt(d.ratio*100)+'%)'; });
 
     nodes.exit()
         .remove();
