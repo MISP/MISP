@@ -2982,6 +2982,36 @@ class AttributesController extends AppController
                 $resultArray[$type][] = array($type => 'Enrichment service not reachable.');
                 continue;
             }
+            $current_result = array();
+            if (isset($result['results']['Object'])) {
+                if (!empty($result['results']['Object'])) {
+                    $objects = array();
+                    foreach($result['results']['Object'] as $object) {
+                        if (isset($object['Attribute']) && !empty($object['Attribute'])) {
+                            $object_attributes = array();
+                            foreach($object['Attribute'] as $object_attribute) {
+                                array_push($object_attributes, array('object_relation' => $object_attribute['object_relation'], 'value' => $object_attribute['value']));
+                            }
+                            array_push($objects, array('name' => $object['name'], 'Attribute' => $object_attributes));
+                        }
+                    }
+                    if (!empty($objects)) {
+                        $current_result['Object'] = $objects;
+                    }
+                }
+                unset($result['results']['Object']);
+            }
+            if (isset($result['results']['Attribute'])) {
+                if (!empty($result['results']['Attribute'])) {
+                    $attributes = array();
+                    foreach($result['results']['Attribute'] as $attribute) {
+                        array_push($attributes, array('type' => $attribute['type'], 'value' => $attribute['value']));
+                    }
+                    $current_result['Attribute'] = $attributes;
+                }
+                unset($result['results']['Attribute']);
+            }
+            $resultArray[$type] = $current_result;
             if (!empty($result['results'])) {
                 foreach ($result['results'] as $r) {
                     if (is_array($r['values']) && !empty($r['values'])) {
