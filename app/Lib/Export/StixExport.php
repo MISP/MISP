@@ -58,7 +58,7 @@ class StixExport
         $randomFileName = $this->generateRandomFileName();
         $this->__tmp_dir = $this->__scripts_dir . 'tmp/';
         $this->__framing = json_decode(shell_exec($framing_cmd), true);
-        $this->__stix_file = new File($this->__tmp_dir . $randomFileName . '.stix');
+        $this->__stix_file = new File($this->__tmp_dir . $randomFileName . '.' . $this->__return_type);
         unset($randomFileName);
         $this->__stix_file->write($this->__framing['header']);
         $this->__initialize_misp_file();
@@ -93,7 +93,7 @@ class StixExport
         $this->__stix_file->close();
         $this->__stix_file->delete();
         $sep_len = strlen($this->__framing['separator']);
-        $stix_event = substr($stix_event, 0, -$sep_len) . $this->__framing['footer'];
+        $stix_event = (empty($this->__filenames) ? $stix_event : substr($stix_event, 0, -$sep_len)) . $this->__framing['footer'];
         return $stix_event;
     }
 
