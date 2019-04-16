@@ -207,7 +207,7 @@ function triggerEventFilteringTool(clicked) {
                 "unique": true,
                 "id": "taggedAttributes",
                 "label": "Tags",
-                "values": <?php echo json_encode($attributeTags); ?>
+                "values": <?php echo json_encode(array_map("htmlspecialchars", $attributeTags)); ?>
             },
             <?php endif; ?>
             <?php if (!empty($attributeClusters)): ?>
@@ -220,7 +220,7 @@ function triggerEventFilteringTool(clicked) {
                 "unique": true,
                 "id": "galaxyAttachedAttributes",
                 "label": "Galaxies",
-                "values": <?php echo json_encode($attributeClusters); ?>
+                "values": <?php echo json_encode(array_map("htmlspecialchars", $attributeClusters)); ?>
             },
             <?php endif; ?>
             {
@@ -339,14 +339,12 @@ function triggerEventFilteringTool(clicked) {
                 {
                     field: 'taggedAttributes',
                     id: 'taggedAttributes',
-                    value: '<?php echo isset($filters['taggedAttributes']) ? h($filters['taggedAttributes']) : $attributeTags[0]; ?>'
                 },
                 <?php endif; ?>
                 <?php if (!empty($attributeClusters) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['galaxyAttachedAttributes']))): ?>
                 {
                     field: 'galaxyAttachedAttributes',
                     id: 'galaxyAttachedAttributes',
-                    value: '<?php echo isset($filters['galaxyAttachedAttributes']) ? h($filters['galaxyAttachedAttributes']) : $attributeClusters[0]; ?>'
                 },
                 <?php endif; ?>
             ],

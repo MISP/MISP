@@ -234,4 +234,36 @@ class AttributeTag extends AppModel
         return $allClusters;
     }
 
+    public function extractAttributeTagsNameFromEvent(&$event_elements, $to_extract='both')
+    {
+        $attribute_tags_name = array('tags' => array(), 'clusters' => array());
+        if ($to_extract == 'tags' || $to_extract == 'both') {
+            foreach ($event_elements as $i => $element) {
+                if ($element['objectType'] == 'object') {
+                    $new_tags = $this->extractAttributeTagsNameFromEvent($element['Attribute'], 'tags');
+                    $attribute_tags_name['tags'] = array_merge($attribute_tags_name['tags'], $new_tags['tags']);
+                } else {
+                    if (!empty($element['AttributeTag'])) {
+                        $new_tags = Hash::extract($element['AttributeTag'], '{n}.Tag.name');
+                        $attribute_tags_name['tags'] = array_merge($attribute_tags_name['tags'], $new_tags);
+                    }
+                }
+            }
+        }
+        if ($to_extract == 'clusters' || $to_extract == 'both') {
+            foreach ($event_elements as $i => $element) {
+                if ($element['objectType'] == 'object') {
+                    $new_tags = $this->extractAttributeTagsNameFromEvent($element['Attribute'], 'clusters');
+                    $attribute_tags_name['clusters'] = array_merge($attribute_tags_name['clusters'], $new_tags['clusters']);
+                } else {
+                    if (!empty($element['Galaxy'])) {
+                        $new_tags = Hash::extract($element['Galaxy'], '{n}.GalaxyCluster.{n}.tag_name');
+                        $attribute_tags_name['clusters'] = array_merge($attribute_tags_name['clusters'], $new_tags);
+                    }
+                }
+            }
+        }
+        return $attribute_tags_name;
+    }
+
 }

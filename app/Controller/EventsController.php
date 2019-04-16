@@ -1195,12 +1195,9 @@ class EventsController extends AppController
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->set('defaultFilteringRules', $this->defaultFilteringRules);
-        $attributeTags = $this->Event->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $event['Event']['id']);
-        $attributeTags = array_column($attributeTags, 'name');
-        $this->set('attributeTags', $attributeTags);
-        $attributeClusters = $this->Event->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $event['Event']['id']);
-        $attributeClusters = array_column($attributeClusters, 'value');
-        $this->set('attributeClusters', $attributeClusters);
+        $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event['objects'], 'both');
+        $this->set('attributeTags', $attributeTagsName['tags']);
+        $this->set('attributeClusters', $attributeTagsName['clusters']);
         $this->disableCache();
         $this->layout = 'ajax';
         $this->loadModel('Sighting');
@@ -1476,12 +1473,9 @@ class EventsController extends AppController
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->set('defaultFilteringRules', $this->defaultFilteringRules);
-        $attributeTags = $this->Event->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $event['Event']['id']);
-        $attributeTags = array_column($attributeTags, 'name');
-        $this->set('attributeTags', $attributeTags);
-        $attributeClusters = $this->Event->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $event['Event']['id']);
-        $attributeClusters = array_column($attributeClusters, 'value');
-        $this->set('attributeClusters', $attributeClusters);
+        $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event['objects'], 'both');
+        $this->set('attributeTags', $attributeTagsName['tags']);
+        $this->set('attributeClusters', $attributeTagsName['clusters']);
         $this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
         $this->set('modificationMapCSV', $modificationMapCSV);
     }
