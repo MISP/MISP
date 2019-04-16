@@ -23,6 +23,7 @@ CentOS 7.6-1810 [NetInstallURL](http://mirror.centos.org/centos/7.6.1810/os/x86_
 # CentOS Specific
 RUN_PHP='/usr/bin/scl enable rh-php72 '
 RUN_PYTHON='/usr/bin/scl enable rh-python36 '
+SUDO_WWW='sudo -H -u apache'
 
 PHP_INI=/etc/opt/rh/rh-php72/php.ini
 ```
@@ -102,66 +103,68 @@ sudo systemctl start  redis.service
 sudo mkdir $PATH_TO_MISP
 sudo chown apache:apache $PATH_TO_MISP
 cd /var/www
-sudo -H -u apache git clone https://github.com/MISP/MISP.git
+$SUDO_WWW git clone https://github.com/MISP/MISP.git
 cd $PATH_TO_MISP
-##sudo -H -u apache git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+##$SUDO_WWW git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # if the last shortcut doesn't work, specify the latest version manually
 # example: git checkout tags/v2.4.XY
 # the message regarding a "detached HEAD state" is expected behaviour
 # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
 # Fetch submodules
-sudo -H -u apache git submodule update --init --recursive
+$SUDO_WWW git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
-sudo -H -u apache git submodule foreach --recursive git config core.filemode false
+$SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
 # Install packaged pears
 sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml"
 sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml"
 
 # Create a python3 virtualenv
-sudo -H -u apache $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
+$SUDO_WWW $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
 sudo mkdir /usr/share/httpd/.cache
 sudo chown apache:apache /usr/share/httpd/.cache
-sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
 
 # install Mitre's STIX and its dependencies by running the following commands:
 sudo yum install python-importlib python-lxml python-dateutil python-six -y
 cd $PATH_TO_MISP/app/files/scripts
-sudo -H -u apache git clone https://github.com/CybOXProject/python-cybox.git
-sudo -H -u apache git clone https://github.com/STIXProject/python-stix.git
+$SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
+$SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
 cd $PATH_TO_MISP/app/files/scripts/python-cybox
 # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
 cd $PATH_TO_MISP/app/files/scripts/python-stix
-sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install .
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
 # install maec
-sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install -U maec
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U maec
 
 # install zmq
-sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install -U zmq
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq
 
 # install redis
-sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install -U redis
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
 # install magic, lief, pydeep
-sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install -U python-magic lief git+https://github.com/kbandla/pydeep.git
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git
 
 # install mixbox to accommodate the new STIX dependencies:
 cd $PATH_TO_MISP/app/files/scripts/
-sudo -H -u apache git clone https://github.com/CybOXProject/mixbox.git
+$SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 cd $PATH_TO_MISP/app/files/scripts/mixbox
-sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install .
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
 # install STIX2.0 library to support STIX 2.0 export:
 cd $PATH_TO_MISP/cti-python-stix2
-sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install .
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
-sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install .
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
 # Enable python3 for php-fpm
 echo 'source scl_source enable rh-python36' | sudo tee -a /etc/opt/rh/rh-php72/sysconfig/php-fpm
@@ -186,13 +189,13 @@ sudo mkdir /usr/share/httpd/.composer
 sudo chown apache:apache /usr/share/httpd/.composer
 cd $PATH_TO_MISP/app
 # Update composer.phar (optional)
-#sudo -H -u apache $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-#sudo -H -u apache $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-#sudo -H -u apache $RUN_PHP "php composer-setup.php"
-#sudo -H -u apache $RUN_PHP -- php -r "unlink('composer-setup.php');"
-sudo -H -u apache $RUN_PHP "php composer.phar require kamisama/cake-resque:4.1.2"
-sudo -H -u apache $RUN_PHP "php composer.phar config vendor-dir Vendor"
-sudo -H -u apache $RUN_PHP "php composer.phar install"
+#$SUDO_WWW $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+#$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+#$SUDO_WWW $RUN_PHP "php composer-setup.php"
+#$SUDO_WWW $RUN_PHP -- php -r "unlink('composer-setup.php');"
+$SUDO_WWW $RUN_PHP "php composer.phar require kamisama/cake-resque:4.1.2"
+$SUDO_WWW $RUN_PHP "php composer.phar config vendor-dir Vendor"
+$SUDO_WWW $RUN_PHP "php composer.phar install"
 
 # CakeResque normally uses phpredis to connect to redis, but it has a (buggy) 
 # fallback connector through Redisent.
@@ -313,7 +316,7 @@ sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
 
 #### Import the empty MySQL database from MYSQL.sql
 ```bash
-sudo -u apache cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+$SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 ```
 
 
@@ -420,10 +423,10 @@ sudo semodule -i /tmp/misplogrotate.pp
 ---------------------
 ```bash
 # There are 4 sample configuration files in $PATH_TO_MISP/app/Config that need to be copied
-sudo -u apache cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
-sudo -u apache cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
-sudo -u apache cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
-sudo -u apache cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
+$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
+$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
+$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
+$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
 
 echo "<?php
 class DATABASE_CONFIG {
@@ -440,7 +443,7 @@ class DATABASE_CONFIG {
                 'prefix' => '',
                 'encoding' => 'utf8',
         );
-}" | sudo -u apache tee $PATH_TO_MISP/app/Config/database.php
+}" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
 
 # Configure the fields in the newly created files:
 # config.php   : baseurl (example: 'baseurl' => 'http://misp',) - don't use "localhost" it causes issues when browsing externally
@@ -497,7 +500,7 @@ sudo chown apache:apache $PATH_TO_MISP/app/webroot/gpg.asc
 
 # Start the workers to enable background jobs
 sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-sudo -u apache $RUN_PHP $PATH_TO_MISP/app/Console/worker/start.sh
+$SUDO_WWW $RUN_PHP $PATH_TO_MISP/app/Console/worker/start.sh
 
 if [ ! -e /etc/rc.local ]
 then
@@ -521,20 +524,20 @@ sudo yum install -y openjpeg-devel
 sudo chmod 2777 /usr/local/src
 sudo chown root:users /usr/local/src
 cd /usr/local/src/
-sudo -u apache git clone https://github.com/MISP/misp-modules.git
+$SUDO_WWW git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip install
-sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
-sudo -H -u apache $PATH_TO_MISP/venv/bin/pip install .
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 sudo yum install rubygem-rouge rubygem-asciidoctor -y
 ##sudo gem install asciidoctor-pdf --pre
 
 # install additional dependencies for extended object generation and extraction
-sudo -H -u apache ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
-sudo -H -u apache ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install maec python-magic pathlib
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
-sudo -u apache ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 
 sudo sed -i -e '$i \sudo -u apache $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
 ```
