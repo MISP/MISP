@@ -1,10 +1,14 @@
 #### MISP Dashboard on CentOS
 --------------
+
+!!! warning
+    Currently defunct.
+
 ```bash
 cd /var/www
 sudo mkdir misp-dashboard
-sudo chown www-data:www-data misp-dashboard
-sudo -u www-data git clone https://github.com/MISP/misp-dashboard.git
+sudo chown apache:apache misp-dashboard
+sudo -u apache git clone https://github.com/MISP/misp-dashboard.git
 cd misp-dashboard
 sudo -H /var/www/misp-dashboard/install_dependencies.sh
 sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
@@ -53,7 +57,7 @@ sudo a2ensite misp-dashboard
 sudo systemctl reload apache2
 
 # Add misp-dashboard to rc.local to start on boot.
-sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u apache bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
 
 # Enable ZeroMQ for misp-dashboard
 sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_enable" true"

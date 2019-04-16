@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for CentOS 6.x
+## for CentOS 6.10
 
 ### 0/ MISP CentOS 6 Minimal NetInstall - Status
 --------------------------------------------
@@ -12,6 +12,8 @@
     Semi-maintained and tested by @SteveClement, CentOS 6.10 on 20181025<br />
     It is still considered experimental as not everything works seemlessly.
 
+!!! notice
+    Maintenance will end on: November 30th, 2020 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
 
 CentOS 6.10 [NetInstallURL](http://mirrors.sonic.net/centos/6.10/os/x86_64/)
 
@@ -37,7 +39,7 @@ Install a minimal CentOS 6.x system with the software:
 
 ```bash
 # Make sure you set your hostname CORRECTLY vs. like an brute (manually in /etc/hostname)
-sudo hostnamectl set-hostname misp.local # or whatever you want it to be
+sudo hostnamectl set-hostname misp.local # Your choice, in a production environment, it's best to use a FQDN
 
 # Make sure your system is up2date:
 sudo yum update -y
