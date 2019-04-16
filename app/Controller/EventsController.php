@@ -5113,7 +5113,7 @@ class EventsController extends AppController
             }
             unset($result['results']['Attribute']);
         }
-        if (isset($result['results']['Object']) && !empty($result['results']['Object'])) {
+        if (!empty($result['results']['Object'])) {
             foreach ($result['results']['Object'] as $tmp_object) {
                 $tmp_object['distribution'] = (isset($tmp_object['distribution']) ? (int)$tmp_object['distribution'] : $defaultDistribution);
                 $tmp_object['sharing_group_id'] = (isset($tmp_object['sharing_group_id']) ? (int)$tmp_object['sharing_group_id'] : 0);
@@ -5208,7 +5208,7 @@ class EventsController extends AppController
     private function __handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = false, $renderName = 'resolved_attributes')
     {
         $resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
-        if (isset($result['comment']) && $result['comment'] != "") {
+        if (!empty($result['comment'])) {
             $importComment = $result['comment'];
         } else {
             $importComment = $attribute[0]['Attribute']['value'] . __(': Enriched via the %s', $module) . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';

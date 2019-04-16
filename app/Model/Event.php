@@ -5830,7 +5830,7 @@ class Event extends AppModel
                 $items_count += count($resolved_data[$feature]);
             }
         }
-        if (isset($resolved_data['Attribute']) && !empty($resolved_data['Attribute'])) {
+        if (!empty($resolved_data['Attribute'])) {
             $total_attributes = count($resolved_data['Attribute']);
             foreach ($resolved_data['Attribute'] as $a => $attribute) {
                 $this->Attribute->create();
@@ -5854,7 +5854,7 @@ class Event extends AppModel
         } else {
             $total_attributes = 0;
         }
-        if (isset($resolved_data['Object']) && !empty($resolved_data['Object'])) {
+        if (!empty($resolved_data['Object'])) {
             $total_objects = count($resolved_data['Object']);
             $references = array();
             foreach ($resolved_data['Object'] as $o => $object) {
@@ -5864,7 +5864,7 @@ class Event extends AppModel
                 unset($object['meta_category']);
                 if ($this->Object->save($object)) {
                     $object_id = $this->Object->id;
-                    if (isset($object['Attribute']) && !empty($object['Attribute'])) {
+                    if (!empty($object['Attribute'])) {
                         foreach ($object['Attribute'] as $object_attribute) {
                             $object_attribute['object_id'] = $object_id;
                             $object_attribute['event_id'] = $id;
@@ -5880,7 +5880,7 @@ class Event extends AppModel
                             }
                         }
                     }
-                    if (isset($object['ObjectReference']) && !empty($object['ObjectReference'])) {
+                    if (!empty($object['ObjectReference'])) {
                         foreach($object['ObjectReference'] as $object_reference) {
                             array_push($references, array('objectName' => $object['name'], 'reference' => $object_reference));
                         }

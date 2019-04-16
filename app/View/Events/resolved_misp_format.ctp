@@ -41,7 +41,7 @@
     <p><?php echo __('Below you can see the %s that are to be created, from the results of the enrichment module.', $scope);?></p>
     <?php
         $attributeFields = array('category', 'type', 'value', 'uuid');
-        if (isset($event['Object']) && !empty($event['Object'])) {
+        if (!empty($event['Object'])) {
     ?>
     <div class='MISPObjects' style="margin-bottom:40px;">
       <h3><?php echo __('Objects'); ?></h3>
@@ -51,19 +51,19 @@
       <div class='MISPObject'>
         <table style="width:25%;">
           <tbody>
-            <?php if(isset($object['id']) && !empty($object['id'])) { ?>
+            <?php if(!empty($object['id'])) { ?>
             <tr>
               <td class="bold"><?php echo __('ID');?></td>
               <td class='ObjectID'><?php echo h($object['id']); ?></td>
             </tr>
             <?php
                 }
-                if (isset($object['template_version']) && !empty($object['template_version'])) {
+                if (!empty($object['template_version'])) {
             ?>
             <div style="display:none;" class="TemplateVersion"><?php echo h($object['template_version']); ?></div>
             <?php
                 }
-                if (isset($object['template_uuid']) && !empty($object['template_uuid'])) {
+                if (!empty($object['template_uuid'])) {
             ?>
             <div style="display:none;" class="TemplateUUID"><?php echo h($object['template_uuid']); ?></div>
             <?php } ?>
@@ -102,7 +102,7 @@
             </tr>
           </tbody>
         </table>
-        <?php if (isset($object['ObjectReference']) && !empty($object['ObjectReference'])) { ?>
+        <?php if (!empty($object['ObjectReference'])) { ?>
         <tr>
           <td class="bold"><?php echo __('References:');?></td>
         </tr>
@@ -169,13 +169,13 @@
                         }
             ?>
             <td class="short" style="width:40px;text-align:center;">
-              <input type="checkbox" class="AttributeToIds" <?php if (isset($attribute['to_ids']) && $attribute['to_ids']) echo 'checked'; ?>/>
+              <input type="checkbox" class="AttributeToIds" <?php if (!empty($attribute['to_ids'])) echo 'checked'; ?>/>
             </td>
             <td class="short" style="width:40px;text-align:center;">
-              <input type="checkbox" class="AttributeDisableCorrelation" <?php if (isset($attribute['disable_correlation']) && $attribute['disable_correlation']) echo 'checked'; ?>/>
+              <input type="checkbox" class="AttributeDisableCorrelation" <?php if (!empty($attribute['disable_correlation'])) echo 'checked'; ?>/>
             </td>
             <td class="short">
-              <input type="text" class="AttributeComment" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($attribute['comment']) && $attribute['comment'] !== false) echo 'value="' . h($attribute['comment']) . '"';?>/>
+              <input type="text" class="AttributeComment" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (!empty($attribute['comment'])) echo 'value="' . h($attribute['comment']) . '"';?>/>
             </td>
             <td class="short" style="width:40px;text-align:center;">
               <select class='AttributeDistribution' style='padding:0px;height:20px;margin-bottom:0px;'>
@@ -207,7 +207,7 @@
     </div>
     <?php
         }
-        if (isset($event['Attribute']) && !empty($event['Attribute'])) {
+        if (!empty($event['Attribute'])) {
     ?>
     <div class='MISPAttributes'>
       <h3><?php echo __('Attributes'); ?></h3>
@@ -237,7 +237,7 @@
             <input type="checkbox" class="AttributeDisableCorrelation" <?php if (isset($attribute['disable_correlation']) && $attribute['disable_correlation']) echo 'checked'; ?>/>
           </td>
           <td class="short">
-            <input type="text" class="AttributeComment" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($attribute['comment']) && $attribute['comment'] !== false) echo 'value="' . h($attribute['comment']) . '"';?>/>
+            <input type="text" class="AttributeComment" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (!empty($attribute['comment'])) echo 'value="' . h($attribute['comment']) . '"';?>/>
           </td>
           <td class="short" style="width:40px;text-align:center;">
             <select class='AttributeDistribution' style='padding:0px;height:20px;margin-bottom:0px;'>
