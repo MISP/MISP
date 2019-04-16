@@ -147,9 +147,31 @@ $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq
 # install redis
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
-# install magic, lief, pydeep
+# lief needs manual compilation
+sudo yum install devtoolset-7 cmake3 -y
+
+cd $PATH_TO_MISP/app/files/scripts
+$SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
+
+# TODO: Fix static path with PATH_TO_MISP
+cd $PATH_TO_MISP/app/files/scripts/lief
+$SUDO_WWW mkdir build
+cd build
+$SUDO_WWW scl enable devtoolset-7 rh-python36 'bash -c "cmake3 \
+-DLIEF_PYTHON_API=on \
+-DLIEF_DOC=off \
+-DCMAKE_INSTALL_PREFIX=$LIEF_INSTALL \
+-DCMAKE_BUILD_TYPE=Release \
+-DPYTHON_VERSION=3.6 \
+-DPYTHON_EXECUTABLE=/var/www/MISP/venv/bin/python \
+.."'
+$SUDO_WWW make -j3
+sudo make install
+cd api/python/lief_pybind11-prefix/src/lief_pybind11
+$SUDO_WWW $PATH_TO_MISP/venv/bin/python setup.py install
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
 
+# install magic, pydeep
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git
 
 # install mixbox to accommodate the new STIX dependencies:
@@ -364,6 +386,13 @@ sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/terms
 sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/tmp
 sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Plugin/CakeResque/tmp
 sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/cake
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/start.sh
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmq.py
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmqtest.py
+sudo chcon -t httpd_sys_script_exec_t /usr/bin/ps
+sudo chcon -t httpd_sys_script_exec_t /usr/bin/grep
+sudo chcon -t httpd_sys_script_exec_t /usr/bin/awk
+sudo chcon -t httpd_sys_script_exec_t /usr/bin/gpg
 sudo chcon -R -t usr_t $PATH_TO_MISP/venv
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
@@ -372,6 +401,7 @@ sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/orgs
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/custom
+sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/mispzmq
 ```
 
 !!! warning
@@ -509,7 +539,8 @@ then
     sudo chmod u+x /etc/rc.local
 fi
 
-sudo sed -i -e '$i \su -s /bin/bash apache -c "scl enable rh-php72 $PATH_TO_MISP/app/Console/worker/start.sh" > /tmp/worker_start_rc.local.log\n' /etc/rc.local
+# TODO: Fix static path with PATH_TO_MISP
+sudo sed -i -e '$i \su -s /bin/bash apache -c "scl enable rh-php72 /var/www/MISP/app/Console/worker/start.sh" > /tmp/worker_start_rc.local.log\n' /etc/rc.local
 # Make sure it will execute
 sudo chmod +x /etc/rc.local
 
@@ -539,7 +570,8 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/py
 # Start misp-modules
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 
-sudo sed -i -e '$i \sudo -u apache $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
+# TODO: Fix static path with PATH_TO_MISP
+sudo sed -i -e '$i \sudo -u apache /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
 ```
 
 {!generic/misp-dashboard-centos.md!}
