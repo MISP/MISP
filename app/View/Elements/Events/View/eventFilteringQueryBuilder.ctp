@@ -197,7 +197,12 @@ function triggerEventFilteringTool(clicked) {
                     2: "Doesn\'t have sighting(s)"
                 }
             },
-            <?php if (!empty($attributeTags)): ?>
+            <?php
+            if (empty($attributeTags) && isset($filters['taggedAttributes'])) {
+                $attributeTags = array(htmlspecialchars($filters['taggedAttributes']));
+            }
+            if (!empty($attributeTags)):
+            ?>
             {
                 "input": "select",
                 "type": "string",
@@ -210,7 +215,12 @@ function triggerEventFilteringTool(clicked) {
                 "values": <?php echo json_encode(array_map("htmlspecialchars", $attributeTags)); ?>
             },
             <?php endif; ?>
-            <?php if (!empty($attributeClusters)): ?>
+            <?php
+            if (empty($attributeClusters) && isset($filters['galaxyAttachedAttributes'])) {
+                $attributeClusters = array(htmlspecialchars($filters['galaxyAttachedAttributes']));
+            }
+            if (!empty($attributeClusters)):
+            ?>
             {
                 "input": "select",
                 "type": "string",
@@ -339,12 +349,14 @@ function triggerEventFilteringTool(clicked) {
                 {
                     field: 'taggedAttributes',
                     id: 'taggedAttributes',
+                    value: '<?php echo isset($filters['taggedAttributes']) ? h($filters['taggedAttributes']) : $attributeTags[0]; ?>'
                 },
                 <?php endif; ?>
                 <?php if (!empty($attributeClusters) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['galaxyAttachedAttributes']))): ?>
                 {
                     field: 'galaxyAttachedAttributes',
                     id: 'galaxyAttachedAttributes',
+                    value: '<?php echo isset($filters['galaxyAttachedAttributes']) ? h($filters['galaxyAttachedAttributes']) : $attributeClusters[0]; ?>'
                 },
                 <?php endif; ?>
             ],
