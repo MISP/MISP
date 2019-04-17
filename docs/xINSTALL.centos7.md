@@ -58,7 +58,7 @@ sudo yum install epel-release -y
 # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
 sudo yum install centos-release-scl -y
 
-# Install vim (optional)
+# Because vim is just so practical
 sudo yum install vim -y
 
 # Install the dependencies:
@@ -117,6 +117,7 @@ $SUDO_WWW git submodule update --init --recursive
 $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
 # Install packaged pears
+sudo $RUN_PHP "pear channel-update pear.php.net"
 sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml"
 sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml"
 
@@ -219,12 +220,7 @@ $SUDO_WWW $RUN_PHP "php composer.phar require kamisama/cake-resque:4.1.2"
 $SUDO_WWW $RUN_PHP "php composer.phar config vendor-dir Vendor"
 $SUDO_WWW $RUN_PHP "php composer.phar install"
 
-# CakeResque normally uses phpredis to connect to redis, but it has a (buggy) 
-# fallback connector through Redisent.
-# It is highly advised to install phpredis using "yum install php-redis"
-sudo $RUN_PHP "pecl install redis"
-echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
-sudo ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
+sudo yum install php-redis -y
 sudo systemctl restart rh-php72-php-fpm.service
 
 # If you have not yet set a timezone in php.ini
@@ -353,9 +349,6 @@ $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSW
     ```
     If it is disabled, you can ignore the **chcon/setsebool/semanage/checkmodule/semodule*** commands.
 
-!!! warning
-    This guide only copies a stock **NON-SSL** configuration file.
-
 ```bash
 # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
 # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
@@ -431,7 +424,7 @@ sudo firewall-cmd --reload
 ### 8/ Log rotation
 ---------------
 ```bash
-# MISP saves the stdout and stderr of it's workers in $PATH_TO_MISP/app/tmp/logs
+# MISP saves the stdout and stderr of its workers in $PATH_TO_MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
