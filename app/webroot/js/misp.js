@@ -1265,6 +1265,7 @@ function cancelPopoverForm(id) {
     $("#popover_form").fadeOut();
     $("#popover_form_large").fadeOut();
     $("#screenshot_box").fadeOut();
+    $("#popover_box").fadeOut();
     $("#confirmation_box").fadeOut();
     $('#gray_out').fadeOut();
     $('#popover_form').fadeOut();
@@ -3263,7 +3264,7 @@ $(".cortex-json").click(function() {
 
 // add the same as below for click popup
 $(document).on( "click", ".eventViewAttributePopup", function() {
-    $('#screenshot_box').empty();
+    $('#popover_box').empty();
     type = $(this).attr('data-object-type');
     id = $(this).attr('data-object-id');
     if (!(type + "_" + id in ajaxResults["persistent"])) {
@@ -3279,16 +3280,16 @@ $(document).on( "click", ".eventViewAttributePopup", function() {
     if (type + "_" + id in ajaxResults["persistent"]) {
         var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
         enrichment_popover += '<div class="close-icon useCursorPointer popup-close-icon" onClick="closeScreenshot();"></div>';
-        $('#screenshot_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
-        $('#screenshot_box').show();
+        $('#popover_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
+        $('#popover_box').show();
         $("#gray_out").fadeIn();
-        $('#screenshot_box').css({'padding': '5px'});
-        $('#screenshot_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
-        $('#screenshot_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
-        $('#screenshot_box').css( "overflow-y", "auto");
+        $('#popover_box').css({'padding': '5px'});
+        $('#popover_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
+        $('#popover_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
+        $('#popover_box').css( "overflow-y", "auto");
 
-        var left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
-        $('#screenshot_box').css({'left': left + 'px'});
+        var left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
+        $('#popover_box').css({'left': left + 'px'});
     }
     $('#' + currentPopover).popover('destroy');
 });
@@ -3671,6 +3672,7 @@ $(document).keyup(function(e){
         $("#popover_form").fadeOut();
         $("#popover_form_large").fadeOut();
         $("#screenshot_box").fadeOut();
+        $("#popover_box").fadeOut();
         $("#confirmation_box").fadeOut();
         $(".loading").hide();
         resetForms();
@@ -4018,16 +4020,16 @@ $(document).ready(function() {
         cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
         var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
         popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-        $('#screenshot_box').html(popupHtml);
-        $('#screenshot_box').show();
-        $('#screenshot_box').css({'padding': '5px'});
-        left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
-        if (($('#screenshot_box').height() + 250) > $(window).height()) {
-            $('#screenshot_box').height($(window).height() - 250);
-            $('#screenshot_box').css("overflow-y", "scroll");
-            $('#screenshot_box').css("overflow-x", "hidden");
+        $('#popover_box').html(popupHtml);
+        $('#popover_box').show();
+        $('#popover_box').css({'padding': '5px'});
+        left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
+        if (($('#popover_box').height() + 250) > $(window).height()) {
+            $('#popover_box').height($(window).height() - 250);
+            $('#popover_box').css("overflow-y", "scroll");
+            $('#popover_box').css("overflow-x", "hidden");
         }
-        $('#screenshot_box').css({'left': left + 'px'});
+        $('#popover_box').css({'left': left + 'px'});
         $("#gray_out").fadeIn();
     });
     $('.add_object_attribute_row').click(function() {
