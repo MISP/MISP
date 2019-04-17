@@ -44,7 +44,7 @@ in the list given by apache.
 If used with Apache as webserver it might be useful to make a distinction to filter out API/Syncs from SSO login. It can be added to the vhost as follows:
 
 ```Apache
-  <If "-T reqenv('HTTP_AUTHORIZATION')">
+  <If "-T req('Authorization')">
     Require all granted
     AuthType None
   </If>

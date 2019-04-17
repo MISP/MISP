@@ -1555,7 +1555,7 @@ class ServersController extends AppController
         if ($this->request->is('post')) {
             $request = $this->request->data;
             $submodule = $request['Server']['submodule'];
-            $res = $this->Server->updateSubmodule($submodule);
+            $res = $this->Server->updateSubmodule($this->Auth->user(), $submodule);
             return new CakeResponse(array('body'=> json_encode($res), 'type' => 'json'));
         } else {
             throw new MethodNotAllowedException();
@@ -1831,5 +1831,11 @@ misp.direct_call(relative_path, body)
             $this->Flash->info($message);
             $this->redirect(array('action' => 'index'));
         }
+    }
+
+    public function updateJSON()
+    {
+        $results = $this->Server->updateJSON();
+        return $this->RestResponse->viewData($results, $this->response->type());
     }
 }

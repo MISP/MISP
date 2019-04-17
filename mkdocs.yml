@@ -70,7 +70,7 @@ nav:
     - Install Guides:
       - 'Ubuntu 18.04': 'INSTALL.ubuntu1804.md'
       - 'Kali Linux': 'INSTALL.kali.md'
-      - 'Redhat Enterprise Linux 7': 'INSTALL.rhel7.md'
+      - 'RHEL7/CentOS7': 'INSTALL.rhel7.md'
     - xInstall Guides: 
       - 'Warning': 'xINSTALL.md'
       - 'Centos 6': 'xINSTALL.centos6.md'
@@ -81,7 +81,7 @@ nav:
       - 'Ubuntu 18.04 \w webmin': 'xINSTALL.ubuntu1804.with.webmin.md'
       - 'Tsurugi Linux': 'xINSTALL.tsurugi.md'
       - 'OpenBSD 6.4': 'xINSTALL.OpenBSD.md'
-      - 'Redhat Enterprise Linux 7.6 (BETA)': 'xINSTALL.rhel7.md'
+      - 'RHEL8 (Beta)': 'xINSTALL.rhel8.md'
     - Config Guides:
       - 'Elastic Search Logging': 'CONFIG.elasticsearch-logging.md'
       - 'Amazon S3 attachments': 'CONFIG.s3-attachments.md'

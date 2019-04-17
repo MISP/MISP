@@ -47,7 +47,7 @@ class ObjectTemplate extends AppModel
         return true;
     }
 
-    public function update($user, $type = false, $force = false)
+    public function update($user = false, $type = false, $force = false)
     {
         $objectsDir = APP . 'files/misp-objects/objects';
         $directories = glob($objectsDir . '/*', GLOB_ONLYDIR);
@@ -94,7 +94,7 @@ class ObjectTemplate extends AppModel
         return $updated;
     }
 
-    private function __updateObjectTemplate($template, $current, $user)
+    private function __updateObjectTemplate($template, $current, $user = false)
     {
         $success = false;
         $template['requirements'] = array();
@@ -104,8 +104,13 @@ class ObjectTemplate extends AppModel
                 $template['requirements'][$field] = $template[$field];
             }
         }
-        $template['user_id'] = $user['id'];
-        $template['org_id'] = $user['org_id'];
+        if (!empty($user)) {
+            $template['user_id'] = $user['id'];
+            $template['org_id'] = $user['org_id'];
+        } else {
+            $template['user_id'] = 0;
+            $template['org_id'] = 0;
+        }
         $template['fixed'] = 1;
         $this->create();
         $result = $this->save($template);

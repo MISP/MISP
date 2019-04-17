@@ -105,33 +105,44 @@ class Server extends AppModel
         $this->command_line_functions = array(
             'console_admin_tasks' => array(
                 'data' => array(
-                    'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
-                    'setSettings' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
-                    'getAuthkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
-                    'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
-                    'changePassword' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
-                    'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
-                    'updateDatabase' => 'MISP/app/Console/cake Admin updateDatabase',
-                    'updateGalaxies' => 'MISP/app/Console/cake Admin updateGalaxies',
-                    'updateTaxonomies' => 'MISP/app/Console/cake Admin updateTaxonomies',
-                    'updateObjectTemplates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
-                    'updateWarningLists' => 'MISP/app/Console/cake Admin updateWarningLists',
-                    'updateNoticeLists' => 'MISP/app/Console/cake Admin updateNoticeLists',
-                    'setDefaultRole' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]'
+                    'Get setting' => 'MISP/app/Console/cake Admin getSetting [setting]',
+                    'Set setting' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
+                    'Get authkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
+                    'Set baseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
+                    'Change password' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
+                    'Clear Bruteforce Entries' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
+                    'Run database update' => 'MISP/app/Console/cake Admin updateDatabase',
+                    'Update all JSON structures' => 'MISP/app/Console/cake Admin updateJSON',
+                    'Update Galaxy definitions' => 'MISP/app/Console/cake Admin updateGalaxies',
+                    'Update taxonomy definitions' => 'MISP/app/Console/cake Admin updateTaxonomies',
+                    'Update object templates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
+                    'Update Warninglists' => 'MISP/app/Console/cake Admin updateWarningLists',
+                    'Update Noticelists' => 'MISP/app/Console/cake Admin updateNoticeLists',
+                    'Set default role' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]'
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')
             ),
             'console_automation_tasks' => array(
                 'data' => array(
-                    'pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
-                    'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
-                    'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
-                    'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
-                    'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
+                    'Pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
+                    'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
+                    'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
+                    'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
+                    'Run enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
                 ),
                 'description' => __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.'),
                 'header' => __('Automating certain console tasks')
+            ),
+            'worker_management_tasks' => array(
+                'data' => array(
+                    'Get list of workers' => 'MISP/app/Console/cake Admin getWorkers [all|dead]',
+                    'Start a worker' => 'MISP/app/Console/cake Admin startWorker [queue_name]',
+                    'Restart a worker' => 'MISP/app/Console/cake Admin restartWorker [worker_pid]',
+                    'Kill a worker' => 'MISP/app/Console/cake Admin killWorker [worker_pid]',
+                ),
+                'description' => __('The background workers can be managed via the CLI in addition to the UI / API management tools'),
+                'header' => __('Managing the background workers')
             )
         );
 
@@ -4637,22 +4648,88 @@ class Server extends AppModel
         return $status;
     }
 
-    public function updateSubmodule($submodule_name=false) {
+    public function updateSubmodule($user, $submodule_name=false) {
         $path = APP . '../';
         if ($submodule_name == false) {
             $command = sprintf('cd %s; git submodule update 2>&1', $path);
             exec($command, $output, $return_code);
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
+            if ($return_code == 0) { // update all DB
+                $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
+            }
         } else if ($this->_isAcceptedSubmodule($submodule_name)) {
             $command = sprintf('cd %s; git submodule update -- %s 2>&1', $path, $submodule_name);
             exec($command, $output, $return_code);
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
+            if ($return_code == 0) { // update DB if necessary
+                $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
+            }
         } else {
-            $res = array('status' => false, 'output' => __('Invalid submodule.'));
+            $res = array('status' => false, 'output' => __('Invalid submodule.'), 'job_sent' => false, 'sync_result' => __('unknown'));
         }
         return $res;
+    }
+
+    public function updateDatabaseAfterPullRouter($submodule_name, $user) {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $eventModel = ClassRegistry::init('Event');
+            $data = array(
+                    'worker' => $eventModel->__getPrioWorkerIfPossible(),
+                    'job_type' => __('update_after_pull'),
+                    'job_input' => __('Updating: ' . $submodule_name),
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => $user['org_id'],
+                    'org' => $user['Organisation']['name'],
+                    'message' => 'Update database after PULL.',
+            );
+            $job->save($data);
+            $jobId = $job->id;
+            $process_id = CakeResque::enqueue(
+                    'prio',
+                    'AdminShell',
+                    array('updateAfterPull', $submodule_name, $jobId, $user['id']),
+                    true
+            );
+            $job->saveField('process_id', $process_id);
+            return array('job_sent' => true, 'sync_result' => __('unknown'));
+        } else {
+            $result = $this->updateAfterPull($submodule_name, $user['id']);
+            return array('job_sent' => false, 'sync_result' => $result);
+        }
+    }
+
+    public function updateAfterPull($submodule_name, $userId) {
+        $user = $this->User->getAuthUser($userId);
+        $result = array();
+        if ($user['Role']['perm_site_admin']) {
+            $updateAll = empty($submodule_name);
+            if ($submodule_name == 'app/files/misp-galaxy' || $updateAll) {
+                $this->Galaxy = ClassRegistry::init('Galaxy');
+                $result[] = ($this->Galaxy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/misp-objects' || $updateAll) {
+                $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+                $result[] = ($this->ObjectTemplate->update($user, false, false) ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/noticelists' || $updateAll) {
+                $this->Noticelist = ClassRegistry::init('Noticelist');
+                $result[] = ($this->Noticelist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/taxonomies' || $updateAll) {
+                $this->Taxonomy = ClassRegistry::init('Taxonomy');
+                $result[] = ($this->Taxonomy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+            if ($submodule_name == 'app/files/warninglists' || $updateAll) {
+                $this->Warninglist = ClassRegistry::init('Warninglist');
+                $result[] = ($this->Warninglist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+            }
+        }
+        return implode('\n', $result);
     }
 
     public function update($status)
@@ -4705,6 +4782,37 @@ class Server extends AppModel
             $this->workerRemoveDead($user);
             $prepend = '';
             shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
+        }
+        return true;
+    }
+
+    public function restartWorker($pid)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+            $workers = $this->ResqueStatus->getWorkers();
+            $pid = intval($pid);
+            if (!isset($workers[$pid])) {
+                return __('Invalid worker.');
+            }
+            $currentWorker = $workers[$pid];
+            $this->killWorker($pid, false);
+            $this->startWorker($currentWorker['queue']);
+            return true;
+        }
+        return __('Background workers not enabled.');
+    }
+
+    public function startWorker($queue)
+    {
+        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio');
+        if (!in_array($queue, $validTypes)) {
+            return __('Invalid worker type.');
+        }
+        if ($queue != 'scheduler') {
+            shell_exec(APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $queue .' > /dev/null 2>&1 &');
+        } else {
+            shell_exec(APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
         }
         return true;
     }
@@ -4809,5 +4917,17 @@ class Server extends AppModel
             $data[$k]['Server']['cache_timestamp'] = $redis->get('misp:server_cache_timestamp:' . $data[$k]['Server']['id']);
         }
         return $data;
+    }
+
+    public function updateJSON()
+    {
+        $toUpdate = array('Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate');
+        $results = array();
+        foreach ($toUpdate as $target) {
+            $this->$target = ClassRegistry::init($target);
+            $result = $this->$target->update();
+            $results[$target] = $result === false ? false : true;
+        }
+        return $results;
     }
 }

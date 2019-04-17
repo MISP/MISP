@@ -9,8 +9,7 @@
     The core MISP team cannot verify if this guide is working or not. Please help us in keeping it up to date and accurate.
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
 
-This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x). At time of this writing it
-was tested on version 7.6.
+This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x). At time of this writing it was tested on version 7.6.
 
 The following assumptions with regard to this installation have been made.
 
@@ -19,13 +18,24 @@ The following assumptions with regard to this installation have been made.
 ### 0.3/ This system will have direct or proxy access to the Internet for updates. Or connected to a Red Hat Satellite Server
 ### 0.4/ This document is to get a MISP instance up and running over HTTP. I haven't done a full test of all features
 
+{!generic/globalVariables.md!}
+
+```bash
+# RHEL/CentOS Specific
+RUN_PHP='/usr/bin/scl enable rh-php72'
+RUN_PYTHON='/usr/bin/scl enable rh-python36'
+SUDO_WWW='sudo -H -u apache'
+
+PHP_INI=/etc/opt/rh/rh-php72/php.ini
+```
+
 # 1/ OS Install and additional repositories
 
 ## 1.1/ Complete a minimal RHEL installation, configure IP address to connect automatically.
 
 ## 1.2/ Configure system hostname
 ```bash
-sudo hostnamectl set-hostname misp # Your choice, in a production environment, it's best to use a FQDN
+sudo hostnamectl set-hostname misp.local # Your choice, in a production environment, it's best to use a FQDN
 ```
 
 ## 1.3/ Register the system for updates with Red Hat Subscription Manager
@@ -48,19 +58,12 @@ sudo yum install deltarpm -y
 
 ## 1.5/ Update the system and reboot
 ```bash
-yum update -y
+sudo yum update -y
 ```
-
-!!! note
-    As time of writing performing a yum update results in the rhel-7-server-rt-beta-rpms being forbidden.<br />
-    The repo can be disabled using the following command
-    ```bash
-    subscription-manager repos --disable rhel-7-server-rt-beta-rpms
-    ```
 
 ## 1.6/ Install the EPEL repo
 ```bash
-yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
+sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
 ```
 
 # 2/ Install Dependencies
@@ -68,21 +71,20 @@ Once the system is installed and updated, the following steps can be performed a
 
 ## 2.01/ Install some base system dependencies
 ```bash
-yum install gcc git httpd zip python-devel libxslt-devel zlib-devel python-pip ssdeep-devel
+sudo yum install gcc git httpd zip python-devel libxslt-devel zlib-devel python-pip ssdeep-devel
 ```
 
 ## 2.02/ Install MariaDB 10.2 from SCL
 ```bash
-yum install rh-mariadb102
+sudo yum install rh-mariadb102
 ```
 
 ## 2.03/ Start the MariaDB service and enable it to start on boot
 ```bash
-systemctl enable --now rh-mariadb102-mariadb.service
+sudo systemctl enable --now rh-mariadb102-mariadb.service
 ```
 
 !!! note
-    MISP 2.4 requires PHP 5.6 as a minimum, so we need a higher version than base RHEL provides.<br />
     This guide installs PHP 7.2 from SCL
 
 !!! warning
@@ -90,7 +92,7 @@ systemctl enable --now rh-mariadb102-mariadb.service
 
 ## 2.04/ Install PHP 7.2 from SCL
 ```bash
-yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache rh-php72-php-gd
+sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache rh-php72-php-gd
 ```
 
 !!! note
@@ -98,80 +100,86 @@ yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh
 
 ## 2.05/ Start the PHP FPM service and enable to start on boot
 ```bash
-systemctl enable --now rh-php72-php-fpm.service
+sudo systemctl enable --now rh-php72-php-fpm.service
 ```
 
 ## 2.06/ Install redis 3.2 from SCL
 ```bash
-yum install rh-redis32
+sudo yum install rh-redis32
 ```
 
 ## 2.07/ Start redis service and enable to start on boot
 ```bash
-systemctl enable --now rh-redis32-redis.service
+sudo systemctl enable --now rh-redis32-redis.service
 ```
 
 ## 2.08/ Secure the MariaDB installation
 ```bash
-scl enable rh-mariadb102 'mysql_secure_installation'
+sudo scl enable rh-mariadb102 'mysql_secure_installation'
 ```
 
 ## 2.09/ Update the PHP extension repository and install required package
 ```bash
-scl enable rh-php72 rh-redis32 bash
-pear channel-update pear.php.net
-pear install Crypt_GPG
+sudo scl enable rh-php72 rh-redis32 bash
+sudo pear channel-update pear.php.net
+sudo pear install Crypt_GPG
+exit
 ```
 
 ## 2.10/ Install haveged and enable to start on boot to provide entropy for GPG
 ```bash
-yum install haveged
-systemctl enable --now haveged
+sudo yum install haveged
+sudo systemctl enable --now haveged
+```
+Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
+
+## 2.10/ Install Python 3.6 from SCL
+```bash
+sudo yum install rh-python36
 ```
 
-## 2.11/ Install Python 3.6 from SCL
+## 2.11/ Install Git 2.18 from SCL
 ```bash
-yum install rh-python36
+sudo yum install rh-git218
 ```
 
 # 3/ MISP Download
 ## 3.01/ Download MISP code using git in /var/www/ directory
 ```bash
-cd /var/www
-git clone https://github.com/MISP/MISP.git
-cd MISP
-git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+sudo mkdir $PATH_TO_MISP
+sudo chown apache:apache $PATH_TO_MISP
+sudo -u apache git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
+sudo -u apache git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # if the last shortcut doesn't work, specify the latest version manually
 # example: git checkout tags/v2.4.XY
 # the message regarding a "detached HEAD state" is expected behaviour
 # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
-git submodule update --init --recursive
+sudo -u apache git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
-git submodule foreach --recursive git config core.filemode false
+sudo -u apache git submodule foreach --recursive git config core.filemode false
 ```
 
 ## 3.02/ Make git ignore filesystem permission differences
 ```bash
-git config core.filemode false
+sudo -u apache git config core.filemode false
 ```
 
 ## 3.03/ Install Mitre's STIX, STIX2 and their dependencies by running the following commands
 ```bash
-yum install python-six
 cd /var/www/MISP/app/files/scripts
-git clone https://github.com/CybOXProject/python-cybox.git
-git clone https://github.com/STIXProject/python-stix.git
+sudo -u apache git clone https://github.com/CybOXProject/python-cybox.git
+sudo -u apache git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
-git config core.filemode false
+sudo -u apache git config core.filemode false
 # If your umask has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
-scl enable rh-python36 'python3 setup.py install'
+sudo scl enable rh-python36 'python3 setup.py install'
 cd /var/www/MISP/app/files/scripts/python-stix
-git config core.filemode false
-scl enable rh-python36 'python3 setup.py install'
+sudo -u www-data git config core.filemode false
+sudo scl enable rh-python36 'python3 setup.py install'
 cd /var/www/MISP/cti-python-stix2
-scl enable rh-python36 'python3 setup.py install'
+sudo scl enable rh-python36 'python3 setup.py install'
 ```
 
 
@@ -188,17 +196,18 @@ umask $UMASK
 ## 3.05/ Enable python3 for php-fpm
 ```bash
 echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php72/sysconfig/php-fpm
-sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
-systemctl restart rh-php72-php-fpm.service
+sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+sudo systemctl restart rh-php72-php-fpm.service
 ```
 
 ## 3.06/ Enable dependencies detection in the diagnostics page
 Add the following content to `/etc/opt/rh/rh-php72/php-fpm.d/www.conf` :
 ```
-env[PATH] =/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin
+env[PATH]=/opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin
+env[LD_LIBRARY_PATH]=/opt/rh/httpd24/root/usr/lib64/
 ```
 Then run `systemctl restart rh-php72-php-fpm.service`.
-This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
+This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings. The LD_LIBRARY_PATH setting is needed for rh-git218 to work, one might think to install httpd24 and not just httpd ...
 
 # 4/ CakePHP
 ## 4.01/ Install CakeResque along with its dependencies if you intend to use the built in background jobs
@@ -254,8 +263,6 @@ chown -R apache:apache /var/www/MISP/app/webroot/img/orgs
 chown -R apache:apache /var/www/MISP/app/webroot/img/custom
 ```
 
-
-
 # 6/ Create database and user
 ## 6.01/ Set database to listen on localhost only
 ```bash
@@ -290,14 +297,10 @@ cp /var/www/MISP/INSTALL/apache.misp.centos7 /etc/httpd/conf.d/misp.conf
 
 ## 7.02/ Since SELinux is enabled, we need to allow httpd to write to certain directories
 ```bash
-chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files
-chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/terms
-chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/scripts/tmp
-chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Plugin/CakeResque/tmp
-chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
-chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/orgs
-chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/custom
+semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/MISP(/.*)?"
+restorecon -R /var/www/MISP/
 ```
+We're providing write access to the whole MISP tree, otherwise updates via the web interface won't work.
 
 ## 7.03/ Allow httpd to connect to the redis server and php-fpm over tcp/ip
 ```bash
@@ -329,13 +332,7 @@ cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 chmod 0640 /etc/logrotate.d/misp
 ```
 
-## 8.02/ Allow logrotate to work under SELinux and modify the log files
-```bash
-semanage fcontext -a -t httpd_log_t "/var/www/MISP/app/tmp/logs(/.*)?"
-chcon -R -t httpd_log_t /var/www/MISP/app/tmp/logs
-```
-
-## 8.03/ Allow logrotate to read /var/www
+## 8.02/ Allow logrotate to read /var/www
 ```bash
 checkmodule -M -m -o /tmp/misplogrotate.mod INSTALL/misplogrotate.te
 semodule_package -o /tmp/misplogrotate.pp -m /tmp/misplogrotate.mod
@@ -381,17 +378,13 @@ cp -a config.default.php config.php
 ```
 
 ## 9.03/ If you want to be able to change configuration parameters from the webinterface:
-```
-chown apache:apache /var/www/MISP/app/Config/config.php
-chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Config/config.php
-```
+Handled by 7.02
 
 ## 9.04/ Generate an encryption key
 ```bash
 gpg --gen-key
 mv ~/.gnupg /var/www/MISP/
-chown -R apache:apache /var/www/MISP/.gnupg
-chcon -R -t httpd_sys_rw_content_t /var/www/MISP/.gnupg
+restorecon -R /var/www/MISP
 ```
 
 !!! note
@@ -443,16 +436,7 @@ systemctl enable --now misp-workers.service
 {!generic/recommended.actions.md!}
 
 # 10/ Post Install
-## 10.01/ Allow apache to write to /var/www/MISP/app/tmp/logs
-If the result from the diagnostic page is that the directory is not writable, try the following.
-```
-chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp/logs/
-```
-
-!!! note
-    This may mean that logrotate cannot access the logs directory, will require further investigation
-
-## 10.02/ Change php.ini settings to suggested limits from diagnostic page.
+## 10.01/ Change php.ini settings to suggested limits from diagnostic page.
 ```bash
 # Edit /etc/opt/rh/rh-php72/php.ini and set the following settings
 max_execution_time = 300
@@ -461,12 +445,12 @@ upload_max_filesize = 50M
 post_max_size = 50M
 ```
 
-## 10.03/ Restart rh-php72 for settings to take effect
+## 10.02/ Restart rh-php72 for settings to take effect
 ```bash
 systemctl restart rh-php72-php-fpm
 ```
 
-## 10.04/ Install pydeep and pymisp
+## 10.03/ Install pydeep and pymisp
 ```bash
 scl enable rh-python36 'python3 -m pip install pymisp git+https://github.com/kbandla/pydeep.git'
 ```

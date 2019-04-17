@@ -5,7 +5,7 @@
     ```
     or on CentOS
     ```bash
-    sudo $RUN_PHP "$CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python""
+    sudo -u apache $RUN_PHP "$CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python""
     ```
 
 !!! warning

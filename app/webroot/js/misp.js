@@ -1265,6 +1265,7 @@ function cancelPopoverForm(id) {
     $("#popover_form").fadeOut();
     $("#popover_form_large").fadeOut();
     $("#screenshot_box").fadeOut();
+    $("#popover_box").fadeOut();
     $("#confirmation_box").fadeOut();
     $('#gray_out').fadeOut();
     $('#popover_form').fadeOut();
@@ -1911,16 +1912,6 @@ function quickFilterRemoteEvents(passedArgs, id) {
     }
     window.location.href=url;
 }
-
-$('#quickFilterField').bind("enterKey",function(e){
-    $('#quickFilterButton').trigger("click");
-});
-$('#quickFilterField').keyup(function(e){
-    if(e.keyCode == 13)
-    {
-        $('#quickFilterButton').trigger("click");
-    }
-});
 
 function remoteIndexApplyFilters() {
     var url = actionUrl + '/' + $("#EventFilter").val();
@@ -3272,7 +3263,7 @@ $(".cortex-json").click(function() {
 
 // add the same as below for click popup
 $(document).on( "click", ".eventViewAttributePopup", function() {
-    $('#screenshot_box').empty();
+    $('#popover_box').empty();
     type = $(this).attr('data-object-type');
     id = $(this).attr('data-object-id');
     if (!(type + "_" + id in ajaxResults["persistent"])) {
@@ -3288,16 +3279,16 @@ $(document).on( "click", ".eventViewAttributePopup", function() {
     if (type + "_" + id in ajaxResults["persistent"]) {
         var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
         enrichment_popover += '<div class="close-icon useCursorPointer popup-close-icon" onClick="closeScreenshot();"></div>';
-        $('#screenshot_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
-        $('#screenshot_box').show();
+        $('#popover_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
+        $('#popover_box').show();
         $("#gray_out").fadeIn();
-        $('#screenshot_box').css({'padding': '5px'});
-        $('#screenshot_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
-        $('#screenshot_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
-        $('#screenshot_box').css( "overflow-y", "auto");
+        $('#popover_box').css({'padding': '5px'});
+        $('#popover_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
+        $('#popover_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
+        $('#popover_box').css( "overflow-y", "auto");
 
-        var left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
-        $('#screenshot_box').css({'left': left + 'px'});
+        var left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
+        $('#popover_box').css({'left': left + 'px'});
     }
     $('#' + currentPopover).popover('destroy');
 });
@@ -3310,33 +3301,6 @@ function flashErrorPopover() {
     $('#popover_form').css({'left': left + 'px'});
     $("#gray_out").fadeIn();
 }
-
-$(".eventViewAttributeHover").mouseenter(function() {
-    $('#' + currentPopover).popover('destroy');
-    var type = $(this).attr('data-object-type');
-    var id = $(this).attr('data-object-id');
-
-    if (type + "_" + id in ajaxResults["hover"]) {
-        var element = $('#' + type + '_' + id + '_container');
-        element.popover({
-            title: attributeHoverTitle(id, type),
-            content: ajaxResults["hover"][type + "_" + id],
-            placement: attributeHoverPlacement(element),
-            html: true,
-            trigger: 'manual',
-            container: 'body'
-        }).popover('show');
-        currentPopover = type + '_' + id + '_container';
-    } else {
-      timer = setTimeout(function () {
-          runHoverLookup(type, id)
-        },
-        500
-      );
-    }
-}).mouseout(function() {
-    clearTimeout(timer);
-});
 
 function attributeHoverTitle(id, type) {
   return `<span>Lookup results:</span>
@@ -3376,15 +3340,6 @@ $('body').on('click', function (e) {
       $('#' + currentPopover).popover('destroy');
     }
   });
-});
-
-$(".queryPopover").click(function() {
-    url = $(this).data('url');
-    id = $(this).data('id');
-    $.get(url + '/' + id, function(data) {
-        $('#popover_form').html(data);
-        openPopup('#popover_form');
-    });
 });
 
 function serverOwnerOrganisationChange(host_org_id) {
@@ -3487,26 +3442,6 @@ function feedFormUpdate() {
         $('#HeadersDiv').show();
     }
 }
-
-$('.servers_default_role_checkbox').click(function() {
-    var id = $(this).data("id");
-    var state = $(this).is(":checked");
-    $(".servers_default_role_checkbox").not(this).attr('checked', false);
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            handleGenericAjaxResponse(data);
-        },
-        complete:function() {
-            $(".loading").hide();
-        },
-        type:"get",
-        cache: false,
-        url: '/admin/roles/set_default/' + (state ? id : ""),
-    });
-});
 
 function setContextFields() {
     if (showContext) {
@@ -3736,6 +3671,7 @@ $(document).keyup(function(e){
         $("#popover_form").fadeOut();
         $("#popover_form_large").fadeOut();
         $("#screenshot_box").fadeOut();
+        $("#popover_box").fadeOut();
         $("#confirmation_box").fadeOut();
         $(".loading").hide();
         resetForms();
@@ -3765,16 +3701,6 @@ function checkRolePerms() {
         $('.checkbox').prop('checked', true);
     }
 }
-
-// clicking on an element with this class will select all of its contents in a
-// single click
-$('.quickSelect').click(function() {
-    var range = document.createRange();
-    var selection = window.getSelection();
-    range.selectNodeContents(this);
-    selection.removeAllRanges();
-    selection.addRange(range);
-});
 
 function updateMISP() {
     $.get( "/servers/update", function(data) {
@@ -3822,7 +3748,9 @@ function submitSubmoduleUpdate(clicked) {
                 data: formData,
                 success:function (data, textStatus) {
                     if (data.status) {
-                        updateSubModulesStatus(data.output);
+                        var job_sent = data.job_sent !== undefined ? data.job_sent : false;
+                        var sync_result = data.sync_result !== undefined ? data.sync_result : '';
+                        updateSubModulesStatus(data.output, job_sent, sync_result);
                     } else {
                         showMessage('error', 'Something went wrong');
                         $('#submoduleGitResultDiv').show();
@@ -3846,24 +3774,6 @@ function submitSubmoduleUpdate(clicked) {
         url:'/servers/getSubmoduleQuickUpdateForm/' + (submodule_path !== undefined ? btoa(submodule_path) : ''),
     });
 }
-
-$(".cortex-json").click(function() {
-    var cortex_data = $(this).data('cortex-json');
-    cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-    var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-    popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-    $('#screenshot_box').html(popupHtml);
-    $('#screenshot_box').show();
-    $('#screenshot_box').css({'padding': '5px'});
-    left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
-    if (($('#screenshot_box').height() + 250) > $(window).height()) {
-        $('#screenshot_box').height($(window).height() - 250);
-        $('#screenshot_box').css("overflow-y", "scroll");
-        $('#screenshot_box').css("overflow-x", "hidden");
-    }
-    $('#screenshot_box').css({'left': left + 'px'});
-    $("#gray_out").fadeIn();
-});
 
 // Show $(id) if the enable parameter evaluates to true. Hide it otherwise
 function checkAndEnable(id, enable) {
@@ -4005,22 +3915,6 @@ function previewEventBasedOnUuids() {
     }
 }
 
-$('.add_object_attribute_row').click(function() {
-    var template_id = $(this).data('template-id');
-    var object_relation = $(this).data('object-relation');
-    var k = $('#last-row').data('last-row');
-    var k = k+1;
-    $('#last-row').data('last-row', k);
-    url = "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
-    $.get(url, function(data) {
-        $('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
-    });
-});
-
-$('.quickToggleCheckbox').toggle(function() {
-    var url = $(this).data('checkbox-url');
-});
-
 function checkNoticeList(type) {
     var fields_to_check = {
         "attribute": ["category", "type"]
@@ -4049,6 +3943,108 @@ function checkNoticeList(type) {
 }
 
 $(document).ready(function() {
+    $('#quickFilterField').bind("enterKey",function(e){
+        $('#quickFilterButton').trigger("click");
+    });
+    $('#quickFilterField').keyup(function(e){
+        if(e.keyCode == 13)
+        {
+            $('#quickFilterButton').trigger("click");
+        }
+    });
+    $(".eventViewAttributeHover").mouseenter(function() {
+        $('#' + currentPopover).popover('destroy');
+        var type = $(this).attr('data-object-type');
+        var id = $(this).attr('data-object-id');
+
+        if (type + "_" + id in ajaxResults["hover"]) {
+            var element = $('#' + type + '_' + id + '_container');
+            element.popover({
+                title: attributeHoverTitle(id, type),
+                content: ajaxResults["hover"][type + "_" + id],
+                placement: attributeHoverPlacement(element),
+                html: true,
+                trigger: 'manual',
+                container: 'body'
+            }).popover('show');
+            currentPopover = type + '_' + id + '_container';
+        } else {
+          timer = setTimeout(function () {
+              runHoverLookup(type, id)
+            },
+            500
+          );
+        }
+    }).mouseout(function() {
+        clearTimeout(timer);
+    });
+    $(".queryPopover").click(function() {
+        url = $(this).data('url');
+        id = $(this).data('id');
+        $.get(url + '/' + id, function(data) {
+            $('#popover_form').html(data);
+            openPopup('#popover_form');
+        });
+    });
+    $('.servers_default_role_checkbox').click(function() {
+        var id = $(this).data("id");
+        var state = $(this).is(":checked");
+        $(".servers_default_role_checkbox").not(this).attr('checked', false);
+        $.ajax({
+            beforeSend: function (XMLHttpRequest) {
+                $(".loading").show();
+            },
+            success:function (data, textStatus) {
+                handleGenericAjaxResponse(data);
+            },
+            complete:function() {
+                $(".loading").hide();
+            },
+            type:"get",
+            cache: false,
+            url: '/admin/roles/set_default/' + (state ? id : ""),
+        });
+    });
+    // clicking on an element with this class will select all of its contents in a
+    // single click
+    $('.quickSelect').click(function() {
+        var range = document.createRange();
+        var selection = window.getSelection();
+        range.selectNodeContents(this);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    });
+    $(".cortex-json").click(function() {
+        var cortex_data = $(this).data('cortex-json');
+        cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
+        var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
+        popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+        $('#popover_box').html(popupHtml);
+        $('#popover_box').show();
+        $('#popover_box').css({'padding': '5px'});
+        left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
+        if (($('#popover_box').height() + 250) > $(window).height()) {
+            $('#popover_box').height($(window).height() - 250);
+            $('#popover_box').css("overflow-y", "scroll");
+            $('#popover_box').css("overflow-x", "hidden");
+        }
+        $('#popover_box').css({'left': left + 'px'});
+        $("#gray_out").fadeIn();
+    });
+    $('.add_object_attribute_row').click(function() {
+        var template_id = $(this).data('template-id');
+        var object_relation = $(this).data('object-relation');
+        var k = $('#last-row').data('last-row');
+        var k = k+1;
+        $('#last-row').data('last-row', k);
+        url = "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
+        $.get(url, function(data) {
+            $('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
+        });
+    });
+    $('.quickToggleCheckbox').toggle(function() {
+        var url = $(this).data('checkbox-url');
+    });
     $(".correlation-expand-button").on("click", function() {
         $(this).parent().children(".correlation-expanded-area").show();
         $(this).parent().children(".correlation-collapse-button").show();
@@ -4105,7 +4101,6 @@ function insertHTMLRestResponse() {
 function insertJSONRestResponse() {
     $('#rest-response-container').append('<p id="json-response-container" style="border: 1px solid blue; padding:5px;" />');
     var parsedJson = syntaxHighlightJson($('#rest-response-hidden-container').text());
-    console.log(parsedJson);
     $('#json-response-container').html(parsedJson);
 }
 

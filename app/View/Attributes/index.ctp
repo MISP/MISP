@@ -169,7 +169,7 @@ $(document).ready(function () {
             object_id = selected.join('|');
         }
         url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
-        genericPopup(url, '#screenshot_box');
+        genericPopup(url, '#popover_box');
     });
     $('.correlation-toggle').click(function() {
         var attribute_id = $(this).data('attribute-id');
