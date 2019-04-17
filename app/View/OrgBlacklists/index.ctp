@@ -33,8 +33,8 @@ foreach ($response as $item): ?>
         <td><?php echo h($item['OrgBlacklist']['created']); ?>&nbsp;</td>
         <td class="short"><?php echo (isset($item['OrgBlacklist']['comment']) ? h($item['OrgBlacklist']['comment']) : '&nbsp;'); ?></td>
         <td class="short action-links">
-            <a href="<?php echo $baseurl;?>/orgBlacklists/edit/<?php echo h($item['OrgBlacklist']['id']); ?>"><span class="fa fa-edit" title="<?php echo __('Edit');?>">&nbsp;</span></a>
-            <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['OrgBlacklist']['id'])), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete the blacklist entry for the organisation UUID %s?', h($item['OrgBlacklist']['org_uuid']))); ?>
+            <a href="<?php echo $baseurl;?>/orgBlacklists/edit/<?php echo h($item['OrgBlacklist']['id']); ?>" aria-label="<?php echo __('Edit');?>"><span class="fa fa-edit" title="<?php echo __('Edit');?>">&nbsp;</span></a>
+            <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['OrgBlacklist']['id'])), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete the blacklist entry for the organisation UUID %s?', h($item['OrgBlacklist']['org_uuid']))); ?>
         </td>
     </tr><?php
 endforeach; ?>
