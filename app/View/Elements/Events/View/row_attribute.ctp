@@ -61,7 +61,16 @@
       if (!empty($extended)):
     ?>
       <td class="short">
-        <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '">' . h($object['event_id']) . '</a>'; ?>
+        <?php
+            $event_info = '';
+            if (!empty($extended)) {
+                $event_info = sprintf('title="%s%s"',
+                    __('Event info') . ':&#10;     ',
+                    $object['event_id'] != $event['Event']['id'] ? h($event['extensionEvents'][$object['event_id']]['info']) : h($event['Event']['info'])
+                );
+            }
+        ?>
+        <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '" ' . $event_info . '>' . h($object['event_id']) . '</a>'; ?>
       </td>
     <?php
       endif;
