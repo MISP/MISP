@@ -61,7 +61,7 @@
       if (!empty($extended)):
     ?>
       <td class="short">
-        <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '">' . h($object['event_id']) . '</a>'; ?>
+        <?php echo '<a title="' . h($event['Event']['info']) . '" href="' . $baseurl . '/events/view/' . h($object['event_id']) . '">' . h($object['event_id']) . '</a>'; ?>
       </td>
     <?php
       endif;
