@@ -1,5 +1,5 @@
 <div id="eventFilteringQBWrapper" style="padding: 5px; display: none; border: 1px solid #dddddd; border-bottom: 0px;">
-    <div id="eventFilteringQB" style="overflow-y: auto; padding-right: 5px; resize: vertical; max-height: max-content; height: 400px;"></div>
+    <div id="eventFilteringQB" style="overflow-y: auto; padding-right: 5px; resize: vertical; max-height: 750px; height: 400px;"></div>
     <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
             <input id="eventFilteringQBLinkInput" class="form-control" style="width: 66%;"></input>
             <button id="eventFilteringQBLinkCopy" type="button" class="btn btn-inverse" style="margin-right: 5px; margin-left: 5px;" onclick="clickMessage(this);"> <i class="fa fa-clipboard"></i> <?php echo h('Copy to clipboard'); ?> </button>
