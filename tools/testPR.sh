@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # Config section
-
 PATH_TO_MISP='/var/www/MISP'
 CAKE="$PATH_TO_MISP/app/Console/cake"
 WWW_USER="www-data"
@@ -48,6 +47,7 @@ function revert() {
   sudo sh misp-restore.sh $mispBackup_file
 }
 
+clear
 if [ -w $PATH_TO_MISP ]; then
   echo "Good we can write to $PATH_TO_MISP"
 else
@@ -100,11 +100,21 @@ sudo -H -u $WWW_USER git fetch origin pull/${1}/head:PR_${1}
 sudo -H -u $WWW_USER git checkout PR_${1}
 
 echo "Checked out PR #${1}"
-echo "Press enter to the the git log"
+space
+echo "Press enter to see the git log of PR#${1}"
+space
 read
+clear
 sudo -H -u $WWW_USER git log --name-status HEAD^..HEAD
+echo
+space
+echo -n "Do you want to revert to the 2.4 branch and delete the test branch (y/n) "
+read REVERT
 
-if [[ "$BACKUP" == "1" ]]; then
+if [[ "$REVERT" == "y" ]]; then
+  sudo -H -u $WWW_USER git checkout 2.4
+  sudo -H -u $WWW_USER git branch -D PR_${1}
+elif [[ "$BACKUP" == "1" ]]; then
   echo "Press enter to revert."
   echo "NB: You need your MYSQL Root password."
   read
@@ -114,6 +124,3 @@ if [[ "$BACKUP" == "1" ]]; then
     exit 1
   fi
 fi
-
-
-
