@@ -1,6 +1,6 @@
 <div id="eventFilteringQBWrapper" style="padding: 5px; display: none; border: 1px solid #dddddd; border-bottom: 0px;">
-    <div id="eventFilteringQB"></div>
-    <div style="display: flex; justify-content: flex-end">
+    <div id="eventFilteringQB" style="overflow-y: auto; padding-right: 5px; resize: vertical; max-height: max-content; height: 400px;"></div>
+    <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
             <input id="eventFilteringQBLinkInput" class="form-control" style="width: 66%;"></input>
             <button id="eventFilteringQBLinkCopy" type="button" class="btn btn-inverse" style="margin-right: 5px; margin-left: 5px;" onclick="clickMessage(this);"> <i class="fa fa-clipboard"></i> <?php echo h('Copy to clipboard'); ?> </button>
             <button id="eventFilteringQBSubmit" type="button" class="btn btn-success" style="margin-right: 5px;"> <i class="fa fa-filter"></i> <?php echo h('Filter'); ?> </button>
@@ -199,7 +199,7 @@ function triggerEventFilteringTool(clicked) {
             },
             <?php
             if (empty($attributeTags) && isset($filters['taggedAttributes'])) {
-                $attributeTags = array(htmlspecialchars($filters['taggedAttributes']));
+                $attributeTags = array($filters['taggedAttributes']);
             }
             if (!empty($attributeTags)):
             ?>
@@ -212,12 +212,12 @@ function triggerEventFilteringTool(clicked) {
                 "unique": true,
                 "id": "taggedAttributes",
                 "label": "Tags",
-                "values": <?php echo json_encode(array_map("htmlspecialchars", $attributeTags)); ?>
+                "values": <?php echo json_encode(array_map("htmlspecialchars", array_map("h", $attributeTags))); ?>
             },
             <?php endif; ?>
             <?php
             if (empty($attributeClusters) && isset($filters['galaxyAttachedAttributes'])) {
-                $attributeClusters = array(htmlspecialchars($filters['galaxyAttachedAttributes']));
+                $attributeClusters = array($filters['galaxyAttachedAttributes']);
             }
             if (!empty($attributeClusters)):
             ?>
@@ -230,7 +230,7 @@ function triggerEventFilteringTool(clicked) {
                 "unique": true,
                 "id": "galaxyAttachedAttributes",
                 "label": "Galaxies",
-                "values": <?php echo json_encode(array_map("htmlspecialchars", $attributeClusters)); ?>
+                "values": <?php echo json_encode(array_map("h", $attributeClusters)); ?>
             },
             <?php endif; ?>
             {
@@ -345,20 +345,24 @@ function triggerEventFilteringTool(clicked) {
                     value: <?php echo isset($filters['distribution']) ? json_encode($filters['distribution']) : json_encode(array(0, 1, 2, 3, 4, 5)); ?>
                 },
                 <?php endif; ?>
-                <?php if (!empty($attributeTags) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['taggedAttributes']))): ?>
-                {
-                    field: 'taggedAttributes',
-                    id: 'taggedAttributes',
-                    value: '<?php echo isset($filters['taggedAttributes']) ? h($filters['taggedAttributes']) : $attributeTags[0]; ?>'
-                },
-                <?php endif; ?>
-                <?php if (!empty($attributeClusters) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['galaxyAttachedAttributes']))): ?>
-                {
-                    field: 'galaxyAttachedAttributes',
-                    id: 'galaxyAttachedAttributes',
-                    value: '<?php echo isset($filters['galaxyAttachedAttributes']) ? h($filters['galaxyAttachedAttributes']) : $attributeClusters[0]; ?>'
-                },
-                <?php endif; ?>
+                <?php
+                if (!empty($attributeTags) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['taggedAttributes']))):
+                    $tmp = array(
+                        'field' => 'taggedAttributes',
+                        'id' => 'taggedAttributes',
+                        'value' => !empty($filters['taggedAttributes']) ? $filters['taggedAttributes'] : $attributeTags[0]
+                    );
+                    echo json_encode($tmp) . ','; // sanitize data
+                endif;
+                if (!empty($attributeClusters) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['galaxyAttachedAttributes']))):
+                    $tmp = array(
+                        'field' => 'galaxyAttachedAttributes',
+                        'id' => 'galaxyAttachedAttributes',
+                        'value' => !empty($filters['galaxyAttachedAttributes']) ? $filters['galaxyAttachedAttributes'] : $attributeClusters[0]
+                    );
+                    echo json_encode($tmp); // sanitize data
+                endif;
+                ?>
             ],
             flags: {
                 no_add_group: true,
@@ -425,10 +429,10 @@ function triggerEventFilteringTool(clicked) {
                 v = v.join('||');
             }
             if (!Array.isArray(defaultFilteringRules[k]) && defaultFilteringRules[k] != v) {
-                url += "/" + k + ":" + v;
+                url += "/" + k + ":" + encodeURIComponent(v);
             } else {
                 if (Array.isArray(defaultFilteringRules[k]) && defaultFilteringRules[k].join('||') != v) {
-                    url += "/" + k + ":" + v;
+                    url += "/" + k + ":" + encodeURIComponent(v);
                 }
             }
         });
