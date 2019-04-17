@@ -5129,6 +5129,11 @@ class EventsController extends AppController
         if (empty($attributes) && empty($objects)) {
             $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
         } else {
+            $this->set('attributeValue', $attribute[0]['Attribute']['value']);
+            $this->set('module', $module);
+            $event = array('Event' => $attribute[0]['Event']);
+            $event['Attribute'] = $attributes;
+            $event['Object'] = $objects;
             if ($attribute[0]['Object']['id']) {
                 $object_id = $attribute[0]['Object']['id'];
                 $initial_object = $this->Event->Object->find('first', array(
@@ -5151,13 +5156,8 @@ class EventsController extends AppController
                         array_push($initial_object['Attribute'], $initial_attribute['Attribute']);
                     }
                 }
-                $this->set('initialObject', $initial_object);
+                $event['initialObject'] = $initial_object;
             }
-            $this->set('attributeValue', $attribute[0]['Attribute']['value']);
-            $this->set('module', $module);
-            $event = array('Event' => $attribute[0]['Event']);
-            $event['Attribute'] = $attributes;
-            $event['Object'] = $objects;
             $this->set('event', $event);
             if (!empty($result['results'])) {
                 $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = true, $render_name = 'resolved_misp_format');
@@ -5258,6 +5258,11 @@ class EventsController extends AppController
                 throw new MethodNotAllowedException(__('Invalid event.'));
             }
             $resolved_data = json_decode($this->request->data['Event']['JsonObject'], true);
+            $data = json_decode($this->request->data['Event']['data'], true);
+            if (!empty($data['initialObject'])) {
+                $resolved_data['initialObject'] = $data['initialObject'];
+            }
+            unset($data);
             $default_comment = $this->request->data['Event']['default_comment'];
             $flashMessage = $this->Event->processModuleResultsDataRouter($this->Auth->user(), $resolved_data, $id, $default_comment);
             $this->Flash->info($flashMessage);
