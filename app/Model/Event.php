@@ -5855,6 +5855,7 @@ class Event extends AppModel
             $total_attributes = 0;
         }
         if (!empty($resolved_data['Object'])) {
+            $initial_object_id = isset($resolved_data['initialObject']) ? $resolved_data['initialObject']['Object']['id'] : "0";
             $total_objects = count($resolved_data['Object']);
             $references = array();
             foreach ($resolved_data['Object'] as $o => $object) {
@@ -5864,25 +5865,50 @@ class Event extends AppModel
                 unset($object['meta_category']);
                 if ($this->Object->save($object)) {
                     $object_id = $this->Object->id;
-                    if (!empty($object['Attribute'])) {
-                        foreach ($object['Attribute'] as $object_attribute) {
-                            $object_attribute['object_id'] = $object_id;
-                            $object_attribute['event_id'] = $id;
-                            if (empty($object_attribute['comment'])) {
-                                $object_attribute['comment'] = $default_comment;
-                            }
-                            $this->Attribute->create();
-                            if ($this->Attribute->save($object_attribute)) {
-                                $saved_object_attributes++;
-                            } else {
-                                $failed_object_attributes++;
-                                $lastObjectAttributeError = $this->Attribute->validationErrors;
+                    if ($object_id == $initial_object_id) {
+                        $initial_object = $resolved_data['initialObject'];
+                        if ($object['name'] != $initial_object['Object']['name']) {
+                            throw new NotFoundException(__('Invalid object.'));
+                        }
+                        $initial_attributes = array();
+                        if (!empty($initial_object['Attribute'])) {
+                            foreach ($initial_object['Attribute'] as $initial_attribute) {
+                                if (!isset($initial_attributes[$initial_attribute['object_relation']])) {
+                                    $initial_attributes[$initial_attribute['object_relation']] = array($initial_attribute['value']);
+                                } else {
+                                    array_push($initial_attributes[$initial_attribute['object_relation']], $initial_attribute['value']);
+                                }
                             }
                         }
-                    }
-                    if (!empty($object['ObjectReference'])) {
-                        foreach($object['ObjectReference'] as $object_reference) {
-                            array_push($references, array('objectName' => $object['name'], 'reference' => $object_reference));
+                        if (!empty($object['Attribute'])) {
+                            foreach ($object['Attribute'] as $object_attribute) {
+                                $object_relation = $object_attribute['object_relation'];
+                                if (isset($initial_attributes[$object_relation]) && in_array($object_attribute['value'], $initial_attributes[$object_relation])) {
+                                    continue;
+                                }
+                                if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $object_id)) {
+                                    $saved_object_attributes++;
+                                } else {
+                                    $failed_object_attributes++;
+                                    $lastObjectAttributeError = $this->Attribute->validationErrors;
+                                }
+                            }
+                        }
+                    } else {
+                        if (!empty($object['Attribute'])) {
+                            foreach ($object['Attribute'] as $object_attribute) {
+                                if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $object_id)) {
+                                    $saved_object_attributes++;
+                                } else {
+                                    $failed_object_attributes++;
+                                    $lastObjectAttributeError = $this->Attribute->validationErrors;
+                                }
+                            }
+                        }
+                        if (!empty($object['ObjectReference'])) {
+                            foreach($object['ObjectReference'] as $object_reference) {
+                                array_push($references, array('objectName' => $object['name'], 'reference' => $object_reference));
+                            }
                         }
                     }
                     $saved_objects++;
@@ -6014,6 +6040,17 @@ class Event extends AppModel
     private function __apply_inflector($count, $scope)
     {
         return ($count == 1 ? Inflector::singuralize($scope) : Inflector::pluralize($scope));
+    }
+
+    private function __saveObjectAttribute($attribute, $default_comment, $event_id, $object_id)
+    {
+        $attribute['object_id'] = $object_id;
+        $attribute['event_id'] = $event_id;
+        if (empty($attribute['comment'])) {
+            $attribute['comment'] = $default_comment;
+        }
+        $this->Attribute->create();
+        return $this->Attribute->save($attribute);
     }
 
     public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false)
