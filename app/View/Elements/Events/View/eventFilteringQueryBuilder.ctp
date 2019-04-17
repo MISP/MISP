@@ -212,7 +212,7 @@ function triggerEventFilteringTool(clicked) {
                 "unique": true,
                 "id": "taggedAttributes",
                 "label": "Tags",
-                "values": <?php echo json_encode(array_map("htmlspecialchars", array_map("h", $attributeTags))); ?>
+                "values": <?php echo json_encode(array_map("h", $attributeTags)); // additional `h` because values are directly insterted into the DOM by QB.?>
             },
             <?php endif; ?>
             <?php
@@ -230,7 +230,7 @@ function triggerEventFilteringTool(clicked) {
                 "unique": true,
                 "id": "galaxyAttachedAttributes",
                 "label": "Galaxies",
-                "values": <?php echo json_encode(array_map("h", $attributeClusters)); ?>
+                "values": <?php echo json_encode(array_map("h", $attributeClusters)); // additional `h` because values are directly insterted into the DOM by QB.?>
             },
             <?php endif; ?>
             {
