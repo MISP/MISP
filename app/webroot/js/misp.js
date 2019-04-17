@@ -2957,7 +2957,8 @@ function zeroMQServerAction(action) {
 function convertServerFilterRules(rules) {
     validOptions.forEach(function (type) {
         container = "#"+ modelContext + type.ucfirst() + "Rules";
-        if($(container).val() != '') rules[type] = JSON.parse($(container).val());
+        if ($(container).val() != '' && $(container).val() != '[]') rules[type] = JSON.parse($(container).val());
+        else {rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}};
     });
     serverRuleUpdate();
     return rules;
