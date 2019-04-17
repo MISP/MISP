@@ -5143,20 +5143,35 @@ class EventsController extends AppController
                     'recursive' => -1,
                     'fields' => array('Object.id', 'Object.uuid', 'Object.name')
                 ));
-                $initial_attributes = $this->Event->Attribute->find('all', array(
-                    'conditions' => array('Attribute.object_id' => $object_id,
-                                          'Attribute.deleted' => 0),
-                    'recursive' => -1,
-                    'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type',
-                                      'Attribute.object_relation', 'Attribute.value')
-                ));
-                if (!empty($initial_attributes)) {
-                    $initial_object['Attribute'] = array();
-                    foreach ($initial_attributes as $initial_attribute) {
-                        array_push($initial_object['Attribute'], $initial_attribute['Attribute']);
+                if (!empty($initial_object)) {
+                    $initial_attributes = $this->Event->Attribute->find('all', array(
+                        'conditions' => array('Attribute.object_id' => $object_id,
+                                              'Attribute.deleted' => 0),
+                        'recursive' => -1,
+                        'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type',
+                                          'Attribute.object_relation', 'Attribute.value')
+                    ));
+                    if (!empty($initial_attributes)) {
+                        $initial_object['Attribute'] = array();
+                        foreach ($initial_attributes as $initial_attribute) {
+                            array_push($initial_object['Attribute'], $initial_attribute['Attribute']);
+                        }
                     }
+                    $initial_references = $this->Event->Object->ObjectReference->find('all', array(
+                        'conditions' => array('ObjectReference.object_id' => $object_id,
+                                              'ObjectReference.event_id' => $event_id,
+                                              'ObjectReference.deleted' => 0),
+                        'recursive' => -1,
+                        'fields' => array('ObjectReference.referenced_uuid', 'ObjectReference.relationship_type')
+                    ));
+                    if (!empty($initial_references)) {
+                        $initial_object['ObjectReference'] = array();
+                        foreach ($initial_references as $initial_reference) {
+                            array_push($initial_object['ObjectReference'], $initial_reference['ObjectReference']);
+                        }
+                    }
+                    $event['initialObject'] = $initial_object;
                 }
-                $event['initialObject'] = $initial_object;
             }
             $this->set('event', $event);
             if (!empty($result['results'])) {
