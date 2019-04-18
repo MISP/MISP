@@ -1196,10 +1196,6 @@ coreCAKE () {
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_timeout" 120
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_authkey" ""
-  # Mysteriously removed?
-  #$SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_timeout" 120
-  # Mysteriously removed?
-  #$SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_authkey" ""
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_peer" false
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_host" false
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_ssl_allow_self_signed" true
@@ -1272,18 +1268,15 @@ updateGOWNT () {
 
   # Update the galaxies…
   # TODO: Fix updateGalaxies
-  ##$SUDO_WWW $CAKE Admin updateGalaxies
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/galaxies/update
+  $SUDO_WWW $CAKE Admin updateGalaxies
   # Updating the taxonomies…
   $SUDO_WWW $CAKE Admin updateTaxonomies
   # Updating the warning lists…
-  # TODO: Fix updateWarningLists
-  ##$SUDO_WWW $CAKE Admin updateWarningLists
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/warninglists/update
+  $SUDO_WWW $CAKE Admin updateWarningLists
   # Updating the notice lists…
-  ## $SUDO_WWW $CAKE Admin updateNoticeLists
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
+  $SUDO_WWW $CAKE Admin updateNoticeLists
   # Updating the object templates…
+  # TODO: FIXME: updateObjectTemplates (currently throws: usage udpateNoticeLists)
   ##$SUDO_WWW $CAKE Admin updateObjectTemplates
   curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
 }
@@ -1470,22 +1463,22 @@ mispDashboard () {
 
 dashboardCAKE () {
   # Enable ZeroMQ for misp-dashboard
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 }
 
 # Main mail2misp install function
@@ -1529,6 +1522,7 @@ ssdeep () {
   sudo make install
 
   #installing ssdeep_php
+  sudo pecl channel-update pecl.php.net
   sudo pecl install ssdeep
 
   # You should add "extension=ssdeep.so" to mods-available - Check /etc/php for your current version
