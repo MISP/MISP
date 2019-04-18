@@ -1675,6 +1675,9 @@ generateInstaller () {
 
   cp INSTALL.tpl.sh ../INSTALL.sh
   cd ..
+  for ALGO in $(echo "1 256 384 512"); do
+    shasum -a ${ALGO} INSTALL.sh > INSTALL.sh.sha${ALGO}
+  done
   rm -rf installer
   echo -e "${LBLUE}Generated INSTALL.sh${NC}"
   exit 0
