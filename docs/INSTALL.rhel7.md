@@ -49,7 +49,7 @@ PHP_INI=/etc/opt/rh/rh-php72/php.ini
 
 ## 1.1/ Complete a minimal RHEL installation, configure IP address to connect automatically.
 
-## 1.2/ Configure system hostname
+## 1.2/ Configure system hostname (if not done during install)
 ```bash
 sudo hostnamectl set-hostname misp.local # Your choice, in a production environment, it's best to use a FQDN
 ```
