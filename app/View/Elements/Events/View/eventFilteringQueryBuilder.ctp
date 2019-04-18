@@ -11,8 +11,9 @@
 ?>
 
 <script>
-function triggerEventFilteringTool(clicked) {
-    var defaultFilteringRules = <?php echo json_encode($defaultFilteringRules); ?>;
+var defaultFilteringRules = <?php echo json_encode($defaultFilteringRules); ?>;
+var querybuilderTool;
+function triggerEventFilteringTool(hide) {
     var qbOptions = {
         plugins: {
             'filter-description' : {
@@ -346,19 +347,19 @@ function triggerEventFilteringTool(clicked) {
                 },
                 <?php endif; ?>
                 <?php
-                if (!empty($attributeTags) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['taggedAttributes']))):
+                if (!empty($filters['taggedAttributes']) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['taggedAttributes']))):
                     $tmp = array(
                         'field' => 'taggedAttributes',
                         'id' => 'taggedAttributes',
-                        'value' => !empty($filters['taggedAttributes']) ? $filters['taggedAttributes'] : $attributeTags[0]
+                        'value' => $filters['taggedAttributes']
                     );
                     echo json_encode($tmp) . ','; // sanitize data
                 endif;
-                if (!empty($attributeClusters) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['galaxyAttachedAttributes']))):
+                if (!empty($filters['galaxyAttachedAttributes']) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['galaxyAttachedAttributes']))):
                     $tmp = array(
                         'field' => 'galaxyAttachedAttributes',
                         'id' => 'galaxyAttachedAttributes',
-                        'value' => !empty($filters['galaxyAttachedAttributes']) ? $filters['galaxyAttachedAttributes'] : $attributeClusters[0]
+                        'value' => $filters['galaxyAttachedAttributes']
                     );
                     echo json_encode($tmp); // sanitize data
                 endif;
@@ -381,13 +382,15 @@ function triggerEventFilteringTool(clicked) {
     var filters = <?php echo json_encode($filters); ?>;
     var $wrapper = $('#eventFilteringQBWrapper');
     var $ev = $('#eventFilteringQB');
-    var querybuilderTool = $ev.queryBuilder(qbOptions);
+    querybuilderTool = $ev.queryBuilder(qbOptions);
     querybuilderTool = querybuilderTool[0].queryBuilder;
 
     querybuilderTool.on('rulesChanged', function() {
         updateURL();
     });
-    $wrapper.toggle('blind', 100, { direction: 'up' });
+    if (hide === undefined || !hide) {
+        $wrapper.toggle('blind', 100, { direction: 'up' });
+    }
 
     $('#eventFilteringQBSubmit').off('click').on('click', function() {
         $button = $(this);
@@ -416,29 +419,29 @@ function triggerEventFilteringTool(clicked) {
     function updateURL() {
         var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
         var res = cleanRules(rules);
-        var url = "<?php echo $baseurl; ?>/events/view/<?php echo h($event['Event']['id']); ?>" + buildURL(res);
+        var url = "<?php echo $baseurl; ?>/events/view/<?php echo h($event['Event']['id']); ?>" + buildFilterURL(res);
         $('#eventFilteringQBLinkInput').val(url);
     }
+}
 
-    function buildURL(res) {
-        var url = "";
-        Object.keys(res).forEach(function(k) {
-            var v = res[k];
-            if (Array.isArray(v)) {
-                // v = JSON.stringify(v);
-                v = v.join('||');
-            }
-            if (!Array.isArray(defaultFilteringRules[k]) && defaultFilteringRules[k] != v) {
+
+function buildFilterURL(res) {
+    var url = "";
+    Object.keys(res).forEach(function(k) {
+        var v = res[k];
+        if (Array.isArray(v)) {
+            // v = JSON.stringify(v);
+            v = v.join('||');
+        }
+        if (!Array.isArray(defaultFilteringRules[k]) && defaultFilteringRules[k] != v) {
+            url += "/" + k + ":" + encodeURIComponent(v);
+        } else {
+            if (Array.isArray(defaultFilteringRules[k]) && defaultFilteringRules[k].join('||') != v) {
                 url += "/" + k + ":" + encodeURIComponent(v);
-            } else {
-                if (Array.isArray(defaultFilteringRules[k]) && defaultFilteringRules[k].join('||') != v) {
-                    url += "/" + k + ":" + encodeURIComponent(v);
-                }
             }
-        });
-        return url;
-    }
-
+        }
+    });
+    return url;
 }
 
 function recursiveInject(result, rules) {
