@@ -1238,9 +1238,15 @@ class EventsController extends AppController
         $this->set('emptyEvent', $emptyEvent);
         $attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
         $objectCount = isset($event['Object']) ? count($event['Object']) : 0;
+        $oldest_timestamp = false;
         if (!empty($event['Object'])) {
             foreach ($event['Object'] as $k => $object) {
                 if (!empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $attribute) {
+                        if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+                            $oldest_timestamp = $attribute['timestamp'];
+                        }
+                    }
                     $attributeCount += count($object['Attribute']);
                 }
             }
@@ -1320,6 +1326,9 @@ class EventsController extends AppController
         $startDate = null;
         $modificationMap = array();
         foreach ($event['Attribute'] as $k => $attribute) {
+            if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+                $oldest_timestamp = $attribute['timestamp'];
+            }
             if ($startDate === null || $attribute['timestamp'] < $startDate) {
                 $startDate = $attribute['timestamp'];
             }
@@ -1458,6 +1467,7 @@ class EventsController extends AppController
         $orgTable = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
+        $this->set('oldest_timestamp', $oldest_timestamp);
         $this->set('required_taxonomies', $this->Event->getRequiredTaxonomies());
         $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
@@ -4194,60 +4204,60 @@ class EventsController extends AppController
         // #TODO i18n
         $exports = array(
             'xml' => array(
-                    'url' => '/events/restSearch/xml/false/false/false/false/false/false/false/false/false/' . $id . '/false.xml',
+                    'url' => '/events/restSearch/xml/eventid:' . $id . '.xml',
                     'text' => 'MISP XML (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/xml/false/false/false/false/false/false/false/false/false/' . $id . '/true.xml',
+                    'checkbox_set' => '/events/restSearch/xml/eventid:' . $id . '/withAttachments:1.xml',
                     'checkbox_default' => true
             ),
             'json' => array(
-                    'url' => '/events/restSearch/json/false/false/false/false/false/false/false/false/false/' . $id . '/false.json',
+                    'url' => '/events/restSearch/json/eventid:' . $id . '.json',
                     'text' => 'MISP JSON (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/json/false/false/false/false/false/false/false/false/false/' . $id . '/true.json',
+                    'checkbox_set' => '/events/restSearch/json/withAttachments:1/eventid:' . $id . '.json',
                     'checkbox_default' => true
             ),
             'openIOC' => array(
                     'url' => '/events/downloadOpenIOCEvent/download/' . $id,
                     'text' => 'OpenIOC (all indicators marked to IDS)',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'csv' => array(
                     'url' => '/events/csv/download/' . $id,
                     'text' => 'CSV',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
                     'checkbox_set' => '/events/csv/download/' . $id . '/1'
             ),
             'csv_with_context' => array(
-                    'url' => '/events/csv/download/' . $id . '/0/0/0/0/1',
+                    'url' => '/events/restSearch/returnFormat:csv/eventid:' . $id,
                     'text' => 'CSV with additional context',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/events/csv/download/' . $id . '/1/0/0/0/1'
+                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/eventid:' . $id
             ),
             'stix_xml' => array(
                     'url' => '/events/restSearch/stix/eventid:' . $id,
                     'text' => 'STIX XML (metadata + all attributes)',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
                     'checkbox_set' => '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1'
             ),
             'stix_json' => array(
-                    'url' => '/events/stix/download/' . $id . '.json',
+                    'url' => '/events/restSearch/stix/eventid:' . $id . '.json',
                     'text' => 'STIX JSON (metadata + all attributes)',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/stix/download/' . $id . '/true.json'
+                    'checkbox_set' => '/events/restSearch/stix/withAttachments:1/eventid:' . $id . '.json'
             ),
             'stix2_json' => array(
                     'url' => '/events/restSearch/stix2/eventid:' . $id,
@@ -4258,36 +4268,36 @@ class EventsController extends AppController
                     'checkbox_set' => '/events/restSearch/stix2/eventid:' . $id . '/withAttachments:1'
             ),
             'rpz' => array(
-                    'url' => '/attributes/rpz/download/false/' . $id,
+                    'url' => '/attributes/restSearch/returnFormat:rpz/published:1||0/eventid:' . $id,
                     'text' => 'RPZ Zone file',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'suricata' => array(
-                    'url' => '/events/nids/suricata/download/' . $id,
+                    'url' => '/events/restSearch/returnFormat:suricata/published:1||0/eventid:' . $id,
                     'text' => 'Download Suricata rules',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'snort' => array(
-                    'url' => '/events/nids/snort/download/' . $id,
+                    'url' => '/events/restSearch/returnFormat:snort/published:1||0/eventid:' . $id,
                     'text' => 'Download Snort rules',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'bro' => array(
                     'url' => '/attributes/bro/download/all/false/' . $id,
                     'text' => 'Download Bro rules',
-                    'requiresPublished' => true,
+                    'requiresPublished' => false,
                     'checkbox' => false
             ),
             'text' => array(
-                    'url' => '/attributes/text/download/all/false/' . $id,
                     'text' => 'Export all attribute values as a text file',
-                    'requiresPublished' => true,
+                    'url' => '/attributes/restSearch/returnFormat:text/published:1||0/eventid:' . $id,
+                    'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/attributes/text/download/all/false/' . $id . '/true'
+                    'checkbox_set' => '/attributes/restSearch/returnFormat:text/published:1||0/to_ids:1||0/eventid:' . $id
             ),
         );
         if ($event['Event']['published'] == 0) {
@@ -5213,8 +5223,17 @@ class EventsController extends AppController
 
     public function handleModuleResults($eventId)
     {
-        debug($eventId);
-        debug($this->request->event);
+        if (!$this->userRole['perm_add']) {
+            throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
+        }
+        if ($this->request->is('post')) {
+            if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
+                throw new MethodNotAllowedException(__('Invalid event.'));
+            }
+            $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+        } else {
+            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+        }
     }
 
     public function importModule($module, $eventId)

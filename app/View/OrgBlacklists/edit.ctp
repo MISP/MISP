@@ -1,9 +1,17 @@
 <div class="orgBlacklist form">
 <?php echo $this->Form->create('OrgBlacklist');?>
     <fieldset>
-        <legend><?php echo __('Add Event Blacklist Entries');?></legend>
-        <p><?php echo __('Simply paste a list of all the event UUIDs that you wish to block from being entered.');?></p>
+        <legend><?php echo __('Edit Event Blacklist Entries');?></legend>
+        <p><?php echo __('List of all the event UUIDs that you wish to block from being entered.');?></p>
     <?php
+        echo $this->Form->input('uuids', array(
+                'type' => 'textarea',
+                'label' => __('UUIDs'),
+                'div' => 'input clear',
+                'class' => 'input-xxlarge',
+                'disabled' => 'disabled',
+                'default' => $blockEntry['OrgBlacklist']['org_uuid']
+        ));
         echo $this->Form->input('org_name', array(
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',

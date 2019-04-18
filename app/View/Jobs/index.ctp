@@ -1,8 +1,6 @@
 <div class="jobs index">
     <h2><?php echo __('Jobs');?></h2>
-    <h4>
-        Purge job entries:
-    </h4>
+    <h4><?php echo __('Purge job entries:');?></h4>
     <span>
         <?php
             echo $this->Form->postLink(
@@ -64,25 +62,25 @@
                     'children' => array(
                         array(
                             'url' => '/jobs/index',
-                            'text' => 'All',
+                            'text' => __('All'),
                             'title' => __('Show all queues'),
                             'active' => !$queue
                         ),
                         array(
                             'url' => '/jobs/index/default',
-                            'text' => 'Default',
+                            'text' => __('Default'),
                             'title' => __('Show default queue'),
                             'active' => $queue === 'default'
                         ),
                         array(
                             'url' => '/jobs/index/email',
-                            'text' => 'Email',
+                            'text' => __('Email'),
                             'titles' => __('Show email queue'),
                             'active' => $queue === 'email'
                         ),
                         array(
                             'url' => '/jobs/index/cache',
-                            'text' => 'Cache',
+                            'text' => __('Cache'),
                             'title' => __('Show cache queue'),
                             'active' => $queue === 'cache'
                         )
@@ -90,29 +88,22 @@
                 )
             )
         );
-        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
     ?>
     <div id="attributeList" class="attributeListContainer">
-        <div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
-            <span id="filter_header" class="attribute_filter_header"><?php echo __('Filters');?>: </span>
-            <div id="filter_all" title="<?php echo __('Show all queues');?>" role="button" tabindex="0" aria-label="<?php echo __('Show all queues');?>" class="attribute_filter_text<?php if (!$queue) echo '_active';?>" onClick="window.location='/jobs/index';"><?php echo __('All');?></div>
-            <div id="filter_default" title="<?php echo __('Show default queue');?>" role="button" tabindex="0" aria-label="<?php echo __('Show default queue');?>" class="attribute_filter_text<?php if ($queue === 'default') echo '_active';?>" onClick="window.location='/jobs/index/default';"><?php echo __('Default');?></div>
-            <div id="filter_email" title="<?php echo __('Show email queue');?>" role="button" tabindex="0" aria-label="<?php echo __('Show email queue');?>" class="attribute_filter_text<?php if ($queue === 'email') echo '_active';?>" onClick="window.location='/jobs/index/email';"><?php echo __('Email');?></div>
-            <div id="filter_cache" title="<?php echo __('Show cache queue');?>" role="button" tabindex="0" aria-label="<?php echo __('Show cache queue');?>" class="attribute_filter_text<?php if ($queue === 'cache') echo '_active';?>" onClick="window.location='/jobs/index/cache';"><?php echo __('Cache');?></div>
-        </div>
+        <?php echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data)); ?>
         <table class="table table-striped table-hover table-condensed">
         <tr>
                 <th><?php echo $this->Paginator->sort('id');?></th>
-                <th><?php echo $this->Paginator->sort('date_created');?></th>
-                <th><?php echo $this->Paginator->sort('date_modified');?></th>
-                <th><?php echo $this->Paginator->sort('process_id');?></th>
-                <th><?php echo $this->Paginator->sort('worker');?></th>
-                <th><?php echo $this->Paginator->sort('job_type');?></th>
+                <th><?php echo $this->Paginator->sort('date_created', __('Date created'));?></th>
+                <th><?php echo $this->Paginator->sort('date_modified', __('Date modified'));?></th>
+                <th><?php echo $this->Paginator->sort('process_id', __('Process ID'));?></th>
+                <th><?php echo $this->Paginator->sort('worker', __('Worker'));?></th>
+                <th><?php echo $this->Paginator->sort('job_type', __('Job type'));?></th>
                 <th><?php echo $this->Paginator->sort('job_input', __('Input'));?></th>
                 <th><?php echo $this->Paginator->sort('message');?></th>
-                <th><?php echo $this->Paginator->sort('Org.name');?></th>
+                <th><?php echo $this->Paginator->sort('Org.name', __('Organisation name'));?></th>
                 <th><?php echo $this->Paginator->sort('status');?></th>
-                <th><?php echo $this->Paginator->sort('retries');?></th>
+                <th><?php echo $this->Paginator->sort('retries', __('Retries'));?></th>
                 <th><?php echo $this->Paginator->sort('progress');?></th>
         </tr>
 <?php
@@ -128,7 +119,7 @@
             $progress_bar_type = 'progress progress-striped progress-warning active';
         } else if ($item['Job']['progress'] == 0) {
             $progress_bar_type = 'progress progress-striped progress-queued active';
-            $progress_message = $item['Job']['job_status'] === 'Running' ? 'Running' : 'Queued';
+            $progress_message = $item['Job']['job_status'] === 'Running' ? __('Running') : __('Queued');
         } else {
             $progress = h($item['Job']['progress']);
             if ($item['Job']['progress'] == 100) {

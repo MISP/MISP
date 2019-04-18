@@ -61,7 +61,10 @@
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
     </div>
-    <h3><?php echo __('Submodules version');?><it id="refreshSubmoduleStatus" class="fa fa-refresh useCursorPointer" style="font-size: small; margin-left: 5px;"></it></h3>
+    <h3><?php echo __('Submodules version');?>
+        <it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Refresh submodules version.'); ?>"></it>
+        <it id="updateAllJson" class="fas fa-file-upload useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Load all JSON into the database.'); ?>"></it>
+    </h3>
     <div id="divSubmoduleVersions" style="background-color:#f7f7f9;">
     </div>
 
@@ -365,13 +368,51 @@
 <script>
     $(document).ready(function() {
         updateSubModulesStatus();
+        $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
+        $('#updateAllJson').click(function() { updateAllJson(); });
     });
 
-    $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
-    function updateSubModulesStatus() {
+    function updateSubModulesStatus(message, job_sent, sync_result) {
+        job_sent = job_sent === undefined ? false : job_sent;
+        sync_result = sync_result === undefined ? '' : sync_result;
         $('#divSubmoduleVersions').empty().append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');
         $.get('<?php echo $baseurl . '/servers/getSubmodulesStatus/'; ?>', function(html){
             $('#divSubmoduleVersions').html(html);
+            if (message !== undefined) {
+                $('#submoduleGitResultDiv').show();
+                $('#submoduleGitResult').text(message);
+
+                var $clone = $('#submoduleGitResultDiv').clone();
+                $clone.find('strong').text('Synchronization result:');
+                if (job_sent) {
+                    $clone.find('#submoduleGitResult')
+                        .html('> Synchronizing DB with <a href="/jobs/index/" target="_blank">workers</a>...');
+                } else {
+                    $clone.find('#submoduleGitResult')
+                        .text(sync_result);
+                }
+                $clone.appendTo($('#submoduleGitResultDiv').parent());
+            }
+        });
+    }
+    function updateAllJson() {
+        $.ajax({
+            url: '<?php echo $baseurl . '/servers/updateJSON/'; ?>',
+            type: "get",
+            beforeSend: function() {
+                $('#submoduleGitResultDiv').show();
+                $('#submoduleGitResult').append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');
+            },
+            success: function(data, statusText, xhr) {
+                Object.keys(data).forEach(function(k) {
+                    var val = data[k];
+                    data[k] = val ? 'Updated' : 'Update failed';
+                });
+                $('#submoduleGitResult').html(syntaxHighlightJson(data));
+            },
+            complete: function() {
+                $('#submoduleGitResult').find('fa-spinner').remove();
+            }
         });
     }
 </script>

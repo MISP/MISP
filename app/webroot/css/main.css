@@ -846,6 +846,16 @@ a.proposal_link_red:hover {
     left: calc(50% - 700px);
 }
 
+.popover_box {
+    display:none;
+    position: fixed;
+    top:150px;
+    background-color:#f4f4f4;
+    border-radius: 11px 11px 10px 10px;
+    box-shadow: 4px 4px 4px #333;
+    z-index:5;
+}
+
 .screenshot_box {
     display:none;
     position: absolute;

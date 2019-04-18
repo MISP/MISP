@@ -388,7 +388,7 @@ class ServersController extends AppController
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
         }
     }
-    
+
     public function edit($id = null)
     {
         $this->Server->id = $id;
@@ -1542,6 +1542,26 @@ class ServersController extends AppController
         }
     }
 
+    public function getSubmoduleQuickUpdateForm($submodule_path=false) {
+        $this->set('submodule', base64_decode($submodule_path));
+        $this->render('ajax/submodule_quick_update_form');
+    }
+
+    public function updateSubmodule()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException();
+        }
+        if ($this->request->is('post')) {
+            $request = $this->request->data;
+            $submodule = $request['Server']['submodule'];
+            $res = $this->Server->updateSubmodule($this->Auth->user(), $submodule);
+            return new CakeResponse(array('body'=> json_encode($res), 'type' => 'json'));
+        } else {
+            throw new MethodNotAllowedException();
+        }
+    }
+
     public function getInstanceUUID()
     {
         return $this->RestResponse->viewData(array('uuid' => Configure::read('MISP.uuid')), $this->response->type());
@@ -1811,5 +1831,11 @@ misp.direct_call(relative_path, body)
             $this->Flash->info($message);
             $this->redirect(array('action' => 'index'));
         }
+    }
+
+    public function updateJSON()
+    {
+        $results = $this->Server->updateJSON();
+        return $this->RestResponse->viewData($results, $this->response->type());
     }
 }

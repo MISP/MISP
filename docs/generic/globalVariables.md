@@ -2,8 +2,10 @@
 
 ```bash
 # <snippet-begin 0_global-vars.sh>
+# $ eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | grep -v \`\`\`)"
+# $ MISPvars
 MISPvars () {
-  debug "Setting generic ${LBLUE}MISP${NC} variables shared by all flavours"
+  debug "Setting generic ${LBLUE}MISP${NC} variables shared by all flavours" 2> /dev/null
   # Local non-root MISP user
   MISP_USER='misp'
   MISP_PASSWORD='Password1234'

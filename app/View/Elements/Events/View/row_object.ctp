@@ -116,7 +116,7 @@
     <?php
       if ($mayModify && empty($object['deleted'])) {
         echo sprintf(
-          '<a href="%s/objects/edit/%s" title="Edit" class="fa fa-edit icon-white useCursorPointer"></a>',
+          '<a href="%s/objects/edit/%s" title="Edit" aria-label="Edit" class="fa fa-edit icon-white useCursorPointer"></a>',
           $baseurl,
           h($object['id'])
         );

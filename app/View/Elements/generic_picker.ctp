@@ -3,7 +3,6 @@
 *   Generic select picker
 */
     /** Config **/
-    $select_threshold = 7; // threshold above which pills will be replace by a select (unused if multiple is > 1)
     $defaults_options = array(
         'select_options' => array(
             // 'multiple' => '', // set to add possibility to pick multiple options in the select
@@ -19,6 +18,7 @@
             'allow_single_deselect' => true,
         ),
         'multiple' => 0,
+        'select_threshold' => 7, // threshold above which pills will be replace by a select (unused if multiple is > 1)
         'functionName' => '', // function to be called on submit
         'submitButtonText' => 'Submit',
         'disabledSubmitButton' => false, // wether to not draw the submit button
@@ -45,9 +45,9 @@
     } else { // multiple enabled
         $defaults['chosen_options']['max_selected_options'] = $defaults['multiple'] == -1 ? 'Infinity' : $defaults['multiple'];
         $defaults['select_options']['multiple'] = '';
-        $select_threshold = 0;
+        $defaults['select_threshold'] = 0;
     }
-    $use_select = count($items) > $select_threshold;
+    $use_select = count($items) > $defaults['select_threshold'];
     $countThresholdReached = count($items) > 1000;
     $option_templates = array();
     $options_additionalData = array();

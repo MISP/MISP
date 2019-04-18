@@ -18,9 +18,9 @@
                 $value = $noticelist['Noticelist']['enabled'] ? '<span class="green">Yes</span>&nbsp;&nbsp;' : '<span class="red">No</span>&nbsp;&nbsp;';
                 if ($isSiteAdmin) {
                     if ($noticelist['Noticelist']['enabled']) {
-                        $value .= $this->Form->postLink('(disable)', array('action' => 'enableNoticelist', h($noticelist['Noticelist']['id'])), array('title' => 'Disable'));
+                        $value .= $this->Form->postLink(__('(disable)'), array('action' => 'enableNoticelist', h($noticelist['Noticelist']['id'])), array('title' => __('Disable')));
                     } else {
-                        $value .= $this->Form->postLink('(enable)', array('action' => 'enableNoticelist', h($noticelist['Noticelist']['id']), 'true') ,array('title' => 'Enable'));
+                        $value .= $this->Form->postLink(__('(enable)'), array('action' => 'enableNoticelist', h($noticelist['Noticelist']['id']), 'true') ,array('title' => __('Enable')));
                     }
                 }
             } else {

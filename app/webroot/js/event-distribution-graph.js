@@ -420,7 +420,7 @@ function drawBarChart(data) {
 }
 
 $(document).ready(function() {
-    var rightBtn = '<div style="float:right;"><span type="button" id="reloadDistributionGraph" title="Reload Distribution Graph" class="fa fa-refresh useCursorPointer" aria-hidden="true" style="margin-left: 5px;" onclick="fetchDistributionData(function(data) { construct_piechart(data); });"></span></div>';
+    var rightBtn = '<div style="float:right;"><span type="button" id="reloadDistributionGraph" title="Reload Distribution Graph" class="fas fa-sync useCursorPointer" aria-hidden="true" style="margin-left: 5px;" onclick="fetchDistributionData(function(data) { construct_piechart(data); });"></span></div>';
     var pop = $('.distribution_graph').popover({
         title: "<b>Distribution graph</b> [atomic event]" + rightBtn,
         html: true,

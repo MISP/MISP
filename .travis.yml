@@ -27,7 +27,7 @@ before_install:
 install:
     - sudo add-apt-repository -y ppa:deadsnakes/ppa
     - sudo apt-get -y update
-    - sudo apt-get -y install python3.6 python3-pip python3.6-dev python3-nose libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php-mysql php-dev php-cli libapache2-mod-php libfuzzy-dev php-mbstring
+    - sudo apt-get -y install python3.6 python3-pip python3.6-dev python3-nose libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php-mysql php-dev php-cli libapache2-mod-php libfuzzy-dev php-mbstring libonig2
     - sudo apt-get -y dist-upgrade
     - wget https://bootstrap.pypa.io/get-pip.py
     - sudo python3.6 get-pip.py
