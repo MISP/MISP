@@ -13,6 +13,7 @@ ssdeep () {
   sudo make install
 
   #installing ssdeep_php
+  sudo pecl channel-update pecl.php.net
   sudo pecl install ssdeep
 
   # You should add "extension=ssdeep.so" to mods-available - Check /etc/php for your current version
