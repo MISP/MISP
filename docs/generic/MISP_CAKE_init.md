@@ -45,10 +45,6 @@ coreCAKE () {
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_timeout" 120
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_authkey" ""
-  # Mysteriously removed?
-  #$SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_timeout" 120
-  # Mysteriously removed?
-  #$SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_authkey" ""
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_peer" false
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_host" false
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_ssl_allow_self_signed" true
@@ -121,18 +117,15 @@ updateGOWNT () {
 
   # Update the galaxies…
   # TODO: Fix updateGalaxies
-  ##$SUDO_WWW $CAKE Admin updateGalaxies
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/galaxies/update
+  $SUDO_WWW $CAKE Admin updateGalaxies
   # Updating the taxonomies…
   $SUDO_WWW $CAKE Admin updateTaxonomies
   # Updating the warning lists…
-  # TODO: Fix updateWarningLists
-  ##$SUDO_WWW $CAKE Admin updateWarningLists
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/warninglists/update
+  $SUDO_WWW $CAKE Admin updateWarningLists
   # Updating the notice lists…
-  ## $SUDO_WWW $CAKE Admin updateNoticeLists
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
+  $SUDO_WWW $CAKE Admin updateNoticeLists
   # Updating the object templates…
+  # TODO: FIXME: updateObjectTemplates (currently throws: usage udpateNoticeLists)
   ##$SUDO_WWW $CAKE Admin updateObjectTemplates
   curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
 }

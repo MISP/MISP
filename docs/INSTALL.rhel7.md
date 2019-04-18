@@ -1,6 +1,22 @@
 # INSTALLATION INSTRUCTIONS for RHEL 7.x
 -------------------------
 
+### -1/ Installer and Manual install instructions
+
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
+
+!!! warning
+    In the **future**, to install MISP on a fresh RHEL 7 install all you need to do is:
+
+    ```bash
+    # Please check the installer options first to make the best choice for your install
+    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s
+
+    # This will install MISP Core and misp-modules (recommended)
+    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+    ```
+    **The above does NOT work yet**
+
 ## 0/ Overview and Assumptions
 
 {!generic/rhelVScentos.md!}
@@ -33,7 +49,7 @@ PHP_INI=/etc/opt/rh/rh-php72/php.ini
 
 ## 1.1/ Complete a minimal RHEL installation, configure IP address to connect automatically.
 
-## 1.2/ Configure system hostname
+## 1.2/ Configure system hostname (if not done during install)
 ```bash
 sudo hostnamectl set-hostname misp.local # Your choice, in a production environment, it's best to use a FQDN
 ```
