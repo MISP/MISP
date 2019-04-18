@@ -83,12 +83,51 @@ class ObjectsController extends AppController
             }
             $this->set('sg', $sg);
         }
+        // try to fetch similar objects
+        $cur_attrs = Hash::extract($this->request->data, 'Attribute.{n}.value');
+        $options = array(
+            'conditions' => array(
+                'event_id' => $event_id,
+                'NOT' => array(
+                    'AND' => array(
+                        'object_id' => $object_id,
+                        'object_id' => 0
+                    )
+                ),
+                'value' => $cur_attrs
+            ),
+        );
+        $conditions = array(
+            'AND' => array(
+                $this->MispObject->buildConditions($this->Auth->user()),
+                'event_id' => $event_id,
+                'NOT' => array(
+                    'AND' => array(
+                        'object_id' => $object_id,
+                        'object_id' => 0
+                    )
+                ),
+                'value' => $cur_attrs
+            )
+        );
+        $similar_object_ids = $this->MispObject->Attribute->find('list', array(
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => 'object_id',
+            'group' => 'object_id'
+        ));
+
         $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
         $this->set('action', $action);
         $this->set('template', $template);
         $this->set('object_id', $object_id);
         $this->set('event', $event);
         $this->set('data', $this->request->data);
+
+        if (count($similar_object_ids) < 5) {
+            $similar_objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $similar_object_ids, 'Object.template_uuid' => $template['ObjectTemplate']['uuid'])));
+            $this->set('similar_objects', $similar_objects);
+        }
     }
 
 
@@ -176,6 +215,14 @@ class ObjectsController extends AppController
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
             }
+            // if (isset($this->request->data['Object']['mergeIntoObject'])) {
+            //     if ($this->request->data['Object']['mergeIntoObject'] != '0') {
+            //         $merge_into_object_id = $this->request->data['Object']['mergeIntoObject'];
+            //         return $this->revise_object('edit', $eventId, $templateId, $merge_into_object_id);
+            //     }
+            //     unset($this->request->data['Object']['mergeIntoObject']);
+            // }
+
             if (isset($this->request->data['Object']['data'])) {
                 $this->request->data = json_decode($this->request->data['Object']['data'], true);
             }
@@ -353,6 +400,12 @@ class ObjectsController extends AppController
         if (empty($template)) {
             $this->Flash->error('Object cannot be edited, no valid template found.');
             $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+        }
+
+        if (isset($this->params['named']['attributeToInject'])) {
+            $attributeToInject = json_decode(base64_decode($this->params['named']['attributeToInject']), true);
+            debug($object);
+            debug($attributeToInject);
         }
         $template = $this->MispObject->prepareTemplate($template, $object);
         $enabledRows = false;
