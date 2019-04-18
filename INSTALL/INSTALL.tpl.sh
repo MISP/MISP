@@ -25,10 +25,10 @@
 #-------------------------------------------------------------------------------------------------|
 #
 # The following installs only MISP-core:
-# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c
+# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s -- -c
 #
 # This will install MISP Core and misp-modules (recommended)
-# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s -- -c -M
 #
 #
 #-------------------------------------------------------|
@@ -36,7 +36,7 @@
 #-------------------------------------------------------|
 #
 # To install MISP on Kali copy paste the following to your r00t shell:
-# # wget -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh && bash /tmp/misp-kali.sh
+# # wget -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
 #
@@ -49,7 +49,7 @@
 # $ git clone https://github.com/SteveClement/xsnippet.git
 # Make sure xsnippet resides somewhere in your $PATH - It is a shell script so a simple, copy to somewhere sane is enough.
 # $ git clone https://github.com/MISP/MISP.git
-# $ cd MISP/INSTALL ; ./INSTALL.debian.tpl.sh
+# $ cd MISP/INSTALL ; ./INSTALL.tpl.sh
 #
 ##
 ###
@@ -117,15 +117,15 @@ generateInstaller () {
     exit 1
   fi
 
-  if [[ $(echo $0 |grep -e '^\.\/') != "./INSTALL.debian.tpl.sh" ]]; then
+  if [[ $(echo $0 |grep -e '^\.\/') != "./INSTALL.tpl.sh" ]]; then
     echo -e "${RED}iAmError!${NC}"
-    echo -e "To generate the installer call it with './INSTALL.debian.tpl.sh' otherwise things will break."
+    echo -e "To generate the installer call it with './INSTALL.tpl.sh' otherwise things will break."
     echo -e "You called: ${RED}$0${NC}"
     exit 1
   fi
 
   mkdir installer ; cd installer
-  cp ../INSTALL.debian.tpl.sh .
+  cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
   for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
@@ -139,39 +139,42 @@ generateInstaller () {
 
   # TODO: Fix the below.
   # $ for f in `echo ls [0-9]_*`; do
-  # $   perl -pe 's/## ${f} ##/`cat ${f}`/ge' -i INSTALL.debian.sh
+  # $   perl -pe 's/## ${f} ##/`cat ${f}`/ge' -i INSTALL.sh
   # $ done
   #
   # Temporary copy/paste holder
-  perl -pe 's/^## 0_global-vars.sh ##/`cat 0_global-vars.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_installDepsPhp70.sh ##/`cat 0_installDepsPhp70.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 1_prepareDB.sh ##/`cat 1_prepareDB.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 1_apacheConfig.sh ##/`cat 1_apacheConfig.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 1_mispCoreInstall.sh ##/`cat 1_mispCoreInstall.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 1_installCake.sh ##/`cat 1_installCake.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_permissions.sh ##/`cat 2_permissions.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_configMISP.sh ##/`cat 2_configMISP.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_support-functions.sh ##/`cat 0_support-functions.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_gnupg.sh ##/`cat 2_gnupg.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_logRotation.sh ##/`cat 2_logRotation.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_backgroundWorkers.sh ##/`cat 2_backgroundWorkers.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 5_mail_to_misp.sh ##/`cat 5_mail_to_misp.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 0_global-vars.sh ##/`cat 0_global-vars.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp70.sh ##/`cat 0_installDepsPhp70.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_prepareDB.sh ##/`cat 1_prepareDB.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig.sh ##/`cat 1_apacheConfig.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall.sh ##/`cat 1_mispCoreInstall.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_installCake.sh ##/`cat 1_installCake.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions.sh ##/`cat 2_permissions.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_configMISP.sh ##/`cat 2_configMISP.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_support-functions.sh ##/`cat 0_support-functions.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_gnupg.sh ##/`cat 2_gnupg.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_logRotation.sh ##/`cat 2_logRotation.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_backgroundWorkers.sh ##/`cat 2_backgroundWorkers.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 5_mail_to_misp.sh ##/`cat 5_mail_to_misp.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.tpl.sh
 
-  cp INSTALL.debian.tpl.sh ../INSTALL.debian.sh
+  cp INSTALL.tpl.sh ../INSTALL.sh
   cd ..
+  for ALGO in $(echo "1 256 384 512"); do
+    shasum -a ${ALGO} INSTALL.sh > INSTALL.sh.sha${ALGO}
+  done
   rm -rf installer
-  echo -e "${LBLUE}Generated INSTALL.debian.sh${NC}"
+  echo -e "${LBLUE}Generated INSTALL.sh${NC}"
   exit 0
 }
 
@@ -607,7 +610,7 @@ installMISPonKali () {
 
 colors
 debug "Checking if we are run as the installer template"
-if [[ "$0" == "./INSTALL.debian.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.debian.tpl.sh')" == "INSTALL.debian.tpl.sh" ]]; then
+if [[ "$0" == "./INSTALL.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.tpl.sh')" == "INSTALL.tpl.sh" ]]; then
   generateInstaller
 fi
 

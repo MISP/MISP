@@ -1,6 +1,22 @@
 # INSTALLATION INSTRUCTIONS for RHEL 7.x
 -------------------------
 
+### -1/ Installer and Manual install instructions
+
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
+
+!!! warning
+    In the **future**, to install MISP on a fresh RHEL 7 install all you need to do is:
+
+    ```bash
+    # Please check the installer options first to make the best choice for your install
+    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s
+
+    # This will install MISP Core and misp-modules (recommended)
+    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+    ```
+    **The above does NOT work yet**
+
 ## 0/ Overview and Assumptions
 
 {!generic/rhelVScentos.md!}
@@ -9,8 +25,7 @@
     The core MISP team cannot verify if this guide is working or not. Please help us in keeping it up to date and accurate.
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
 
-This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x). At time of this writing it
-was tested on version 7.6.
+This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x). At time of this writing it was tested on version 7.6.
 
 The following assumptions with regard to this installation have been made.
 
@@ -19,13 +34,24 @@ The following assumptions with regard to this installation have been made.
 ### 0.3/ This system will have direct or proxy access to the Internet for updates. Or connected to a Red Hat Satellite Server
 ### 0.4/ This document is to get a MISP instance up and running over HTTP. I haven't done a full test of all features
 
+{!generic/globalVariables.md!}
+
+```bash
+# RHEL/CentOS Specific
+RUN_PHP='/usr/bin/scl enable rh-php72'
+RUN_PYTHON='/usr/bin/scl enable rh-python36'
+SUDO_WWW='sudo -H -u apache'
+
+PHP_INI=/etc/opt/rh/rh-php72/php.ini
+```
+
 # 1/ OS Install and additional repositories
 
 ## 1.1/ Complete a minimal RHEL installation, configure IP address to connect automatically.
 
-## 1.2/ Configure system hostname
+## 1.2/ Configure system hostname (if not done during install)
 ```bash
-sudo hostnamectl set-hostname misp # Your choice, in a production environment, it's best to use a FQDN
+sudo hostnamectl set-hostname misp.local # Your choice, in a production environment, it's best to use a FQDN
 ```
 
 ## 1.3/ Register the system for updates with Red Hat Subscription Manager
@@ -48,19 +74,12 @@ sudo yum install deltarpm -y
 
 ## 1.5/ Update the system and reboot
 ```bash
-yum update -y
+sudo yum update -y
 ```
-
-!!! note
-    As time of writing performing a yum update results in the rhel-7-server-rt-beta-rpms being forbidden.<br />
-    The repo can be disabled using the following command
-    ```bash
-    subscription-manager repos --disable rhel-7-server-rt-beta-rpms
-    ```
 
 ## 1.6/ Install the EPEL repo
 ```bash
-yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
+sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
 ```
 
 # 2/ Install Dependencies
@@ -68,21 +87,20 @@ Once the system is installed and updated, the following steps can be performed a
 
 ## 2.01/ Install some base system dependencies
 ```bash
-yum install gcc git httpd zip python-devel libxslt-devel zlib-devel python-pip ssdeep-devel
+sudo yum install gcc git httpd zip python-devel libxslt-devel zlib-devel python-pip ssdeep-devel
 ```
 
 ## 2.02/ Install MariaDB 10.2 from SCL
 ```bash
-yum install rh-mariadb102
+sudo yum install rh-mariadb102
 ```
 
 ## 2.03/ Start the MariaDB service and enable it to start on boot
 ```bash
-systemctl enable --now rh-mariadb102-mariadb.service
+sudo systemctl enable --now rh-mariadb102-mariadb.service
 ```
 
 !!! note
-    MISP 2.4 requires PHP 5.6 as a minimum, so we need a higher version than base RHEL provides.<br />
     This guide installs PHP 7.2 from SCL
 
 !!! warning
@@ -90,7 +108,7 @@ systemctl enable --now rh-mariadb102-mariadb.service
 
 ## 2.04/ Install PHP 7.2 from SCL
 ```bash
-yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache rh-php72-php-gd
+sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache rh-php72-php-gd
 ```
 
 !!! note
@@ -98,79 +116,86 @@ yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh
 
 ## 2.05/ Start the PHP FPM service and enable to start on boot
 ```bash
-systemctl enable --now rh-php72-php-fpm.service
+sudo systemctl enable --now rh-php72-php-fpm.service
 ```
 
 ## 2.06/ Install redis 3.2 from SCL
 ```bash
-yum install rh-redis32
+sudo yum install rh-redis32
 ```
 
 ## 2.07/ Start redis service and enable to start on boot
 ```bash
-systemctl enable --now rh-redis32-redis.service
+sudo systemctl enable --now rh-redis32-redis.service
 ```
 
 ## 2.08/ Secure the MariaDB installation
 ```bash
-scl enable rh-mariadb102 'mysql_secure_installation'
+sudo scl enable rh-mariadb102 'mysql_secure_installation'
 ```
 
-## 2.09/ Optional: install haveged and enable to start on boot to provide entropy for GPG
+## 2.09/ Update the PHP extension repository and install required package
 ```bash
-yum install haveged
-systemctl enable --now haveged
+sudo scl enable rh-php72 rh-redis32 bash
+sudo pear channel-update pear.php.net
+sudo pear install Crypt_GPG
+exit
+```
+
+## 2.10/ Install haveged and enable to start on boot to provide entropy for GPG
+```bash
+sudo yum install haveged
+sudo systemctl enable --now haveged
 ```
 Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
 
 ## 2.10/ Install Python 3.6 from SCL
 ```bash
-yum install rh-python36
+sudo yum install rh-python36
 ```
 
 ## 2.11/ Install Git 2.18 from SCL
 ```bash
-yum install rh-git218
+sudo yum install rh-git218
 ```
 
 # 3/ MISP Download
 ## 3.01/ Download MISP code using git in /var/www/ directory
 ```bash
-cd /var/www
-git clone https://github.com/MISP/MISP.git
-cd MISP
-git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+sudo mkdir $PATH_TO_MISP
+sudo chown apache:apache $PATH_TO_MISP
+sudo -u apache git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
+sudo -u apache git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # if the last shortcut doesn't work, specify the latest version manually
 # example: git checkout tags/v2.4.XY
 # the message regarding a "detached HEAD state" is expected behaviour
 # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
-git submodule update --init --recursive
+sudo -u apache git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
-git submodule foreach --recursive git config core.filemode false
+sudo -u apache git submodule foreach --recursive git config core.filemode false
 ```
 
 ## 3.02/ Make git ignore filesystem permission differences
 ```bash
-git config core.filemode false
+sudo -u apache git config core.filemode false
 ```
 
 ## 3.03/ Install Mitre's STIX, STIX2 and their dependencies by running the following commands
 ```bash
-yum install python-six
 cd /var/www/MISP/app/files/scripts
-git clone https://github.com/CybOXProject/python-cybox.git
-git clone https://github.com/STIXProject/python-stix.git
+sudo -u apache git clone https://github.com/CybOXProject/python-cybox.git
+sudo -u apache git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
-git config core.filemode false
+sudo -u apache git config core.filemode false
 # If your umask has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
-scl enable rh-python36 'python3 setup.py install'
+sudo scl enable rh-python36 'python3 setup.py install'
 cd /var/www/MISP/app/files/scripts/python-stix
-git config core.filemode false
-scl enable rh-python36 'python3 setup.py install'
+sudo -u www-data git config core.filemode false
+sudo scl enable rh-python36 'python3 setup.py install'
 cd /var/www/MISP/cti-python-stix2
-scl enable rh-python36 'python3 setup.py install'
+sudo scl enable rh-python36 'python3 setup.py install'
 ```
 
 
@@ -187,8 +212,8 @@ umask $UMASK
 ## 3.05/ Enable python3 for php-fpm
 ```bash
 echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php72/sysconfig/php-fpm
-sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
-systemctl restart rh-php72-php-fpm.service
+sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+sudo systemctl restart rh-php72-php-fpm.service
 ```
 
 ## 3.06/ Enable dependencies detection in the diagnostics page

@@ -1,10 +1,14 @@
 #### MISP Dashboard on CentOS
 --------------
+
+!!! warning
+    Currently defunct.
+
 ```bash
 cd /var/www
 sudo mkdir misp-dashboard
-sudo chown www-data:www-data misp-dashboard
-sudo -u www-data git clone https://github.com/MISP/misp-dashboard.git
+sudo chown apache:apache misp-dashboard
+$SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git
 cd misp-dashboard
 sudo -H /var/www/misp-dashboard/install_dependencies.sh
 sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
@@ -53,23 +57,23 @@ sudo a2ensite misp-dashboard
 sudo systemctl reload apache2
 
 # Add misp-dashboard to rc.local to start on boot.
-sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u apache bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
 
 # Enable ZeroMQ for misp-dashboard
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_enable" true"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost""
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq""
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false"
-sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_enable" true"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost""
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq""
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false"
+$SUDO_WWW $RUN_PHP "$CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false"
 ```

@@ -40,7 +40,7 @@
       <?php
         if ($mayModify):
       ?>
-          <input id = "select_<?php echo $object['id']; ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
+          <input id = "select_<?php echo $object['id']; ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" aria-label="<?php echo __('Select attribute');?>" />
       <?php
         endif;
       ?>
@@ -61,7 +61,16 @@
       if (!empty($extended)):
     ?>
       <td class="short">
-        <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '">' . h($object['event_id']) . '</a>'; ?>
+        <?php
+            $event_info = '';
+            if (!empty($extended)) {
+                $event_info = sprintf('title="%s%s"',
+                    __('Event info') . ':&#10;     ',
+                    $object['event_id'] != $event['Event']['id'] ? h($event['extensionEvents'][$object['event_id']]['info']) : h($event['Event']['info'])
+                );
+            }
+        ?>
+        <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '" ' . $event_info . '>' . h($object['event_id']) . '</a>'; ?>
       </td>
     <?php
       endif;
@@ -184,6 +193,7 @@
       <input
         id="correlation_toggle_<?php echo h($object['id']); ?>"
         class="correlation-toggle"
+        aria-label="<?php echo __('Toggle correlation');?>"	
         type="checkbox"
         data-attribute-id="<?php echo h($object['id']); ?>"
         <?php
@@ -307,7 +317,7 @@
     <td class="short">
       <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_placeholder" class = "inline-field-placeholder"></div>
       <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_solid" class="inline-field-solid">
-        <input type="checkbox" class="toids-toggle" id="toids_toggle_<?php echo h($object['id']); ?>" data-attribute-id="<?php echo h($object['id']); ?>" <?php echo $object['to_ids'] ? 'checked' : ''; ?> ></input>
+        <input type="checkbox" class="toids-toggle" id="toids_toggle_<?php echo h($object['id']); ?>" data-attribute-id="<?php echo h($object['id']); ?>" aria-label="<?php echo __('Toggle IDS flag');?>" <?php echo $object['to_ids'] ? 'checked' : ''; ?> ></input>
       </div>
     </td>
     <td class="short" onmouseenter="quickEditHover(this, '<?php echo $editScope; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">

@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 18.04.1-server
+## for Ubuntu 18.04.2-server
 
 ### -1/ Installer and Manual install instructions
 
@@ -9,19 +9,19 @@ To install MISP on a fresh Ubuntu install all you need to do is:
 
 ```bash
 # Please check the installer options first to make the best choice for your install
-curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s
+curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s
 
 # This will install MISP Core and misp-modules (recommended)
-curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s -- -c -M
 ```
 
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190212 (works with **Ubuntu 18.10** too)
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190418 (works with **Ubuntu 18.10** too)
 
 !!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.debian.sh) script.
+    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
     Which explains why you will see the use of shell *functions* in various steps.
     Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
 
@@ -476,9 +476,12 @@ sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
 ```bash
-apt-get install librdkafka-dev php-dev
-pecl install rdkafka
-find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
+sudo apt-get install librdkafka-dev php-dev -y
+sudo pecl channel-update pecl.php.net
+sudo pecl install rdkafka
+echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
+sudo phpenmod rdkafka
+sudo service apache2 restart
 ```
 
 {!generic/misp-dashboard-debian.md!}
@@ -498,10 +501,10 @@ find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a 
     https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules<br />
     Then the enrichment, export and import modules can be enabled in MISP via the settings.
 
-# INSTALL.debian.sh
+# INSTALL.sh
 
 !!! notice
-    The following section is an administrative section that is used by the "[INSTALL.debian.sh](https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh)" script.
+    The following section is an administrative section that is used by the "[INSTALL.sh](https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh)" script.
     Please ignore.
 
 {!generic/supportFunctions.md!}
