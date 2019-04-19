@@ -65,7 +65,7 @@ MISPvars () {
   CAKE="$PATH_TO_MISP/app/Console/cake"
 
   # sudo config to run $LUSER commands
-  SUDO_USER="sudo -H -u ${MISP_USER} "
+  SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
   SUDO_WWW="sudo -H -u ${WWW_USER} "
 
   echo "The following DB Passwords were generated..."
