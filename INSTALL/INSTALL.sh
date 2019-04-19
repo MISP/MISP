@@ -128,7 +128,11 @@ MISPvars () {
   CAKE="$PATH_TO_MISP/app/Console/cake"
 
   # sudo config to run $LUSER commands
-  SUDO_USER="sudo -H -u ${MISP_USER} "
+  if [[ "$(groups |grep -o 'staff')" == "staff" ]]; then
+    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+  else
+    SUDO_USER="sudo -H -u ${MISP_USER}"
+  fi
   SUDO_WWW="sudo -H -u ${WWW_USER} "
 
   echo "The following DB Passwords were generated..."
@@ -479,6 +483,8 @@ setBaseURL () {
     FQDN='misp.local'
   else
     MISP_BASEURL='https://localhost:8443'
+    IP=$(ip addr show | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}' |grep -v "127.0.0.1" |tail -1)
+    sudo iptables -t nat -I PREROUTING --src 0/0 --dst ${IP} tcp --dport 8443 -j REDIRECT --to-ports 443
     # Webserver configuration
     FQDN='localhost.localdomain'
   fi
