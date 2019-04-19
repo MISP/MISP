@@ -237,8 +237,9 @@
                     if ($isSiteAdmin) {
                         if ($feed['source_format'] == 'misp') {
                             $liContents .= sprintf(
-                                '<form action="%s/feeds/previewIndex/1" method="post" style="margin:0px;line-height:auto;">%s%s</form>',
+                                '<form action="%s/feeds/previewIndex/%s" method="post" style="margin:0px;line-height:auto;">%s%s</form>',
                                 $baseurl,
+                                h($feed['id']),
                                 sprintf(
                                     '<input type="hidden" name="data[Feed][eventid]" value="%s">',
                                     h(json_encode($feed['event_uuids'], true))
