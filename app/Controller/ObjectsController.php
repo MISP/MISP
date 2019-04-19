@@ -403,9 +403,11 @@ class ObjectsController extends AppController
         }
 
         if (isset($this->params['named']['attributeToInject'])) {
-            $attributeToInject = json_decode(base64_decode($this->params['named']['attributeToInject']), true);
-            debug($object);
-            debug($attributeToInject);
+            $attributes_to_inject = json_decode(base64_decode($this->params['named']['attributeToInject']), true);
+            foreach ($attributes_to_inject['Attribute'] as $attribute_to_inject) {
+                // check if template allows it
+                $object['Attribute'][] = $attribute_to_inject;
+            }
         }
         $template = $this->MispObject->prepareTemplate($template, $object);
         $enabledRows = false;

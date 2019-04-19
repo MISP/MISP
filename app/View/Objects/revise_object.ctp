@@ -42,6 +42,10 @@
             ?></td>
           </tr>
           <tr>
+              <td class="bold"><?php echo __('Template version');?></td>
+              <td><?php echo h($template['ObjectTemplate']['version']); ?></td>
+          </tr>
+          <tr>
             <td class="bold"><?php echo __('Comment');?></td>
             <td><?php echo h($data['Object']['comment']); ?></td>
           </tr>
@@ -63,11 +67,11 @@
                   $simple_flattened_object_noval = array();
                   $attributeFields = array('category', 'type', 'value', 'to_ids' , 'comment', 'uuid', 'distribution');
                   if (!empty($data['Attribute'])):
-                    foreach ($data['Attribute'] as $attribute):
+                    foreach ($data['Attribute'] as $id => $attribute):
                       $cur_flat = h($attribute['object_relation']) . '.' . h($attribute['type']) . '.' .h($attribute['value']);
                       $cur_flat_noval = h($attribute['object_relation']) . '.' . h($attribute['type']);
-                      $simple_flattened_attribute[$cur_flat] = 1;
-                      $simple_flattened_attribute_noval[$cur_flat_noval] = 1;
+                      $simple_flattened_attribute[$cur_flat] = $id;
+                      $simple_flattened_attribute_noval[$cur_flat_noval] = $id;
                       echo sprintf('<tr data-curflat="%s" data-curflatnoval="%s">', h($cur_flat), h($cur_flat_noval));
                       echo '<td>' . h($attribute['object_relation']) . '</td>';
                       foreach ($attributeFields as $field):
@@ -102,14 +106,35 @@
         <?php
             // debug($data);
          ?>
-        <?php echo '<h3>' . __('The event have similar object.') . '</h3>'; ?>
+        <?php echo '<h3 style="margin-top: 20px;">' . __('The event have similar object.') . '</h3>'; ?>
         <?php echo '<h5>' . __('Would you like to merge your new object with one of the following?') . '</h5>'; ?>
         <div class="row" style="margin-bottom: 20px;">
         <?php foreach ($similar_objects as $i => $object): ?>
-            <div style="border: 1px solid #3465a4 ; border-radius: 5px;" class="span5 similarObjectPanel">
+            <?php
+                if ($object['Object']['template_version'] < $template['ObjectTemplate']['version']) {
+                    $temp_comparison = 'below';
+                } else if ($object['Object']['template_version'] > $template['ObjectTemplate']['version']) {
+                    $temp_comparison = 'above';
+                } else {
+                    $temp_comparison = 'equal';
+                }
+            ?>
+            <div style="border: 1px solid #3465a4 ; border-radius: 5px; <?php echo $temp_comparison == 'above' ? 'filter: grayscale(60%);' : ''; ?>" class="span5 similarObjectPanel">
+                <?php
+                if ($temp_comparison == 'below') {
+                    $btn_style = 'btn-warning';
+                    $temp_text = __('Update template and merge');
+                } else if ($temp_comparison == 'above') {
+                    $btn_style = 'btn-danger';
+                    $temp_text = __('Can\'t merge do to template version');
+                } else {
+                    $temp_text = __('Merge');
+                    $btn_style = 'btn-success';
+                }
+                ?>
                 <div class="blueElement" style="padding: 4px 5px;">
                     <div style="text-align: center;">
-                        <span class="btn btn-success useCursorPointer" onclick="setMergeObject(<?php echo h($object['Object']['id']) ?>)"><?php echo __('Merge'); ?></span>
+                        <input type="button" class="btn <?php echo $btn_style; ?>" onclick="setMergeObject(<?php echo h($object['Object']['id']) ?>)" value="<?php echo $temp_text; ?>" <?php echo $temp_comparison == 'above' ? 'disabled' : ''; ?>></input>
                     </div>
                     <div>
                         <span class="bold"><?php echo __('ID') . ':'; ?></span>
@@ -127,26 +152,43 @@
                         <span class="bold"><?php echo __('Distribution') . ':'; ?></span>
                         <span><?php echo h($object['Object']['distribution']); ?></span>
                     </div>
+                    <?php
+                        $temp_style = '';
+                        if ($temp_comparison == 'below') {
+                            $temp_style .= 'background-color: #fcf8e3; color: black; padding: 2px;';
+                        } else if ($temp_comparison == 'above') {
+                            $temp_style .= 'background-color: #bd362f; color: white; padding: 2px;';
+                        }
+                    ?>
+                    <div style="<?php echo $temp_style ?> border-radius: 3px;" data-templatecomparison="<?php echo $temp_comparison; ?>">
+                        <span class="bold"><?php echo __('Template version') . ':'; ?></span>
+                        <span><?php echo h($object['Object']['template_version']); ?></span>
+                    </div>
                 </div>
-                <table class="table table-striped table-condensed" style="margin-bottom: 3px;">
+                <?php $flattened_ids_in_similar_object = array(); ?>
+                <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
                     <tbody>
                         <?php foreach ($object['Attribute'] as $attribute): ?>
                             <?php
                                 $simple_flattened_similar_attribute = h($attribute['object_relation']) . '.' . h($attribute['type']) . '.' .h($attribute['value']);
                                 $simple_flattened_similar_attribute_noval = h($attribute['object_relation']) . '.' . h($attribute['type']);
+                                $flattened_ids_in_similar_object[$simple_flattened_similar_attribute_noval] = $attribute['id'];
                                 $classname = '';
                                 $to_highlight = '';
+                                $title = '';
                                 if (
                                     isset($simple_flattened_attribute_noval[$simple_flattened_similar_attribute_noval])
                                     && !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
-                                ) {
+                                ) { // Not overridable attribute
                                     $classname = 'warning';
+                                    $title = __('This attribute will be preserved after the merge.');
                                     $to_highlight = $simple_flattened_similar_attribute_noval;
-                                } else if (!isset($simple_flattened_attribute[$simple_flattened_similar_attribute])) {
-                                    $classname = 'success';
+                                } else if (!isset($simple_flattened_attribute[$simple_flattened_similar_attribute])) { // Attribute not present in the revised object
+                                    $classname = 'info';
+                                    $title = __('This attribute is contain only by this similar object. It will remain untouched.');
                                 }
                             ?>
-                            <tr class="<?php echo $classname ?>" data-tohighlight="<?php echo h($to_highlight); ?>">
+                            <tr class="<?php echo $classname ?>" data-tohighlight="<?php echo h($to_highlight); ?>" title="<?php echo $title; ?>">
                                 <td><?php echo h($attribute['object_relation']); ?></td>
                                 <td><?php echo h($attribute['category']); ?></td>
                                 <td><?php echo h($attribute['type']); ?></td>
@@ -155,6 +197,22 @@
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                <?php $attribute_ids_to_inject = array_values(array_diff_key($simple_flattened_attribute_noval, $flattened_ids_in_similar_object)); ?>
+                <?php if (!empty($attribute_ids_to_inject)): ?>
+                    <table class="table table-striped table-condensed" style="margin-bottom: 3px; border-top: 2px dashed #3465a4">
+                        <tbody>
+                            <?php foreach ($attribute_ids_to_inject as $attribute_id): ?>
+                                <?php $attribute = $data['Attribute'][$attribute_id]; ?>
+                                <tr class="success" title="<?php echo __('This attribute will be added to this similar object after the merge.'); ?>">
+                                    <td class="apply_css_arrow"><?php echo h($attribute['object_relation']); ?></td>
+                                    <td><?php echo h($attribute['category']); ?></td>
+                                    <td><?php echo h($attribute['type']); ?></td>
+                                    <td><?php echo h($attribute['value']); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
             </div>
         <?php endforeach; ?>
         </div>
@@ -172,6 +230,7 @@ function setMergeObject(object_id) {
 }
 
 function highlight_rows($panel, state) {
+    $('#attribute_table').find('tr.error').removeClass('error').attr('title', '');
     var rows = $panel.find('tr.warning');
     var to_highlight = [];
     rows.each(function() {
@@ -181,29 +240,28 @@ function highlight_rows($panel, state) {
         var $row_to_highlight = $('#attribute_table').find('tr[data-curflatnoval="' + curflat + '"]');
         if (state === undefined) {
             $row_to_highlight.addClass('error');
+            $row_to_highlight.attr('title', '<?php echo __('This attribute will NOT be merged into the similar object as it is conflicting with another attribute.'); ?>')
         } else if (state) {
             $row_to_highlight.addClass('error');
         } else {
             $row_to_highlight.removeClass('error');
         }
     });
+    // $('#attribute_table').find('tr.error').add($panel.find('tr.success, tr.warning, tr.info')).tooltip();
 }
 
-function inject_merge_result($panel, state) {
-
-}
-
+var un_highlight_time;
 $(document).ready(function() {
     $('.similarObjectPanel').hover(
         function() {
             var $panel = $(this);
+            if (un_highlight_time !== undefined) {
+                clearTimeout(un_highlight_time);
+            }
             highlight_rows($panel);
-            inject_merge_result($panel);
         },
         function() {
-            var $panel = $(this);
-            highlight_rows($panel, false);
-            inject_merge_result($panel, false);
+            un_highlight_time = setTimeout(function () { $('#attribute_table').find('tr.error').removeClass('error').attr('title', ''); }, 1000);
         }
     );
 });
