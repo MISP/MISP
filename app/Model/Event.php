@@ -5825,6 +5825,7 @@ class Event extends AppModel
         $saved_attributes = $saved_objects = $saved_object_attributes = 0;
         $items_count = 0;
         $failed = array();
+        $recovered_uuids = array();
         foreach (array('Attribute', 'Object') as $feature) {
             if (isset($resolved_data[$feature])) {
                 $items_count += count($resolved_data[$feature]);
@@ -5844,6 +5845,15 @@ class Event extends AppModel
                     $failed_attributes++;
                     $lastAttributeError = $this->Attribute->validationErrors;
                     $failed[$attribute['uuid']] = array('Attribute' => $attribute);
+                    $original_uuid = $this->Object->Attribute->find('first', array(
+                        'conditions' => array('Attribute.event_id' => $id, 'Attribute.object_id' => 0, 'Attribute.deleted' => 0,
+                                              'Attribute.type' => $attribute['type'], 'Attribute.value' => $attribute['value']),
+                        'recursive' => -1,
+                        'fields' => array('Attribute.uuid')
+                    ));
+                    if (!empty($original_uuid)) {
+                        $recovered_uuids[$attribute['uuid']] = $original_uuid['Attribute']['uuid'];
+                    }
                 }
                 if ($jobId) {
                     $current = ($a + 1);
@@ -5859,6 +5869,21 @@ class Event extends AppModel
             $total_objects = count($resolved_data['Object']);
             $references = array();
             foreach ($resolved_data['Object'] as $o => $object) {
+                if (!empty($object['Attribute'])) {
+                    $current_object_id = $this->__findCurrentObjectId($id, $object['Attribute']);
+                    if ($current_object_id) {
+                        $original_uuid = $this->Object->find('first', array(
+                            'conditions' => array('Object.id' => $current_object_id, 'Object.event_id' => $id,
+                                                  'Object.name' => $object['name'], 'Object.deleted' => 0),
+                            'recursive' => -1,
+                            'fields' => array('Object.uuid')
+                        ));
+                        if (!empty($original_uuid)) {
+                            $recovered_uuids[$object['uuid']] = $original_uuid['Object']['uuid'];
+                        }
+                        continue;
+                    }
+                }
                 $this->Object->create();
                 $object['event_id'] = $id;
                 $object['meta-category'] = $object['meta_category'];
@@ -6040,6 +6065,34 @@ class Event extends AppModel
     private function __apply_inflector($count, $scope)
     {
         return ($count == 1 ? Inflector::singuralize($scope) : Inflector::pluralize($scope));
+    }
+
+    private function __findCurrentObjectId($event_id, $attributes)
+    {
+        $conditions = array();
+        foreach($attributes as $attribute) {
+            $conditions[] = array('AND' => array('Attribute.object_relation' => $attribute['object_relation'],
+                                                 'Attribute.value' => $attribute['value']));
+        }
+        $ids = array();
+        foreach ($this->Object->Attribute->find('all', array(
+            'conditions' => array(
+                'Attribute.event_id' => $event_id,
+                'Attribute.object_id !=' => 0,
+                'Attribute.deleted' => 0,
+                'OR' => $conditions
+            ),
+            'recursive' => -1,
+            'fields' => array('Attribute.object_id'))) as $found_id) {
+            $ids[] = $found_id['Attribute']['object_id'];
+        }
+        $attributes_count = sizeof($attributes);
+        foreach (array_count_values($ids) as $id => $count) {
+            if ($count >= $attributes_count) {
+                return $id;
+            }
+        }
+        return 0;
     }
 
     private function __saveObjectAttribute($attribute, $default_comment, $event_id, $object_id)
