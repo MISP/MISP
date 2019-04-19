@@ -349,7 +349,7 @@ class ObjectsController extends AppController
         $this->set('element', $element);
     }
 
-    public function edit($id)
+    public function edit($id, $update_template=false)
     {
         if (Validation::uuid($id)) {
             $conditions = array('Object.uuid' => $id);
@@ -400,6 +400,23 @@ class ObjectsController extends AppController
         if (empty($template)) {
             $this->Flash->error('Object cannot be edited, no valid template found.');
             $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+        }
+
+        $newer_template = $this->MispObject->ObjectTemplate->find('first', array(
+            'conditions' => array(
+                'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
+                'ObjectTemplate.version >' => $object['Object']['template_version'],
+            ),
+            'recursive' => -1,
+            'contain' => array(
+                'ObjectTemplateElement'
+            ),
+            'order' => array('ObjectTemplate.version DESC')
+        ));
+        if (!empty($newer_template)) {
+            $newer_template_version = $newer_template['ObjectTemplate']['version'];
+        } else {
+            $newer_template_version = false;
         }
 
         if (isset($this->params['named']['attributeToInject'])) {
@@ -481,6 +498,8 @@ class ObjectsController extends AppController
         $this->set('template', $template);
         $this->set('action', 'edit');
         $this->set('object', $object);
+        $this->set('updateTemplate', $update_template);
+        $this->set('newer_template_version', $newer_template_version);
         $this->render('add');
     }
 

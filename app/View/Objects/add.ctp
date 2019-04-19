@@ -1,6 +1,6 @@
 <div class="<?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php
-    $url = ($action == 'add') ? '/objects/revise_object/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/revise_object/edit/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] . '/' . $object['Object']['id'];
+    $url = ($action == 'add') ? '/objects/revise_object/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/revise_object/edit/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] . '/' . h($object['Object']['id']);
     echo $this->Form->create('Object', array('id', 'url' => $url, 'enctype' => 'multipart/form-data'));
 ?>
 <h3><?php echo ucfirst($action) . ' ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . __(' Object'); ?></h3>
@@ -10,7 +10,12 @@
     <dd>
       <?php
         echo Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' v' . h($template['ObjectTemplate']['version']);
-      ?>
+        if ($action == 'edit' && !$updateTemplate && $newer_template_version !== false): ?>
+            <a class="btn btn-mini btn-primary useCursorPointer" title="<?php echo __('Update the template of this object to the newer version: ') . h($newer_template_version) ?>" href="<?php echo $baseurl . '/objects/edit/' . h($object['Object']['id']) . '/1'; ?>">
+                <span class="fa fa-arrow-circle-up"></span>
+                <?php echo __('Update template') ?>
+            </a>
+        <?php endif; ?>
       &nbsp;
     </dd>
     <dt><?php echo __('Description');?></dt>
@@ -165,6 +170,64 @@
         echo $this->Form->end();
     ?>
 </div>
+
+<?php if ($updateTemplate): //add control panel (same as distribution network) and fill with data ?>
+    <div class="fixedRightPanel" style="width: unset; height:unset;">
+        <div style="box-shadow: 0px 0px 6px #B2B2B2;margin-bottom: 2px;width: 100%;height: 40px;overflow: hidden;"><h5 style="margin-left: 5px;"><?php echo __('Pre-update object'); ?></h5></div>
+        <div class="row" style="max-height: 800px; overflow-y: auto;">
+            <div style="border: 1px solid #3465a4 ; border-radius: 5px;" class="span5">
+                <div class="blueElement" style="padding: 4px 5px;">
+                    <div>
+                        <span class="bold"><?php echo __('ID') . ':'; ?></span>
+                        <a href="<?php echo $baseurl . '/objects/edit/' . h($object['Object']['id']); ?>" style="color: white;"><?php echo h($object['Object']['id']); ?></a>
+                    </div>
+                    <div>
+                        <span class="bold"><?php echo __('Name') . ':'; ?></span>
+                        <span><?php echo h($object['Object']['name']); ?></span>
+                    </div>
+                    <div>
+                        <span class="bold"><?php echo __('Description') . ':'; ?></span>
+                        <span><?php echo h($object['Object']['description']); ?></span><br>
+                    </div>
+                    <div>
+                        <span class="bold"><?php echo __('Distribution') . ':'; ?></span>
+                        <span><?php echo h($object['Object']['distribution']); ?></span>
+                    </div>
+                    <div style="border-radius: 3px;">
+                        <span class="bold"><?php echo __('Template version') . ':'; ?></span>
+                        <span><?php echo h($object['Object']['template_version']); ?></span>
+                    </div>
+                </div>
+                <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
+                    <tbody>
+                        <?php foreach ($object['Attribute'] as $attribute): ?>
+                            <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
+                                <td><?php echo h($attribute['object_relation']); ?></td>
+                                <td><?php echo h($attribute['category']); ?></td>
+                                <td><?php echo h($attribute['type']); ?></td>
+                                <td><?php echo h($attribute['value']); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
+                    <tbody>
+                        <?php foreach ($object['Attribute'] as $attribute): ?>
+                            <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
+                                <td><?php echo h($attribute['object_relation']); ?></td>
+                                <td><?php echo h($attribute['category']); ?></td>
+                                <td><?php echo h($attribute['type']); ?></td>
+                                <td><?php echo h($attribute['value']); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
+
 <?php
     if (!$ajax) {
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addObject', 'event' => $event));

@@ -126,7 +126,7 @@
                     $temp_text = __('Update template and merge');
                 } else if ($temp_comparison == 'above') {
                     $btn_style = 'btn-danger';
-                    $temp_text = __('Can\'t merge do to template version');
+                    $temp_text = __('Can\'t merge due to template version');
                 } else {
                     $temp_text = __('Merge');
                     $btn_style = 'btn-success';
