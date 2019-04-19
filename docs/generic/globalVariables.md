@@ -65,7 +65,11 @@ MISPvars () {
   CAKE="$PATH_TO_MISP/app/Console/cake"
 
   # sudo config to run $LUSER commands
-  SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+  if [[ "$(groups |grep -o 'staff')" == "staff" ]]; then
+    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+  else
+    SUDO_USER="sudo -H -u ${MISP_USER}"
+  fi
   SUDO_WWW="sudo -H -u ${WWW_USER} "
 
   echo "The following DB Passwords were generated..."
