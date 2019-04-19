@@ -134,7 +134,7 @@
                 ?>
                 <div class="blueElement" style="padding: 4px 5px;">
                     <div style="text-align: center;">
-                        <input type="button" class="btn <?php echo $btn_style; ?>" onclick="setMergeObject(<?php echo h($object['Object']['id']) ?>)" value="<?php echo $temp_text; ?>" <?php echo $temp_comparison == 'above' ? 'disabled' : ''; ?>></input>
+                        <input type="button" class="btn <?php echo $btn_style; ?>" onclick="setMergeObject(<?php echo h($object['Object']['id']) ?> ,<?php echo $temp_comparison == 'below' ? 'true' : 'false'; ?>)" value="<?php echo $temp_text; ?>" <?php echo $temp_comparison == 'above' ? 'disabled' : ''; ?>></input>
                     </div>
                     <div>
                         <span class="bold"><?php echo __('ID') . ':'; ?></span>
@@ -224,9 +224,10 @@
 </div>
 
 <script>
-function setMergeObject(object_id) {
+function setMergeObject(object_id, update_template) {
+    update_template = update_template === undefined ? false : update_template;
     var cur_object = $('input[name="data[Object][data]"]').val();
-    window.location = "<?php echo $baseurl . '/objects/edit/'; ?>" + object_id + "/attributeToInject:" + btoa(cur_object);
+    window.location = "<?php echo $baseurl . '/objects/edit/'; ?>" + object_id + (update_template ? '/1' : '') + "/revised_object:" + btoa(cur_object);
 }
 
 function highlight_rows($panel, state) {

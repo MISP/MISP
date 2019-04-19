@@ -169,62 +169,98 @@
         endif;
         echo $this->Form->end();
     ?>
+    <?php debug($updateable_attribute); ?>
+    <?php debug($not_updateable_attribute); ?>
 </div>
 
-<?php if ($updateTemplate): //add control panel (same as distribution network) and fill with data ?>
-    <div class="fixedRightPanel" style="width: unset; height:unset;">
-        <div style="box-shadow: 0px 0px 6px #B2B2B2;margin-bottom: 2px;width: 100%;height: 40px;overflow: hidden;"><h5 style="margin-left: 5px;"><?php echo __('Pre-update object'); ?></h5></div>
-        <div class="row" style="max-height: 800px; overflow-y: auto;">
-            <div style="border: 1px solid #3465a4 ; border-radius: 5px;" class="span5">
-                <div class="blueElement" style="padding: 4px 5px;">
-                    <div>
-                        <span class="bold"><?php echo __('ID') . ':'; ?></span>
-                        <a href="<?php echo $baseurl . '/objects/edit/' . h($object['Object']['id']); ?>" style="color: white;"><?php echo h($object['Object']['id']); ?></a>
-                    </div>
-                    <div>
-                        <span class="bold"><?php echo __('Name') . ':'; ?></span>
-                        <span><?php echo h($object['Object']['name']); ?></span>
-                    </div>
-                    <div>
-                        <span class="bold"><?php echo __('Description') . ':'; ?></span>
-                        <span><?php echo h($object['Object']['description']); ?></span><br>
-                    </div>
-                    <div>
-                        <span class="bold"><?php echo __('Distribution') . ':'; ?></span>
-                        <span><?php echo h($object['Object']['distribution']); ?></span>
-                    </div>
-                    <div style="border-radius: 3px;">
-                        <span class="bold"><?php echo __('Template version') . ':'; ?></span>
-                        <span><?php echo h($object['Object']['template_version']); ?></span>
+<?php if ($updateTemplate || isset($revised_object)): //add control panel (same as distribution network) and fill with data ?>
+        <div class="fixedRightPanel" style="width: unset; height:unset; background-color: #ffffff">
+            <?php if ($updateTemplate): ?>
+                <div class="fixedRightPanelHeader useCursorPointer" style="box-shadow: 0px 0px 6px #B2B2B2;margin-bottom: 2px;width: 100%;overflow: hidden; padding: 5px;">
+                    <i class="fas fa-chevron-circle-down"></i>
+                    <span style="margin-left: 5px; display: inline-block; font-size: large;"><?php echo __('Pre-update object\'s template'); ?></span>
+                </div>
+                <div class="row" style="max-height: 800px; max-width: 800px; overflow: auto; padding: 15px;">
+                    <div style="border: 1px solid #3465a4 ; border-radius: 5px;" class="span5">
+                        <div class="blueElement" style="padding: 4px 5px;">
+                            <div>
+                                <span class="bold"><?php echo __('ID') . ':'; ?></span>
+                                <a href="<?php echo $baseurl . '/objects/edit/' . h($object['Object']['id']); ?>" style="color: white;"><?php echo h($object['Object']['id']); ?></a>
+                            </div>
+                            <div>
+                                <span class="bold"><?php echo __('Name') . ':'; ?></span>
+                                <span><?php echo h($object['Object']['name']); ?></span>
+                            </div>
+                            <div>
+                                <span class="bold"><?php echo __('Description') . ':'; ?></span>
+                                <span><?php echo h($object['Object']['description']); ?></span><br>
+                            </div>
+                            <div>
+                                <span class="bold"><?php echo __('Distribution') . ':'; ?></span>
+                                <span><?php echo h($object['Object']['distribution']); ?></span>
+                            </div>
+                            <div style="border-radius: 3px;">
+                                <span class="bold"><?php echo __('Template version') . ':'; ?></span>
+                                <span><?php echo h($object['Object']['template_version']); ?></span>
+                            </div>
+                        </div>
+                        <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
+                            <tbody>
+                                <?php foreach ($not_updateable_attribute as $attribute): ?>
+                                    <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
+                                        <td><?php echo h($attribute['object_relation']); ?></td>
+                                        <td><?php echo h($attribute['category']); ?></td>
+                                        <td><?php echo h($attribute['type']); ?></td>
+                                        <td><?php echo h($attribute['value']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php foreach ($updateable_attribute as $attribute): ?>
+                                    <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
+                                        <td><?php echo h($attribute['object_relation']); ?></td>
+                                        <td><?php echo h($attribute['category']); ?></td>
+                                        <td><?php echo h($attribute['type']); ?></td>
+                                        <td><?php echo h($attribute['value']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
-                    <tbody>
-                        <?php foreach ($object['Attribute'] as $attribute): ?>
-                            <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
-                                <td><?php echo h($attribute['object_relation']); ?></td>
-                                <td><?php echo h($attribute['category']); ?></td>
-                                <td><?php echo h($attribute['type']); ?></td>
-                                <td><?php echo h($attribute['value']); ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-                <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
-                    <tbody>
-                        <?php foreach ($object['Attribute'] as $attribute): ?>
-                            <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
-                                <td><?php echo h($attribute['object_relation']); ?></td>
-                                <td><?php echo h($attribute['category']); ?></td>
-                                <td><?php echo h($attribute['type']); ?></td>
-                                <td><?php echo h($attribute['value']); ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+            <?php endif; ?>
+            <?php if (isset($revised_object)): ?>
+                <div class="fixedRightPanelHeader useCursorPointer" style="box-shadow: 0px 0px 6px #B2B2B2;margin-bottom: 2px;width: 100%;overflow: hidden; margin-top: 10px; padding: 5px;">
+                    <i class="fas fa-chevron-circle-down"></i>
+                    <span style="margin-left: 5px; display: inline-block; font-size: large;"><?php echo __('Attributes to merge'); ?></span>
+                </div>
+                <div class="row" style="max-height: 800px; max-width: 800px; overflow: auto; padding: 15px;">
+                    <div style="border: 1px solid #3465a4 ; border-radius: 5px;" class="span5">
+                        <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
+                            <tbody>
+                                <?php foreach ($revised_object['notMergeable'] as $attribute): ?>
+                                    <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
+                                        <td><?php echo h($attribute['object_relation']); ?></td>
+                                        <td><?php echo h($attribute['category']); ?></td>
+                                        <td><?php echo h($attribute['type']); ?></td>
+                                        <td>
+                                            <?php echo h($attribute['value']); ?>
+                                            <i class="fas fa-question-circle" title="<?php echo __('Current value: ') . h($attribute['current_value']); ?>"></i>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php foreach ($revised_object['mergeable'] as $attribute): ?>
+                                    <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
+                                        <td><?php echo h($attribute['object_relation']); ?></td>
+                                        <td><?php echo h($attribute['category']); ?></td>
+                                        <td><?php echo h($attribute['type']); ?></td>
+                                        <td><?php echo h($attribute['value']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
-    </div>
 <?php endif; ?>
 
 
@@ -255,5 +291,9 @@
             var count = $(this).parent().children(selector).length;
             $(this).parent().children(selector).first().clone().appendTo($(this).parent()).insertBefore($('.add_unlocked_field'));
         });
+  });
+  $('.fixedRightPanel .fixedRightPanelHeader').click(function() {
+      $(this).next().toggle('blind');
+      return false;
   });
 </script>

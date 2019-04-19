@@ -414,17 +414,97 @@ class ObjectsController extends AppController
             'order' => array('ObjectTemplate.version DESC')
         ));
         if (!empty($newer_template)) {
+            $template = $newer_template;
             $newer_template_version = $newer_template['ObjectTemplate']['version'];
+            // check how mergeable it is
+            $cur_template_temp = Hash::remove(Hash::remove($template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
+            $newer_template_temp = Hash::remove(Hash::remove($newer_template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
+            // debug($newer_template[0]);
+            // debug($cur_template[0]);
+            // debug($this->array_diff_recursive($newer_template, $cur_template));
+
+            $diff = array();
+            foreach ($cur_template_temp as $cur_obj_rel) {
+            // foreach ($newer_template_temp as $cur_obj_rel) {
+                $flag_sim = false;
+                foreach ($newer_template_temp as $newer_obj_rel) {
+                // foreach ($cur_template_temp as $newer_obj_rel) {
+                    $tmp = Hash::diff($cur_obj_rel, $newer_obj_rel);
+                    if (count($tmp) == 0) {
+                        $flag_sim = true;
+                        break;
+                    }
+                }
+                if (!$flag_sim) {
+                    $diff[] = $cur_obj_rel;
+                    // $diff[] = $newer_obj_rel;
+                }
+            }
+
+            $updateable_attribute = $object['Attribute'];
+            $not_updateable_attribute = array();
+            if (!empty($diff)) { // older template completely embeded in newer => all mergeable
+                foreach ($diff as $temp_element) {
+                    foreach ($object['Attribute'] as $i => $attribute) {
+                        if (
+                            $attribute['object_relation'] == $temp_element['object_relation']
+                            && $attribute['type'] == $temp_element['type']
+                        ) {
+                            $not_updateable_attribute[] = $attribute;
+                            unset($updateable_attribute[$i]);
+                        }
+                    }
+                }
+            }
+            $this->set('updateable_attribute', $updateable_attribute);
+            $this->set('not_updateable_attribute', $not_updateable_attribute);
         } else {
             $newer_template_version = false;
         }
 
-        if (isset($this->params['named']['attributeToInject'])) {
-            $attributes_to_inject = json_decode(base64_decode($this->params['named']['attributeToInject']), true);
-            foreach ($attributes_to_inject['Attribute'] as $attribute_to_inject) {
-                // check if template allows it
-                $object['Attribute'][] = $attribute_to_inject;
+        if (isset($this->params['named']['revised_object'])) {
+            $revised_object = json_decode(base64_decode($this->params['named']['revised_object']), true);
+            $revised_object_both = array('mergeable' => array(), 'notMergeable' => array());
+
+            foreach ($revised_object['Attribute'] as $attribute_to_inject) {
+                $flag_no_collision = true;
+                foreach ($object['Attribute'] as $attribute) {
+                    if (
+                        $attribute['object_relation'] == $attribute_to_inject['object_relation']
+                        && $attribute['type'] == $attribute_to_inject['type']
+                        && $attribute['value'] !== $attribute_to_inject['value']
+                    ) {
+                        $multiple = false;
+                        foreach ($newer_template['ObjectTemplateElement'] as $temp_elem) {
+                            if ($temp_elem['object_relation'] == $attribute['object_relation']
+                                && $temp_elem['type'] == $attribute['type']
+                            ) {
+                                $multiple = $temp_elem['multiple'];
+                            }
+                        }
+                        if ($multiple) { // if multiple is set, all good, just create a new entry
+                            $revised_object_both['mergeable'][] = $attribute_to_inject;
+                            $object['Attribute'][] = $attribute_to_inject;
+                            $flag_no_collision = false;
+                        } else { // NOT GOOD
+                            $attribute_to_inject['current_value'] = $attribute['value'];
+                            $revised_object_both['notMergeable'][] = $attribute_to_inject;
+                            $flag_no_collision = false;
+                        }
+                    } else if (
+                        $attribute['object_relation'] == $attribute_to_inject['object_relation']
+                         && $attribute['type'] == $attribute_to_inject['type']
+                         && $attribute['value'] === $attribute_to_inject['value']
+                    ) { // all good, they are basically the same, do nothing
+                        $revised_object_both['mergeable'][] = $attribute_to_inject;
+                        $flag_no_collision = false;
+                    }
+                }
+                if ($flag_no_collision) {
+                    $revised_object_both['mergeable'][] = $attribute_to_inject;
+                }
             }
+            $this->set('revised_object', $revised_object_both);
         }
         $template = $this->MispObject->prepareTemplate($template, $object);
         $enabledRows = false;
