@@ -1898,7 +1898,7 @@ installMISPonKali () {
 
   debug "git clone, submodule update everything"
   mkdir $PATH_TO_MISP
-  chown www-data:www-data $PATH_TO_MISP
+  chown $WWW_USER:$WWW_USER $PATH_TO_MISP
   cd $PATH_TO_MISP
   $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
 
@@ -1921,43 +1921,43 @@ installMISPonKali () {
   MISP_USER_HOME=$(sudo -Hiu $MISP_USER env | grep HOME |cut -f 2 -d=)
   mkdir $MISP_USER_HOME/.cache
   chown $MISP_USER:$MISP_USER $MISP_USER_HOME/.cache
-  chown www-data:www-data /var/www/.cache
+  chown $WWW_USER:$WWW_USER /var/www/.cache
 
   debug "Generating rc.local"
   genRCLOCAL
 
   debug "Setting up main MISP virtualenv"
   # Needs virtualenv
-  sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
+  $SUDO_WWW virtualenv -p python3 ${PATH_TO_MISP}/venv
 
   debug "Installing MISP dashboard"
   mispDashboard
 
   debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   debug "Installing python-stix"
   cd $PATH_TO_MISP/app/files/scripts/python-stix
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   debug "Install maec"
   cd $PATH_TO_MISP/app/files/scripts/python-maec
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
   cd ${PATH_TO_MISP}/cti-python-stix2
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
 
   debug "Installing mixbox"
   cd $PATH_TO_MISP/app/files/scripts/mixbox
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   # install PyMISP
   debug "Installing PyMISP"
   cd $PATH_TO_MISP/PyMISP
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   # install pydeep
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git 2> /dev/null > /dev/null
@@ -1980,7 +1980,7 @@ installMISPonKali () {
 
   $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 
-  chown -R www-data:www-data $PATH_TO_MISP
+  chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
   chmod -R 750 $PATH_TO_MISP
   chmod -R g+ws $PATH_TO_MISP/app/tmp
   chmod -R g+ws $PATH_TO_MISP/app/files
@@ -2070,7 +2070,7 @@ installMISPonKali () {
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
 
-  chown -R www-data:www-data $PATH_TO_MISP/app/Config
+  chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config
   chmod -R 750 $PATH_TO_MISP/app/Config
 
   debug "Setting up GnuPG"
