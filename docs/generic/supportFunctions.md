@@ -344,7 +344,7 @@ setBaseURL () {
   else
     MISP_BASEURL='https://localhost:8443'
     IP=$(ip addr show | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}' |grep -v "127.0.0.1" |tail -1)
-    sudo iptables -t nat -I PREROUTING --src 0/0 --dst ${IP} -p tcp --dport 8443 -j REDIRECT --to-ports 443
+    sudo iptables -t nat -A OUTPUT -p tcp --dport 8443 -j DNAT --to ${IP}:443
     # Webserver configuration
     FQDN='localhost.localdomain'
   fi
