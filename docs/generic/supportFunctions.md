@@ -196,21 +196,21 @@ checkID () {
       echo "User $MISP_USER added, password is: $MISP_PASSWORD"
     elif [[ $ANSWER == "n" ]]; then
       echo "Using $USER as install user, hope that is what you want."
-      echo -e "${RED}Adding $USER to groups www-data and staff${NC}"
+      echo -e "${RED}Adding $USER to groups $WWW_USER and staff${NC}"
       MISP_USER=$USER
       sudo adduser $MISP_USER staff
-      sudo adduser $MISP_USER www-data
+      sudo adduser $MISP_USER $WWW_USER
     else
       echo "yes or no was asked, try again."
       sudo adduser $MISP_USER staff
-      sudo adduser $MISP_USER www-data
+      sudo adduser $MISP_USER $WWW_USER
       exit 1
     fi
   else
     echo "User ${MISP_USER} exists, skipping creation"
-    echo -e "${RED}Adding $MISP_USER to groups www-data and staff${NC}"
+    echo -e "${RED}Adding $MISP_USER to groups $WWW_USER and staff${NC}"
     sudo adduser $MISP_USER staff
-    sudo adduser $MISP_USER www-data
+    sudo adduser $MISP_USER $WWW_USER
   fi
 }
 
@@ -605,7 +605,7 @@ alias composer70='composer72'
 # Composer on php 7.2 does not need any special treatment the provided phar works well
 composer72 () {
   cd $PATH_TO_MISP/app
-  mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
+  mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
   $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
   $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
@@ -614,16 +614,16 @@ composer72 () {
 # Composer on php 7.3 needs a recent version of composer.phar
 composer73 () {
   cd $PATH_TO_MISP/app
-  mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
+  mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
   # Update composer.phar
   # If hash changes, check here: https://getcomposer.org/download/ and replace with the correct one
   # Current Sum for: v1.8.3
   SHA384_SUM='48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5'
-  sudo -H -u www-data php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
+  $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
   checkFail "composer.phar checksum failed, please investigate manually. " $?
-  sudo -H -u www-data php composer-setup.php
-  sudo -H -u www-data php -r "unlink('composer-setup.php');"
+  $SUDO_WWW php composer-setup.php
+  $SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
   $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
