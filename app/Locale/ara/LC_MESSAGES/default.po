@@ -3,16 +3,16 @@ msgstr ""
 "Project-Id-Version: misp\n"
 "PO-Revision-Date: 2019-04-20 04:41\n"
 "Last-Translator: Steve Clement (SteveClement)\n"
-"Language-Team: Czech\n"
+"Language-Team: Arabic\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=4; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 3;\n"
+"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
 "X-Generator: crowdin.com\n"
 "X-Crowdin-Project: misp\n"
-"X-Crowdin-Language: cs\n"
+"X-Crowdin-Language: ar\n"
 "X-Crowdin-File: default.pot\n"
-"Language: cs_CZ\n"
+"Language: ar_SA\n"
 
 #: Console/Command/AdminShell.php:59
 msgid "Database updated: "
@@ -61,7 +61,7 @@ msgstr ""
 #: Controller/PostsController.php:56
 #: Model/Galaxy.php:292
 msgid "Invalid event"
-msgstr "Neplatná událost"
+msgstr "الحدث غير صالح"
 
 #: Console/Command/PasswordShell.php:43
 msgid "override password change"
@@ -74,7 +74,7 @@ msgstr ""
 
 #: Console/Command/ServerShell.php:51
 msgid "ERROR: %s"
-msgstr ""
+msgstr "خطأ: %s"
 
 #: Console/Command/TrainingShell.php:682
 msgid "verbose mode"
@@ -86,172 +86,172 @@ msgstr ""
 
 #: Controller/AppController.php:383
 msgid "Something went wrong. Your user account that you are authenticated with doesn't exist anymore."
-msgstr ""
+msgstr "حدث خطأ ما. حساب المستخدم الخاص بك لم يعد موجوداً."
 
 #: Controller/AppController.php:602
 #: Controller/AttributesController.php:2059;2168;2218;2301;2387
 #: Controller/EventsController.php:2797;2913;2975;3330;3946;4009
 msgid "This authentication key is not authorized to be used for exports. Contact your administrator."
-msgstr "Tento ověřovací klíč nemá oprávnění použítí pro export. Obraťte se na správce."
+msgstr "مفتاح المصادقة غير مصرح باستخدامه للتصدير. تواصل مع مشرف الشبكه."
 
 #: Controller/AppController.php:611
 #: Controller/AttributesController.php:2222;2305;2391
 #: Controller/EventsController.php:2801;2918;2980;3334;3950;4013
 msgid "You have to be logged in to do that."
-msgstr "Pro tuto akci je nutné se přihlásit."
+msgstr "يجب أن تكون مسجلا للقيام بذلك."
 
 #: Controller/AppController.php:628
 msgid "Either specify the search terms in the url, or POST a json with the filter parameters."
-msgstr ""
+msgstr "إما عليك تحديد مصطلحات البحث في عنوان url أو POST من json مع معايير عامل التصفية (فلتر)."
 
 #: Controller/AppController.php:753
 msgid "All done. attribute_count generated from scratch for "
-msgstr "Vše je hotovo. attribute_count generované od začátku pro "
+msgstr "اكتمل العمل. تم توليد attribute_count من الصفر "
 
 #: Controller/AppController.php:872
 #: Controller/AttributesController.php:2445
 #: Controller/ShadowAttributesController.php:1278
 msgid "Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs)."
-msgstr "Úloha ve frontě. Pokud přejdete do zobrazení aktivních úloh (Správa-> Úlohy), můžete zobrazit průběh."
+msgstr ""
 
 #: Controller/AttributesController.php:116;1460
 #: Controller/EventGraphController.php:19;77
 msgid "No event ID set."
-msgstr "Není nastaveno ID události."
+msgstr ""
 
 #: Controller/AttributesController.php:119
 msgid "You don't have permissions to create attributes"
-msgstr "Nemáte oprávnění k vytvoření atributů"
+msgstr "ليس لديك صلاحيات لإنشاء سمات"
 
 #: Controller/AttributesController.php:139;492;672
 #: Controller/EventGraphController.php:88
 #: Controller/EventsController.php:1943;1964;1998
 #: Controller/ObjectsController.php:456
 msgid "You do not have permission to do that."
-msgstr "K tomu nemáte oprávnění."
+msgstr "لا تملك الصلاحيّات للقيام بذلك."
 
 #: Controller/AttributesController.php:415;870;875;879;1087;1167;1209;2461;2475;2508;2530;2539;3136;3240;3244
 #: Controller/ShadowAttributesController.php:824;1069;1093;1126;1136
 #: Controller/TagsController.php:492
 msgid "Invalid attribute"
-msgstr "Neplatný atribut"
+msgstr "سمة غير صالحة"
 
 #: Controller/AttributesController.php:425
 #: Controller/ShadowAttributesController.php:501
 msgid "You do not have the permission to view this event."
-msgstr "Nemáte oprávnění k zobrazení této události."
+msgstr "ليس لديك الصلاحية لعرض هذا الحدث."
 
 #: Controller/AttributesController.php:472
 msgid "Attribute not an attachment or malware-sample"
-msgstr "Atribut není přílohou nebo vzorkem malware"
+msgstr ""
 
 #: Controller/AttributesController.php:489;656;947;1469
 #: Controller/EventsController.php:4646;4660;5407;5421
 msgid "Invalid Event."
-msgstr "Neplatná událost."
+msgstr "الحدث غير صالح."
 
 #: Controller/AttributesController.php:507;683
 #: Controller/ShadowAttributesController.php:548
 msgid "PHP says file was not uploaded. Are you attacking me?"
-msgstr "PHP říká, že soubor nebyl odeslán. Útočíš na mě?"
+msgstr "الPHP يقول ان الملف غير صالح. هل أنت تهاجمني؟"
 
 #: Controller/AttributesController.php:686
 #: Controller/ShadowAttributesController.php:551;561
 msgid "There was a problem to upload the file."
-msgstr "Došlo k potížím při nahrávání souboru."
+msgstr "توجد مشكلة في رفع الملف."
 
 #: Controller/AttributesController.php:830
 msgid "The ThreatConnect data has been imported."
-msgstr "ThreatConnect data byla importována."
+msgstr "تم استيراد بيانات ThreatConnect."
 
 #: Controller/AttributesController.php:833
 msgid "%s entries imported."
-msgstr "%s položek importováno."
+msgstr "تم استيراد %s مدخلات."
 
 #: Controller/AttributesController.php:837
 msgid "%s entries could not be imported."
-msgstr "%s položek nelze importovat."
+msgstr "تعذر استيراد %s مدخلات."
 
 #: Controller/AttributesController.php:887;935;937
 #: Controller/ShadowAttributesController.php:831
 msgid "Invalid attribute."
-msgstr "Neplatný atribut."
+msgstr "سمة غير صالحة."
 
 #: Controller/AttributesController.php:931
 msgid "Attribute could not be saved: Attribute in the request not newer than the local copy."
-msgstr "Atribut nelze uložit: atribut v požadavku není novější než místní kopie."
+msgstr ""
 
 #: Controller/AttributesController.php:964
 msgid "The attribute has been saved"
-msgstr "Atribut byl uložen"
+msgstr ""
 
 #: Controller/AttributesController.php:999
 msgid "The attribute could not be saved. Please, try again."
-msgstr "Atribut nelze uložit. Prosím opakujte akci."
+msgstr ""
 
 #: Controller/AttributesController.php:1091
 msgid "Invalid event id."
-msgstr "Neplatné Id události."
+msgstr "معرف الحدث غير صالح."
 
 #: Controller/AttributesController.php:1121
 #: Controller/EventsController.php:2284
 #: Controller/ShadowAttributesController.php:731
 msgid "Invalid input."
-msgstr "Neplatný vstup."
+msgstr "المدخل غير صالح."
 
 #: Controller/AttributesController.php:1126
 msgid "Invalid field."
-msgstr "Neplatné pole."
+msgstr "حقل غير صالح."
 
 #: Controller/AttributesController.php:1171;1213
 msgid "Invalid attribute id."
-msgstr "Neplatné ID atributu."
+msgstr "معرف السمة غير صالحة."
 
 #: Controller/AttributesController.php:1299;1309
 msgid "Attribute deleted"
-msgstr "Atribut odstraněn"
+msgstr "تم حذف السمة"
 
 #: Controller/AttributesController.php:1304;1306
 msgid "Attribute was not deleted"
-msgstr "Atribut nebyl odstraněn"
+msgstr "لم يتم حذف السمة"
 
 #: Controller/AttributesController.php:1331;2932
 #: Controller/ShadowAttributesController.php:865
 msgid "Invalid Attribute"
-msgstr "Neplatný atribut"
+msgstr "سمة غير صالحة"
 
 #: Controller/AttributesController.php:1358
 msgid "Could not restore the attribute"
-msgstr "Nelze obnovit atribut"
+msgstr "تعذر استعادة السمة"
 
 #: Controller/AttributesController.php:1379;1386;1390
 msgid "Attribute not found or not authorised."
-msgstr "Atribut nebyl nalezen nebo není povolen."
+msgstr ""
 
 #: Controller/AttributesController.php:1440
 msgid "This function is only accessible via POST requests."
-msgstr "Tato funkce je pouze přístupné prostřednictvím POST požadavku."
+msgstr ""
 
 #: Controller/AttributesController.php:1495
 msgid "No matching attributes found."
-msgstr "Nebyly nalezeny žádné stejné atributy."
+msgstr "لم يتم العثور على سمات مطابقة."
 
 #: Controller/AttributesController.php:1529
 msgid "This method can only be accessed via AJAX."
-msgstr "Tato metoda je přístupná pouze přes AJAX."
+msgstr ""
 
 #: Controller/AttributesController.php:1539
 msgid "You are not authorized to edit this event."
-msgstr "Nemáte oprávnění k úpravě této události."
+msgstr "لا تملك الصلاحيات لتحرير هذا الحدث."
 
 #: Controller/AttributesController.php:1637
 msgid "No event ID provided."
-msgstr "Žádné ID události není k dispozici."
+msgstr ""
 
 #: Controller/AttributesController.php:1682
 #: Controller/GalaxiesController.php:225
 msgid "Synonyms: "
-msgstr "Synonyma: "
+msgstr ""
 
 #: Controller/AttributesController.php:2054;2161
 msgid "You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml."
@@ -263,15 +263,15 @@ msgstr ""
 
 #: Controller/AttributesController.php:2087
 msgid "You don't have access to that event."
-msgstr "Nemáte přístup k této události."
+msgstr ""
 
 #: Controller/AttributesController.php:2150
 msgid "No matches."
-msgstr "Žádná shoda."
+msgstr ""
 
 #: Controller/AttributesController.php:2172;2181
 msgid "Invalid attribute or no authorisation to view it."
-msgstr "Neplatný atribut nebo nemáte oprávnění k jeho zobrazení."
+msgstr ""
 
 #: Controller/AttributesController.php:2249
 msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct headers based on content type."
@@ -279,98 +279,98 @@ msgstr ""
 
 #: Controller/AttributesController.php:2313
 msgid "Invalid event ID format."
-msgstr "Neplatný formát ID události."
+msgstr ""
 
 #: Controller/AttributesController.php:2422
 #: Controller/ShadowAttributesController.php:1256
 msgid "All done. "
-msgstr "Vše je hotovo. "
+msgstr ""
 
 #: Controller/AttributesController.php:2454;2501
 #: Controller/ShadowAttributesController.php:1064
 msgid "Invalid field requested."
-msgstr "Požadováno neplatné pole."
+msgstr ""
 
 #: Controller/AttributesController.php:2457;2504
 msgid "This function can only be accessed via AJAX."
-msgstr "Tato funkce je přístupná pouze přes AJAX."
+msgstr ""
 
 #: Controller/AttributesController.php:2569;2577
 #: Controller/EventsController.php:3773;3922;5227
 msgid "Event not found or you don't have permissions to create attributes"
-msgstr "Událost nebyla nalezena nebo nemáte oprávnění k vytvoření atributů"
+msgstr ""
 
 #: Controller/AttributesController.php:2598
 msgid "This action can only be accessed via AJAX."
-msgstr "Tato akce je přístupná pouze přes AJAX."
+msgstr ""
 
 #: Controller/AttributesController.php:2607;2858;2872;2883
 #: Controller/OrganisationsController.php:418
 #: Controller/ServersController.php:623;691
 msgid "You are not authorised to do that."
-msgstr "K tomu nemáte oprávnění."
+msgstr ""
 
 #: Controller/AttributesController.php:2712
 #: Controller/EventsController.php:4439
 msgid "This functionality requires API key access."
-msgstr "Tato funkce vyžaduje API klíč."
+msgstr ""
 
 #: Controller/AttributesController.php:2720
 msgid "This action is for the API only. Please refer to the automation page for information on how to use it."
-msgstr "Tato akce je pouze pro API. Na stránce automatizace jsou informace o pouzívání."
+msgstr ""
 
 #: Controller/AttributesController.php:2732
 msgid "No hash or event ID received. You need to set at least one of the two."
-msgstr "Nebyl přiajt žádný hash nebo ID události. Je nutné nastavit alespoň jeden ze dvou."
+msgstr ""
 
 #: Controller/AttributesController.php:2893
 msgid "Invalid script."
-msgstr "Neplatný skript."
+msgstr ""
 
 #: Controller/AttributesController.php:2960
 msgid "No valid enrichment options found for this attribute."
-msgstr "Žádná platná obohacování možnosti pro tento atribut."
+msgstr ""
 
 #: Controller/AttributesController.php:3028
 msgid "Invalid type requested."
-msgstr "Vyžádán neplatný typ."
+msgstr ""
 
 #: Controller/AttributesController.php:3307
 #: Controller/EventsController.php:5403
 msgid "Disabling the correlation is not permitted on this instance."
-msgstr "Zákaz korelace není na tuto instanci možný."
+msgstr ""
 
 #: Controller/AttributesController.php:3311;3326
 #: Controller/ShadowAttributesController.php:679
 msgid "Invalid Attribute."
-msgstr "Neplatný atribut."
+msgstr ""
 
 #: Controller/AttributesController.php:3314;3329
 #: Controller/EventsController.php:5410;5424
 #: Controller/PostsController.php:60;84
 #: Controller/TaxonomiesController.php:100;131;163;245;275;305;335;365;374;383
 msgid "You don't have permission to do that."
-msgstr "K tomu nemáte oprávnění."
+msgstr ""
 
 #: Controller/EventBlacklistsController.php:15
 msgid "Event Blacklisting is not currently enabled on this instance."
-msgstr "V této instanci není zapsání události na blacklist povoleno."
+msgstr ""
 
 #: Controller/EventsController.php:855
 msgid "No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile."
-msgstr "Ve Vašem profilu není nastaven x509 certifikát nebo GnuPG klíč. Pro příjem emailů musíte nahrát Váš veřejný certifikát nebo GnuPG klíč k profilu."
+msgstr ""
 
 #: Controller/EventsController.php:857
 msgid "No GnuPG key set in your profile. To receive emails, submit your public key in your profile."
-msgstr "Žádný klíč GnuPG v profilu. Chcete-li dostávat e-maily, nahrajte váš veřejný klíč k vašemu profilu."
+msgstr ""
 
 #: Controller/EventsController.php:863
 msgid "No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile."
-msgstr "Ve vašem profilu není nastaven x 509 certifikát nebo GnuPG klíč. Chcete-li dostávat atributy e-mailem, vložte veřejný certifikát nebo GnuPG klíč do vašeho profilu."
+msgstr ""
 
 #: Controller/EventsController.php:865
 msgid "No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile."
-msgstr "V profilu chybí klíč GnuPG. Chcete-li zobrazit atributy v e-mailech, nahrajte váš veřejný klíč do vašeho profilu."
+msgstr ""
 
 #: Controller/EventsController.php:1578
 msgid "You are currently logged in as a site administrator and editing an event not belonging to your organisation, which goes against the sharing model of MISP. Please only use this as a last resort and use normal user account for day to day work."
@@ -378,11 +378,11 @@ msgstr ""
 
 #: Controller/EventsController.php:1788
 msgid "You don't have permissions to create events"
-msgstr "Nemáte oprávnění k vytváření událostí"
+msgstr ""
 
 #: Controller/EventsController.php:1794
 msgid "No valid event data received."
-msgstr "Nebyla přijata žádná platná data událostí."
+msgstr ""
 
 #: Controller/EventsController.php:1830
 msgid "Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group)."
@@ -394,23 +394,23 @@ msgstr ""
 
 #: Controller/EventsController.php:1862
 msgid "Event blocked by local blacklist."
-msgstr "Událost zablokována místním blacklistem."
+msgstr ""
 
 #: Controller/EventsController.php:1875;1952;2216
 msgid "The event has been saved"
-msgstr "Událost byla uložena"
+msgstr ""
 
 #: Controller/EventsController.php:1883
 msgid "Event already exists, if you would like to edit it, use the url in the location header."
-msgstr "Událost již existuje, pokud byste chtěli upravit, použijte adresu url v hlavičce umístění."
+msgstr ""
 
 #: Controller/EventsController.php:1889
 msgid "A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance"
-msgstr "Vytvoření události brání vstup na blacklistu. Obraťte se na tým pro správu této instance"
+msgstr ""
 
 #: Controller/EventsController.php:1891;2219
 msgid "The event could not be saved. Please, try again."
-msgstr "Událost nelze uložit. Prosím opakujte akci."
+msgstr ""
 
 #: Controller/EventsController.php:1931
 msgid "The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published."
@@ -418,7 +418,7 @@ msgstr ""
 
 #: Controller/EventsController.php:1978
 msgid "You may only upload MISP XML or MISP JSON files."
-msgstr "Můžete nahrát pouze soubory MISP XML nebo MISP JSON."
+msgstr ""
 
 #: Controller/EventsController.php:1979
 msgid "File upload failed or file does not have the expected extension (.xml / .json)."
@@ -426,39 +426,39 @@ msgstr ""
 
 #: Controller/EventsController.php:2028
 msgid "STIX document imported, event's created: "
-msgstr "STIX dokument importován, událost vytvořena: "
+msgstr ""
 
 #: Controller/EventsController.php:2031
 msgid "STIX document imported."
-msgstr "STIX dokument importován."
+msgstr ""
 
 #: Controller/EventsController.php:2034
 msgid "Could not import STIX document: "
-msgstr "Není možné importovat STIX dokument: "
+msgstr ""
 
 #: Controller/EventsController.php:2041
 msgid "File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn't exceed the maximum file size of "
-msgstr "Odeslání souboru se nezdařilo. Ujistěte se, že jste vyrali stix soubor k odeslání a že soubor nepřekračuje maximální velikost "
+msgstr ""
 
 #: Controller/EventsController.php:2065;2150
 msgid "You are not authorised to do that. Please consider using the 'propose attribute' feature."
-msgstr "K tomuto nemáte oprávnění. Zvažte použití funkce \"navrhnout atribut\"."
+msgstr ""
 
 #: Controller/EventsController.php:2073
 msgid "Invalid event ID entered."
-msgstr "Vloženo neplatné ID události."
+msgstr ""
 
 #: Controller/EventsController.php:2078
 msgid "You are not authorised to read the selected event."
-msgstr "Nemáte oprávnění ke čtení vybrané události."
+msgstr ""
 
 #: Controller/EventsController.php:2368;2418;2488
 msgid "You don't have the permission to do that."
-msgstr "K tomu nemáte oprávnění."
+msgstr ""
 
 #: Controller/EventsController.php:2377
 msgid "Event unpublished."
-msgstr "Událost nebyla ublikována."
+msgstr ""
 
 #: Controller/EventsController.php:2430
 msgid "Could not publish event - no tag for required taxonomies missing: %s"
@@ -466,15 +466,15 @@ msgstr ""
 
 #: Controller/EventsController.php:2575
 msgid "Email sent to the reporter."
-msgstr "E-mail byl odeslán reportérovi."
+msgstr ""
 
 #: Controller/EventsController.php:2577
 msgid "Sending of email failed"
-msgstr "Odesílání e-mailu se nezdařilo"
+msgstr ""
 
 #: Controller/EventsController.php:2710
 msgid "This feature is currently disabled"
-msgstr "Tato funkce je vypnuta"
+msgstr ""
 
 #: Controller/EventsController.php:2752;4023
 msgid "Either specify the search terms in the url, or POST an xml (with the root element being \"request\")."
@@ -482,7 +482,7 @@ msgstr ""
 
 #: Controller/EventsController.php:2788
 msgid "Invalid Event ID."
-msgstr "Neplatné ID události."
+msgstr ""
 
 #: Controller/EventsController.php:2835
 msgid "No events found that match the passed parameters."
@@ -499,27 +499,27 @@ msgstr ""
 #: Controller/EventsController.php:2954
 #: Model/Attribute.php:2070
 msgid "Invalid hash type."
-msgstr "Neplatný typ hashe."
+msgstr ""
 
 #: Controller/EventsController.php:3057
 msgid "Filename not allowed."
-msgstr "Tento typ souboru není povolen."
+msgstr ""
 
 #: Controller/EventsController.php:3077
 msgid "Problem with writing the ioc file. Please report to administrator."
-msgstr "Problém se zapsáním ioc souboru. Kontaktujte administrátora."
+msgstr ""
 
 #: Controller/EventsController.php:3171
 msgid "This is not a valid MISP XML file."
-msgstr "Toto není platný MISP XML soubor."
+msgstr ""
 
 #: Controller/EventsController.php:3323
 msgid "Not yet implemented"
-msgstr "Není implementováno"
+msgstr ""
 
 #: Controller/EventsController.php:3341;3345
 msgid "Invalid event or not authorised."
-msgstr "Neplatná událost nebo není povoleno."
+msgstr ""
 
 #: Controller/EventsController.php:3365;3435
 msgid "You don't have the privileges to access this."
@@ -528,7 +528,7 @@ msgstr ""
 #: Controller/EventsController.php:3646
 #: Controller/TagCollectionsController.php:311
 msgid "Invalid Tag."
-msgstr "Neplatná značka."
+msgstr ""
 
 #: Controller/EventsController.php:3662
 #: Controller/TagCollectionsController.php:327
@@ -538,41 +538,41 @@ msgstr ""
 #: Controller/EventsController.php:3673;3679
 #: Controller/TagCollectionsController.php:334
 msgid "Tag(s) added."
-msgstr "Značky přidány."
+msgstr ""
 
 #: Controller/EventsController.php:3675
 msgid "Tag could not be added."
-msgstr "Nelze přidat značku."
+msgstr ""
 
 #: Controller/EventsController.php:3681
 #: Controller/TagCollectionsController.php:342
 msgid "All tags are already present, nothing to add."
-msgstr "Všechny značky jsou již přítomny, nic k přidání."
+msgstr ""
 
 #: Controller/EventsController.php:3926;5231;5244;5737;5741
 #: Controller/ObjectsController.php:46;140;144;452
 msgid "Invalid event."
-msgstr "Neplatná událost."
+msgstr ""
 
 #: Controller/EventsController.php:3955
 msgid "Either specify the search terms in the url, or POST an xml (with the root element being \"request\"."
-msgstr "Buď specifikujete termíny vyhledávání v url, nebo POST xml (přičemž základním prvkem je \"žádost\"."
+msgstr ""
 
 #: Controller/EventsController.php:4086;4116;4132
 msgid "You do not have the permission to do that."
-msgstr "K tomu nemáte oprávnění."
+msgstr ""
 
 #: Controller/EventsController.php:4197;4337
 msgid "Invalid ID"
-msgstr "Neplatné ID"
+msgstr ""
 
 #: Controller/EventsController.php:4201;4341
 msgid "Event not found or you are not authorised to view it."
-msgstr "Událost nenalezena nebo nemáte oprávnění."
+msgstr ""
 
 #: Controller/EventsController.php:4442;4449
 msgid "Please POST the samples as described on the automation page."
-msgstr "Prosím POST vzorky, jak je popsáno na stránce automatizace."
+msgstr ""
 
 #: Controller/EventsController.php:4478
 msgid "No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page."
@@ -580,11 +580,11 @@ msgstr ""
 
 #: Controller/EventsController.php:4486
 msgid "Event not found"
-msgstr "Událost nebyla nalezena"
+msgstr ""
 
 #: Controller/EventsController.php:4509
 msgid "Event not found."
-msgstr "Událost nebyla nalezena."
+msgstr ""
 
 #: Controller/EventsController.php:4519
 msgid "Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event."
@@ -596,15 +596,15 @@ msgstr ""
 
 #: Controller/EventsController.php:4683;4704;4737;4762;4787;4817;4838
 msgid "Invalid type."
-msgstr "Neplatný typ."
+msgstr ""
 
 #: Controller/EventsController.php:4946
 msgid "Invalid method."
-msgstr "Neplatná metoda."
+msgstr ""
 
 #: Controller/EventsController.php:5028
 msgid "%s services are not enabled."
-msgstr "%s služeb není povoleno."
+msgstr ""
 
 #: Controller/EventsController.php:5032
 msgid "Attribute not found or you are not authorised to see it."
@@ -624,21 +624,21 @@ msgstr ""
 
 #: Controller/EventsController.php:5330
 msgid "Import service not reachable."
-msgstr "Importovat služby se nedaří."
+msgstr ""
 
 #: Controller/EventsController.php:5550
 #: Controller/WarninglistsController.php:229
 msgid "Invalid ID."
-msgstr "Neplatné ID."
+msgstr ""
 
 #: Controller/EventsController.php:5598
 #: Controller/ShadowAttributesController.php:313;318;534
 msgid "Invalid Event"
-msgstr "Neplatná událost"
+msgstr ""
 
 #: Controller/EventsController.php:5619
 msgid "Enrichment task queued for background processing. Check back later to see the results."
-msgstr "Úloha se zpracovává na pozadí. Vraťte se později."
+msgstr ""
 
 #: Controller/FeedsController.php:28
 msgid "You don't have the required privileges to do that."
@@ -646,19 +646,19 @@ msgstr ""
 
 #: Controller/FeedsController.php:238;337
 msgid "Feed added."
-msgstr "Přidán informační kanál."
+msgstr ""
 
 #: Controller/FeedsController.php:246
 msgid "Feed could not be added. Invalid field: %s"
-msgstr "Nebylo možné přidat informační kanál. Neplatné pole: %s"
+msgstr ""
 
 #: Controller/FeedsController.php:271;372;394;516;551;755
 msgid "Invalid feed."
-msgstr "Neplatný kanál."
+msgstr ""
 
 #: Controller/FeedsController.php:345
 msgid "Feed could not be updated. Invalid fields: %s"
-msgstr "Informační kanál nemohl být aktualizován. Neplatné pole: %s"
+msgstr ""
 
 #: Controller/FeedsController.php:368
 msgid "This action requires a post request."
@@ -690,15 +690,15 @@ msgstr ""
 
 #: Controller/FeedsController.php:527
 msgid "Event added."
-msgstr "Událost přidána."
+msgstr ""
 
 #: Controller/FeedsController.php:530
 msgid "Event already up to date."
-msgstr "Událost je již aktuální."
+msgstr ""
 
 #: Controller/FeedsController.php:532
 msgid "Event updated."
-msgstr "Událost byla aktualizována."
+msgstr ""
 
 #: Controller/FeedsController.php:536
 msgid "Could not %s event."
@@ -706,7 +706,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:539
 msgid "Download failed."
-msgstr "Stahování se nezdařilo."
+msgstr ""
 
 #: Controller/FeedsController.php:631
 msgid "Feed could not be fetched. The HTTP error code returned was: "
@@ -714,7 +714,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:670;721
 msgid "Invalid feed type."
-msgstr "Neplatný kanál."
+msgstr ""
 
 #: Controller/FeedsController.php:787
 msgid "This event is blocked by the Feed filters."
@@ -726,7 +726,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:825;829
 msgid "Invalid Feed."
-msgstr "Neplatný kanál."
+msgstr ""
 
 #: Controller/FeedsController.php:850
 msgid "Only POST requests are allowed."
@@ -734,11 +734,11 @@ msgstr ""
 
 #: Controller/FeedsController.php:854
 msgid "Feed not found."
-msgstr "Kanál nebyl nalezen."
+msgstr ""
 
 #: Controller/FeedsController.php:863
 msgid "Data pulled."
-msgstr "Data byla stažena."
+msgstr ""
 
 #: Controller/FeedsController.php:865
 msgid "Could not pull the selected data. Reason: %s"
@@ -778,11 +778,11 @@ msgstr ""
 
 #: Controller/JobsController.php:156
 msgid "All completed jobs have been purged"
-msgstr "Všechny dokončené úlohy byly odstraněny"
+msgstr ""
 
 #: Controller/JobsController.php:159
 msgid "All jobs have been purged"
-msgstr "Všechny úlohy byly odstraněny"
+msgstr ""
 
 #: Controller/NewsController.php:51
 msgid "News item added."
@@ -810,11 +810,11 @@ msgstr ""
 
 #: Controller/ObjectReferencesController.php:37
 msgid "Invalid object"
-msgstr "Neplatný objekt"
+msgstr ""
 
 #: Controller/ObjectReferencesController.php:188
 msgid "Invalid object reference"
-msgstr "Neplatný odkaz na objekt"
+msgstr ""
 
 #: Controller/ObjectTemplatesController.php:31
 msgid "All Objects"
@@ -830,7 +830,7 @@ msgstr ""
 
 #: Controller/ObjectTemplatesController.php:143
 msgid "ObjectTemplate deleted"
-msgstr "Šablona objektu byla smazána"
+msgstr ""
 
 #: Controller/ObjectsController.php:29
 msgid "This action can only be reached via POST requests"
@@ -838,24 +838,24 @@ msgstr ""
 
 #: Controller/ObjectsController.php:69;82
 msgid "Invalid sharing group."
-msgstr "Neplatná skupina sdílení."
+msgstr ""
 
 #: Controller/ObjectsController.php:103
 msgid "You don't have permissions to create objects."
-msgstr "Nemáte oprávnění k vytvoření objektů."
+msgstr ""
 
 #: Controller/ObjectsController.php:131
 #: Model/Template.php:25
 msgid "Invalid template."
-msgstr "Neplatná šablona."
+msgstr ""
 
 #: Controller/ObjectsController.php:313
 msgid "You don't have permissions to edit objects."
-msgstr "Nemáte oprávnění k editaci objektů."
+msgstr ""
 
 #: Controller/ObjectsController.php:327;338;441
 msgid "Invalid object."
-msgstr "Neplatný objekt."
+msgstr ""
 
 #: Controller/ObjectsController.php:435
 msgid "You don't have permissions to delete objects."
@@ -863,15 +863,15 @@ msgstr ""
 
 #: Controller/ObjectsController.php:545;552;556
 msgid "Object not found or not authorised."
-msgstr "Objekt nebyl nalezen nebo není povolen."
+msgstr ""
 
 #: Controller/ObjectsController.php:820
 msgid "%s objects successfully reconstructed."
-msgstr "%s objektů bylo úspěšně obnoveno."
+msgstr ""
 
 #: Controller/OrgBlacklistsController.php:15
 msgid "Organisation Blacklisting is not currently enabled on this instance."
-msgstr "V této instanci není zapsání organizace na blacklist povoleno."
+msgstr ""
 
 #: Controller/OrganisationsController.php:28
 msgid "This feature is disabled on this instance for normal users."
@@ -903,7 +903,7 @@ msgstr ""
 
 #: Controller/OrganisationsController.php:251
 msgid "Organisation deleted"
-msgstr "Organizace smazána"
+msgstr ""
 
 #: Controller/OrganisationsController.php:258
 msgid "Organisation could not be deleted. Generally organisations should never be deleted, instead consider moving them to the known remote organisations list. Alternatively, if you are certain that you would like to remove an organisation and are aware of the impact, make sure that there are no users or events still tied to this organisation before deleting it."
@@ -935,7 +935,7 @@ msgstr ""
 
 #: Controller/PostsController.php:80
 msgid "Invalid thread"
-msgstr "Neplatný proces"
+msgstr ""
 
 #: Controller/PostsController.php:115
 msgid "Cannot post an empty message."
@@ -943,7 +943,7 @@ msgstr ""
 
 #: Controller/PostsController.php:176
 msgid "Post added"
-msgstr "Příspěvek přidán"
+msgstr ""
 
 #: Controller/PostsController.php:189
 msgid "The post could not be added."
@@ -951,7 +951,7 @@ msgstr ""
 
 #: Controller/PostsController.php:208;256
 msgid "Invalid post"
-msgstr "Neplatný příspěvek"
+msgstr ""
 
 #: Controller/PostsController.php:211
 msgid "This is not your event."
@@ -979,15 +979,15 @@ msgstr ""
 
 #: Controller/RegexpController.php:27
 msgid "The Regexp has been saved."
-msgstr "Regulární výraz byl uložen."
+msgstr ""
 
 #: Controller/RegexpController.php:31
 msgid "The Regexp could not be saved. Please, try again."
-msgstr "Regulární výraz nelze uložit. Prosím opakujte akci."
+msgstr ""
 
 #: Controller/RegexpController.php:45;116
 msgid "The Regular expressions have been saved."
-msgstr "Regulární výrazy byly uloženy."
+msgstr ""
 
 #: Controller/RegexpController.php:48;123
 msgid "Could not create the Regex entry as no types were selected. Either check \"All\" or check the types that you wish the Regex to affect."
@@ -995,11 +995,11 @@ msgstr ""
 
 #: Controller/RegexpController.php:211
 msgid "All done! Number of changed attributes: "
-msgstr "Dokončeno! Počet změněných atributů: "
+msgstr ""
 
 #: Controller/RegexpController.php:231
 msgid "All done! Found and cleaned "
-msgstr "Dokončeno! Nalezeno a vyčištěno "
+msgstr ""
 
 #: Controller/RestClientHistoryController.php:63
 msgid "Invalid entry."
@@ -1011,7 +1011,7 @@ msgstr ""
 
 #: Controller/RolesController.php:33
 msgid "Invalid role"
-msgstr "Neplatná funkce"
+msgstr ""
 
 #: Controller/RolesController.php:59;100
 msgid "The Role has been saved"
@@ -1019,7 +1019,7 @@ msgstr ""
 
 #: Controller/RolesController.php:67;108
 msgid "The Role could not be saved. Please, try again."
-msgstr "Funkci nelze uložit. Prosím opakujte akci."
+msgstr ""
 
 #: Controller/RolesController.php:85;151
 msgid "Invalid Role"
@@ -1027,7 +1027,7 @@ msgstr ""
 
 #: Controller/RolesController.php:157
 msgid "Role deleted"
-msgstr "Funkce odstraněna"
+msgstr ""
 
 #: Controller/RolesController.php:164
 msgid "Role could not be deleted"
@@ -1043,47 +1043,47 @@ msgstr ""
 
 #: Controller/ServersController.php:225;421
 msgid "The pull filter rules must be in valid JSON format."
-msgstr "Filtr pravidla musí být v platném formátu JSON."
+msgstr ""
 
 #: Controller/ServersController.php:235;431
 msgid "The push filter rules must be in valid JSON format."
-msgstr "Pravidla filtru musí být v platném formátu JSON."
+msgstr ""
 
 #: Controller/ServersController.php:289;461
 msgid "That organisation could not be created as the uuid is in use already."
-msgstr "Tuto organizaci nelze vytvořit, uuid je již používán."
+msgstr ""
 
 #: Controller/ServersController.php:301
 msgid "Couldn't save the new organisation, are you sure that the uuid is in the correct format? Also, make sure the organisation's name doesn't clash with an existing one."
-msgstr "Nelze uložit novou organizaci, je uuid musí ve správném formátu? Ujistěte se, zda název organizace již neexistuje."
+msgstr ""
 
 #: Controller/ServersController.php:336;517
 msgid "The server has been saved"
-msgstr "Server byl uložen"
+msgstr ""
 
 #: Controller/ServersController.php:343;524
 msgid "The server could not be saved. Please, try again."
-msgstr "Server nelze uložit. Prosím opakujte akci."
+msgstr ""
 
 #: Controller/ServersController.php:396;593;618;627;687;1378
 msgid "Invalid server"
-msgstr "Neplatný server"
+msgstr ""
 
 #: Controller/ServersController.php:478
 msgid "Couldn't save the new organisation, are you sure that the uuid is in the correct format?."
-msgstr "Nelze uložit novou organizaci, je uuid ve správném formátu?."
+msgstr ""
 
 #: Controller/ServersController.php:600
 msgid "Server deleted"
-msgstr "Server smazán"
+msgstr ""
 
 #: Controller/ServersController.php:603
 msgid "Server was not deleted"
-msgstr "Server nebyl odstraněn"
+msgstr ""
 
 #: Controller/ServersController.php:630
 msgid "Pull setting not enabled for this server."
-msgstr "Nastavení pro stahování není na tomto serveru povoleno."
+msgstr ""
 
 #: Controller/ServersController.php:653
 msgid "Pulling."
@@ -1242,19 +1242,19 @@ msgstr ""
 
 #: Controller/ServersController.php:1275
 msgid "File not found."
-msgstr "Soubor nebyl nalezen."
+msgstr ""
 
 #: Controller/ServersController.php:1281
 msgid "File could not be deleted."
-msgstr "Soubor nebylo možné odstranit."
+msgstr ""
 
 #: Controller/ServersController.php:1304;1320
 msgid "Upload failed."
-msgstr "Odeslání se nezdařilo."
+msgstr ""
 
 #: Controller/ServersController.php:1312
 msgid "File already exists. If you would like to replace it, remove the old one first."
-msgstr "Soubor již existuje. Pokud jej chcete nahradit, musíte nejdříve odstranit starý soubor."
+msgstr ""
 
 #: Controller/ServersController.php:1808
 msgid "Starting server caching."
@@ -1270,23 +1270,23 @@ msgstr ""
 
 #: Controller/ShadowAttributesController.php:212
 msgid "Moving of the file that this attachment references failed."
-msgstr "Přesun souboru, na který tato příloha odkazuje se nezdařil."
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:281
 msgid "Could not discard proposal."
-msgstr "Návrh se nepodařilo smazat."
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:342
 msgid "Attribute has not been added: attachments are added by \"Add attachment\" button"
-msgstr "Atribut nebyl přidán: přílohy musí být přidávány pomocí tlačítka \"Přidat přílohu\""
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:390;393;402
 msgid "The lines"
-msgstr "Řádky"
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:442
 msgid "The proposal has been saved"
-msgstr "N8vrh byl uložena"
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:454;763
 msgid "Could not save the proposal. Errors: %s"
@@ -1294,27 +1294,27 @@ msgstr ""
 
 #: Controller/ShadowAttributesController.php:456
 msgid "The proposal could not be saved. Please, try again."
-msgstr "Návrh nelze uložit. Prosím opakujte akci."
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:493
 msgid "Invalid Proposal"
-msgstr "Neplatný návrh"
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:523
 msgid "Proposal not an attachment or malware-sample"
-msgstr "Návrh není přílohou nebo vzorkem malware"
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:619
 msgid "The attachment has been uploaded"
-msgstr "Příloha byla úspěšně nahrána"
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:621
 msgid "The attachment has been uploaded, but some of the proposals could not be created. The failed proposals are: "
-msgstr "Příloha byla odeslána, ale některé návrhy nemohly být vytvořeny. Naúspěšné návrhy: "
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:624
 msgid "The attachment could not be saved, please contact your administrator."
-msgstr "Přílohu nelze uložit, kontaktujte vašeho administrátora."
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:754
 msgid "The proposed Attribute has been saved"
@@ -1326,7 +1326,7 @@ msgstr ""
 
 #: Controller/ShadowAttributesController.php:896;906
 msgid "Invalid proposal."
-msgstr "Neplatný návrh."
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:950
 msgid "No proposals found or invalid event."
@@ -1338,7 +1338,7 @@ msgstr ""
 
 #: Controller/ShadowAttributesController.php:985
 msgid "Invalid UUID"
-msgstr "Neplatný identifikátor UUID"
+msgstr ""
 
 #: Controller/ShadowAttributesController.php:1021
 msgid "This feature is only available using POST requests"
@@ -1434,11 +1434,11 @@ msgstr ""
 
 #: Controller/TagsController.php:367
 msgid "Tag deleted"
-msgstr "Značka odstraněna"
+msgstr ""
 
 #: Controller/TagsController.php:372
 msgid "Tag was not deleted"
-msgstr "Značka nebyla odstraněna"
+msgstr ""
 
 #: Controller/TagsController.php:580
 msgid "Favourite Tags"
@@ -1531,31 +1531,31 @@ msgstr ""
 
 #: Controller/TemplatesController.php:408
 msgid "Event populated, "
-msgstr "Událost vytvořena, "
+msgstr ""
 
 #: Controller/TemplatesController.php:410
 msgid "Event populated, but "
-msgstr "Událost vytvořena, ale "
+msgstr ""
 
 #: Controller/UsersController.php:42;247
 msgid "Invalid user or not authorised."
-msgstr "Neplatný uživatel nebo není autorizován."
+msgstr ""
 
 #: Controller/UsersController.php:54;456;692;938
 msgid "Invalid user"
-msgstr "Neplatný uživatel"
+msgstr ""
 
 #: Controller/UsersController.php:119;599;763
 msgid "Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): "
-msgstr "Neplatná e-mailová doména. Uživatel je omezen na vytváření uživatelů pro následující domény: "
+msgstr ""
 
 #: Controller/UsersController.php:146
 msgid "The profile has been updated"
-msgstr "Profil byl aktualizován"
+msgstr ""
 
 #: Controller/UsersController.php:150
 msgid "The profile could not be updated. Please, try again."
-msgstr "Profil nelze aktualizovat. Prosím opakujte akci."
+msgstr ""
 
 #: Controller/UsersController.php:184
 msgid "Invalid password. Please enter your current password to continue."
@@ -1567,51 +1567,51 @@ msgstr ""
 
 #: Controller/UsersController.php:213
 msgid "Password Changed."
-msgstr "Heslo bylo změněno."
+msgstr ""
 
 #: Controller/UsersController.php:222
 msgid "The password could not be updated. Make sure you meet the minimum password length / complexity requirements."
-msgstr "Nelze aktualizovat heslo. Přesvědčte se, zda splňujete minimální délku hesla a požadavky na složitost."
+msgstr ""
 
 #: Controller/UsersController.php:610
 msgid "The user could not be saved. Invalid organisation."
-msgstr "Uživatele nelze uložit. Neplatná organizace."
+msgstr ""
 
 #: Controller/UsersController.php:632
 msgid "The user has been saved."
-msgstr "Uživatel byl uložen."
+msgstr ""
 
 #: Controller/UsersController.php:641;874
 msgid "The user could not be saved. Please, try again."
-msgstr "Uživatele nelze uložit. Prosím opakujte akci."
+msgstr ""
 
 #: Controller/UsersController.php:866
 msgid "The user has been saved"
-msgstr "Uživatel byl uložen"
+msgstr ""
 
 #: Controller/UsersController.php:946
 msgid "User deleted"
-msgstr "Uživatel odstraněn"
+msgstr ""
 
 #: Controller/UsersController.php:950
 msgid "User was not deleted"
-msgstr "Uživatel nebyl odstraněn"
+msgstr ""
 
 #: Controller/UsersController.php:1028
 msgid "Invalid username or password, try again"
-msgstr "Neplatné uživatelské jméno nebo heslo, zkuste to znovu"
+msgstr ""
 
 #: Controller/UsersController.php:1115
 msgid "Good-Bye"
-msgstr "Nashledanou"
+msgstr ""
 
 #: Controller/UsersController.php:1156
 msgid "New authkey generated."
-msgstr "Vytvořen nový autentizační klíč."
+msgstr ""
 
 #: Controller/UsersController.php:1265
 msgid "You accepted the Terms and Conditions."
-msgstr "Přijali jste podmínky používání."
+msgstr ""
 
 #: Controller/UsersController.php:1447
 msgid "Recipient email not provided"
@@ -1623,11 +1623,11 @@ msgstr ""
 
 #: Controller/UsersController.php:1489
 msgid "E-mails sent, but failed to deliver the messages to the following recipients: "
-msgstr "E-maily odeslané, ale nepodařilo se doručit zprávy následujícím příjemcům: "
+msgstr ""
 
 #: Controller/UsersController.php:1491
 msgid "E-mails sent."
-msgstr "E-maily odeslány."
+msgstr ""
 
 #: Controller/UsersController.php:1565
 msgid "Usage data"
@@ -1765,35 +1765,35 @@ msgstr ""
 
 #: Controller/Component/AdminCrudComponent.php:20
 msgid "The %s has been saved."
-msgstr "%s byl uložen."
+msgstr ""
 
 #: Controller/Component/AdminCrudComponent.php:24;61
 msgid "The %s could not be saved. Please, try again."
-msgstr "%s nelze uložit. Prosím opakujte akci."
+msgstr ""
 
 #: Controller/Component/AdminCrudComponent.php:52;85
 msgid "Invalid %s"
-msgstr "Neplatný %s"
+msgstr ""
 
 #: Controller/Component/AdminCrudComponent.php:57
 msgid "The %s has been saved"
-msgstr "%s uloženo"
+msgstr ""
 
 #: Controller/Component/AdminCrudComponent.php:88
 msgid "%s deleted"
-msgstr "%s odstraněn"
+msgstr ""
 
 #: Controller/Component/AdminCrudComponent.php:91
 msgid "%s was not deleted"
-msgstr "%s nebyla odstraněna"
+msgstr ""
 
 #: Controller/Component/BlackListComponent.php:75
 msgid "Done. Added %d new entries to the blacklist. %d entries could not be saved."
-msgstr "Hotovo. Přidáno %d položek na blacklist. %d položek nelze uložit."
+msgstr ""
 
 #: Controller/Component/BlackListComponent.php:126
 msgid "Blacklist item added."
-msgstr "Položka přidána na blacklist."
+msgstr ""
 
 #: Controller/Component/BlackListComponent.php:133
 msgid "Could not save the blacklist item"
@@ -1801,15 +1801,15 @@ msgstr ""
 
 #: Controller/Component/BlackListComponent.php:155
 msgid "Invalid blacklist entry"
-msgstr "Neplatný vstup pro blacklist"
+msgstr ""
 
 #: Controller/Component/BlackListComponent.php:159
 msgid "Blacklist entry removed"
-msgstr "Položka blacklistu odebrána"
+msgstr ""
 
 #: Controller/Component/BlackListComponent.php:161
 msgid "Could not remove the blacklist entry"
-msgstr "Nelze odstranit položku blacklistu"
+msgstr ""
 
 #: Model/Attribute.php:59
 #: View/Events/filter_event_index.ctp:46;182
@@ -2777,39 +2777,39 @@ msgstr ""
 
 #: Model/Event.php:5485
 msgid "Issues while loading the stix file. "
-msgstr "Problémy při načítání souboru stix. "
+msgstr ""
 
 #: Model/Event.php:5487
 msgid "Issues with the maec library. "
-msgstr "Problémy s knihovnou maec. "
+msgstr ""
 
 #: Model/Event.php:5489
 msgid "Issues executing the ingestion script or invalid input. "
-msgstr "Problémy při spouštění ingest scriptu nebo neplatný vstup. "
+msgstr ""
 
 #: Model/Event.php:5492
 msgid "Please ask your administrator to "
-msgstr "Kontaktujte administrátora pro "
+msgstr ""
 
 #: Model/Event.php:5494
 msgid "Please "
-msgstr "Prosím "
+msgstr ""
 
 #: Model/Event.php:5496
 msgid "check whether the dependencies for STIX are met via the diagnostic tool."
-msgstr "zkontrolujte, zda jsou podmínky pro STIX splněny diagnostickým nástrojem."
+msgstr ""
 
 #: Model/Event.php:5528
 msgid "#"
-msgstr "#"
+msgstr ""
 
 #: Model/Event.php:5537
 msgid "%s not set"
-msgstr "%s není nastaveno"
+msgstr ""
 
 #: Model/Event.php:5760
 msgid "Could not add tags."
-msgstr "Nelze přidat tagy."
+msgstr ""
 
 #: Model/Feed.php:1545;1589
 msgid "Event %s"
@@ -3754,23 +3754,23 @@ msgstr ""
 
 #: Model/Server.php:3704
 msgid "Organisation logos"
-msgstr "Loga organizace"
+msgstr ""
 
 #: Model/Server.php:3705
 msgid "The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name."
-msgstr "Logo používané organizací na index událostí, zobrazení události, diskuse, návrhy, atd. Ujistěte se, že název souboru je ve formátu org.png, kde org je název organizace - malá a velká písmena."
+msgstr ""
 
 #: Model/Server.php:3707
 msgid "48x48 pixel .png files"
-msgstr "soubory PNG 48 x 48 pixelů"
+msgstr ""
 
 #: Model/Server.php:3710;3725
 msgid "Filename must be in the following format: *.png"
-msgstr "Název souboru musí být v následujícím formátu: *.png"
+msgstr ""
 
 #: Model/Server.php:3714
 msgid "Additional image files"
-msgstr "Další obrázky"
+msgstr ""
 
 #: Model/Server.php:3715
 msgid "Image files uploaded into this directory can be used for various purposes, such as for the login page logos"
@@ -3830,17 +3830,17 @@ msgstr ""
 
 #: Plugin/Assets/models/behaviors/LogableBehavior.php:361
 msgid "deleted"
-msgstr "odstraněno"
+msgstr ""
 
 #: Plugin/Assets/models/behaviors/LogableBehavior.php:412
 #: Plugin/SysLogLogable/Model/Behavior/SysLogLogableBehavior.php:40
 msgid "added"
-msgstr "přidáno"
+msgstr ""
 
 #: Plugin/Assets/models/behaviors/LogableBehavior.php:414
 #: Plugin/SysLogLogable/Model/Behavior/SysLogLogableBehavior.php:42
 msgid "updated"
-msgstr "aktualizováno"
+msgstr ""
 
 #: Plugin/magic_tools/models/behaviors/orphans_protectable.php:104
 msgid "it has the following dependent items"
@@ -3851,12 +3851,12 @@ msgstr ""
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:66
 #: View/Pages/doc/using_the_system.ctp:84
 msgid "Add Attribute"
-msgstr "Přidat atribut"
+msgstr ""
 
 #: View/Attributes/add.ctp:7
 #: View/Attributes/edit.ctp:4
 msgid "Edit Attribute"
-msgstr "Upravit atribut"
+msgstr ""
 
 #: View/Attributes/add.ctp:14
 #: View/Attributes/attribute_replace.ctp:12
@@ -3864,7 +3864,7 @@ msgstr "Upravit atribut"
 #: View/ShadowAttributes/add.ctp:10
 #: View/ShadowAttributes/edit.ctp:8
 msgid "(choose one)"
-msgstr "(vyberte jeden)"
+msgstr ""
 
 #: View/Attributes/add.ctp:15
 #: View/Attributes/add_attachment.ctp:9
@@ -3873,7 +3873,7 @@ msgstr "(vyberte jeden)"
 #: View/ShadowAttributes/add_attachment.ctp:9
 #: View/ShadowAttributes/edit.ctp:10
 msgid "Category "
-msgstr "Kategorie "
+msgstr ""
 
 #: View/Attributes/add.ctp:18
 #: View/Attributes/attribute_replace.ctp:15
@@ -3881,21 +3881,21 @@ msgstr "Kategorie "
 #: View/ShadowAttributes/add.ctp:15
 #: View/ShadowAttributes/edit.ctp:13
 msgid "(first choose category)"
-msgstr "(nejprve vyberte kategorii)"
+msgstr ""
 
 #: View/Attributes/add.ctp:19
 #: View/Attributes/edit.ctp:13
 #: View/ShadowAttributes/add.ctp:16
 #: View/ShadowAttributes/edit.ctp:14
 msgid "Type "
-msgstr "Typ "
+msgstr ""
 
 #: View/Attributes/add.ctp:36
 #: View/Attributes/add_attachment.ctp:24
 #: View/Attributes/edit.ctp:24
 #: View/Events/add.ctp:20
 msgid "Distribution "
-msgstr "Distribuce "
+msgstr ""
 
 #: View/Attributes/add.ctp:50
 #: View/Attributes/add_attachment.ctp:33
@@ -3907,7 +3907,7 @@ msgstr "Distribuce "
 #: View/Feeds/edit.ctp:173
 #: View/SharingGroups/view.ctp:2
 msgid "Sharing Group"
-msgstr "Sdílená skupina"
+msgstr ""
 
 #: View/Attributes/add.ctp:67
 #: View/Attributes/add_attachment.ctp:41
@@ -3919,14 +3919,14 @@ msgstr "Sdílená skupina"
 #: View/ShadowAttributes/add_attachment.ctp:13
 #: View/ShadowAttributes/edit.ctp:32
 msgid "Contextual Comment"
-msgstr "Kontextový komentář"
+msgstr ""
 
 #: View/Attributes/add.ctp:76
 #: View/Attributes/edit.ctp:55
 #: View/Elements/eventattributecreation.ctp:53
 #: View/ShadowAttributes/add.ctp:38
 msgid "for Intrusion Detection System"
-msgstr "pro systém detekce vniknutí - IDS"
+msgstr ""
 
 #: View/Attributes/add.ctp:91
 #: View/Attributes/attribute_replace.ctp:38
@@ -3963,7 +3963,7 @@ msgstr "pro systém detekce vniknutí - IDS"
 #: View/Users/edit.ctp:41
 #: View/Whitelists/admin_edit.ctp:13
 msgid "Submit"
-msgstr "Odeslat"
+msgstr ""
 
 #: View/Attributes/add.ctp:92
 #: View/Attributes/attribute_replace.ctp:44
@@ -4030,15 +4030,15 @@ msgstr "Odeslat"
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:32
 #: View/Warninglists/ajax/delete_confirmation.ctp:25
 msgid "Cancel"
-msgstr "Zrušit"
+msgstr ""
 
 #: View/Attributes/add_attachment.ctp:4
 msgid "Add Attachment(s)"
-msgstr "Přidat přílohu(y)"
+msgstr ""
 
 #: View/Attributes/add_attachment.ctp:64
 msgid "Is a malware sample (encrypt and hash)"
-msgstr "Je vzorek malware (šifra a hash)"
+msgstr ""
 
 #: View/Attributes/add_attachment.ctp:73
 msgid "Advanced extraction (if installed)"
@@ -4067,7 +4067,7 @@ msgstr ""
 
 #: View/Attributes/alternate_search_result.ctp:6
 msgid "Event id"
-msgstr "ID události"
+msgstr ""
 
 #: View/Attributes/alternate_search_result.ctp:7
 #: View/Attributes/index.ctp:49
@@ -4078,7 +4078,7 @@ msgstr "ID události"
 #: View/Pages/doc/administration.ctp:90;119;182;196;227
 #: View/Pages/doc/using_the_system.ctp:161;205;268;280
 msgid "Org"
-msgstr "Org"
+msgstr ""
 
 #: View/Attributes/alternate_search_result.ctp:8
 #: View/Elements/Events/View/row_attribute.ctp:68
@@ -4086,16 +4086,16 @@ msgstr "Org"
 #: View/EventBlacklists/edit.ctp:25
 #: View/Events/add_misp_export_result.ctp:5
 msgid "Event info"
-msgstr "Informace o události"
+msgstr ""
 
 #: View/Attributes/alternate_search_result.ctp:9
 msgid "Event date"
-msgstr "Datum události"
+msgstr ""
 
 #: View/Attributes/alternate_search_result.ctp:10
 #: View/Events/view.ctp:459
 msgid "Event graph"
-msgstr "Graf události"
+msgstr ""
 
 #: View/Attributes/alternate_search_result.ctp:11
 msgid "Matches"
@@ -4104,12 +4104,12 @@ msgstr ""
 #: View/Attributes/alternate_search_result.ctp:12
 #: View/Elements/Events/eventIndexTable.ctp:39
 msgid "Attribute Count"
-msgstr "Počet atributů"
+msgstr ""
 
 #: View/Attributes/attribute_replace.ctp:6
 #: View/Pages/doc/using_the_system.ctp:117;119
 msgid "Attribute Replace Tool"
-msgstr "Nástroj pro nahrazení atributu"
+msgstr ""
 
 #: View/Attributes/attribute_replace.ctp:8
 msgid "Choose a category and a type, then paste a list of IOCs that match the selection into the field below. This will delete all of the attributes not found in the new inserted list, whilst creating the attributes that are in the new list but don't exist as attributes. Found matches will be left untouched."
@@ -4117,13 +4117,13 @@ msgstr ""
 
 #: View/Attributes/attribute_replace.ctp:19
 msgid "Mark all new attributes as to IDS"
-msgstr "Označit všechny nové atributy jako pro IDS"
+msgstr ""
 
 #: View/Attributes/attribute_replace.ctp:26
 #: View/Noticelists/view.ctp:36
 #: View/Warninglists/view.ctp:35
 msgid "Values"
-msgstr "Hodnoty"
+msgstr ""
 
 #: View/Attributes/attribute_replace.ctp:33;41
 #: View/Attributes/ajax/attributeEditMassForm.ctp:75
@@ -4141,24 +4141,24 @@ msgstr ""
 
 #: View/Attributes/attribute_replace.ctp:38
 msgid "Replace attributes"
-msgstr "Nahradit atributy"
+msgstr ""
 
 #: View/Attributes/attribute_replace.ctp:38
 msgid "Replaceattributes"
-msgstr "Nahradit atributy"
+msgstr ""
 
 #: View/Attributes/check_composites.ctp:2
 msgid "Failed Composites"
-msgstr "Neúspěšné kompozity"
+msgstr ""
 
 #: View/Attributes/check_composites.ctp:4
 msgid "No Failed Composites"
-msgstr "Žádné selhané kompozity"
+msgstr ""
 
 #: View/Attributes/edit.ctp:16
 #: View/Pages/doc/using_the_system.ctp:368
 msgid "disabled"
-msgstr "zakázáno"
+msgstr ""
 
 #: View/Attributes/edit.ctp:68
 #: View/ShadowAttributes/add.ctp:55
@@ -4175,19 +4175,19 @@ msgstr ""
 #: View/Users/statistics.ctp:16
 #: View/Users/statistics_data.ctp:19
 msgid "Attributes"
-msgstr "Atributy"
+msgstr ""
 
 #: View/Attributes/index.ctp:8
 msgid " with the value containing "
-msgstr "s hodnotou obsahující "
+msgstr ""
 
 #: View/Attributes/index.ctp:9
 msgid " being tagged with "
-msgstr " je označeno "
+msgstr ""
 
 #: View/Attributes/index.ctp:10
 msgid " from the events "
-msgstr " od událostí "
+msgstr ""
 
 #: View/Attributes/index.ctp:11
 msgid " carrying the tag(s) "
@@ -4195,11 +4195,11 @@ msgstr ""
 
 #: View/Attributes/index.ctp:12
 msgid " of type "
-msgstr " typu "
+msgstr ""
 
 #: View/Attributes/index.ctp:13
 msgid " of category "
-msgstr " z kategorie "
+msgstr ""
 
 #: View/Attributes/index.ctp:14
 msgid " created by organisation "
@@ -4207,7 +4207,7 @@ msgstr ""
 
 #: View/Attributes/index.ctp:26
 msgid "Results for all attributes"
-msgstr "Výsledky pro všechny atributy"
+msgstr ""
 
 #: View/Attributes/index.ctp:39;128
 #: View/Elements/eventattribute.ctp:60;227
@@ -4256,7 +4256,7 @@ msgstr "Výsledky pro všechny atributy"
 #: View/Whitelists/admin_index.ctp:14;47
 #: View/Whitelists/index.ctp:14;42
 msgid "previous"
-msgstr "předchozí"
+msgstr ""
 
 #: View/Attributes/index.ctp:41;130
 #: View/Elements/eventattribute.ctp:62;229
@@ -4305,7 +4305,7 @@ msgstr "předchozí"
 #: View/Whitelists/admin_index.ctp:16;49
 #: View/Whitelists/index.ctp:16;44
 msgid "next"
-msgstr "další"
+msgstr ""
 
 #: View/Attributes/index.ctp:54
 #: View/Elements/eventattribute.ctp:157
@@ -4449,7 +4449,7 @@ msgstr ""
 
 #: View/Attributes/report_validation_issues_attributes.ctp:10
 msgid "Value found: "
-msgstr "Nalezená hodnota: "
+msgstr ""
 
 #: View/Attributes/report_validation_issues_attributes.ctp:10
 #: View/Elements/templateElements/populateTemplateFile.ctp:21
@@ -4542,7 +4542,7 @@ msgstr ""
 #: View/Tags/index.ctp:125
 #: View/Whitelists/admin_index.ctp:32
 msgid "Delete"
-msgstr "Odstranit"
+msgstr ""
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:16
 #: View/Attributes/ajax/attributeEditMassForm.ctp:31
@@ -4590,7 +4590,7 @@ msgstr "Odstranit"
 #: View/Templates/view.ctp:41
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:27
 msgid "Yes"
-msgstr "Ano"
+msgstr ""
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:21
 #: View/Attributes/ajax/attributeEditMassForm.ctp:31
@@ -4640,7 +4640,7 @@ msgstr "Ano"
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:32
 #: View/Warninglists/ajax/delete_confirmation.ctp:25
 msgid "No"
-msgstr "Ne"
+msgstr ""
 
 #: View/Attributes/ajax/attributeEditCategoryForm.ctp:5
 #: View/Attributes/ajax/attributeEditCommentForm.ctp:5
@@ -4648,7 +4648,7 @@ msgstr "Ne"
 #: View/Attributes/ajax/attributeEditTypeForm.ctp:5
 #: View/Attributes/ajax/attributeEditValueForm.ctp:6
 msgid "Accept change"
-msgstr "Přijmout změnu"
+msgstr ""
 
 #: View/Attributes/ajax/attributeEditCategoryForm.ctp:6
 #: View/Attributes/ajax/attributeEditCommentForm.ctp:6
@@ -4656,15 +4656,15 @@ msgstr "Přijmout změnu"
 #: View/Attributes/ajax/attributeEditTypeForm.ctp:6
 #: View/Attributes/ajax/attributeEditValueForm.ctp:7
 msgid "Discard change"
-msgstr "Zahodit změny"
+msgstr ""
 
 #: View/Attributes/ajax/attributeEditMassForm.ctp:6
 msgid "Mass Edit Attributes"
-msgstr "Hromadné úpravy atributů"
+msgstr ""
 
 #: View/Attributes/ajax/attributeEditMassForm.ctp:12;31
 msgid "Do not alter current settings"
-msgstr "Neměňte aktuální nastavení"
+msgstr ""
 
 #: View/Attributes/ajax/attributeEditMassForm.ctp:15
 #: View/Elements/eventattributecreation.ctp:30
@@ -4716,13 +4716,13 @@ msgstr ""
 #: View/Attributes/ajax/toggle_correlation.ctp:6
 #: View/Events/ajax/toggle_correlation.ctp:6
 msgid "on"
-msgstr "zap."
+msgstr ""
 
 #: View/Attributes/ajax/attributeEditTo_idsForm.ctp:13
 #: View/Attributes/ajax/toggle_correlation.ctp:6
 #: View/Events/ajax/toggle_correlation.ctp:6
 msgid "off"
-msgstr "vyp."
+msgstr ""
 
 #: View/Attributes/ajax/attributeEditTo_idsForm.ctp:18
 msgid "Set the IDS flag for this attribute."
@@ -4767,7 +4767,7 @@ msgstr ""
 
 #: View/Attributes/ajax/tagRemoveConfirmation.ctp:12
 msgid "Remove"
-msgstr "Odstranit"
+msgstr ""
 
 #: View/Attributes/ajax/toggle_correlation.ctp:6
 msgid "Toggle Correlation %s "
@@ -5729,7 +5729,7 @@ msgstr ""
 #: View/Taxonomies/index.ctp:49
 #: View/Warninglists/index.ctp:60
 msgid "View"
-msgstr "Náhled"
+msgstr ""
 
 #: View/Elements/Events/eventIndexTable.ctp:168
 msgid " correlation(s). Show filtered event with correlation only."
