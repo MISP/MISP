@@ -23,7 +23,7 @@
         $class = '';
     }
     $post_link = $this->Form->postLink(
-        __($text),
+        __('%s', $text),
         $url,
         null,
         empty($message) ? null : $message
