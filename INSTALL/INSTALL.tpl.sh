@@ -669,7 +669,9 @@ if [ "${FLAVOUR}" == "ubuntu" ]; then
     installSupported && exit || exit
   fi
   if [ "${RELEASE}" == "19.04" ]; then
-    echo "Install on Ubuntu 19.04 not supported, bye"
+    echo "Install on Ubuntu 19.04 under development."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installSupported && exit || exit
     exit 1
   fi
   if [ "${RELEASE}" == "19.10" ]; then
