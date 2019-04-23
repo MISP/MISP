@@ -5870,78 +5870,98 @@ class Event extends AppModel
             $total_objects = count($resolved_data['Object']);
             $references = array();
             foreach ($resolved_data['Object'] as $o => $object) {
-                if (!empty($object['Attribute'])) {
-                    $current_object_id = $this->__findCurrentObjectId($id, $object['Attribute']);
-                    if ($current_object_id) {
-                        $original_uuid = $this->Object->find('first', array(
-                            'conditions' => array('Object.id' => $current_object_id, 'Object.event_id' => $id,
-                                                  'Object.name' => $object['name'], 'Object.deleted' => 0),
-                            'recursive' => -1,
-                            'fields' => array('Object.uuid')
-                        ));
-                        if (!empty($original_uuid)) {
-                            $recovered_uuids[$object['uuid']] = $original_uuid['Object']['uuid'];
-                        }
-                        continue;
-                    }
-                }
-                $this->Object->create();
-                $object['event_id'] = $id;
                 $object['meta-category'] = $object['meta_category'];
                 unset($object['meta_category']);
-                if ($this->Object->save($object)) {
-                    $object_id = $this->Object->id;
-                    if ($object_id == $initial_object_id) {
-                        $initial_object = $resolved_data['initialObject'];
-                        if ($object['name'] != $initial_object['Object']['name']) {
-                            throw new NotFoundException(__('Invalid object.'));
+                $object['event_id'] = $id;
+                if (isset($object['id']) && $object['id'] == $initial_object_id) {
+                    $initial_object = $resolved_data['initialObject'];
+                    $recovered_uuids[$object['uuid']] = $initial_object['Object']['uuid'];
+                    if ($object['name'] != $initial_object['Object']['name']) {
+                        throw new NotFoundException(__('Invalid object.'));
+                    }
+                    $initial_attributes = array();
+                    if (!empty($initial_object['Attribute'])) {
+                        foreach ($initial_object['Attribute'] as $initial_attribute) {
+                            $initial_attributes[$initial_attribute['object_relation']][] = $initial_attribute['value'];
                         }
-                        $initial_attributes = array();
-                        if (!empty($initial_object['Attribute'])) {
-                            foreach ($initial_object['Attribute'] as $initial_attribute) {
-                                if (!isset($initial_attributes[$initial_attribute['object_relation']])) {
-                                    $initial_attributes[$initial_attribute['object_relation']] = array($initial_attribute['value']);
-                                } else {
-                                    array_push($initial_attributes[$initial_attribute['object_relation']], $initial_attribute['value']);
-                                }
+                    }
+                    $initial_references = array();
+                    if (!empty($initial_object['ObjectReference'])) {
+                        foreach ($initial_object['ObjectReference'] as $initial_reference) {
+                            $initial_references[$initial_reference['relationship_type']][] = $initial_reference['referenced_uuid'];
+                        }
+                    }
+                    if (!empty($object['Attribute'])) {
+                        foreach ($object['Attribute'] as $object_attribute) {
+                            $object_relation = $object_attribute['object_relation'];
+                            if (isset($initial_attributes[$object_relation]) && in_array($object_attribute['value'], $initial_attributes[$object_relation])) {
+                                continue;
+                            }
+                            if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $initial_object_id)) {
+                                $saved_object_attributes++;
+                            } else {
+                              $failed_object_attributes++;
+                              $lastObjectAttributeError = $this->Attribute->validationErrors;
                             }
                         }
-                        if (!empty($object['Attribute'])) {
-                            foreach ($object['Attribute'] as $object_attribute) {
-                                $object_relation = $object_attribute['object_relation'];
-                                if (isset($initial_attributes[$object_relation]) && in_array($object_attribute['value'], $initial_attributes[$object_relation])) {
-                                    continue;
-                                }
-                                if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $object_id)) {
-                                    $saved_object_attributes++;
-                                } else {
-                                    $failed_object_attributes++;
-                                    $lastObjectAttributeError = $this->Attribute->validationErrors;
-                                }
-                            }
-                        }
-                    } else {
-                        if (!empty($object['Attribute'])) {
-                            foreach ($object['Attribute'] as $object_attribute) {
-                                if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $object_id)) {
-                                    $saved_object_attributes++;
-                                } else {
-                                    $failed_object_attributes++;
-                                    $lastObjectAttributeError = $this->Attribute->validationErrors;
-                                }
-                            }
-                        }
-                        if (!empty($object['ObjectReference'])) {
-                            foreach($object['ObjectReference'] as $object_reference) {
-                                array_push($references, array('objectName' => $object['name'], 'reference' => $object_reference));
-                            }
+                    }
+                    if (!empty($object['ObjectReference'])) {
+                        foreach ($object['ObjectReference'] as $object_reference) {
+                            array_push($references, array('objectId' => $initial_object_id, 'reference' => $object_reference));
                         }
                     }
                     $saved_objects++;
                 } else {
-                    $failed_objects++;
-                    $lastObjectError = $this->Object->validationErrors;
-                    $failed[$object['uuid']] = array('Object' => $object);
+                    if (!empty($object['Attribute'])) {
+                        $current_object_id = $this->__findCurrentObjectId($id, $object['Attribute']);
+                        if ($current_object_id) {
+                            $original_uuid = $this->Object->find('first', array(
+                                'conditions' => array('Object.id' => $current_object_id, 'Object.event_id' => $id,
+                                                      'Object.name' => $object['name'], 'Object.deleted' => 0),
+                                'recursive' => -1,
+                                'fields' => array('Object.uuid')
+                            ));
+                            if (!empty($original_uuid)) {
+                                $recovered_uuids[$object['uuid']] = $original_uuid['Object']['uuid'];
+                            }
+                            $object_id = $current_object_id;
+                        } else {
+                            $this->Object->create();
+                            if ($this->Object->save($object)) {
+                                $object_id = $this->Object->id;
+                                foreach ($object['Attribute'] as $object_attribute) {
+                                    if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $object_id)) {
+                                        $saved_object_attributes++;
+                                    } else {
+                                        $failed_object_attributes++;
+                                        $lastObjectAttributeError = $this->Attribute->validationErrors;
+                                    }
+                                }
+                                $saved_objects++;
+                            } else {
+                                $failed_objects++;
+                                $lastObjectError = $this->Object->validationErrors;
+                                $failed[] = $object['uuid'];
+                                continue;
+                            }
+                        }
+                    } else {
+                        $this->Object->create();
+                        if ($this->Object->save($object)) {
+                            $object_id = $this->Object->id;
+                            $saved_objects++;
+                        } else {
+                            $failed_objects++;
+                            $lastObjectError = $this->Object->validationErrors;
+                            $failed[] = $object['uuid'];
+                            continue;
+                        }
+                    }
+                    if (!empty($object['ObjectReference'])) {
+                        foreach($object['ObjectReference'] as $object_reference) {
+                            array_push($references, array('objectId' => $object_id, 'reference' => $object_reference));
+                        }
+                    }
                 }
                 if ($jobId) {
                     $current = ($o + 1);
