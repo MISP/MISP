@@ -6009,7 +6009,9 @@ class Event extends AppModel
                     'relationship_type' => $reference['relationship_type']
                 );
                 $this->Object->ObjectReference->create();
-                $this->Object->ObjectReference->save($reference);
+                if (!$this->Object->ObjectReference->save($reference)) {
+                    $reference_errors[] = $this->Object->ObjectReference->validationErrors;
+                }
             }
         }
         if ($saved_attributes > 0 || $saved_objects > 0) {
