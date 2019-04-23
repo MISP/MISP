@@ -5844,7 +5844,6 @@ class Event extends AppModel
                 } else {
                     $failed_attributes++;
                     $lastAttributeError = $this->Attribute->validationErrors;
-                    $failed[$attribute['uuid']] = array('Attribute' => $attribute);
                     $original_uuid = $this->Object->Attribute->find('first', array(
                         'conditions' => array('Attribute.event_id' => $id, 'Attribute.object_id' => 0, 'Attribute.deleted' => 0,
                                               'Attribute.type' => $attribute['type'], 'Attribute.value' => $attribute['value']),
@@ -5853,6 +5852,8 @@ class Event extends AppModel
                     ));
                     if (!empty($original_uuid)) {
                         $recovered_uuids[$attribute['uuid']] = $original_uuid['Attribute']['uuid'];
+                    } else {
+                        $failed[] = $attribute['uuid'];
                     }
                 }
                 if ($jobId) {
