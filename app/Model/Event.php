@@ -6064,7 +6064,7 @@ class Event extends AppModel
 
     private function __apply_inflector($count, $scope)
     {
-        return ($count == 1 ? Inflector::singuralize($scope) : Inflector::pluralize($scope));
+        return ($count == 1 ? Inflector::singularize($scope) : Inflector::pluralize($scope));
     }
 
     private function __findCurrentObjectId($event_id, $attributes)
