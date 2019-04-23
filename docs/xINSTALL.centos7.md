@@ -1,9 +1,12 @@
-# INSTALLATION INSTRUCTIONS
+# **deprecated** INSTALLATION INSTRUCTIONS
 ## for CentOS 7.x
+
+
+Please use the Red Hat Enterprise Linux 7 Instructions for a CentOS 7 install. [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
 
 ### -1/ Installer and Manual install instructions
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/xINSTALL.centos7/).
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
 
 !!! warning
     In the **future**, to install MISP on a fresh CentOS 7 install all you need to do is:
@@ -29,9 +32,8 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     It is still considered experimental as not everything works seemlessly.
 
 !!! notice
-    Maintenance will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
-
-CentOS 7.6-1810 [NetInstallURL](http://mirror.centos.org/centos/7.6.1810/os/x86_64/)
+    Maintenance for CentOS 7 will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
+    CentOS 7.6-1810 [NetInstallURL](http://mirror.centos.org/centos/7.6.1810/os/x86_64/)
 
 {!generic/globalVariables.md!}
 
@@ -326,7 +328,6 @@ echo bind-address=127.0.0.1 |sudo tee -a /etc/my.cnf.d/bind-address.cnf
 sudo systemctl restart mariadb.service
 ```
 
-
 #### Manual procedure:
 ```bash
 # Enter the mysql shell
@@ -557,9 +558,9 @@ echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-```
+```bash
 # some misp-modules dependencies
-sudo yum install -y openjpeg-devel
+sudo yum install openjpeg-devel -y
 
 sudo chmod 2777 /usr/local/src
 sudo chown root:users /usr/local/src
