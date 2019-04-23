@@ -289,7 +289,6 @@
 ?>
 <script type="text/javascript">
   var rows = <?php echo json_encode($row_list, true); ?>;
-  var timer;
   $(document).ready(function() {
     enableDisableObjectRows(rows);
         $(".Attribute_value_select").each(function() {

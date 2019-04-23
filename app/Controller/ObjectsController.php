@@ -224,13 +224,6 @@ class ObjectsController extends AppController
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
             }
-            // if (isset($this->request->data['Object']['mergeIntoObject'])) {
-            //     if ($this->request->data['Object']['mergeIntoObject'] != '0') {
-            //         $merge_into_object_id = $this->request->data['Object']['mergeIntoObject'];
-            //         return $this->revise_object('edit', $eventId, $templateId, $merge_into_object_id);
-            //     }
-            //     unset($this->request->data['Object']['mergeIntoObject']);
-            // }
 
             if (isset($this->request->data['Object']['data'])) {
                 $this->request->data = json_decode($this->request->data['Object']['data'], true);
@@ -424,19 +417,14 @@ class ObjectsController extends AppController
         ));
         if (!empty($newer_template)) {
             $newer_template_version = $newer_template['ObjectTemplate']['version'];
-            // check how mergeable it is
+            // check how well the update could go
             $cur_template_temp = Hash::remove(Hash::remove($template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
             $newer_template_temp = Hash::remove(Hash::remove($newer_template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
-            // debug($newer_template[0]);
-            // debug($cur_template[0]);
-            // debug($this->array_diff_recursive($newer_template, $cur_template));
 
             $diff = array();
             foreach ($cur_template_temp as $cur_obj_rel) {
-            // foreach ($newer_template_temp as $cur_obj_rel) {
                 $flag_sim = false;
                 foreach ($newer_template_temp as $newer_obj_rel) {
-                // foreach ($cur_template_temp as $newer_obj_rel) {
                     $tmp = Hash::diff($cur_obj_rel, $newer_obj_rel);
                     if (count($tmp) == 0) {
                         $flag_sim = true;
@@ -445,7 +433,6 @@ class ObjectsController extends AppController
                 }
                 if (!$flag_sim) {
                     $diff[] = $cur_obj_rel;
-                    // $diff[] = $newer_obj_rel;
                 }
             }
 
@@ -467,7 +454,9 @@ class ObjectsController extends AppController
             }
             $this->set('updateable_attribute', $updateable_attribute);
             $this->set('not_updateable_attribute', $not_updateable_attribute);
-            $template = $newer_template;
+            if ($update_template) {
+                $template = $newer_template;
+            }
         } else {
             $newer_template_version = false;
         }
@@ -502,7 +491,7 @@ class ObjectsController extends AppController
                                 $revised_object_both['mergeable'][] = $attribute_to_inject;
                                 $object['Attribute'][] = $attribute_to_inject;
                             }
-                        } else { // NOT GOOD
+                        } else { // Collision on value
                             $attribute_to_inject['current_value'] = $attribute['value'];
                             $attribute_to_inject['merge-possible'] = true; // the user can still swap value
                             $revised_object_both['notMergeable'][] = $attribute_to_inject;
