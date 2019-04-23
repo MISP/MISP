@@ -1872,7 +1872,7 @@ class AppModel extends Model
             $filter = array();
             foreach ($temp as $f) {
                 if ($f[0] === '!') {
-                    $filter['NOT'][] = $f;
+                    $filter['NOT'][] = substr($f, 1);
                 } else {
                     $filter['OR'][] = $f;
                 }

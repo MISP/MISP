@@ -1,4 +1,4 @@
-# INSTALLATION INSTRUCTIONS for RHEL 7.x
+# INSTALLATION INSTRUCTIONS for RHEL 8.x (beta)
 -------------------------
 
 ## 0/ Overview and Assumptions
@@ -12,9 +12,9 @@
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
 
 !!! warning
-    This is a carbon copy of the 7.5 document. Please try to adapt it to the 7.6 BETA release so we can seamlessly switch versions once it is not BETA anymore.
+    This is a carbon copy of the 7.5 document. This will change once we get around updating this document.
 
-This document details the steps to install MISP on Red Hat Enterprise Linux 7.x BETA (RHEL 7.x). At time of this writing it could be tested on version 7.6 BETA.
+This document details the steps to install MISP on Red Hat Enterprise Linux 8.x BETA (RHEL 8.x). At time of this writing it could be tested on version 8.0 BETA.
 
 The following assumptions with regard to this installation have been made.
 
@@ -53,9 +53,9 @@ sudo subscription-manager attach   # attach your system to a current subscriptio
 
 ## 1.4/ Enable the optional, extras and Software Collections (SCL) repos
 ```bash
-sudo subscription-manager repos --enable rhel-7-server-optional-rpms
-sudo subscription-manager repos --enable rhel-7-server-extras-rpms
-sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
+sudo subscription-manager repos --enable rhel-8-server-optional-rpms
+sudo subscription-manager repos --enable rhel-8-server-extras-rpms
+sudo subscription-manager repos --enable rhel-server-rhscl-8-rpms
 ```
 
 ### 1.5a/ OPTIONAL: Install the deltarpm package to help reduce download size when installing updates
@@ -69,15 +69,15 @@ sudo yum update -y
 ```
 
 !!! note
-    At the time of writing performing a yum update results in the rhel-7-server-rt-beta-rpms being forbidden.<br />
+    At the time of writing performing a yum update results in the rhel-8-server-rt-beta-rpms being forbidden.<br />
     The repo can be disabled using the following command
     ```bash
-    sudo subscription-manager repos --disable rhel-7-server-rt-beta-rpms
+    sudo subscription-manager repos --disable rhel-8-server-rt-beta-rpms
     ```
 
 ## 1.6/ Install the EPEL repo
 ```bash
-sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
+sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
 ```
 
 ## 1.7/ Install the SCL repo
@@ -106,23 +106,23 @@ sudo systemctl enable rh-mariadb102-mariadb.service
 
 !!! note
     MISP 2.4 requires PHP 5.6 as a minimum, we need a higher version than base RHEL provides.<br />
-    This guide installs PHP 7.1 from SCL
+    This guide installs PHP 7.2 from SCL
 
 !!! warning
     [PHP 5.6 will be EOL in December 2018](https://secure.php.net/supported-versions.php). Please update accordingly. In future only PHP7 will be supported.
 
-## 2.04/ Install PHP 7.1 from SCL
+## 2.04/ Install PHP 7.2 from SCL
 ```bash
-sudo yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysqlnd rh-php71-php-mbstring rh-php71-php-xml rh-php71-php-bcmath rh-php71-php-opcache -y
+sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache -y
 ```
 
 !!! note
-    If we want to use httpd from RHEL base we can use the rh-php71-php-fpm service instead
+    If we want to use httpd from RHEL base we can use the rh-php72-php-fpm service instead
 
 ## 2.05/ Start the PHP FPM service and enable to start on boot
 ```bash
-systemctl start rh-php71-php-fpm.service
-systemctl enable rh-php71-php-fpm.service
+systemctl start rh-php72-php-fpm.service
+systemctl enable rh-php72-php-fpm.service
 ```
 
 ## 2.06/ Install redis 3.2 from SCL
@@ -136,9 +136,9 @@ systemctl start rh-redis32-redis.service
 systemctl enable rh-redis32-redis.service
 ```
 
-## 2.08/ Start a SCL shell with rh-mariadb102 rh-php71 and rh-redis32 enabled
+## 2.08/ Start a SCL shell with rh-mariadb102 rh-php72 and rh-redis32 enabled
 ```bash
-scl enable rh-mariadb102 rh-php71 rh-redis32 bash
+scl enable rh-mariadb102 rh-php72 rh-redis32 bash
 ```
 
 ## 2.08/ Secure the MariaDB installation, run the following command and follow the prompts
@@ -212,9 +212,9 @@ umask $UMASK
 
 ## 3.05/ Enable python3 for php-fpm
 ```bash
-echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php71/sysconfig/php-fpm
-sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php71/php-fpm.d/www.conf
-systemctl restart rh-php71-php-fpm.service
+echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php72/sysconfig/php-fpm
+sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+systemctl restart rh-php72-php-fpm.service
 ```
 
 # 4/ CakePHP
@@ -245,15 +245,15 @@ php composer.phar install
 ## 4.03/ Install and configure php redis connector through pecl
 ```bash
 pecl install redis
-echo "extension=redis.so" > /etc/opt/rh/rh-php71/php-fpm.d/redis.ini
-ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php71/php.d/99-redis.ini
-systemctl restart rh-php71-php-fpm.service
+echo "extension=redis.so" > /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
+ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
+systemctl restart rh-php72-php-fpm.service
 ```
 
 ## 4.04/ Set a timezone in php.ini
 ```bash
-echo 'date.timezone = "Australia/Sydney"' > /etc/opt/rh/rh-php71/php-fpm.d/timezone.ini
-ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php71/php.d/99-timezone.ini
+echo 'date.timezone = "Australia/Sydney"' > /etc/opt/rh/rh-php72/php-fpm.d/timezone.ini
+ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php72/php.d/99-timezone.ini
 ```
 
 ## 4.05/ To use the scheduler worker for scheduled tasks, do the following:
@@ -430,7 +430,7 @@ sudo -u apache gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > 
 ## 9.06/ Start the workers to enable background jobs
 ```bash
 chmod +x /var/www/MISP/app/Console/worker/start.sh
-su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
+su -s /bin/bash apache -c 'scl enable rh-php72 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
 ```
 
 ## 9.07a/ To make the background workers start on boot
@@ -440,7 +440,7 @@ vi /etc/rc.local
 
 ## 9.07b/ Add the following line at the end
 ```bash
-su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
+su -s /bin/bash apache -c 'scl enable rh-php72 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
 ```
 
 ## 9.07c/ and make sure it will execute
@@ -489,16 +489,16 @@ chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp/logs/
 
 ## 10.02/ Change php.ini settings to suggested limits from diagnostic page.
 ```bash
-# Edit /etc/opt/rh/rh-php71/php.ini and set the following settings
+# Edit /etc/opt/rh/rh-php72/php.ini and set the following settings
 max_execution_time = 300
 memory_limit = 512M
 upload_max_filesize = 50M
 post_max_size = 50M
 ```
 
-## 10.03/ Restart rh-php71 for settings to take effect
+## 10.03/ Restart rh-php72 for settings to take effect
 ```bash
-systemctl restart rh-php71-php-fpm
+systemctl restart rh-php72-php-fpm
 ```
 
 ## 10.04/ Install pymisp and pydeep for Advanced Attachment handler
@@ -571,7 +571,7 @@ PHP CLI Version cannot be determined. Possibly due to PHP being installed throug
 Possible also due to package being installed via SCL, attempting to start workers through the web page will result in
 error. Worker's can be restarted via the CLI using the following command.
 ```bash
-su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
+su -s /bin/bash apache -c 'scl enable rh-php72 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
 ```
 
 !!! note 
