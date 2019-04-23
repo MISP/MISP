@@ -119,7 +119,7 @@
                     $temp_comparison = 'equal';
                 }
             ?>
-            <div style="border: 1px solid #3465a4 ; border-radius: 5px; <?php echo $temp_comparison == 'above' ? 'filter: grayscale(60%);' : ''; ?>" class="span5 similarObjectPanel">
+            <div style="border: 1px solid #3465a4 ; border-radius: 5px; margin-top: 15px; display: inline-block; vertical-align: top; float: unset; overflow-x: auto; <?php echo $temp_comparison == 'above' ? 'filter: grayscale(60%);' : ''; ?>" class="span5 similarObjectPanel">
                 <?php
                 if ($temp_comparison == 'below') {
                     $btn_style = 'btn-warning';
@@ -135,6 +135,7 @@
                 <div class="blueElement" style="padding: 4px 5px;">
                     <div style="text-align: center;">
                         <input type="button" class="btn <?php echo $btn_style; ?>" onclick="setMergeObject(<?php echo h($object['Object']['id']) ?> ,<?php echo $temp_comparison == 'below' ? 'true' : 'false'; ?>)" value="<?php echo $temp_text; ?>" <?php echo $temp_comparison == 'above' ? 'disabled' : ''; ?>></input>
+                        <span class="badge badge-inverse" style="float: right;" title="<?php echo __('Similarity amount') ?>"><?php echo number_format(intval($similar_object_similarity_amount[$object['Object']['id']]) / count($data['Attribute']), 2)*100 . '%'; ?></span>
                     </div>
                     <div>
                         <span class="bold"><?php echo __('ID') . ':'; ?></span>
@@ -225,6 +226,14 @@
                 <?php endif; ?>
             </div>
         <?php endforeach; ?>
+        <?php if ($similar_objects_count > 10): ?>
+            <div class="row span12" style="margin-top: 20px;">
+                <div class="alert alert-info">
+                    <h4><?php echo __('All similar objects not displayed'); ?></h4>
+                    <?php echo h($similar_objects_count) . __(' Similar objects found.'); ?>
+                </div>
+            </div>
+        <?php endif; ?>
         </div>
     <?php endif; ?>
   <?php

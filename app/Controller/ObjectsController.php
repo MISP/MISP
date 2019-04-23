@@ -92,37 +92,26 @@ class ObjectsController extends AppController
         $this->set('multiple_attribute_allowed', $multiple_attribute_allowed);
         // try to fetch similar objects
         $cur_attrs = Hash::extract($this->request->data, 'Attribute.{n}.value');
-        $options = array(
-            'conditions' => array(
-                'event_id' => $event_id,
-                'NOT' => array(
-                    'AND' => array(
-                        'object_id' => $object_id,
-                        'object_id' => 0
-                    )
-                ),
-                'value' => $cur_attrs
-            ),
-        );
         $conditions = array(
             'AND' => array(
                 $this->MispObject->buildConditions($this->Auth->user()),
                 'event_id' => $event_id,
-                'NOT' => array(
-                    'AND' => array(
-                        'object_id' => $object_id,
-                        'object_id' => 0
-                    )
-                ),
                 'value' => $cur_attrs
             )
         );
-        $similar_object_ids = $this->MispObject->Attribute->find('list', array(
+        $similar_objects = $this->MispObject->Attribute->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1,
-            'fields' => 'object_id',
-            'group' => 'object_id'
+            'fields' => 'object_id, count(object_id) as similarity_amount',
+            'group' => 'object_id',
+            'order' => 'similarity_amount DESC'
         ));
+        $similar_object_ids = array();
+        $similar_object_similarity_amount = array();
+        foreach ($similar_objects as $obj) {
+            $similar_object_ids[] = $obj['Attribute']['object_id'];
+            $similar_object_similarity_amount[$obj['Attribute']['object_id']] = $obj[0]['similarity_amount'];
+        }
 
         $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
         $this->set('action', $action);
@@ -130,10 +119,22 @@ class ObjectsController extends AppController
         $this->set('object_id', $object_id);
         $this->set('event', $event);
         $this->set('data', $this->request->data);
-
-        if (count($similar_object_ids) < 5) {
+        $similar_objects_count = count($similar_object_ids);
+        if ($similar_objects_count > 0) {
+            $similar_object_ids = array_slice($similar_object_ids, 0, 10);
             $similar_objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $similar_object_ids, 'Object.template_uuid' => $template['ObjectTemplate']['uuid'])));
+            foreach ($similar_objects as $key => $obj) {
+                $similar_objects[$key]['Object']['similarity_amount'] = $similar_object_similarity_amount[$obj['Object']['id']];
+            }
+            usort($similar_objects, function ($a, $b) {
+                if ($a['Object']['similarity_amount'] == $b['Object']['similarity_amount']) {
+                    return 0;
+                }
+                return ($a['Object']['similarity_amount'] > $b['Object']['similarity_amount']) ? -1 : 1;
+            });
             $this->set('similar_objects', $similar_objects);
+            $this->set('similar_objects_count', $similar_objects_count);
+            $this->set('similar_object_similarity_amount', $similar_object_similarity_amount);
         }
     }
 
