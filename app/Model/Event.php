@@ -5973,38 +5973,30 @@ class Event extends AppModel
         if (!empty($references)) {
             $reference_errors = array();
             foreach($references as $reference) {
-                $objectName = $reference['objectName'];
+                $object_id = $reference['objectId'];
                 $reference = $reference['reference'];
-                if (array_key_exists($reference['referenced_uuid'], $failed)) {
-                    $referenced_uuid = $reference['referenced_uuid'];
-                    if (isset($failed[$referenced_uuid]['Attribute'])) {
-                        $referenced_object = $failed[$referenced_uuid]['Attribute'];
-                        $error = ' attribute (type: ' . $referenced_object['type'] . '), ';
-                        $target_attributes = $this->Object->Attribute->find('all', array(
-                            'conditions' => array('Attribute.type' => $referenced_object['type'],
-                                                  'Attribute.value' => $referenced_object['value'],
-                                                  'Attribute.deleted' => 0),
-                            'recursive' => -1,
-                            'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
-                        ));
-                        foreach ($target_attributes as $target_attribute) {
-                            if ($target_attribute['Attribute']['event_id'] == $id) {
-                                $target_uuid = $target_attribute['Attribute']['uuid'];
-                                break;
-                            }
-                        }
-                    } else {
-                        $error = 'other object (name: ' . $failed[$referenced_uuid]['Object']['name'] . '), ';
-                    }
-                    if (!isset($target_uuid)) {
-                        array_push($reference_errors, ($reference['relationship_type'] . ' between ' . $objectName . 'object and an' . $error));
-                        continue;
-                    }
-                    $reference['referenced_uuid'] = $target_uuid;
+                if (in_array($reference['object_uuid'], $failed) || in_array($reference['referenced_uuid'], $failed)) {
+                    continue;
+                }
+                if (isset($recovered_uuids[$reference['object_uuid']])) {
+                    $reference['object_uuid'] = $recovered_uuids[$reference['object_uuid']];
+                }
+                if (isset($recovered_uuids[$reference['referenced_uuid']])) {
+                    $reference['referenced_uuid'] = $recovered_uuids[$reference['referenced_uuid']];
+                }
+                $current_reference = $this->Object->ObjectReference->find('all', array(
+                    'conditions' => array('ObjectReference.object_id' => $object_id,
+                                          'ObjectReference.referenced_uuid' => $reference['referenced_uuid'],
+                                          'ObjectReference.relationship_type' => $reference['relationship_type'],
+                                          'ObjectReference.event_id' => $id, 'ObjectReference.deleted' => 0),
+                    'recursive' => -1,
+                    'fields' => ('ObjectReference.uuid')
+                ));
+                if (!empty($current_reference)) {
+                    continue;
                 }
                 list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
                         $reference['referenced_uuid'],
-
                         array('Event' => array('id' => $id))
                 );
                 $reference = array(
