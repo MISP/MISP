@@ -207,7 +207,7 @@
                             <tbody>
                                 <?php foreach ($not_updateable_attribute as $attribute): ?>
                                     <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
-                                        <td>
+                                        <td style="white-space: nowrap;">
                                             <?php if ($attribute['merge-possible']): ?>
                                                 <i class="fas fa-sign-in-alt fa-flip-horizontal useCursorPointer" style="margin-right: 3px;"></i>
                                             <?php else: ?>
@@ -222,7 +222,7 @@
                                 <?php endforeach; ?>
                                 <?php foreach ($updateable_attribute as $attribute): ?>
                                     <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
-                                        <td><?php echo h($attribute['object_relation']); ?></td>
+                                        <td style="white-space: nowrap;"><?php echo h($attribute['object_relation']); ?></td>
                                         <td><?php echo h($attribute['category']); ?></td>
                                         <td><?php echo h($attribute['type']); ?></td>
                                         <td><?php echo h($attribute['value']); ?></td>
@@ -244,7 +244,7 @@
                             <tbody>
                                 <?php foreach ($revised_object['notMergeable'] as $attribute): ?>
                                     <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
-                                        <td>
+                                        <td style="white-space: nowrap;">
                                             <?php if ($attribute['merge-possible']): ?>
                                                 <i class="fas fa-sign-in-alt fa-flip-horizontal useCursorPointer" style="margin-right: 3px;" title="<?php echo __('Overwrite the value with this one'); ?>" data-valueold="<?php echo h($attribute['current_value']); ?>" data-valuerevised="<?php echo h($attribute['value']); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="swapValue(this);"></i>
                                             <?php else: ?>
@@ -262,7 +262,7 @@
                                 <?php endforeach; ?>
                                 <?php foreach ($revised_object['mergeable'] as $attribute): ?>
                                     <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
-                                        <td>
+                                        <td style="white-space: nowrap;">
                                             <?php if (isset($attribute['is_multiple']) && $attribute['is_multiple']): ?>
                                                 <i class="fas fa-copy useCursorPointer" style="margin-right: 3px;" title="<?php echo __('This attribute value is different. However, as multiple is allowed, it as been duplicated.'); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="scrollinRow(this);"></i>
                                             <?php endif; ?>

@@ -200,22 +200,18 @@
                                 }
                             ?>
                             <tr class="<?php echo $classname ?>" data-tohighlight="<?php echo h($to_highlight); ?>" title="<?php echo $title; ?>">
-                                <td><?php echo h($attribute['object_relation']); ?></td>
+                                <td style="white-space: nowrap;"><?php echo h($attribute['object_relation']); ?></td>
                                 <td><?php echo h($attribute['category']); ?></td>
                                 <td><?php echo h($attribute['type']); ?></td>
                                 <td><?php echo h($attribute['value']); ?></td>
                             </tr>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
-                <?php $attribute_ids_to_inject = array_values(array_diff_key($simple_flattened_attribute_noval, $flattened_ids_in_similar_object)); ?>
-                <?php if (!empty($attribute_ids_to_inject)): ?>
-                    <table class="table table-striped table-condensed" style="margin-bottom: 3px; border-top: 2px dashed #3465a4">
-                        <tbody>
-                            <?php foreach ($attribute_ids_to_inject as $attribute_id): ?>
+                        <?php $attribute_ids_to_inject = array_values(array_diff_key($simple_flattened_attribute_noval, $flattened_ids_in_similar_object)); ?>
+                        <?php if (!empty($attribute_ids_to_inject)): ?>
+                            <?php foreach ($attribute_ids_to_inject as $i => $attribute_id): ?>
                                 <?php $attribute = $data['Attribute'][$attribute_id]; ?>
-                                <tr class="success" title="<?php echo __('This attribute will be added to this similar object after the merge.'); ?>">
-                                    <td class="apply_css_arrow"><?php echo h($attribute['object_relation']); ?></td>
+                                <tr class="success" title="<?php echo __('This attribute will be added to this similar object after the merge.'); ?>" style="<?php echo $i == 0 ? 'border-top: 2px dashed #3465a4' : ''; ?>">
+                                    <td style="white-space: nowrap;"><?php echo h($attribute['object_relation']); ?></td>
                                     <td><?php echo h($attribute['category']); ?></td>
                                     <td><?php echo h($attribute['type']); ?></td>
                                     <td><?php echo h($attribute['value']); ?></td>
@@ -226,11 +222,11 @@
                 <?php endif; ?>
             </div>
         <?php endforeach; ?>
-        <?php if ($similar_objects_count > 10): ?>
-            <div class="row span12" style="margin-top: 20px;">
+        <?php if ($similar_objects_count > $similar_objects_threshold): ?>
+            <div class="span5" style="margin-top: 20px;display: inline-block;float: unset;">
                 <div class="alert alert-info">
-                    <h4><?php echo __('All similar objects not displayed'); ?></h4>
-                    <?php echo h($similar_objects_count) . __(' Similar objects found.'); ?>
+                    <h4><?php echo __('All similar objects not displayed...'); ?></h4>
+                    <?php echo sprintf(__('%s Similar objects found. %s not displayed'), $similar_objects_count, $similar_objects_count-$similar_objects_threshold); ?>
                 </div>
             </div>
         <?php endif; ?>

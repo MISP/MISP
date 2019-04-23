@@ -23,7 +23,7 @@ class ObjectsController extends AppController
         }
     }
 
-    public function revise_object($action, $event_id, $template_id, $object_id = false)
+    public function revise_object($action, $event_id, $template_id, $object_id = false, $similar_objects_threshold=10)
     {
         if (!$this->request->is('post') && !$this->request->is('put')) {
             throw new MethodNotAllowedException(__('This action can only be reached via POST requests'));
@@ -121,7 +121,7 @@ class ObjectsController extends AppController
         $this->set('data', $this->request->data);
         $similar_objects_count = count($similar_object_ids);
         if ($similar_objects_count > 0) {
-            $similar_object_ids = array_slice($similar_object_ids, 0, 10);
+            $similar_object_ids = array_slice($similar_object_ids, 0, $similar_objects_threshold);
             $similar_objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $similar_object_ids, 'Object.template_uuid' => $template['ObjectTemplate']['uuid'])));
             foreach ($similar_objects as $key => $obj) {
                 $similar_objects[$key]['Object']['similarity_amount'] = $similar_object_similarity_amount[$obj['Object']['id']];
@@ -135,6 +135,7 @@ class ObjectsController extends AppController
             $this->set('similar_objects', $similar_objects);
             $this->set('similar_objects_count', $similar_objects_count);
             $this->set('similar_object_similarity_amount', $similar_object_similarity_amount);
+            $this->set('similar_objects_threshold', $similar_objects_threshold);
         }
     }
 
@@ -483,18 +484,30 @@ class ObjectsController extends AppController
                         && $attribute['type'] == $attribute_to_inject['type']
                         && $attribute['value'] !== $attribute_to_inject['value']
                     ) {
-                        $multiple = !empty(Hash::extract($newer_template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s][type=%s][multiple=true]', $attribute['object_relation'], $attribute['type'])));
-                        if ($multiple) { // if multiple is set, all good, just create a new entry
-                            $attribute_to_inject['is_multiple'] = true;
-                            $revised_object_both['mergeable'][] = $attribute_to_inject;
-                            $object['Attribute'][] = $attribute_to_inject;
-                            $flag_no_collision = false;
+                        $multiple = !empty(Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s][type=%s][multiple=true]', $attribute['object_relation'], $attribute['type'])));
+                        if ($multiple) { // if multiple is set, check if entry exists already
+                            $flag_entry_exists = false;
+                            foreach ($object['Attribute'] as $attr) {
+                                if (
+                                    $attr['object_relation'] == $attribute_to_inject['object_relation']
+                                    && $attr['type'] == $attribute_to_inject['type']
+                                    && $attr['value'] === $attribute_to_inject['value']
+                                ) {
+                                    $flag_entry_exists = true;
+                                    break;
+                                }
+                            }
+                            if (!$flag_entry_exists) { // entry does no exists, all good
+                                $attribute_to_inject['is_multiple'] = true;
+                                $revised_object_both['mergeable'][] = $attribute_to_inject;
+                                $object['Attribute'][] = $attribute_to_inject;
+                            }
                         } else { // NOT GOOD
                             $attribute_to_inject['current_value'] = $attribute['value'];
                             $attribute_to_inject['merge-possible'] = true; // the user can still swap value
                             $revised_object_both['notMergeable'][] = $attribute_to_inject;
-                            $flag_no_collision = false;
                         }
+                        $flag_no_collision = false;
                     } else if (
                         $attribute['object_relation'] == $attribute_to_inject['object_relation']
                          && $attribute['type'] == $attribute_to_inject['type']
