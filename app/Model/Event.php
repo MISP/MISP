@@ -1472,7 +1472,7 @@ class Event extends AppModel
                     'deleted' => array('function' => 'set_filter_deleted')
                 ),
                 'Attribute' => array(
-                    'value' => array('function' => 'set_filter_value', 'pop' => true),
+                    'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_simple_attribute'),
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
@@ -1504,13 +1504,20 @@ class Event extends AppModel
                                         'event_id'
                                     )
                                 );
-                                $conditions['AND'][] = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
+                                $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
+                                if ($param === 'value') {
+                                    $subQuery[0] = explode('WHERE', $subQuery[0]);
+                                    $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                                    $subQuery[0] = implode('WHERE', $subQuery[0]);
+                                }
+                                $conditions['AND'][] = $subQuery;
                             }
                         }
                     }
                 }
             }
         }
+
         $fields = array('Event.id');
         if (!empty($params['include_attribute_count'])) {
             $fields[] = 'Event.attribute_count';
@@ -2406,11 +2413,12 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_value(&$params, $conditions, $options)
+    public function set_filter_value(&$params, $conditions, $options, $keys = array('Attribute.value1', 'Attribute.value2'))
     {
         if (!empty($params['value'])) {
             $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], array('Attribute.value1', 'Attribute.value2'));
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], $keys);
+
         }
         return $conditions;
     }
