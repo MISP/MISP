@@ -1520,17 +1520,18 @@ class Event extends AppModel
             'recursive' => -1,
             'fields' => $fields
         );
-
-        // Get the count (but not the actual data) of results for paginators
-        $result_count = $this->find('count', $find_params);
-
         if (isset($params['limit'])) {
+            // Get the count (but not the actual data) of results for paginators
+            $result_count = $this->find('count', $find_params);
             $find_params['limit'] = $params['limit'];
             if (isset($params['page'])) {
                 $find_params['page'] = $params['page'];
             }
         }
         $results = $this->find('list', $find_params);
+        if (!isset($params['limit'])) {
+            $result_count = count($results);
+        }
         return $results;
     }
 
@@ -5936,6 +5937,7 @@ class Event extends AppModel
         }
         $filters['include_attribute_count'] = 1;
         $eventid = $this->filterEventIds($user, $filters, $elementCounter);
+        throw new Exception();
         $eventCount = count($eventid);
         $eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
         unset($eventid);
