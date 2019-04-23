@@ -63,8 +63,8 @@
               </thead>
               <tbody>
                 <?php
-                  $simple_flattened_object = array();
-                  $simple_flattened_object_noval = array();
+                  $simple_flattened_attribute = array();
+                  $simple_flattened_attribute_noval = array();
                   $attributeFields = array('category', 'type', 'value', 'to_ids' , 'comment', 'uuid', 'distribution');
                   if (!empty($data['Attribute'])):
                     foreach ($data['Attribute'] as $id => $attribute):
@@ -173,17 +173,27 @@
                                 $simple_flattened_similar_attribute = h($attribute['object_relation']) . '.' . h($attribute['type']) . '.' .h($attribute['value']);
                                 $simple_flattened_similar_attribute_noval = h($attribute['object_relation']) . '.' . h($attribute['type']);
                                 $flattened_ids_in_similar_object[$simple_flattened_similar_attribute_noval] = $attribute['id'];
+                                $multiple_attribute_allowed;
                                 $classname = '';
                                 $to_highlight = '';
                                 $title = '';
                                 if (
                                     isset($simple_flattened_attribute_noval[$simple_flattened_similar_attribute_noval])
                                     && !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
-                                ) { // Not overridable attribute
+                                    && isset($multiple_attribute_allowed[$attribute['object_relation'] . ':' . $attribute['type']])
+                                ) { // Multiple allowed
                                     $classname = 'warning';
-                                    $title = __('This attribute will be preserved after the merge.');
+                                    $title = __('This attribute is also contained by the revised object. However, multiple instance is allowed.');
+                                } else if (
+                                    isset($simple_flattened_attribute_noval[$simple_flattened_similar_attribute_noval])
+                                    && !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
+                                ) { // Not overridable attribute
+                                    $classname = 'error';
+                                    $title = __('This attribute is conflicting, manual merge required.');
                                     $to_highlight = $simple_flattened_similar_attribute_noval;
-                                } else if (!isset($simple_flattened_attribute[$simple_flattened_similar_attribute])) { // Attribute not present in the revised object
+                                } else if (
+                                    !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
+                                ) { // Attribute not present in the revised object
                                     $classname = 'info';
                                     $title = __('This attribute is contain only by this similar object. It will remain untouched.');
                                 }
@@ -232,7 +242,7 @@ function setMergeObject(object_id, update_template) {
 
 function highlight_rows($panel, state) {
     $('#attribute_table').find('tr.error').removeClass('error').attr('title', '');
-    var rows = $panel.find('tr.warning');
+    var rows = $panel.find('tr.error');
     var to_highlight = [];
     rows.each(function() {
         to_highlight.push($(this).data().tohighlight);

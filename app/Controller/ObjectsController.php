@@ -83,6 +83,13 @@ class ObjectsController extends AppController
             }
             $this->set('sg', $sg);
         }
+        $multiple_template_elements = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[multiple=true]'));
+        $multiple_attribute_allowed = array();
+        foreach ($multiple_template_elements as $k => $template_element) {
+            $relation_type = $template_element['object_relation'] . ':' . $template_element['type'];
+            $multiple_attribute_allowed[$relation_type] = true;
+        }
+        $this->set('multiple_attribute_allowed', $multiple_attribute_allowed);
         // try to fetch similar objects
         $cur_attrs = Hash::extract($this->request->data, 'Attribute.{n}.value');
         $options = array(
@@ -414,7 +421,6 @@ class ObjectsController extends AppController
             'order' => array('ObjectTemplate.version DESC')
         ));
         if (!empty($newer_template)) {
-            $template = $newer_template;
             $newer_template_version = $newer_template['ObjectTemplate']['version'];
             // check how mergeable it is
             $cur_template_temp = Hash::remove(Hash::remove($template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
@@ -450,6 +456,7 @@ class ObjectsController extends AppController
                             $attribute['object_relation'] == $temp_element['object_relation']
                             && $attribute['type'] == $temp_element['type']
                         ) {
+                            $attribute['merge-possible'] = false;
                             $not_updateable_attribute[] = $attribute;
                             unset($updateable_attribute[$i]);
                         }
@@ -458,6 +465,7 @@ class ObjectsController extends AppController
             }
             $this->set('updateable_attribute', $updateable_attribute);
             $this->set('not_updateable_attribute', $not_updateable_attribute);
+            $template = $newer_template;
         } else {
             $newer_template_version = false;
         }
@@ -474,20 +482,15 @@ class ObjectsController extends AppController
                         && $attribute['type'] == $attribute_to_inject['type']
                         && $attribute['value'] !== $attribute_to_inject['value']
                     ) {
-                        $multiple = false;
-                        foreach ($newer_template['ObjectTemplateElement'] as $temp_elem) {
-                            if ($temp_elem['object_relation'] == $attribute['object_relation']
-                                && $temp_elem['type'] == $attribute['type']
-                            ) {
-                                $multiple = $temp_elem['multiple'];
-                            }
-                        }
+                        $multiple = !empty(Hash::extract($newer_template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s][type=%s][multiple=true]', $attribute['object_relation'], $attribute['type'])));
                         if ($multiple) { // if multiple is set, all good, just create a new entry
+                            $attribute_to_inject['is_multiple'] = true;
                             $revised_object_both['mergeable'][] = $attribute_to_inject;
                             $object['Attribute'][] = $attribute_to_inject;
                             $flag_no_collision = false;
                         } else { // NOT GOOD
                             $attribute_to_inject['current_value'] = $attribute['value'];
+                            $attribute_to_inject['merge-possible'] = true; // the user can still swap value
                             $revised_object_both['notMergeable'][] = $attribute_to_inject;
                             $flag_no_collision = false;
                         }
@@ -502,6 +505,7 @@ class ObjectsController extends AppController
                 }
                 if ($flag_no_collision) {
                     $revised_object_both['mergeable'][] = $attribute_to_inject;
+                    $object['Attribute'][] = $attribute_to_inject;
                 }
             }
             $this->set('revised_object', $revised_object_both);
