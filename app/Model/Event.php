@@ -5937,7 +5937,6 @@ class Event extends AppModel
         }
         $filters['include_attribute_count'] = 1;
         $eventid = $this->filterEventIds($user, $filters, $elementCounter);
-        throw new Exception();
         $eventCount = count($eventid);
         $eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
         unset($eventid);
