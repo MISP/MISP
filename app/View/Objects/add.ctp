@@ -222,7 +222,6 @@
                                     <?php if (!$attribute['merge-possible']): ?>
                                         <?php
                                             $validOptions = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[type=%s]', $attribute['type']));
-                                            $validOptions = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[type=%s]', 'text')); // TODO: To del
                                         ?>
                                         <tr>
                                             <td class="apply_css_arrow" colspan="4">
