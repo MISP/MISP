@@ -236,7 +236,7 @@ $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
 # lief needs manual compilation
-sudo yum install devtoolset-7 cmake3 -y
+sudo yum install devtoolset-7 cmake3 cppcheck -y
 
 # FIXME: This does not work!
 cd $PATH_TO_MISP/app/files/scripts/lief
@@ -249,19 +249,17 @@ $SUDO_WWW scl enable devtoolset-7 rh-python36 "bash -c 'cmake3 \
 -DLIEF_DOC=off \
 -DCMAKE_BUILD_TYPE=Release \
 ..'"
-#-DCMAKE_INSTALL_PREFIX=$LIEF_INSTALL \
-$SUDO_WWW make -j3
-sudo make install
-cd api/python/lief_pybind11-prefix/src/lief_pybind11
-$SUDO_WWW $PATH_TO_MISP/venv/bin/python setup.py install
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+$SUDO_WWW make -j3 pyLIEF
+
+# The following adds a PYTHONPATH to where the pyLIEF module has been compiled
+echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
 
 # install magic, pydeep
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git
 
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
 
 # Enable python3 for php-fpm
 echo 'source scl_source enable rh-python36' | sudo tee -a /etc/opt/rh/rh-php72/sysconfig/php-fpm
@@ -286,139 +284,135 @@ sudo systemctl restart rh-php72-php-fpm.service
     CakePHP is now included as a submodule of MISP and has been fetch by a previous step.
 
 ```bash
-sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
-sudo mkdir /usr/share/httpd/.composer
-sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
-cd $PATH_TO_MISP/app
-# Update composer.phar (optional)
-#$SUDO_WWW $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-#$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-#$SUDO_WWW $RUN_PHP "php composer-setup.php"
-#$SUDO_WWW $RUN_PHP -- php -r "unlink('composer-setup.php');"
-$SUDO_WWW $RUN_PHP "php composer.phar require kamisama/cake-resque:4.1.2"
-$SUDO_WWW $RUN_PHP "php composer.phar config vendor-dir Vendor"
-$SUDO_WWW $RUN_PHP "php composer.phar install"
+# <snippet-begin 1_installCake_RHEL.sh>
+installCake_RHEL ()
+{
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
+  sudo mkdir /usr/share/httpd/.composer
+  sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
+  cd $PATH_TO_MISP/app
+  # Update composer.phar (optional)
+  #$SUDO_WWW $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  #$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+  #$SUDO_WWW $RUN_PHP "php composer-setup.php"
+  #$SUDO_WWW $RUN_PHP -- php -r "unlink('composer-setup.php');"
+  $SUDO_WWW $RUN_PHP "php composer.phar require kamisama/cake-resque:4.1.2"
+  $SUDO_WWW $RUN_PHP "php composer.phar config vendor-dir Vendor"
+  $SUDO_WWW $RUN_PHP "php composer.phar install"
 
-## sudo yum install php-redis -y
-sudo scl enable rh-php72 'pecl channel-update pecl.php.net'
-sudo scl enable rh-php72 'pecl install redis'
-echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
-sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
-sudo systemctl restart rh-php72-php-fpm.service
+  ## sudo yum install php-redis -y
+  sudo scl enable rh-php72 'pecl channel-update pecl.php.net'
+  sudo scl enable rh-php72 'pecl install redis'
+  echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
+  sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
+  sudo systemctl restart rh-php72-php-fpm.service
 
-# If you have not yet set a timezone in php.ini
-echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/timezone.ini
-sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php72/php.d/99-timezone.ini
+  # If you have not yet set a timezone in php.ini
+  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/timezone.ini
+  sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php72/php.d/99-timezone.ini
 
-# Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
-# max_execution_time = 300
-# memory_limit = 512M
-# upload_max_filesize = 50M
-# post_max_size = 50M
-for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
-do
-    sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
-done
-sudo systemctl restart rh-php72-php-fpm.service
+  # Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
+  # max_execution_time = 300
+  # memory_limit = 512M
+  # upload_max_filesize = 50M
+  # post_max_size = 50M
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+  sudo systemctl restart rh-php72-php-fpm.service
 
-# To use the scheduler worker for scheduled tasks, do the following:
-sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
+  # To use the scheduler worker for scheduled tasks, do the following:
+  sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
+}
+# <snippet-begin 1_installCake_RHEL.sh>
 ```
 
 # 5/ Set file permissions
 ```bash
-# Make sure the permissions are set correctly using the following commands as root:
-sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
-## ? chown -R root:apache /var/www/MISP
-sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
-sudo chmod -R g+r,o= $PATH_TO_MISP
-## **Note :** For updates through the web interface to work, apache must own the /var/www/MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
-sudo chmod -R 750 $PATH_TO_MISP
-sudo chmod -R g+xws $PATH_TO_MISP/app/tmp
-sudo chmod -R g+ws $PATH_TO_MISP/app/files
-sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
-sudo chmod -R g+rw $PATH_TO_MISP/venv
-sudo chmod -R g+rw $PATH_TO_MISP/.git
-sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files
-sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files/terms
-sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files/scripts/tmp
-sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Plugin/CakeResque/tmp
-sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config
-sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/tmp
-sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/orgs
-sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/custom
+# <snippet-begin 2_permissions_RHEL.sh>
+# Main function to fix permissions to something sane
+permissions_RHEL () {
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
+  ## ? chown -R root:apache /var/www/MISP
+  sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
+  sudo chmod -R g+r,o= $PATH_TO_MISP
+  ## **Note :** For updates through the web interface to work, apache must own the /var/www/MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
+  sudo chmod -R 750 $PATH_TO_MISP
+  sudo chmod -R g+xws $PATH_TO_MISP/app/tmp
+  sudo chmod -R g+ws $PATH_TO_MISP/app/files
+  sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chmod -R g+rw $PATH_TO_MISP/venv
+  sudo chmod -R g+rw $PATH_TO_MISP/.git
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files/terms
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Plugin/CakeResque/tmp
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/tmp
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/orgs
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/custom
+}
+# <snippet-end 2_permissions_RHEL.sh>
 ```
 
 # 6/ Create database and user
-## 6.01/ Set database to listen on localhost only
+
+## 6.01/ Set database to listen on localhost oncology's
 ```bash
-# Enable, start and secure your mysql database server
-sudo systemctl enable --now rh-mariadb102-mariadb.service
-echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
-echo bind-address=127.0.0.1 |sudo tee -a /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
-sudo systemctl restart rh-mariadb102-mariadb
-```
+# <snippet-begin 1_prepareDB_RHEL.sh>
+prepareDB_RHEL () {
+  # Enable, start and secure your mysql database server
+  sudo systemctl enable --now rh-mariadb102-mariadb.service
+  echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
+  echo bind-address=127.0.0.1 |sudo tee -a /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
+  sudo systemctl restart rh-mariadb102-mariadb
 
-```bash
-sudo yum install expect -y
+  sudo yum install expect -y
 
-# Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-pw="Password1234"
+  ## The following needs some thoughts about scl enable foo
+  #if [[ ! -e /var/opt/rh/rh-mariadb102/lib/mysql/misp/users.ibd ]]; then
 
-expect -f - <<-EOF
-  set timeout 10
+  # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
+  pw="Password1234"
 
-  spawn sudo scl enable rh-mariadb102 mysql_secure_installation
-  expect "*?assword*"
-  send -- "$pw\r"
-  expect "Enter current password for root (enter for none):"
-  send -- "\r"
-  expect "Set root password?"
-  send -- "y\r"
-  expect "New password:"
-  send -- "${DBPASSWORD_ADMIN}\r"
-  expect "Re-enter new password:"
-  send -- "${DBPASSWORD_ADMIN}\r"
-  expect "Remove anonymous users?"
-  send -- "y\r"
-  expect "Disallow root login remotely?"
-  send -- "y\r"
-  expect "Remove test database and access to it?"
-  send -- "y\r"
-  expect "Reload privilege tables now?"
-  send -- "y\r"
-  expect eof
+  expect -f - <<-EOF
+    set timeout 10
+
+    spawn sudo scl enable rh-mariadb102 mysql_secure_installation
+    expect "*?assword*"
+    send -- "$pw\r"
+    expect "Enter current password for root (enter for none):"
+    send -- "\r"
+    expect "Set root password?"
+    send -- "y\r"
+    expect "New password:"
+    send -- "${DBPASSWORD_ADMIN}\r"
+    expect "Re-enter new password:"
+    send -- "${DBPASSWORD_ADMIN}\r"
+    expect "Remove anonymous users?"
+    send -- "y\r"
+    expect "Disallow root login remotely?"
+    send -- "y\r"
+    expect "Remove test database and access to it?"
+    send -- "y\r"
+    expect "Reload privilege tables now?"
+    send -- "y\r"
+    expect eof
 EOF
 
-sudo yum remove tcl expect -y
+  sudo yum remove tcl expect -y
 
-sudo systemctl restart rh-mariadb102-mariadb
-```
+  sudo systemctl restart rh-mariadb102-mariadb
 
-## 6.02/ Manual procedur: Start a MariaDB shell and create the database
-```bash
-# Enter the mysql shell
-scl enable rh-mariadb102 'mysql -u root -p'
-```
+  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'CREATE DATABASE $DBNAME;'"
+  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBNAME@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
+  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';\""
+  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'"
 
-```
-MariaDB [(none)]> create database misp;
-MariaDB [(none)]> grant usage on *.* to misp@localhost identified by 'XXXXXXXXX';
-MariaDB [(none)]> grant all privileges on misp.* to misp@localhost ;
-MariaDB [(none)]> exit
-```
-
-## 6.02a/ Same as Manual but for copy/paste foo:
-```bash
-scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'CREATE DATABASE $DBNAME;'"
-scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBNAME@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
-scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';\""
-scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'"
-```
-
-## 6.03/ Import the empty MySQL database from MYSQL.sql
-```bash
-$SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | sudo scl enable rh-mariadb102 "mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME"
+  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | sudo scl enable rh-mariadb102 "mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME"
+}
+# <snippet-end 1_prepareDB_RHEL.sh>
 ```
 
 # 7/ Apache Configuration
@@ -432,74 +426,78 @@ $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | sudo scl enable rh-mariadb102 "m
     If it is disabled, you can ignore the **chcon/setsebool/semanage/checkmodule/semodule*** commands.
 
 ```bash
-# Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
-# A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
+# <snippet-begin 1_apacheConfig_RHEL.sh>
+apacheConfig_RHEL () {
+  # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
+  # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
 
-sudo cp $PATH_TO_MISP/INSTALL/apache.misp.centos7.ssl /etc/httpd/conf.d/misp.ssl.conf
-sudo rm /etc/httpd/conf.d/ssl.conf
-sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
-sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
+  sudo cp $PATH_TO_MISP/INSTALL/apache.misp.centos7.ssl /etc/httpd/conf.d/misp.ssl.conf
+  sudo rm /etc/httpd/conf.d/ssl.conf
+  sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
+  sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
 
-# If a valid SSL certificate is not already created for the server, create a self-signed certificate:
-echo "The Common Name used below will be: ${OPENSSL_CN}"
-# This will take a rather long time, be ready. (13min on a VM, 8GB Ram, 1 core)
-sudo openssl dhparam -out /etc/pki/tls/certs/dhparam.pem 4096
-sudo openssl genrsa -des3 -passout pass:x -out /tmp/misp.local.key 4096
-sudo openssl rsa -passin pass:x -in /tmp/misp.local.key -out /etc/pki/tls/private/misp.local.key
-sudo rm /tmp/misp.local.key
-sudo openssl req -new -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" -key /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.csr
-sudo openssl x509 -req -days 365 -in /etc/pki/tls/certs/misp.local.csr -signkey /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.crt
-sudo ln -s /etc/pki/tls/certs/misp.local.csr /etc/pki/tls/certs/misp-chain.crt
-cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.crt 
+  # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
+  echo "The Common Name used below will be: ${OPENSSL_CN}"
+  # This will take a rather long time, be ready. (13min on a VM, 8GB Ram, 1 core)
+  sudo openssl dhparam -out /etc/pki/tls/certs/dhparam.pem 4096
+  sudo openssl genrsa -des3 -passout pass:x -out /tmp/misp.local.key 4096
+  sudo openssl rsa -passin pass:x -in /tmp/misp.local.key -out /etc/pki/tls/private/misp.local.key
+  sudo rm /tmp/misp.local.key
+  sudo openssl req -new -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" -key /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.csr
+  sudo openssl x509 -req -days 365 -in /etc/pki/tls/certs/misp.local.csr -signkey /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.crt
+  sudo ln -s /etc/pki/tls/certs/misp.local.csr /etc/pki/tls/certs/misp-chain.crt
+  cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.crt 
 
-sudo systemctl restart httpd.service
+  sudo systemctl restart httpd.service
 
-# Since SELinux is enabled, we need to allow httpd to write to certain directories
-sudo chcon -t usr_t $PATH_TO_MISP/venv
-sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files
-sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/terms
-sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/tmp
-sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Plugin/CakeResque/tmp
-sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/cake
-sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/start.sh
-sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmq.py
-sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmqtest.py
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/ps
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/grep
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/awk
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/gpg
-sudo chcon -R -t usr_t $PATH_TO_MISP/venv
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Lib
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/orgs
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/custom
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/mispzmq
+  # Since SELinux is enabled, we need to allow httpd to write to certain directories
+  sudo chcon -t usr_t $PATH_TO_MISP/venv
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/terms
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Plugin/CakeResque/tmp
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/cake
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/start.sh
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmq.py
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmqtest.py
+  sudo chcon -t httpd_sys_script_exec_t /usr/bin/ps
+  sudo chcon -t httpd_sys_script_exec_t /usr/bin/grep
+  sudo chcon -t httpd_sys_script_exec_t /usr/bin/awk
+  sudo chcon -t httpd_sys_script_exec_t /usr/bin/gpg
+  sudo chcon -R -t usr_t $PATH_TO_MISP/venv
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Lib
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/orgs
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/custom
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/mispzmq
+}
+# <snippet-end 1_apacheConfig_RHEL.sh>
 ```
 
 !!! warning
     Todo: Revise all permissions so update in Web UI works.
 
 ```bash
-# Allow httpd to connect to the redis server and php-fpm over tcp/ip
-sudo setsebool -P httpd_can_network_connect on
+# <snippet-begin 1_firewall_RHEL.sh>
+firewall_RHEL () {
+  # Allow httpd to connect to the redis server and php-fpm over tcp/ip
+  sudo setsebool -P httpd_can_network_connect on
 
-# Allow httpd to send emails from php
-sudo setsebool -P httpd_can_sendmail on
+  # Allow httpd to send emails from php
+  sudo setsebool -P httpd_can_sendmail on
 
-# Enable and start the httpd service
-sudo systemctl enable --now httpd.service
+  # Enable and start the httpd service
+  sudo systemctl enable --now httpd.service
 
-# Open a hole in the iptables firewall
-sudo firewall-cmd --zone=public --add-port=80/tcp --permanent
-sudo firewall-cmd --zone=public --add-port=443/tcp --permanent
-sudo firewall-cmd --reload
-
-# We seriously recommend using only HTTPS / SSL !
-# Add SSL support by running: sudo yum install mod_ssl
-# Check out the apache.misp.ssl file for an example
+  # Open a hole in the iptables firewall
+  sudo firewall-cmd --zone=public --add-port=80/tcp --permanent
+  sudo firewall-cmd --zone=public --add-port=443/tcp --permanent
+  sudo firewall-cmd --reload
+}
+# <snippet-end 1_firewall_RHEL.sh>
 ```
 
 # 8/ Log Rotation
@@ -508,108 +506,116 @@ MISP saves the stdout and stderr of it's workers in /var/www/MISP/app/tmp/logs
 To rotate these logs install the supplied logrotate script:
 
 ```bash
-# MISP saves the stdout and stderr of its workers in $PATH_TO_MISP/app/tmp/logs
-# To rotate these logs install the supplied logrotate script:
+# <snippet-begin 2_logRotation_RHEL.sh>
+logRotation_RHEL () {
+  # MISP saves the stdout and stderr of its workers in $PATH_TO_MISP/app/tmp/logs
+  # To rotate these logs install the supplied logrotate script:
 
-sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
-sudo chmod 0640 /etc/logrotate.d/misp
+  sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+  sudo chmod 0640 /etc/logrotate.d/misp
 
-# Now make logrotate work under SELinux as well
-# Allow logrotate to modify the log files
-sudo semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/MISP(/.*)?"
-sudo semanage fcontext -a -t httpd_log_t "$PATH_TO_MISP/app/tmp/logs(/.*)?"
-sudo chcon -R -t httpd_log_t $PATH_TO_MISP/app/tmp/logs
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp/logs
-# Impact of the following: ?!?!?!!?111
-##sudo restorecon -R /var/www/MISP/
+  # Now make logrotate work under SELinux as well
+  # Allow logrotate to modify the log files
+  sudo semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/MISP(/.*)?"
+  sudo semanage fcontext -a -t httpd_log_t "$PATH_TO_MISP/app/tmp/logs(/.*)?"
+  sudo chcon -R -t httpd_log_t $PATH_TO_MISP/app/tmp/logs
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp/logs
+  # Impact of the following: ?!?!?!!?111
+  ##sudo restorecon -R /var/www/MISP/
 
-# Allow logrotate to read /var/www
-sudo checkmodule -M -m -o /tmp/misplogrotate.mod $PATH_TO_MISP/INSTALL/misplogrotate.te
-sudo semodule_package -o /tmp/misplogrotate.pp -m /tmp/misplogrotate.mod
-sudo semodule -i /tmp/misplogrotate.pp
+  # Allow logrotate to read /var/www
+  sudo checkmodule -M -m -o /tmp/misplogrotate.mod $PATH_TO_MISP/INSTALL/misplogrotate.te
+  sudo semodule_package -o /tmp/misplogrotate.pp -m /tmp/misplogrotate.mod
+  sudo semodule -i /tmp/misplogrotate.pp
+}
+# <snippet-end 2_logRotation_RHEL.sh>
 ```
 
 # 9/ MISP Configuration
 
 ```bash
-# There are 4 sample configuration files in $PATH_TO_MISP/app/Config that need to be copied
-$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
-$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
-$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
-$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
+# <snippet-begin 2_configMISP_RHEL.sh>
+configMISP_RHEL () {
+  # There are 4 sample configuration files in $PATH_TO_MISP/app/Config that need to be copied
+  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
+  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
+  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
+  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
 
-echo "<?php
-class DATABASE_CONFIG {
-        public \$default = array(
-                'datasource' => 'Database/Mysql',
-                //'datasource' => 'Database/Postgres',
-                'persistent' => false,
-                'host' => '$DBHOST',
-                'login' => '$DBUSER_MISP',
-                'port' => 3306, // MySQL & MariaDB
-                //'port' => 5432, // PostgreSQL
-                'password' => '$DBPASSWORD_MISP',
-                'database' => '$DBNAME',
-                'prefix' => '',
-                'encoding' => 'utf8',
-        );
-}" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
+  echo "<?php
+  class DATABASE_CONFIG {
+          public \$default = array(
+                  'datasource' => 'Database/Mysql',
+                  //'datasource' => 'Database/Postgres',
+                  'persistent' => false,
+                  'host' => '$DBHOST',
+                  'login' => '$DBUSER_MISP',
+                  'port' => 3306, // MySQL & MariaDB
+                  //'port' => 5432, // PostgreSQL
+                  'password' => '$DBPASSWORD_MISP',
+                  'database' => '$DBNAME',
+                  'prefix' => '',
+                  'encoding' => 'utf8',
+          );
+  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
 
-# Configure the fields in the newly created files:
-# config.php   : baseurl (example: 'baseurl' => 'http://misp',) - don't use "localhost" it causes issues when browsing externally
-# core.php   : Uncomment and set the timezone: `// date_default_timezone_set('UTC');`
-# database.php : login, port, password, database
-# DATABASE_CONFIG has to be filled
-# With the default values provided in section 6, this would look like:
-# class DATABASE_CONFIG {
-#   public $default = array(
-#       'datasource' => 'Database/Mysql',
-#       'persistent' => false,
-#       'host' => 'localhost',
-#       'login' => 'misp', // grant usage on *.* to misp@localhost
-#       'port' => 3306,
-#       'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
-#       'database' => 'misp', // create database misp;
-#       'prefix' => '',
-#       'encoding' => 'utf8',
-#   );
-#}
+  # Configure the fields in the newly created files:
+  # config.php   : baseurl (example: 'baseurl' => 'http://misp',) - don't use "localhost" it causes issues when browsing externally
+  # core.php   : Uncomment and set the timezone: `// date_default_timezone_set('UTC');`
+  # database.php : login, port, password, database
+  # DATABASE_CONFIG has to be filled
+  # With the default values provided in section 6, this would look like:
+  # class DATABASE_CONFIG {
+  #   public $default = array(
+  #       'datasource' => 'Database/Mysql',
+  #       'persistent' => false,
+  #       'host' => 'localhost',
+  #       'login' => 'misp', // grant usage on *.* to misp@localhost
+  #       'port' => 3306,
+  #       'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
+  #       'database' => 'misp', // create database misp;
+  #       'prefix' => '',
+  #       'encoding' => 'utf8',
+  #   );
+  #}
 
-# Important! Change the salt key in $PATH_TO_MISP/app/Config/config.php
-# The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
-# If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
-# delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
+  # Important! Change the salt key in $PATH_TO_MISP/app/Config/config.php
+  # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
+  # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
+  # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
-# If you want to be able to change configuration parameters from the webinterface:
-sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config/config.php
-sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config/config.php
+  # If you want to be able to change configuration parameters from the webinterface:
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config/config.php
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config/config.php
 
-# Generate a GPG encryption key.
-cat >/tmp/gen-key-script <<EOF
-    %echo Generating a default key
-    Key-Type: default
-    Key-Length: $GPG_KEY_LENGTH
-    Subkey-Type: default
-    Name-Real: $GPG_REAL_NAME
-    Name-Comment: $GPG_COMMENT
-    Name-Email: $GPG_EMAIL_ADDRESS
-    Expire-Date: 0
-    Passphrase: $GPG_PASSPHRASE
-    # Do a commit here, so that we can later print "done"
-    %commit
-    %echo done
+  # Generate a GPG encryption key.
+  cat >/tmp/gen-key-script <<EOF
+      %echo Generating a default key
+      Key-Type: default
+      Key-Length: $GPG_KEY_LENGTH
+      Subkey-Type: default
+      Name-Real: $GPG_REAL_NAME
+      Name-Comment: $GPG_COMMENT
+      Name-Email: $GPG_EMAIL_ADDRESS
+      Expire-Date: 0
+      Passphrase: $GPG_PASSPHRASE
+      # Do a commit here, so that we can later print "done"
+      %commit
+      %echo done
 EOF
 
-sudo gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
-sudo rm -f /tmp/gen-key-script
-sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/.gnupg
+  sudo gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
+  sudo rm -f /tmp/gen-key-script
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/.gnupg
 
-# And export the public key to the webroot
-sudo gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS |sudo tee $PATH_TO_MISP/app/webroot/gpg.asc
-sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/gpg.asc
+  # And export the public key to the webroot
+  sudo gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS |sudo tee $PATH_TO_MISP/app/webroot/gpg.asc
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/gpg.asc
 
-echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
-echo "User  (misp) DB Password: $DBPASSWORD_MISP"
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"
+}
+# <snippet-end 2_configMISP_RHEL.sh>
 ```
 
 Review:
@@ -624,12 +630,6 @@ then
     echo 'exit 0' | sudo tee -a /etc/rc.local
     sudo chmod u+x /etc/rc.local
 fi
-
-# TODO: Fix static path with PATH_TO_MISP
-sudo sed -i -e '$i \su -s /bin/bash apache -c "scl enable rh-php72 /var/www/MISP/app/Console/worker/start.sh" > /tmp/worker_start_rc.local.log\n' /etc/rc.local
-# Make sure it will execute
-sudo chmod +x /etc/rc.local
-
 ```
 
 !!! note
@@ -681,20 +681,27 @@ cd /usr/local/src/
 $SUDO_WWW git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip install
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-sudo yum install rubygem-rouge rubygem-asciidoctor -y
-##sudo gem install asciidoctor-pdf --pre
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
+sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
 
-# install additional dependencies for extended object generation and extraction
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install maec python-magic pathlib
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+echo "[Unit]
+Description=MISP's modules
+After=misp-workers.service
 
-# Start misp-modules
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
+[Service]
+Type=simple
+User=apache
+Group=apache
+ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules –l 127.0.0.1 –s\"
+Restart=always
+RestartSec=10
 
-# TODO: Fix static path with PATH_TO_MISP
-sudo sed -i -e '$i \sudo -u apache /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
+[Install]
+WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-modules.service
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now misp-modules
 ```
 
 {!generic/misp-dashboard-centos.md!}
@@ -708,46 +715,11 @@ sudo sed -i -e '$i \sudo -u apache /var/www/MISP/venv/bin/misp-modules -l 127.0.
 # 11/ LIEF Installation
 *lief* is required for the Advanced Attachment Handler and requires manual compilation
 
-## 11.01/ Install cmake3 devtoolset-7 from SCL
-```bash
-yum install devtoolset-7 cmake3
-```
-
-## 11.02/ Create the directory and download the source code
-```bash
-cd /var/www/MISP/app/files/scripts
-git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
-```
-
-## 11.03/ Compile lief and install it
-```bash
-cd /var/www/MISP/app/files/scripts/lief
-mkdir build
-cd build
-scl enable devtoolset-7 rh-python36 'bash -c "cmake3 \
--DLIEF_PYTHON_API=on \
--DLIEF_DOC=off \
--DCMAKE_INSTALL_PREFIX=$LIEF_INSTALL \
--DCMAKE_BUILD_TYPE=Release \
--DPYTHON_VERSION=3.6 \
-.."'
-make -j3
-cd api/python
-scl enable rh-python36 'python3 setup.py install || :'
-# when running setup.py, pip will download and install remote LIEF packages that will prevent MISP from detecting the packages that you compiled ; remove them
-find /opt/rh/rh-python36/root/ -name "*lief*" -exec rm -rf {} \;
-```
-
-## 11.04/ Test lief installation, if no error, package installed
-```bash
-scl enable rh-python36 python3
->> import lief
-```
+The installation is explained in section **[3.01](https://misp.github.io/MISP/INSTALL.rhel7/#301-download-misp-code-using-git-in-varwww-directory)**
 
 # 12/ Known Issues
 ## 12.01/ Workers cannot be started or restarted from the web page
-Possible also due to package being installed via SCL, attempting to start workers through the web page will result in
-error. Worker's can be restarted via the CLI using the following command.
+Possible also due to package being installed via SCL, attempting to start workers through the web page will result in error. Worker's can be restarted via the CLI using the following command.
 ```bash
 systemctl restart misp-workers.service
 ```
