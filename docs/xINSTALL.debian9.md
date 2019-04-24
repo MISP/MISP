@@ -543,6 +543,7 @@ make
 sudo make install
 
 #installing ssdeep_php
+sudo pecl channel-update pecl.php.net
 sudo pecl install ssdeep
 
 # You should add "extension=ssdeep.so" to mods-available - Check /etc/php for your current version
@@ -562,7 +563,7 @@ sudo apt install python3-zmq -y
 
 In case you are using a virtualenv make sure pyzmq is installed therein.
 ```bash
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
@@ -570,6 +571,7 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 # Tested but some issues arose
 ```bash
 sudo apt-get -t testing install librdkafka-dev php-dev
+sudo pecl channel-update pecl.php.net
 sudo pecl install rdkafka
 echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
 sudo phpenmod rdkafka

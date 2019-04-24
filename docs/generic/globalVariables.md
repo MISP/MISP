@@ -5,7 +5,7 @@
 # $ eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | grep -v \`\`\`)"
 # $ MISPvars
 MISPvars () {
-  debug "Setting generic ${LBLUE}MISP${NC} variables shared by all flavours"
+  debug "Setting generic ${LBLUE}MISP${NC} variables shared by all flavours" 2> /dev/null
   # Local non-root MISP user
   MISP_USER='misp'
   MISP_PASSWORD='Password1234'
@@ -65,7 +65,11 @@ MISPvars () {
   CAKE="$PATH_TO_MISP/app/Console/cake"
 
   # sudo config to run $LUSER commands
-  SUDO_USER="sudo -H -u ${MISP_USER} "
+  if [[ "$(groups |grep -o 'staff')" == "staff" ]]; then
+    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+  else
+    SUDO_USER="sudo -H -u ${MISP_USER}"
+  fi
   SUDO_WWW="sudo -H -u ${WWW_USER} "
 
   echo "The following DB Passwords were generated..."

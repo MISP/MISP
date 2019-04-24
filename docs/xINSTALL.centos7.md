@@ -1,5 +1,24 @@
-# INSTALLATION INSTRUCTIONS
+# **deprecated** INSTALLATION INSTRUCTIONS
 ## for CentOS 7.x
+
+
+Please use the Red Hat Enterprise Linux 7 Instructions for a CentOS 7 install. [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
+
+### -1/ Installer and Manual install instructions
+
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
+
+!!! warning
+    In the **future**, to install MISP on a fresh CentOS 7 install all you need to do is:
+
+    ```bash
+    # Please check the installer options first to make the best choice for your install
+    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s
+
+    # This will install MISP Core and misp-modules (recommended)
+    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+    ```
+    **The above does NOT work yet**
 
 ### 0/ MISP CentOS 7 Minimal NetInstall - Status
 --------------------------------------------
@@ -13,9 +32,8 @@
     It is still considered experimental as not everything works seemlessly.
 
 !!! notice
-    Maintenance will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
-
-CentOS 7.6-1810 [NetInstallURL](http://mirror.centos.org/centos/7.6.1810/os/x86_64/)
+    Maintenance for CentOS 7 will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
+    CentOS 7.6-1810 [NetInstallURL](http://mirror.centos.org/centos/7.6.1810/os/x86_64/)
 
 {!generic/globalVariables.md!}
 
@@ -58,7 +76,7 @@ sudo yum install epel-release -y
 # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
 sudo yum install centos-release-scl -y
 
-# Install vim (optional)
+# Because vim is just so practical
 sudo yum install vim -y
 
 # Install the dependencies:
@@ -117,6 +135,7 @@ $SUDO_WWW git submodule update --init --recursive
 $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
 # Install packaged pears
+sudo $RUN_PHP "pear channel-update pear.php.net"
 sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml"
 sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml"
 
@@ -219,12 +238,7 @@ $SUDO_WWW $RUN_PHP "php composer.phar require kamisama/cake-resque:4.1.2"
 $SUDO_WWW $RUN_PHP "php composer.phar config vendor-dir Vendor"
 $SUDO_WWW $RUN_PHP "php composer.phar install"
 
-# CakeResque normally uses phpredis to connect to redis, but it has a (buggy) 
-# fallback connector through Redisent.
-# It is highly advised to install phpredis using "yum install php-redis"
-sudo $RUN_PHP "pecl install redis"
-echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
-sudo ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
+sudo yum install php-redis -y
 sudo systemctl restart rh-php72-php-fpm.service
 
 # If you have not yet set a timezone in php.ini
@@ -314,7 +328,6 @@ echo bind-address=127.0.0.1 |sudo tee -a /etc/my.cnf.d/bind-address.cnf
 sudo systemctl restart mariadb.service
 ```
 
-
 #### Manual procedure:
 ```bash
 # Enter the mysql shell
@@ -352,9 +365,6 @@ $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSW
     SELinux status:                 disabled
     ```
     If it is disabled, you can ignore the **chcon/setsebool/semanage/checkmodule/semodule*** commands.
-
-!!! warning
-    This guide only copies a stock **NON-SSL** configuration file.
 
 ```bash
 # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
@@ -431,7 +441,7 @@ sudo firewall-cmd --reload
 ### 8/ Log rotation
 ---------------
 ```bash
-# MISP saves the stdout and stderr of it's workers in $PATH_TO_MISP/app/tmp/logs
+# MISP saves the stdout and stderr of its workers in $PATH_TO_MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
@@ -548,9 +558,9 @@ echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-```
+```bash
 # some misp-modules dependencies
-sudo yum install -y openjpeg-devel
+sudo yum install openjpeg-devel -y
 
 sudo chmod 2777 /usr/local/src
 sudo chown root:users /usr/local/src

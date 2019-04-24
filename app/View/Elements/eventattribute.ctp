@@ -64,9 +64,7 @@
         <li class="all <?php if ($all) echo 'disabled'; ?>">
             <?php
                 if ($all):
-            ?>
-                <span class="red">view all</span>
-            <?php
+                    echo '<span class="red">' . __('view all') . '</span>';
                 else:
                     echo $this->Paginator->link(__('view all'), 'all');
                 endif;
@@ -233,9 +231,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         <li class="all <?php if ($all) echo 'disabled'; ?>">
             <?php
                 if ($all):
-            ?>
-                <span class="red">view all</span>
-            <?php
+                    echo '<span class="red">' . __('view all') . '</span>';
                 else:
                     echo $this->Paginator->link(__('view all'), 'all');
                 endif;

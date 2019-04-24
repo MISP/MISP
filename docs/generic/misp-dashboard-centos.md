@@ -8,7 +8,7 @@
 cd /var/www
 sudo mkdir misp-dashboard
 sudo chown apache:apache misp-dashboard
-sudo -u apache git clone https://github.com/MISP/misp-dashboard.git
+$SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git
 cd misp-dashboard
 sudo -H /var/www/misp-dashboard/install_dependencies.sh
 sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
