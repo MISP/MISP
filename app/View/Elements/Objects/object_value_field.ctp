@@ -6,16 +6,22 @@
           'class' => 'Attribute_attachment'
         ));
       else:
-        echo h($element['value']);
-        echo $this->Form->input('Attribute.' . $k . '.value', array(
-          'type' => 'textarea',
-          'required' => false,
-          'allowEmpty' => true,
-          'style' => 'height:20px;width:400px;display:none;',
-          'label' => false,
-          'div' => false,
-          'value' => empty($element['value']) ? '' : $element['value']
-        ));
+          if (empty($element['value'])):
+              echo $this->Form->file('Attribute.' . $k . '.Attachment', array(
+                'class' => 'Attribute_attachment'
+              ));
+          else:
+            echo h($element['value']);
+            echo $this->Form->input('Attribute.' . $k . '.value', array(
+              'type' => 'textarea',
+              'required' => false,
+              'allowEmpty' => true,
+              'style' => 'height:20px;width:400px;display:none;',
+              'label' => false,
+              'div' => false,
+              'value' => empty($element['value']) ? '' : $element['value']
+            ));
+          endif;
       endif;
     else:
       if (empty($element['values_list']) && empty($element['sane_default'])):
