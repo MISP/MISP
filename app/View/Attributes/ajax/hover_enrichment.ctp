@@ -2,7 +2,11 @@
     <?php
         foreach ($results as $enrichment_type => $enrichment_values):
             echo sprintf('<h5><span class="hover_enrichment_title blue">%s</span>:</h5>', Inflector::humanize(h($enrichment_type)));
-            if (isset($enrichment_values['Object'])) {
+            if (empty($enrichment_values)) {
+                echo '<div style="padding: 2px;"><span class="empty_results_text red">Empty results</span></div>';
+                continue;
+            }
+            if (!empty($enrichment_values['Object'])) {
                 echo '<h6><span class="bold blue">Objects</span></h6>';
                 foreach ($enrichment_values['Object'] as $object) {
                     echo '<span class="object_name bold blue">' . h($object['name']) . '</span><br />';
@@ -14,7 +18,7 @@
                 }
                 unset($enrichment_values['Object']);
             }
-            if (isset($enrichment_values['Attribute'])) {
+            if (!empty($enrichment_values['Attribute'])) {
                 echo '<h6><span class="bold blue">Attributes</span><br />';
                 foreach ($enrichment_values['Attribute'] as $attribute) {
                     echo '<div style="padding: 2px;"><pre class="attribute">';
