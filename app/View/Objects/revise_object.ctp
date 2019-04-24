@@ -132,7 +132,9 @@
                 <div class="blueElement" style="padding: 4px 5px;">
                     <div style="text-align: center;">
                         <input type="button" class="btn <?php echo $btn_style; ?>" onclick="setMergeObject(<?php echo h($object['Object']['id']) ?> ,<?php echo $temp_comparison == 'below' ? 'true' : 'false'; ?>)" value="<?php echo $temp_text; ?>" <?php echo $temp_comparison == 'above' ? 'disabled' : ''; ?>></input>
-                        <span class="badge badge-inverse" style="float: right;" title="<?php echo __('Similarity amount') ?>"><?php echo number_format(intval($similar_object_similarity_amount[$object['Object']['id']]) / count($data['Attribute']), 2)*100 . '%'; ?></span>
+                        <span class="badge badge-inverse" style="float: right;" title="<?php echo __('Similarity amount') ?>">
+                            <?php echo number_format(intval($similar_object_similarity_amount[$object['Object']['id']]) / count($data['Attribute']), 2)*100 . '%'; ?>
+                        </span>
                     </div>
                     <div>
                         <span class="bold"><?php echo __('ID') . ':'; ?></span>
@@ -221,11 +223,12 @@
                 </table>
             </div>
         <?php endforeach; ?>
-        <?php if ($similar_objects_count > $similar_objects_threshold): ?>
+        <?php $similar_objects_count = count($similar_objects); ?>
+        <?php if ($similar_objects_count > $similar_objects_display_threshold): ?>
             <div class="span5" style="margin-top: 20px;display: inline-block;float: unset;">
                 <div class="alert alert-info">
                     <h4><?php echo __('All similar objects not displayed...'); ?></h4>
-                    <?php echo sprintf(__('%s Similar objects found. %s not displayed'), $similar_objects_count, $similar_objects_count-$similar_objects_threshold); ?>
+                    <?php echo sprintf(__('%s Similar objects found. %s not displayed'), $similar_objects_count, $similar_objects_count-$similar_objects_display_threshold); ?>
                 </div>
             </div>
         <?php endif; ?>

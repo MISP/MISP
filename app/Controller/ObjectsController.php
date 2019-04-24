@@ -23,7 +23,7 @@ class ObjectsController extends AppController
         }
     }
 
-    public function revise_object($action, $event_id, $template_id, $object_id = false, $similar_objects_threshold=10)
+    public function revise_object($action, $event_id, $template_id, $object_id = false, $similar_objects_display_threshold=10)
     {
         if (!$this->request->is('post') && !$this->request->is('put')) {
             throw new MethodNotAllowedException(__('This action can only be reached via POST requests'));
@@ -120,23 +120,26 @@ class ObjectsController extends AppController
         $this->set('object_id', $object_id);
         $this->set('event', $event);
         $this->set('data', $this->request->data);
-        $similar_objects_count = count($similar_object_ids);
-        if ($similar_objects_count > 0) {
-            $similar_object_ids = array_slice($similar_object_ids, 0, $similar_objects_threshold);
-            $similar_objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $similar_object_ids, 'Object.template_uuid' => $template['ObjectTemplate']['uuid'])));
+        if (!empty($similar_object_ids)) {
+            $similar_object_ids = array_slice($similar_object_ids, 0, $similar_objects_display_threshold); // slice to honor the threshold
+            $similar_objects = $this->MispObject->fetchObjects($this->Auth->user(), array(
+                'conditions' => array(
+                    'Object.id' => $similar_object_ids,
+                    'Object.template_uuid' => $template['ObjectTemplate']['uuid']
+                )
+            ));
             foreach ($similar_objects as $key => $obj) {
-                $similar_objects[$key]['Object']['similarity_amount'] = $similar_object_similarity_amount[$obj['Object']['id']];
+                $similar_objects[$key]['Object']['similarity_amount'] = $similar_object_similarity_amount[$obj['Object']['id']]; // sorting function cannot use external variables
             }
-            usort($similar_objects, function ($a, $b) {
+            usort($similar_objects, function ($a, $b) { // fetch Object returns object sorted by IDs, force the sort by the similarity amount
                 if ($a['Object']['similarity_amount'] == $b['Object']['similarity_amount']) {
                     return 0;
                 }
                 return ($a['Object']['similarity_amount'] > $b['Object']['similarity_amount']) ? -1 : 1;
             });
             $this->set('similar_objects', $similar_objects);
-            $this->set('similar_objects_count', $similar_objects_count);
             $this->set('similar_object_similarity_amount', $similar_object_similarity_amount);
-            $this->set('similar_objects_threshold', $similar_objects_threshold);
+            $this->set('similar_objects_display_threshold', $similar_objects_display_threshold);
         }
     }
 
@@ -352,7 +355,7 @@ class ObjectsController extends AppController
         $this->set('element', $element);
     }
 
-    public function edit($id, $update_template=false)
+    public function edit($id, $update_template_available=false)
     {
         if (Validation::uuid($id)) {
             $conditions = array('Object.uuid' => $id);
@@ -418,11 +421,12 @@ class ObjectsController extends AppController
         ));
         if (!empty($newer_template)) {
             $newer_template_version = $newer_template['ObjectTemplate']['version'];
-            // check how well the update could go
+            // ignore IDs for comparison
             $cur_template_temp = Hash::remove(Hash::remove($template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
             $newer_template_temp = Hash::remove(Hash::remove($newer_template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
 
-            $diff = array();
+            $template_difference = array();
+            // check how current template is included in the newer
             foreach ($cur_template_temp as $cur_obj_rel) {
                 $flag_sim = false;
                 foreach ($newer_template_temp as $newer_obj_rel) {
@@ -433,19 +437,19 @@ class ObjectsController extends AppController
                     }
                 }
                 if (!$flag_sim) {
-                    $diff[] = $cur_obj_rel;
+                    $template_difference[] = $cur_obj_rel;
                 }
             }
 
             $updateable_attribute = $object['Attribute'];
             $not_updateable_attribute = array();
-            if (!empty($diff)) { // older template completely embeded in newer => all mergeable
-                foreach ($diff as $temp_element) {
+            if (!empty($template_difference)) { // older template not completely embeded in newer
+                foreach ($template_difference as $temp_diff_element) {
                     foreach ($object['Attribute'] as $i => $attribute) {
                         if (
-                            $attribute['object_relation'] == $temp_element['object_relation']
-                            && $attribute['type'] == $temp_element['type']
-                        ) {
+                            $attribute['object_relation'] == $temp_diff_element['object_relation']
+                            && $attribute['type'] == $temp_diff_element['type']
+                        ) { // This attribute cannot be merged automatically
                             $attribute['merge-possible'] = false;
                             $not_updateable_attribute[] = $attribute;
                             unset($updateable_attribute[$i]);
@@ -455,17 +459,19 @@ class ObjectsController extends AppController
             }
             $this->set('updateable_attribute', $updateable_attribute);
             $this->set('not_updateable_attribute', $not_updateable_attribute);
-            if ($update_template) {
-                $template = $newer_template;
+            if ($update_template_available) { // template version bump requested
+                $template = $newer_template; // bump the template version
             }
         } else {
             $newer_template_version = false;
         }
 
-        if (isset($this->params['named']['revised_object'])) {
+        if (isset($this->params['named']['revised_object'])) { // revised object data to be injected
             $revised_object = json_decode(base64_decode($this->params['named']['revised_object']), true);
             $revised_object_both = array('mergeable' => array(), 'notMergeable' => array());
 
+            // Loop through attributes to inject and perform the correct action
+            // (inject, duplicate, add warnings, ...) when applicable
             foreach ($revised_object['Attribute'] as $attribute_to_inject) {
                 $flag_no_collision = true;
                 foreach ($object['Attribute'] as $attribute) {
@@ -473,9 +479,9 @@ class ObjectsController extends AppController
                         $attribute['object_relation'] == $attribute_to_inject['object_relation']
                         && $attribute['type'] == $attribute_to_inject['type']
                         && $attribute['value'] !== $attribute_to_inject['value']
-                    ) {
+                    ) { // Collision on value
                         $multiple = !empty(Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s][type=%s][multiple=true]', $attribute['object_relation'], $attribute['type'])));
-                        if ($multiple) { // if multiple is set, check if entry exists already
+                        if ($multiple) { // if multiple is set, check if an entry exists already
                             $flag_entry_exists = false;
                             foreach ($object['Attribute'] as $attr) {
                                 if (
@@ -487,12 +493,12 @@ class ObjectsController extends AppController
                                     break;
                                 }
                             }
-                            if (!$flag_entry_exists) { // entry does no exists, all good
+                            if (!$flag_entry_exists) { // entry does no exists, can be duplicated
                                 $attribute_to_inject['is_multiple'] = true;
                                 $revised_object_both['mergeable'][] = $attribute_to_inject;
                                 $object['Attribute'][] = $attribute_to_inject;
                             }
-                        } else { // Collision on value
+                        } else { // Collision on value, multiple not set => propose overwrite
                             $attribute_to_inject['current_value'] = $attribute['value'];
                             $attribute_to_inject['merge-possible'] = true; // the user can still swap value
                             $revised_object_both['notMergeable'][] = $attribute_to_inject;
@@ -507,7 +513,7 @@ class ObjectsController extends AppController
                         $flag_no_collision = false;
                     }
                 }
-                if ($flag_no_collision) {
+                if ($flag_no_collision) { // no collision, nor equalities => inject it straight away
                     $revised_object_both['mergeable'][] = $attribute_to_inject;
                     $object['Attribute'][] = $attribute_to_inject;
                 }
@@ -586,7 +592,7 @@ class ObjectsController extends AppController
         $this->set('template', $template);
         $this->set('action', 'edit');
         $this->set('object', $object);
-        $this->set('updateTemplate', $update_template);
+        $this->set('update_template_available', $update_template_available);
         $this->set('newer_template_version', $newer_template_version);
         $this->render('add');
     }

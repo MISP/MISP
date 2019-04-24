@@ -1,4 +1,4 @@
-<?php $updateTemplate = isset($updateTemplate) ? $updateTemplate : false; ?>
+<?php $update_template_available = isset($update_template_available) ? $update_template_available : false; ?>
 <div class="<?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php
     $url = ($action == 'add') ? '/objects/revise_object/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/revise_object/edit/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] . '/' . h($object['Object']['id']);
@@ -11,7 +11,7 @@
     <dd>
       <?php
         echo Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' v' . h($template['ObjectTemplate']['version']);
-        if ($action == 'edit' && !$updateTemplate && $newer_template_version !== false): ?>
+        if ($action == 'edit' && !$update_template_available && $newer_template_version !== false): ?>
             <a class="btn btn-mini btn-primary useCursorPointer" title="<?php echo __('Update the template of this object to the newer version: ') . h($newer_template_version) ?>" href="<?php echo $baseurl . '/objects/edit/' . h($object['Object']['id']) . '/1'; ?>">
                 <span class="fa fa-arrow-circle-up"></span>
                 <?php echo __('Update template') ?>
@@ -172,9 +172,9 @@
     ?>
 </div>
 
-<?php if ($updateTemplate || isset($revised_object)): //add control panel (same as distribution network) and fill with data ?>
+<?php if ($update_template_available || isset($revised_object)): //add control panel (same as distribution network) and fill with data ?>
         <div class="fixedRightPanel" style="width: unset; height:unset; background-color: #ffffff">
-            <?php if ($updateTemplate): ?>
+            <?php if ($update_template_available): ?>
                 <div class="fixedRightPanelHeader useCursorPointer" style="box-shadow: 0px 0px 6px #B2B2B2;margin-bottom: 2px;width: 100%;overflow: hidden; padding: 5px;">
                     <i class="fas fa-chevron-circle-down"></i>
                     <span style="margin-left: 5px; display: inline-block; font-size: large;"><?php echo __('Pre-update object\'s template'); ?></span>
