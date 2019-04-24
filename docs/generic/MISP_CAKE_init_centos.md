@@ -2,7 +2,7 @@
 ```bash
 # Initialize user and fetch Auth Key
 $SUDO_WWW -E $RUN_PHP "$CAKE userInit -q"
-AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
+AUTH_KEY=$(scl enable rh-mariadb102 "mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e 'SELECT authkey FROM users;' | tail -1")
 
 # This makes sure all Database upgrades are done, without logging in.
 $SUDO_WWW $RUN_PHP "$CAKE Admin updateDatabase"

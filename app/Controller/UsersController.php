@@ -1984,8 +1984,8 @@ class UsersController extends AppController
             $this->set('pickingMode', false);
             if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
                 $this->set('defaultTabName', "mitre-attack");
+                $this->set('removeTrailling', 2);
             }
-            $this->set('removeTrailling', 2);
 
             $this->set('galaxyName', $matrixData['galaxy']['name']);
             $this->set('galaxyId', $matrixData['galaxy']['id']);

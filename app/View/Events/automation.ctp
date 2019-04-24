@@ -2,9 +2,9 @@
     <h2><?php echo __('Automation');?></h2>
     <p><?php echo __('Automation functionality is designed to automatically feed other tools and systems with the data in your MISP repository.
     To to make this functionality available for automated tools an authentication key is used.');?>
-    <br />You can use the <a href="<?php echo $baseurl;?>/servers/rest">ReST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.
+    <br /><?php echo __('You can use the <a href="servers/rest">ReST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.');?>
     <strong><?php echo __('Make sure you keep your API key secret as it gives access to the all of the data that you normally have access to in MISP.');?></strong>
-    To view the old MISP automation page, click <a href="<?php echo $baseurl; ?>/events/automation/1">here</a>.
+    <?php echo __('To view the old MISP automation page, click <a href="automation/1">here</a>.');?>
     </p>
     <p><?php echo __('Your current key is: <code>%s</code>.
     You can %s this key.', $me['authkey'], $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', 'me')));?>
@@ -44,9 +44,7 @@
                 "event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
                 "sgReferenceOnly" => __('If this flag is set, sharing group objects will not be included, instead only the sharing group ID is set.'),
                 "eventinfo" => __("Filter on the event's info field."),
-                "searchall" => __("Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields."),
-                "requested_attributes" => __("CSV only, select the fields that you wish to include in the CSV export. By setting event level fields additionally, includeContext is not required to get event metadata."),
-                "includeContext" => __("CSV only, add additional event level data to the export. The additional fields can be added via requested_attributes too with more granularity.")
+                "searchall" => __("Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields.")
             ),
             'url' => array(
                 $baseurl . '/attributes/restSearch',
@@ -59,7 +57,7 @@
         foreach ($data['parameters'] as $k => $v) {
             echo sprintf('<span class="bold">%s</span>: %s<br />', $k, $v);
         }
-        $description = 'To export all attributes of types ip-src and ip-dst that have a TLP marking and are not marked TLP:red, use the syntax below. String searches are by default exact lookups, but you can use mysql style "%" wildcards to do substring searches.';
+        $description = __('To export all attributes of types ip-src and ip-dst that have a TLP marking and are not marked TLP:red, use the syntax below. String searches are by default exact lookups, but you can use mysql style "%" wildcards to do substring searches.');
         $url = $baseurl . '/attributes/restSearch';
         $headers = array(
             'Accept: application/json',
@@ -78,8 +76,8 @@
 
     <h3><?php echo __('CSV specific parameters for the restSearch APIs');?></h3>
     <p>
-        <b>requested_attributes</b>: <?php echo __('Limit the list of fields to be returned in the CSV.');?><br />
-        <b>includeContext</b>: <?php echo __('Include the event level meta-data with each attribute.');?><br />
+        <b>requested_attributes</b>: <?php echo __("CSV only, select the fields that you wish to include in the CSV export. By setting event level fields additionally, includeContext is not required to get event metadata.");?><br />
+        <b>includeContext</b>: <?php echo __("CSV only, add additional event level data to the export. The additional fields can be added via requested_attributes too with more granularity.");?><br />
         <b>headerless</b>: <?php echo __('The CSV created when this setting is set to true will not contain the header row.'); ?>
     </p>
     <?php
@@ -88,7 +86,7 @@
             '<p>%s</p><pre>%s</pre><p>%s</p>',
             __('It is also possible to pass all of the above parameters via URL parameters, however this is HIGHLY discouraged. If you however have no other options, simply pass the parameters in the following fashion:'),
             $baseurl . '/attributes/restSearch/returnFormat:text/tags:!tlp:red||!tlp:amber||tlp:green||tlp:white/publish_timestamp:14d||7d',
-            'As you can see above, "||" can be used to add more values to a "list" and all parameters are passed as key:value components to the URL. Keep in mind, certain special characters in URLs can cause issues, your searches may end up being leaked to logs in transit and there are length limitations to take into account. Use this as a last resort.'
+            __('As you can see above, "||" can be used to add more values to a "list" and all parameters are passed as key:value components to the URL. Keep in mind, certain special characters in URLs can cause issues, your searches may end up being leaked to logs in transit and there are length limitations to take into account. Use this as a last resort.')
         );
     ?>
     <h3><?php echo __('RPZ specific parameters for the restSearch APIs');?></h3>
@@ -159,7 +157,7 @@
 
     <h3><?php echo __('Export attributes of event with specified type as XML');?></h3>
     <p><?php echo __('If you want to export all attributes of a pre-defined type that belong to an event, use the following syntax');?>:</p>
-    <pre><?php echo $baseurl.'/attributes/returnAttributes/json/[id]/[type]/[sigOnly]'; ?></pre>
+    <pre><?php echo $baseurl.'/attributes/returnAttributes/download/[id]/[type]/[sigOnly]'; ?></pre>
     <p><?php echo __('sigOnly is an optional flag that will block all attributes from being exported that don\'t have the IDS flag turned on.
     It is possible to search for several types with the \'&amp;&amp;\' operator and to exclude values with the \'!\' operator.
     For example, to get all IDS signature attributes of type md5 and sha256, but not filename|md5 and filename|sha256 from event 25, use the following');?>: </p>

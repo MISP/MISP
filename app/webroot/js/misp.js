@@ -3156,14 +3156,28 @@ function pivotObjectReferences(url, uuid) {
 }
 
 function toggleBoolFilter(url, param) {
-    url = url.replace(/view\//i, 'viewEventAttributes/');
-    if (url.indexOf(param) > -1) {
-        var replace = '\/' + param + ".+1";
-        var re = new RegExp(replace,"i");
-        url = url.replace(re, '');
-    } else {
-        url = url + '/' + param + ':1'
+    if (querybuilderTool === undefined) {
+        triggerEventFilteringTool(true); // allows to fetch rules
     }
+    var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
+    var res = cleanRules(rules);
+    Object.keys(res).forEach(function(k) {
+        if (url.indexOf(k) > -1) { // delete url rule (will be replaced by query builder value later on)
+            var replace = '\/' + k + ".+/?";
+            var re = new RegExp(replace,"i");
+            url = url.replace(re, '');
+        }
+    });
+
+    if (res[param] !== undefined) { // allow toggle for `deleted`.
+        res[param] = res[param] == '0' ? '2' : '0';
+    } else {
+        res[param] = '0';
+    }
+
+    url += buildFilterURL(res);
+    url = url.replace(/view\//i, 'viewEventAttributes/');
+
     $.ajax({
         type:"get",
         url:url,
@@ -3172,6 +3186,7 @@ function toggleBoolFilter(url, param) {
         },
         success:function (data) {
             $("#attributes_div").html(data);
+            querybuilderTool = undefined;
             $(".loading").hide();
         },
         error:function() {
@@ -4068,7 +4083,7 @@ function queryEventLock(event_id, user_org_id) {
                      if ($('#event_lock_warning').length != 0) {
                          $('#event_lock_warning').remove();
                      }
-                     if (data.startsWith('Warning:')) {
+                     if (data != '') {
                          $('#main-view-container').append(data);
                      }
                  }

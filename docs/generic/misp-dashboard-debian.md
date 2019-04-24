@@ -10,7 +10,7 @@ mispDashboard () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
   cd /var/www
   sudo mkdir misp-dashboard
-  sudo chown www-data:www-data misp-dashboard
+  sudo chown $WWW_USER:$WWW_USER misp-dashboard
 
   $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git
   cd misp-dashboard

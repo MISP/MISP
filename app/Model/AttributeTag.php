@@ -234,4 +234,41 @@ class AttributeTag extends AppModel
         return $allClusters;
     }
 
+    public function extractAttributeTagsNameFromEvent(&$event, $to_extract='both')
+    {
+        $attribute_tags_name = array('tags' => array(), 'clusters' => array());
+        foreach ($event['Attribute'] as $i => $attribute) {
+            if ($to_extract == 'tags' || $to_extract == 'both') {
+                foreach ($attribute['AttributeTag'] as $tag) {
+                    $attribute_tags_name['tags'][] = $tag['Tag']['name'];
+                }
+            }
+            if ($to_extract == 'clusters' || $to_extract == 'both') {
+                foreach ($attribute['Galaxy'] as $galaxy) {
+                    foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                        $attribute_tags_name['clusters'][] = $cluster['tag_name'];
+                    }
+                }
+            }
+        }
+        foreach ($event['Object'] as $i => $object) {
+            foreach ($object['Attribute'] as $j => $object_attribute) {
+                if ($to_extract == 'tags' || $to_extract == 'both') {
+                    foreach ($object_attribute['AttributeTag'] as $tag) {
+                        $attribute_tags_name['tags'][] = $tag['Tag']['name'];
+                    }
+                }
+                if ($to_extract == 'clusters' || $to_extract == 'both') {
+                    foreach ($object_attribute['Galaxy'] as $galaxy) {
+                        foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                            $attribute_tags_name['clusters'][] = $cluster['tag_name'];
+                        }
+                    }
+                }
+            }
+        }
+        $attribute_tags_name['tags'] = array_diff_key($attribute_tags_name['tags'], $attribute_tags_name['clusters']); // de-dup if needed.
+        return $attribute_tags_name;
+    }
+
 }
