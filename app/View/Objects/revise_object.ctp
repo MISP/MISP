@@ -171,7 +171,6 @@
                                 $simple_flattened_similar_attribute = h($attribute['object_relation']) . '.' . h($attribute['type']) . '.' .h($attribute['value']);
                                 $simple_flattened_similar_attribute_noval = h($attribute['object_relation']) . '.' . h($attribute['type']);
                                 $flattened_ids_in_similar_object[$simple_flattened_similar_attribute_noval] = $attribute['id'];
-                                $multiple_attribute_allowed;
                                 $classname = '';
                                 $to_highlight = '';
                                 $title = '';
@@ -194,6 +193,9 @@
                                 ) { // Attribute not present in the revised object
                                     $classname = 'info';
                                     $title = __('This attribute is contain only by this similar object. It will remain untouched.');
+                                } else { // Attributes are basically the same
+                                    $classname = '';
+                                    $title = __('This attribute has the same value as the one in the revised object.');
                                 }
                             ?>
                             <tr class="<?php echo $classname ?>" data-tohighlight="<?php echo h($to_highlight); ?>" title="<?php echo $title; ?>">
@@ -214,9 +216,9 @@
                                     <td><?php echo h($attribute['value']); ?></td>
                                 </tr>
                             <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php endif; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         <?php endforeach; ?>
         <?php if ($similar_objects_count > $similar_objects_threshold): ?>
