@@ -19,9 +19,6 @@ class SightingsController extends AppController
     // takes an attribute ID or UUID
     public function add($id = false)
     {
-        if (!$this->userRole['perm_sighting']) {
-            throw new MethodNotAllowedException('You are not authorised to add sightings data as you don\'t have write access.');
-        }
         if ($this->request->is('post')) {
             $now = time();
             $values = false;
