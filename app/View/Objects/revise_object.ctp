@@ -103,7 +103,7 @@
     <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary')); ?>
     <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse"><?php echo __('Cancel');?></a>
     <?php if (!empty($similar_objects) && $action !== 'edit'): ?>
-        <?php echo '<h3 style="margin-top: 20px;">' . __('The event have similar object.') . '</h3>'; ?>
+        <?php echo '<h3 style="margin-top: 20px;">' . __('The event have similar objects.') . '</h3>'; ?>
         <?php echo '<h5>' . __('Would you like to merge your new object with one of the following?') . '</h5>'; ?>
         <div class="row" style="margin-bottom: 20px;">
         <?php foreach ($similar_objects as $i => $object): ?>
