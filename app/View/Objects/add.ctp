@@ -219,6 +219,29 @@
                                         <td><?php echo h($attribute['type']); ?></td>
                                         <td><?php echo h($attribute['value']); ?></td>
                                     </tr>
+                                    <?php if (!$attribute['merge-possible']): ?>
+                                        <?php
+                                            $validOptions = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[type=%s]', $attribute['type']));
+                                            $validOptions = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[type=%s]', 'text')); // TODO: To del
+                                        ?>
+                                        <tr>
+                                            <td class="apply_css_arrow" colspan="4">
+                                                <?php if (!empty($validOptions)): ?>
+                                                    <select style="width: calc(100% - 100px); margin: 0px;" data-type="<?php echo h($attribute['type']); ?>" data-attrval="<?php echo h($attribute['value']); ?>">
+                                                        <?php foreach ($validOptions as $option): ?>
+                                                            <option value="<?php echo h($option['object_relation']); ?>" data-type="<?php echo h($option['type']); ?>"><?php echo h($option['object_relation']); ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                    <span class="btn btn-inverse useCursorPointer" onclick="insertObjectRelation(this)">
+                                                        <i class="fas useCursorPointer fa-sign-in-alt fa-flip-horizontal"></i>
+                                                        <?php echo __('Insert'); ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <?php echo __('No valid type. This attribute will be lost.'); ?>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
                                 <?php foreach ($updateable_attribute as $attribute): ?>
                                     <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
@@ -315,33 +338,49 @@
       return false;
   });
 
-  function swapValue(clicked) {
-      var $clicked = $(clicked);
-      var old_value = $clicked.data('valueold');
-      var revised_value = $clicked.data('valuerevised');
-      var col_object_relation = $clicked.data('objectrelation');
+    function swapValue(clicked) {
+        var $clicked = $(clicked);
+        var old_value = $clicked.data('valueold');
+        var revised_value = $clicked.data('valuerevised');
+        var col_object_relation = $clicked.data('objectrelation');
       var col_type = $clicked.data('type');
-      var $matching_row = $('#editTable').find('tr.attribute_row:has(td:eq(1) > input[value="' + col_object_relation + '"]):has(td:eq(1) > input[value="' + col_type + '"])');
-      var row_id = $matching_row.attr('id').split('_').slice(-1);
-      var $value_field = $($matching_row.find('div.object_value_field select, div.object_value_field textarea')[0]);
-      var cur_val = $value_field.val();
-      if (cur_val !== old_value) {
-          $value_field.val(old_value);
-          $clicked.addClass('fa-sign-in-alt fa-flip-horizontal').removeClass('fa-trash-restore');
-      } else {
-          $value_field.val(revised_value);
-          $clicked.removeClass('fa-sign-in-alt fa-flip-horizontal').addClass('fa-trash-restore');
-      }
-      $matching_row[0].scrollIntoView(false);
-      $matching_row.children().effect('highlight', {}, 3000);
-  }
+        insertValueAndScroll(col_object_relation, col_type, revised_value, old_value, $clicked);
+    }
 
-  function scrollinRow(clicked) {
-      var $clicked = $(clicked);
-      var col_object_relation = $clicked.data('objectrelation');
-      var col_type = $clicked.data('type');
-      var $matching_rows = $('#editTable').find('tr.attribute_row:has(td:eq(1) > input[value="' + col_object_relation + '"]):has(td:eq(1) > input[value="' + col_type + '"])');
-      $matching_rows.children().effect('highlight', { queue: false }, 3000, function() { $(this).css('background-color', 'unset'); });
-      $matching_rows[$matching_rows.length-1].scrollIntoView(false);
-  }
+    function scrollinRow(clicked) {
+        var $clicked = $(clicked);
+        var col_object_relation = $clicked.data('objectrelation');
+        var col_type = $clicked.data('type');
+        var $matching_rows = $('#editTable').find('tr.attribute_row:has(td:eq(1) > input[name$="[object_relation]"][value="' + col_object_relation + '"]):has(td:eq(1) > input[name$="[type]"][value="' + col_type + '"])');
+        $matching_rows.children().effect('highlight', { queue: false }, 2500, function() { $(this).css('background-color', 'unset'); });
+        $matching_rows[$matching_rows.length-1].scrollIntoView(false);
+    }
+
+    function insertValueAndScroll(col_object_relation, col_type, revised_value, old_value, $clicked) {
+        var $matching_row = $('#editTable').find('tr.attribute_row:has(td:eq(1) > input[name$="[object_relation]"][value="' + col_object_relation + '"]):has(td:eq(1) > input[name$="[type]"][value="' + col_type + '"])');
+        var row_id = $matching_row.attr('id').split('_').slice(-1);
+        var $value_field = $($matching_row.find('div.object_value_field select, div.object_value_field textarea')[0]);
+        var cur_val = $value_field.val();
+        var selected_value;
+        if (cur_val !== old_value) {
+            selected_value = old_value;
+            $value_field.val(old_value);
+            $clicked.addClass('fa-sign-in-alt fa-flip-horizontal').removeClass('fa-trash-restore');
+        } else {
+            selected_value = revised_value;
+            $value_field.val(revised_value);
+            $clicked.removeClass('fa-sign-in-alt fa-flip-horizontal').addClass('fa-trash-restore');
+        }
+        $matching_row[0].scrollIntoView(false);
+        $matching_row.children().effect('highlight', { queue: false, color: $value_field.val() === selected_value ? '#468847' : '#b94a48' }, 2500, function() { $(this).css('background-color', 'unset'); });
+    }
+
+    function insertObjectRelation(clicked) {
+        var $clicked = $(clicked);
+        var $select = $clicked.parent().find('select');
+        var col_object_relation = $select.val();
+        var col_type = $select.find('option:selected').data('type');
+        var revised_value = $select.data('attrval');
+        insertValueAndScroll(col_object_relation, col_type, revised_value, '', $('p'));
+    }
 </script>
