@@ -4068,7 +4068,7 @@ function queryEventLock(event_id, user_org_id) {
                      if ($('#event_lock_warning').length != 0) {
                          $('#event_lock_warning').remove();
                      }
-                     if (data.startsWith('Warning:')) {
+                     if (data != '') {
                          $('#main-view-container').append(data);
                      }
                  }
