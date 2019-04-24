@@ -239,27 +239,35 @@ class AttributeTag extends AppModel
         $attribute_tags_name = array('tags' => array(), 'clusters' => array());
         foreach ($event['Attribute'] as $i => $attribute) {
             if ($to_extract == 'tags' || $to_extract == 'both') {
-                $new_tags = Hash::combine($attribute['AttributeTag'], '{n}.Tag.name', '{n}.Tag.name');
-                $attribute_tags_name['tags'] = array_merge($attribute_tags_name['tags'], $new_tags);
+                foreach ($attribute['AttributeTag'] as $tag) {
+                    $attribute_tags_name['tags'][] = $tag['Tag']['name'];
+                }
             }
             if ($to_extract == 'clusters' || $to_extract == 'both') {
-                $new_tags = Hash::combine($attribute['Galaxy'], '{n}.GalaxyCluster.{n}.tag_name', '{n}.GalaxyCluster.{n}.tag_name');
-                $attribute_tags_name['clusters'] = array_merge($attribute_tags_name['clusters'], $new_tags);
+                foreach ($attribute['Galaxy'] as $galaxy) {
+                    foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                        $attribute_tags_name['clusters'][] = $cluster['tag_name'];
+                    }
+                }
             }
         }
         foreach ($event['Object'] as $i => $object) {
             foreach ($object['Attribute'] as $j => $object_attribute) {
                 if ($to_extract == 'tags' || $to_extract == 'both') {
-                    $new_tags = Hash::combine($object_attribute['AttributeTag'], '{n}.Tag.name', '{n}.Tag.name');
-                    $attribute_tags_name['tags'] = array_merge($attribute_tags_name['tags'], $new_tags);
+                    foreach ($object_attribute['AttributeTag'] as $tag) {
+                        $attribute_tags_name['tags'][] = $tag['Tag']['name'];
+                    }
                 }
                 if ($to_extract == 'clusters' || $to_extract == 'both') {
-                    $new_tags = Hash::combine($object_attribute['Galaxy'], '{n}.GalaxyCluster.{n}.tag_name', '{n}.GalaxyCluster.{n}.tag_name');
-                    $attribute_tags_name['clusters'] = array_merge($attribute_tags_name['clusters'], $new_tags);
+                    foreach ($object_attribute['Galaxy'] as $galaxy) {
+                        foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                            $attribute_tags_name['clusters'][] = $cluster['tag_name'];
+                        }
+                    }
                 }
             }
         }
-        $attribute_tags_name['tags'] = array_diff_key($attribute_tags_name['tags'], $attribute_tags_name['clusters']);
+        $attribute_tags_name['tags'] = array_diff_key($attribute_tags_name['tags'], $attribute_tags_name['clusters']); // de-dup if needed.
         return $attribute_tags_name;
     }
 
