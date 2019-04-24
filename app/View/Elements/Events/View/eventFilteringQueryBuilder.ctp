@@ -389,6 +389,7 @@ function triggerEventFilteringTool(hide) {
         updateURL();
     });
     if (hide === undefined || !hide) {
+        $('#eventFilteringQB').height(qbOptions.rules.rules.length < 7 ? 'unset' : $('#eventFilteringQB').height());
         $wrapper.toggle('blind', 100, { direction: 'up' });
     }
 
