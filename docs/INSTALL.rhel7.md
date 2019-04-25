@@ -54,6 +54,19 @@ PHP_INI=/etc/opt/rh/rh-php72/php.ini
 # <snippet-end 0_RHEL_PHP_INI.sh>
 ```
 
+!!! note
+		For fresh installs the following tips might be handy.<br />
+		Allow ssh to pass the firewall on the CLI
+		```bash
+		firewall-cmd --zone=public --add-port=22/tcp --permanent
+		firewall-cmd --reload
+		```
+		<br />
+		To quickly make sure if NetworkManager handles your network interface on boot, check in the following location:
+		```
+		/etc/sysconfig/network-scripts/ifcfg-*
+		```
+
 # 1/ OS Install and additional repositories
 
 ## 1.1/ Complete a minimal RHEL/CentOS installation, configure IP address to connect automatically.
@@ -203,7 +216,8 @@ sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
 
 # install Mitre's STIX and its dependencies by running the following commands:
-sudo yum install python-lxml python-dateutil python-six -y
+## Probably not needed
+##sudo yum install python-lxml python-dateutil python-six -y
 
 cd $PATH_TO_MISP/app/files/scripts
 $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
@@ -358,7 +372,7 @@ permissions_RHEL () {
 
 # 6/ Create database and user
 
-## 6.01/ Set database to listen on localhost oncology's
+## 6.01/ Set database to listen on localhost only
 ```bash
 # <snippet-begin 1_prepareDB_RHEL.sh>
 prepareDB_RHEL () {
@@ -440,8 +454,8 @@ apacheConfig_RHEL () {
   echo "The Common Name used below will be: ${OPENSSL_CN}"
   # This will take a rather long time, be ready. (13min on a VM, 8GB Ram, 1 core)
   sudo openssl dhparam -out /etc/pki/tls/certs/dhparam.pem 4096
-  sudo openssl genrsa -des3 -passout pass:x -out /tmp/misp.local.key 4096
-  sudo openssl rsa -passin pass:x -in /tmp/misp.local.key -out /etc/pki/tls/private/misp.local.key
+  sudo openssl genrsa -des3 -passout pass:xxxx -out /tmp/misp.local.key 4096
+  sudo openssl rsa -passin pass:xxxx -in /tmp/misp.local.key -out /etc/pki/tls/private/misp.local.key
   sudo rm /tmp/misp.local.key
   sudo openssl req -new -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" -key /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.csr
   sudo openssl x509 -req -days 365 -in /etc/pki/tls/certs/misp.local.csr -signkey /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.crt
