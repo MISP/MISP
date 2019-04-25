@@ -113,6 +113,7 @@
                     'template' => $template,
                     'similar_object_similarity_amount' => $similar_object_similarity_amount,
                     'simple_flattened_attribute_noval' => $simple_flattened_attribute_noval,
+                    'simple_flattened_attribute' => $simple_flattened_attribute,
                     'merge_button_functionname' => 'setMergeObject'
                 ));
             ?>
