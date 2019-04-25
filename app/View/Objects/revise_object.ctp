@@ -162,7 +162,6 @@ function highlight_rows($panel, state) {
             $row_to_highlight.removeClass('error');
         }
     });
-    // $('#attribute_table').find('tr.error').add($panel.find('tr.success, tr.warning, tr.info')).tooltip();
 }
 
 var un_highlight_time;
