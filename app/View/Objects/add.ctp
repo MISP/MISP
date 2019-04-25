@@ -326,15 +326,15 @@
     $(".Attribute_value_select").change(function() {
       checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == '<?php echo __('Enter value manually');?>');
     });
-        $('.add_attribute_row').click(function() {
-            var selector = $(this).data('target');
-            var count = $(this).parent().children(selector).length;
-            $(this).parent().children(selector).first().clone().appendTo($(this).parent()).insertBefore($('.add_unlocked_field'));
-        });
-  });
-  $('.fixedRightPanel .fixedRightPanelHeader').click(function() {
-      $(this).next().toggle('blind');
-      return false;
+    $('.add_attribute_row').click(function() {
+        var selector = $(this).data('target');
+        var count = $(this).parent().children(selector).length;
+        $(this).parent().children(selector).first().clone().appendTo($(this).parent()).insertBefore($('.add_unlocked_field'));
+    });
+    $('.fixedRightPanel .fixedRightPanelHeader').click(function() {
+        $(this).next().toggle('blind');
+        return false;
+    });
   });
 
     function swapValue(clicked) {
