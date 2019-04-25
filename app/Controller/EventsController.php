@@ -5169,13 +5169,9 @@ class EventsController extends AppController
                 }
             }
             $this->set('event', $event);
-            if (!empty($result['results'])) {
-                $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = true, $render_name = 'resolved_misp_format');
-            } else {
-                $this->set('menuItem', 'enrichmentResults');
-                $this->set('title', 'Enrichment Results');
-                $this->render('resolved_misp_format');
-            }
+            $this->set('menuItem', 'enrichmentResults');
+            $this->set('title', 'Enrichment Results');
+            $this->render('resolved_misp_format');
         }
     }
 
@@ -5215,7 +5211,7 @@ class EventsController extends AppController
         $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
     }
 
-    private function __handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = false, $renderName = 'resolved_attributes')
+    private function __handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = false)
     {
         $resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
         if (!empty($result['comment'])) {
@@ -5255,7 +5251,7 @@ class EventsController extends AppController
         $this->set('typeCategoryMapping', $typeCategoryMapping);
         $this->set('title', 'Enrichment Results');
         $this->set('importComment', $importComment);
-        $this->render($renderName);
+        $this->render('resolved_attributes');
     }
 
     public function handleModuleResults($id)
