@@ -23,7 +23,7 @@ class ObjectsController extends AppController
         }
     }
 
-    public function revise_object($action, $event_id, $template_id, $object_id = false, $similar_objects_display_threshold=10)
+    public function revise_object($action, $event_id, $template_id, $object_id = false, $similar_objects_display_threshold=15)
     {
         if (!$this->request->is('post') && !$this->request->is('put')) {
             throw new MethodNotAllowedException(__('This action can only be reached via POST requests'));
@@ -121,6 +121,7 @@ class ObjectsController extends AppController
         $this->set('event', $event);
         $this->set('data', $this->request->data);
         if (!empty($similar_object_ids)) {
+            $this->set('similar_objects_count', count($similar_object_ids));
             $similar_object_ids = array_slice($similar_object_ids, 0, $similar_objects_display_threshold); // slice to honor the threshold
             $similar_objects = $this->MispObject->fetchObjects($this->Auth->user(), array(
                 'conditions' => array(

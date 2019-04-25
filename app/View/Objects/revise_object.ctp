@@ -118,7 +118,6 @@
                 ));
             ?>
         <?php endforeach; ?>
-        <?php $similar_objects_count = count($similar_objects); ?>
         <?php if ($similar_objects_count > $similar_objects_display_threshold): ?>
             <div class="span5" style="margin-top: 20px;display: inline-block;float: unset;">
                 <div class="alert alert-info">
