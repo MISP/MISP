@@ -164,7 +164,23 @@
                     foreach ($object['Attribute'] as $a => $attribute) {
                         echo '<tr class="ObjectAttribute">';
                         echo '<td class="ObjectRelation">' . h($attribute['object_relation']) . '</td>';
-                        foreach ($attributeFields as $field) {
+                        foreach (array('category', 'type') as $field) {
+                            $field_header = 'class="Attribute' . ucfirst($field);
+                            if (isset($attribute[$field])) {
+                                if (is_array($attribute[$field])) {
+                                    echo '<td class="short" style="width:40px;text-align:center;"><select ' . $field_header . 'Select"  style="padding:0px;height:20px;margin-bottom:0px;">';
+                                    foreach ($attribute[$field] as $v => $value) {
+                                        echo '<option value="' . h($value) . '" ' . ($v ? '' : 'selected="selected"') . '>' . h($value) . '</option>';
+                                    }
+                                    echo '</select></td>';
+                                } else {
+                                    echo '<td ' . $field_header . '">' . h($attribute[$field]) . '</td>';
+                                }
+                            } else {
+                                echo '<td ' . $field_header . '"></td>';
+                            }
+                        }
+                        foreach (array('value', 'uuid') as $field) {
                             echo '<td class="Attribute' . ucfirst($field) . '">' . (isset($attribute[$field]) ? h($attribute[$field]) : '') . '</td>';
                         }
             ?>

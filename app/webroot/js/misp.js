@@ -2482,9 +2482,21 @@ function moduleResultsSubmit(id) {
     if ($('.MISPAttributes').length) {
         var attributes = [];
         $('.MISPAttribute').each(function(a) {
+            var category_value;
+            var type_value;
+            if ($(this).find('.AttributeCategorySelect').length) {
+                category_value = $(this).find('.AttributeCategorySelect').val();
+            } else {
+                category_value = $(this).find('.AttributeCategory').text();
+            }
+            if ($(this).find('.AttributeTypeSelect').length) {
+                type_value = $(this).find('.AttributeTypeSelect').val();
+            } else {
+                type_value = $(this).find('.AttributeType').text();
+            }
             temp = {
-                category: $(this).find('.AttributeCategory').text(),
-                type: $(this).find('.AttributeType').text(),
+                category: category_value,
+                type: type_value,
                 value: $(this).find('.AttributeValue').text(),
                 uuid: $(this).find('.AttributeUuid').text(),
                 to_ids: $(this).find('.AttributeToIds')[0].checked,
