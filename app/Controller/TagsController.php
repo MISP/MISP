@@ -1064,14 +1064,15 @@ class TagsController extends AppController
         if (!is_array($tag)) {
             $tag = array($tag);
         }
+        $conditions = array();
         foreach ($tag as $k => $t) {
             $tag[$k] = strtolower($t);
+            $conditions['OR'][] = array('LOWER(GalaxyCluster.value)' => $tag[$k]);
+        }
+        foreach ($tag as $k => $t) {
+            $conditions['OR'][] = array('AND' => array('GalaxyElement.key' => 'synonyms', 'LOWER(GalaxyElement.value) LIKE' => $t));
         }
         $this->loadModel('GalaxyCluster');
-        $conditions = array('OR' => array('LOWER(GalaxyCluster.value) LIKE' => $t, array('GalaxyElement.key' => 'synonyms', 'OR' => array())));
-        foreach ($tag as $k => $t) {
-            $conditions['OR'][0]['OR'][] = array('LOWER(GalaxyElement.value) LIKE' => $t);
-        }
         $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,

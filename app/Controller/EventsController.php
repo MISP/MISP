@@ -1086,6 +1086,10 @@ class EventsController extends AppController
         }
         $event = $results[0];
 
+        $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event, 'both');
+        $this->set('attributeTags', array_values($attributeTagsName['tags']));
+        $this->set('attributeClusters', array_values($attributeTagsName['clusters']));
+
         if (isset($filters['distribution'])) {
             if (!is_array($filters['distribution'])) {
                 $filters['distribution'] = array($filters['distribution']);
@@ -1195,12 +1199,6 @@ class EventsController extends AppController
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->set('defaultFilteringRules', $this->defaultFilteringRules);
-        $attributeTags = $this->Event->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $event['Event']['id']);
-        $attributeTags = array_column($attributeTags, 'name');
-        $this->set('attributeTags', $attributeTags);
-        $attributeClusters = $this->Event->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $event['Event']['id']);
-        $attributeClusters = array_column($attributeClusters, 'value');
-        $this->set('attributeClusters', $attributeClusters);
         $this->disableCache();
         $this->layout = 'ajax';
         $this->loadModel('Sighting');
@@ -1340,6 +1338,9 @@ class EventsController extends AppController
                 }
             }
         }
+        $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event, 'both');
+        $this->set('attributeTags', array_values($attributeTagsName['tags']));
+        $this->set('attributeClusters', array_values($attributeTagsName['clusters']));
         $startDate = $event['Event']['timestamp'];
         $modDate = date("Y-m-d", $event['Event']['timestamp']);
         $modificationMap[$modDate] = 1;
@@ -1476,12 +1477,6 @@ class EventsController extends AppController
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->set('defaultFilteringRules', $this->defaultFilteringRules);
-        $attributeTags = $this->Event->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $event['Event']['id']);
-        $attributeTags = array_column($attributeTags, 'name');
-        $this->set('attributeTags', $attributeTags);
-        $attributeClusters = $this->Event->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $event['Event']['id']);
-        $attributeClusters = array_column($attributeClusters, 'value');
-        $this->set('attributeClusters', $attributeClusters);
         $this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
         $this->set('modificationMapCSV', $modificationMapCSV);
     }
