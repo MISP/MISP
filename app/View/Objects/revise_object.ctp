@@ -106,122 +106,16 @@
         <?php echo '<h3 style="margin-top: 20px;">' . __('The event have similar objects.') . '</h3>'; ?>
         <?php echo '<h5>' . __('Would you like to merge your new object with one of the following?') . '</h5>'; ?>
         <div class="row" style="margin-bottom: 20px;">
-        <?php foreach ($similar_objects as $i => $object): ?>
+        <?php foreach ($similar_objects as $object): ?>
             <?php
-                if ($object['Object']['template_version'] < $template['ObjectTemplate']['version']) {
-                    $temp_comparison = 'below';
-                } else if ($object['Object']['template_version'] > $template['ObjectTemplate']['version']) {
-                    $temp_comparison = 'above';
-                } else {
-                    $temp_comparison = 'equal';
-                }
+                echo $this->element('Objects/object_similarities', array(
+                    'object' => $object,
+                    'template' => $template,
+                    'similar_object_similarity_amount' => $similar_object_similarity_amount,
+                    'simple_flattened_attribute_noval' => $simple_flattened_attribute_noval,
+                    'merge_button_functionname' => 'setMergeObject'
+                ));
             ?>
-            <div style="border: 1px solid #3465a4 ; border-radius: 5px; margin-top: 15px; display: inline-block; vertical-align: top; float: unset; overflow-x: auto; <?php echo $temp_comparison == 'above' ? 'filter: grayscale(60%);' : ''; ?>" class="span5 similarObjectPanel">
-                <?php
-                if ($temp_comparison == 'below') {
-                    $btn_style = 'btn-warning';
-                    $temp_text = __('Update template and merge');
-                } else if ($temp_comparison == 'above') {
-                    $btn_style = 'btn-danger';
-                    $temp_text = __('Can\'t merge due to template version');
-                } else {
-                    $temp_text = __('Merge');
-                    $btn_style = 'btn-success';
-                }
-                ?>
-                <div class="blueElement" style="padding: 4px 5px;">
-                    <div style="text-align: center;">
-                        <input type="button" class="btn <?php echo $btn_style; ?>" onclick="setMergeObject(<?php echo h($object['Object']['id']) ?> ,<?php echo $temp_comparison == 'below' ? 'true' : 'false'; ?>)" value="<?php echo $temp_text; ?>" <?php echo $temp_comparison == 'above' ? 'disabled' : ''; ?>></input>
-                        <span class="badge badge-inverse" style="float: right;" title="<?php echo __('Similarity amount') ?>">
-                            <?php echo number_format(intval($similar_object_similarity_amount[$object['Object']['id']]) / count($data['Attribute']), 2)*100 . '%'; ?>
-                        </span>
-                    </div>
-                    <div>
-                        <span class="bold"><?php echo __('ID') . ':'; ?></span>
-                        <a href="<?php echo $baseurl . '/objects/edit/' . h($object['Object']['id']); ?>" style="color: white;"><?php echo h($object['Object']['id']); ?></a>
-                    </div>
-                    <div>
-                        <span class="bold"><?php echo __('Name') . ':'; ?></span>
-                        <span><?php echo h($object['Object']['name']); ?></span>
-                    </div>
-                    <div>
-                        <span class="bold"><?php echo __('Description') . ':'; ?></span>
-                        <span><?php echo h($object['Object']['description']); ?></span><br>
-                    </div>
-                    <div>
-                        <span class="bold"><?php echo __('Distribution') . ':'; ?></span>
-                        <span><?php echo h($object['Object']['distribution']); ?></span>
-                    </div>
-                    <?php
-                        $temp_style = '';
-                        if ($temp_comparison == 'below') {
-                            $temp_style .= 'background-color: #fcf8e3; color: black; padding: 2px;';
-                        } else if ($temp_comparison == 'above') {
-                            $temp_style .= 'background-color: #bd362f; color: white; padding: 2px;';
-                        }
-                    ?>
-                    <div style="<?php echo $temp_style ?> border-radius: 3px;" data-templatecomparison="<?php echo $temp_comparison; ?>">
-                        <span class="bold"><?php echo __('Template version') . ':'; ?></span>
-                        <span><?php echo h($object['Object']['template_version']); ?></span>
-                    </div>
-                </div>
-                <?php $flattened_ids_in_similar_object = array(); ?>
-                <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
-                    <tbody>
-                        <?php foreach ($object['Attribute'] as $attribute): ?>
-                            <?php
-                                $simple_flattened_similar_attribute = h($attribute['object_relation']) . '.' . h($attribute['type']) . '.' .h($attribute['value']);
-                                $simple_flattened_similar_attribute_noval = h($attribute['object_relation']) . '.' . h($attribute['type']);
-                                $flattened_ids_in_similar_object[$simple_flattened_similar_attribute_noval] = $attribute['id'];
-                                $classname = '';
-                                $to_highlight = '';
-                                $title = '';
-                                if (
-                                    isset($simple_flattened_attribute_noval[$simple_flattened_similar_attribute_noval])
-                                    && !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
-                                    && isset($multiple_attribute_allowed[$attribute['object_relation'] . ':' . $attribute['type']])
-                                ) { // Multiple allowed
-                                    $classname = 'warning';
-                                    $title = __('This attribute is also contained by the revised object. However, multiple instance is allowed.');
-                                } else if (
-                                    isset($simple_flattened_attribute_noval[$simple_flattened_similar_attribute_noval])
-                                    && !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
-                                ) { // Not overridable attribute
-                                    $classname = 'error';
-                                    $title = __('This attribute is conflicting, manual merge required.');
-                                    $to_highlight = $simple_flattened_similar_attribute_noval;
-                                } else if (
-                                    !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
-                                ) { // Attribute not present in the revised object
-                                    $classname = 'info';
-                                    $title = __('This attribute is contain only by this similar object. It will remain untouched.');
-                                } else { // Attributes are basically the same
-                                    $classname = '';
-                                    $title = __('This attribute has the same value as the one in the revised object.');
-                                }
-                            ?>
-                            <tr class="<?php echo $classname ?>" data-tohighlight="<?php echo h($to_highlight); ?>" title="<?php echo $title; ?>">
-                                <td style="white-space: nowrap;"><?php echo h($attribute['object_relation']); ?></td>
-                                <td><?php echo h($attribute['category']); ?></td>
-                                <td><?php echo h($attribute['type']); ?></td>
-                                <td><?php echo h($attribute['value']); ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                        <?php $attribute_ids_to_inject = array_values(array_diff_key($simple_flattened_attribute_noval, $flattened_ids_in_similar_object)); ?>
-                        <?php if (!empty($attribute_ids_to_inject)): ?>
-                            <?php foreach ($attribute_ids_to_inject as $i => $attribute_id): ?>
-                                <?php $attribute = $data['Attribute'][$attribute_id]; ?>
-                                <tr class="success" title="<?php echo __('This attribute will be added to this similar object after the merge.'); ?>" style="<?php echo $i == 0 ? 'border-top: 2px dashed #3465a4' : ''; ?>">
-                                    <td style="white-space: nowrap;"><?php echo h($attribute['object_relation']); ?></td>
-                                    <td><?php echo h($attribute['category']); ?></td>
-                                    <td><?php echo h($attribute['type']); ?></td>
-                                    <td><?php echo h($attribute['value']); ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
         <?php endforeach; ?>
         <?php $similar_objects_count = count($similar_objects); ?>
         <?php if ($similar_objects_count > $similar_objects_display_threshold): ?>
@@ -241,7 +135,10 @@
 </div>
 
 <script>
-function setMergeObject(object_id, update_template) {
+function setMergeObject(clicked) {
+    var $clicked = $(clicked);
+    var object_id = $clicked.data('objectid');
+    var update_template = $clicked.data('updatetemplate');
     update_template = update_template === undefined ? false : update_template;
     var cur_object = $('input[name="data[Object][data]"]').val();
     window.location = "<?php echo $baseurl . '/objects/edit/'; ?>" + object_id + (update_template ? '/1' : '') + "/revised_object:" + btoa(cur_object);
