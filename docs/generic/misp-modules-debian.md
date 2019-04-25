@@ -19,11 +19,9 @@ mispmodules () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
-  sudo apt install ruby-pygments.rb -y
+  sudo apt install ruby-pygments.rb libopencv-dev zbar-tools -y
   sudo gem install asciidoctor-pdf --pre
 
-  # install additional dependencies for extended object generation and extraction
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install wand yara pathlib
   # Start misp-modules as a service
   sudo cp etc/systemd/system/misp-modules.service /etc/systemd/system/
   sudo systemctl daemon-reload
