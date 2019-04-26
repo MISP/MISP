@@ -152,5 +152,10 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
        var updateProgress = <?php echo json_encode($updateProgress); ?>;
        var urlGetProgress = "<?php echo $baseurl; ?>/servers/updateProgress";
     </script>
-    <?php echo $this->Html->script('update_progress'); ?>
+    <?php
+        echo $this->element('genericElements/assetLoader', array(
+            'css' => array('update_progress'),
+            'js' => array('update_progress')
+        ));
+    ?>
 </div>
