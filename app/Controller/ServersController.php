@@ -1542,6 +1542,70 @@ class ServersController extends AppController
         }
     }
 
+    public function ondemandAction()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        //$actions = $this->Server->advanced_updates_description;
+        $actions = $this->Server->actions_description;
+        $default_fields = array(
+            'title' => '',
+            'description' => '',
+            'liveOff' => false,
+            'recommendBackup' => false,
+            'exitOnError' => false,
+            'requirements' => '',
+            'url' => '/'
+        );
+        foreach($actions as $id => $action) {
+            foreach($default_fields as $field => $value) {
+                if (!isset($action[$field])) {
+                    $actions[$id][$field] = $value;
+                }
+            }
+            $done = $this->AdminSetting->getSetting($id);
+            $actions[$id]['done'] =  $done !== false && $done == '1' ? true : false;
+        }
+        $this->set('actions', $actions);
+        $this->set('updateLocked', $this->Server->isUpdateLocked());
+    }
+
+    public function updateProgress()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+        $updateProgress = $this->Server->getUpdateProgress();
+        $curIndex = $updateProgress['cur'];
+        $curCommand = !isset($updateProgress['cmd'][$curIndex]) ? '' : $updateProgress['cmd'][$curIndex];
+        $lookupString = preg_replace('/\s{2,}/', '', substr($curCommand, 0, -1));
+        $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
+        if (empty($sqlInfo)) {
+            $updateProgress['process_list'] = array();
+        } else {
+            // retreive current update process
+            foreach($sqlInfo as $row) {
+                if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookupString) {
+                    $sqlInfo = $row['PROCESSLIST'];
+                    break;
+                }
+            }
+            $updateProgress['process_list'] = array();
+            $updateProgress['process_list']['STATE'] = isset($sqlInfo['STATE']) ? $sqlInfo['STATE'] : '';
+            $updateProgress['process_list']['PROGRESS'] = isset($sqlInfo['PROGRESS']) ? $sqlInfo['PROGRESS'] : 0;
+            $updateProgress['process_list']['STAGE'] = isset($sqlInfo['STAGE']) ? $sqlInfo['STAGE'] : 0;
+            $updateProgress['process_list']['MAX_STAGE'] = isset($sqlInfo['MAX_STAGE']) ? $sqlInfo['MAX_STAGE'] : 0;
+        }
+        if ($this->request->is('ajax')) {
+            return $this->RestResponse->viewData(h($updateProgress), $this->response->type());
+        } else {
+            $this->set('updateProgress', $updateProgress);
+        }
+    }
+
+
     public function getSubmoduleQuickUpdateForm($submodule_path=false) {
         $this->set('submodule', base64_decode($submodule_path));
         $this->render('ajax/submodule_quick_update_form');

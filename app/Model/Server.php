@@ -915,7 +915,15 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                                 'null' => true
-                        )
+                        ),
+                        'updateTimeThreshold' => array(
+                               'level' => 1,
+                               'description' => __('Sets the minimum time before being able to re-trigger an update if the previous one failed. (safe guard to avoid starting the same update multiple time)'),
+                               'value' => '600',
+                               'test' => 'testForNumeric',
+                               'type' => 'numeric',
+                               'null' => true
+                       )
                 ),
                 'GnuPG' => array(
                         'branch' => 1,
