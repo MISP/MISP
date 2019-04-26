@@ -50,7 +50,7 @@ $disabledBtnText = $updateLocked ? 'title="' . __('An action is already in progr
                     echo $this->Form->create(false, array( 'url' => $baseurl . $action['url'] . $url_param ));
                 ?>
 
-                    <button class="btn btn-warning submitButton" <?php echo $disabledBtnText; ?> role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>"><?php echo __('Action: ') . h($action['title']); ?></button>
+                    <button class="btn btn-warning <?php echo isset($action['redirectToUpdateProgress']) && $action['redirectToUpdateProgress'] ? 'submitButton' : 'submitButtonToUpdateProgress'; ?>" <?php echo $disabledBtnText; ?> role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>"><?php echo __('Action: ') . h($action['title']); ?></button>
 
                 <?php
                     echo $this->Form->end();
@@ -70,7 +70,7 @@ $disabledBtnText = $updateLocked ? 'title="' . __('An action is already in progr
 
 <script type="text/javascript">
 $(document).ready(function(){
-    $('.submitButton').click(function() {
+    $('.submitButtonToUpdateProgress').click(function() {
         var form = $(this).closest("form");
         $.ajax({
             data: form.serialize(),
