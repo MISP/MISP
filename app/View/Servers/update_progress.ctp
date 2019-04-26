@@ -15,7 +15,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 ?>
 <div style="width: 50%;margin: 0 auto;">
     <?php if (count($updateProgress['cmd']) > 0): ?>
-        <h2><?php echo(__('Update progress'));?></h2>
+        <h2><?php echo(__('Database Update progress'));?></h2>
         <div class="" style="max-width: 1000px;">
 
             <div>

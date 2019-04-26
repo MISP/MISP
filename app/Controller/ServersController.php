@@ -1548,7 +1548,6 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        //$actions = $this->Server->advanced_updates_description;
         $actions = $this->Server->actions_description;
         $default_fields = array(
             'title' => '',
