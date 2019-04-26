@@ -25,21 +25,18 @@
                 'value' => $importComment
         ));
         echo $this->Form->end();
-        $scope = !empty($proposals) ? 'proposals of' : '';
         $objects_array = array();
-        if (isset($event['Attribute'])) {
-            array_push($objects_array, 'attributes');
+        foreach (array('Attribute', 'Object') as $field) {
+            if (!empty($event[$field])) {
+                $objects_array[] = strtolower($field) . 's';
+            }
         }
-        if (isset($event['Object'])) {
-            array_push($objects_array, 'objects');
+        if (empty($objects_array)) {
+            echo '<p>Results from the enrichment module for this attribute are empty.</p>';
+        } else {
+            $scope = join(' and ', $objects_array);
+            echo '<p>Below you can see the ' . $scope . 'that are to be created from the results of the enrichment module.</p>';
         }
-        if (isset($resultArray) && !in_array('attributes', $objects_array, true) && in_array('objects', $objects_array, true)) {
-            $scope .= __('simplified attributes and');
-        }
-        $scope .= !empty($objects_array) ? join(' and ', $objects_array) : 'simplified attributes';
-    ?>
-    <p><?php echo __('Below you can see the %s that are to be created, from the results of the enrichment module.', $scope);?></p>
-    <?php
         $attributeFields = array('category', 'type', 'value', 'uuid');
         if (!empty($event['Object'])) {
     ?>
