@@ -38,86 +38,54 @@
             echo '<p>Below you can see the ' . $scope . 'that are to be created from the results of the enrichment module.</p>';
         }
         $attributeFields = array('category', 'type', 'value', 'uuid');
+        $header_present = false;
         if (!empty($event['Object'])) {
     ?>
-    <div class='MISPObjects' style="margin-bottom:40px;">
-      <h3><?php echo __('Objects'); ?></h3>
-      <?php
-            foreach ($event['Object'] as $o => $object) {
-      ?>
-      <div class='MISPObject'>
-        <table style="width:25%;">
-          <tbody>
-            <?php if(!empty($object['id'])) { ?>
-            <tr>
-              <td class="bold"><?php echo __('ID');?></td>
-              <td class='ObjectID'><?php echo h($object['id']); ?></td>
-            </tr>
-            <?php
-                }
-                if (!empty($object['template_version'])) {
-            ?>
-            <div style="display:none;" class="TemplateVersion"><?php echo h($object['template_version']); ?></div>
-            <?php
-                }
-                if (!empty($object['template_uuid'])) {
-            ?>
-            <div style="display:none;" class="TemplateUUID"><?php echo h($object['template_uuid']); ?></div>
-            <?php } ?>
-            <tr>
-              <td class="bold"><?php echo __('Name');?></td>
-              <td class='ObjectName'><?php echo h($object['name']); ?></td>
-            </tr>
-            <tr>
-              <td class="bold"><?php echo __('Meta Category');?></td>
-              <td class='ObjectMetaCategory'><?php echo h($object['meta-category']); ?></td>
-            </tr>
-            <tr>
-              <td class="bold"><?php echo __('UUID');?></td>
-              <td class='ObjectUUID' style='height:20px;width:60px;'><?php echo h($object['uuid']); ?></td>
-            </tr>
-            <tr>
-              <td class="bold"><?php echo __('Distribution');?></td>
-              <td style="width:60px;text-align:center;">
-                <select class='ObjectDistribution' style='padding:0px;height:20px;margin-bottom:0px;'>
-                  <?php
-                    foreach ($distributions as $distKey => $distValue) {
-                        echo '<option value="' . h($distKey) . '" ' . ($distKey == $object['distribution'] ? 'selected="selected"' : '') . '>' . h($distValue) . '</option>';
-                    }
-                  ?>
-                </select>
-                <div style="display:none;">
-                  <select class='ObjectSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
-                    <?php
-                      foreach ($sgs as $sgKey => $sgValue) {
-                          echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $object['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
-                      }
-                    ?>
-                  </select>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <?php if (!empty($object['ObjectReference'])) { ?>
+    <table class='table table-striped table-condensed'>
+      <tbody>
         <tr>
-          <td class="bold"><?php echo __('References:');?></td>
+          <th><?php echo __('Category');?></th>
+          <th><?php echo __('Type');?></th>
+          <th><?php echo __('Value');?></th>
+          <th><?php echo __('UUID');?></th>
+          <th><?php echo __('IDS');?></th>
+          <th><?php echo __('Disable Correlation');?></th>
+          <th><?php echo __('Comment');?></th>
+          <th><?php echo __('Distribution');?></th>
         </tr>
-        <table class="ObjectReferences" style="margin-bottom:0px;text-align:left;width:50%;">
-          <thead>
-            <th><?php echo __('Relationship'); ?></th>
-            <th><?php echo __('Referenced name/type'); ?></th>
-            <th><?php echo __('Referenced uuid'); ?></th>
-          </thead>
-          <tbody>
-            <?php
+        <?php
+            $header_present = true;
+            foreach ($event['Object'] as $o => $object) {
+        ?>
+        <tbody class='MISPObject'>
+          <tr class='tableHighlightBorderTop borderBlue blueRow' tabindex='0'>
+            <td colspan="6">
+              <?php if(!empty($object['id'])) { ?>
+              <span class="bold"><?php echo __('ID: ');?></span><span class="ObjectID"><?php echo h($object['id']); ?></span><br />
+              <?php } ?>
+              <span class="bold"><?php echo __('Name: ');?></span><span class="ObjectName"><?php echo h($object['name']); ?></span>
+              <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $o; ?>_collapsible"></span><br />
+              <div id="Object_<?php echo $o; ?>_collapsible" class="collapse">
+                <span class="bold"><?php echo __('UUID: ');?></span><span class="ObjectUUID"><?php echo h($object['uuid']); ?></span><br />
+                <span class="bold"><?php echo __('Meta Category: ');?></span><span class="ObjectMetaCategory"><?php echo h($object['meta-category']); ?></span>
+              </div>
+              <span class="bold"><?php echo __('References: ')?></span>
+              <?php
+                if (!empty($object['ObjectReference'])) {
+                    echo sizeof($object['ObjectReference']);
+              ?>
+              <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $o; ?>_references_collapsible"></span>
+              <div id="Object_<?php echo $o; ?>_references_collapsible" class="collapse">
+              <?php
                     foreach ($object['ObjectReference'] as $reference) {
-                        echo '<tr class="ObjectReference">';
-                        echo '<td class="Relationship">' . h($reference['relationship_type']) . '</td>';
+                        echo '&nbsp;&nbsp;<span class="ObjectReference">';
+                        echo '<span class="Relationship">' . h($reference['relationship_type']) . ' </span>';
                         $referenced_uuid = $reference['referenced_uuid'];
                         foreach ($event['Object'] as $object_reference) {
                             if ($referenced_uuid === $object_reference['uuid']) {
                                 $name = $object_reference['name'];
+                                $category = $object_reference['meta-category'];
+                                $objectType = 'Object';
                                 break;
                             }
                         }
@@ -125,44 +93,61 @@
                             foreach ($event['Attribute'] as $attribute_reference) {
                                 if ($referenced_uuid === $attribute_reference['uuid']) {
                                     $name = $attribute_reference['type'];
+                                    $category = $attribute_reference['category'];
+                                    $objectType = 'Attribute';
                                     break;
                                 }
                             }
                             if (!isset($name)) {
                                 $name = '';
+                                $category = '';
+                                $objectType = '';
                             }
                         }
-                        echo '<td>' . h($name) . '</td>';
+                        echo $objectType . ' <span class="ReferencedUUID">' . $referenced_uuid . '</span> (' . $name . ': ' . $category . ')</span><br />';
                         unset($name);
-                        echo '<td class="ReferencedUUID">' . h($referenced_uuid) . '</td>';
-                        echo '</tr>';
                     }
-            ?>
-          </tbody>
-        </table>
-        <?php
+                    echo '</div>';
+                } else {
+                    echo 0;
                 }
+              ?>
+            </td>
+            <td class="ObjectComment shortish"><?php echo (!empty($object['comment']) ? h($object['comment']) : ''); ?></td>
+            <td style="width:60px;text-align:center;">
+              <select class="ObjectDistribution" style="padding:0px;height:20px;margin-bottom:0px;">
+                <?php
+                foreach ($distributions as $distKey => $distValue) {
+                    echo '<option value="' . h($distKey) . '" ' . ($distKey == $object['distribution'] ? 'selected="selected"' : '') . '>' . h($distValue) . '</option>';
+                }
+                ?>
+              </select>
+              <div style="display:none;">
+                <select class='ObjectSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+                  <?php
+                    foreach ($sgs as $sgKey => $sgValue) {
+                        echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $object['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
+                    }
+                  ?>
+                </select>
+              </div>
+            </td>
+          </tr>
+          <?php
                 if (!empty($object['Attribute'])) {
-        ?>
-        <table class="ObjectAttributes table table-condensed table-striped" style="text-align:left;margin-bottom:20px;">
-          <thead>
-            <th><?php echo __('Attribute');?></th>
-            <th><?php echo __('Category');?></th>
-            <th><?php echo __('Type');?></th>
-            <th><?php echo __('Value');?></th>
-            <th><?php echo __('UUID');?></th>
-            <th><?php echo __('IDS');?></th>
-            <th><?php echo __('Disable Correlation');?></th>
-            <th><?php echo __('Comment');?></th>
-            <th><?php echo __('Distribution');?></th>
-          </thead>
-          <tbody>
-            <?php
+                    $last_attribute = end($object['Attribute']);
                     foreach ($object['Attribute'] as $a => $attribute) {
-                        echo '<tr class="ObjectAttribute">';
-                        echo '<td class="ObjectRelation">' . h($attribute['object_relation']) . '</td>';
-                        foreach ($attributeFields as $field) {
-                            echo '<td class="Attribute' . ucfirst($field) . '">' . (isset($attribute[$field]) ? h($attribute[$field]) : '') . '</td>';
+                        $border_position = ($attribute == $last_attribute ? 'Bottom' : 'Center');
+          ?>
+          <tr class="ObjectAttribute tableHighlightBorder<?php echo $border_position; ?> borderBlue">
+            <td class="ObjectCategory"><?php echo (isset($attribute['category']) ? h($attribute['category']) : ''); ?></td>
+            <td class="short">
+              <span class="ObjectRelation bold"><?php echo h($attribute['object_relation']); ?></span>:
+              <span class="AttributeType"><?php echo h($attribute['type']); ?></span>
+            </td>
+            <?php
+                        foreach (array('value', 'uuid') as $field) {
+                            echo '<td class="Attribute' . ucfirst($field) . '">' . h($attribute[$field]) . '</td>';
                         }
             ?>
             <td class="short" style="width:40px;text-align:center;">
@@ -196,31 +181,13 @@
                         echo '</tr>';
                     }
                 }
+                echo '<tr><td colspan="8" /></tr>';
             ?>
-          </tbody>
-        </table>
-      </div>
-      <?php } ?>
-    </div>
-    <?php
+        </tbody>
+        <?php
+            }
         }
         if (!empty($event['Attribute'])) {
-    ?>
-    <div class='MISPAttributes'>
-      <h3><?php echo __('Attributes'); ?></h3>
-      <table class="table table-condensed table-stripped">
-        <thead>
-          <th><?php echo __('Category');?></th>
-          <th><?php echo __('Type');?></th>
-          <th><?php echo __('Value');?></th>
-          <th><?php echo __('UUID');?></th>
-          <th><?php echo __('IDS');?></th>
-          <th><?php echo __('Disable Correlation');?></th>
-          <th><?php echo __('Comment');?></th>
-          <th><?php echo __('Distribution');?></th>
-        </thead>
-        <tbody>
-          <?php
             foreach ($event['Attribute'] as $a => $attribute) {
                 echo '<tr class="MISPAttribute">';
                 foreach (array('category', 'type') as $field) {
@@ -240,9 +207,9 @@
                     }
                 }
                 foreach (array('value', 'uuid') as $field) {
-                    echo '<td class="Attribute' . ucfirst($field) . '">' . (isset($attribute[$field]) ? h($attribute[$field]) : '') . '</td>';
+                    echo '<td class="Attribute' . ucfirst($field) . '">' . h($attribute[$field]) . '</td>';
                 }
-          ?>
+        ?>
           <td class="short" style="width:40px;text-align:center;">
             <input type="checkbox" class="AttributeToIds" <?php if (isset($attribute['to_ids']) && $attribute['to_ids']) echo 'checked'; ?>/>
           </td>
@@ -274,9 +241,8 @@
                 echo '</tr>';
             }
           ?>
-        </tbody>
-      </table>
-    </div>
+      </tbody>
+    </table>
     <?php } ?>
     <span>
       <button class="btn btn-primary" style="float:left;" onClick="moduleResultsSubmit('<?php echo h($event_id); ?>');"><?php echo __('Submit'); ?></button>
