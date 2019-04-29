@@ -1223,24 +1223,31 @@ class AppModel extends Model
         $this->__setUpdateCmdMessages(array_merge($sqlArray, $str_index_array));
         $flag_stop = false;
         $error_count = 0;
-        foreach ($sqlArray as $i => $sql) {
+
+        // execute test before update. Exit if it fails
+        if (isset($this->advanced_updates_description[$command]['preUpdate'])) {
+            $function_name = $this->advanced_updates_description[$command]['preUpdate'];
             try {
-                $this->__setUpdateProgress($i, false);
-                // execute test before update. Exit if it fails
-                if (isset($this->advanced_updates_description[$command]['preUpdate'])) {
-                    $function_name = $this->advanced_updates_description[$command]['preUpdate'];
-                    try {
-                        $this->{$function_name}();
-                    } catch (Exception $e) {
-                        $exitOnError = true;
-                        $this->__setPreUpdateTestState(false);
-                        throw new Exception($e->getMessage());
-                    }
-                }
-                $this->__setPreUpdateTestState(true);
-                $this->query($sql);
-                $this->Log->create();
-                $this->Log->save(array(
+                $this->{$function_name}();
+            } catch (Exception $e) {
+                $this->__setPreUpdateTestState(false);
+                $this->__setUpdateProgress(0, false);
+                $this->__setUpdateResMessages(0, __('Issues executing the pre-update test `') . $function_name . __('`. The returned error is: ') . PHP_EOL . $e->getMessage());
+                $this->__setUpdateError(0);
+                $error_count++;
+                $exitOnError = true;
+                $flag_stop = true;
+            }
+        }
+
+        if (!$flag_stop) {
+            $this->__setPreUpdateTestState(true);
+            foreach ($sqlArray as $i => $sql) {
+                try {
+                    $this->__setUpdateProgress($i, false);
+                    $this->query($sql);
+                    $this->Log->create();
+                    $this->Log->save(array(
                         'org' => 'SYSTEM',
                         'model' => 'Server',
                         'model_id' => 0,
@@ -1249,11 +1256,11 @@ class AppModel extends Model
                         'user_id' => 0,
                         'title' => __('Successfuly executed the SQL query for ') . $command,
                         'change' => __('The executed SQL query was: ') . $sql
-                ));
-                $this->__setUpdateResMessages($i, __('Successfuly executed the SQL query for ') . $command);
-            } catch (Exception $e) {
-                $this->Log->create();
-                $this->Log->save(array(
+                    ));
+                    $this->__setUpdateResMessages($i, __('Successfuly executed the SQL query for ') . $command);
+                } catch (Exception $e) {
+                    $this->Log->create();
+                    $this->Log->save(array(
                         'org' => 'SYSTEM',
                         'model' => 'Server',
                         'model_id' => 0,
@@ -1262,13 +1269,14 @@ class AppModel extends Model
                         'user_id' => 0,
                         'title' => __('Issues executing the SQL query for ') . $command,
                         'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $e->getMessage()
-                ));
-                $this->__setUpdateResMessages($i, __('Issues executing the SQL query for ') . $command . __('. The returned error is: ') . PHP_EOL . $e->getMessage());
-                $this->__setUpdateError($i);
-                $error_count++;
-                if ($exitOnError) {
-                    $flag_stop = true;
-                    break;
+                    ));
+                    $this->__setUpdateResMessages($i, __('Issues executing the SQL query for ') . $command . __('. The returned error is: ') . PHP_EOL . $e->getMessage());
+                    $this->__setUpdateError($i);
+                    $error_count++;
+                    if ($exitOnError) {
+                        $flag_stop = true;
+                        break;
+                    }
                 }
             }
         }
