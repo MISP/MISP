@@ -2418,7 +2418,7 @@ function freetextImportResultsSubmit(id, count) {
 function moduleResultsSubmit(id) {
     var data_collected = {};
     var temp;
-    if ($('.MISPObjects').length) {
+    if ($('.MISPObject').length) {
         var objects = [];
         $(".MISPObject").each(function(o) {
             var object_uuid = $(this).find('.ObjectUUID').text();
@@ -2441,7 +2441,7 @@ function moduleResultsSubmit(id) {
             if ($(this).has('.TemplateUUID').length) {
                 temp['template_uuid'] = $(this).find('.TemplateUUID').text();
             }
-            if ($(this).has('.ObjectReferences').length) {
+            if ($(this).has('.ObjectReference').length) {
                 var references = [];
                 $(this).find('.ObjectReference').each(function() {
                     var reference = {
@@ -2453,7 +2453,7 @@ function moduleResultsSubmit(id) {
                 });
                 temp['ObjectReference'] = references;
             }
-            if ($(this).find('.ObjectAttributes').length) {
+            if ($(this).find('.ObjectAttribute').length) {
                 var object_attributes = [];
                 $(this).find('.ObjectAttribute').each(function(a) {
                     attribute = {
@@ -2479,7 +2479,7 @@ function moduleResultsSubmit(id) {
         });
         data_collected['Object'] = objects;
     }
-    if ($('.MISPAttributes').length) {
+    if ($('.MISPAttribute').length) {
         var attributes = [];
         $('.MISPAttribute').each(function(a) {
             var category_value;
