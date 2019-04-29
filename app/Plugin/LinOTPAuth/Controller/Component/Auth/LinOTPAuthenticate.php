@@ -10,6 +10,9 @@ App::uses('LinOTP', 'LinOTPAuth.Lib');
  */
 class LinOTPAuthenticate extends BaseAuthenticate
 {
+
+    private static $user = null;
+
     /*
      * Try to authenticate the incoming request against the LinOTP backend.
      * The function may redirect the user if there are more authentication steps required that do not fit the standard function signature.
@@ -17,15 +20,8 @@ class LinOTPAuthenticate extends BaseAuthenticate
      */
     public function authenticate(CakeRequest $request, CakeResponse $response)
     {
-        $user = $this->getUser($request);
-        return $user;
-    }
+        $user = false;
 
-    /*
-     * Retrieve a user by validating the request data
-     */
-    public function getUser(CakeRequest $request)
-    {
         if (!array_key_exists("User", $request->data)) {
             return false;
         }
@@ -62,13 +58,25 @@ class LinOTPAuthenticate extends BaseAuthenticate
 
                         $user = $this->_findUser($email);
                     }
-
-                    return $user;
                 } else {
                     CakeLog::error("User ${email} authenticated but not found in database.");
-                    return false;
+                    $user = false;
                 }
             }
+        }
+
+        self::$user = $user;
+
+        return $user;
+    }
+
+    /*
+     * Retrieve a user by validating the request data
+     */
+    public function getUser(CakeRequest $request)
+    {
+        if (self::$user !== null) {
+            return self::$user;
         }
 
         return false;

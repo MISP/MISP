@@ -6,8 +6,14 @@ $config = array(
 			'level'      => 'medium',
 			'salt'       => '',
 			'cipherSeed' => '',
-			//'auth'=>array('CertAuth.Certificate'), // additional authentication methods
+			// To enable additional authentication modules
+			// uncomment one of the lines below.  Either of them
+			// will require additional configuration further down
+			// in this file.  Each of them has a dedicated section
+			// with examples.
+			//'auth'=>array('CertAuth.Certificate'),
 			//'auth'=>array('ShibbAuth.ApacheShibb'),
+			//'auth'=>array('LinOTPAUth.LinOTP'),
 		),
 	'MISP'             =>
 		array(
@@ -129,7 +135,7 @@ $config = array(
 	        'baseUrl' => 'https://linotp', // The base URL of LinOTP
 	        'realm' => 'lino', // the (default) realm of all the users logging in through this system
 	        'userModel' => 'User', // name of the User class (MISP class) to check if the user exists
-            'userModelKey' => 'email', // User field that will be used for querying.
+                'userModelKey' => 'email', // User field that will be used for querying.
         ),
 	*/
 	// Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.

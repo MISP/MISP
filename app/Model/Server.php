@@ -3675,7 +3675,7 @@ class Server extends AppModel
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
             'Security', 'Session.defaults', 'Session.timeout', 'Session.cookie_timeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
-            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'
+            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'LinOTPAuth'
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {

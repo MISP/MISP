@@ -102,8 +102,8 @@ class LinOTP {
                 "value" => $value,
             );
 
-            if (property_exists($result, 'detail')) {
-                $ret['detail'] = $result->detail;
+            if (property_exists($response, 'detail')) {
+                $ret['detail'] = $response->detail;
             }
 
             return $ret;
@@ -146,7 +146,7 @@ class LinOTP {
         if ($status_code >= 300 || $status_code < 200) {
             CakeLog::debug("Status Code out of range: ${status_code}");
         }
-        
+
         $curl_errno = curl_errno($ch);
         $curl_error = curl_error($ch);
         curl_close($ch);
@@ -157,7 +157,7 @@ class LinOTP {
             return false;
         } else {
             // if the response content type hints towards JSON try to deserialize it
-            if ($content_length > 0 && $content_type === 'application/json') {
+            if (strpos($content_type, 'application/json') >= 0) {
                 $json_data = json_decode($response);
                 return $json_data;
             } else {
@@ -165,5 +165,4 @@ class LinOTP {
             }
         }
     }
-
 }
