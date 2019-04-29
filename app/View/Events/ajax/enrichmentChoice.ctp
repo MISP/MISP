@@ -7,9 +7,29 @@
     <legend><?php echo __('Choose the enrichment module that you wish to use for the expansion'); ?></legend>
     <div class="popover_choice_main" id ="popover_choice_main">
         <div style="width:100%;">
-        <?php foreach ($modules as $k => $module): ?>
-            <div style="border-bottom:1px solid black; text-align:center;width:100%;" class="templateChoiceButton useCursorPointer" onClick="window.location='<?php echo $baseurl;?>/events/queryEnrichment/<?php echo implode('/', array(h($attribute_id), h($module['name']), h($type)));?>';" title="<?php echo h($module['description']);?>" role="button" tabindex="0" aria-label="Enrich using the <?php echo h($module['name']); ?> module"><?php echo h($module['name']);?></div>
-        <?php endforeach; ?>
+        <?php
+            usort($modules, function ($a, $b) {
+                return strcmp(strtolower($a['name']), strtolower($b['name']));
+            });
+            foreach ($modules as $k => $module) {
+                echo sprintf(
+                    '<div style="%s" class="templateChoiceButton useCursorPointer" onClick="%s" title="%s" role="button" tabindex="0" aria-label="%s">%s</div>',
+                    'border-bottom:1px solid black; text-align:center;width:100%;',
+                    sprintf(
+                        "window.location='%/events/queryEnrichment/%s';",
+                        $baseurl,
+                        implode('/', array(h($attribute_id), h($module['name']), h($type)))
+                    ),
+                    h($module['description']),
+                    __('Enrich using the %s module', h($module['name'])),
+                    sprintf(
+                        '<span class="bold">%s</span>: %s',
+                        h($module['name']),
+                        h($module['description'])
+                    )
+                );
+            }
+        ?>
         </div>
     </div>
     <div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();"><?php echo __('Cancel');?></div>
