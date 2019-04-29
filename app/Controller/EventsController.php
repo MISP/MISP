@@ -3947,7 +3947,7 @@ class EventsController extends AppController
         }
         if ($this->request->is('post')) {
             if (empty($this->request->data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request".'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request").'));
             } else {
                 $data = $this->request->data;
             }
