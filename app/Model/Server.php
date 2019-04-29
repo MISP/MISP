@@ -4640,7 +4640,7 @@ class Server extends AppModel
             }
 
             if ($status['isReadable'] && !empty($status['remoteTimestamp']) && !empty($status['currentTimestamp'])) {
-                $status['timeDiff'] = (new DateTime('@' . $status['remoteTimestamp']))->diff(new DateTime('@' . $status['currentTimestamp']));
+                $status['timeDiff'] = (DateTime::createFromFormat('U', $status['remoteTimestamp']))->diff(DateTime::createFromFormat('U', $status['currentTimestamp']));
             } else {
                 $status['upToDate'] = 'error';
             }
