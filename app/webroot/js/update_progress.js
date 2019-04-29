@@ -31,19 +31,19 @@ $(document).ready(function() {
 
 function update_state() {
     $.getJSON(urlGetProgress, function(data) {
-        var tot = parseInt(data['tot']);
-        var cur = parseInt(data['cur']);
+        var total = parseInt(data['total']);
+        var current = parseInt(data['current']);
         var failArray = data['failed_num'];
-        for (var i=0; i<tot; i++) {
+        for (var i=0; i<total; i++) {
             var term = $('div[data-terminalid='+i+']')
             toggleVisiblity(i, true, false);
-            if (i < cur) {
+            if (i < current) {
                 if (failArray.indexOf(String(i)) != -1) {
                     update_row_state(i, 2);
                 } else {
                     update_row_state(i, 0);
                 }
-            } else if (i == cur) {
+            } else if (i == current) {
                 if (failArray.indexOf(String(i)) != -1) {
                     update_row_state(i, 2);
                     toggleVisiblity(i, true, true);
@@ -57,13 +57,13 @@ function update_state() {
             }
         }
         update_messages(data);
-        if (tot > 0) {
-            var percFail = Math.round(failArray.length/tot*100);
-            var perc = Math.round((cur)/tot*100);
+        if (total > 0) {
+            var percFail = Math.round(failArray.length/total*100);
+            var perc = Math.round(current/total*100);
             update_pb(perc, percFail);
         }
 
-        if ((cur+1) >= tot || failArray.indexOf(cur) != -1) {
+        if ((current+1) >= total || failArray.indexOf(current) != -1) {
             clearInterval(pooler);
             $('.single-update-progress').hide();
         }
@@ -72,14 +72,14 @@ function update_state() {
 
 
 function update_messages(messages) {
-    if (messages.cmd === undefined) {
+    if (messages.commands === undefined) {
         return;
     }
-    messages.cmd.forEach(function(msg, i) {
+    messages.commands.forEach(function(msg, i) {
         var div = $('#termcmd-'+i);
         create_spans_from_message(div, msg);
     });
-    messages.res.forEach(function(msg, i) {
+    messages.results.forEach(function(msg, i) {
         var div = $('#termres-'+i);
         div.css('display', '');
         create_spans_from_message(div, msg);
@@ -164,7 +164,7 @@ function update_single_update_progress(i, data) {
     var perc = parseInt(data['process_list']['PROGRESS']);
     if (data['process_list']['MAX_STAGE'] == 0) { // if MAX_STAGE == 0, progress could not be determined
         perc = 5;
-        if (data['failed_num'].indexOf(data['cur']) >= 0) { // do not animate if failed
+        if (data['failed_num'].indexOf(data['current']) >= 0) { // do not animate if failed
             state.text('Failed');
             perc = 0;
         } else {

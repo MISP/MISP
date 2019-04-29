@@ -1,8 +1,8 @@
 <?php
 if (!$isSiteAdmin) exit();
-if ($updateProgress['tot'] !== 0 ) {
-    $percentageFail = floor(count($updateProgress['failed_num']) / $updateProgress['tot']*100);
-    $percentage = floor(($updateProgress['cur']) / $updateProgress['tot']*100);
+if ($updateProgress['total'] !== 0 ) {
+    $percentageFail = floor(count($updateProgress['failed_num']) / $updateProgress['total']*100);
+    $percentage = floor(($updateProgress['current']) / $updateProgress['total']*100);
 } else {
     $percentage = 100;
     $percentageFail = 0;
@@ -14,7 +14,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 }
 ?>
 <div style="width: 50%;margin: 0 auto;">
-    <?php if (count($updateProgress['cmd']) > 0): ?>
+    <?php if (count($updateProgress['commands']) > 0): ?>
         <h2><?php echo(__('Database Update progress'));?></h2>
         <div class="" style="max-width: 1000px;">
 
@@ -39,14 +39,14 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach($updateProgress['cmd'] as $i => $cmd):
-                        if (isset($updateProgress['res'][$i])) {
-                            $res = $updateProgress['res'][$i];
+                    <?php foreach($updateProgress['commands'] as $i => $cmd):
+                        if (isset($updateProgress['results'][$i])) {
+                            $res = $updateProgress['results'][$i];
                         } else {
                             $res = false;
                         }
-                        $rowDone = $i < $updateProgress['cur'];
-                        $rowCurrent = $i === $updateProgress['cur'];
+                        $rowDone = $i < $updateProgress['current'];
+                        $rowCurrent = $i === $updateProgress['current'];
                         $rowFail = in_array($i, $updateProgress['failed_num']);
                         $rowClass = '';
                         $rowIcon =  '<i id="icon-' . $i . '" class="fa"></i>';

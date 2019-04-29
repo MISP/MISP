@@ -224,7 +224,7 @@ class AppModel extends Model
     }
 
     // SQL scripts for updates
-    public function updateDatabase($command, $liveOff=false, $exitOnError=false, $useWorker=true)
+    public function updateDatabase($command, $useWorker=true)
     {
         // Exit if updates are locked
         if ($this->isUpdateLocked()) {
@@ -236,25 +236,32 @@ class AppModel extends Model
             $job = ClassRegistry::init('Job');
             $job->create();
             $data = array(
-                    'worker' => 'prio',
-                    'job_type' => 'update_app',
-                    'job_input' => 'command: ' . $command,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => '',
-                    'org' => '',
-                    'message' => 'Updating.',
+                'worker' => 'prio',
+                'job_type' => 'update_app',
+                'job_input' => 'command: ' . $command,
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => '',
+                'org' => '',
+                'message' => 'Updating.',
             );
             $job->save($data);
             $jobId = $job->id;
             $process_id = CakeResque::enqueue(
                     'prio',
-                    'ServerShell',
-                    array('updateApp', $jobId, $command, $liveOff, $exitOnError, false),
+                    'AdminShell',
+                    array('updateApp', $command, $jobId),
                     true
             );
             $job->saveField('process_id', $process_id);
             return true;
+        }
+
+        $liveOff = false;
+        $exitOnError = false;
+        if (isset($advanced_updates_description[$command])) {
+            $liveOff = isset($advanced_updates_description[$command]['liveOff']) ? $advanced_updates_description[$command]['liveOff'] : $liveOff;
+            $exitOnError = isset($advanced_updates_description[$command]['exitOnError']) ? $advanced_updates_description[$command]['exitOnError'] : $exitOnError;
         }
 
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
@@ -1198,32 +1205,32 @@ class AppModel extends Model
         }
 
         $now = new DateTime();
-        $this->__changeLockState($now->format('Y-m-d H:i:s'));
+        $this->__changeLockState(time());
         // switch MISP instance live to false
         if ($liveOff) {
             $this->Server = Classregistry::init('Server');
             $liveSetting = 'MISP.live';
             $this->Server->serverSettingsSaveValue($liveSetting, false);
         }
-        $SqlUpdateCount = count($sqlArray);
-        $IndexUpdateCount = count($indexArray);
-        $totupdatecount = $SqlUpdateCount + $IndexUpdateCount;
-        $this->__setUpdateProgress(0, $totupdatecount);
-        $strIndexArray = array();
+        $sql_update_count = count($sqlArray);
+        $index_update_count = count($indexArray);
+        $total_update_count = $sql_update_count + $index_update_count;
+        $this->__setUpdateProgress(0, $total_update_count);
+        $str_index_array = array();
         foreach($indexArray as $toIndex) {
-            $strIndexArray[] = __('Indexing ') . implode($toIndex, '->');
+            $str_index_array[] = __('Indexing ') . implode($toIndex, '->');
         }
-        $this->__setUpdateCmdMessages(array_merge($sqlArray, $strIndexArray));
-        $flagStop = false;
-        $errorCount = 0;
+        $this->__setUpdateCmdMessages(array_merge($sqlArray, $str_index_array));
+        $flag_stop = false;
+        $error_count = 0;
         foreach ($sqlArray as $i => $sql) {
             try {
                 $this->__setUpdateProgress($i, false);
                 // execute test before update. Exit if it fails
                 if (isset($this->advanced_updates_description[$command]['preUpdate'])) {
-                    $funName = $this->advanced_updates_description[$command]['preUpdate'];
+                    $function_name = $this->advanced_updates_description[$command]['preUpdate'];
                     try {
-                        $this->{$funName}();
+                        $this->{$function_name}();
                     } catch (Exception $e) {
                         $exitOnError = true;
                         $this->__setPreUpdateTestState(false);
@@ -1240,10 +1247,10 @@ class AppModel extends Model
                         'email' => 'SYSTEM',
                         'action' => 'update_database',
                         'user_id' => 0,
-                        'title' => 'Successfuly executed the SQL query for ' . $command,
-                        'change' => 'The executed SQL query was: ' . $sql
+                        'title' => __('Successfuly executed the SQL query for ') . $command,
+                        'change' => __('The executed SQL query was: ') . $sql
                 ));
-                $this->__setUpdateResMessages($i, 'Successfuly executed the SQL query for ' . $command);
+                $this->__setUpdateResMessages($i, __('Successfuly executed the SQL query for ') . $command);
             } catch (Exception $e) {
                 $this->Log->create();
                 $this->Log->save(array(
@@ -1253,19 +1260,19 @@ class AppModel extends Model
                         'email' => 'SYSTEM',
                         'action' => 'update_database',
                         'user_id' => 0,
-                        'title' => 'Issues executing the SQL query for ' . $command,
-                        'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
+                        'title' => __('Issues executing the SQL query for ') . $command,
+                        'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $e->getMessage()
                 ));
-                $this->__setUpdateResMessages($i, 'Issues executing the SQL query for ' . $command . '. The returned error is: ' . PHP_EOL . $e->getMessage());
+                $this->__setUpdateResMessages($i, __('Issues executing the SQL query for ') . $command . __('. The returned error is: ') . PHP_EOL . $e->getMessage());
                 $this->__setUpdateError($i);
-                $errorCount++;
+                $error_count++;
                 if ($exitOnError) {
-                    $flagStop = true;
+                    $flag_stop = true;
                     break;
                 }
             }
         }
-        if (!$flagStop) {
+        if (!$flag_stop) {
              if (!empty($indexArray)) {
                  if ($clean) {
                      $this->cleanCacheFiles();
@@ -1277,7 +1284,7 @@ class AppModel extends Model
                      } else {
                          $this->__addIndex($iA[0], $iA[1]);
                      }
-                     $this->__setUpdateResMessages(count($sqlArray)+$i, 'Successfuly indexed ' . implode($iA, '->'));
+                     $this->__setUpdateResMessages(count($sqlArray)+$i, __('Successfuly indexed ') . implode($iA, '->'));
                  }
              }
              $this->__setUpdateProgress(count($sqlArray)+count($indexArray), false);
@@ -1289,7 +1296,7 @@ class AppModel extends Model
             $liveSetting = 'MISP.live';
             $this->Server->serverSettingsSaveValue($liveSetting, true);
         }
-        if (!$flagStop && $errorCount == 0) {
+        if (!$flag_stop && $error_count == 0) {
             $this->__postUpdate($command);
         }
         $this->__changeLockState(false);
@@ -1392,43 +1399,6 @@ class AppModel extends Model
             }
         }
     }
-
-     /*
-      * Given an array, dynamically add contextual fields. An historical example is given with the *_seen fields
-     public function addFieldsBasedOnUpdate(&$fieldsAtt, $context = null) {
-         if (is_null($context)) {
-             $alias = '';
-         } else if ($context === true) {
-             $alias = $this->alias;
-         } else {
-             $alias = $context;
-         }
-         if ($this->additionalFeatureEnabled('seenOnAttributeAndObject')) {
-             //  DB have *_seen columns
-             $fs = (strlen($alias) > 0 ? $alias . '.' : '') . 'first_seen';
-             $ls = (strlen($alias) > 0 ? $alias . '.' : '') . 'last_seen';
-             array_push($fieldsAtt, $fs, $ls);
-         }
-     }
-     */
-     /*
-      * Check whether a feature is enabled (based on an update) or not. An historical example is given with the *_seen update
-     public function additionalFeatureEnabled($featureName) {
-         if (!isset($this->AdminSetting)) {
-             $this->AdminSetting = ClassRegistry::init('AdminSetting');
-         }
-         $value = $this->AdminSetting->getSetting('seenOnAttributeAndObject');
-         if($value === false) {
-             return false;
-         } else if ($value === "0") {
-             return false;
-         } else if ($value === "1") {
-             return true;
-         } else {
-             return $value;
-         }
-     }
-     */
 
     public function checkMISPVersion()
     {
@@ -1542,9 +1512,9 @@ class AppModel extends Model
     private function __setUpdateProgress($current, $total=false)
     {
         $updateProgress = $this->getUpdateProgress();
-        $updateProgress['cur'] = $current;
+        $updateProgress['current'] = $current;
         if ($total !== false) {
-            $updateProgress['tot'] = $total;
+            $updateProgress['total'] = $total;
         } else {
             $now = new DateTime();
             $updateProgress['time']['started'][$current] = $now->format('Y-m-d H:i:s');
@@ -1569,11 +1539,11 @@ class AppModel extends Model
     private function __resetUpdateProgress()
     {
         $updateProgress = array(
-            'cmd' => array(),
-            'res' => array(),
+            'commands' => array(),
+            'results' => array(),
             'time' => array('started' => array(), 'elapsed' => array()),
-            'cur' => '',
-            'tot' => '',
+            'current' => '',
+            'total' => '',
             'failed_num' => array()
         );
         $this->__saveUpdateProgress($updateProgress);
@@ -1582,14 +1552,14 @@ class AppModel extends Model
     private function __setUpdateCmdMessages($messages)
     {
         $updateProgress = $this->getUpdateProgress();
-        $updateProgress['cmd'] = $messages;
+        $updateProgress['commands'] = $messages;
         $this->__saveUpdateProgress($updateProgress);
     }
 
     private function __setUpdateResMessages($index, $message)
     {
         $updateProgress = $this->getUpdateProgress();
-        $updateProgress['res'][$index] = $message;
+        $updateProgress['results'][$index] = $message;
         $temp = new DateTime();
         $diff = $temp->diff(new DateTime($updateProgress['time']['started'][$index]));
         $updateProgress['time']['elapsed'][$index] = $diff->format('%H:%I:%S');
@@ -1641,20 +1611,14 @@ class AppModel extends Model
     public function isUpdateLocked()
     {
         $lockState = $this->getUpdateLockState();
-        $lockState = $lockState === false ? false : $lockState;
-        $lockState = $lockState === '' ? false : $lockState;
-        if ($lockState !== false) {
+        if ($lockState !== false && $lockState !== '') {
             // if lock is old, still allows the update
             // This can be useful if the update process crashes
-            $lockDate = (new DateTime($lockState))->format('U');
-            $now = (new DateTime())->format('U');
-            $diffSec = $now - $lockDate;
+            $diffSec = time() - intval($lockState);
             if (Configure::read('MISP.updateTimeThreshold')) {
                 $updateWaitThreshold = intval(Configure::read('MISP.updateTimeThreshold'));
             } else {
-                if (!isset($this->Server)) {
-                    $this->Server = ClassRegistry::init('Server');
-                }
+                $this->Server = ClassRegistry::init('Server');
                 $updateWaitThreshold = intval($this->Server->serverSettings['MISP']['updateTimeThreshold']['value']);
             }
             if ($diffSec < $updateWaitThreshold) {
