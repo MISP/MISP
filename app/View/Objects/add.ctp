@@ -1,6 +1,7 @@
+<?php $update_template_available = isset($update_template_available) ? $update_template_available : false; ?>
 <div class="<?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php
-    $url = ($action == 'add') ? '/objects/revise_object/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/revise_object/edit/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] . '/' . $object['Object']['id'];
+    $url = ($action == 'add') ? '/objects/revise_object/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/revise_object/edit/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] . '/' . h($object['Object']['id']);
     echo $this->Form->create('Object', array('id', 'url' => $url, 'enctype' => 'multipart/form-data'));
 ?>
 <h3><?php echo ucfirst($action) . ' ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . __(' Object'); ?></h3>
@@ -10,7 +11,12 @@
     <dd>
       <?php
         echo Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' v' . h($template['ObjectTemplate']['version']);
-      ?>
+        if ($action == 'edit' && !$update_template_available && $newer_template_version !== false): ?>
+            <a class="btn btn-mini btn-primary useCursorPointer" title="<?php echo __('Update the template of this object to the newer version: ') . h($newer_template_version) ?>" href="<?php echo $baseurl . '/objects/edit/' . h($object['Object']['id']) . '/1'; ?>">
+                <span class="fa fa-arrow-circle-up"></span>
+                <?php echo __('Update template') ?>
+            </a>
+        <?php endif; ?>
       &nbsp;
     </dd>
     <dt><?php echo __('Description');?></dt>
@@ -87,7 +93,7 @@
     <?php
     endif;
 ?>
-<table class="table table-striped table-condensed">
+<table id="editTable" class="table table-striped table-condensed">
   <tr>
     <th><?php echo __('Save');?></th>
     <th><?php echo __('Name :: type');?></th>
@@ -165,6 +171,139 @@
         echo $this->Form->end();
     ?>
 </div>
+
+<?php if ($update_template_available || isset($revised_object)): //add control panel (same as distribution network) and fill with data ?>
+        <div class="fixedRightPanel" style="width: unset; height:unset; background-color: #ffffff">
+            <?php if ($update_template_available): ?>
+                <div class="fixedRightPanelHeader useCursorPointer" style="box-shadow: 0px 0px 6px #B2B2B2;margin-bottom: 2px;width: 100%;overflow: hidden; padding: 5px;">
+                    <i class="fas fa-chevron-circle-down"></i>
+                    <span style="margin-left: 5px; display: inline-block; font-size: large;"><?php echo __('Pre-update object\'s template'); ?></span>
+                </div>
+                <div class="row" style="max-height: 800px; max-width: 800px; overflow: auto; padding: 15px;">
+                    <div style="border: 1px solid #3465a4 ; border-radius: 5px; overflow: hidden;" class="span5">
+                        <div class="blueElement" style="padding: 4px 5px;">
+                            <div>
+                                <span class="bold"><?php echo __('ID') . ':'; ?></span>
+                                <a href="<?php echo $baseurl . '/objects/edit/' . h($object['Object']['id']); ?>" style="color: white;"><?php echo h($object['Object']['id']); ?></a>
+                            </div>
+                            <div>
+                                <span class="bold"><?php echo __('Name') . ':'; ?></span>
+                                <span><?php echo h($object['Object']['name']); ?></span>
+                            </div>
+                            <div>
+                                <span class="bold"><?php echo __('Description') . ':'; ?></span>
+                                <span><?php echo h($object['Object']['description']); ?></span><br>
+                            </div>
+                            <div>
+                                <span class="bold"><?php echo __('Distribution') . ':'; ?></span>
+                                <span><?php echo h($object['Object']['distribution']); ?></span>
+                            </div>
+                            <div style="background-color: #fcf8e3; color: black; padding: 2px; border-radius: 3px;">
+                                <span class="bold"><?php echo __('Template version') . ':'; ?></span>
+                                <span><?php echo h($object['Object']['template_version']); ?></span>
+                            </div>
+                        </div>
+                        <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
+                            <tbody>
+                                <?php foreach ($not_updateable_attribute as $attribute): ?>
+                                    <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
+                                        <td style="white-space: nowrap;">
+                                            <?php if ($attribute['merge-possible']): ?>
+                                                <i class="fas fa-sign-in-alt fa-flip-horizontal useCursorPointer" style="margin-right: 3px;"></i>
+                                            <?php else: ?>
+                                                <i class="fas fa-times useCursorPointer" style="margin-right: 3px;" title="<?php echo __('This attribute type is missing from the new template. It will be lost if not taken care of right now.'); ?>"></i>
+                                            <?php endif; ?>
+                                            <?php echo h($attribute['object_relation']); ?>
+                                        </td>
+                                        <td><?php echo h($attribute['category']); ?></td>
+                                        <td><?php echo h($attribute['type']); ?></td>
+                                        <td><?php echo h($attribute['value']); ?></td>
+                                    </tr>
+                                    <?php if (!$attribute['merge-possible']): ?>
+                                        <?php
+                                            $validOptions = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[type=%s]', $attribute['type']));
+                                        ?>
+                                        <tr>
+                                            <td class="apply_css_arrow" colspan="4">
+                                                <?php if (!empty($validOptions)): ?>
+                                                    <select style="width: calc(100% - 100px); margin: 0px;" data-type="<?php echo h($attribute['type']); ?>" data-attrval="<?php echo h($attribute['value']); ?>">
+                                                        <?php foreach ($validOptions as $option): ?>
+                                                            <option value="<?php echo h($option['object_relation']); ?>" data-type="<?php echo h($option['type']); ?>"><?php echo h($option['object_relation']); ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                    <span class="btn btn-inverse useCursorPointer" onclick="insertObjectRelation(this)">
+                                                        <i class="fas useCursorPointer fa-sign-in-alt fa-flip-horizontal"></i>
+                                                        <?php echo __('Insert'); ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <?php echo __('No valid type. This attribute will be lost.'); ?>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                                <?php foreach ($updateable_attribute as $attribute): ?>
+                                    <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
+                                        <td style="white-space: nowrap;"><?php echo h($attribute['object_relation']); ?></td>
+                                        <td><?php echo h($attribute['category']); ?></td>
+                                        <td><?php echo h($attribute['type']); ?></td>
+                                        <td><?php echo h($attribute['value']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            <?php endif; ?>
+            <?php if (isset($revised_object)): ?>
+                <div class="fixedRightPanelHeader useCursorPointer" style="box-shadow: 0px 0px 6px #B2B2B2;margin-bottom: 2px;width: 100%;overflow: hidden; margin-top: 10px; padding: 5px;">
+                    <i class="fas fa-chevron-circle-down"></i>
+                    <span style="margin-left: 5px; display: inline-block; font-size: large;"><?php echo __('Attributes to merge'); ?></span>
+                </div>
+                <div class="row" style="max-height: 800px; max-width: 800px; overflow: auto; padding: 15px;">
+                    <div style="border: 1px solid #3465a4 ; border-radius: 5px; overflow: hidden;" class="span5">
+                        <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
+                            <tbody>
+                                <?php foreach ($revised_object['notMergeable'] as $attribute): ?>
+                                    <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
+                                        <td style="white-space: nowrap;">
+                                            <?php if ($attribute['merge-possible']): ?>
+                                                <i class="fas fa-sign-in-alt fa-flip-horizontal useCursorPointer" style="margin-right: 3px;" title="<?php echo __('Overwrite the value with this one'); ?>" data-valueold="<?php echo h($attribute['current_value']); ?>" data-valuerevised="<?php echo h($attribute['value']); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="swapValue(this);"></i>
+                                            <?php else: ?>
+                                                <i class="fas fa-times useCursorPointer" style="margin-right: 3px;" title="<?php echo __('This attribute type is missing from the new template. It will be lost if not taken care of right now.'); ?>"></i>
+                                            <?php endif; ?>
+                                            <?php echo h($attribute['object_relation']); ?>
+                                        </td>
+                                        <td><?php echo h($attribute['category']); ?></td>
+                                        <td><?php echo h($attribute['type']); ?></td>
+                                        <td>
+                                            <?php echo h($attribute['value']); ?>
+                                            <i class="fas fa-question-circle" title="<?php echo __('Current value: ') . h($attribute['current_value']); ?>"></i>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php foreach ($revised_object['mergeable'] as $attribute): ?>
+                                    <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
+                                        <td style="white-space: nowrap;">
+                                            <?php if (isset($attribute['is_multiple']) && $attribute['is_multiple']): ?>
+                                                <i class="fas fa-copy useCursorPointer" style="margin-right: 3px;" title="<?php echo __('This attribute value is different. However, as multiple is allowed, it as been duplicated.'); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="scrollinRow(this);"></i>
+                                            <?php endif; ?>
+                                            <?php echo h($attribute['object_relation']); ?>
+                                        </td>
+                                        <td><?php echo h($attribute['category']); ?></td>
+                                        <td><?php echo h($attribute['type']); ?></td>
+                                        <td><?php echo h($attribute['value']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+<?php endif; ?>
+
+
 <?php
     if (!$ajax) {
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addObject', 'event' => $event));
@@ -187,10 +326,60 @@
     $(".Attribute_value_select").change(function() {
       checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == '<?php echo __('Enter value manually');?>');
     });
-        $('.add_attribute_row').click(function() {
-            var selector = $(this).data('target');
-            var count = $(this).parent().children(selector).length;
-            $(this).parent().children(selector).first().clone().appendTo($(this).parent()).insertBefore($('.add_unlocked_field'));
-        });
+    $('.add_attribute_row').click(function() {
+        var selector = $(this).data('target');
+        var count = $(this).parent().children(selector).length;
+        $(this).parent().children(selector).first().clone().appendTo($(this).parent()).insertBefore($('.add_unlocked_field'));
+    });
+    $('.fixedRightPanel .fixedRightPanelHeader').click(function() {
+        $(this).next().toggle('blind');
+        return false;
+    });
   });
+
+    function swapValue(clicked) {
+        var $clicked = $(clicked);
+        var old_value = $clicked.data('valueold');
+        var revised_value = $clicked.data('valuerevised');
+        var col_object_relation = $clicked.data('objectrelation');
+      var col_type = $clicked.data('type');
+        insertValueAndScroll(col_object_relation, col_type, revised_value, old_value, $clicked);
+    }
+
+    function scrollinRow(clicked) {
+        var $clicked = $(clicked);
+        var col_object_relation = $clicked.data('objectrelation');
+        var col_type = $clicked.data('type');
+        var $matching_rows = $('#editTable').find('tr.attribute_row:has(td:eq(1) > input[name$="[object_relation]"][value="' + col_object_relation + '"]):has(td:eq(1) > input[name$="[type]"][value="' + col_type + '"])');
+        $matching_rows.children().effect('highlight', { queue: false }, 2500, function() { $(this).css('background-color', 'unset'); });
+        $matching_rows[$matching_rows.length-1].scrollIntoView(false);
+    }
+
+    function insertValueAndScroll(col_object_relation, col_type, revised_value, old_value, $clicked) {
+        var $matching_row = $('#editTable').find('tr.attribute_row:has(td:eq(1) > input[name$="[object_relation]"][value="' + col_object_relation + '"]):has(td:eq(1) > input[name$="[type]"][value="' + col_type + '"])');
+        var row_id = $matching_row.attr('id').split('_').slice(-1);
+        var $value_field = $($matching_row.find('div.object_value_field select, div.object_value_field textarea')[0]);
+        var cur_val = $value_field.val();
+        var selected_value;
+        if (cur_val !== old_value) {
+            selected_value = old_value;
+            $value_field.val(old_value);
+            $clicked.addClass('fa-sign-in-alt fa-flip-horizontal').removeClass('fa-trash-restore');
+        } else {
+            selected_value = revised_value;
+            $value_field.val(revised_value);
+            $clicked.removeClass('fa-sign-in-alt fa-flip-horizontal').addClass('fa-trash-restore');
+        }
+        $matching_row[0].scrollIntoView(false);
+        $matching_row.children().effect('highlight', { queue: false, color: $value_field.val() === selected_value ? '#468847' : '#b94a48' }, 2500, function() { $(this).css('background-color', 'unset'); });
+    }
+
+    function insertObjectRelation(clicked) {
+        var $clicked = $(clicked);
+        var $select = $clicked.parent().find('select');
+        var col_object_relation = $select.val();
+        var col_type = $select.find('option:selected').data('type');
+        var revised_value = $select.data('attrval');
+        insertValueAndScroll(col_object_relation, col_type, revised_value, '', $('p'));
+    }
 </script>
