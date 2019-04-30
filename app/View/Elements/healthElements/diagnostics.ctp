@@ -253,6 +253,20 @@
             }
         ?>
     </div>
+    <h3><?php echo __('Yara');?></h3>
+    <p><?php echo __('This tool tests whether plyara, the library used by the yara export tool is installed or not.');?></p>
+    <div style="background-color:#f7f7f9;width:400px;">
+        <?php
+            $colour = 'green';
+            $message = __('OK');
+            if ($yaraStatus['operational'] == 0) {
+                $colour = 'red';
+                $message = __('Invalid plyara version / plyara not installed. Please run pip3 install plyara');
+            }
+            echo __('plyara library installed') . '…<span style="color:' . $colour . ';">' . $message . '</span>';
+        ?>
+    </div>
+
     <h3><?php echo __('GnuPG');?></h3>
     <p><?php echo __('This tool tests whether your GnuPG is set up correctly or not.');?></p>
     <div style="background-color:#f7f7f9;width:400px;">
