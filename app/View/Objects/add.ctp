@@ -279,7 +279,7 @@
                                         <td><?php echo h($attribute['type']); ?></td>
                                         <td>
                                             <?php echo h($attribute['value']); ?>
-                                            <i class="fas fa-question-circle" title="<?php echo __('Current value: ') . h($attribute['current_value']); ?>"></i>
+                                            <i class="fas fa-question-circle" title="<?php echo __('Original value: ') . h($attribute['current_value']); ?>"></i>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
