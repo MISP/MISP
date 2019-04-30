@@ -593,6 +593,7 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
     $('#EventTag').val(JSON.stringify(selected_tag_ids));
     $.ajax({
         data: $('#EventAddTagForm').serialize(),
+        cache: false,
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },

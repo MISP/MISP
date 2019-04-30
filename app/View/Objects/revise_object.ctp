@@ -101,10 +101,11 @@
     </div>
 
     <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary')); ?>
+    <a href="#" style="margin-left:10px;" class="btn btn-inverse" onclick="window.history.back();"><?php echo __('Back to review');?></a>
     <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse"><?php echo __('Cancel');?></a>
     <?php if (!empty($similar_objects) && $action !== 'edit'): ?>
-        <?php echo '<h3 style="margin-top: 20px;">' . __('The event have similar objects.') . '</h3>'; ?>
-        <?php echo '<h5>' . __('Would you like to merge your new object with one of the following?') . '</h5>'; ?>
+        <?php echo '<h3 style="margin-top: 20px;">' . __('This event contains similar objects.') . '</h3>'; ?>
+        <?php echo '<h5>' . __('Would you like to merge your new object into one of the following?') . '</h5>'; ?>
         <div class="row" style="margin-bottom: 20px;">
         <?php foreach ($similar_objects as $object): ?>
             <?php
@@ -145,21 +146,26 @@ function setMergeObject(clicked) {
 }
 
 function highlight_rows($panel, state) {
-    $('#attribute_table').find('tr.error').removeClass('error').attr('title', '');
-    var rows = $panel.find('tr.error');
+    $('#attribute_table').find('tr.error, tr.warning').removeClass('error warning').attr('title', '');
+    var rows = $panel.find('tr.error, tr.warning');
     var to_highlight = [];
     rows.each(function() {
-        to_highlight.push($(this).data().tohighlight);
+        var row_class = $(this).hasClass('error') ? 'error' : 'warning';
+        to_highlight.push([$(this).data().tohighlight, row_class]);
     });
-    to_highlight.forEach(function(curflat) {
+    to_highlight.forEach(function(arr) {
+        var curflat = arr[0];
+        var row_class = arr[1];
         var $row_to_highlight = $('#attribute_table').find('tr[data-curflatnoval="' + curflat + '"]');
         if (state === undefined) {
-            $row_to_highlight.addClass('error');
-            $row_to_highlight.attr('title', '<?php echo __('This attribute will NOT be merged into the similar object as it is conflicting with another attribute.'); ?>')
+            $row_to_highlight.addClass(row_class);
+            if (row_class == 'error') {
+                $row_to_highlight.attr('title', '<?php echo __('This attribute will NOT be merged into the similar object as it is conflicting with another attribute.'); ?>')
+            }
         } else if (state) {
-            $row_to_highlight.addClass('error');
+            $row_to_highlight.addClass(row_class);
         } else {
-            $row_to_highlight.removeClass('error');
+            $row_to_highlight.removeClass(row_class);
         }
     });
 }
@@ -175,7 +181,10 @@ $(document).ready(function() {
             highlight_rows($panel);
         },
         function() {
-            un_highlight_time = setTimeout(function () { $('#attribute_table').find('tr.error').removeClass('error').attr('title', ''); }, 1000);
+            un_highlight_time = setTimeout(function () {
+                $('#attribute_table').find('tr.error').removeClass('error').attr('title', '');
+                $('#attribute_table').find('tr.warning').removeClass('warning').attr('title', '');
+            }, 1000);
         }
     );
 });

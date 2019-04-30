@@ -103,6 +103,16 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
                                 <a href="<?php echo $baseurl . '/objects/edit/' . h($object['Object'][$field]); ?>" style="color: white;"><?php echo h($object['Object'][$field]); ?></a>
                             </div>
                             <?php break; ?>
+                        <?php case 'distribution': ?>
+                            <div>
+                                <span class="bold"><?php echo h(__(Inflector::humanize($field))) . ':'; ?></span>
+                                <span>
+                                    <?php
+                                        echo h($distributionLevels[$object['Object'][$field]])
+                                    ?>
+                                </span>
+                            </div>
+                            <?php break; ?>
                         <?php case 'template_version': ?>
                             <?php
                                 $temp_style = '';
@@ -112,7 +122,7 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
                                     $temp_style .= 'background-color: #bd362f; color: white; padding: 2px;';
                                 }
                             ?>
-                            <div style="<?php echo $temp_style ?> border-radius: 3px;" data-templatecomparison="<?php echo $temp_comparison; ?>">
+                            <div style="<?php echo $temp_style ?> border-radius: 3px;" data-templatecomparison="<?php echo $temp_comparison; ?>" title="<?php echo __('The template version used by this object.'); ?>">
                                 <span class="bold"><?php echo h(__(Inflector::humanize($field))) . ':'; ?></span>
                                 <span ><?php echo h($object['Object'][$field]); ?></span>
                             </div>
@@ -146,19 +156,20 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
                             && isset($multiple_attribute_allowed[$attribute['object_relation'] . ':' . $attribute['type']])
                         ) { // Multiple allowed
                             $classname = 'warning';
-                            $title = __('This attribute is also contained by the revised object. However, multiple instance is allowed.');
+                            $title = __('This attribute is also contained by the revised object. However, as multiple instanciation is allowed by the template, the two attributes will be keept.');
+                            $to_highlight = $simple_flattened_similar_attribute_noval;
                         } else if (
                             isset($simple_flattened_attribute_noval[$simple_flattened_similar_attribute_noval])
                             && !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
                         ) { // Not overridable attribute
                             $classname = 'error';
-                            $title = __('This attribute is conflicting, manual merge required.');
+                            $title = __('This attribute is conflicting with the one in the revised object, manual merge will be required.');
                             $to_highlight = $simple_flattened_similar_attribute_noval;
                         } else if (
                             !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
                         ) { // Attribute not present in the revised object
                             $classname = 'info';
-                            $title = __('This attribute is contain only by this similar object. It will remain untouched.');
+                            $title = __('This attribute is only contained by this similar object. It will remain untouched.');
                         } else { // Attributes are basically the same
                             $classname = '';
                             $title = __('This attribute has the same value as the one in the revised object.');
@@ -189,7 +200,7 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
             <?php if (!empty($attribute_ids_to_inject)): ?>
                 <?php foreach ($attribute_ids_to_inject as $i => $attribute_id): ?>
                     <?php $attribute = $data['Attribute'][$attribute_id]; ?>
-                    <tr class="success" title="<?php echo __('This attribute will be added to this similar object after the merge.'); ?>" style="<?php echo $i == 0 ? 'border-top: 2px dashed #3465a4' : ''; ?>">
+                    <tr class="success" title="<?php echo __('This attribute will be added to this similar object during the merge.'); ?>" style="<?php echo $i == 0 ? 'border-top: 2px dashed #3465a4' : ''; ?>">
                         <?php foreach ($attribute_fields as $field): ?>
                             <?php if (isset($attribute[$field])): ?>
                                 <?php if ($field == 'object_relation'): ?>
