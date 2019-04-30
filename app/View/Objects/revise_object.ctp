@@ -101,7 +101,7 @@
     </div>
 
     <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary')); ?>
-    <a href="#" style="margin-left:10px;" class="btn btn-inverse" onclick="window.history.back();"><?php echo __('Review');?></a>
+    <a href="#" style="margin-left:10px;" class="btn btn-inverse" onclick="window.history.back();"><?php echo __('Back to review');?></a>
     <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse"><?php echo __('Cancel');?></a>
     <?php if (!empty($similar_objects) && $action !== 'edit'): ?>
         <?php echo '<h3 style="margin-top: 20px;">' . __('This event contains similar objects.') . '</h3>'; ?>
