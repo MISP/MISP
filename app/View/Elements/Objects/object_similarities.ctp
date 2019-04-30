@@ -146,13 +146,14 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
                             && isset($multiple_attribute_allowed[$attribute['object_relation'] . ':' . $attribute['type']])
                         ) { // Multiple allowed
                             $classname = 'warning';
-                            $title = __('This attribute is also contained by the revised object. However, multiple instance is allowed.');
+                            $title = __('This attribute is also contained by the revised object. However, as multiple instanciation is allowed by the template, the two attributes will be keept.');
+                            $to_highlight = $simple_flattened_similar_attribute_noval;
                         } else if (
                             isset($simple_flattened_attribute_noval[$simple_flattened_similar_attribute_noval])
                             && !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
                         ) { // Not overridable attribute
                             $classname = 'error';
-                            $title = __('This attribute is conflicting, manual merge required.');
+                            $title = __('This attribute is conflicting with the one in the revised object, manual merge required.');
                             $to_highlight = $simple_flattened_similar_attribute_noval;
                         } else if (
                             !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
