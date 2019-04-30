@@ -147,6 +147,22 @@ class Event extends AppModel
                     'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
                     'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
             ),
+            'yara' => array(
+                    'extension' => '.yara',
+                    'type' => 'Yara',
+                    'scope' => 'Event',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'yara'),
+                    'description' => 'Click this to download Yara rules generated from all relevant attributes.'
+            ),
+            'yara-json' => array(
+                    'extension' => '.json',
+                    'type' => 'Yara',
+                    'scope' => 'Event',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'yara-json'),
+                    'description' => 'Click this to download Yara rules generated from all relevant attributes. Rules are returned in a JSON format with information about origin (generated or parsed) and validity.'
+            ),
     );
 
     public $validFormats = array(
@@ -160,6 +176,8 @@ class Event extends AppModel
         'csv' => array('csv', 'CsvExport', 'csv'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
         'stix2' => array('json', 'Stix2Export', 'json'),
+        'yara' => array('txt', 'YaraExport', 'yara'),
+        'yara-json' => array('json', 'YaraExport', 'json'),
         'cache' => array('txt', 'CacheExport', 'cache')
     );
 
