@@ -35,7 +35,7 @@
             echo '<p>Results from the enrichment module for this attribute are empty.</p>';
         } else {
             $scope = join(' and ', $objects_array);
-            echo '<p>Below you can see the ' . $scope . 'that are to be created from the results of the enrichment module.</p>';
+            echo '<p>Below you can see the ' . $scope . ' that are to be created from the results of the enrichment module.</p>';
         }
         $attributeFields = array('category', 'type', 'value', 'uuid');
         $header_present = false;
@@ -237,13 +237,13 @@
               </select>
             </div>
           </td>
-          <?php
+        <?php
                 echo '</tr>';
             }
-          ?>
+        }
+        ?>
       </tbody>
     </table>
-    <?php } ?>
     <span>
       <button class="btn btn-primary" style="float:left;" onClick="moduleResultsSubmit('<?php echo h($event_id); ?>');"><?php echo __('Submit'); ?></button>
     </span>
