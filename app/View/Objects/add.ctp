@@ -243,7 +243,7 @@
                                     <?php endif; ?>
                                 <?php endforeach; ?>
                                 <?php foreach ($updateable_attribute as $attribute): ?>
-                                    <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
+                                    <tr class="success" title="<?php echo __('This attribute can be merged automatically. Injection in the template done.'); ; ?>">
                                         <td style="white-space: nowrap;"><?php echo h($attribute['object_relation']); ?></td>
                                         <td><?php echo h($attribute['category']); ?></td>
                                         <td><?php echo h($attribute['type']); ?></td>
@@ -259,6 +259,7 @@
                 <div class="fixedRightPanelHeader useCursorPointer" style="box-shadow: 0px 0px 6px #B2B2B2;margin-bottom: 2px;width: 100%;overflow: hidden; margin-top: 10px; padding: 5px;">
                     <i class="fas fa-chevron-circle-down"></i>
                     <span style="margin-left: 5px; display: inline-block; font-size: large;"><?php echo __('Attributes to merge'); ?></span>
+                    <span style="margin-left: 25px; display: block;" class="apply_css_arrow"><?php echo __('Contextual information and actions'); ?></span>
                 </div>
                 <div class="row" style="max-height: 800px; max-width: 800px; overflow: auto; padding: 15px;">
                     <div style="border: 1px solid #3465a4 ; border-radius: 5px; overflow: hidden;" class="span5">
@@ -268,7 +269,7 @@
                                     <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
                                         <td style="white-space: nowrap;">
                                             <?php if ($attribute['merge-possible']): ?>
-                                                <i class="fas fa-sign-in-alt fa-flip-horizontal useCursorPointer" style="margin-right: 3px;" title="<?php echo __('Overwrite the value with this one'); ?>" data-valueold="<?php echo h($attribute['current_value']); ?>" data-valuerevised="<?php echo h($attribute['value']); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="swapValue(this);"></i>
+                                                <i class="fas fa-sign-in-alt fa-flip-horizontal useCursorPointer" style="margin-right: 3px;" title="<?php echo __('Overwrite the current attribute value with this one'); ?>" data-valueold="<?php echo h($attribute['current_value']); ?>" data-valuerevised="<?php echo h($attribute['value']); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="swapValue(this);"></i>
                                             <?php else: ?>
                                                 <i class="fas fa-times useCursorPointer" style="margin-right: 3px;" title="<?php echo __('This attribute type is missing from the new template. It will be lost if not taken care of right now.'); ?>"></i>
                                             <?php endif; ?>
@@ -286,7 +287,7 @@
                                     <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
                                         <td style="white-space: nowrap;">
                                             <?php if (isset($attribute['is_multiple']) && $attribute['is_multiple']): ?>
-                                                <i class="fas fa-copy useCursorPointer" style="margin-right: 3px;" title="<?php echo __('This attribute value is different. However, as multiple is allowed, it as been duplicated.'); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="scrollinRow(this);"></i>
+                                                <i class="fas fa-copy useCursorPointer" style="margin-right: 3px;" title="<?php echo __('An instance of this attribute already exists. However, as multiple instanciation is allowed by this template, the two attributes will be keept.'); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="scrollinRow(this);"></i>
                                             <?php endif; ?>
                                             <?php echo h($attribute['object_relation']); ?>
                                         </td>
