@@ -255,7 +255,7 @@
 
                 var allow_interactive_picking = $('#attributes_div table tr').length > 0;
 
-                var $div = '<div id="sharingNetworkWrapper" class="advancedSharingNetwork hidden">'
+                var $div = '<div id="sharingNetworkWrapper" class="fixedRightPanel hidden">'
                     + '<div class="eventgraph_header" style="border-radius: 5px; display: flex;">'
                     + '<it class="fa fa-circle-o" style="margin: auto 10px; font-size: x-large"></it>'
                     + '<input type="text" id="sharingNetworkTargetId" class="center-in-network-header network-typeahead" style="width: 200px;" disabled></input>';

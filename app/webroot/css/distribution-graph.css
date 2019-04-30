@@ -144,19 +144,6 @@ label.center-in-network-header {
 	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fff5f5f5', endColorstr='#fff9f9f9', GradientType=0);
 }
 
-.advancedSharingNetwork {
-	position: fixed;
-	top: 45px;
-	right: 0px;
-	height: 800px;
-	width: 800px;
-	background: #ffffffcc;;
-	z-index: 1;
-	border: 1px solid #0088cc;
-	border-radius: 6px;
-	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-}
-
 .sharingNetworkOrgFinder {
 	position: absolute !important;
 	right: 30px !important;
