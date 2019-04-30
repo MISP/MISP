@@ -2488,6 +2488,11 @@ class EventsController extends AppController
         $errors = array();
         // only allow form submit CSRF protection
         if ($this->request->is('post') || $this->request->is('put')) {
+            $publishable = $this->Event->checkIfPublishable($id);
+            if ($publishable !== true) {
+                $this->Flash->error(__('Could not publish event - no tag for required taxonomies missing: %s', implode(', ', $publishable)));
+                $this->redirect(array('action' => 'view', $id));
+            }
             // send out the email
             $emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user(), $this->Event->data['Event']['publish_timestamp']);
             if (is_bool($emailResult) && $emailResult == true) {
