@@ -100,12 +100,12 @@
       </table>
     </div>
 
-    <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary')); ?>
+    <?php echo $this->Form->button(__('Create new object'), array('class' => 'btn btn-primary')); ?>
     <a href="#" style="margin-left:10px;" class="btn btn-inverse" onclick="window.history.back();"><?php echo __('Back to review');?></a>
     <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse"><?php echo __('Cancel');?></a>
     <?php if (!empty($similar_objects) && $action !== 'edit'): ?>
         <?php echo '<h3 style="margin-top: 20px;">' . __('This event contains similar objects.') . '</h3>'; ?>
-        <?php echo '<h5>' . __('Would you like to merge your new object into one of the following?') . '</h5>'; ?>
+        <?php echo '<h5>' . __('Instead of creating a new object, would you like to merge your new object into one of the following?') . '</h5>'; ?>
         <div class="row" style="margin-bottom: 20px;">
         <?php foreach ($similar_objects as $object): ?>
             <?php
