@@ -16,7 +16,7 @@
                     '<div style="%s" class="templateChoiceButton useCursorPointer" onClick="%s" title="%s" role="button" tabindex="0" aria-label="%s">%s</div>',
                     'border-bottom:1px solid black; text-align:center;width:100%;',
                     sprintf(
-                        "window.location='%/events/queryEnrichment/%s';",
+                        "window.location='%s/events/queryEnrichment/%s';",
                         $baseurl,
                         implode('/', array(h($attribute_id), h($module['name']), h($type)))
                     ),
