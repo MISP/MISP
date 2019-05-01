@@ -128,7 +128,7 @@ MISPvars () {
   CAKE="$PATH_TO_MISP/app/Console/cake"
 
   # sudo config to run $LUSER commands
-  if [[ "$(groups |grep -o 'staff')" == "staff" ]]; then
+  if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
     SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
   else
     SUDO_USER="sudo -H -u ${MISP_USER}"
@@ -352,6 +352,15 @@ checkID () {
     sudo adduser $MISP_USER staff
     sudo adduser $MISP_USER $WWW_USER
   fi
+
+  # FIXME: the below SUDO_USER check is a duplicate from global variables, try to have just one check
+  # sudo config to run $LUSER commands
+  if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
+    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+  else
+    SUDO_USER="sudo -H -u ${MISP_USER}"
+  fi
+
 }
 
 # pre-install check to make sure what we will be installing on, is ready and not a half installed system
@@ -1345,8 +1354,6 @@ backgroundWorkers () {
 
 # Main MISP Modules install function
 mispmodules () {
-  # FIXME:  this is broken, ${PATH_TO_MISP} is litteral
-##sudo sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
   cd /usr/local/src/
   ## TODO: checkUsrLocalSrc in main doc
   debug "Cloning misp-modules"
