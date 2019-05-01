@@ -283,7 +283,7 @@ class AdminShell extends AppShell
             }
             $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value);
             if ($result === true) {
-                echo 'Setting changed.';
+                echo 'Setting "' . $setting_name . '" changed to ' . $value;
             } else {
                 echo $result;
             }
