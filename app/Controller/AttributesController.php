@@ -2246,7 +2246,7 @@ class AttributesController extends AppController
                 $data = $this->request->data;
             }
             if (empty($data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type).'));
             }
             $paramArray = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl', 'enforceWarninglist', 'ns_alt');
             foreach ($paramArray as $p) {
