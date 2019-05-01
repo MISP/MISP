@@ -1,4 +1,4 @@
-# INSTALLATION INSTRUCTIONS for RHEL 8.x (beta)
+# INSTALLATION INSTRUCTIONS for RHEL 8.x (beta) and partially Fedora Server 30
 -------------------------
 
 ### -1/ Installer and Manual install instructions
@@ -129,6 +129,7 @@ sudo yum install gcc git zip \
        mod_ssl \
        redis \
        mariadb \
+       mariadb-server \
        python3-devel python3-pip python3-virtualenv \
        libxslt-devel zlib-devel ssdeep-devel -y
 sudo alternatives --set python /usr/bin/python3
@@ -157,11 +158,6 @@ sudo yum install php php-fpm php-devel php-pear \
 ## 2.05/ Start the PHP FPM service and enable to start on boot
 ```bash
 sudo systemctl enable --now php-fpm.service
-```
-
-## 2.07/ Start redis service and enable to start on boot
-```bash
-sudo systemctl enable --now redis.service
 ```
 
 ```bash
@@ -237,7 +233,8 @@ $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
 # lief needs manual compilation
-sudo yum install devtoolset-8 cmake3 cppcheck -y
+sudo yum groupinstall "Development Tools" -y
+sudo yum install cmake3 cppcheck -y
 
 cd $PATH_TO_MISP/app/files/scripts/lief
 $SUDO_WWW mkdir build
@@ -289,10 +286,10 @@ installCake_RHEL ()
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
   # Update composer.phar (optional)
-  #$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  #$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-  #$SUDO_WWW php composer-setup.php
-  #$SUDO_WWW php -r "unlink('composer-setup.php');"
+  $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+  $SUDO_WWW php composer-setup.php
+  $SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
   $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
@@ -650,7 +647,7 @@ Make the workers' script executable and reload the systemd units :
 ```bash
 sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
 sudo systemctl daemon-reload
-sudo checkmodule -M -m -o /tmp/workerstartsh.mod $PATH_TO_MISP/INSTALL/workerstartsh.te
+sudo checkmodule -M -m -o /tmp/workerstartsh.mod $PATH_TO_MISP/INSTALL/worker/startsh.te
 sudo semodule_package -o /tmp/workerstartsh.pp -m /tmp/workerstartsh.mod
 sudo semodule -i /tmp/workerstartsh.pp
 ```
@@ -670,10 +667,10 @@ sudo chown root:users /usr/local/src
 cd /usr/local/src/
 $SUDO_WWW git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
+sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-core poppler-cpp-devel -y
 # pip install
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
-sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-core -y
 
 echo "[Unit]
 Description=MISP's modules
