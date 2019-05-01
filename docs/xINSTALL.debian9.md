@@ -5,13 +5,13 @@
 ------------------------------------
 
 !!! notice
-    Maintained and tested by @SteveClement on 20190405
+    Maintained and tested by @SteveClement on 20190425
 
 !!! warning
-    This install document is NOT working as expected. There are Python issues as we "only" have python 3.5 but need at least python 3.6
+    This install document is **NOT** working as expected. There are Python issues as we "only" have python 3.5 but need at least python 3.6
     This guide effectively converts your "stretch" install into a partial "testing" install.
     Thus following the "testing" install guide is a better choice, but not for production.
-    One manual work-around is to install Python >3.5 from source.
+    One manual work-around is to install Python >3.5 from source and leaving apt untouched.
 
 ### 1/ Minimal Debian install
 -------------------------
@@ -80,10 +80,11 @@ sudo apt -t testing install -y \
 mariadb-client \
 mariadb-server
 
+# /!\
 # This is maybe needed. If mysql does not start and you find a solution, please contribute.
 # What did work for me was running mysqld interactively: sudo mysqld
-mkdir -p /var/run/mysqld
-chown mysql /var/run/mysqld
+sudo mkdir -p /var/run/mysqld
+sudo chown mysql /var/run/mysqld
 sudo /etc/init.d/mysql restart
 
 sudo apt -t testing install -y jupyter-notebook

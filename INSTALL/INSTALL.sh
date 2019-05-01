@@ -1084,6 +1084,9 @@ installCore () {
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
 
+  # install plyara
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
+
   # Install Crypt_GPG and Console_CommandLine
   sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
   sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
@@ -1350,18 +1353,16 @@ mispmodules () {
   $SUDO_USER git clone https://github.com/MISP/misp-modules.git
   cd misp-modules
   # some misp-modules dependencies
-  sudo apt-get install libpq5 libjpeg-dev libfuzzy-dev -y
+  sudo apt-get install python3-dev python3-pip libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick virtualenv libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y
   # If you build an egg, the user you build it as need write permissions in the CWD
   sudo chgrp $WWW_USER .
   sudo chmod g+w .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
-  sudo apt install ruby-pygments.rb -y
+  sudo apt install ruby-pygments.rb libopencv-dev zbar-tools -y
   sudo gem install asciidoctor-pdf --pre
 
-  # install additional dependencies for extended object generation and extraction
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install wand yara pathlib
   # Start misp-modules as a service
   sudo cp etc/systemd/system/misp-modules.service /etc/systemd/system/
   sudo systemctl daemon-reload
@@ -1583,11 +1584,17 @@ viper () {
   $SUDO_USER sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
   # Reset admin password to: admin/Password1234
   echo "Fixing admin.db with default password"
+  VIPER_COUNT=0
   while [ "$(sudo sqlite3 ${VIPER_HOME}/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
     # FIXME This might lead to a race condition, the while loop is sub-par
     sudo chown $MISP_USER:$MISP_USER ${VIPER_HOME}/admin.db
     echo "Updating viper-web admin password, giving process time to start-up, sleeping 5, 4, 3,…"
     sleep 6
+    VIPER_COUNT=$[$VIPER_COUNT+1]
+    if [[ "$VIPER_COUNT" > '10' ]]; then
+      echo "Something is wrong with updating viper. Continuing without db update."
+      break
+    fi
   done
 
   # Add viper-web to rc.local to be started on boot

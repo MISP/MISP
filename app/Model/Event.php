@@ -58,7 +58,112 @@ class Event extends AppModel
 
     private $__assetCache = array();
 
-    public $export_types = array();
+    public $export_types = array(
+            'json' => array(
+                    'extension' => '.json',
+                    'type' => 'JSON',
+                    'scope' => 'Event',
+                    'requiresPublished' => 0,
+                    'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'json'),
+                    'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
+            ),
+            'xml' => array(
+                    'extension' => '.xml',
+                    'type' => 'XML',
+                    'scope' => 'Event',
+                    'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'xml'),
+                    'requiresPublished' => 0,
+                    'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
+            ),
+            'csv_sig' => array(
+                    'extension' => '.csv',
+                    'type' => 'CSV_Sig',
+                    'scope' => 'Event',
+                    'requiresPublished' => 1,
+                    'params' => array('published' => 1, 'to_ids' => 1, 'returnFormat' => 'csv'),
+                    'description' => 'Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.',
+            ),
+            'csv_all' => array(
+                    'extension' => '.csv',
+                    'type' => 'CSV_All',
+                    'scope' => 'Event',
+                    'requiresPublished' => 0,
+                    'params' => array('ignore' => 1, 'returnFormat' => 'csv'),
+                    'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
+            ),
+            'suricata' => array(
+                    'extension' => '.rules',
+                    'type' => 'Suricata',
+                    'scope' => 'Attribute',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'suricata'),
+                    'description' => 'Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
+            ),
+            'snort' => array(
+                    'extension' => '.rules',
+                    'type' => 'Snort',
+                    'scope' => 'Attribute',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'snort'),
+                    'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
+            ),
+            'bro' => array(
+                    'extension' => '.intel',
+                    'type' => 'Bro',
+                    'scope' => 'Attribute',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'bro'),
+                    'description' => 'Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
+            ),
+            'stix' => array(
+                    'extension' => '.xml',
+                    'type' => 'STIX',
+                    'scope' => 'Event',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
+                    'description' => 'Click this to download an a STIX document containing the STIX version of all events and attributes that you have access to.'
+            ),
+            'stix2' => array(
+                    'extension' => '.json',
+                    'type' => 'STIX2',
+                    'scope' => 'Event',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
+                    'description' => 'Click this to download an a STIX2 document containing the STIX2 version of all events and attributes that you have access to.'
+            ),
+            'rpz' => array(
+                    'extension' => '.txt',
+                    'type' => 'RPZ',
+                    'scope' => 'Attribute',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'rpz'),
+                    'description' => 'Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.'
+            ),
+            'text' => array(
+                    'extension' => '.txt',
+                    'type' => 'TEXT',
+                    'scope' => 'Attribute',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
+                    'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
+            ),
+            'yara' => array(
+                    'extension' => '.yara',
+                    'type' => 'Yara',
+                    'scope' => 'Event',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'yara'),
+                    'description' => 'Click this to download Yara rules generated from all relevant attributes.'
+            ),
+            'yara-json' => array(
+                    'extension' => '.json',
+                    'type' => 'Yara',
+                    'scope' => 'Event',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'yara-json'),
+                    'description' => 'Click this to download Yara rules generated from all relevant attributes. Rules are returned in a JSON format with information about origin (generated or parsed) and validity.'
+            ),
+    );
 
     public $validFormats = array(
         'json' => array('json', 'JsonExport', 'json'),
