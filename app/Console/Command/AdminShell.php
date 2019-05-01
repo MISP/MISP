@@ -308,10 +308,47 @@ class AdminShell extends AppShell
     }
 
     public function updateDatabase() {
-        echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
-        $this->Server->runUpdates(true);
-        echo 'All updates completed.' . PHP_EOL;
+        $whoami = exec('whoami');
+        if ($whoami === 'httpd' || $whoami === 'www-data') {
+            echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
+            $this->Server->runUpdates(true);
+            echo 'All updates completed.' . PHP_EOL;
+        } else {
+            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL);
+        }
     }
+
+    public function updateApp() {
+        $whoami = exec('whoami');
+        if ($whoami === 'httpd' || $whoami === 'www-data') {
+            $command = $this->args[0];
+            if (!empty($this->args[1])) {
+                $processId = $this->args[1];
+                $job = $this->Job->read(null, $processId);
+            } else { // create worker
+                $this->Job->create();
+                $job_data = array(
+                    'worker' => 'prio',
+                    'job_type' => 'update_app',
+                    'job_input' => 'command: ' . $command,
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => '',
+                    'org' => '',
+                    'message' => 'Updating.',
+                );
+                $this->Job->save($job_data);
+                $job = $this->Job->read(null, $this->Job->id);
+            }
+            $result = $this->Server->updateDatabase($command, false);
+            $job['Job']['progress'] = 100;
+            $job['Job']['message'] = 'Update done';
+            $this->Job->save($job);
+        } else {
+            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL);
+        }
+    }
+
 
     public function getAuthkey() {
         if (empty($this->args[0])) {
@@ -404,7 +441,7 @@ class AdminShell extends AppShell
         }
         echo 'Updated, new key:' . PHP_EOL . $authKey . PHP_EOL;
     }
-    
+
     public function getOptionParser() {
         $parser = parent::getOptionParser();
         $parser->addSubcommand('updateJSON', array(

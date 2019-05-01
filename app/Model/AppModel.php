@@ -78,6 +78,21 @@ class AppModel extends Model
         33 => false, 34 => false
     );
 
+    public $advanced_updates_description = array(
+    );
+    public $actions_description = array(
+        'verifyGnuPGkeys' => array(
+            'title' => 'Verify GnuPG keys',
+            'description' => "Run a full validation of all GnuPG keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results.",
+            'url' => '/users/verifyGPG/'
+        ),
+        'databaseCleanupScripts' => array(
+            'title' => 'Database Cleanup Scripts',
+            'description' => 'If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.',
+            'url' => '/logs/pruneUpdateLogs/'
+        )
+    );
+
     public function afterSave($created, $options = array())
     {
         if ($created) {
@@ -209,8 +224,46 @@ class AppModel extends Model
     }
 
     // SQL scripts for updates
-    public function updateDatabase($command)
+    public function updateDatabase($command, $useWorker=true)
     {
+        // Exit if updates are locked
+        if ($this->isUpdateLocked()) {
+            return false;
+        }
+        $this->__resetUpdateProgress();
+        // restart this function by a worker
+        if ($useWorker && Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $data = array(
+                'worker' => 'prio',
+                'job_type' => 'update_app',
+                'job_input' => 'command: ' . $command,
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => '',
+                'org' => '',
+                'message' => 'Updating.',
+            );
+            $job->save($data);
+            $jobId = $job->id;
+            $process_id = CakeResque::enqueue(
+                    'prio',
+                    'AdminShell',
+                    array('updateApp', $command, $jobId),
+                    true
+            );
+            $job->saveField('process_id', $process_id);
+            return true;
+        }
+
+        $liveOff = false;
+        $exitOnError = false;
+        if (isset($advanced_updates_description[$command])) {
+            $liveOff = isset($advanced_updates_description[$command]['liveOff']) ? $advanced_updates_description[$command]['liveOff'] : $liveOff;
+            $exitOnError = isset($advanced_updates_description[$command]['exitOnError']) ? $advanced_updates_description[$command]['exitOnError'] : $exitOnError;
+        }
+
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
         $sqlArray = array();
@@ -1150,50 +1203,121 @@ class AppModel extends Model
                 return false;
                 break;
         }
-        foreach ($sqlArray as $sql) {
+
+        $now = new DateTime();
+        $this->__changeLockState(time());
+        // switch MISP instance live to false
+        if ($liveOff) {
+            $this->Server = Classregistry::init('Server');
+            $liveSetting = 'MISP.live';
+            $this->Server->serverSettingsSaveValue($liveSetting, false);
+        }
+        $sql_update_count = count($sqlArray);
+        $index_update_count = count($indexArray);
+        $total_update_count = $sql_update_count + $index_update_count;
+        $this->__setUpdateProgress(0, $total_update_count);
+        $str_index_array = array();
+        foreach($indexArray as $toIndex) {
+            $str_index_array[] = __('Indexing ') . implode($toIndex, '->');
+        }
+        $this->__setUpdateCmdMessages(array_merge($sqlArray, $str_index_array));
+        $flag_stop = false;
+        $error_count = 0;
+
+        // execute test before update. Exit if it fails
+        if (isset($this->advanced_updates_description[$command]['preUpdate'])) {
+            $function_name = $this->advanced_updates_description[$command]['preUpdate'];
             try {
-                $this->query($sql);
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => 'SYSTEM',
-                        'action' => 'update_database',
-                        'user_id' => 0,
-                        'title' => 'Successfuly executed the SQL query for ' . $command,
-                        'change' => 'The executed SQL query was: ' . $sql
-                ));
+                $this->{$function_name}();
             } catch (Exception $e) {
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => 'SYSTEM',
-                        'action' => 'update_database',
-                        'user_id' => 0,
-                        'title' => 'Issues executing the SQL query for ' . $command,
-                        'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
-                ));
+                $this->__setPreUpdateTestState(false);
+                $this->__setUpdateProgress(0, false);
+                $this->__setUpdateResMessages(0, __('Issues executing the pre-update test `') . $function_name . __('`. The returned error is: ') . PHP_EOL . $e->getMessage());
+                $this->__setUpdateError(0);
+                $error_count++;
+                $exitOnError = true;
+                $flag_stop = true;
             }
         }
-        if (!empty($indexArray)) {
-            if ($clean) {
-                $this->cleanCacheFiles();
-            }
-            foreach ($indexArray as $iA) {
-                if (isset($iA[2])) {
-                    $this->__addIndex($iA[0], $iA[1], $iA[2]);
-                } else {
-                    $this->__addIndex($iA[0], $iA[1]);
+
+        if (!$flag_stop) {
+            $this->__setPreUpdateTestState(true);
+            foreach ($sqlArray as $i => $sql) {
+                try {
+                    $this->__setUpdateProgress($i, false);
+                    $this->query($sql);
+                    $this->Log->create();
+                    $this->Log->save(array(
+                        'org' => 'SYSTEM',
+                        'model' => 'Server',
+                        'model_id' => 0,
+                        'email' => 'SYSTEM',
+                        'action' => 'update_database',
+                        'user_id' => 0,
+                        'title' => __('Successfuly executed the SQL query for ') . $command,
+                        'change' => __('The executed SQL query was: ') . $sql
+                    ));
+                    $this->__setUpdateResMessages($i, __('Successfuly executed the SQL query for ') . $command);
+                } catch (Exception $e) {
+                    $this->Log->create();
+                    $this->Log->save(array(
+                        'org' => 'SYSTEM',
+                        'model' => 'Server',
+                        'model_id' => 0,
+                        'email' => 'SYSTEM',
+                        'action' => 'update_database',
+                        'user_id' => 0,
+                        'title' => __('Issues executing the SQL query for ') . $command,
+                        'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $e->getMessage()
+                    ));
+                    $this->__setUpdateResMessages($i, __('Issues executing the SQL query for ') . $command . __('. The returned error is: ') . PHP_EOL . $e->getMessage());
+                    $this->__setUpdateError($i);
+                    $error_count++;
+                    if ($exitOnError) {
+                        $flag_stop = true;
+                        break;
+                    }
                 }
             }
         }
+        if (!$flag_stop) {
+             if (!empty($indexArray)) {
+                 if ($clean) {
+                     $this->cleanCacheFiles();
+                 }
+                 foreach ($indexArray as $i => $iA) {
+                     $this->__setUpdateProgress(count($sqlArray)+$i, false);
+                     if (isset($iA[2])) {
+                         $this->__addIndex($iA[0], $iA[1], $iA[2]);
+                     } else {
+                         $this->__addIndex($iA[0], $iA[1]);
+                     }
+                     $this->__setUpdateResMessages(count($sqlArray)+$i, __('Successfuly indexed ') . implode($iA, '->'));
+                 }
+             }
+             $this->__setUpdateProgress(count($sqlArray)+count($indexArray), false);
+         }
         if ($clean) {
             $this->cleanCacheFiles();
         }
+        if ($liveOff) {
+            $liveSetting = 'MISP.live';
+            $this->Server->serverSettingsSaveValue($liveSetting, true);
+        }
+        if (!$flag_stop && $error_count == 0) {
+            $this->__postUpdate($command);
+        }
+        $this->__changeLockState(false);
         return true;
+    }
+
+    // check whether the adminSetting should be updated after the update
+    private function __postUpdate($command) {
+        if (isset($this->advanced_updates_description[$command]['record'])) {
+            if($this->advanced_updates_description[$command]['record']) {
+                $this->AdminSetting->changeSetting($command, 1);
+            }
+        }
     }
 
     private function __dropIndex($table, $field)
@@ -1390,6 +1514,126 @@ class AppModel extends Model
         if ($requiresLogout) {
             $this->updateDatabase('destroyAllSessions');
         }
+        return true;
+    }
+
+    private function __setUpdateProgress($current, $total=false)
+    {
+        $updateProgress = $this->getUpdateProgress();
+        $updateProgress['current'] = $current;
+        if ($total !== false) {
+            $updateProgress['total'] = $total;
+        } else {
+            $now = new DateTime();
+            $updateProgress['time']['started'][$current] = $now->format('Y-m-d H:i:s');
+        }
+        $this->__saveUpdateProgress($updateProgress);
+    }
+
+    private function __setPreUpdateTestState($state)
+    {
+        $updateProgress = $this->getUpdateProgress();
+        $updateProgress['preTestSuccess'] = $state;
+        $this->__saveUpdateProgress($updateProgress);
+    }
+
+    private function __setUpdateError($index)
+    {
+        $updateProgress = $this->getUpdateProgress();
+        $updateProgress['failed_num'][] = $index;
+        $this->__saveUpdateProgress($updateProgress);
+    }
+
+    private function __resetUpdateProgress()
+    {
+        $updateProgress = array(
+            'commands' => array(),
+            'results' => array(),
+            'time' => array('started' => array(), 'elapsed' => array()),
+            'current' => '',
+            'total' => '',
+            'failed_num' => array()
+        );
+        $this->__saveUpdateProgress($updateProgress);
+    }
+
+    private function __setUpdateCmdMessages($messages)
+    {
+        $updateProgress = $this->getUpdateProgress();
+        $updateProgress['commands'] = $messages;
+        $this->__saveUpdateProgress($updateProgress);
+    }
+
+    private function __setUpdateResMessages($index, $message)
+    {
+        $updateProgress = $this->getUpdateProgress();
+        $updateProgress['results'][$index] = $message;
+        $temp = new DateTime();
+        $diff = $temp->diff(new DateTime($updateProgress['time']['started'][$index]));
+        $updateProgress['time']['elapsed'][$index] = $diff->format('%H:%I:%S');
+        $this->__saveUpdateProgress($updateProgress);
+    }
+
+    public function getUpdateProgress()
+    {
+        if (!isset($this->AdminSetting)) {
+            $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        }
+        $updateProgress = $this->AdminSetting->getSetting('update_progress');
+        if ($updateProgress !== false) {
+            $updateProgress = json_decode($updateProgress, true);
+        } else {
+            $this->__resetUpdateProgress();
+            $updateProgress = $this->AdminSetting->getSetting('update_progress');
+            $updateProgress = json_decode($updateProgress, true);
+        }
+        foreach($updateProgress as $setting => $value) {
+            if (!is_array($value)) {
+                $value = $value !== false && $value !== '' ? intval($value) : 0;
+            }
+            $updateProgress[$setting] = $value;
+        }
+        return $updateProgress;
+    }
+
+    private function __saveUpdateProgress($updateProgress)
+    {
+        $data = json_encode($updateProgress);
+        $this->AdminSetting->changeSetting('update_progress', $data);
+    }
+
+    private function __changeLockState($locked)
+    {
+        $this->AdminSetting->changeSetting('update_locked', $locked);
+    }
+
+    private function getUpdateLockState()
+    {
+        if (!isset($this->AdminSetting)) {
+            $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        }
+        $locked = $this->AdminSetting->getSetting('update_locked');
+        return is_null($locked) ? false : $locked;
+    }
+
+    public function isUpdateLocked()
+    {
+        $lockState = $this->getUpdateLockState();
+        if ($lockState !== false && $lockState !== '') {
+            // if lock is old, still allows the update
+            // This can be useful if the update process crashes
+            $diffSec = time() - intval($lockState);
+            if (Configure::read('MISP.updateTimeThreshold')) {
+                $updateWaitThreshold = intval(Configure::read('MISP.updateTimeThreshold'));
+            } else {
+                $this->Server = ClassRegistry::init('Server');
+                $updateWaitThreshold = intval($this->Server->serverSettings['MISP']['updateTimeThreshold']['value']);
+            }
+            if ($diffSec < $updateWaitThreshold) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function __queueCleanDB()

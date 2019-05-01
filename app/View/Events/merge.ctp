@@ -23,7 +23,7 @@
 
     </fieldset>
 <?php
-echo $this->Form->button('Merge', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Merge'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>

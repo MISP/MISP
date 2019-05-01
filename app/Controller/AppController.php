@@ -372,7 +372,7 @@ class AppController extends Controller
                 $this->Auth->logout();
                 throw new MethodNotAllowedException($message);//todo this should pb be removed?
             } else {
-                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)', array('clear' => 1));
+                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $baseurl . '/servers/advancedUpdate/', 'urlName' => 'Advanced Update'), 'clear' => 1));
             }
         }
 
@@ -835,7 +835,11 @@ class AppController extends Controller
         }
         $this->Server->updateDatabase($command);
         $this->Flash->success('Done.');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        if ($liveOff) {
+            $this->redirect(array('controller' => 'servers', 'action' => 'updateProgress'));
+        } else {
+            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        }
     }
 
     public function upgrade2324()

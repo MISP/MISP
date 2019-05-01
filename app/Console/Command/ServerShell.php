@@ -446,4 +446,5 @@ class ServerShell extends AppShell
 		$this->Task->id = $task['Task']['id'];
 		$this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');
 	}
+
 }
