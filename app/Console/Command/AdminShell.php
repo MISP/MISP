@@ -65,7 +65,7 @@ class AdminShell extends AppShell
     public function restartWorker()
     {
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin restartWorker [PID]';
+            echo 'Usage: ' . APP . '/cake ' . 'Admin restartWorker [PID]' . PHP_EOL;
         }
         $pid = $this->args[0];
         $result = $this->Server->restartWorker($pid);
@@ -85,7 +85,7 @@ class AdminShell extends AppShell
     public function killWorker()
     {
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin killWorker [PID]';
+            echo 'Usage: ' . APP . '/cake ' . 'Admin killWorker [PID]' . PHP_EOL;
             die();
         }
         $pid = $this->args[0];
@@ -101,7 +101,7 @@ class AdminShell extends AppShell
     public function startWorker()
     {
         if (empty($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin startWorker [queue]';
+            echo 'Usage: ' . APP . '/cake ' . 'Admin startWorker [queue]' . PHP_EOL;
             die();
         }
         $queue = $this->args[0];
@@ -143,9 +143,9 @@ class AdminShell extends AppShell
         $force = $value;
         $result = $this->Galaxy->update($force);
         if ($result) {
-            echo 'Galaxies updated';
+            echo 'Galaxies updated' . PHP_EOL;
         } else {
-            echo 'Could not update Galaxies';
+            echo 'Could not update Galaxies' . PHP_EOL;
         }
     }
 
@@ -153,34 +153,34 @@ class AdminShell extends AppShell
     public function updateTaxonomies() {
         $result = $this->Taxonomy->update();
         if ($result) {
-            echo 'Taxonomies updated';
+            echo 'Taxonomies updated' . PHP_EOL;
         } else {
-            echo 'Could not update Taxonomies';
+            echo 'Could not update Taxonomies' . PHP_EOL;
         }
     }
 
     public function updateWarningLists() {
         $result = $this->Galaxy->update();
         if ($result) {
-            echo 'Warning lists updated';
+            echo 'Warning lists updated' . PHP_EOL;
         } else {
-            echo 'Could not update warning lists';
+            echo 'Could not update warning lists' . PHP_EOL;
         }
     }
 
     public function updateNoticeLists() {
         $result = $this->Noticelist->update();
         if ($result) {
-            echo 'Notice lists updated';
+            echo 'Notice lists updated' . PHP_EOL;
         } else {
-            echo 'Could not update notice lists';
+            echo 'Could not update notice lists' . PHP_EOL;
         }
     }
 
     # FIXME: Debug and make it work, fails to pass userId/orgId properly
     public function updateObjectTemplates() {
         if (empty($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin updateNoticeLists [user_id]';
+            echo 'Usage: ' . APP . '/cake ' . 'Admin updateNoticeLists [user_id]' . PHP_EOL;
         } else {
             $userId = $this->args[0];
             $user = $this->User->find('first', array(
@@ -191,13 +191,13 @@ class AdminShell extends AppShell
                 'fields' => array('User.id', 'User.org_id')
             ));
             if (empty($user)) {
-                echo 'User not found';
+                echo 'User not found' . PHP_EOL;
             } else {
                 $result = $this->ObjectTemplate->update($user, false,false);
                 if ($result) {
-                    echo 'Object templates updated';
+                    echo 'Object templates updated' . PHP_EOL;
                 } else {
-                    echo 'Could not update object templates';
+                    echo 'Could not update object templates' . PHP_EOL;
                 }
             }
         }
@@ -275,15 +275,15 @@ class AdminShell extends AppShell
         if ($value === 'true') $value = 1;
         $cli_user = array('id' => 0, 'email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'));
         if (empty($setting_name) || $value === null) {
-            echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setSetting [setting_name] [setting_value]';
+            echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setSetting [setting_name] [setting_value]' . PHP_EOL;
         } else {
             $setting = $this->Server->getSettingData($setting_name);
             if (empty($setting)) {
-                echo 'Invalid setting. Please make sure that the setting that you are attempting to change exists.';
+                echo 'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
             }
             $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value);
             if ($result === true) {
-                echo 'Setting "' . $setting_name . '" changed to ' . $value;
+                echo 'Setting "' . $setting_name . '" changed to ' . $value . PHP_EOL;
             } else {
                 echo $result;
             }
@@ -379,7 +379,7 @@ class AdminShell extends AppShell
     public function change_authkey()
     {
         if (empty($this->args[0])) {
-            echo 'MISP apikey command line tool.' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Password [email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Password [email] [authkey]';
+            echo 'MISP apikey command line tool.' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Password [email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Password [email] [authkey]' . PHP_EOL;
             die();
         }
         if (!empty($this->args[1])) {
@@ -393,7 +393,7 @@ class AdminShell extends AppShell
             'fields' => array('User.id', 'User.email', 'User.authkey')
         ));
         if (empty($user)) {
-            echo 'Invalid e-mail, user not found.';
+            echo 'Invalid e-mail, user not found.' . PHP_EOL;
             die();
         }
         $user['User']['authkey'] = $authKey;
