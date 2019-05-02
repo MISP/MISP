@@ -168,7 +168,7 @@
     <?php
             echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
     ?>
-            <a href="#" style="margin-left:10px;" class="btn btn-inverse" onclick="window.history.back();"><?php echo __('Back to review');?></a>
+            <a href="#" style="margin-left:10px;" class="btn btn-inverse" onclick="window.history.back();"><?php echo __('Back');?></a>
     <?php
         endif;
         echo $this->Form->end();
