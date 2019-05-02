@@ -3753,7 +3753,8 @@ function submitSubmoduleUpdate(clicked) {
     var submodule_path = $clicked.data('submodule');
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
-            $clicked.addClass('fa-spin');
+            $clicked.removeClass('fa-download');
+            $clicked.addClass('fa-spin fa-spinner');
         },
         dataType:"html",
         cache: false,
@@ -3780,7 +3781,8 @@ function submitSubmoduleUpdate(clicked) {
                     $('#submoduleGitResult').removeClass('green').addClass('red').text(data.output);
                 },
                 complete:function() {
-                    $clicked.removeClass('fa-spin');
+                    $clicked.removeClass('fa-spin fa-spinner');
+                    $clicked.addClass('fa-download');
                     $form.remove();
                 },
                 type:"post",
