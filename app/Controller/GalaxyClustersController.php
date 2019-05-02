@@ -405,6 +405,8 @@ class GalaxyClustersController extends AppController
         }
         $additional_event_ids = array_keys($additional_event_ids);
         $eventIds = array_merge($eventIds, $additional_event_ids);
+        unset($attributes);
+        unset($additional_event_ids);
 
         // fetch all related tags belonging to attack pattern
         $eventTags = $this->Event->EventTag->find('all', array(
