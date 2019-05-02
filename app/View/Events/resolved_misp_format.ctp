@@ -15,9 +15,6 @@
                 'style' => 'display:none;',
                 'value' => ''
         ));
-        if (!isset($importComment)) {
-            $importComment = $attributeValue . ': Enriched via the ' . $module . ' module';
-        }
         echo $this->Form->input('default_comment', array(
                 'label' => false,
                 'type' => 'text',

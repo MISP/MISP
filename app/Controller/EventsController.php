@@ -5131,11 +5131,11 @@ class EventsController extends AppController
         if (empty($attributes) && empty($objects)) {
             $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
         } else {
-            $this->set('attributeValue', $attribute[0]['Attribute']['value']);
-            $this->set('module', $module);
             $event = array('Event' => $attribute[0]['Event']);
             $event['Attribute'] = $attributes;
             $event['Object'] = $objects;
+            $importComment = !empty($result['comment']) ? $result['comment'] : $attribute[0]['Attribute']['value'] . __(': Enriched via the ') . $module . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
+            $this->set('importComment', $importComment);
             if ($attribute[0]['Object']['id']) {
                 $object_id = $attribute[0]['Object']['id'];
                 $initial_object = $this->Event->Object->find('first', array(
