@@ -433,7 +433,7 @@ class FeedsController extends AppController
                     $this->redirect(array('action' => 'index'));
                 }
             }
-            $message = __('Fetching the feed has successfuly completed.');
+            $message = __('Fetching the feed has successfully completed.');
             if ($this->Feed->data['Feed']['source_format'] == 'misp') {
                 if (isset($result['add'])) {
                     $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
