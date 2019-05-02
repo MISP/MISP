@@ -34,6 +34,12 @@
                 <?php
                     echo $version['current'] . ' (' . h($commit) . ')';
                 ?>
+                <?php if ($commit === ''): ?>
+                    <br />
+                    <span class="red bold apply_css_arrow">
+                        <?php echo __('Unable to fetch current commit id, check apache user read privilege.'); ?>
+                    </span>
+                <?php endif; ?>
             </span>
         </span><br />
         <span><?php echo __('Latest available version…');?>
