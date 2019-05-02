@@ -5099,43 +5099,13 @@ class EventsController extends AppController
         if (!is_array($result)) {
             throw new Exception($result);
         }
-        $defaultDistribution = 5;
-        if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
-            $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
-            if ($defaultDistribution == 'event') {
-                $defaultDistribution = 5;
-            }
-        }
-        $attributes = array();
-        $objects = array();
-        if (isset($result['results']['Attribute']) && !empty($result['results']['Attribute'])) {
-            foreach ($result['results']['Attribute'] as &$tmp_attribute) {
-                $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
-                array_push($attributes, $tmp_attribute);
-            }
-            unset($result['results']['Attribute']);
-        }
-        if (!empty($result['results']['Object'])) {
-            foreach ($result['results']['Object'] as $tmp_object) {
-                $tmp_object['distribution'] = (isset($tmp_object['distribution']) ? (int)$tmp_object['distribution'] : $defaultDistribution);
-                $tmp_object['sharing_group_id'] = (isset($tmp_object['sharing_group_id']) ? (int)$tmp_object['sharing_group_id'] : 0);
-                if (isset($tmp_object['Attribute']) && $tmp_object['Attribute']) {
-                    foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
-                        $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
-                    }
-                }
-                array_push($objects, $tmp_object);
-            }
-            unset($result['results']['Object']);
-        }
-        if (empty($attributes) && empty($objects)) {
+        $event = $this->Event->handleMispFormatFromModuleResult($result);
+        if (empty($event['Attribute']) && empty($event['Object'])) {
             $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
         } else {
-            $event = array('Event' => $attribute[0]['Event']);
-            $event['Attribute'] = $attributes;
-            $event['Object'] = $objects;
             $importComment = !empty($result['comment']) ? $result['comment'] : $attribute[0]['Attribute']['value'] . __(': Enriched via the ') . $module . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
             $this->set('importComment', $importComment);
+            $event['Event'] = $attribute[0]['Event'];
             if ($attribute[0]['Object']['id']) {
                 $object_id = $attribute[0]['Object']['id'];
                 $initial_object = $this->Event->Object->find('first', array(
@@ -5180,19 +5150,6 @@ class EventsController extends AppController
             $this->set('title', 'Enrichment Results');
             $this->render('resolved_misp_format');
         }
-    }
-
-    private function __fillAttribute($attribute, $defaultDistribution)
-    {
-        if (!isset($attribute['category'])) {
-            $attribute['category'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['default_category'];
-        }
-        if (!isset($attribute['to_ids'])) {
-            $attribute['to_ids'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
-        }
-        $attribute['distribution'] = (isset($attribute['distribution']) ? (int)$attribute['distribution'] : $defaultDistribution);
-        $attribute['sharing_group_id'] = (isset($attribute['sharing_group_id']) ? (int)$attribute['sharing_group_id'] : 0);
-        return $attribute;
     }
 
     private function __queryOldEnrichment($attribute, $module, $options, $type)
@@ -5384,34 +5341,44 @@ class EventsController extends AppController
                     if (!is_array($result)) {
                         throw new Exception($result);
                     }
-                    $resultArray = $this->Event->handleModuleResult($result, $eventId);
-                    if ($this->_isRest()) {
-                        return $this->__pushFreetext(
-                            $resultArray,
-                            $eventId,
-                            false,
-                            false,
-                            'soft'
-                        );
-                    }
-                    if (isset($result['comment'])) {
-                        $importComment = $result['comment'];
+                    $importComment = !empty($result['comment']) ? $result['comment'] : 'Enriched via the ' . $module['name'] . ' module';
+                    if (isset($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
+                        $event = $this->Event->handleMispFormatFromModuleResult($result);
+                        $event['Event'] = array('id' => $eventId);
+                        $this->set('event', $event);
+                        $this->set('menuItem', 'importResults');
+                        $render_name = 'resolved_misp_format';
                     } else {
-                        $importComment = 'Enriched via the ' . $module['name'] . ' module';
-                    }
-                    $typeCategoryMapping = array();
-                    foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
-                        foreach ($cat['types'] as $type) {
-                            $typeCategoryMapping[$type][$k] = $k;
+                        $resultArray = $this->Event->handleModuleResult($result, $eventId);
+                        if ($this->_isRest()) {
+                            return $this->__pushFreetext(
+                                $resultArray,
+                                $eventId,
+                                false,
+                                false,
+                                'soft'
+                            );
                         }
-                    }
-                    foreach ($resultArray as $key => $result) {
-                        $options = array(
-                                'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
-                                'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                                'order' => false
-                        );
-                        $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+                        $typeCategoryMapping = array();
+                        foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+                            foreach ($cat['types'] as $type) {
+                                $typeCategoryMapping[$type][$k] = $k;
+                            }
+                        }
+                        foreach ($resultArray as $key => $result) {
+                            $options = array(
+                                    'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+                                    'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+                                    'order' => false
+                            );
+                            $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+                        }
+                        $this->set('event', array('Event' => array('id' => $eventId)));
+                        $this->set('resultArray', $resultArray);
+                        $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
+                        $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+                        $this->set('typeCategoryMapping', $typeCategoryMapping);
+                        $render_name = 'resolved_attributes';
                     }
                     $distributions = $this->Event->Attribute->distributionLevels;
                     $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
@@ -5420,14 +5387,9 @@ class EventsController extends AppController
                     }
                     $this->set('distributions', $distributions);
                     $this->set('sgs', $sgs);
-                    $this->set('event', array('Event' => array('id' => $eventId)));
-                    $this->set('resultArray', $resultArray);
-                    $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
-                    $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
-                    $this->set('typeCategoryMapping', $typeCategoryMapping);
                     $this->set('title', 'Import Results');
                     $this->set('importComment', $importComment);
-                    $this->render('resolved_attributes');
+                    $this->render($render_name);
                 }
             }
             $this->Flash->error($fail);

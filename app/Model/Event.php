@@ -5102,6 +5102,56 @@ class Event extends AppModel
         return $resultArray;
     }
 
+    public function handleMispFormatFromModuleResult(&$result)
+    {
+        $defaultDistribution = 5;
+        if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
+            $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
+            if ($defaultDistribution == 'event') {
+                $defaultDistribution = 5;
+            }
+        }
+        $event = array();
+        if (!empty($result['results']['Attribute'])) {
+            $attributes = array();
+            foreach ($result['results']['Attribute'] as &$tmp_attribute) {
+                $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
+                $attributes[] = $tmp_attribute;
+            }
+            $event['Attribute'] = $attributes;
+            unset($result['results']['Attribute']);
+        }
+        if (!empty($result['results']['Object'])) {
+            $object = array();
+            foreach ($result['results']['Object'] as $tmp_object) {
+                $tmp_object['distribution'] = (isset($tmp_object['distribution']) ? (int)$tmp_object['distribution'] : $defaultDistribution);
+                $tmp_object['sharing_group_id'] = (isset($tmp_object['sharing_group_id']) ? (int)$tmp_object['sharing_group_id'] : 0);
+                if (!empty($tmp_object['Attribute'])) {
+                    foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
+                        $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
+                    }
+                }
+                $objects[] = $tmp_object;
+            }
+            $event['Object'] = $objects;
+            unset($result['results']['Object']);
+        }
+        return $event;
+    }
+
+    private function __fillAttribute($attribute, $defaultDistribution)
+    {
+        if (!isset($attribute['category'])) {
+            $attribute['category'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['default_category'];
+        }
+        if (!isset($attribute['to_ids'])) {
+            $attribute['to_ids'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
+        }
+        $attribute['distribution'] = (isset($attribute['distribution']) ? (int)$attribute['distribution'] : $defaultDistribution);
+        $attribute['sharing_group_id'] = (isset($attribute['sharing_group_id']) ? (int)$attribute['sharing_group_id'] : 0);
+        return $attribute;
+    }
+
     public function export($user = false, $module = false, $options = array())
     {
         if (empty($user)) {
