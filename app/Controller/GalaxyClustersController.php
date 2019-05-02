@@ -378,27 +378,6 @@ class GalaxyClustersController extends AppController
         $cluster = $cluster['GalaxyCluster'];
         $tag_name = $cluster['tag_name'];
 
-        // fetch all attribute ids having the requested cluster
-        $attributeIds = $this->Event->Attribute->AttributeTag->find('list', array(
-            'contain' => array('Tag'),
-            'conditions' => array(
-                'Tag.name' => $tag_name
-            ),
-            'fields' => array('attribute_id'),
-            'recursive' => -1
-        ));
-        // fetch all related tags belonging to attack pattern
-        $attributeTags = $this->Event->Attribute->AttributeTag->find('all', array(
-            'contain' => array('Tag'),
-            'conditions' => array(
-                'attribute_id' => $attributeIds,
-                'Tag.name' => $attackPatternTagNames
-            ),
-            'fields' => array('Tag.name, COUNT(DISTINCT event_id) as tag_count'),
-            'recursive' => -1,
-            'group' => array('Tag.name')
-        ));
-
         // fetch all event ids having the requested cluster
         $eventIds = $this->Event->EventTag->find('list', array(
             'contain' => array('Tag'),
@@ -408,11 +387,45 @@ class GalaxyClustersController extends AppController
             'fields' => array('event_id'),
             'recursive' => -1
         ));
+
+        // fetch all attribute ids having the requested cluster
+        $attributes = $this->Event->Attribute->AttributeTag->find('all', array(
+            'contain' => array('Tag'),
+            'conditions' => array(
+                'Tag.name' => $tag_name
+            ),
+            'fields' => array('attribute_id', 'event_id'),
+            'recursive' => -1
+        ));
+        $attributeIds = array();
+        $additional_event_ids = array();
+        foreach ($attributes as $attribute) {
+            $attributeIds[] = $attribute['AttributeTag']['attribute_id'];
+            $additional_event_ids[$attribute['AttributeTag']['event_id']] = $attribute['AttributeTag']['event_id'];
+        }
+        $additional_event_ids = array_keys($additional_event_ids);
+        $eventIds = array_merge($eventIds, $additional_event_ids);
+
         // fetch all related tags belonging to attack pattern
         $eventTags = $this->Event->EventTag->find('all', array(
             'contain' => array('Tag'),
             'conditions' => array(
                 'event_id' => $eventIds,
+                'Tag.name' => $attackPatternTagNames
+            ),
+            'fields' => array('Tag.name, COUNT(DISTINCT event_id) as tag_count'),
+            'recursive' => -1,
+            'group' => array('Tag.name')
+        ));
+
+        // fetch all related tags belonging to attack pattern or belonging to an event having this cluster
+        $attributeTags = $this->Event->Attribute->AttributeTag->find('all', array(
+            'contain' => array('Tag'),
+            'conditions' => array(
+                'OR' => array(
+                    'event_id' => $eventIds,
+                    'attribute_id' => $attributeIds
+                ),
                 'Tag.name' => $attackPatternTagNames
             ),
             'fields' => array('Tag.name, COUNT(DISTINCT event_id) as tag_count'),
