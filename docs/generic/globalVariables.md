@@ -65,7 +65,7 @@ MISPvars () {
   CAKE="$PATH_TO_MISP/app/Console/cake"
 
   # sudo config to run $LUSER commands
-  if [[ "$(groups |grep -o 'staff')" == "staff" ]]; then
+  if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
     SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
   else
     SUDO_USER="sudo -H -u ${MISP_USER}"

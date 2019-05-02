@@ -2621,7 +2621,7 @@ class EventsController extends AppController
     {
         $filesize_units = array('B', 'KB', 'MB', 'GB', 'TB');
         if ($this->_isSiteAdmin()) {
-            $this->Flash->info('Warning, you are logged in as a site admin, any export that you generate will contain the FULL UNRESTRICTED data-set. If you would like to generate an export for your own organisation, please log in with a different user.');
+            $this->Flash->info(__('Warning, you are logged in as a site admin, any export that you generate will contain the FULL UNRESTRICTED data-set. If you would like to generate an export for your own organisation, please log in with a different user.'));
         }
         // Check if the background jobs are enabled - if not, fall back to old export page.
         if (Configure::read('MISP.background_jobs') && !Configure::read('MISP.disable_cached_exports')) {
@@ -3954,7 +3954,7 @@ class EventsController extends AppController
         }
         if ($this->request->is('post')) {
             if (empty($this->request->data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request".'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request").'));
             } else {
                 $data = $this->request->data;
             }

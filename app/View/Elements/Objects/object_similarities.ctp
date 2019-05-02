@@ -78,7 +78,7 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
         $btn_style = 'btn-danger';
         $temp_text = __('Can\'t merge due to template version');
     } else {
-        $temp_text = __('Merge');
+        $temp_text = __('Review merge');
         $btn_style = 'btn-success';
     }
     ?>
@@ -156,20 +156,20 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
                             && isset($multiple_attribute_allowed[$attribute['object_relation'] . ':' . $attribute['type']])
                         ) { // Multiple allowed
                             $classname = 'warning';
-                            $title = __('This attribute is also contained by the revised object. However, as multiple instanciation is allowed by the template, the two attributes will be keept.');
+                            $title = __('This attribute is also contained in the revised object. However, as multiple instantiations are allowed by the template, both attributes will be kept.');
                             $to_highlight = $simple_flattened_similar_attribute_noval;
                         } else if (
                             isset($simple_flattened_attribute_noval[$simple_flattened_similar_attribute_noval])
                             && !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
                         ) { // Not overridable attribute
                             $classname = 'error';
-                            $title = __('This attribute is conflicting with the one in the revised object, manual merge will be required.');
+                            $title = __('This attribute is conflicting with the one in the revised object. Manual merge will be required.');
                             $to_highlight = $simple_flattened_similar_attribute_noval;
                         } else if (
                             !isset($simple_flattened_attribute[$simple_flattened_similar_attribute])
                         ) { // Attribute not present in the revised object
                             $classname = 'info';
-                            $title = __('This attribute is only contained by this similar object. It will remain untouched.');
+                            $title = __('This attribute is only contained in this matching object. It will remain untouched.');
                         } else { // Attributes are basically the same
                             $classname = '';
                             $title = __('This attribute has the same value as the one in the revised object.');

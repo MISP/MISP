@@ -4,8 +4,6 @@
 # <snippet-begin 3_misp-modules.sh>
 # Main MISP Modules install function
 mispmodules () {
-  # FIXME:  this is broken, ${PATH_TO_MISP} is litteral
-##sudo sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
   cd /usr/local/src/
   ## TODO: checkUsrLocalSrc in main doc
   debug "Cloning misp-modules"

@@ -340,6 +340,7 @@ class ACLComponent extends Component
                     'getSubmoduleQuickUpdateForm' => array('perm_site_admin'),
                     'getVersion' => array('*'),
                     'index' => array('OR' => array('perm_sync', 'perm_admin')),
+                    'ondemandAction' => array(),
                     'postTest' => array('perm_sync'),
                     'previewEvent' => array(),
                     'previewIndex' => array(),
@@ -359,6 +360,7 @@ class ACLComponent extends Component
                     'testConnection' => array('perm_sync'),
                     'update' => array(),
                     'updateJSON' => array(),
+                    'updateProgress' => array(),
                     'updateSubmodule' => array(),
                     'uploadFile' => array(),
                     'clearWorkerQueue' => array()
