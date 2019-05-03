@@ -78,11 +78,24 @@
             ?>
             <?php foreach ($event['RelatedEvent'] as $i => $relatedEvent): ?>
             <li class="<?php echo $i > $display_threshold ? 'correlation-expanded-area' : ''; ?>" style="<?php echo $i > $display_threshold ? 'display: none;' : ''; ?>">
-            <div title="<?php echo h($relatedEvent['Event'][0]['info']); ?>">
-            <a href = "<?php echo '/feeds/previewEvent/' . $feed['Feed']['id'] . '/' . $relatedEvent['Event'][0]['uuid']; ?>">
-                <?php echo h($relatedEvent['Event'][0]['date']) . ' (' . h($relatedEvent['Event'][0]['uuid']) . ')'; ?>
-            </a>
-            </div></li>
+                <table><tbody>
+                    <tr>
+                        <td rowspan="2" style="border-right: 1px solid #ddd; padding-right: 2px" class="">
+                            <?php echo $this->OrgImg->getOrgImg(array('name' => $relatedEvent['Event']['Orgc']['name'], 'id' => $relatedEvent['Event']['Orgc']['id'], 'size' => 24)); ?>
+                        </td>
+                        <td style="line-height: 14px; padding-left: 2px;">
+                            <a title="<?php echo h($relatedEvent['Event']['info']); ?>" href="<?php echo '/feeds/previewEvent/' . $feed['Feed']['id'] . '/' . $relatedEvent['Event'][0]['uuid']; ?>">
+                                <?php echo (strlen($relatedEvent['Event']['info'])<=20 ? h($relatedEvent['Event']['info']) : h(substr($relatedEvent['Event']['info'], 0, $string_max_length))) . ' (' . h($relatedEvent['Event']['id']) . ')'; ?>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="line-height: 14px; padding-left: 2px;">
+                            <i><?php echo h($relatedEvent['Event']['date']); ?></i>
+                        </td>
+                    </tr>
+                </tbody></table>
+            </li>
             <?php if ($i == $display_threshold+1 && $total > $display_threshold): ?>
                 <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - $i);?></div>
             <?php endif; ?>
