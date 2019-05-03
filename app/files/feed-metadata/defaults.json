@@ -1100,7 +1100,7 @@
       "event_id": "0",
       "publish": false,
       "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"1\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "settings": "{\"csv\":{\"value\":\"2\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": true,

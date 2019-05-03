@@ -4704,7 +4704,7 @@ class Server extends AppModel
                     'retries' => 0,
                     'org_id' => $user['org_id'],
                     'org' => $user['Organisation']['name'],
-                    'message' => 'Update database after PULL.',
+                    'message' => 'Update the database after PULLing the submodule(s).',
             );
             $job->save($data);
             $jobId = $job->id;

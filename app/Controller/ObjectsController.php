@@ -96,7 +96,7 @@ class ObjectsController extends AppController
             'AND' => array(
                 $this->MispObject->buildConditions($this->Auth->user()),
                 'event_id' => $event_id,
-                'value' => $cur_attrs,
+                'value1' => $cur_attrs,
                 'object_id !=' => '0'
             )
         );
