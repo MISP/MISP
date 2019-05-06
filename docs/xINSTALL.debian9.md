@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for Debian 9.8 "stretch"
+## for Debian 9.9 "stretch"
 
 ### 0/ MISP debian stable install - Status
 ------------------------------------
@@ -9,9 +9,6 @@
 
 !!! warning
     This install document is **NOT** working as expected. There are Python issues as we "only" have python 3.5 but need at least python 3.6
-    This guide effectively converts your "stretch" install into a partial "testing" install.
-    Thus following the "testing" install guide is a better choice, but not for production.
-    One manual work-around is to install Python >3.5 from source and leaving apt untouched.
 
 ### 1/ Minimal Debian install
 -------------------------
@@ -23,7 +20,7 @@
 {!generic/globalVariables.md!}
 
 ```bash
-PHP_ETC_BASE=/etc/php/7.3
+PHP_ETC_BASE=/etc/php/7.0
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 ```
 
@@ -59,41 +56,42 @@ You need to update python3.5 to python3.7 for [PyMISP](https://github.com/MISP/P
 FIXME: The below breaks redis-server and mariadb-server
 
 ```bash
-echo "deb http://ftp.de.debian.org/debian testing main" | sudo tee -a /etc/apt/sources.list
-echo 'APT::Default-Release "stable";' | sudo tee -a /etc/apt/apt.conf.d/00local
+# Manual Python3.7.3 install
 sudo apt update
-sudo apt-get -t testing install -y python3 python3-setuptools python3-dev python3-pip python3-redis python3-zmq virtualenv
+sudo apt install make build-essential libssl-dev zlib1g-dev libbz2-dev \
+libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
+xz-utils tk-dev libffi-dev liblzma-dev -qqy
+mkdir -p code ; cd code ; wget https://www.python.org/ftp/python/3.7.3/Python-3.7.3.tar.xz ; tar xfvJ Python-3.7.3.tar.xz ; cd Python-3.7.3 ; ./configure --enable-optimizations ; make -j8 ; sudo make altinstall
+sudo update-alternatives --install /usr/bin/python python /usr/local/bin/python3.7 50
+sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 40
+sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.5 30
+
+sudo apt install virtualenv -qqy
 ```
 
 ```bash
-sudo apt -t testing install -y \
+sudo apt install \
 curl gcc git gnupg-agent make openssl redis-server vim zip libyara-dev \
 apache2 apache2-doc apache2-utils \
 libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
 jq ntp ntpdate imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev \
-net-tools
+net-tools -qqy
 
-sudo apt -t testing install -y libapache2-mod-php7.3 php7.3 php7.3-cli php7.3-mbstring php7.3-dev php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php-redis php-gnupg php-gd
+sudo apt install libapache2-mod-php php php-cli php-mbstring php-dev php-json php-xml php-mysql php-opcache php-readline php-redis php-gnupg php-gd -qqy
 
-sudo apt -t testing install -y \
+sudo apt install \
 mariadb-client \
-mariadb-server
+mariadb-server -qqy
 
-# /!\
-# This is maybe needed. If mysql does not start and you find a solution, please contribute.
-# What did work for me was running mysqld interactively: sudo mysqld
-sudo mkdir -p /var/run/mysqld
-sudo chown mysql /var/run/mysqld
+# Just a quick test if mysql-server restarts without problems
 sudo /etc/init.d/mysql restart
 
-sudo apt -t testing install -y jupyter-notebook
-
 # Start haveged to get more entropy (optional)
-sudo apt install haveged -y
+sudo apt install haveged -qqy
 sudo service haveged start
 
-sudo apt install expect -y
+sudo apt install expect -qqy
 
 # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
 pw="Password1234"
@@ -122,7 +120,7 @@ expect -f - <<-EOF
   send -- "y\r"
   expect eof
 EOF
-sudo apt-get purge -y expect ; sudo apt autoremove -y
+sudo apt purge -qqy expect ; sudo apt autoremove -qqy
 
 # Enable modules, settings, and default of SSL in Apache
 sudo a2dismod status
@@ -134,73 +132,6 @@ sudo a2ensite default-ssl
 #### Apply all changes
 ```bash
 sudo systemctl restart apache2
-```
-
-#### Fix redis-server
-
-For some reason or another, redis-server startup scripts are broken, the below will fix this.
-
-```bash
-fixRedis () {
-  # As of 20190124 redis-server init.d scripts are broken and need to be replaced
-  sudo mv /etc/init.d/redis-server /etc/init.d/redis-server_`date +%Y%m%d`
-
-  echo '#! /bin/sh
-### BEGIN INIT INFO
-# Provides:		redis-server
-# Required-Start:	$syslog
-# Required-Stop:	$syslog
-# Should-Start:		$local_fs
-# Should-Stop:		$local_fs
-# Default-Start:	2 3 4 5
-# Default-Stop:		0 1 6
-# Short-Description:	redis-server - Persistent key-value db
-# Description:		redis-server - Persistent key-value db
-### END INIT INFO
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/usr/bin/redis-server
-DAEMON_ARGS=/etc/redis/redis.conf
-NAME=redis-server
-DESC=redis-server
-PIDFILE=/var/run/redis.pid
-test -x $DAEMON || exit 0
-test -x $DAEMONBOOTSTRAP || exit 0
-set -e
-case "$1" in
-  start)
-	echo -n "Starting $DESC: "
-	touch $PIDFILE
-	chown redis:redis $PIDFILE
-	if start-stop-daemon --start --quiet --umask 007 --pidfile $PIDFILE --chuid redis:redis --exec $DAEMON -- $DAEMON_ARGS
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	;;
-  stop)
-	echo -n "Stopping $DESC: "
-	if start-stop-daemon --stop --retry 10 --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	rm -f $PIDFILE
-	;;
-  restart|force-reload)
-	${0} stop
-	${0} start
-	;;
-  *)
-	echo "Usage: /etc/init.d/$NAME {start|stop|restart|force-reload}" >&2
-	exit 1
-	;;
-esac
-exit 0' | sudo tee /etc/init.d/redis-server
-  sudo chmod 755 /etc/init.d/redis-server
-  sudo /etc/init.d/redis-server start
-}
 ```
 
 ### 3/ MISP code
@@ -219,7 +150,7 @@ $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 $SUDO_WWW git config core.filemode false
 
 # Create a python3 virtualenv
-$SUDO_WWW virtualenv -p python3 ${PATH_TO_MISP}/venv
+$SUDO_WWW virtualenv -p python3.7 ${PATH_TO_MISP}/venv
 
 # make pip happy
 sudo mkdir /var/www/.cache/
@@ -259,10 +190,10 @@ cd $PATH_TO_MISP/app
 # Make composer cache happy
 sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
 # Update composer.phar
-$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-$SUDO_WWW php composer-setup.php
-$SUDO_WWW php -r "unlink('composer-setup.php');"
+# $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+# $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+# $SUDO_WWW php composer-setup.php
+# $SUDO_WWW php -r "unlink('composer-setup.php');"
 $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
 $SUDO_WWW php composer.phar config vendor-dir Vendor
 $SUDO_WWW php composer.phar install
@@ -530,7 +461,7 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
 ```bash
-sudo apt-get -t testing install librdkafka-dev php-dev
+sudo apt install librdkafka-dev php-dev
 sudo pecl channel-update pecl.php.net
 sudo pecl install rdkafka
 echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
