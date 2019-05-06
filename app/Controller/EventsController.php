@@ -52,7 +52,7 @@ class EventsController extends AppController
 
     public function beforeFilter()
     {
-        parent::beforeFilter();
+	parent::beforeFilter();
 
         // what pages are allowed for non-logged-in users
         $this->Auth->allow('xml');
@@ -5847,4 +5847,113 @@ class EventsController extends AppController
             $this->redirect('/events/view/' . $eventId);
         }
     }
+    public function search() {
+	$fullAddress = '/events/search';
+	if ($this->request->here == $fullAddress && !$this->request->is('post')) {
+	} else {
+	    if ($this->request->is('post')) {
+	        $request = $this->request->data;
+		$query_str = $this->request->data('content');
+		$condition = $query_str['condition'];
+		$conditions = array();
+		foreach($query_str['rules'] as $rule)
+		{
+                    if($rule['operator'] == 'equal') {
+		        $conditions[$condition][] = array($rule['field'] => $rule['value']);
+		    } elseif($rule['operator'] == 'contains') {
+		        $conditions[$condition][] = array($rule['field']." LIKE" => "%".$rule['value']."%");
+		    } elseif($rule['operator'] == 'begins_with') {
+			$conditions[$condition][] = array($rule['field']." LIKE" => $rule['value']."%");
+		    } elseif($rule['operator'] == 'not_begins_with') {
+			$conditions[$condition][] = array($rule['field']." NOT LIKE" => $rule['value']."%");
+		    } elseif($rule['operator'] == 'not_ends_with') {
+			$conditions[$condition][] = array($rule['field']." NOT LIKE" => "%".$rule['value']);
+		    } elseif($rule['operator'] == 'ends_with') {
+			$conditions[$condition][] = array($rule['field']." LIKE" => "%".$rule['value']);
+		    } elseif($rule['operator'] == 'greater') {
+			$conditions[$condition][] = array($rule['field']." >" => $rule['value']);
+		    } elseif($rule['operator'] == 'less') {
+			$conditions[$condition][] = array($rule['field']." <" => $rule['value']);
+		    }
+		} // end foreach loop
+		if(count($conditions,1)>1) {
+                    $columns = array(
+                        0 => 'Published',
+                        1 => 'Id',
+                        2 => 'Org',
+                        3 => 'Tags',
+                        4 => 'Attr',
+                        5 => 'Date',
+                        6 => 'Info',
+                        7 => 'Distribution',
+                        8 => 'Actions',
+                    );
+                    $start = $query_str['start'];
+                    $length = $query_str['length'];
+                    $sord = $request['order'][0]['dir'];
+                    $sidx = strtolower($columns[$request['order'][0]['column']]);
+                    if($sidx == "id") { $sidx = "Event.id"; }
+                    if($sidx == "attr") { $sidx = "Event.attribute_count"; }
+
+                    $query = $this->Event->find('all', array(
+                            "contain" => array('User.email', 'EventTag.Tag', 'Org.name', 'Orgc.name', 'SharingGroup' => array('fields' => array('id', 'name', 'uuid'))),
+                            "recursive" => -1, 
+                            "fields" => array('Event.published', 'Event.id', 'Event.attribute_count', 'Event.date', 'Event.info', 'Event.uuid', 'Event.distribution', 'Event.orgc_id'), 
+                            "conditions" => $conditions,
+                            "order" => $sidx.' '.$sord,
+                        )
+                    );
+
+                    $this->loadModel('GalaxyCluster');
+                    $query = $this->GalaxyCluster->attachClustersToEventIndex($query, true);
+
+                    $totalData = count($query);
+                    $totalFiltered = $totalData;
+                    // TODO: check offset and limit parameters -> should be possible with SQL directly
+                    $query = array_slice($query, $start, $length);
+
+                    $i = 0;
+                    $data = array();
+                    foreach ($query as $row){
+                        $nestedData= [];
+                        $nestedData["published"] = $row["Event"]["published"];
+                        $nestedData["Id"] = $row["Event"]["id"];
+                        $nestedData["Org"] = $row["Org"]["name"];
+                        $tags = [];
+                        foreach($row["EventTag"] as $tag) {
+                            if(!$tag["Tag"]["hide_tag"]) {
+                                $RGB = $tag['Tag']['colour'];
+                                $r = hexdec(substr($RGB, 1, 2));
+                                $g = hexdec(substr($RGB, 3, 2));
+                                $b = hexdec(substr($RGB, 5, 2));
+                                $average = ((2 * $r) + $b + (3 * $g))/6;
+                                if ($average < 128) {
+                                    $textColor = "white";
+                                } else {
+                                    $textColor = "black";
+                                }
+                                $tags[] = '<span class="tag" style="margin-bottom:3px;background-color:'.$tag["Tag"]["colour"].';color:'.$textColor.'" title="'.$tag["Tag"]["name"].'">'.$tag["Tag"]["name"].'</span>';
+                            }
+                        }
+                        $nestedData["Tags"] = implode(' ', $tags);
+                        $nestedData["Attr"] = $row["Event"]["attribute_count"];
+                        $nestedData["Date"] = $row["Event"]["date"];
+                        $nestedData["Info"] = $row["Event"]["info"];
+                        $nestedData["Distribution"] = $row["Event"]["distribution"];
+                        $nestedData["Actions"] = "";
+
+                        $data[] = $nestedData;
+                        $i++;
+                    }
+                    $json_data = array(
+                        "recordsTotal"    => intval( $totalData ),
+                        "recordsFiltered" => intval( $totalFiltered ),
+                        "data"            => $data,
+                    );
+                    echo json_encode($json_data);exit;
+                    //echo json_encode($query);exit;
+                }
+	    } // end if post statement
+	} // end initial else part
+    } // end of public function search
 }
