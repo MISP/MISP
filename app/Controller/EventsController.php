@@ -1928,6 +1928,9 @@ class EventsController extends AppController
         $this->set('info', $info);
         $this->set('analysisDescriptions', $this->Event->analysisDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
+        if (isset($this->params['named']['extends'])) {
+            $this->set('extends_uuid', $this->params['named']['extends']);
+        }
     }
 
     public function addIOC($id)
