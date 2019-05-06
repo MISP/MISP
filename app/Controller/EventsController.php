@@ -5900,7 +5900,7 @@ class EventsController extends AppController
                             "recursive" => -1, 
                             "fields" => array('Event.published', 'Event.id', 'Event.attribute_count', 'Event.date', 'Event.info', 'Event.uuid', 'Event.distribution', 'Event.orgc_id'), 
                             "conditions" => $conditions,
-                            "order" => $sidx.' '.$sord,
+			    "order" => $sidx.' '.$sord
                         )
                     );
 
@@ -5914,11 +5914,12 @@ class EventsController extends AppController
 
                     $i = 0;
                     $data = array();
-                    foreach ($query as $row){
+		    foreach ($query as $row){
                         $nestedData= [];
                         $nestedData["published"] = $row["Event"]["published"];
                         $nestedData["Id"] = $row["Event"]["id"];
                         $nestedData["Org"] = $row["Org"]["name"];
+                        $nestedData["Orgc"] = $row["Orgc"]["name"];
                         $tags = [];
                         foreach($row["EventTag"] as $tag) {
                             if(!$tag["Tag"]["hide_tag"]) {

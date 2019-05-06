@@ -19,6 +19,7 @@
                     <th>Published</th>
                     <th>Id</th>
                     <th>Org</th>
+                    <th>Owner Org</th>
                     <th>Tags</th>
                     <th>#Attr.</th>
                     <th>Date</th>
@@ -76,7 +77,8 @@ var resTable = $('#result_table').dataTable({
                 return '<a href="'+uri+'">'+full.Id+'</a>'
             }
         },
-        {'data': 'Org', 'sName': 'Org', 'aTargets': [ 2 ], 'bSortable': false, 'width': "40pt"},
+        {'data': 'Orgc', 'sName': 'Org', 'aTargets': [ 2 ], 'bSortable': false, 'width': "40pt"},
+        {'data': 'Org', 'sName': 'Owner Org', 'aTargets': [ 2 ], 'bSortable': false, 'width': "40pt"},
         {'data': 'Tags', 'sName': 'Tags', 'aTargets': [ 3 ], 'bSortable': false, 'width': "40pt"},
         {'data': 'Attr', 'sName': '#Attr.', 'aTargets': [ 4 ], 'width': "20pt"},
         {'data': 'Date', 'sName': 'Date', 'aTargets': [ 5 ], 'width': "40pt"},
@@ -118,7 +120,22 @@ var rules_basic = {
                 id: 'published',
                 label: 'Published',
                 type: 'boolean'
+	    },
+	    {
+		id: 'SharingGroup.name',
+		label: 'Sharing Group',
+	        type: 'string'
             },
+	    {
+		id: 'Orgc.name',
+		label: 'Organisation',
+	        type: 'string'
+            },
+	    {
+		id: 'Org.name',
+		label: 'Owner Organisation',
+	        type: 'string'
+            }
         ],
         operators: ['equal', 'begins_with', 'not_begins_with', 'contains', 'ends_with', 'not_ends_with', 'less', 'greater'], // allowed filter operators
         rules: rules_basic
