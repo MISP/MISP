@@ -77,10 +77,9 @@ nav:
       - 'Centos 7': 'xINSTALL.centos7.md'
       - 'Debian stable': 'xINSTALL.debian9.md'
       - 'Debian testing': 'xINSTALL.debian_testing.md'
-      - 'Debian 9 \w postgresql': 'xINSTALL.debian9-postgresql.md'
       - 'Ubuntu 18.04 \w webmin': 'xINSTALL.ubuntu1804.with.webmin.md'
       - 'Tsurugi Linux': 'xINSTALL.tsurugi.md'
-      - 'OpenBSD 6.4': 'xINSTALL.OpenBSD.md'
+      - 'OpenBSD 6.5': 'xINSTALL.OpenBSD.md'
       - 'RHEL8 (Beta)': 'xINSTALL.rhel8.md'
     - Config Guides:
       - 'Elastic Search Logging': 'CONFIG.elasticsearch-logging.md'
