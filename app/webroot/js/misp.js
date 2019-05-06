@@ -9,6 +9,20 @@ if (!String.prototype.startsWith) {
   };
 }
 
+function stringToRGB(str){
+    var hash = 0;
+    if (str.length == 0) return hash;
+    for (i = 0; i < str.length; i++) {
+        hash = ((hash<<5)-hash) + str.charCodeAt(i);
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    var c = (hash & 0x00FFFFFF)
+        .toString(16)
+        .toUpperCase();
+
+    return "#" + "00000".substring(0, 6 - c.length) + c;
+}
+
 function deleteObject(type, action, id, event) {
     var destination = 'attributes';
     var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'galaxy_clusters', 'objects', 'object_references'];
