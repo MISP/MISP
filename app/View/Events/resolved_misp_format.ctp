@@ -185,6 +185,22 @@
             }
         }
         if (!empty($event['Attribute'])) {
+            if (!$header_present) {
+        ?>
+        <table class='table table-striped table-condensed'>
+          <tbody>
+            <tr>
+              <th><?php echo __('Category');?></th>
+              <th><?php echo __('Type');?></th>
+              <th><?php echo __('Value');?></th>
+              <th><?php echo __('UUID');?></th>
+              <th><?php echo __('IDS');?></th>
+              <th><?php echo __('Disable Correlation');?></th>
+              <th><?php echo __('Comment');?></th>
+              <th><?php echo __('Distribution');?></th>
+            </tr>
+        <?php
+            }
             foreach ($event['Attribute'] as $a => $attribute) {
                 echo '<tr class="MISPAttribute">';
                 foreach (array('category', 'type') as $field) {
