@@ -997,12 +997,13 @@ class User extends AppModel
 
     private function __extractPGPInfo($lines)
     {
+        $escapedBaseurl = str_replace('/', '\\/', $baseurl);
         $extractionRules = array(
             'key_id' => array('regex' => '/\">(.*?)<\/a>/', 'all' => false, 'alternate' => false),
             'date' => array('regex' => '/([0-9]{4}\-[0-9]{2}\-[0-9]{2})/', 'all' => false, 'alternate' => false),
             'fingerprint' => array('regex' => '/Fingerprint=(.*)$/m', 'all' => false, 'alternate' => false),
             'uri' => array('regex' => '/<a href=\"(.*?)\">/', 'all' => false, 'alternate' => false),
-            'address' => array('regex' => '/<a href="\/pks\/lookup\?op=vindex[^>]*>([^\<]*)<\/a>(.*)Fingerprint/s', 'all' => true, 'alternate' => true),
+            'address' => array('regex' => '/<a href="' . $escapedBaseurl . '\/pks\/lookup\?op=vindex[^>]*>([^\<]*)<\/a>(.*)Fingerprint/s', 'all' => true, 'alternate' => true),
         );
         $final = array();
         foreach ($lines as $line) {
