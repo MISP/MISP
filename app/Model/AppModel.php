@@ -241,7 +241,7 @@ class AppModel extends Model
                 'job_input' => 'command: ' . $command,
                 'status' => 0,
                 'retries' => 0,
-                'org_id' => '',
+                'org_id' => 0,
                 'org' => '',
                 'message' => 'Updating.',
             );
