@@ -1235,7 +1235,7 @@ class Server extends AppModel
                             'errorMessage' => '',
                             'test' => 'testForRPZBehaviour',
                             'type' => 'numeric',
-                            'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'walled-garden'),
+                            'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'walled-garden', 4 => 'PASSTHRU', 5 => 'TCP-only' ),
                         ),
                         'RPZ_walled_garden' => array(
                             'level' => 2,
