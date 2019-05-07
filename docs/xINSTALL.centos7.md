@@ -38,12 +38,15 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 {!generic/globalVariables.md!}
 
 ```bash
-# CentOS Specific
-RUN_PHP='/usr/bin/scl enable rh-php72 '
-RUN_PYTHON='/usr/bin/scl enable rh-python36 '
+# <snippet-begin 0_RHEL_PHP_INI.sh>
+# RHEL/CentOS Specific
+RUN_PHP='/usr/bin/scl enable rh-php72'
+RUN_PYTHON='/usr/bin/scl enable rh-python36'
 SUDO_WWW='sudo -H -u apache'
+WWW_USER='apache'
 
 PHP_INI=/etc/opt/rh/rh-php72/php.ini
+# <snippet-end 0_RHEL_PHP_INI.sh>
 ```
 
 ### 1/ Minimal CentOS install
@@ -76,8 +79,8 @@ sudo yum install epel-release -y
 # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
 sudo yum install centos-release-scl -y
 
-# Because vim is just so practical
-sudo yum install vim -y
+# Because (neo)vim is just so practical
+sudo yum install neovim -y
 
 # Install the dependencies:
 sudo yum install gcc git zip \
@@ -95,8 +98,7 @@ sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysql
 # https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
 sudo yum install rh-python36 -y
 
-sudo systemctl enable rh-php72-php-fpm.service
-sudo systemctl start  rh-php72-php-fpm.service
+sudo systemctl enable --now rh-php72-php-fpm.service
 ```
 
 !!! notice
@@ -105,13 +107,10 @@ sudo systemctl start  rh-php72-php-fpm.service
 ```bash
 # GPG needs lots of entropy, haveged provides entropy
 sudo yum install haveged -y
-sudo systemctl enable haveged.service
-sudo systemctl start  haveged.service
-
+sudo systemctl enable --now haveged.service
 
 # Enable and start redis
-sudo systemctl enable redis.service
-sudo systemctl start  redis.service
+sudo systemctl enable --now redis.service
 ```
 
 ### 3/ MISP code
@@ -119,7 +118,7 @@ sudo systemctl start  redis.service
 ```bash
 # Download MISP using git in the /var/www/ directory.
 sudo mkdir $PATH_TO_MISP
-sudo chown apache:apache $PATH_TO_MISP
+sudo chown ${WWW_USER}:${WWW_USER} $PATH_TO_MISP
 cd /var/www
 $SUDO_WWW git clone https://github.com/MISP/MISP.git
 cd $PATH_TO_MISP
@@ -133,6 +132,8 @@ cd $PATH_TO_MISP
 $SUDO_WWW git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
 $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+# Make git ignore filesystem permission differences
+$SUDO_WWW git config core.filemode false
 
 # Install packaged pears
 sudo $RUN_PHP "pear channel-update pear.php.net"
@@ -142,14 +143,18 @@ sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/packa
 # Create a python3 virtualenv
 $SUDO_WWW $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
 sudo mkdir /usr/share/httpd/.cache
-sudo chown apache:apache /usr/share/httpd/.cache
+sudo chown ${WWW_USER}:${WWW_USER} /usr/share/httpd/.cache
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
 
 # install Mitre's STIX and its dependencies by running the following commands:
-sudo yum install python-importlib python-lxml python-dateutil python-six -y
+##sudo yum install python-importlib python-lxml python-dateutil python-six -y
+
 cd $PATH_TO_MISP/app/files/scripts
 $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
 $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
+$SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
+$SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
+
 cd $PATH_TO_MISP/app/files/scripts/python-cybox
 # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
@@ -169,8 +174,6 @@ $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 # lief needs manual compilation
 sudo yum install devtoolset-7 cmake3 -y
 
-cd $PATH_TO_MISP/app/files/scripts
-$SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
 
 # TODO: Fix static path with PATH_TO_MISP
 cd $PATH_TO_MISP/app/files/scripts/lief
@@ -193,9 +196,6 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/p
 # install magic, pydeep
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git
 
-# install mixbox to accommodate the new STIX dependencies:
-cd $PATH_TO_MISP/app/files/scripts/
-$SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 cd $PATH_TO_MISP/app/files/scripts/mixbox
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
@@ -225,9 +225,9 @@ sudo systemctl restart rh-php72-php-fpm.service
 #### CakePHP is now included as a submodule of MISP and has been fetch by a previous step.
 #### Install CakeResque along with its dependencies if you intend to use the built in background jobs.
 ```bash
-sudo chown -R apache:apache $PATH_TO_MISP
+sudo chown -R ${WWW_USER}:${WWW_USER} $PATH_TO_MISP
 sudo mkdir /usr/share/httpd/.composer
-sudo chown apache:apache /usr/share/httpd/.composer
+sudo chown ${WWW_USER}:${WWW_USER} /usr/share/httpd/.composer
 cd $PATH_TO_MISP/app
 # Update composer.phar (optional)
 #$SUDO_WWW $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
@@ -264,7 +264,7 @@ sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/Cake
 ----------------------
 ```bash
 # Make sure the permissions are set correctly using the following commands as root:
-sudo chown -R apache:apache $PATH_TO_MISP
+sudo chown -R ${WWW_USER}:${WWW_USER} $PATH_TO_MISP
 sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
 sudo chmod -R g+r,o= $PATH_TO_MISP
 sudo chmod -R 750 $PATH_TO_MISP
@@ -273,22 +273,21 @@ sudo chmod -R g+ws $PATH_TO_MISP/app/files
 sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 sudo chmod -R g+rw $PATH_TO_MISP/venv
 sudo chmod -R g+rw $PATH_TO_MISP/.git
-sudo chown apache:apache $PATH_TO_MISP/app/files
-sudo chown apache:apache $PATH_TO_MISP/app/files/terms
-sudo chown apache:apache $PATH_TO_MISP/app/files/scripts/tmp
-sudo chown apache:apache $PATH_TO_MISP/app/Plugin/CakeResque/tmp
-sudo chown -R apache:apache $PATH_TO_MISP/app/Config
-sudo chown -R apache:apache $PATH_TO_MISP/app/tmp
-sudo chown -R apache:apache $PATH_TO_MISP/app/webroot/img/orgs
-sudo chown -R apache:apache $PATH_TO_MISP/app/webroot/img/custom
+sudo chown ${WWW_USER}:${WWW_USER} $PATH_TO_MISP/app/files
+sudo chown ${WWW_USER}:${WWW_USER} $PATH_TO_MISP/app/files/terms
+sudo chown ${WWW_USER}:${WWW_USER} $PATH_TO_MISP/app/files/scripts/tmp
+sudo chown ${WWW_USER}:${WWW_USER} $PATH_TO_MISP/app/Plugin/CakeResque/tmp
+sudo chown -R ${WWW_USER}:${WWW_USER} $PATH_TO_MISP/app/Config
+sudo chown -R ${WWW_USER}:${WWW_USER} $PATH_TO_MISP/app/tmp
+sudo chown -R ${WWW_USER}:${WWW_USER} $PATH_TO_MISP/app/webroot/img/orgs
+sudo chown -R ${WWW_USER}:${WWW_USER} $PATH_TO_MISP/app/webroot/img/custom
 ```
 
 ### 6/ Create a database and user
 -----------------------------
 ```bash
 # Enable, start and secure your mysql database server
-sudo systemctl enable mariadb.service
-sudo systemctl start  mariadb.service
+sudo systemctl enable --now mariadb.service
 
 sudo yum install expect -y
 
@@ -425,8 +424,7 @@ sudo setsebool -P httpd_can_network_connect on
 sudo setsebool -P httpd_can_sendmail on
 
 # Enable and start the httpd service
-sudo systemctl enable httpd.service
-sudo systemctl start  httpd.service
+sudo systemctl enable --now httpd.service
 
 # Open a hole in the iptables firewall
 sudo firewall-cmd --zone=public --add-port=80/tcp --permanent
@@ -511,7 +509,7 @@ class DATABASE_CONFIG {
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 # If you want to be able to change configuration parameters from the webinterface:
-sudo chown apache:apache $PATH_TO_MISP/app/Config/config.php
+sudo chown ${WWW_USER}:${WWW_USER} $PATH_TO_MISP/app/Config/config.php
 sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config/config.php
 
 # Generate a GPG encryption key.
@@ -532,11 +530,11 @@ EOF
 
 sudo gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
 sudo rm -f /tmp/gen-key-script
-sudo chown -R apache:apache $PATH_TO_MISP/.gnupg
+sudo chown -R ${WWW_USER}:${WWW_USER} $PATH_TO_MISP/.gnupg
 
 # And export the public key to the webroot
 sudo gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS |sudo tee $PATH_TO_MISP/app/webroot/gpg.asc
-sudo chown apache:apache $PATH_TO_MISP/app/webroot/gpg.asc
+sudo chown ${WWW_USER}:${WWW_USER} $PATH_TO_MISP/app/webroot/gpg.asc
 
 # Start the workers to enable background jobs
 sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
