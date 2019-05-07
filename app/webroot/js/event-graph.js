@@ -111,7 +111,7 @@ class EventGraph {
 
             for (var event_id in that.extended_event_points) {
                 if (that.extended_event_color_mapping[event_id] === undefined) {
-                    eventGraph.extended_event_color_mapping[event_id] = getRandomColor(event_id);
+                    eventGraph.extended_event_color_mapping[event_id] = stringToRGB(event_id);
                 }
                 var chosen_color = eventGraph.extended_event_color_mapping[event_id];
 
@@ -710,7 +710,7 @@ class EventGraph {
                     group: group,
                     mass: 5,
                     icon: {
-                        color: getRandomColor(),
+                        color: stringToRGB(label),
                         face: 'FontAwesome',
                         code: that.get_FA_icon(node['meta-category']),
                     }
@@ -1823,15 +1823,6 @@ function getCentroid(coordList) {
     cx = cx / (6*a);
     cy = cy / (6*a);
     return {x: cx, y: cy};
-}
-
-function getRandomColor() {
-    var letters = '0123456789ABCDEF';
-    var color = '#';
-    for (var i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
 }
 
 function generate_background_shortcuts(shortcut_text) {

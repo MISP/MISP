@@ -68,10 +68,14 @@ App::uses('AppHelper', 'View/Helper');
                             $replacement = '%MALFORMED URL%';
                         } else {
                             if (filter_var(str_replace('$1', $data, $this->__replacement[$trigger]['url']), FILTER_VALIDATE_URL)) {
-                                $replacement = $this->Html->link(
-                                    str_replace('$1', $data, $this->__replacement[$trigger]['text']),
-                                    str_replace('$1', $data, $this->__replacement[$trigger]['url'])
-                                );
+                                if (substr($data, 0, 7) === 'http://' || substr($data, 0, 8) === 'https://') {
+                                    $replacement = $this->Html->link(
+                                        str_replace('$1', $data, $this->__replacement[$trigger]['text']),
+                                        str_replace('$1', $data, $this->__replacement[$trigger]['url'])
+                                    );
+                                } else {
+                                    $replacement = '%MALFORMED URL%';
+                                }
                             } else {
                                 $replacement = '%MALFORMED URL%';
                             }
