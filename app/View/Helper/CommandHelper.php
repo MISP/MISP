@@ -36,7 +36,7 @@ App::uses('AppHelper', 'View/Helper');
             $closing = preg_match('%\[/' . $trigger . '\]%isU', $string, $closing_matches, PREG_OFFSET_CAPTURE);
             $opening_len = strlen($trigger) + 2;
             $closing_len = $opening_len + 1;
-            if ((count($opening) !== count($closing))) return false;
+            if ((count($opening_matches) !== count($closing_matches))) return false;
             $pairs = array();
             $rearrangedTags = array();
             foreach ($opening_matches as $opening_tag) {
