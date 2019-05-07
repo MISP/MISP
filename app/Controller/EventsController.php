@@ -4346,29 +4346,29 @@ class EventsController extends AppController
             // #TODO i18n
             $imports = array(
                     'freetext' => array(
-                            'url' => '/events/freeTextImport/' . $id,
+                            'url' => $baseurl . '/events/freeTextImport/' . $id,
                             'text' => 'Freetext Import',
                             'ajax' => true,
                             'target' => 'popover_form'
                     ),
                     'template' => array(
-                            'url' => '/templates/templateChoices/' . $id,
+                            'url' => $baseurl . '/templates/templateChoices/' . $id,
                             'text' => 'Populate using a Template',
                             'ajax' => true,
                             'target' => 'popover_form'
                     ),
                     'OpenIOC' => array(
-                            'url' => '/events/addIOC/' . $id,
+                            'url' => $baseurl . '/events/addIOC/' . $id,
                             'text' => 'OpenIOC Import',
                             'ajax' => false,
                     ),
                     'ThreatConnect' => array(
-                            'url' => '/attributes/add_threatconnect/' . $id,
+                            'url' => $baseurl . '/attributes/add_threatconnect/' . $id,
                             'text' => 'ThreatConnect Import',
                             'ajax' => false
                     ),
                     'Forensic analysis' => array(
-                        'url' => '/events/upload_analysis_file/'.$id,
+                        'url' => $baseurl . '/events/upload_analysis_file/'.$id,
                         'text' => '(Experimental) Forensic analysis - Mactime',
                         'ajax' => false,
                 )
@@ -4378,7 +4378,7 @@ class EventsController extends AppController
             if (is_array($modules) && !empty($modules)) {
                 foreach ($modules['modules'] as $k => $module) {
                     $imports[$module['name']] = array(
-                            'url' => '/events/importModule/' . $module['name'] . '/' . $id,
+                            'url' => $baseurl . '/events/importModule/' . $module['name'] . '/' . $id,
                             'text' => Inflector::humanize($module['name']),
                             'ajax' => false
                     );
@@ -4387,18 +4387,18 @@ class EventsController extends AppController
         } else {
             $imports = array(
                 'MISP' => array(
-                        'url' => '/events/add_misp_export',
+                        'url' => $baseurl . '/events/add_misp_export',
                         'text' => 'MISP standard (recommended exchange format - lossless)',
                         'ajax' => false,
                         'bold' => true
                 ),
                 'STIX' => array(
-                        'url' => '/events/upload_stix',
+                        'url' => $baseurl . '/events/upload_stix',
                         'text' => 'STIX 1.1.1 format (lossy)',
                         'ajax' => false,
                 ),
                 'STIX2' => array(
-                        'url' => '/events/upload_stix/2',
+                        'url' => $baseurl . '/events/upload_stix/2',
                         'text' => 'STIX 2.0 format (lossy)',
                         'ajax' => false,
                 )

@@ -27,7 +27,7 @@
 
 <script type="text/javascript">
 var filterContext = "event";
-var actionUrl = "<?php echo '/servers/previewIndex/' . h($id); ?>"
+var actionUrl = "<?php echo $baseurl . '/servers/previewIndex/' . h($id); ?>"
 $(document).ready(function() {
     $('.datepicker').datepicker().on('changeDate', function(ev) {
         $('.dropdown-menu').hide();

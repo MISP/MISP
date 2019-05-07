@@ -151,7 +151,7 @@ class Server extends AppModel
                         'branch' => 1,
                         'baseurl' => array(
                                 'level' => 0,
-                                'description' => __('The base url of the application (in the format https://www.mymispinstance.com). Several features depend on this setting being correctly set to function.'),
+                                'description' => __('The base url of the application (in the format https://www.mymispinstance.com or https://myserver.com/misp). Several features depend on this setting being correctly set to function.'),
                                 'value' => '',
                                 'errorMessage' => __('The currenty set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address).'),
                                 'test' => 'testBaseURL',

@@ -40,7 +40,7 @@
         function queueInterval(k, id) {
             intervalArray[k] = setInterval(function() {
                 if (tabIsActive) {
-                    $.getJSON('/jobs/getGenerateCorrelationProgress/' + id, function(data) {
+			$.getJSON('<?php echo $baseurl; ?>/jobs/getGenerateCorrelationProgress/' + id, function(data) {
                         var x = document.getElementById("bar" + id);
                         x.style.width = data+"%";
                         if (data > 0 && data < 100) {

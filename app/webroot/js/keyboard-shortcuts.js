@@ -22,7 +22,7 @@ let keyboardShortcutsManager = {
 		let shortcutURIs = [];
 		for(let keyboardShortcutElement of $('.keyboardShortcutsConfig')) {
 			shortcutURIs.push(keyboardShortcutElement.value);
-			this.ajaxGet(window.location.protocol + "//" + window.location.host + keyboardShortcutElement.value).then(response => {
+			this.ajaxGet(baseurl + keyboardShortcutElement.value).then(response => {
 				this.mapKeyboardShortcuts(JSON.parse(response));
 			});
 		}

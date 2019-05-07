@@ -386,7 +386,7 @@ function construct_piechart(data) {
 
 function fetchDistributionData(callback) {
     $.ajax({
-        url: "/events/"+"getDistributionGraph"+"/"+scope_id+"/event.json",
+        url: baseurl + "/events/"+"getDistributionGraph"+"/"+scope_id+"/event.json",
         dataType: 'json',
         type: 'post',
         contentType: 'application/json',
