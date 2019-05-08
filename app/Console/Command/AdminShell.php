@@ -318,17 +318,16 @@ class AdminShell extends AppShell
         $whoami = exec('whoami');
         if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
-            echo 'You tried to run this command as: ' . $whoami . PHP_EOL;
             $this->Server->runUpdates(true);
             echo 'All updates completed.' . PHP_EOL;
         } else {
-            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL);
+            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL;
         }
     }
 
     public function updateApp() {
         $whoami = exec('whoami');
-        if ($whoami === 'httpd' || $whoami === 'www-data') {
+        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
             $command = $this->args[0];
             if (!empty($this->args[1])) {
                 $processId = $this->args[1];
@@ -353,7 +352,7 @@ class AdminShell extends AppShell
             $job['Job']['message'] = 'Update done';
             $this->Job->save($job);
         } else {
-            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL);
+            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL;
         }
     }
 
