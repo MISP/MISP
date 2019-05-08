@@ -992,4 +992,13 @@ class ObjectsController extends AppController
         $this->set('captured', $capturedObjects);
         $this->set('unmapped', $unmappedAttributes);
     }
+
+    function proposeObjectsFromAttributes($event_id, $selected='[]')
+    {
+        $selected = json_decode($selected, true);
+        $potential_templates = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $event_id, $selected);
+        // sort based on compatibility (# item in array)
+        $this->set('potential_templates', $potential_templates);
+    }
+
 }

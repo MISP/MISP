@@ -204,6 +204,46 @@ class ObjectTemplate extends AppModel
         return true;
     }
 
+    public function checkTemplateConformityBasedOnTypes($template, $attributes)
+    {
+        if (!empty($template['ObjectTemplate']['requirements'])) {
+            // check for all required attributes
+            if (!empty($template['ObjectTemplate']['requirements']['required'])) {
+                foreach ($template['ObjectTemplate']['requirements']['required'] as $requiredField) {
+                    $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField))[0];
+                    $found = false;
+                    foreach ($attributes as $attribute) {
+                        if ($attribute['Attribute']['type'] == $requiredType) {
+                            $found = true;
+                        }
+                    }
+                    if (!$found) {
+                        return array($requiredType);
+                    }
+                }
+            }
+            // check for all required one of attributes
+            if (!empty($template['ObjectTemplate']['requirements']['requiredOneOf'])) {
+                $found = false;
+                $all_required_type = array();
+                foreach ($template['ObjectTemplate']['requirements']['requiredOneOf'] as $requiredField) {
+                    $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField))[0];
+                    $all_required_type[] = $requiredType;
+                    foreach ($attributes as $attribute) {
+                        if ($attribute['Attribute']['type'] == $requiredType) {
+                            $found = true;
+                        }
+                    }
+                }
+                if (!$found) {
+                    return $all_required_type;
+                }
+            }
+        }
+        // multiple flag ignored. Will be taken care of in client view. For now?
+        return true;
+    }
+
     // simple test to see if there are any object templates - if not trigger update
     public function populateIfEmpty($user)
     {

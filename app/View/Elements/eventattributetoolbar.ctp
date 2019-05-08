@@ -80,6 +80,15 @@
                         'onClickParams' => array('this', 'selected/attribute', 'galaxies', 'selectGalaxyNamespace')
                     ),
                     array(
+                        'id' => 'group-into-object-button',
+                        'title' => __('Group selected Attributes into an Object'),
+                        'class' => 'mass-select hidden',
+                        'fa-icon' => 'object-group',
+                        'fa-source' => 'fa',
+                        'onClick' => 'proposeObjectsFromSelectedAttributes',
+                        'onClickParams' => array('this', $event['Event']['id'])
+                    ),
+                    array(
                         'id' => 'multi-delete-button',
                         'title' => __('Delete selected Attributes'),
                         'class' => 'mass-select hidden',

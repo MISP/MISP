@@ -725,4 +725,42 @@ class MispObject extends AppModel
         }
         return count($orphans);
     }
+
+    public function validObjectsFromAttributeTypes($user, $event_id, $selected)
+    {
+        $attributes = $this->Attribute->fetchAttributesSimple($user,
+            array(
+                'conditions' => array(
+                    'id' => $selected,
+                    'event_id' => $event_id
+                ),
+            )
+        );
+        // $attribute_types = array_keys(Hash::combine($attributes, '{n}.Attribute.type'));
+        $attribute_types = array();
+        foreach ($attributes as $i => $attribute) {
+            $attribute_types[$attribute['Attribute']['type']] = 1;
+            $attributes[$i]['Attribute']['object_relation'] = $attribute['Attribute']['type'];
+        }
+        $attribute_types = array_keys($attribute_types);
+        array_walk($attribute_types, function(&$value) { $value = '"' . $value . '"'; });
+        $db = $this->getDataSource();
+        $potential_templates = $db->fetchAll(
+            'SELECT object_templates.id, object_templates.name, count(object_template_elements.type) as type_count FROM object_templates '
+                .'RIGHT JOIN object_template_elements ON object_templates.id = object_template_elements.object_template_id '
+                .'WHERE object_templates.active=1 AND object_template_elements.type IN (' . implode(',', $attribute_types) . ') '
+                .'GROUP BY object_templates.name ORDER BY type_count DESC;'
+        );
+        $potential_template_ids = Hash::extract($potential_templates, '{n}.object_templates.id');
+        $templates = $this->ObjectTemplate->find('all', array(
+            'recursive' => -1,
+            'conditions' => array('id' => $potential_template_ids),
+            'contain' => 'ObjectTemplateElement'
+        ));
+
+        foreach ($templates as $i => $template) {
+            $templates[$i]['ObjectTemplate']['compatibility'] = $this->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributes);
+        }
+        return $templates;
+    }
 }
