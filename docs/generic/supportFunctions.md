@@ -78,6 +78,28 @@ setOpt () {
   done
 }
 
+# Try to detect what we are running on
+checkCoreOS () {
+
+  # lsb_release can exist on any platform. RedHat package: redhat-lsb
+  LSB_RELEASE=$(which lsb_release > /dev/null ; echo $?)
+  APT=$(which apt > /dev/null 2>&1; echo -n $?)
+  APT_GET=$(which apt-get > /dev/null 2>&1; echo $?)
+
+  # debian specific
+  # /etc/debian_version
+  ## os-release #generic
+  # /etc/os-release
+
+  # Redhat checks
+  if [[ -f "/etc/redhat-release" ]]; then
+    echo "This is some redhat flavour"
+    REDHAT=1
+    RHfla=$(cat /etc/redhat-release | cut -f 1 -d\ | tr [A-Z] [a-z])
+  fi
+
+}
+
 # Extract debian flavour
 checkFlavour () {
   if [ -z $(which lsb_release) ]; then

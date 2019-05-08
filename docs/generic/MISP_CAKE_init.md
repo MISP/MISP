@@ -4,7 +4,7 @@
 # Core cake commands
 coreCAKE () {
   debug "Running core Cake commands to set sane defaults for ${LBLUE}MISP${NC}"
-  $SUDO_WWW -E $CAKE userInit -q
+  $SUDO_WWW $CAKE userInit -q
 
   # This makes sure all Database upgrades are done, without logging in.
   $SUDO_WWW $CAKE Admin updateDatabase
@@ -112,9 +112,12 @@ coreCAKE () {
 
 # This updates Galaxies, ObjectTemplates, Warninglists, Noticelists, Templates
 updateGOWNT () {
+# AUTH_KEY Place holder in case we need to **curl** somehing in the future
+# 
+# AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
+# RHEL/CentOS
+# AUTH_KEY=$(scl enable rh-mariadb102 "mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e 'SELECT authkey FROM users;' | tail -1")
   debug "Updating Galaxies, ObjectTemplates, Warninglists, Noticelists and Templates"
-  AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
-
   # Update the galaxies…
   # TODO: Fix updateGalaxies
   $SUDO_WWW $CAKE Admin updateGalaxies
@@ -125,9 +128,7 @@ updateGOWNT () {
   # Updating the notice lists…
   $SUDO_WWW $CAKE Admin updateNoticeLists
   # Updating the object templates…
-  # TODO: FIXME: updateObjectTemplates (currently throws: usage udpateNoticeLists)
-  ##$SUDO_WWW $CAKE Admin updateObjectTemplates
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
+  $SUDO_WWW $CAKE Admin updateObjectTemplates "1337"
 }
 # <snippet-end 2_core-cake.sh>
 ```
