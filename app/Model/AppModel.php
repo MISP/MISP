@@ -1445,7 +1445,7 @@ class AppModel extends Model
         return true;
     }
 
-    public function runUpdates($verbose = false, $useWorker = false)
+    public function runUpdates($verbose = false, $useWorker = true)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $db = ConnectionManager::getDataSource('default');
@@ -1487,7 +1487,7 @@ class AppModel extends Model
                 $process_id = CakeResque::enqueue(
                         'prio',
                         'AdminShell',
-                        array('updateApp', $jobId),
+                        array('updateDatabase', $jobId),
                         true
                 );
                 $job->saveField('process_id', $process_id);
