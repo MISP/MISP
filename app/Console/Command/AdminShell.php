@@ -177,10 +177,10 @@ class AdminShell extends AppShell
         }
     }
 
-    # FIXME: Debug and make it work, fails to pass userId/orgId properly
+    # FIXME: Fails to pass userId/orgId properly, global update works.
     public function updateObjectTemplates() {
         if (empty($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin updateNoticeLists [user_id]' . PHP_EOL;
+            echo 'Usage: ' . APP . '/cake ' . 'Admin updateObjectTemplates [user_id]' . PHP_EOL;
         } else {
             $userId = $this->args[0];
             $user = $this->User->find('first', array(
@@ -190,8 +190,15 @@ class AdminShell extends AppShell
                 ),
                 'fields' => array('User.id', 'User.org_id')
             ));
+            # If the user_id passed does not exist, do a global update.
             if (empty($user)) {
-                echo 'User not found' . PHP_EOL;
+                echo 'User with ID: ' . $userId . ' not found' . PHP_EOL;
+                $result = $this->ObjectTemplate->update();
+                if ($result) {
+                    echo 'Object templates updated' . PHP_EOL;
+                } else {
+                    echo 'Could not update object templates' . PHP_EOL;
+                }
             } else {
                 $result = $this->ObjectTemplate->update($user, false,false);
                 if ($result) {
