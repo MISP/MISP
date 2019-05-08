@@ -23,6 +23,16 @@ class RPZExport
                     'action' => 'rpz-drop.',
                     'setting_id' => 0,
             ),
+            'PASSTHRU' => array(
+                    'explanation' => 'lets queries through, but allows for logging the hits (useful for testing).',
+                    'action' => 'rpz-passthru.',
+                    'setting_id' => 4,
+            ),
+            'TCP-only' => array(
+                    'explanation' => 'force the client to use TCP.',
+                    'action' => 'rpz-tcp-only.',
+                    'setting_id' => 5,
+            ),
     );
 
 	private $__items = array();
@@ -33,7 +43,7 @@ class RPZExport
 
 	private $__rpzSettings = array();
 
-	private $__valid_policies = array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden');
+	private $__valid_policies = array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden', 'PASSTHRU', 'TCP-only');
 
 	private $__server = null;
 
@@ -100,7 +110,7 @@ class RPZExport
 		$lookupData = array('policy', 'walled_garden', 'ns', 'ns_alt', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
 		foreach ($lookupData as $v) {
 			if ($v === 'policy' && isset($options['filters'][$v])) {
-				if (!in_array($options['filters'][$v], array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden'))) {
+				if (!in_array($options['filters'][$v], array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden', 'PASSTHRU', 'TCP-only'))) {
 					unset($options['filters'][$v]);
 				} else {
 					$options['filters'][$v] = $this->getIdByPolicy($options['filters'][$v]);
@@ -162,6 +172,8 @@ class RPZExport
             'NXDOMAIN' => 'return NXDOMAIN (name does not exist) irrespective of actual result received.',
             'NODATA' => 'returns NODATA (name exists but no answers returned) irrespective of actual result received.',
             'DROP' => 'timeout.',
+            'PASSTHRU' => 'lets queries through, but allows for logging the hits (useful for testing).',
+            'TCP-only' => 'force the client to use TCP.',
         );
         return $explanations[$type] . $this->__policies[$policy]['explanation'] . PHP_EOL;
     }
