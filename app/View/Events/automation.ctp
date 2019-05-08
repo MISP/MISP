@@ -100,8 +100,8 @@
     <p><?php echo __('To override the above values, either use the url parameters as described below');?>:</p>
     <pre><?php echo $baseurl;?>/attributes/rpz/download/[tags]/[eventId]/[from]/[to]/[policy]/[walled_garden]/[ns]/[email]/[serial]/[refresh]/[retry]/[expiry]/[minimum_ttl]/[ttl]</pre>
     <p><?php echo __('or POST an XML or JSON object with the above listed options');?>: </p>
-    <code><?php echo h('<request><tags>OSINT&&!OUTDATED</tags><policy>walled-garden</policy><walled_garden>teamliquid.net</walled_garden><refresh>5h</refresh></request>');?></code><br /><br />
-    <code>{"request": {"tags": ["OSINT", "!OUTDATED"], "policy": "walled-garden", "walled_garden": "teamliquid.net", "refresh": "5h"}</code>
+    <code><?php echo h('<request><tags>OSINT&&!OUTDATED</tags><policy>Local-Data</policy><walled_garden>my.stop.page.net</walled_garden><refresh>5h</refresh></request>');?></code><br /><br />
+    <code>{"request": {"tags": ["OSINT", "!OUTDATED"], "policy": "Local-Data", "walled_garden": "my.stop.page.net", "refresh": "5h"}</code>
 
     <h3><?php echo __('Bro IDS export');?></h3>
     <p><?php echo __('An export of all attributes of a specific bro type to a formatted plain text file. By default only published and IDS flagged attributes are exported.');?></p>
