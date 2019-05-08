@@ -224,38 +224,13 @@ class AppModel extends Model
     }
 
     // SQL scripts for updates
-    public function updateDatabase($command, $useWorker=false)
+    public function updateDatabase($command)
     {
         // Exit if updates are locked
         if ($this->isUpdateLocked()) {
             return false;
         }
         $this->__resetUpdateProgress();
-        // restart this function by a worker
-        if ($useWorker && Configure::read('MISP.background_jobs')) {
-            $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                'worker' => 'prio',
-                'job_type' => 'update_app',
-                'job_input' => 'command: ' . $command,
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => 0,
-                'org' => '',
-                'message' => 'Updating.',
-            );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'prio',
-                    'AdminShell',
-                    array('updateApp', $command, $jobId),
-                    true
-            );
-            $job->saveField('process_id', $process_id);
-            return true;
-        }
 
         $liveOff = false;
         $exitOnError = false;
@@ -1470,7 +1445,7 @@ class AppModel extends Model
         return true;
     }
 
-    public function runUpdates($verbose = false)
+    public function runUpdates($verbose = false, $useWorker = false)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $db = ConnectionManager::getDataSource('default');
@@ -1493,6 +1468,31 @@ class AppModel extends Model
             }
             $db_version = $db_version[0];
             $updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
+            // restart this function by a worker
+            if ($useWorker && Configure::read('MISP.background_jobs')) {
+                $job = ClassRegistry::init('Job');
+                $job->create();
+                $data = array(
+                    'worker' => 'prio',
+                    'job_type' => 'update_database',
+                    'job_input' => 'command: ' . implode(',', $updates),
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => 0,
+                    'org' => '',
+                    'message' => 'Updating.',
+                );
+                $job->save($data);
+                $jobId = $job->id;
+                $process_id = CakeResque::enqueue(
+                        'prio',
+                        'AdminShell',
+                        array('updateApp', $jobId),
+                        true
+                );
+                $job->saveField('process_id', $process_id);
+                return true;
+            }
             if (!empty($updates)) {
                 foreach ($updates as $update => $temp) {
                     if ($verbose) {
