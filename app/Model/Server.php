@@ -3294,8 +3294,8 @@ class Server extends AppModel
         if ($numeric !== true) {
             return $numeric;
         }
-        if ($value < 0 || $value > 3) {
-            return 'Invalid setting, valid range is 0-3 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden.';
+        if ($value < 0 || $value > 5) {
+            return 'Invalid setting, valid range is 0-5 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden, 4 = PASSTHRU, 5 = TCP-only.';
         }
         return true;
     }
@@ -3325,7 +3325,7 @@ class Server extends AppModel
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
-        if (!preg_match('/^((\$date(\d*)|\d*))$/', $value)) {
+        if (!preg_match('/^((\$date(\d*)|\$time|\d*))$/', $value)) {
             return 'Invalid format.';
         }
         return true;
