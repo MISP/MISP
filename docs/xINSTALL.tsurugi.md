@@ -2,7 +2,7 @@
 ## for Tsurugi Linux
 # 0/ Quick MISP Instance on Tsurugi Linux - Status
 
-This has been tested by @SteveClement on 20181105
+This has been tested by @SteveClement on 20190408
 
 [Tsurugi can be found here.](https://tsurugi-linux.org/)
 
@@ -138,6 +138,13 @@ function installMISPonTsurugi() {
   xset s 0 0
   xset dpms 0 0
   xset s off
+
+  # Update all expired keys, needed for MongoDB key.
+  apt-key list | \
+  grep "expired: " | \
+  sed -ne 's|pub .*/\([^ ]*\) .*|\1|gp' | \
+  xargs -n1 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys
+
   apt update
   apt install -qy etckeeper
   # Skip dist-upgrade for now, pulls in 500+ updated packages
@@ -151,7 +158,7 @@ function installMISPonTsurugi() {
   mariadb-client \
   mariadb-server \
   apache2 apache2-doc apache2-utils \
-  libapache2-mod-php7.0 php7.0 php7.0-cli  php7.0-mbstring php-pear php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-opcache php7.0-readline \
+  libapache2-mod-php7.0 php7.0 php7.0-cli  php7.0-mbstring php-pear php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-opcache php7.0-readline php7.0-gd \
   python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
   libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools expect
 
@@ -218,7 +225,6 @@ function installMISPonTsurugi() {
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
   # install PyMISP
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install enum34
   cd $PATH_TO_MISP/PyMISP
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
@@ -443,6 +449,7 @@ function installMISPonTsurugi() {
   chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
 
   $CAKE userInit -q
+  $CAKE Admin updateDatabase
 
   AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
 
@@ -466,25 +473,6 @@ function installMISPonTsurugi() {
   $CAKE Admin setSetting "GnuPG.email" "admin@admin.test"
   $CAKE Admin setSetting "GnuPG.homedir" "/var/www/MISP/.gnupg"
   $CAKE Admin setSetting "GnuPG.password" "Password1234"
-  $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
-  $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
-  $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
-  $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
-  $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
-  $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
-  $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
-  $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
-  $CAKE Admin setSetting "Plugin.Import_services_enable" true
-  $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
-  $CAKE Admin setSetting "Plugin.Import_services_port" 6666
-  $CAKE Admin setSetting "Plugin.Import_timeout" 300
-  $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
-  $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
-  $CAKE Admin setSetting "Plugin.Export_services_enable" true
-  $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
-  $CAKE Admin setSetting "Plugin.Export_services_port" 6666
-  $CAKE Admin setSetting "Plugin.Export_timeout" 300
-  $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
   $CAKE Admin setSetting "MISP.host_org_id" 1
   $CAKE Admin setSetting "MISP.email" "info@admin.test"
   $CAKE Admin setSetting "MISP.disable_emailing" false
@@ -550,10 +538,9 @@ function installMISPonTsurugi() {
   $CAKE Live $MISP_LIVE
   $CAKE Admin updateGalaxies
   $CAKE Admin updateTaxonomies
-  #$CAKE Admin updateWarningLists
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/warninglists/update
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
+  $CAKE Admin updateWarningLists
+  $CAKE Admin updateNoticeLists
+  $CAKE Admin updateObjectTemplates "31337"
   sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
@@ -564,27 +551,46 @@ function installMISPonTsurugi() {
   git clone https://github.com/MISP/misp-modules.git
   cd misp-modules
   # pip3 install
+  chown www-data .
+  apt install libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y
+
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I .
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install maec python-magic wand lief yara-python
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install maec python-magic wand lief yara-python plyara
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install stix2
   gem install pygments.rb
   gem install asciidoctor-pdf --pre
-  $SUDO_WWW misp-modules -l 0.0.0.0 -s &
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s &
+  $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
+  $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
+  $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
+  $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
+  $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
+  $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
+  $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
+  $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
+  $CAKE Admin setSetting "Plugin.Import_services_enable" true
+  $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
+  $CAKE Admin setSetting "Plugin.Import_services_port" 6666
+  $CAKE Admin setSetting "Plugin.Import_timeout" 300
+  $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
+  $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
+  $CAKE Admin setSetting "Plugin.Export_services_enable" true
+  $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
+  $CAKE Admin setSetting "Plugin.Export_services_port" 6666
+  $CAKE Admin setSetting "Plugin.Export_timeout" 300
+  $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
   cd /usr/local/src/
   apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2
-  pip3 install SQLAlchemy PrettyTable python-magic
   git clone https://github.com/viper-framework/viper.git
   chown -R $MISP_USER:$MISP_USER viper
   cd viper
   virtualenv -p python3.6 venv
   $SUDO git submodule update --init --recursive
-  # There is a bug with yara-python, removing for the time being
   sed -i 's/yara-python==3.7.0//g' requirements-modules.txt
   ./venv/bin/pip install scrapy
   ./venv/bin/pip install -r requirements.txt
-  ./venv/bin/pip uninstall yara -y
   sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
   sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
   $SUDO /usr/local/src/viper/viper-cli -h > /dev/null
@@ -607,24 +613,32 @@ function installMISPonTsurugi() {
   chmod -R g+ws $PATH_TO_MISP/app/files
   chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
-  # TODO: fix faup
   cd /usr/local/src/
-  apt-get install -y cmake
+
+  apt-get install cmake libcaca-dev liblua5.3-dev -y
   git clone https://github.com/MISP/mail_to_misp.git
   git clone git://github.com/stricaud/faup.git faup
-  chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp
-  cd faup
-  $SUDO mkdir -p build
+  git clone git://github.com/stricaud/gtcaca.git gtcaca
+  chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
+  cd gtcaca
+  $SUDO_USER mkdir -p build
   cd build
-  $SUDO cmake .. && $SUDO make
-  make install
-  ldconfig
-  cd ../../
-  cd mail_to_misp
-  pip3 install -r requirements.txt
-  $SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py
-  sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'http:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-  sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '$AUTH_KEY'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_USER cmake .. && $SUDO_USER make
+  sudo make install
+  cd ../../faup
+  $SUDO_USER mkdir -p build
+  cd build
+  $SUDO_USER cmake .. && $SUDO_USER make
+  sudo make install
+  sudo ldconfig
+  cd ../../mail_to_misp
+  $SUDO_USER virtualenv -p python3 venv
+  $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_USER ./venv/bin/pip install -r requirements.txt
+  $SUDO_USER cp mail_to_misp_config.py-example mail_to_misp_config.py
+  ##$SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py
+  $SUDO_USER sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_USER sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
   echo ""
   echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" > /home/${MISP_USER}/mysql.txt
   echo "User  (misp) DB Password: $DBPASSWORD_MISP" >> /home/${MISP_USER}/mysql.txt
