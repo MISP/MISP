@@ -224,7 +224,7 @@ class AppModel extends Model
     }
 
     // SQL scripts for updates
-    public function updateDatabase($command, $useWorker=true)
+    public function updateDatabase($command, $useWorker=false)
     {
         // Exit if updates are locked
         if ($this->isUpdateLocked()) {
@@ -241,7 +241,7 @@ class AppModel extends Model
                 'job_input' => 'command: ' . $command,
                 'status' => 0,
                 'retries' => 0,
-                'org_id' => '',
+                'org_id' => 0,
                 'org' => '',
                 'message' => 'Updating.',
             );
