@@ -218,6 +218,28 @@ setOpt () {
   done
 }
 
+# Try to detect what we are running on
+checkCoreOS () {
+
+  # lsb_release can exist on any platform. RedHat package: redhat-lsb
+  LSB_RELEASE=$(which lsb_release > /dev/null ; echo $?)
+  APT=$(which apt > /dev/null 2>&1; echo -n $?)
+  APT_GET=$(which apt-get > /dev/null 2>&1; echo $?)
+
+  # debian specific
+  # /etc/debian_version
+  ## os-release #generic
+  # /etc/os-release
+
+  # Redhat checks
+  if [[ -f "/etc/redhat-release" ]]; then
+    echo "This is some redhat flavour"
+    REDHAT=1
+    RHfla=$(cat /etc/redhat-release | cut -f 1 -d\ | tr [A-Z] [a-z])
+  fi
+
+}
+
 # Extract debian flavour
 checkFlavour () {
   if [ -z $(which lsb_release) ]; then
@@ -1173,7 +1195,7 @@ configMISP () {
 # Core cake commands
 coreCAKE () {
   debug "Running core Cake commands to set sane defaults for ${LBLUE}MISP${NC}"
-  $SUDO_WWW -E $CAKE userInit -q
+  $SUDO_WWW $CAKE userInit -q
 
   # This makes sure all Database upgrades are done, without logging in.
   $SUDO_WWW $CAKE Admin updateDatabase
@@ -1281,9 +1303,12 @@ coreCAKE () {
 
 # This updates Galaxies, ObjectTemplates, Warninglists, Noticelists, Templates
 updateGOWNT () {
+# AUTH_KEY Place holder in case we need to **curl** somehing in the future
+# 
+# AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
+# RHEL/CentOS
+# AUTH_KEY=$(scl enable rh-mariadb102 "mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e 'SELECT authkey FROM users;' | tail -1")
   debug "Updating Galaxies, ObjectTemplates, Warninglists, Noticelists and Templates"
-  AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
-
   # Update the galaxies…
   # TODO: Fix updateGalaxies
   $SUDO_WWW $CAKE Admin updateGalaxies
@@ -1294,9 +1319,7 @@ updateGOWNT () {
   # Updating the notice lists…
   $SUDO_WWW $CAKE Admin updateNoticeLists
   # Updating the object templates…
-  # TODO: FIXME: updateObjectTemplates (currently throws: usage udpateNoticeLists)
-  ##$SUDO_WWW $CAKE Admin updateObjectTemplates
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
+  $SUDO_WWW $CAKE Admin updateObjectTemplates "1337"
 }
 
 # Generate GnuPG key
