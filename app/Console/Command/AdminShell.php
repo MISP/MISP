@@ -191,7 +191,7 @@ class AdminShell extends AppShell
                 'fields' => array('User.id', 'User.org_id')
             ));
             if (empty($user)) {
-                echo 'User not found' . PHP_EOL;
+                echo 'User with ID: ' . $userId . ' not found' . PHP_EOL;
                 $result = $this->ObjectTemplate->update();
                 if ($result) {
                     echo 'Object templates updated' . PHP_EOL;
