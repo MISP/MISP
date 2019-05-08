@@ -352,7 +352,7 @@ class AdminShell extends AppShell
             $job['Job']['message'] = 'Update done';
             $this->Job->save($job);
         } else {
-            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL;
+            die('This OS user is not allowed to run this command.' . PHP_EOL . 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
         }
     }
 
