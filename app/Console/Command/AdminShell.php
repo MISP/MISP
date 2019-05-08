@@ -454,4 +454,39 @@ class AdminShell extends AppShell
         ));
         return $parser;
     }
+
+    public function recoverSinceLastSuccessfulUpdate()
+    {
+        $this->loadModel('Log');
+        $logs = $this->Log->find('all', array(
+            'conditions' => array(
+                'action' => 'update_database',
+                'title LIKE ' => 'Successfuly executed the SQL query for %'
+            ),
+            'order' => 'id DESC'
+        ));
+        $last_db_num = -1;
+        foreach ($logs as $i => $log) {
+            preg_match_all('/.* the SQL query for (\d+)/', $log['Log']['title'], $matches);
+            if (!empty($matches[1])) {
+                $last_db_num = $matches[1][0];
+                break;
+            }
+        }
+        if ($last_db_num > 0) {
+            echo __('Last DB num which was successfully executed: ') . h($last_db_num) . PHP_EOL;
+            // replay all update from that point.
+            $this->loadModel('AdminSetting');
+            $db_version = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'db_version')));
+            if (!empty($db_version)) {
+                $db_version['AdminSetting']['value'] = $last_db_num;
+                $this->AdminSetting->save($db_version);
+                $this->Server->runUpdates(true);
+            } else {
+                echo __('Something went wrong. Could not find the existing db version') . PHP_EOL;
+            }
+        } else {
+            echo __('DB was never successfully updated or we are on a fresh install') . PHP_EOL;
+        }
+    }
 }
