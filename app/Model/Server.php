@@ -1247,7 +1247,7 @@ class Server extends AppModel
                         ),
                         'RPZ_serial' => array(
                                 'level' => 2,
-                                'description' => __('The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting).'),
+                                'description' => __('The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting). Setting it to $time will give you an unixtime-based serial (good then you need more than 99 revisions per day).'),
                                 'value' => '$date00',
                                 'errorMessage' => '',
                                 'test' => 'testForRPZSerial',
