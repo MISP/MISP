@@ -24,11 +24,13 @@ coreCAKE () {
   # example: 'baseurl' => 'https://<your.FQDN.here>',
   # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
   # 'baseurl' => '',
+  $SUDO_WWW $CAKE Admin setSetting "MISP.external_baseurl" $MISP_BASEURL
 
   # Enable GnuPG
   $SUDO_WWW $CAKE Admin setSetting "GnuPG.email" "$GPG_EMAIL_ADDRESS"
   $SUDO_WWW $CAKE Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
   $SUDO_WWW $CAKE Admin setSetting "GnuPG.password" "$GPG_PASSPHRASE"
+  $SUDO_WWW $CAKE Admin setSetting "GnuPG.binary" "$(which gpg)"
 
   # Enable installer org and tune some configurables
   $SUDO_WWW $CAKE Admin setSetting "MISP.host_org_id" 1
@@ -96,11 +98,18 @@ coreCAKE () {
   $SUDO_WWW $CAKE Admin setSetting "MISP.block_old_event_alert" false
   $SUDO_WWW $CAKE Admin setSetting "MISP.block_old_event_alert_age" ""
   $SUDO_WWW $CAKE Admin setSetting "MISP.incoming_tags_disabled_by_default" false
+  $SUDO_WWW $CAKE Admin setSetting "MISP.maintenance_message" "Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at \$email."
   $SUDO_WWW $CAKE Admin setSetting "MISP.footermidleft" "This is an initial install"
   $SUDO_WWW $CAKE Admin setSetting "MISP.footermidright" "Please configure and harden accordingly"
   $SUDO_WWW $CAKE Admin setSetting "MISP.welcome_text_top" "Initial Install, please configure"
   # TODO: Make sure $FLAVOUR is correct
   $SUDO_WWW $CAKE Admin setSetting "MISP.welcome_text_bottom" "Welcome to MISP on $FLAVOUR, change this message in MISP Settings"
+  $SUDO_WWW $CAKE Admin setSetting "MISP.attachments_dir" "$PATH_TO_MISP/app/files"
+  $SUDO_WWW $CAKE Admin setSetting "MISP.download_attachments_on_load" true
+  $SUDO_WWW $CAKE Admin setSetting "MISP.title_text" "MISP"
+  $SUDO_WWW $CAKE Admin setSetting "MISP.terms_download" false
+  $SUDO_WWW $CAKE Admin setSetting "MISP.showorgalternate" false
+  $SUDO_WWW $CAKE Admin setSetting "MISP.event_view_filter_fields" "id, uuid, value, comment, type, category, Tag.name"
 
   # Force defaults to make MISP Server Settings less GREEN
   $SUDO_WWW $CAKE Admin setSetting "Security.password_policy_length" 12
