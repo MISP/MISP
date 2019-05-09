@@ -3119,7 +3119,10 @@ class Server extends AppModel
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
-        if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) {
+        $regex = "%^(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,5})(?::(?<port>[0-9]+))?(?<base>/[a-z0-9_\-\.]+)?$%i";
+	if ( !preg_match($regex, $value, $matches)
+                || strtolower($matches['proto']) != strtolower($this->getProto())
+                || strtolower($matches['host']) != strtolower($this->getHost()) ) {
             return 'Invalid baseurl, it has to be in the "https://FQDN" format.';
         }
         return true;
