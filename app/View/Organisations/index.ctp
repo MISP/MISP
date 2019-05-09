@@ -104,27 +104,27 @@
     <?php
 foreach ($orgs as $org): ?>
     <tr>
-        <td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['id']); ?></td>
-        <td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'">
+	<td class="short" ondblclick="document.location.href ='<?php echo $baseurl; ?>/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['id']); ?></td>
+        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl; ?>/organisations/view/<?php echo $org['Organisation']['id'];?>'">
             <?php
                 echo $this->OrgImg->getOrgImg(array('name' => $org['Organisation']['name'], 'id' => $org['Organisation']['id'], 'size' => 24));
             ?>
         </td>
-        <td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['name']); ?></td>
+        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl; ?>/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['name']); ?></td>
         <?php if ($isSiteAdmin): ?>
-            <td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['uuid']); ?></td>
+            <td class="short" ondblclick="document.location.href ='<?php echo $baseurl; ?>/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['uuid']); ?></td>
         <?php endif; ?>
-        <td ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['description']); ?></td>
-        <td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['nationality']); ?></td>
-        <td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['sector']); ?></td>
-        <td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['type']); ?></td>
+        <td ondblclick="document.location.href ='<?php echo $baseurl; ?>/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['description']); ?></td>
+        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl; ?>/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['nationality']); ?></td>
+        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl; ?>/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['sector']); ?></td>
+        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl; ?>/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['type']); ?></td>
         <td><?php echo h($org['Organisation']['contacts']); ?></td>
         <?php if ($isSiteAdmin): ?>
-            <td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'">
+            <td class="short" ondblclick="document.location.href ='<?php echo $baseurl; ?>/organisations/view/<?php echo $org['Organisation']['id'];?>'">
                 <?php echo (isset($org['Organisation']['created_by_email'])) ? h($org['Organisation']['created_by_email']) : '&nbsp;'; ?>
             </td>
         <?php endif; ?>
-        <td class="short <?php echo $org['Organisation']['local'] ? 'green' : 'red';?>" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo $org['Organisation']['local'] ? __('Yes') : __('No');?></td>
+        <td class="short <?php echo $org['Organisation']['local'] ? 'green' : 'red';?>" ondblclick="document.location.href ='<?php echo $baseurl; ?>/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo $org['Organisation']['local'] ? __('Yes') : __('No');?></td>
         <td class="short"><?php echo isset($org['Organisation']['user_count']) ? $org['Organisation']['user_count'] : '0';?></td>
         <td class="short">
             <?php

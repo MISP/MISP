@@ -240,7 +240,7 @@
         }
         $table_data[] = array(
             'key' => __('Sightings'),
-            'element' => '/Events/View/eventSightingValue',
+            'element' => $baseurl . '/Events/View/eventSightingValue',
             'element_params' => array(
                 'sightingPopover' => $sightingPopover,
                 'event' => $event,

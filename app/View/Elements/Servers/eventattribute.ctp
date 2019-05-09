@@ -101,7 +101,7 @@
         </ul>
     </div>
 <script type="text/javascript">
-    var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/servers/previewEvent/' . h($server['Server']['id']) . '/' . h($event['Event']['id']); ?>";
+    var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : $baseurl . '/servers/previewEvent/' . h($server['Server']['id']) . '/' . h($event['Event']['id']); ?>";
     var lastSelected = false;
     var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
     $(document).ready(function() {

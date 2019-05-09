@@ -96,7 +96,7 @@ $(document).ready( function() {
   var scope_id = $('#graph_init').data('id');
   var scope = $('#graph_init').data('scope');
 
-  d3.json("/events/updateGraph/" + scope_id + "/" + scope + ".json", function(error, json) {
+  d3.json(baseurl + "/events/updateGraph/" + scope_id + "/" + scope + ".json", function(error, json) {
   	root = json;
   	update();
   });
@@ -323,9 +323,9 @@ $(document).ready( function() {
   function createInfoPane(d, data, type) {
   	var i = 0;
   	var view_urls = {
-  		'event': '/events/view/' + parseInt(d.id),
-  		'tag': '/tags/view/' + parseInt(d.id),
-  		'galaxy': '/galaxy_clusters/view/' + parseInt(d.id)
+  		'event': baseurl + '/events/view/' + parseInt(d.id),
+  		'tag': baseurl + '/tags/view/' + parseInt(d.id),
+  		'galaxy': baseurl + '/galaxy_clusters/view/' + parseInt(d.id)
   	};
   	data["fields"].forEach(function(e) {
   		var title = e;
@@ -406,7 +406,7 @@ $(document).ready( function() {
 
   function expand(d) {
   	if (d.type == 'event' || d.type == 'galaxy' || d.type == 'tag') {
-  		d3.xhr("/events/updateGraph/" + d.id + "/" + d.type + ".json")
+  		d3.xhr(baseurl + "/events/updateGraph/" + d.id + "/" + d.type + ".json")
   	    .header("Content-Type", "application/json")
   	    .post(
   	        JSON.stringify(root),

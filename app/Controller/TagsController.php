@@ -578,22 +578,22 @@ class TagsController extends AppController
         if ($favourites) {
             $items[] = array(
                 'name' => __('Favourite Tags'),
-                'value' => "/tags/selectTag/" . h($id) . "/favourites/" . h($scope)
+                'value' => $baseurl . "/tags/selectTag/" . h($id) . "/favourites/" . h($scope)
             );
         }
         if ($scope !== 'tag_collection') {
             $items[] = array(
                 'name' => __('Tag Collections'),
-                'value' => "/tags/selectTag/" . h($id) . "/collections/" . h($scope)
+                'value' => $baseurl . "/tags/selectTag/" . h($id) . "/collections/" . h($scope)
             );
         }
         $items[] = array(
             'name' => __('Custom Tags'),
-            'value' => "/tags/selectTag/" . h($id) . "/0/" . h($scope)
+            'value' => $baseurl . "/tags/selectTag/" . h($id) . "/0/" . h($scope)
         );
         $items[] = array(
             'name' => __('All Tags'),
-            'value' => "/tags/selectTag/" . h($id) . "/all/" . h($scope)
+            'value' => $baseurl . "/tags/selectTag/" . h($id) . "/all/" . h($scope)
         );
 
         $this->loadModel('Taxonomy');
@@ -601,7 +601,7 @@ class TagsController extends AppController
         foreach ($options as $k => $option) {
             $items[] = array(
                 'name' => __('Taxonomy Library') . ":" . h($option),
-                'value' => "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope)
+                'value' => $baseurl . "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope)
             );
         }
         $this->set('items', $items);

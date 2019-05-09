@@ -112,7 +112,7 @@ foreach ($list as $template):
             ?>
         </td>
         <td class="short action-links">
-            <a href='/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
+	    <a href='<?php echo $baseurl; ?>/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
             <?php
                 if ($isSiteAdmin):
                     echo $this->Form->postLink('', array('action' => 'update', $template['ObjectTemplate']['name'], 1), array('class' => 'fa fa-sync', 'title' => __('Force update')), __('Are you sure you want to force an update for template # %s?', $template['ObjectTemplate']['id']));

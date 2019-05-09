@@ -3,7 +3,7 @@
     <div class="pagination">
         <ul>
         <?php
-            $eventViewURL = '/feeds/previewEvent/' . h($id) . '/';
+            $eventViewURL = $baseurl . '/feeds/previewEvent/' . h($id) . '/';
             $this->Paginator->options(array(
                 'url' => $id,
                 'update' => '.span12',
@@ -69,7 +69,7 @@
             </td>
             <td ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'" class="short"><?php echo h($event['timestamp']); ?></td>
             <td class="short action-links">
-                <?php if ($feed['Feed']['enabled'] && $isSiteAdmin) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'fa fa-arrow-circle-down', 'title' => __('Fetch the event')), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
+                <?php if ($feed['Feed']['enabled'] && $isSiteAdmin) echo $this->Form->postLink('', $baseurl . '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'fa fa-arrow-circle-down', 'title' => __('Fetch the event')), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
                 <a href='<?php echo $eventViewURL . h($uuid);?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
             </td>
         </tr>
