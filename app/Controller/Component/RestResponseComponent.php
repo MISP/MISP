@@ -280,7 +280,7 @@ class RestResponseComponent extends Component
                         $action = substr($action, 6);
                         $admin_routing = 'admin/';
                     }
-                    $url = $baseurl . '/' . $admin_routing . $controller . '/' . $action;
+                    $url = $this->baseurl . '/' . $admin_routing . $controller . '/' . $action;
                     $result[$url] = $data;
                 }
             }
@@ -323,7 +323,7 @@ class RestResponseComponent extends Component
                         }
                     }
                     $data['body'] = json_encode($data['body'], JSON_PRETTY_PRINT);
-                    $url = $baseurl . '/' . $admin_routing . $controller . '/' . $action;
+                    $url = $this->baseurl . '/' . $admin_routing . $controller . '/' . $action;
                     $data['url'] = $url;
                     if (!empty($data['params'])) {
                         foreach ($data['params'] as $param) {
