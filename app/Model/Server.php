@@ -1239,7 +1239,7 @@ class Server extends AppModel
                         ),
                         'RPZ_walled_garden' => array(
                             'level' => 2,
-                            'description' => __('The default walled garden used by the RPZ export if the walled garden setting is picked for the export.'),
+                            'description' => __('The default walled garden used by the RPZ export if the Local-Data policy setting is picked for the export.'),
                             'value' => '127.0.0.1',
                             'errorMessage' => '',
                             'test' => 'testForEmpty',
