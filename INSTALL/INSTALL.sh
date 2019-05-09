@@ -173,7 +173,7 @@ usage () {
   space
   echo -e "                -C | Only do ${YELLOW}pre-install checks and exit${NC}" # pre
   space
-  echo -e "                -u | Do an unattanded Install, no questions asked"      # UNATTENDED
+  echo -e "                -u | Do an unattended Install, no questions asked"      # UNATTENDED
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
@@ -218,6 +218,28 @@ setOpt () {
   done
 }
 
+# Try to detect what we are running on
+checkCoreOS () {
+
+  # lsb_release can exist on any platform. RedHat package: redhat-lsb
+  LSB_RELEASE=$(which lsb_release > /dev/null ; echo $?)
+  APT=$(which apt > /dev/null 2>&1; echo -n $?)
+  APT_GET=$(which apt-get > /dev/null 2>&1; echo $?)
+
+  # debian specific
+  # /etc/debian_version
+  ## os-release #generic
+  # /etc/os-release
+
+  # Redhat checks
+  if [[ -f "/etc/redhat-release" ]]; then
+    echo "This is some redhat flavour"
+    REDHAT=1
+    RHfla=$(cat /etc/redhat-release | cut -f 1 -d\ | tr [A-Z] [a-z])
+  fi
+
+}
+
 # Extract debian flavour
 checkFlavour () {
   if [ -z $(which lsb_release) ]; then
@@ -244,9 +266,10 @@ checkManufacturer () {
   echo $MANUFACTURER
 }
 
-# Dynamic horizontal spacer
+# Dynamic horizontal spacer if needed, for autonomeous an no progress bar install, we are static.
 space () {
-  if [[ "$NO_PROGRESS" == "1" ]]; then
+  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then
+    echo "--------------------------------------------------------------------------------"
     return
   fi
   # Check terminal width
@@ -277,7 +300,7 @@ spin()
 
 # Progress bar
 progress () {
-  if [[ "$NO_PROGRESS" == "1" ]]; then
+  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then 
     return
   fi
   bar="#"
@@ -863,6 +886,12 @@ theEnd () {
     space
   fi
 
+  if [[ "$PACKER" == "1" ]]; then
+    echo -e "${RED}This was an Automated Packer install!${NC}"
+    echo -e "This means we forced an unattended install."
+    space
+  fi
+
   if [[ "$USER" != "$MISP_USER" ]]; then
     sudo su - ${MISP_USER}
   fi
@@ -1173,7 +1202,7 @@ configMISP () {
 # Core cake commands
 coreCAKE () {
   debug "Running core Cake commands to set sane defaults for ${LBLUE}MISP${NC}"
-  $SUDO_WWW -E $CAKE userInit -q
+  $SUDO_WWW $CAKE userInit -q
 
   # This makes sure all Database upgrades are done, without logging in.
   $SUDO_WWW $CAKE Admin updateDatabase
@@ -1281,9 +1310,12 @@ coreCAKE () {
 
 # This updates Galaxies, ObjectTemplates, Warninglists, Noticelists, Templates
 updateGOWNT () {
+# AUTH_KEY Place holder in case we need to **curl** somehing in the future
+# 
+# AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
+# RHEL/CentOS
+# AUTH_KEY=$(scl enable rh-mariadb102 "mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e 'SELECT authkey FROM users;' | tail -1")
   debug "Updating Galaxies, ObjectTemplates, Warninglists, Noticelists and Templates"
-  AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
-
   # Update the galaxies…
   # TODO: Fix updateGalaxies
   $SUDO_WWW $CAKE Admin updateGalaxies
@@ -1294,9 +1326,7 @@ updateGOWNT () {
   # Updating the notice lists…
   $SUDO_WWW $CAKE Admin updateNoticeLists
   # Updating the object templates…
-  # TODO: FIXME: updateObjectTemplates (currently throws: usage udpateNoticeLists)
-  ##$SUDO_WWW $CAKE Admin updateObjectTemplates
-  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
+  $SUDO_WWW $CAKE Admin updateObjectTemplates "1337"
 }
 
 # Generate GnuPG key
@@ -1420,7 +1450,7 @@ mispDashboard () {
   sudo -H /var/www/misp-dashboard/install_dependencies.sh
   sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
   sudo sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/apache2/ports.conf
-  sudo apt install libapache2-mod-wsgi-py3 -y
+  sudo apt install libapache2-mod-wsgi-py3 net-tools -y
   echo "<VirtualHost *:8001>
       ServerAdmin admin@misp.local
       ServerName misp.local

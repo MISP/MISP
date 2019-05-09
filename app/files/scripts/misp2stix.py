@@ -791,9 +791,9 @@ class StixBuilder(object):
         if 'user-agent' in attributes_dict:
             email_header.user_agent = attributes_dict['user-agent'][0]['value']
             email_header.user_agent.condition = "Equals"
-        if 'email-attachment' in attributes_dict:
-            email.attachments = Attachments()
-            for attachment in attributes_dict['email-attachment']:
+        if 'attachment' in attributes_dict:
+            email_object.attachments = Attachments()
+            for attachment in attributes_dict['attachment']:
                 attachment_file = self.create_file_attachment(attachment['value'], attachment['uuid'])
                 email_object.add_related(attachment_file, "Contains", inline=True)
                 email_object.attachments.append(attachment_file.parent.id_)
@@ -1374,7 +1374,8 @@ class StixBuilder(object):
         return domain_observable
 
     def create_file_attachment(self, value, uuid):
-        file_object = File(file_name=value)
+        file_object = File()
+        file_object.file_name = value
         file_object.file_name.condition = "Equals"
         file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, uuid)
         return file_object
