@@ -2264,7 +2264,7 @@ class AttributesController extends AppController
                 ${$sF} = false;
             }
         }
-        if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'Local-Data'))) {
+        if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'Local-Data', 'PASSTHRU', 'TCP-only'))) {
             $policy = false;
         }
         App::uses('RPZExport', 'Export');
