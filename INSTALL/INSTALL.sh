@@ -173,7 +173,7 @@ usage () {
   space
   echo -e "                -C | Only do ${YELLOW}pre-install checks and exit${NC}" # pre
   space
-  echo -e "                -u | Do an unattanded Install, no questions asked"      # UNATTENDED
+  echo -e "                -u | Do an unattended Install, no questions asked"      # UNATTENDED
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
@@ -266,9 +266,10 @@ checkManufacturer () {
   echo $MANUFACTURER
 }
 
-# Dynamic horizontal spacer
+# Dynamic horizontal spacer if needed, for autonomeous an no progress bar install, we are static.
 space () {
-  if [[ "$NO_PROGRESS" == "1" ]]; then
+  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then
+    echo "--------------------------------------------------------------------------------"
     return
   fi
   # Check terminal width
@@ -299,7 +300,7 @@ spin()
 
 # Progress bar
 progress () {
-  if [[ "$NO_PROGRESS" == "1" ]]; then
+  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then 
     return
   fi
   bar="#"
@@ -882,6 +883,12 @@ theEnd () {
   if [[ "$UNATTENDED" == "1" ]]; then
     echo -e "${RED}Unattended install!${NC}"
     echo -e "This means we guessed the Base URL, it might be wrong, please double check."
+    space
+  fi
+
+  if [[ "$PACKER" == "1" ]]; then
+    echo -e "${RED}This was an Automated Packer install!${NC}"
+    echo -e "This means we forced an unattended install."
     space
   fi
 
