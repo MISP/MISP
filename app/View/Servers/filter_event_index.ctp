@@ -1,5 +1,5 @@
 <div class="events">
-    <?php echo $this->Form->create('Event', array('id' => 'test', 'url' => '/events/index'));?>
+    <?php echo $this->Form->create('Event', array('id' => 'test', 'url' => $baseurl . '/events/index'));?>
     <fieldset>
         <legend><?php echo __('Filter Event Index');?></legend>
         <div class="overlay_spacing">

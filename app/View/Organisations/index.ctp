@@ -56,17 +56,17 @@
                         array(
                             'text' => __('Local organisations'),
                             'active' => $scope === 'local',
-                            'url' => '/organisations/index/scope:local'
+                            'url' => $baseurl . '/organisations/index/scope:local'
                         ),
                         array(
                             'text' => __('Known remote organisations'),
                             'active' => $scope === 'external',
-                            'url' => '/organisations/index/scope:external'
+                            'url' => $baseurl . '/organisations/index/scope:external'
                         ),
                         array(
                             'text' => __('All organisations'),
                             'active' => $scope === 'all',
-                            'url' => '/organisations/index/scope:all'
+                            'url' => $baseurl . '/organisations/index/scope:all'
                         ),
                     )
                 ),

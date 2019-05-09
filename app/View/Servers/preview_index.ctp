@@ -53,7 +53,7 @@
                         ),
                         array(
                             'requirement' => count($passedArgsArray) > 0,
-                            'url' => '/servers/previewIndex/' . h($server['Server']['id']),
+                            'url' => $baseurl . '/servers/previewIndex/' . h($server['Server']['id']),
                             'title' => __('Remove filters'),
                             'fa-icon' => 'times'
                         )

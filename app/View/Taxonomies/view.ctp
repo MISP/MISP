@@ -141,12 +141,12 @@
                 <td class="action">
                     <?php
                         if ($isAclTagger && $taxonomy['enabled']) {
-                            echo $this->Form->create('Tag', array('id' => 'quick_' . h($k), 'url' => '/taxonomies/addTag/', 'style' => 'margin:0px;'));
+                            echo $this->Form->create('Tag', array('id' => 'quick_' . h($k), 'url' => $baseurl . '/taxonomies/addTag/', 'style' => 'margin:0px;'));
                             echo $this->Form->input('name', array('type' => 'hidden', 'value' => $item['tag']));
                             echo $this->Form->input('taxonomy_id', array('type' => 'hidden', 'value' => $taxonomy['id']));
                             echo $this->Form->end();
                             if ($item['existing_tag'] && !$item['existing_tag']['Tag']['hide_tag']):
-                                echo $this->Form->create('Tag', array('id' => 'quick_disable_' . h($k), 'url' => '/taxonomies/disableTag/', 'style' => 'margin:0px;'));
+                                echo $this->Form->create('Tag', array('id' => 'quick_disable_' . h($k), 'url' => $baseurl . '/taxonomies/disableTag/', 'style' => 'margin:0px;'));
                                 echo $this->Form->input('name', array('type' => 'hidden', 'value' => $item['tag']));
                                 echo $this->Form->input('taxonomy_id', array('type' => 'hidden', 'value' => $taxonomy['id']));
                                 echo $this->Form->end();

@@ -1,6 +1,6 @@
 <div class="confirmation">
     <?php
-    echo $this->Form->create('Event', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/events/' . $type . '/' . $id));
+    echo $this->Form->create('Event', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/events/' . $type . '/' . $id));
     $extraTitle = "";
     if ($type == 'publish') $extraTitle = ' (no email)';
     $message = __('Publish Event%s', $extraTitle);

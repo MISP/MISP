@@ -22,12 +22,12 @@
                 array(
                     'children' => array(
                         array(
-                            'url' => '/sharing_groups/index',
+                            'url' => $baseurl . '/sharing_groups/index',
                             'text' => __('Active Sharing Groups'),
                             'active' => !$passive
                         ),
                         array(
-                            'url' => '/sharing_groups/index/true',
+                            'url' => $baseurl . '/sharing_groups/index/true',
                             'text' => __('Passive Sharing Groups'),
                             'active' => $passive
                         )

@@ -3,7 +3,7 @@
         'id' => 'RequiredCheckboxForm' . h($id),
         'label' => false,
         'style' => 'display:none;',
-        'url' => '/taxonomies/toggleRequired/' . $id
+        'url' => $baseurl . '/taxonomies/toggleRequired/' . $id
     ));
     echo $this->Form->checkbox('required', array(
         'checked' => $required,

@@ -1,6 +1,6 @@
 <div class="confirmation">
     <?php
-    echo $this->Form->create('Event', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/events/toggleCorrelation/' . $event['Event']['id']));
+    echo $this->Form->create('Event', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/events/toggleCorrelation/' . $event['Event']['id']));
     $extraTitle = "";
     ?>
     <legend><?php echo __('Toggle Correlation %s', $event['Event']['disable_correlation'] ? __('on') : __('off'));?></legend>
