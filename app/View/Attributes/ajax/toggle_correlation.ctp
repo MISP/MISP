@@ -1,6 +1,6 @@
 <div class="confirmation">
     <?php
-    echo $this->Form->create('Attribute', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/attributes/toggleCorrelation/' . $attribute['Attribute']['id']));
+    echo $this->Form->create('Attribute', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/attributes/toggleCorrelation/' . $attribute['Attribute']['id']));
     $extraTitle = "";
     ?>
     <legend><?php echo __('Toggle Correlation %s ', $attribute['Attribute']['disable_correlation'] ? __('on') : __('off'));?></legend>

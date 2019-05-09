@@ -58,22 +58,22 @@
                 array(
                     'children' => array(
                         array(
-                            'url' => '/feeds/index/scope:default',
+                            'url' => $baseurl . '/feeds/index/scope:default',
                             'text' => __('Default feeds'),
                             'active' => $scope === 'default'
                         ),
                         array(
-                            'url' => '/feeds/index/scope:custom',
+                            'url' => $baseurl . '/feeds/index/scope:custom',
                             'text' => __('Custom feeds'),
                             'active' => $scope === 'custom'
                         ),
                         array(
-                            'url' => '/feeds/index/scope:all',
+                            'url' => $baseurl . '/feeds/index/scope:all',
                             'text' => __('All feeds'),
                             'active' => $scope === 'all'
                         ),
                         array(
-                            'url' => '/feeds/index/scope:enabled',
+                            'url' => $baseurl . '/feeds/index/scope:enabled',
                             'text' => __('Enabled feeds'),
                             'active' => $scope === 'enabled'
                         )

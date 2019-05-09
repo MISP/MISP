@@ -112,12 +112,12 @@ foreach ($servers as $server):
         <td class="short"><span class="<?php echo ($server['Server']['unpublish_event'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['unpublish_event'] ? __('Yes') : __('No')); ?>"></span></td>
         <td class="short"><span class="<?php echo ($server['Server']['publish_without_email'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['publish_without_email'] ? __('Yes') : __('No')); ?>"></span></td>
         <td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
-        <td><a href="/organisations/view/<?php echo h($server['RemoteOrg']['id']); ?>"><?php echo h($server['RemoteOrg']['name']); ?></a></td>
+	<td><a href="<?php echo $baseurl . "/organisations/view/" . h($server['RemoteOrg']['id']); ?>"><?php echo h($server['RemoteOrg']['name']); ?></a></td>
         <td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
         <td class="short"><?php echo h($server['Server']['client_cert_file']); ?>&nbsp;</td>
         <td class="short"><span class="<?php echo ($server['Server']['self_signed'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['self_signed'] ? __('Yes') : __('No')); ?>"></span></td>
         <td class="short"><span class="<?php echo ($server['Server']['skip_proxy'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['skip_proxy'] ? __('Yes') : __('No')); ?>"></span></td>
-        <td class="short"><a href="/organisations/view/<?php echo h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
+	<td class="short"><a href="<?php echo $baseurl . "/organisations/view/" . h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
         <td class="short action-links">
             <?php
                 echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/previewIndex/' . h($server['Server']['id']), __('Explore'), __('Explore'), 'fa fa-search');

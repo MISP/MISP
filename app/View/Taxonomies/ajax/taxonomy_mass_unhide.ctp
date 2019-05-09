@@ -1,6 +1,6 @@
 <div class="confirmation">
 <?php
-    echo $this->Form->create('Taxonomy', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/taxonomies/unhideTag'));
+    echo $this->Form->create('Taxonomy', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/taxonomies/unhideTag'));
 ?>
 <div class="hidden">
 <?php

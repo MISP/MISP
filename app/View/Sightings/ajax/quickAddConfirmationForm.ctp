@@ -1,6 +1,6 @@
 <div class="confirmation">
     <?php
-        echo $this->Form->create('Sighting', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/sightings/add/' . $id));
+        echo $this->Form->create('Sighting', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/sightings/add/' . $id));
     ?>
     <legend><?php echo __('Add Sighting');?></legend>
     <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">

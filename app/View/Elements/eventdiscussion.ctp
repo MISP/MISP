@@ -132,8 +132,8 @@
     <?php endif; ?>
     <div class="comment">
     <?php
-        if (isset($currentEvent)) $url = '/posts/add/event/' . $currentEvent;
-        else $url = '/posts/add/thread/' . $thread['Thread']['id'];
+        if (isset($currentEvent)) $url = $baseurl . '/posts/add/event/' . $currentEvent;
+        else $url = $baseurl . '/posts/add/thread/' . $thread['Thread']['id'];
         echo $this->Form->create('Post', array('url' => $url));
     ?>
         <fieldset>

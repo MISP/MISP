@@ -240,7 +240,7 @@
         }
         $table_data[] = array(
             'key' => __('Sightings'),
-            'element' => '/Events/View/eventSightingValue',
+            'element' => $baseurl . '/Events/View/eventSightingValue',
             'element_params' => array(
                 'sightingPopover' => $sightingPopover,
                 'event' => $event,
@@ -507,20 +507,20 @@ $(document).ready(function () {
         delay: { show: 500, hide: 100 }
     });
 
-    $.get("/threads/view/<?php echo h($event['Event']['id']); ?>/true", function(data) {
+    $.get("<?php echo $baseurl; ?>/threads/view/<?php echo h($event['Event']['id']); ?>/true", function(data) {
         $("#discussions_div").html(data);
     });
 
 });
 
 function enable_correlation_graph() {
-    $.get("/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
+    $.get("<?php echo $baseurl; ?>/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
         $("#correlationgraph_div").html(data);
     });
 }
 
 function enable_attack_matrix() {
-    $.get("/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
+    $.get("<?php echo $baseurl; ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
         $("#attackmatrix_div").html(data);
     });
 }

@@ -13,7 +13,7 @@
                     if (($menuItem === 'template_populate_results')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'template_populate_results',
-                            'url' => '/templates/index',
+                            'url' => $baseurl . '/templates/index',
                             'text' => __('Populate From Template')
                         ));
                     }
@@ -35,34 +35,34 @@
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'viewEvent',
-                        'url' => '/events/view/' .  $event['Event']['id'],
+                        'url' => $baseurl . '/events/view/' .  $event['Event']['id'],
                         'text' => __('View Event')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'viewGraph',
-                        'url' => '/events/viewGraph/' .  $event['Event']['id'],
+                        'url' => $baseurl . '/events/viewGraph/' .  $event['Event']['id'],
                         'text' => __('View Correlation Graph')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'eventLog',
-                        'url' => '/logs/event_index/' .  $event['Event']['id'],
+                        'url' => $baseurl . '/logs/event_index/' .  $event['Event']['id'],
                         'text' => __('View Event History')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     if ($isSiteAdmin || (isset($mayModify) && $mayModify)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'editEvent',
-                            'url' => '/events/edit/' .  $event['Event']['id'],
+                            'url' => $baseurl . '/events/edit/' .  $event['Event']['id'],
                             'text' => __('Edit Event')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'url' => '/events/delete/' . h($event['Event']['id']),
+                            'url' => $baseurl . '/events/delete/' . h($event['Event']['id']),
                             'text' => __('Delete Event'),
                             'message' => __('Are you sure you want to delete # %s?', h($event['Event']['id']))
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addAttribute',
-                            'url' => '/attributes/add/' .  $event['Event']['id'],
+                            'url' => $baseurl . '/attributes/add/' .  $event['Event']['id'],
                             'text' => __('Add Attribute')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -75,7 +75,7 @@
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addAttachment',
-                            'url' => '/attributes/add_attachment/' .  $event['Event']['id'],
+                            'url' => $baseurl . '/attributes/add_attachment/' .  $event['Event']['id'],
                             'text' => __('Add Attachment')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -87,7 +87,7 @@
                         ));
                         if ($menuItem === 'populateFromtemplate') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'url' => '/templates/populateEventFromTemplate/' . $template_id . '/' .  $event['Event']['id'],
+                                'url' => $baseurl . '/templates/populateEventFromTemplate/' . $template_id . '/' .  $event['Event']['id'],
                                 'text' => __('Populate From Template')
                             ));
                         }
@@ -100,19 +100,19 @@
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'merge',
-                            'url' => '/events/merge/' . $event['Event']['id'],
+                            'url' => $baseurl . '/events/merge/' . $event['Event']['id'],
                             'text' => __('Merge attributes from...')
                         ));
                     }
                     if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'proposeAttribute',
-                            'url' => '/shadow_attributes/add/' . $event['Event']['id'],
+                            'url' => $baseurl . '/shadow_attributes/add/' . $event['Event']['id'],
                             'text' => __('Propose Attribute')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'proposeAttachment',
-                            'url' => '/shadow_attributes/add_attachment/' . $event['Event']['id'],
+                            'url' => $baseurl . '/shadow_attributes/add_attachment/' . $event['Event']['id'],
                             'text' => __('Propose Attachment')
                         ));
                     }
@@ -176,7 +176,7 @@
                     }
                     if (Configure::read('Plugin.ZeroMQ_enable') && $isAclZmq) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'url' => '/events/pushEventToZMQ/' . h($event['Event']['id']),
+                            'url' => $baseurl . '/events/pushEventToZMQ/' . h($event['Event']['id']),
                             'text' => __('Publish event to ZMQ'),
                             'message' => __('Are you sure you wish to republish the current event to the ZMQ channel?')
                         ));
@@ -186,14 +186,14 @@
                         Configure::read('Plugin.Kafka_event_notifications_topic') &&
                         $isAclKafka) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'url' => '/events/pushEventToKafka/' . h($event['Event']['id']),
+                            'url' => $baseurl . '/events/pushEventToKafka/' . h($event['Event']['id']),
                             'text' => __('Publish event to Kafka'),
                             'message' => __('Are you sure you wish to republish the current event to the Kafka topic?')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'contact',
-                        'url' => '/events/contact/' . $event['Event']['id'],
+                        'url' => $baseurl . '/events/contact/' . $event['Event']['id'],
                         'text' => __('Contact Reporter')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -205,12 +205,12 @@
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/events/index',
+                        'url' => $baseurl . '/events/index',
                         'text' => __('List Events')
                     ));
                     if ($isAclAdd) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/events/add',
+                            'url' => $baseurl . '/events/add',
                             'text' => __('Add Event')
                         ));
                     }
@@ -218,17 +218,17 @@
 
                 case 'tag-collections':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/tag_collections/index',
+                        'url' => $baseurl . '/tag_collections/index',
                         'text' => __('List Tag Collections')
                     ));
                     if ($isAclTagEditor) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/tag_collections/add',
+                            'url' => $baseurl . '/tag_collections/add',
                             'text' => __('Add Tag Collection')
                         ));
                         if (($menuItem === 'edit')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'url' => '/tag_collections/edit/' . $id,
+                                'url' => $baseurl . '/tag_collections/edit/' . $id,
                                 'text' => __('Add Tag Collection')
                             ));
                         }
@@ -248,13 +248,13 @@
                 case 'event-collection':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'index',
-                        'url' => '/events/index',
+                        'url' => $baseurl . '/events/index',
                         'text' => __('List Events')
                     ));
                     if ($isAclAdd) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
-                            'url' => '/events/add',
+                            'url' => $baseurl . '/events/add',
                             'text' => __('Add Event')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -266,19 +266,19 @@
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'rest',
-                            'url' => '/servers/rest',
+                            'url' => $baseurl . '/servers/rest',
                             'text' => __('REST client')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'listAttributes',
-                        'url' => '/attributes/index',
+                        'url' => $baseurl . '/attributes/index',
                         'text' => __('List Attributes')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'searchAttributes',
-                        'url' => '/attributes/search',
+                        'url' => $baseurl . '/attributes/search',
                         'text' => __('Search Attributes')
                     ));
                     if ($menuItem == 'searchAttributes2') {
@@ -294,23 +294,23 @@
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'viewProposals',
-                        'url' => '/shadow_attributes/index',
+                        'url' => $baseurl . '/shadow_attributes/index',
                         'text' => __('View Proposals')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'viewProposalIndex',
-                        'url' => '/events/proposalEventIndex',
+                        'url' => $baseurl . '/events/proposalEventIndex',
                         'text' => __('Events with proposals')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/events/export',
+                        'url' => $baseurl . '/events/export',
                         'text' => __('Export')
                     ));
                     if ($isAclAuth) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'automation',
-                            'url' => '/events/automation',
+                            'url' => $baseurl . '/events/automation',
                             'text' => __('Automation')
                         ));
                     }
@@ -319,18 +319,19 @@
                 case 'regexp':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => sprintf(
-                            '%s/regexp/index',
+                            '%s%s/regexp/index',
+                            $baseurl,
                             $isSiteAdmin ? '/admin' : ''
                         ),
                         'text' => __('List Regexp')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/admin/regexp/add',
+                            'url' => $baseurl . '/admin/regexp/add',
                             'text' => __('New Regexp')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'url' => '/admin/regexp/clean',
+                            'url' => $baseurl . '/admin/regexp/clean',
                             'text' => __('Perform on existing'),
                             'message' => __('Are you sure you want to rerun all of the regex rules on every attribute in the database? This task will take a long while and will modify data indiscriminately based on the rules configured.')
                         ));
@@ -338,11 +339,11 @@
                     if ($menuItem === 'edit') {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/admin/regexp/edit/' . h($id),
+                            'url' => $baseurl . '/admin/regexp/edit/' . h($id),
                             'text' => __('Edit Regexp')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'url' => '/admin/regexp/delete/' . h($id),
+                            'url' => $baseurl . '/admin/regexp/delete/' . h($id),
                             'text' => __('Delete Regexp'),
                             'message' => __('Are you sure you want to delete # %s?', h($id))
                         ));
@@ -357,13 +358,13 @@
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/warninglists/index',
+                        'url' => $baseurl . '/warninglists/index',
                         'text' => __('List Warninglists')
                     ));
 
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'url' => '/warninglists/update',
+                            'url' => $baseurl . '/warninglists/update',
                             'text' => __('Update Warninglists'),
                             'message' => __('Are you sure you want to update all warninglists?')
                         ));
@@ -378,11 +379,11 @@
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'index',
-                        'url' => '/noticelists/index',
+                        'url' => $baseurl . '/noticelists/index',
                         'text' => __('List Noticelist')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                        'url' => '/noticelists/update',
+                        'url' => $baseurl . '/noticelists/update',
                         'text' => __('Update Noticelists'),
                         'message' => __('Do you wish to continue and update all noticelists?')
                     ));
@@ -391,25 +392,26 @@
                 case 'whitelist':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => sprintf(
-                            '%s/whitelists/index',
+                            '%s%s/whitelists/index',
+                            $baseurl,
                             $isSiteAdmin ? '/admin' : ''
                         ),
                         'text' => __('List Whitelist')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/admin/whitelists/add',
+                            'url' => $baseurl . '/admin/whitelists/add',
                             'text' => __('New Whitelist')
                         ));
                     }
                     if ($menuItem == 'edit') {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/admin/whitelists/edit' . h($id),
+                            'url' => $baseurl . '/admin/whitelists/edit' . h($id),
                             'text' => __('Edit Whitelist')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'url' => '/admin/whitelists/delete/' . h($id),
+                            'url' => $baseurl . '/admin/whitelists/delete/' . h($id),
                             'text' => __('Delete Whitelist'),
                             'message' => __('Are you sure you want to delete # %s?', h($id))
                         ));
@@ -419,11 +421,11 @@
                 case 'globalActions':
                     if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view' || $menuItem === 'change_pw')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/users/edit',
+                            'url' => $baseurl . '/users/edit',
                             'text' => __('Edit My Profile')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/users/change_pw',
+                            'url' => $baseurl . '/users/change_pw',
                             'text' => __('Change Password')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
@@ -436,68 +438,68 @@
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'view',
-                        'url' => '/users/view/me',
+                        'url' => $baseurl . '/users/view/me',
                         'text' => __('My Profile')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/users/dashboard',
+                        'url' => $baseurl . '/users/dashboard',
                         'text' => __('Dashboard')
                     ));
                     if ($isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'indexOrg',
-                            'url' => '/organisations/index',
+                            'url' => $baseurl . '/organisations/index',
                             'text' => __('List Organisations')
                         ));
                     }
                     if ($menuItem === 'viewOrg') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewOrg',
-                            'url' => '/organisations/view/' . h($id),
+                            'url' => $baseurl . '/organisations/view/' . h($id),
                             'text' => __('View Organisation')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'roles',
-                        'url' => '/roles/index',
+                        'url' => $baseurl . '/roles/index',
                         'text' => __('Role Permissions')
                     ));
                     if ($menuItem === 'editSG' || ($menuItem == 'viewSG' && $mayModify)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'editSG',
-                            'url' => '/sharing_groups/edit/' . h($id),
+                            'url' => $baseurl . '/sharing_groups/edit/' . h($id),
                             'text' => __('Edit Sharing Group')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewSG',
-                            'url' => '/sharing_groups/view/' . h($id),
+                            'url' => $baseurl . '/sharing_groups/view/' . h($id),
                             'text' => __('View Sharing Group')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'indexSG',
-                        'url' => '/sharing_groups/index',
+                        'url' => $baseurl . '/sharing_groups/index',
                         'text' => __('List Sharing Groups')
                     ));
                     if ($isAclSharingGroup) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addSG',
-                            'url' => '/sharing_groups/add',
+                            'url' => $baseurl . '/sharing_groups/add',
                             'text' => __('Add Sharing Group')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'userGuide',
-                        'url' => '/pages/display/doc/general',
+                        'url' => $baseurl . '/pages/display/doc/general',
                         'text' => __('User Guide')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/users/terms',
+                        'url' => $baseurl . '/users/terms',
                         'text' => __('Terms & Conditions')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/users/statistics',
+                        'url' => $baseurl . '/users/statistics',
                         'text' => __('Statistics')
                     ));
                     break;
@@ -506,15 +508,17 @@
                     if ($menuItem === 'previewEvent' && ($isSiteAdmin || $hostOrg)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => sprintf(
-                                '/servers/previewIndex/%s',
-                                h($server['Server']['id'])
+                                '%s/servers/previewIndex/%s',
+				$baseurl,
+				h($server['Server']['id'])
                             ),
                             'text' => __('Explore Remote Server')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => sprintf(
-                                '/servers/previewEvent/%s/%s',
-                                h($server['Server']['id']),
+                                '%s/servers/previewEvent/%s/%s',
+				$baseurl,
+				h($server['Server']['id']),
                                 h($event['Event']['id'])
                             ),
                             'text' => __('Explore Remote Event')
@@ -524,8 +528,9 @@
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'event_id' => 'pull',
                             'url' => sprintf(
-                                '/servers/pull/%s/%s',
-                                h($server['Server']['id']),
+                                '%s/servers/pull/%s/%s',
+				$baseurl,
+				h($server['Server']['id']),
                                 h($server['Event']['id'])
                             ),
                             'text' => __('Fetch This Event'),
@@ -536,8 +541,9 @@
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'previewIndex',
                             'url' => sprintf(
-                                '/servers/previewIndex/%s',
-                                h($id)
+                                '%s/servers/previewIndex/%s',
+				$baseurl,
+				h($id)
                             ),
                             'text' => __('Explore Remote Server')
                         ));
@@ -546,26 +552,27 @@
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'edit',
-                            'url' => '/servers/edit/' . h($id),
+                            'url' => $baseurl . '/servers/edit/' . h($id),
                             'text' => __('Edit Server')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'event_id' => 'pull',
                             'url' => sprintf(
-                                '/servers/delete/%s',
-                                $this->Form->value('Server.id')
+                                '%s/servers/delete/%s',
+				$baseurl,
+				$this->Form->value('Server.id')
                             ),
                             'text' => __('Delete'),
                             'message' => __('Are you sure you want to delete # %s?', $this->Form->value('Server.id'))
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/servers/index',
+                        'url' => $baseurl . '/servers/index',
                         'text' => __('List Servers')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/servers/add',
+                            'url' => $baseurl . '/servers/add',
                             'text' => __('New Servers')
                         ));
                     }
@@ -577,7 +584,7 @@
                     if ($menuItem === 'editUser' || $menuItem === 'viewUser') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewUser',
-                            'url' => '/admin/users/view/' . h($id),
+                            'url' => $baseurl . '/admin/users/view/' . h($id),
                             'text' => __('View User')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -589,12 +596,12 @@
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'editUser',
-                            'url' => '/admin/users/edit/' . h($id),
+                            'url' => $baseurl . '/admin/users/edit/' . h($id),
                             'text' => __('Edit User')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'event_id' => 'deleteUser',
-                            'url' => '/admin/users/delete/' . h($id),
+                            'url' => $baseurl . '/admin/users/delete/' . h($id),
                             'text' => __('Delete User'),
                             'message' => __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id))
                         ));
@@ -603,12 +610,12 @@
                     if ($isSiteAdmin && $menuItem === 'editRole') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'editRole',
-                            'url' => '/admin/roles/edit/' . h($id),
+                            'url' => $baseurl . '/admin/roles/edit/' . h($id),
                             'text' => __('Edit Role')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'event_id' => 'deleteRole',
-                            'url' => '/admin/roles/delete/' . h($id),
+                            'url' => $baseurl . '/admin/roles/delete/' . h($id),
                             'text' => __('Delete Role'),
                             'message' => __('Are you sure you want to delete # %s?', h($id))
                         ));
@@ -617,19 +624,19 @@
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addUser',
-                            'url' => '/admin/users/add',
+                            'url' => $baseurl . '/admin/users/add',
                             'text' => __('Add User')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'indexUser',
-                            'url' => '/admin/users/index',
+                            'url' => $baseurl . '/admin/users/index',
                             'text' => __('List Users')
                         ));
                     }
                     if ($isAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'contact',
-                            'url' => '/admin/users/email',
+                            'url' => $baseurl . '/admin/users/email',
                             'text' => __('Contact Users')
                         ));
                     }
@@ -637,13 +644,13 @@
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addOrg',
-                            'url' => '/admin/organisations/add',
+                            'url' => $baseurl . '/admin/organisations/add',
                             'text' => __('Add Organisation')
                         ));
                         if ($menuItem === 'editOrg' || $menuItem === 'viewOrg') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'editOrg',
-                                'url' => '/admin/organisations/edit/' . h($id),
+                                'url' => $baseurl . '/admin/organisations/edit/' . h($id),
                                 'text' => __('Edit Organisation')
                             ));
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -658,68 +665,68 @@
                         if ($menuItem === 'editOrg' || $menuItem === 'viewOrg') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'viewOrg',
-                                'url' => '/organisations/view/' . h($id),
+                                'url' => $baseurl . '/organisations/view/' . h($id),
                                 'text' => __('View Organisation')
                             ));
                         }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'indexOrg',
-                            'url' => '/organisations/index',
+                            'url' => $baseurl . '/organisations/index',
                             'text' => __('List Organisations')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addRole',
-                            'url' => '/admin/roles/add',
+                            'url' => $baseurl . '/admin/roles/add',
                             'text' => __('Add Role')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'indexRole',
-                        'url' => '/admin/roles/index',
+                        'url' => $baseurl . '/admin/roles/index',
                         'text' => __('List Roles')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/servers/serverSettings',
+                            'url' => $baseurl . '/servers/serverSettings',
                             'text' => __('Server Settings & Maintenance')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         if (Configure::read('MISP.background_jobs')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'jobs',
-                                'url' => '/jobs/index',
+                                'url' => $baseurl . '/jobs/index',
                                 'text' => __('Jobs')
                             ));
                             echo $this->element('/genericElements/SideMenu/side_menu_divider');
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'tasks',
-                                'url' => '/tasks',
+                                'url' => $baseurl . '/tasks',
                                 'text' => __('Scheduled Tasks')
                             ));
                         }
                         if (Configure::read('MISP.enableEventBlacklisting') !== false) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'eventBlacklistsAdd',
-                                'url' => '/eventBlacklists/add',
+                                'url' => $baseurl . '/eventBlacklists/add',
                                 'text' => __('Blacklists Event')
                             ));
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'eventBlacklists',
-                                'url' => '/eventBlacklists',
+                                'url' => $baseurl . '/eventBlacklists',
                                 'text' => __('Manage Event Blacklists')
                             ));
                         }
                         if (!Configure::check('MISP.enableOrgBlacklisting') || Configure::read('MISP.enableOrgBlacklisting') !== false) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'orgBlacklistsAdd',
-                                'url' => '/orgBlacklists/add',
+                                'url' => $baseurl . '/orgBlacklists/add',
                                 'text' => __('Blacklists Organisation')
                             ));
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'orgBlacklists',
-                                'url' => '/orgBlacklists',
+                                'url' => $baseurl . '/orgBlacklists',
                                 'text' => __('Manage Org Blacklists')
                             ));
                         }
@@ -728,11 +735,11 @@
 
                 case 'logs':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/admin/logs/index',
+                        'url' => $baseurl . '/admin/logs/index',
                         'text' => __('List Logs')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/admin/logs/search',
+                        'url' => $baseurl . '/admin/logs/search',
                         'text' => __('Search Logs')
                     ));
                     break;
@@ -741,12 +748,12 @@
                     if ($menuItem === 'add' || $menuItem === 'view') {
                         if (!(empty($thread_id) && empty($target_type))) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'url' => '/threads/view/' . h($thread_id),
+                                'url' => $baseurl . '/threads/view/' . h($thread_id),
                                 'text' => __('View Thread')
                             ));
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'add_post',
-                                'url' => '/posts/add/thread/' . h($thread_id),
+                                'url' => $baseurl . '/posts/add/thread/' . h($thread_id),
                                 'text' => __('Add Post')
                             ));
                             echo $this->element('/genericElements/SideMenu/side_menu_divider');
@@ -755,22 +762,22 @@
                     if ($menuItem === 'edit') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
-                            'url' => '/threads/view/' . h($thread_id),
+                            'url' => $baseurl . '/threads/view/' . h($thread_id),
                             'text' => __('View Thread')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'edit',
-                            'url' => '/threads/view/' . h($id),
+                            'url' => $baseurl . '/threads/view/' . h($id),
                             'text' => __('Edit Post')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/threads/index',
+                        'url' => $baseurl . '/threads/index',
                         'text' => __('List Threads')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/posts/add',
+                        'url' => $baseurl . '/posts/add',
                         'text' => __('New Thread')
                     ));
                     break;
@@ -778,16 +785,16 @@
                 case 'tags':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'indexfav',
-                        'url' => '/tags/index/1',
+                        'url' => $baseurl . '/tags/index/1',
                         'text' => __('List Favourite Tags')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/tags/index',
+                        'url' => $baseurl . '/tags/index',
                         'text' => __('List Tags')
                     ));
                     if ($isAclTagEditor) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/tags/add',
+                            'url' => $baseurl . '/tags/add',
                             'text' => __('Add Tag')
                         ));
                     }
@@ -802,13 +809,13 @@
                         if (!empty($taxonomy)) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'taxonomyview',
-                                'url' => '/taxonomies/view/' . h($taxonomy['Taxonomy']['id']),
+                                'url' => $baseurl . '/taxonomies/view/' . h($taxonomy['Taxonomy']['id']),
                                 'text' => __('View Taxonomy')
                             ));
                         }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewGraph',
-                            'url' => '/tags/viewGraph/' . h($id),
+                            'url' => $baseurl . '/tags/viewGraph/' . h($id),
                             'text' => __('View Correlation Graph')
                         ));
                     }
@@ -816,7 +823,7 @@
 
                 case 'taxonomies':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/taxonomies/index',
+                        'url' => $baseurl . '/taxonomies/index',
                         'text' => __('List Taxonomies')
                     ));
                     if ($menuItem === 'view') {
@@ -836,7 +843,7 @@
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'event_id' => 'update',
-                            'url' => '/taxonomies/update',
+                            'url' => $baseurl . '/taxonomies/update',
                             'text' => __('Update Taxonomies')
                         ));
                     }
@@ -844,25 +851,25 @@
 
                 case 'templates':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/templates/index',
+                        'url' => $baseurl . '/templates/index',
                         'text' => __('List Templates')
                     ));
                     if ($isSiteAdmin || $isAclTemplate) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/templates/add',
+                            'url' => $baseurl . '/templates/add',
                             'text' => __('Add Template')
                         ));
                     }
                     if (($menuItem === 'view' || $menuItem === 'edit')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
-                            'url' => '/templates/view/' . h($id),
+                            'url' => $baseurl . '/templates/view/' . h($id),
                             'text' => __('View Template')
                         ));
                         if ($mayModify) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit',
-                                'url' => '/templates/edit/' . h($id),
+                                'url' => $baseurl . '/templates/edit/' . h($id),
                                 'text' => __('Edit Template')
                             ));
                         }
@@ -871,32 +878,32 @@
 
                 case 'feeds':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/feeds/index',
+                        'url' => $baseurl . '/feeds/index',
                         'text' => __('List Feeds')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/feeds/searchCaches',
+                        'url' => $baseurl . '/feeds/searchCaches',
                         'text' => __('Search Feed Caches')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/feeds/add',
+                            'url' => $baseurl . '/feeds/add',
                             'text' => __('Add Feed')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'import',
-                            'url' => '/feeds/importFeeds',
+                            'url' => $baseurl . '/feeds/importFeeds',
                             'text' => __('Import Feeds from JSON')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'compare',
-                        'url' => '/feeds/compareFeeds',
+                        'url' => $baseurl . '/feeds/compareFeeds',
                         'text' => __('Feed overlap analysis matrix')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'export',
-                        'url' => '/feeds/index.json',
+                        'url' => $baseurl . '/feeds/index.json',
                         'text' => __('Export Feed settings'),
                         'download' => 'feed_index.json'
                     ));
@@ -904,24 +911,24 @@
                         if ($menuItem === 'edit' || $menuItem === 'view') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit',
-                                'url' => '/feeds/edit/' . h($feed['Feed']['id']),
+                                'url' => $baseurl . '/feeds/edit/' . h($feed['Feed']['id']),
                                 'text' => __('Edit Feed')
                             ));
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'view',
-                                'url' => '/feeds/view/' . h($feed['Feed']['id']),
+                                'url' => $baseurl . '/feeds/view/' . h($feed['Feed']['id']),
                                 'text' => __('View Feed')
                             ));
                         } else if ($menuItem === 'previewIndex') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'previewIndex',
-                                'url' => '/feeds/previewIndex/' . h($feed['Feed']['id']),
+                                'url' => $baseurl . '/feeds/previewIndex/' . h($feed['Feed']['id']),
                                 'text' => __('PreviewIndex')
                             ));
                         } else if ($menuItem === 'previewEvent') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'previewEvent',
-                                'url' => '/feeds/previewEvent/' . h($feed['Feed']['id']) . '/' . h($id),
+                                'url' => $baseurl . '/feeds/previewEvent/' . h($feed['Feed']['id']) . '/' . h($id),
                                 'text' => __('PreviewEvent')
                             ));
                         }
@@ -930,12 +937,12 @@
 
                 case 'news':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/news/index',
+                        'url' => $baseurl . '/news/index',
                         'text' => __('View News')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/news/add',
+                            'url' => $baseurl . '/news/add',
                             'text' => __('Add News Item')
                         ));
                         if ($menuItem === 'edit') {
@@ -950,19 +957,19 @@
 
                 case 'galaxies':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/galaxies/index',
+                        'url' => $baseurl . '/galaxies/index',
                         'text' => __('List Galaxies')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'element_id' => 'update',
-                            'url' => '/galaxies/update',
+                            'url' => $baseurl . '/galaxies/update',
                             'text' => __('Update Galaxies'),
                             'message' => __('Are you sure you want to reimport all galaxies from the submodule?')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'element_id' => 'forceupdate',
-                            'url' => '/galaxies/update/force:1',
+                            'url' => $baseurl . '/galaxies/update/force:1',
                             'text' => __('Force Update Galaxies'),
                             'message' => __('Are you sure you want to drop and reimport all galaxies from the submodule?')
                         ));
@@ -970,17 +977,17 @@
                     if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
-                            'url' => '/galaxies/view/' . h($galaxy_id),
+                            'url' => $baseurl . '/galaxies/view/' . h($galaxy_id),
                             'text' => __('View Galaxy')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view_cluster',
-                            'url' => '/galaxy_clusters/view/' . h($id),
+                            'url' => $baseurl . '/galaxy_clusters/view/' . h($id),
                             'text' => __('View Cluster')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewGraph',
-                            'url' => '/galaxies/viewGraph/' . h($id),
+                            'url' => $baseurl . '/galaxies/viewGraph/' . h($id),
                             'text' => __('View Correlation Graph')
                         ));
                     }
@@ -994,12 +1001,12 @@
 
                 case 'objectTemplates':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/objectTemplates/index',
+                        'url' => $baseurl . '/objectTemplates/index',
                         'text' => __('List Object Templates')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'url' => '/objectTemplates/update',
+                            'url' => $baseurl . '/objectTemplates/update',
                             'text' => __('Update Objects')
                         ));
                     }

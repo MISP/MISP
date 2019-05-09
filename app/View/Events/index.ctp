@@ -61,7 +61,7 @@
                         ),
                         array(
                             'requirement' => count($passedArgsArray) > 0,
-                            'url' => '/events/index',
+                            'url' => $baseurl . '/events/index',
                             'title' => __('Remove filters'),
                             'fa-icon' => 'times'
                         )

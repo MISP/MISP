@@ -1459,7 +1459,7 @@ class EventsController extends AppController
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->loadModel('Sighting');
         $this->set('sightingTypes', $this->Sighting->type);
-        $attributeUri = '/events/viewEventAttributes/' . $event['Event']['id'];
+        $attributeUri = $baseurl . '/events/viewEventAttributes/' . $event['Event']['id'];
         foreach ($this->params->named as $k => $v) {
             if (!is_numeric($k)) {
                 $attributeUri .= '/' . $v;
@@ -1873,7 +1873,7 @@ class EventsController extends AppController
                 } else {
                     if ($this->_isRest()) { // TODO return error if REST
                         if (is_numeric($add)) {
-                            $this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
+                            $this->response->header('Location', $baseurl . '/events/' . $add);
                             $this->response->send();
                             throw new NotFoundException(__('Event already exists, if you would like to edit it, use the url in the location header.'));
                         }
@@ -2453,7 +2453,7 @@ class EventsController extends AppController
                 if (!empty($errors)) {
                     $this->set('errors', $errors);
                 }
-                $this->set('url', '/events/alert/' . $id);
+                $this->set('url', $baseurl . '/events/alert/' . $id);
                 $this->set('id', $id);
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
             } else {
@@ -2539,7 +2539,7 @@ class EventsController extends AppController
                 if (!empty($errors)) {
                     $this->set('errors', $errors);
                 }
-                $this->set('url', '/events/alert/' . $id);
+                $this->set('url', $baseurl . '/events/alert/' . $id);
                 $this->set('id', $id);
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
             } else {
@@ -4206,100 +4206,100 @@ class EventsController extends AppController
         // #TODO i18n
         $exports = array(
             'xml' => array(
-                    'url' => '/events/restSearch/xml/eventid:' . $id . '.xml',
+                    'url' => $baseurl . '/events/restSearch/xml/eventid:' . $id . '.xml',
                     'text' => 'MISP XML (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/xml/eventid:' . $id . '/withAttachments:1.xml',
+                    'checkbox_set' => $baseurl . '/events/restSearch/xml/eventid:' . $id . '/withAttachments:1.xml',
                     'checkbox_default' => true
             ),
             'json' => array(
-                    'url' => '/events/restSearch/json/eventid:' . $id . '.json',
+                    'url' => $baseurl . '/events/restSearch/json/eventid:' . $id . '.json',
                     'text' => 'MISP JSON (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/json/withAttachments:1/eventid:' . $id . '.json',
+                    'checkbox_set' => $baseurl . '/events/restSearch/json/withAttachments:1/eventid:' . $id . '.json',
                     'checkbox_default' => true
             ),
             'openIOC' => array(
-                    'url' => '/events/downloadOpenIOCEvent/download/' . $id,
+                    'url' => $baseurl . '/events/downloadOpenIOCEvent/download/' . $id,
                     'text' => 'OpenIOC (all indicators marked to IDS)',
                     'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'csv' => array(
-                    'url' => '/events/csv/download/' . $id,
+                    'url' => $baseurl . '/events/csv/download/' . $id,
                     'text' => 'CSV',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/events/csv/download/' . $id . '/1'
+                    'checkbox_set' => $baseurl . '/events/csv/download/' . $id . '/1'
             ),
             'csv_with_context' => array(
-                    'url' => '/events/restSearch/returnFormat:csv/eventid:' . $id,
+                    'url' => $baseurl . '/events/restSearch/returnFormat:csv/eventid:' . $id,
                     'text' => 'CSV with additional context',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/eventid:' . $id
+                    'checkbox_set' => $baseurl . '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/eventid:' . $id
             ),
             'stix_xml' => array(
-                    'url' => '/events/restSearch/stix/eventid:' . $id,
+                    'url' => $baseurl . '/events/restSearch/stix/eventid:' . $id,
                     'text' => 'STIX XML (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1'
+                    'checkbox_set' => $baseurl . '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1'
             ),
             'stix_json' => array(
-                    'url' => '/events/restSearch/stix/eventid:' . $id . '.json',
+                    'url' => $baseurl . '/events/restSearch/stix/eventid:' . $id . '.json',
                     'text' => 'STIX JSON (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix/withAttachments:1/eventid:' . $id . '.json'
+                    'checkbox_set' => $baseurl . '/events/restSearch/stix/withAttachments:1/eventid:' . $id . '.json'
             ),
             'stix2_json' => array(
-                    'url' => '/events/restSearch/stix2/eventid:' . $id,
+                    'url' => $baseurl . '/events/restSearch/stix2/eventid:' . $id,
                     'text' => 'STIX2 (requires the STIX 2 library)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix2/eventid:' . $id . '/withAttachments:1'
+                    'checkbox_set' => $baseurl . '/events/restSearch/stix2/eventid:' . $id . '/withAttachments:1'
             ),
             'rpz' => array(
-                    'url' => '/attributes/restSearch/returnFormat:rpz/published:1||0/eventid:' . $id,
+                    'url' => $baseurl . '/attributes/restSearch/returnFormat:rpz/published:1||0/eventid:' . $id,
                     'text' => 'RPZ Zone file',
                     'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'suricata' => array(
-                    'url' => '/events/restSearch/returnFormat:suricata/published:1||0/eventid:' . $id,
+                    'url' => $baseurl . '/events/restSearch/returnFormat:suricata/published:1||0/eventid:' . $id,
                     'text' => 'Download Suricata rules',
                     'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'snort' => array(
-                    'url' => '/events/restSearch/returnFormat:snort/published:1||0/eventid:' . $id,
+                    'url' => $baseurl . '/events/restSearch/returnFormat:snort/published:1||0/eventid:' . $id,
                     'text' => 'Download Snort rules',
                     'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'bro' => array(
-                    'url' => '/attributes/bro/download/all/false/' . $id,
+                    'url' => $baseurl . '/attributes/bro/download/all/false/' . $id,
                     'text' => 'Download Bro rules',
                     'requiresPublished' => false,
                     'checkbox' => false
             ),
             'text' => array(
                     'text' => 'Export all attribute values as a text file',
-                    'url' => '/attributes/restSearch/returnFormat:text/published:1||0/eventid:' . $id,
+                    'url' => $baseurl . '/attributes/restSearch/returnFormat:text/published:1||0/eventid:' . $id,
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/attributes/restSearch/returnFormat:text/published:1||0/to_ids:1||0/eventid:' . $id
+                    'checkbox_set' => $baseurl . '/attributes/restSearch/returnFormat:text/published:1||0/to_ids:1||0/eventid:' . $id
             ),
         );
         if ($event['Event']['published'] == 0) {
@@ -4309,7 +4309,7 @@ class EventsController extends AppController
                 }
             }
             $exports['csv'] = array(
-                'url' => '/events/csv/download/' . $id . '/1',
+                'url' => $baseurl . '/events/csv/download/' . $id . '/1',
                 'text' => 'CSV (event not published, IDS flag ignored)',
                 'requiresPublished' => false,
                 'checkbox' => false
@@ -4320,7 +4320,7 @@ class EventsController extends AppController
         if (is_array($modules) && !empty($modules)) {
             foreach ($modules['modules'] as $module) {
                 $exports[$module['name']] = array(
-                        'url' => '/events/exportModule/' . $module['name'] . '/' . $id,
+                        'url' => $baseurl . '/events/exportModule/' . $module['name'] . '/' . $id,
                         'text' => Inflector::humanize($module['name']),
                         'requiresPublished' => true,
                         'checkbox' => false,
@@ -4346,29 +4346,29 @@ class EventsController extends AppController
             // #TODO i18n
             $imports = array(
                     'freetext' => array(
-                            'url' => '/events/freeTextImport/' . $id,
+                            'url' => $baseurl . '/events/freeTextImport/' . $id,
                             'text' => 'Freetext Import',
                             'ajax' => true,
                             'target' => 'popover_form'
                     ),
                     'template' => array(
-                            'url' => '/templates/templateChoices/' . $id,
+                            'url' => $baseurl . '/templates/templateChoices/' . $id,
                             'text' => 'Populate using a Template',
                             'ajax' => true,
                             'target' => 'popover_form'
                     ),
                     'OpenIOC' => array(
-                            'url' => '/events/addIOC/' . $id,
+                            'url' => $baseurl . '/events/addIOC/' . $id,
                             'text' => 'OpenIOC Import',
                             'ajax' => false,
                     ),
                     'ThreatConnect' => array(
-                            'url' => '/attributes/add_threatconnect/' . $id,
+                            'url' => $baseurl . '/attributes/add_threatconnect/' . $id,
                             'text' => 'ThreatConnect Import',
                             'ajax' => false
                     ),
                     'Forensic analysis' => array(
-                        'url' => '/events/upload_analysis_file/'.$id,
+                        'url' => $baseurl . '/events/upload_analysis_file/'.$id,
                         'text' => '(Experimental) Forensic analysis - Mactime',
                         'ajax' => false,
                 )
@@ -4378,7 +4378,7 @@ class EventsController extends AppController
             if (is_array($modules) && !empty($modules)) {
                 foreach ($modules['modules'] as $k => $module) {
                     $imports[$module['name']] = array(
-                            'url' => '/events/importModule/' . $module['name'] . '/' . $id,
+                            'url' => $baseurl . '/events/importModule/' . $module['name'] . '/' . $id,
                             'text' => Inflector::humanize($module['name']),
                             'ajax' => false
                     );
@@ -4387,18 +4387,18 @@ class EventsController extends AppController
         } else {
             $imports = array(
                 'MISP' => array(
-                        'url' => '/events/add_misp_export',
+                        'url' => $baseurl . '/events/add_misp_export',
                         'text' => 'MISP standard (recommended exchange format - lossless)',
                         'ajax' => false,
                         'bold' => true
                 ),
                 'STIX' => array(
-                        'url' => '/events/upload_stix',
+                        'url' => $baseurl . '/events/upload_stix',
                         'text' => 'STIX 1.1.1 format (lossy)',
                         'ajax' => false,
                 ),
                 'STIX2' => array(
-                        'url' => '/events/upload_stix/2',
+                        'url' => $baseurl . '/events/upload_stix/2',
                         'text' => 'STIX 2.0 format (lossy)',
                         'ajax' => false,
                 )
@@ -4619,7 +4619,7 @@ class EventsController extends AppController
             if ($successCount > 0) {
                 $this->set('name', 'Partial success');
                 $this->set('message', 'Successfuly saved ' . $successCount . ' sample(s), but some samples could not be saved.');
-                $this->set('url', '/events/view/' . $data['settings']['event_id']);
+                $this->set('url', $baseurl . '/events/view/' . $data['settings']['event_id']);
                 $this->set('id', $data['settings']['event_id']);
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
             } else {
@@ -4630,7 +4630,7 @@ class EventsController extends AppController
         } else {
             $this->set('name', 'Success');
             $this->set('message', 'Success, saved all attributes.');
-            $this->set('url', '/events/view/' . $data['settings']['event_id']);
+            $this->set('url', $baseurl . '/events/view/' . $data['settings']['event_id']);
             $this->set('id', $data['settings']['event_id']);
             $this->set('_serialize', array('name', 'message', 'url', 'id'));
         }

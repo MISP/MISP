@@ -1,5 +1,5 @@
 <?php
-    echo $this->Form->create('ShadowAttribute', array('class' => 'inline-form inline-field-form', 'id' => 'ShadowAttribute_' . $object['id'] . '_type_form', 'url' => '/shadow_attributes/editField/' . $object['id']));
+    echo $this->Form->create('ShadowAttribute', array('class' => 'inline-form inline-field-form', 'id' => 'ShadowAttribute_' . $object['id'] . '_type_form', 'url' => $baseurl . '/shadow_attributes/editField/' . $object['id']));
 ?>
 <div class='inline-input inline-input-container'>
     <div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok" title="<?php echo __('Accept');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept');?>"></span></div>
