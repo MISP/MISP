@@ -282,14 +282,22 @@ class Warninglist extends AppModel
         return $warninglists;
     }
 
-    public function simpleCheckForWarning($object, $warninglists)
+    public function simpleCheckForWarning($object, $warninglists, $returnVerboseValue = false)
     {
         if ($object['to_ids']) {
             foreach ($warninglists as $list) {
                 if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
                     $result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
                     if (!empty($result)) {
-                        $object['warnings'][$result][] = $list['Warninglist']['name'];
+                        if ($returnVerboseValue) {
+                            $object['warnings'][] = array(
+                                'value' => $result,
+                                'warninglist_name' => $list['Warninglist']['name'],
+                                'warninglist_id' => $list['Warninglist']['id']
+                            );
+                        } else {
+                            $object['warnings'][$result][] = $list['Warninglist']['name'];
+                        }
                     }
                 }
             }

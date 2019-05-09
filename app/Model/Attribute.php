@@ -3008,6 +3008,9 @@ class Attribute extends AppModel
         if (!isset($options['enforceWarninglist'])) {
             $options['enforceWarninglist'] = false;
         }
+        if (!isset($options['includeWarninglistHits'])) {
+            $options['includeWarninglistHits'] = false;
+        }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
         }
@@ -3036,7 +3039,7 @@ class Attribute extends AppModel
             return $results;
         }
 
-        if ($options['enforceWarninglist'] && !isset($this->warninglists)) {
+        if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->warninglists)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
             $this->warninglists = $this->Warninglist->fetchForEventView();
         }
@@ -3094,6 +3097,9 @@ class Attribute extends AppModel
                 }
                 if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($this->warninglists, $attribute['Attribute'])) {
                     continue;
+                }
+                if ($options['includeWarninglistHits']) {
+                    $results[$key]['Attribute'] = $this->Warninglist->simpleCheckForWarning($results[$key]['Attribute'], $this->warninglists, true);
                 }
                 if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
                     $results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
@@ -3959,7 +3965,8 @@ class Attribute extends AppModel
                 'flatten' => 1,
                 'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
                 'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
-                'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0
+                'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
+                'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0
         );
         if (isset($filters['include_event_uuid'])) {
             $params['includeEventUuid'] = $filters['include_event_uuid'];
