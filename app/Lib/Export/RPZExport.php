@@ -3,7 +3,7 @@
 class RPZExport
 {
     private $__policies = array(
-            'walled-garden' => array(
+            'Local-Data' => array(
                     'explanation' => 'returns the defined alternate location.',
                     'action' => '$walled_garden',
                     'setting_id' => 3,
@@ -43,7 +43,7 @@ class RPZExport
 
 	private $__rpzSettings = array();
 
-	private $__valid_policies = array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden', 'PASSTHRU', 'TCP-only');
+	private $__valid_policies = array('NXDOMAIN', 'NODATA', 'DROP', 'Local-Data', 'PASSTHRU', 'TCP-only');
 
 	private $__server = null;
 
@@ -110,7 +110,7 @@ class RPZExport
 		$lookupData = array('policy', 'walled_garden', 'ns', 'ns_alt', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
 		foreach ($lookupData as $v) {
 			if ($v === 'policy' && isset($options['filters'][$v])) {
-				if (!in_array($options['filters'][$v], array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden', 'PASSTHRU', 'TCP-only'))) {
+				if (!in_array($options['filters'][$v], array('NXDOMAIN', 'NODATA', 'DROP', 'Local-Data', 'PASSTHRU', 'TCP-only'))) {
 					unset($options['filters'][$v]);
 				} else {
 					$options['filters'][$v] = $this->getIdByPolicy($options['filters'][$v]);
@@ -168,7 +168,7 @@ class RPZExport
             'hostname' => '; The following hostnames will '
         );
         $policy_explanations = array(
-            'walled-garden' => 'returns the defined alternate location.',
+            'Local-Data' => 'returns the defined alternate location.',
             'NXDOMAIN' => 'return NXDOMAIN (name does not exist) irrespective of actual result received.',
             'NODATA' => 'returns NODATA (name exists but no answers returned) irrespective of actual result received.',
             'DROP' => 'timeout.',
@@ -201,7 +201,7 @@ class RPZExport
         $result = $this->buildHeader($rpzSettings);
         $policy = $this->getPolicyById($rpzSettings['policy']);
         $action = $this->__policies[$policy]['action'];
-        if ($policy == 'walled-garden') {
+        if ($policy == 'Local-Data') {
             $action = str_replace('$walled_garden', $rpzSettings['walled_garden'], $action);
         }
 

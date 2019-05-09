@@ -2236,8 +2236,8 @@ class AttributesController extends AppController
     {
         // request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
         // The correct format for both is a "request" root element, as shown by the examples below:
-        // For Json: {"request":{"policy": "walled-garden","garden":"garden.example.com"}}
-        // For XML: <request><policy>walled-garden</policy><garden>garden.example.com</gargen></request>
+        // For Json: {"request":{"policy": "Local-Data","walled_garden":"my.stop.page.net"}}
+        // For XML: <request><policy>Local-Data</policy><walled_garden>my.stop.page.net</walled_garden></request>
         // the response type is used to determine the parsing method (xml/json)
         if ($this->request->is('post')) {
             if ($this->request->input('json_decode', true)) {
@@ -2264,7 +2264,7 @@ class AttributesController extends AppController
                 ${$sF} = false;
             }
         }
-        if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden'))) {
+        if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'Local-Data', 'PASSTHRU', 'TCP-only'))) {
             $policy = false;
         }
         App::uses('RPZExport', 'Export');
