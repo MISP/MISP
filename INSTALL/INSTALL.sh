@@ -1443,7 +1443,7 @@ mispDashboard () {
   sudo -H /var/www/misp-dashboard/install_dependencies.sh
   sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
   sudo sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/apache2/ports.conf
-  sudo apt install libapache2-mod-wsgi-py3 -y
+  sudo apt install libapache2-mod-wsgi-py3 net-tools -y
   echo "<VirtualHost *:8001>
       ServerAdmin admin@misp.local
       ServerName misp.local
