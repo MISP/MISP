@@ -1559,7 +1559,7 @@ class ServersController extends AppController
             'recommendBackup' => false,
             'exitOnError' => false,
             'requirements' => '',
-            'url' => $baseurl . '/'
+            'url' => $this->baseurl . '/'
         );
         foreach($actions as $id => $action) {
             foreach($default_fields as $field => $value) {
