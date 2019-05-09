@@ -282,15 +282,38 @@ class Warninglist extends AppModel
         return $warninglists;
     }
 
-    public function checkForWarning($object, &$eventWarnings, $warningLists)
+    public function simpleCheckForWarning($object, $warninglists)
     {
         if ($object['to_ids']) {
-            foreach ($warningLists as $list) {
+            foreach ($warninglists as $list) {
                 if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
                     $result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
                     if (!empty($result)) {
                         $object['warnings'][$result][] = $list['Warninglist']['name'];
-                        if (!in_array($list['Warninglist']['name'], $eventWarnings)) {
+                    }
+                }
+            }
+        }
+        return $object;
+    }
+
+    public function checkForWarning($object, &$eventWarnings, $warningLists, $returnVerboseValue = false)
+    {
+        if ($object['to_ids']) {
+            foreach ($warningLists as $list) {
+                if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
+                    $result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type'], $returnVerboseValue);
+                    if (!empty($result)) {
+                        if ($returnVerboseValue) {
+                            $object['warnings'][] = array(
+                                'value' => $result,
+                                'warninglist_name' => $list['Warninglist']['name'],
+                                'warninglist_id' => $list['Warninglist']['id']
+                            );
+                        } else {
+                            $object['warnings'][$result][] = $list['Warninglist']['name'];
+                        }
+                        if (empty($eventWarnings) || !in_array($list['Warninglist']['name'], $eventWarnings)) {
                             $eventWarnings[$list['Warninglist']['id']] = $list['Warninglist']['name'];
                         }
                     }
@@ -325,7 +348,7 @@ class Warninglist extends AppModel
         return $event;
     }
 
-    private function __checkValue($listValues, $value, $type, $listType)
+    private function __checkValue($listValues, $value, $type, $listType, $returnVerboseValue = false)
     {
         if (strpos($type, '|') || $type = 'malware-sample') {
             $value = explode('|', $value);
@@ -349,7 +372,11 @@ class Warninglist extends AppModel
                 $result = $this->__evalRegex($listValues, $value[$component]);
             }
             if (!empty($result)) {
-                return ($component + 1);
+                if ($returnVerboseValue) {
+                    return $value[$component];
+                } else {
+                }
+                    return ($component + 1);
             }
         }
         return false;

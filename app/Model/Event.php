@@ -2059,7 +2059,7 @@ class Event extends AppModel
                 }
             }
             if (isset($event['Attribute'])) {
-                if ($options['enforceWarninglist']) {
+                if (!empty($options['enforceWarninglist']) || !empty($options['includeWarninglistHits'])) {
                     $this->Warninglist = ClassRegistry::init('Warninglist');
                     $warninglists = $this->Warninglist->fetchForEventView();
                 }
@@ -2084,11 +2084,16 @@ class Event extends AppModel
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
                 $event['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Attribute'], $sharingGroupData);
                 foreach ($event['Attribute'] as $key => $attribute) {
-                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
-                        unset($event['Attribute'][$key]);
-                        continue;
+                    if ($options['enforceWarninglist']) {
+                        if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
+                            unset($event['Attribute'][$key]);
+                            continue;
+                        }
+                    } else if (!empty($options['includeWarninglistHits'])) {
+                        $event['Attribute'][$key] = $this->Warninglist->checkForWarning($event['Attribute'][$key], $event['Event']['warnings'], $warninglists, true);
+                        //$event['Attribute'][$key] = $this->Warninglist->simpleCheckForWarning($event['Attribute'][$key], $warninglists);
                     }
-                    $event['Attribute'][$key] = $this->massageTags($attribute, 'Attribute', $options['excludeGalaxy']);
+                    $event['Attribute'][$key] = $this->massageTags($event['Attribute'][$key], 'Attribute', $options['excludeGalaxy']);
                     if ($event['Attribute'][$key]['category'] === 'Financial fraud') {
                         $event['Attribute'][$key] = $this->Attribute->attachValidationWarnings($event['Attribute'][$key]);
                     }
