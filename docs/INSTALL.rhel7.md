@@ -42,30 +42,18 @@ The following assumptions with regard to this installation have been made.
 
 {!generic/globalVariables.md!}
 
-```bash
-# <snippet-begin 0_RHEL_PHP_INI.sh>
-# RHEL/CentOS Specific
-RUN_PHP='/usr/bin/scl enable rh-php72'
-RUN_PYTHON='/usr/bin/scl enable rh-python36'
-SUDO_WWW='sudo -H -u apache'
-WWW_USER='apache'
-
-PHP_INI=/etc/opt/rh/rh-php72/php.ini
-# <snippet-end 0_RHEL_PHP_INI.sh>
-```
-
 !!! note
-		For fresh installs the following tips might be handy.<br />
-		Allow ssh to pass the firewall on the CLI
-		```bash
-		firewall-cmd --zone=public --add-port=22/tcp --permanent
-		firewall-cmd --reload
-		```
-		<br />
-		To quickly make sure if NetworkManager handles your network interface on boot, check in the following location:
-		```
-		/etc/sysconfig/network-scripts/ifcfg-*
-		```
+    For fresh installs the following tips might be handy.<br />
+    Allow ssh to pass the firewall on the CLI
+    ```bash
+    firewall-cmd --zone=public --add-port=22/tcp --permanent
+    firewall-cmd --reload
+    ```
+    <br />
+    To quickly make sure if NetworkManager handles your network interface on boot, check in the following location:
+    ```
+    /etc/sysconfig/network-scripts/ifcfg-*
+    ```
 
 # 1/ OS Install and additional repositories
 
@@ -112,8 +100,15 @@ sudo yum install deltarpm -y
 
 ### 1.5.b/ Install vim (optional)
 ```bash
-# Because vim is just so practical
-sudo yum install vim -y
+# Because (neo)vim is just so practical
+sudo yum install neovim -y
+```
+
+### 1.5.c/ Install ntpdate (optional)
+```bash
+# In case you time is wrong, this will fix it.
+sudo yum install ntpdate -y
+sudo ntpdate pool.ntp.org
 ```
 
 ## 1.5/ Update the system and reboot
@@ -141,32 +136,36 @@ sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noa
 ## 2.01/ Install some base system dependencies
 ```bash
 # <snippet-begin 0_yumInstallCoreDeps.sh>
-# Install the dependencies:
-sudo yum install gcc git zip rh-git218 \
-       httpd24 \
-       mod_ssl \
-       rh-redis32 \
-       rh-mariadb102 \
-       python-devel python-pip python-zmq \
-       libxslt-devel zlib-devel ssdeep-devel -y
+yumInstallCoreDeps () {
+  # Install the dependencies:
+  sudo yum install gcc git zip rh-git218 \
+                   httpd24 \
+                   mod_ssl \
+                   rh-redis32 \
+                   rh-mariadb102 \
+                   libxslt-devel zlib-devel ssdeep-devel -y
 
-# Enable and start redis
-sudo systemctl enable --now rh-redis32-redis.service
+  # Enable and start redis
+  sudo systemctl enable --now rh-redis32-redis.service
 
-# Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
-sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel \
-       rh-php72-php-mysqlnd \
-       rh-php72-php-mbstring \
-       rh-php72-php-xml \
-       rh-php72-php-bcmath \
-       rh-php72-php-opcache \
-       rh-php72-php-gd -y
+  RUN_PHP='/usr/bin/scl enable rh-php72'
+  PHP_INI=/etc/opt/rh/rh-php72/php.ini
+  # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
+  sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel \
+                   rh-php72-php-mysqlnd \
+                   rh-php72-php-mbstring \
+                   rh-php72-php-xml \
+                   rh-php72-php-bcmath \
+                   rh-php72-php-opcache \
+                   rh-php72-php-gd -y
 
-# Install Python 3.6 from SCL, see
-# https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
-sudo yum install rh-python36 -y
+  # Install Python 3.6 from SCL, see
+  # https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
+  RUN_PYTHON='/usr/bin/scl enable rh-python36'
+  sudo yum install rh-python36 -y
 
-sudo systemctl enable --now rh-php72-php-fpm.service
+  sudo systemctl enable --now rh-php72-php-fpm.service
+}
 # <snippet-end 0_yumInstallCoreDeps.sh>
 ```
 
@@ -203,6 +202,8 @@ cd $PATH_TO_MISP
 $SUDO_WWW git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
 $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+# Make git ignore filesystem permission differences
+$SUDO_WWW git config core.filemode false
 
 # Install packaged pears
 sudo $RUN_PHP "pear channel-update pear.php.net"
@@ -214,10 +215,6 @@ $SUDO_WWW $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
 sudo mkdir /usr/share/httpd/.cache
 sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
-
-# install Mitre's STIX and its dependencies by running the following commands:
-## Probably not needed
-##sudo yum install python-lxml python-dateutil python-six -y
 
 cd $PATH_TO_MISP/app/files/scripts
 $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
@@ -269,7 +266,7 @@ $SUDO_WWW make -j3 pyLIEF
 echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
 
 # install magic, pydeep
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
 
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
@@ -316,7 +313,7 @@ installCake_RHEL ()
 
   ## sudo yum install php-redis -y
   sudo scl enable rh-php72 'pecl channel-update pecl.php.net'
-  sudo scl enable rh-php72 'pecl install redis'
+  sudo scl enable rh-php72 'yes no|pecl install redis'
   echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
   sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
   sudo systemctl restart rh-php72-php-fpm.service
@@ -453,7 +450,9 @@ apacheConfig_RHEL () {
   # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
   echo "The Common Name used below will be: ${OPENSSL_CN}"
   # This will take a rather long time, be ready. (13min on a VM, 8GB Ram, 1 core)
-  sudo openssl dhparam -out /etc/pki/tls/certs/dhparam.pem 4096
+  if [[ ! -e "/etc/pki/tls/certs/dhparam.pem" ]]; then
+    sudo openssl dhparam -out /etc/pki/tls/certs/dhparam.pem 4096
+  fi
   sudo openssl genrsa -des3 -passout pass:xxxx -out /tmp/misp.local.key 4096
   sudo openssl rsa -passin pass:xxxx -in /tmp/misp.local.key -out /etc/pki/tls/private/misp.local.key
   sudo rm /tmp/misp.local.key
@@ -478,8 +477,12 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_script_exec_t /usr/bin/grep
   sudo chcon -t httpd_sys_script_exec_t /usr/bin/awk
   sudo chcon -t httpd_sys_script_exec_t /usr/bin/gpg
+  sudo chcon -t httpd_sys_script_exec_t /usr/bin/gpg-agent
+  sudo chcon -t httpd_sys_script_exec_t /usr/bin/whoami
+  sudo chcon -t httpd_sys_rw_content_t /tmp
   sudo chcon -R -t usr_t $PATH_TO_MISP/venv
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.gnupg
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Lib
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config
@@ -516,7 +519,7 @@ firewall_RHEL () {
 
 # 8/ Log Rotation
 ## 8.01/ Enable log rotation
-MISP saves the stdout and stderr of it's workers in /var/www/MISP/app/tmp/logs
+MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 To rotate these logs install the supplied logrotate script:
 
 ```bash
@@ -632,12 +635,9 @@ EOF
 # <snippet-end 2_configMISP_RHEL.sh>
 ```
 
-Review:
-```bash
-# Start the workers to enable background jobs
-sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-$SUDO_WWW $RUN_PHP $PATH_TO_MISP/app/Console/worker/start.sh
 
+```bash
+# In case you have no /etc/rc.local make a bare-bones one.
 if [ ! -e /etc/rc.local ]
 then
     echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
@@ -658,7 +658,7 @@ fi
 ### 9.06a/ Create a systemd unit for the workers
 ```bash
 echo "[Unit]
-Description=MISP's background workers
+Description=MISP background workers
 After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
 
 [Service]
@@ -687,7 +687,7 @@ sudo systemctl enable --now misp-workers.service
 ### 9.07/ misp-modules (WIP!)
 ```bash
 # some misp-modules dependencies
-sudo yum install openjpeg-devel -y
+sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel -y
 
 sudo chmod 2777 /usr/local/src
 sudo chown root:users /usr/local/src
@@ -700,7 +700,7 @@ $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
 sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
 
 echo "[Unit]
-Description=MISP's modules
+Description=MISP modules
 After=misp-workers.service
 
 [Service]
@@ -715,12 +715,54 @@ RestartSec=10
 WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-modules.service
 
 sudo systemctl daemon-reload
+# Test misp-modules
+$SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s
 sudo systemctl enable --now misp-modules
+
+  # Enable Enrichment, set better timeouts
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
+  # TODO:"Investigate why the next one fails"
+  #$SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_asn_history_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_btc_steroids_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ipasn_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_syntax_validator_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_query_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pdf_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_docx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_xlsx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pptx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ods_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_odt_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
+
+  # Enable Import modules, set better timeout
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_port" 6666
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_timeout" 300
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_mispjson_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_openiocimport_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_threatanalyzer_import_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
+
+  # Enable Export modules, set better timeout
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_port" 6666
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
 ```
 
 {!generic/misp-dashboard-centos.md!}
 
-{!generic/MISP_CAKE_init_centos.md!}
+{!generic/MISP_CAKE_init.md!}
 
 {!generic/INSTALL.done.md!}
 

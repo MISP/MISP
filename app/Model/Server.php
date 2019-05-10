@@ -1231,15 +1231,15 @@ class Server extends AppModel
                         'RPZ_policy' => array(
                             'level' => 2,
                             'description' => __('The default policy action for the values added to the RPZ.'),
-                            'value' => 0,
+                            'value' => 1,
                             'errorMessage' => '',
                             'test' => 'testForRPZBehaviour',
                             'type' => 'numeric',
-                            'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'walled-garden', 4 => 'PASSTHRU', 5 => 'TCP-only' ),
+                            'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'Local-Data', 4 => 'PASSTHRU', 5 => 'TCP-only' ),
                         ),
                         'RPZ_walled_garden' => array(
                             'level' => 2,
-                            'description' => __('The default walled garden used by the RPZ export if the walled garden setting is picked for the export.'),
+                            'description' => __('The default walled garden used by the RPZ export if the Local-Data policy setting is picked for the export.'),
                             'value' => '127.0.0.1',
                             'errorMessage' => '',
                             'test' => 'testForEmpty',
@@ -1247,7 +1247,7 @@ class Server extends AppModel
                         ),
                         'RPZ_serial' => array(
                                 'level' => 2,
-                                'description' => __('The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting).'),
+                                'description' => __('The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting). Setting it to $time will give you an unixtime-based serial (good then you need more than 99 revisions per day).'),
                                 'value' => '$date00',
                                 'errorMessage' => '',
                                 'test' => 'testForRPZSerial',
@@ -3294,8 +3294,8 @@ class Server extends AppModel
         if ($numeric !== true) {
             return $numeric;
         }
-        if ($value < 0 || $value > 3) {
-            return 'Invalid setting, valid range is 0-3 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden.';
+        if ($value < 0 || $value > 5) {
+            return 'Invalid setting, valid range is 0-5 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden, 4 = PASSTHRU, 5 = TCP-only.';
         }
         return true;
     }
@@ -3325,7 +3325,7 @@ class Server extends AppModel
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
-        if (!preg_match('/^((\$date(\d*)|\d*))$/', $value)) {
+        if (!preg_match('/^((\$date(\d*)|\$time|\d*))$/', $value)) {
             return 'Invalid format.';
         }
         return true;

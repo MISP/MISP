@@ -224,7 +224,7 @@ class AppModel extends Model
     }
 
     // SQL scripts for updates
-    public function updateDatabase($command, $useWorker=true)
+    public function updateDatabase($command, $useWorker=false)
     {
         // Exit if updates are locked
         if ($this->isUpdateLocked()) {
