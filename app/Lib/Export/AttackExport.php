@@ -27,7 +27,7 @@ class AttackExport
         if (empty($this->__GalaxyModel)) {
             $this->__GalaxyModel = ClassRegistry::init('Galaxy');
         }
-        $this->__attackGalaxy = empty($options['attackGalaxy']) ? $this->__attackGalaxy : empty($options['attackGalaxy']);
+        $this->__attackGalaxy = empty($options['filters']['attackGalaxy']) ? $this->__attackGalaxy : $options['filters']['attackGalaxy'];
         $temp = $this->__GalaxyModel->find('first', array(
                 'recursive' => -1,
                 'fields' => array('id', 'name'),

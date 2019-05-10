@@ -3981,6 +3981,9 @@ class Attribute extends AppModel
                 'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
                 'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0
         );
+        if (!empty($filters['attackGalaxy'])) {
+            $params['attackGalaxy'] = $filters['attackGalaxy'];
+        }
         if (isset($filters['include_event_uuid'])) {
             $params['includeEventUuid'] = $filters['include_event_uuid'];
         }
