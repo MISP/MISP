@@ -11,7 +11,19 @@ MISPvars () {
   MISP_PASSWORD='Password1234'
 
   # The web server user
-  WWW_USER="www-data"
+  # RHEL/CentOS
+  if [[ -f "/etc/redhat-release" ]]; then
+    WWW_USER='apache'
+  # Debian flavoured
+  elif [[ -f "/etc/debian_version" ]]; then
+    WWW_USER="www-data"
+  # OpenBSD
+  elif [[ "$(uname -s)" == "OpenBSD" ]]; then
+    WWW_USER="www"
+  else
+  # I am feeling lucky
+    WWW_USER="www-data"
+  fi
 
   # MISP configuration variables
   PATH_TO_MISP='/var/www/MISP'

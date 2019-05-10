@@ -42,30 +42,18 @@ The following assumptions with regard to this installation have been made.
 
 {!generic/globalVariables.md!}
 
-```bash
-# <snippet-begin 0_RHEL_PHP_INI.sh>
-# RHEL/CentOS Specific
-RUN_PHP='/usr/bin/scl enable rh-php72'
-RUN_PYTHON='/usr/bin/scl enable rh-python36'
-SUDO_WWW='sudo -H -u apache'
-WWW_USER='apache'
-
-PHP_INI=/etc/opt/rh/rh-php72/php.ini
-# <snippet-end 0_RHEL_PHP_INI.sh>
-```
-
 !!! note
-		For fresh installs the following tips might be handy.<br />
-		Allow ssh to pass the firewall on the CLI
-		```bash
-		firewall-cmd --zone=public --add-port=22/tcp --permanent
-		firewall-cmd --reload
-		```
-		<br />
-		To quickly make sure if NetworkManager handles your network interface on boot, check in the following location:
-		```
-		/etc/sysconfig/network-scripts/ifcfg-*
-		```
+    For fresh installs the following tips might be handy.<br />
+    Allow ssh to pass the firewall on the CLI
+    ```bash
+    firewall-cmd --zone=public --add-port=22/tcp --permanent
+    firewall-cmd --reload
+    ```
+    <br />
+    To quickly make sure if NetworkManager handles your network interface on boot, check in the following location:
+    ```
+    /etc/sysconfig/network-scripts/ifcfg-*
+    ```
 
 # 1/ OS Install and additional repositories
 
@@ -160,6 +148,8 @@ yumInstallCoreDeps () {
   # Enable and start redis
   sudo systemctl enable --now rh-redis32-redis.service
 
+  RUN_PHP='/usr/bin/scl enable rh-php72'
+  PHP_INI=/etc/opt/rh/rh-php72/php.ini
   # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
   sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel \
                    rh-php72-php-mysqlnd \
@@ -171,6 +161,7 @@ yumInstallCoreDeps () {
 
   # Install Python 3.6 from SCL, see
   # https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
+  RUN_PYTHON='/usr/bin/scl enable rh-python36'
   sudo yum install rh-python36 -y
 
   sudo systemctl enable --now rh-php72-php-fpm.service

@@ -160,20 +160,25 @@ spin()
 
 # Progress bar
 progress () {
-  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then 
+  progress=$[$progress+$1]
+  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then
+    echo "progress=${progress}" > /tmp/INSTALL.stat
     return
   fi
   bar="#"
+
+  # Prevent progress of overflowing
   if [[ $progress -ge 100 ]]; then
     echo -ne "#####################################################################################################  (100%)\r"
     return
   fi
-  progress=$[$progress+$1]
+  # Display progress
   for p in $(seq 1 $progress); do
     bar+="#"
     echo -ne "$bar  ($p%)\r"
   done
   echo -ne '\n'
+  echo "progress=${progress}" > /tmp/INSTALL.stat
 }
 
 # Check locale
