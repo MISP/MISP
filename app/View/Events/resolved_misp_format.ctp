@@ -142,11 +142,8 @@
               <span class="ObjectRelation bold"><?php echo h($attribute['object_relation']); ?></span>:
               <span class="AttributeType"><?php echo h($attribute['type']); ?></span>
             </td>
-            <?php
-                        foreach (array('value', 'uuid') as $field) {
-                            echo '<td class="Attribute' . ucfirst($field) . '">' . h($attribute[$field]) . '</td>';
-                        }
-            ?>
+            <td class="AttributeValue limitedWidth"><?php echo h($attribute['value']); ?></td>
+            <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
             <td class="short" style="width:40px;text-align:center;">
               <input type="checkbox" class="AttributeToIds" <?php if (!empty($attribute['to_ids'])) echo 'checked'; ?>/>
             </td>
@@ -199,7 +196,7 @@
               <th><?php echo __('Comment');?></th>
               <th><?php echo __('Distribution');?></th>
             </tr>
-        <?php
+          <?php
             }
             foreach ($event['Attribute'] as $a => $attribute) {
                 echo '<tr class="MISPAttribute">';
@@ -219,10 +216,9 @@
                         echo '<td ' . $field_header . '"></td>';
                     }
                 }
-                foreach (array('value', 'uuid') as $field) {
-                    echo '<td class="Attribute' . ucfirst($field) . '">' . h($attribute[$field]) . '</td>';
-                }
-        ?>
+          ?>
+          <td class="AttributeValue limitedWidth"><?php echo h($attribute['value']); ?></td>
+          <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
           <td class="short" style="width:40px;text-align:center;">
             <input type="checkbox" class="AttributeToIds" <?php if (isset($attribute['to_ids']) && $attribute['to_ids']) echo 'checked'; ?>/>
           </td>
