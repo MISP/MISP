@@ -74,7 +74,19 @@ MISPvars () {
   MISP_PASSWORD='Password1234'
 
   # The web server user
-  WWW_USER="www-data"
+  # RHEL/CentOS
+  if [[ -f "/etc/redhat-release" ]]; then
+    WWW_USER='apache'
+  # Debian flavoured
+  elif [[ -f "/etc/debian_version" ]]; then
+    WWW_USER="www-data"
+  # OpenBSD
+  elif [[ "$(uname -s)" == "OpenBSD" ]]; then
+    WWW_USER="www"
+  else
+  # I am feeling lucky
+    WWW_USER="www-data"
+  fi
 
   # MISP configuration variables
   PATH_TO_MISP='/var/www/MISP'
@@ -300,20 +312,25 @@ spin()
 
 # Progress bar
 progress () {
-  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then 
+  progress=$[$progress+$1]
+  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then
+    echo "progress=${progress}" > /tmp/INSTALL.stat
     return
   fi
   bar="#"
+
+  # Prevent progress of overflowing
   if [[ $progress -ge 100 ]]; then
     echo -ne "#####################################################################################################  (100%)\r"
     return
   fi
-  progress=$[$progress+$1]
+  # Display progress
   for p in $(seq 1 $progress); do
     bar+="#"
     echo -ne "$bar  ($p%)\r"
   done
   echo -ne '\n'
+  echo "progress=${progress}" > /tmp/INSTALL.stat
 }
 
 # Check locale
