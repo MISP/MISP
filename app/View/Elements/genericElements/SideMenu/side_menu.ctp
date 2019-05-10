@@ -208,6 +208,10 @@
                         'url' => '/events/index',
                         'text' => __('List Events')
                     ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/events/search',
+                        'text' => __('Search Events')
+                    ));
                     if ($isAclAdd) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/events/add',
@@ -250,6 +254,11 @@
                         'element_id' => 'index',
                         'url' => '/events/index',
                         'text' => __('List Events')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'search',
+                        'url' => '/events/search',
+                        'text' => __('Search Events')
                     ));
                     if ($isAclAdd) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(

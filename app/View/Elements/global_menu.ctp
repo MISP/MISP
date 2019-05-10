@@ -13,7 +13,11 @@
                     array(
                         'text' => __('List Events'),
                         'url' => '/events/index'
-                    ),
+		    ),
+                    array(
+			'text' => __('Search Events'),
+			'url' => '/events/search'
+		    ),
                     array(
                         'text' => __('Add Event'),
                         'url' => '/events/add',
