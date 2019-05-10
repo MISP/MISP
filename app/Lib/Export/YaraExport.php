@@ -1,6 +1,7 @@
 <?php
 
 App::uses('JsonExport', 'Export');
+App::uses('AppModel', 'Model');
 
 
 class YaraExport
