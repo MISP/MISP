@@ -3314,9 +3314,20 @@ class EventsController extends AppController
             $returnFormat = 'json';
         }
         $elementCounter = 0;
-        $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
-        $responseType = $this->Event->validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        $renderView = false;
+        $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        if (!empty($renderView) && !empty($final)) {
+            $this->layout = false;
+            $final = json_decode($final, true);
+            foreach ($final as $key => $data) {
+                $this->set($key, $data);
+            }
+            $this->render('/Events/module_views/' . $renderView);
+        } else {
+            $responseType = $this->Event->validFormats[$returnFormat][0];
+            return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        }
+
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
