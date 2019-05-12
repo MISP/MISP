@@ -2736,17 +2736,17 @@ class Event extends AppModel
 
     public function sendAlertEmailRouter($id, $user, $oldpublish = null)
     {
-        if (Configure::read('MISP.block_old_event_alert') && Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
+        if (Configure::read('MISP.block_old_event_alert') && !empty(Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age')))) {
             $oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
             $event = $this->find('first', array(
                     'conditions' => array('Event.id' => $id),
                     'recursive' => -1,
-                    'fields' => array('Event.date')
+                    'fields' => array('Event.timestamp')
             ));
             if (empty($event)) {
                 return false;
             }
-            if (strtotime($event['Event']['date']) < $oldest) {
+            if (intval($event['Event']['timestamp']) < $oldest) {
                 return true;
             }
         }
