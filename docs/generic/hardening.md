@@ -52,6 +52,10 @@ index f9f69d4..2e8fd78 100644
 
 ## Resources
 
+[IT Security Guidelines for TLS by NCSC.nl](https://www.ncsc.nl/english/current-topics/factsheets/it-security-guidelines-for-transport-layer-security-tls.html)
+
+[Weak Diffie-Hellman and the Logjam Attack](https://weakdh.org/sysadmin.html)
+
 [Debian Wiki Hardening](https://wiki.debian.org/Hardening)
 
 [CentOS Hardening](https://wiki.centos.org/HowTos/OS_Protection)
