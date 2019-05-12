@@ -392,7 +392,8 @@ class Attribute extends AppModel
         'yara-json' => array('json', 'YaraExport', 'json'),
         'rpz' => array('rpz', 'RPZExport', 'rpz'),
         'csv' => array('csv', 'CsvExport', 'csv'),
-        'cache' => array('txt', 'CacheExport', 'cache')
+        'cache' => array('txt', 'CacheExport', 'cache'),
+        'attack' => array('html', 'AttackExport', 'html')
     );
 
     // FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
@@ -2972,6 +2973,9 @@ class Attribute extends AppModel
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
         }
+        if (!empty($options['includeGalaxy'])) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        }
         if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
@@ -3114,6 +3118,10 @@ class Attribute extends AppModel
                     }
                 }
                 if (!empty($results[$key])) {
+                    if (!empty($options['includeGalaxy'])) {
+                        $results[$key] = $this->Event->massageTags($results[$key], 'Attribute');
+                        $results[$key] = $this->Event->massageTags($results[$key], 'Event');
+                    }
                     $attributes[] = $results[$key];
                 }
             }
@@ -3142,8 +3150,10 @@ class Attribute extends AppModel
                 $eventTags[$results[$key]['Event']['id']][] = $tag;
             }
         }
-        foreach ($eventTags[$results[$key]['Event']['id']] as $eventTag) {
-            $results[$key]['EventTag'][] = $eventTag['EventTag'];
+        if (!empty($eventTags)) {
+            foreach ($eventTags[$results[$key]['Event']['id']] as $eventTag) {
+                $results[$key]['EventTag'][] = $eventTag['EventTag'];
+            }
         }
         return $results;
     }
@@ -3926,7 +3936,7 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0)
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
@@ -3946,6 +3956,9 @@ class Attribute extends AppModel
             if (!empty($filters['value'])) {
                 unset($filters['value']);
             }
+        }
+        if (!empty($exportTool->renderView)) {
+            $renderView = $exportTool->renderView;
         }
         if (isset($filters['searchall'])) {
             if (!empty($filters['value'])) {
@@ -3968,6 +3981,9 @@ class Attribute extends AppModel
                 'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
                 'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0
         );
+        if (!empty($filters['attackGalaxy'])) {
+            $params['attackGalaxy'] = $filters['attackGalaxy'];
+        }
         if (isset($filters['include_event_uuid'])) {
             $params['includeEventUuid'] = $filters['include_event_uuid'];
         }

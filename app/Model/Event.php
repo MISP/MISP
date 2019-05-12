@@ -178,7 +178,8 @@ class Event extends AppModel
         'stix2' => array('json', 'Stix2Export', 'json'),
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json'),
-        'cache' => array('txt', 'CacheExport', 'cache')
+        'cache' => array('txt', 'CacheExport', 'cache'),
+        'attack' => array('html', 'AttackExport', 'html')
     );
 
     public $csv_event_context_fields_to_fetch = array(
@@ -2735,17 +2736,17 @@ class Event extends AppModel
 
     public function sendAlertEmailRouter($id, $user, $oldpublish = null)
     {
-        if (Configure::read('MISP.block_old_event_alert') && Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
+        if (Configure::read('MISP.block_old_event_alert') && !empty(Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age')))) {
             $oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
             $event = $this->find('first', array(
                     'conditions' => array('Event.id' => $id),
                     'recursive' => -1,
-                    'fields' => array('Event.date')
+                    'fields' => array('Event.timestamp')
             ));
             if (empty($event)) {
                 return false;
             }
-            if (strtotime($event['Event']['date']) < $oldest) {
+            if (intval($event['Event']['timestamp']) < $oldest) {
                 return true;
             }
         }
@@ -6040,7 +6041,7 @@ class Event extends AppModel
         }
     }
 
-    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0)
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
@@ -6061,6 +6062,11 @@ class Event extends AppModel
                 $filters['published'] = 1;
             }
         }
+
+        if (!empty($exportTool->renderView)) {
+            $renderView = $exportTool->renderView;
+        }
+
         if (!empty($filters['ignore'])) {
             $filters['to_ids'] = array(0, 1);
             $filters['published'] = array(0, 1);
@@ -6140,7 +6146,11 @@ class Event extends AppModel
         unset($temp);
         fwrite($tmpfile, $exportTool->footer($exportToolParams));
         fseek($tmpfile, 0);
-        $final = fread($tmpfile, fstat($tmpfile)['size']);
+        if (fstat($tmpfile)['size'] > 0) {
+            $final = fread($tmpfile, fstat($tmpfile)['size']);
+        } else {
+            $final = 0;
+        }
         fclose($tmpfile);
         return $final;
     }
