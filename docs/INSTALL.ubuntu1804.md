@@ -18,7 +18,7 @@ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | 
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190420 (works with **Ubuntu 18.10/19.04** too)
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190513 (works with **Ubuntu 18.10/19.04** too)
 
 !!! notice
     This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
@@ -89,7 +89,6 @@ installCoreDeps () {
   # install Mitre's STIX and its dependencies by running the following commands:
   sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -qy
 
-  sudo apt-get install python3-pip -qy
   sudo apt install expect -qy
 }
 # <snippet-end 0_installCoreDeps.sh>
@@ -272,12 +271,13 @@ EOF
     sudo apt-get purge -y expect ; sudo apt autoremove -qy
   fi 
 
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
+  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE ${DBNAME};"
+  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE USER ${DBUSER_MISP} IDENTIFIED BY '${DBPASSWORD_MISP}';"
+  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* to ${DBNAME}@localhost;"
+  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
   # Import the empty MISP database from MYSQL.sql
-  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+  $SUDO_WWW cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} ${DBNAME}
 }
 # <snippet-end 1_prepareDB.sh>
 ```
