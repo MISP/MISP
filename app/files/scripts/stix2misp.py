@@ -274,14 +274,24 @@ class StixParser():
         else:
             attributes = []
         if properties.attachments:
-            attributes.append(self.handle_email_attachment(properties.parent))
+            attributes.extend(self.handle_email_attachment(properties))
         return attributes[0] if len(attributes) == 1 else ("email", self.return_attributes(attributes), "")
 
     # Return type & value of an email attachment
-    @staticmethod
-    def handle_email_attachment(indicator_object):
-        properties = indicator_object.related_objects[0].properties
-        return ["email-attachment", properties.file_name.value, "attachment"]
+    def handle_email_attachment(self, properties):
+        attributes = []
+        related_objects = {}
+        if properties.parent.related_objects:
+            related_objects = {related.id_: related.properties for related in properties.parent.related_objects}
+        for attachment in (attachment.object_reference for attachment in properties.attachments):
+            if attachment in related_objects:
+                attributes.append(["email-attachment", related_objects[attachment].file_name.value, "attachment"])
+            else:
+                parent_id = self.fetch_uuid(properties.parent.id_)
+                referenced_id = self.fetch_uuid(attachment)
+                self.references[parent_id].append({'idref': referenced_id,
+                                                   'relationship': 'attachment'})
+        return attributes
 
     # Return type & attributes of a file object
     def handle_file(self, properties, is_object):
@@ -764,6 +774,8 @@ class StixFromMISPParser(StixParser):
                     # if ttp.handling:
                     #     self.parse_tlp_marking(ttp.handling)
         self.set_event_fields()
+        if self.references:
+            self.build_references()
 
     # Return type & attributes (or value) of a Custom Object
     def handle_custom(self, properties):
