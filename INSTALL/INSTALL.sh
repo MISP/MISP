@@ -274,6 +274,7 @@ checkManufacturer () {
     checkAptLock
     sudo apt install dmidecode -qy
   fi
+# FIXME: This does not work on vmware
   MANUFACTURER=$(sudo dmidecode -s system-manufacturer)
   echo $MANUFACTURER
 }
@@ -1050,7 +1051,7 @@ EOF
   fi 
 
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE ${DBNAME};"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE USER ${DBUSER_MISP} IDENTIFIED BY '${DBPASSWORD_MISP}';"
+  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* to ${DBNAME}@localhost;"
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
