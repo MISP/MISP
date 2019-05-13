@@ -342,7 +342,7 @@ class AppController extends Controller
                     throw new ForbiddenException('Authentication failed. Your user account has been disabled.');
                 } else {
                     $this->Flash->error('Your user account has been disabled.', array('key' => 'error'));
-                    $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+                    $this->_redirectToLogin();
                 }
             }
             $this->set('default_memory_limit', ini_get('memory_limit'));
@@ -362,7 +362,7 @@ class AppController extends Controller
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
-                $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+                $this->_redirectToLogin();
             }
         }
 
@@ -400,7 +400,7 @@ class AppController extends Controller
                         $this->Flash->info($message);
                     }
                     $this->Auth->logout();
-                    $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+                    $this->_redirectToLogin();
                 }
                 if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login', $base_dir.'/users/downloadTerms')))) {
                     //if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
@@ -1026,5 +1026,11 @@ class AppController extends Controller
             $session['ini']['session.gc_maxlifetime'] = $value;
             Configure::write('Session', $session);
         }
+    }
+
+    private function _redirectToLogin() {
+        $targetRoute = $this->Auth->loginAction;
+        $targetRoute['admin'] = false;
+        $this->redirect($targetRoute);
     }
 }
