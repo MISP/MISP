@@ -274,14 +274,16 @@ class StixParser():
         else:
             attributes = []
         if properties.attachments:
-            attributes.append(self.handle_email_attachment(properties.parent))
+            attributes.extend(self.handle_email_attachment(properties.parent))
         return attributes[0] if len(attributes) == 1 else ("email", self.return_attributes(attributes), "")
 
     # Return type & value of an email attachment
     @staticmethod
     def handle_email_attachment(indicator_object):
-        properties = indicator_object.related_objects[0].properties
-        return ["email-attachment", properties.file_name.value, "attachment"]
+        attributes = []
+        for related_object in indicator_object.related_objects:
+            attributes.append(["email-attachment", related_object.properties.file_name.value, "attachment"])
+        return attributes
 
     # Return type & attributes of a file object
     def handle_file(self, properties, is_object):
