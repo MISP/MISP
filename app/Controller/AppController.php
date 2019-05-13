@@ -347,7 +347,20 @@ class AppController extends Controller
                 }
             }
         } else {
-            if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
+            // We do not have a valid user - redirect to login page if not already there
+            $loginAction = $this->Auth->loginAction;
+            $currentParams = $this->request->params;
+
+            $is_login_page =$currentParams['controller'] === $loginAction['controller'] &&
+                $currentParams['action'] === $loginAction['action'];
+
+            // also verify that the plugin is the same (if any).
+            // If both routes do not have a plugin this is true.
+            $is_same_plugin = $loginAction['plugin'] === $currentParams['plugin'];
+
+            // If we are on the login route and the plugin is the same we should not redirect.
+            // In all other cases we must redirect to the login page.
+            if (!($is_login_page  && $is_same_plugin)) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
