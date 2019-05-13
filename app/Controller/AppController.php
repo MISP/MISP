@@ -74,6 +74,7 @@ class AppController extends Controller
     public $components = array(
             'Session',
             'Auth' => array(
+                'className' => 'MISPAuth',
                 'authError' => 'Unauthorised access.',
                 'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
                 'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
@@ -1011,6 +1012,7 @@ class AppController extends Controller
         $this->redirect($targetRoute);
     }
 
+
     protected function _loadAuthenticationPlugins() {
         // load authentication plugins from Configure::read('Security.auth')
         $auth = Configure::read('Security.auth');
@@ -1027,5 +1029,4 @@ class AppController extends Controller
             }
         }
     }
-
 }
