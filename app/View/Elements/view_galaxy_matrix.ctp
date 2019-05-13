@@ -116,7 +116,7 @@ foreach($tabs as $tabName => $column):
         ?>
             <th>
                 <?php echo h(ucfirst($name)); ?>
-                <div class="th-inner"><?php echo h(ucfirst($name)); ?></div>
+                <div class="th-inner"><?php echo h(ucfirst($name)) . sprintf('<br /> (%s items)', count($column[$co])); ?></div>
             </th>
 
         <?php endforeach; ?>
