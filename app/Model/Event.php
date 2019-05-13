@@ -1934,6 +1934,14 @@ class Event extends AppModel
                 ${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted LIKE'] = 0;
             }
         }
+        $proposal_conditions = array('OR' => array('ShadowAttribute.deleted' => 0));
+        if (isset($options['deleted_proposals'])) {
+            if ($isSiteAdmin) {
+                $proposal_conditions = array('OR' => array('ShadowAttribute.deleted' => 1));
+            } else {
+                $proposal_conditions['OR'][] = array('(SELECT events.org_id FROM events WHERE events.id = ShadowAttribute.event_id)' => $user['org_id']);
+            }
+        }
         if ($options['idList'] && !$options['tags']) {
             $conditions['AND'][] = array('Event.id' => $options['idList']);
         }
@@ -1995,7 +2003,7 @@ class Event extends AppModel
                 ),
                 'ShadowAttribute' => array(
                     'fields' => $fieldsShadowAtt,
-                    'conditions' => array('deleted' => 0),
+                    'conditions' => $proposal_conditions,
                     'Org' => array('fields' => $fieldsOrg),
                     'order' => false
                 ),

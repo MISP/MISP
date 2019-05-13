@@ -159,6 +159,8 @@ class LogsController extends AppController
             'eventid' => $id,
             'includeAllTags' => 1,
             'sgReferenceOnly' => 1,
+            'deleted' => 1,
+            'deleted_proposals' => 1
         ));
         $conditions = array(
             'OR' => array(
