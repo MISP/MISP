@@ -299,6 +299,12 @@ apacheConfig () {
   debug "Generating Apache config"
   sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
+  if [[ ! -z ${MISP_BASEURL} ]] && [[ "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "http" || "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "https" ]]; then
+
+    echo "Potentially replacing misp.local with $MISP_BASEURL in misp-ssl.conf"
+
+  fi
+
   # If a valid SSL certificate is not already created for the server,
   # create a self-signed certificate:
   sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
@@ -438,6 +444,7 @@ backgroundWorkers () {
   debug "Setting up background workers"
   # To make the background workers start on boot
   sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+
   if [ ! -e /etc/rc.local ]
   then
       echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
@@ -445,14 +452,28 @@ backgroundWorkers () {
       sudo chmod u+x /etc/rc.local
   fi
 
-  # Start the workers
-  $SUDO_WWW bash $PATH_TO_MISP/app/Console/worker/start.sh
+  echo "[Unit]
+Description=MISP background workers
+After=network.target
+
+[Service]
+Type=forking
+User=${WWW_USER}
+Group=${WWW_USER}
+ExecStart=${PATH_TO_MISP}/app/Console/worker/start.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target" | sudo tee /etc/systemd/system/misp-workers.service
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now misp-workers
 
   # Add the following lines before the last line (exit 0). Make sure that you replace www-data with your apache user:
   sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-  sudo sed -i -e '$i \sudo -u www-data bash ${PATH_TO_MISP}/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
 }
 # <snippet-end 2_backgroundWorkers.sh>
 ```
@@ -479,12 +500,16 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
 ```bash
-sudo apt-get install librdkafka-dev php-dev -y
-sudo pecl channel-update pecl.php.net
-sudo pecl install rdkafka
-echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
-sudo phpenmod rdkafka
-sudo service apache2 restart
+# <snippet-begin 4_kafka.sh>
+installKafka () {
+  sudo apt-get install librdkafka-dev php-dev -y
+  sudo pecl channel-update pecl.php.net
+  sudo pecl install rdkafka
+  echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
+  sudo phpenmod rdkafka
+  sudo service apache2 restart
+}
+# <snippet-end 4_kafka.sh>
 ```
 
 {!generic/misp-dashboard-debian.md!}
@@ -496,13 +521,6 @@ sudo service apache2 restart
 {!generic/mail_to_misp-debian.md!}
 
 {!generic/hardening.md!}
-
-#### misp-modules (section deprecated)
--------------------------------
-!!! notice
-    If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:<br />
-    https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules<br />
-    Then the enrichment, export and import modules can be enabled in MISP via the settings.
 
 # INSTALL.sh
 
