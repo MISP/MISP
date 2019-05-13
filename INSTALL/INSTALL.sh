@@ -274,7 +274,6 @@ checkManufacturer () {
     checkAptLock
     sudo apt install dmidecode -qy
   fi
-# FIXME: This does not work on vmware
   MANUFACTURER=$(sudo dmidecode -s system-manufacturer)
   echo $MANUFACTURER
 }
