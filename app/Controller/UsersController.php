@@ -1964,6 +1964,7 @@ class UsersController extends AppController
         }
         // end FIXME
 
+        $this->Galaxy->sortMatrixByScore($tabs, $scores);
         if ($this->_isRest()) {
             $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
             return $this->RestResponse->viewData($json, $this->response->type());

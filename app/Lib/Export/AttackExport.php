@@ -99,6 +99,7 @@ class AttackExport
                 $maxScore = $clusterCount;
             }
         }
+        $this->__GalaxyModel->sortMatrixByScore($this->__tabs, $this->__clusterCounts);
         App::uses('ColourGradientTool', 'Tools');
         $gradientTool = new ColourGradientTool();
         $colours = $gradientTool->createGradientFromValues($this->__clusterCounts);
@@ -113,6 +114,10 @@ class AttackExport
         if (!empty($colours)) {
             $result['colours'] = $colours['mapping'];
             $result['interpolation'] = $colours['interpolation'];
+        }
+        if ($this->__galaxy_id == $this->__GalaxyModel->getMitreAttackGalaxyId()) {
+            $result['defaultTabName'] = 'mitre-attack';
+            $result['removeTrailling'] = 2;
         }
         $result['galaxyName'] = $this->__galaxy_name;
         $result['galaxyId'] = $this->__galaxy_id;

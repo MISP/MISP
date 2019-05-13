@@ -397,7 +397,7 @@ class Galaxy extends AppModel
         return $galaxies;
     }
 
-    public function getMatrix($galaxy_id)
+    public function getMatrix($galaxy_id, $scores=array())
     {
         $conditions = array('Galaxy.id' => $galaxy_id);
         $contains = array(
@@ -454,18 +454,7 @@ class Galaxy extends AppModel
         }
         $matrixData['tabs'] = $cols;
 
-        foreach ($matrixData['tabs'] as $k => $v) {
-            foreach ($matrixData['tabs'][$k] as $kc => $v2) {
-                // sort clusters in the kill chains
-                usort(
-                    $matrixData['tabs'][$k][$kc],
-                    function($a, $b) {
-                        return strcmp($a['value'], $b['value']);
-                    }
-                );
-            }
-        }
-
+        $this->sortMatrixByScore($matrixData['tabs'], $scores);
         // #FIXME temporary fix: retreive tag name of deprecated mitre galaxies (for the stats)
         if ($galaxy['Galaxy']['id'] == $this->getMitreAttackGalaxyId()) {
             $names = array('Enterprise Attack - Attack Pattern', 'Pre Attack - Attack Pattern', 'Mobile Attack - Attack Pattern');
@@ -485,5 +474,35 @@ class Galaxy extends AppModel
 
         $matrixData['matrixTags'] = array_keys($matrixData['matrixTags']);
         return $matrixData;
+    }
+
+    public function sortMatrixByScore(&$tabs, $scores)
+    {
+        foreach (array_keys($tabs) as $i) {
+            foreach (array_keys($tabs[$i]) as $j) {
+                // major ordering based on score, minor based on alphabetical
+                usort($tabs[$i][$j], function ($a, $b) use($scores) {
+                    if ($a['tag_name'] == $b['tag_name']) {
+                        return 0;
+                    }
+                    if (isset($scores[$a['tag_name']]) && isset($scores[$b['tag_name']])) {
+                        if ($scores[$a['tag_name']] < $scores[$b['tag_name']]) {
+                            $ret = 1;
+                        } else if ($scores[$a['tag_name']] == $scores[$b['tag_name']]) {
+                            $ret = strcmp($a['value'], $b['value']);
+                        } else {
+                            $ret = -1;
+                        }
+                    } else if (isset($scores[$a['tag_name']])) {
+                        $ret = -1;
+                    } else if (isset($scores[$b['tag_name']])) {
+                        $ret = 1;
+                    } else { // none is set
+                        $ret = strcmp($a['value'], $b['value']);
+                    }
+                    return $ret;
+                });
+            }
+        }
     }
 }
