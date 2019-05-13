@@ -479,12 +479,16 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
 ```bash
-sudo apt-get install librdkafka-dev php-dev -y
-sudo pecl channel-update pecl.php.net
-sudo pecl install rdkafka
-echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
-sudo phpenmod rdkafka
-sudo service apache2 restart
+# <snippet-begin 4_kafka.sh>
+installKafka () {
+  sudo apt-get install librdkafka-dev php-dev -y
+  sudo pecl channel-update pecl.php.net
+  sudo pecl install rdkafka
+  echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
+  sudo phpenmod rdkafka
+  sudo service apache2 restart
+}
+# <snippet-end 4_kafka.sh>
 ```
 
 {!generic/misp-dashboard-debian.md!}
@@ -496,13 +500,6 @@ sudo service apache2 restart
 {!generic/mail_to_misp-debian.md!}
 
 {!generic/hardening.md!}
-
-#### misp-modules (section deprecated)
--------------------------------
-!!! notice
-    If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:<br />
-    https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules<br />
-    Then the enrichment, export and import modules can be enabled in MISP via the settings.
 
 # INSTALL.sh
 
