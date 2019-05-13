@@ -1,5 +1,23 @@
+<VirtualHost *:80>
+    ServerAdmin serveradmin@misp.local
+    ServerName misp.local
+
+    # In theory not needed, left for debug purposes
+    # LogLevel warn
+    # ErrorLog /var/log/apache2/misp.local_p80_error.log
+    # CustomLog /var/log/apache2/misp.local_p80_access.log combined
+
+    Header always unset "X-Powered-By"
+
+    RewriteEngine On
+    RewriteCond %{HTTPS}  !=on
+    RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R,L]
+
+    ServerSignature Off
+</VirtualHost>
+
 <VirtualHost *:443>
-    ServerAdmin me@me.local
+    ServerAdmin serveradmin@misp.local
     ServerName misp.local
     DocumentRoot /var/www/MISP/app/webroot
     <Directory /var/www/MISP/app/webroot>
