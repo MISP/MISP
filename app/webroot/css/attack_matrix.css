@@ -47,7 +47,7 @@ td.matrix-interaction.cell-picked {
 .fixed-table-container-inner {
     overflow-x: hidden;
     overflow-y: auto;
-    max-height: 670px;
+    max-height: calc(80vh - 100px);
 }
 
 .extra-wrap {

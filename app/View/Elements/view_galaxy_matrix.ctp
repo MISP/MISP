@@ -101,12 +101,12 @@ foreach($tabs as $tabName => $column):
 </div>
 <?php endif; ?>
 
-<div id="matrix_container" class="fixed-table-container-inner" style="max-height: 670px;" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
+<div id="matrix_container" class="fixed-table-container-inner" style="" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
     <div class="tab-content">
     <?php foreach($tabs as $tabName => $column): ?>
         <div class="tab-pane <?php echo $tabName==$defaultTabName ? "active" : ""; ?>" id="tabMatrix-<?php echo h($tabName); ?>">
         <div class="header-background"></div>
-        <div class="fixed-table-container-inner" style="max-height: 670px;">
+        <div class="fixed-table-container-inner" style="">
         <table class="table table-condensed matrix-table">
         <thead>
         <tr>
@@ -197,5 +197,5 @@ foreach($tabs as $tabName => $column):
     </select>
 </div>
 <div class="templateChoiceButton btn-matrix-submit submit-container hide"><?php echo __('Submit'); ?></div>
-<div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Cancel'); ?></div>
+<div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_matrix');"><?php echo __('Cancel'); ?></div>
 <?php endif; ?>
