@@ -173,6 +173,7 @@ generateInstaller () {
   for ALGO in $(echo "1 256 384 512"); do
     shasum -a ${ALGO} INSTALL.sh > INSTALL.sh.sha${ALGO}
   done
+  [[ "$(which rhash > /dev/null 2>&1 ; echo $?)" == "0" ]] && rhash --sfv --sha1 --sha256 --sha384 --sha512 INSTALL.sh > INSTALL.sh.sfv
   rm -rf installer
   echo -e "${LBLUE}Generated INSTALL.sh${NC}"
   exit 0

@@ -930,9 +930,9 @@ checkSudoKeeper () {
     su -c "apt install etckeeper -y"
     echo "Please enter your root password below to install sudo"
     su -c "apt install sudo -y"
-    echo "Please enter your root password below to add $MISP_USER to sudo group"
-    su -c "adduser $MISP_USER sudo"
-    echo "We added $MISP_USER to group sudo and now we need to log out and in again."
+    echo "Please enter your root password below to add ${MISP_USER} to sudo group"
+    su -c "adduser ${MISP_USER} sudo"
+    echo "We added ${MISP_USER} to group sudo and now we need to log out and in again."
     exit
   else
     sudo apt update
@@ -954,7 +954,6 @@ installCoreDeps () {
   # install Mitre's STIX and its dependencies by running the following commands:
   sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -qy
 
-  sudo apt-get install python3-pip -qy
   sudo apt install expect -qy
 }
 
@@ -1050,12 +1049,13 @@ EOF
     sudo apt-get purge -y expect ; sudo apt autoremove -qy
   fi 
 
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
+  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE ${DBNAME};"
+  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE USER ${DBUSER_MISP} IDENTIFIED BY '${DBPASSWORD_MISP}';"
+  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* to ${DBNAME}@localhost;"
+  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
   # Import the empty MISP database from MYSQL.sql
-  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+  $SUDO_WWW cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} ${DBNAME}
 }
 
 apacheConfig () {
@@ -1768,6 +1768,7 @@ generateInstaller () {
   for ALGO in $(echo "1 256 384 512"); do
     shasum -a ${ALGO} INSTALL.sh > INSTALL.sh.sha${ALGO}
   done
+  [[ "$(which rhash > /dev/null 2>&1 ; echo $?)" == "0" ]] && rhash --sfv --sha1 --sha256 --sha384 --sha512 INSTALL.sh > INSTALL.sh.sfv
   rm -rf installer
   echo -e "${LBLUE}Generated INSTALL.sh${NC}"
   exit 0
@@ -1802,6 +1803,7 @@ installSupported () {
 
   # Check if sudo is installed and etckeeper - functionLocation('generic/sudo_etckeeper.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper 2> /dev/null > /dev/null
+  [[ ! -z ${MISP_USER} ]] && [[ ! -f /etc/sudoers.d/misp ]] && echo "%${MISP_USER} ALL=(ALL:ALL) NOPASSWD:ALL" |sudo tee /etc/sudoers.d/misp
   progress 4
 
   # Set locale if not set - functionLocation('generic/supportFunctions.md')
