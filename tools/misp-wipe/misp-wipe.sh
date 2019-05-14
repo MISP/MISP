@@ -81,7 +81,7 @@ rm -f $TMP
 echo "Wiping files"
 git clean -f -x app/webroot/img/orgs
 #git clean -f -x app/webroot/img/custom
-git clean -f -x app/tmp/logs/
+git clean -f -d -x app/tmp
 git clean -f -d -x app/files
 
 echo "Updating taxonomies"
