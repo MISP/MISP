@@ -116,7 +116,10 @@ foreach($tabs as $tabName => $column):
         ?>
             <th>
                 <?php echo h(ucfirst($name)); ?>
-                <div class="th-inner"><?php echo h(ucfirst($name)) . sprintf('<br /> (%s items)', count($column[$co])); ?></div>
+                <div class="th-inner" style="flex-direction: column; align-items: flex-start; padding-top: 3px;">
+                    <span><?php echo h(ucfirst($name)); ?></span>
+                    <i style="font-size: smaller;"><?php echo sprintf('(%s items)', count($column[$co])); ?></i>
+                </div>
             </th>
 
         <?php endforeach; ?>
