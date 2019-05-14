@@ -276,21 +276,7 @@ class AppController extends Controller
                     throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                 }
             } elseif (!$this->Session->read(AuthComponent::$sessionKey)) {
-                // load authentication plugins from Configure::read('Security.auth')
-                $auth = Configure::read('Security.auth');
-                if ($auth) {
-                    $this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
-                    if ($this->Auth->startup($this)) {
-                        $user = $this->Auth->user();
-                        if ($user) {
-                            // User found in the db, add the user info to the session
-                            $this->Session->renew();
-                            $this->Session->write(AuthComponent::$sessionKey, $user);
-                        }
-                        unset($user);
-                    }
-                }
-                unset($auth);
+                $this->_loadAuthenticationPlugins();
             }
         }
         $this->set('externalAuthUser', $userLoggedIn);
@@ -1007,4 +993,22 @@ class AppController extends Controller
         $targetRoute['admin'] = false;
         $this->redirect($targetRoute);
     }
+
+    protected function _loadAuthenticationPlugins() {
+        // load authentication plugins from Configure::read('Security.auth')
+        $auth = Configure::read('Security.auth');
+
+        if (!$auth) return;
+
+        $this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+        if ($this->Auth->startup($this)) {
+            $user = $this->Auth->user();
+            if ($user) {
+                // User found in the db, add the user info to the session
+                $this->Session->renew();
+                $this->Session->write(AuthComponent::$sessionKey, $user);
+            }
+        }
+    }
+
 }
