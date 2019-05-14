@@ -55,14 +55,19 @@ class LinOTP {
      * Performa a /validate/check call against the given LinOTP instance.
      * @param user the username (opt. including the realm)
      * @param password the password or OTPPin to validate
+     * @param transactionId (optional) transaction this validate check call refers to
      * @return bool|mixed returns true or false if the validation was successful, if more information are required (e.g. an OTP) an array is return that contains details.
      */
-    public function validate_check($user, $password) {
+    public function validate_check($user, $password, $transactionId = null) {
         CakeLog::debug("Calling /validate/check for ${user}");
         $data = array(
             "user" => $user,
             "pass" => $password,
         );
+
+        if ($transactionId != null) {
+            $data['transactionid'] = $transactionId;
+        }
 
         if ($this->realm != null) {
             $data['realm'] = $this->realm;
