@@ -107,6 +107,11 @@ class Attribute extends AppModel
                     'formdesc' => __('Information about the final payload(s). Can contain a function of the payload, e.g. keylogger, RAT, or a name if identified, such as Poison Ivy.'),
                     'types' => array('comment', 'text', 'other', 'anonymised')
                     ),
+            'Actions on Objective' => array(
+                    'desc' => __('Actions executed on target system'),
+                    'formdesc' => __('Information about executed actions on target system, e.g. executed commands.'),
+                    'types' => array('command', 'sigma', 'yara', 'pattern-in-memory', 'comment', 'text', 'other')
+            ),
             'Attribution' => array(
                     'desc' => __('Identification of the group, organisation, or country behind the attack'),
                     'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrant-org', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1','x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'dns-soa-email', 'anonymised')
@@ -305,7 +310,8 @@ class Attribute extends AppModel
             'mobile-application-id' => array('desc' => __('The application id of a mobile application'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'cortex' => array('desc' => __('Cortex analysis result'), 'default_category' => 'External analysis', 'to_ids' => 0),
             'boolean' => array('desc' => __('Boolean value - to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),
-            'anonymised' => array('desc' => __('Anonymised value - described with the anonymisation object via a relationship'),  'formdesc' => __('Anonymised value - described with the anonymisation object via a relationship.'), 'default_category' => 'Other', 'to_ids' => 0)
+            'anonymised' => array('desc' => __('Anonymised value - described with the anonymisation object via a relationship'),  'formdesc' => __('Anonymised value - described with the anonymisation object via a relationship.'), 'default_category' => 'Other', 'to_ids' => 0),
+            'command' => array('desc' => __('Command executed on target system'), 'default_category' => 'Actions on Objective', 'to_ids' => 0),
             // Not convinced about this.
             //'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
         );
@@ -1200,6 +1206,7 @@ class Attribute extends AppModel
             case 'bro':
             case 'zeek':
             case 'anonymised':
+            case 'command':
             case 'pattern-in-file':
             case 'pattern-in-traffic':
             case 'pattern-in-memory':
@@ -1380,6 +1387,7 @@ class Attribute extends AppModel
             case 'imphash':
             case 'tlsh':
             case 'anonymised':
+            case 'command':
             case 'cdhash':
             case 'email-src':
             case 'email-dst':
