@@ -497,7 +497,7 @@ class Galaxy extends AppModel
                         $ret = -1;
                     } else if (isset($scores[$b['tag_name']])) {
                         $ret = 1;
-                    } else { // none is set
+                    } else { // none are set
                         $ret = strcmp($a['value'], $b['value']);
                     }
                     return $ret;

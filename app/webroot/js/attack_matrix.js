@@ -1,6 +1,4 @@
 (function () {
-	var minWidth = 1400;
-	var savedTopOffset;
 	var clusterNameToIdMapping = new Map();
 	var typeaheadDataMatrixSearch;
 	var pickedGalaxies = [];
