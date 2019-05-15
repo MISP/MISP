@@ -119,7 +119,7 @@ checkFlavour () {
 checkInstaller () {
   # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
   SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
-  for sum in $(echo ${SHA_SUMS} |sed 's/--sha//'); do
+  for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
     /usr/bin/wget -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
     INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
     chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
