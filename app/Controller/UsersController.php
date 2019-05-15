@@ -1900,14 +1900,13 @@ class UsersController extends AppController
     {
         $this->loadModel('Event');
         $this->loadModel('Galaxy');
-        $this->loadModel('Organisation');
         $mitre_galaxy_id = $this->Galaxy->getMitreAttackGalaxyId();
         if (isset($params['galaxy_id'])) {
             $galaxy_id = $params['galaxy_id'];
         } else {
             $galaxy_id = $mitre_galaxy_id;
         }
-        $organisations = $this->Organisation->find('all', array(
+        $organisations = $this->User->Organisation->find('all', array(
                 'recursive' => -1,
         ));
         array_unshift($organisations, array('Organisation' => array('id' => 0, 'name' => 'All')));
@@ -1960,6 +1959,7 @@ class UsersController extends AppController
             }
         }
 
+        // No need for restSearch or result is empty
         if ($rest_response_empty) {
             $matrixData = $this->Galaxy->getMatrix($galaxy_id);
             $tabs = $matrixData['tabs'];

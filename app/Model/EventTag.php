@@ -175,35 +175,31 @@ class EventTag extends AppModel
                         'conditions' => array('name' => $allowedTags)
                     )
                 ),
-                'fields' => array('Tag.name', 'Event.attribute_count as value')
+                'fields' => array('Tag.name', 'Event.attribute_count')
             ));
         } else {
-            // get score of galaxy
-            $db = $this->getDataSource();
-            $statementArray = array(
-                'fields' => array('event_tag.tag_id as id', 'count(event_tag.tag_id) as value'),
-                'table' => $db->fullTableName($this),
-                'alias' => 'event_tag',
-                'group' => 'tag_id'
-            );
+            $conditions = array('Tag.id !=' => null);
             if ($eventId != 0) {
-                $statementArray['conditions'] = array('event_id' => $eventId);
+                $conditions['event_id'] = $eventId;
             }
-            // tag along with its occurence in the event
-            $subQuery = $db->buildStatement(
-                $statementArray,
-                $this
-            );
-            $subQueryExpression = $db->expression($subQuery)->value;
-            // get related galaxies
-            $eventTagScores = $this->query("SELECT name, value FROM (" . $subQueryExpression . ") AS Event, Tag WHERE tags.id=score.id;");
+            $eventTagScores = $this->find('all', array(
+                'recursive' => -1,
+                'conditions' => $conditions,
+                'contain' => array(
+                    'Tag' => array(
+                        'conditions' => array('name' => $allowedTags)
+                    )
+                ),
+                'group' => 'tag_id',
+                'fields' => array('Tag.name', 'EventTag.tag_id', 'count(EventTag.tag_id) as score')
+            ));
         }
 
         // arrange data
         $scores = array();
         $maxScore = 0;
         foreach ($eventTagScores as $item) {
-            $score = $item['Event']['value'];
+            $score = isset($item['Event']) ? $item['Event']['attribute_count'] : $item[0]['score'];
             $name = $item['Tag']['name'];
             if (in_array($name, $allowedTags)) {
                 $maxScore = $score > $maxScore ? $score : $maxScore;
