@@ -3832,7 +3832,10 @@ function checkAndEnableCheckbox(id, enable) {
 function enableDisableObjectRows(rows) {
     rows.forEach(function(i) {
         if ($("#Attribute" + i + "ValueSelect").length != 0) {
-            checkAndEnableCheckbox("#Attribute" + i + "Save", true);
+            checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "ValueSelect").val() != "");
+            $("#Attribute" + i + "ValueSelect").bind('input propertychange', function() {
+                checkAndEnableCheckbox("#Attribute" + i + "Save", $(this).val() != "");
+            })
         } else if ($("#Attribute" + i + "Attachment").length != 0) {
             checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
         } else {
