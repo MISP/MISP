@@ -241,15 +241,21 @@ permissions () {
 prepareDB () {
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     debug "Setting up database"
+
+    # FIXME: If user 'misp' exists, and has a different password, the below WILL fail.
     # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-    pw=$MISP_PASSWORD
+    if [[ "${PACKER}" == "1" ]]; then
+      pw="Password1234"
+    else
+      pw=${MISP_PASSWORD}
+    fi
 
     expect -f - <<-EOF
       set timeout 10
 
       spawn sudo -k mysql_secure_installation
       expect "*?assword*"
-      send -- "$pw\r"
+      send -- "${pw}\r"
       expect "Enter current password for root (enter for none):"
       send -- "\r"
       expect "Set root password?"
@@ -271,13 +277,13 @@ EOF
     sudo apt-get purge -y expect ; sudo apt autoremove -qy
   fi 
 
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE ${DBNAME};"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* to ${DBNAME}@localhost;"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE DATABASE ${DBNAME};"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT USAGE ON *.* to ${DBNAME}@localhost;"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "FLUSH PRIVILEGES;"
   # Import the empty MISP database from MYSQL.sql
-  $SUDO_WWW cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} ${DBNAME}
+  ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} ${DBNAME}
 }
 # <snippet-end 1_prepareDB.sh>
 ```
