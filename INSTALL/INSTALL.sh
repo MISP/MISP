@@ -268,6 +268,24 @@ checkFlavour () {
   fi
 }
 
+checkInstaller () {
+  # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
+  SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
+  for sum in $(echo ${SHA_SUMS} |sed 's/--sha//'); do
+    /usr/bin/wget -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
+    INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
+    chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
+
+    if [[ "${chsum}" == "${INSTsum}" ]]; then
+      echo "sha${sum} matches"
+    else
+      echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
+      echo "Delete installer, re-download and please run again."
+      exit 1
+    fi
+  done
+}
+
 # Extract manufacturer
 checkManufacturer () {
   if [ -z $(which dmidecode) ]; then
@@ -2210,6 +2228,9 @@ debug "Checking if we are run as the installer template"
 if [[ "$0" == "./INSTALL.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.tpl.sh')" == "INSTALL.tpl.sh" ]]; then
   generateInstaller
 fi
+
+debug "Checking if we are uptodate and checksums match"
+checkInstaller
 
 space
 debug "Setting MISP variables"
