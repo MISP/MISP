@@ -117,6 +117,9 @@ checkFlavour () {
 }
 
 checkInstaller () {
+  if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
+    sudo apt install libdigest-sha-perl -qyy
+  fi
   # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
   SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
   for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
