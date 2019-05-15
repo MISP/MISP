@@ -520,7 +520,7 @@ setBaseURL () {
   CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
   IFACE=`echo $CONN |awk {'print $1'}`
   IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
-  if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
+  if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
@@ -1080,6 +1080,12 @@ apacheConfig () {
   debug "Generating Apache config"
   sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
+  if [[ ! -z ${MISP_BASEURL} ]] && [[ "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "http" || "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "https" ]]; then
+
+    echo "Potentially replacing misp.local with $MISP_BASEURL in misp-ssl.conf"
+
+  fi
+
   # If a valid SSL certificate is not already created for the server,
   # create a self-signed certificate:
   sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
@@ -1417,6 +1423,7 @@ backgroundWorkers () {
   debug "Setting up background workers"
   # To make the background workers start on boot
   sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+
   if [ ! -e /etc/rc.local ]
   then
       echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
@@ -1424,14 +1431,28 @@ backgroundWorkers () {
       sudo chmod u+x /etc/rc.local
   fi
 
-  # Start the workers
-  $SUDO_WWW bash $PATH_TO_MISP/app/Console/worker/start.sh
+  echo "[Unit]
+Description=MISP background workers
+After=network.target
+
+[Service]
+Type=forking
+User=${WWW_USER}
+Group=${WWW_USER}
+ExecStart=${PATH_TO_MISP}/app/Console/worker/start.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target" | sudo tee /etc/systemd/system/misp-workers.service
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now misp-workers
 
   # Add the following lines before the last line (exit 0). Make sure that you replace www-data with your apache user:
   sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-  sudo sed -i -e '$i \sudo -u www-data bash ${PATH_TO_MISP}/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
 }
 
 # Main MISP Modules install function
