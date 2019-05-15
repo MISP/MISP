@@ -11,6 +11,7 @@ class AttackExport
     public $non_restrictive_export = true;
     public $renderView = 'attack_view';
 
+    private $__matrixData = null;
     private $__clusterCounts = array();
     private $__attackGalaxy = 'mitre-attack-pattern';
     private $__galaxy_id = 0;
@@ -28,23 +29,27 @@ class AttackExport
             $this->__GalaxyModel = ClassRegistry::init('Galaxy');
         }
         $this->__attackGalaxy = empty($options['filters']['attackGalaxy']) ? $this->__attackGalaxy : $options['filters']['attackGalaxy'];
-        $temp = $this->__GalaxyModel->find('first', array(
+        if (empty($this->__galaxy_id)) {
+            $temp = $this->__GalaxyModel->find('first', array(
                 'recursive' => -1,
                 'fields' => array('id', 'name'),
                 'conditions' => array('Galaxy.type' => $this->__attackGalaxy, 'Galaxy.namespace !=' => 'deprecated'),
-        ));
-        if (empty($temp)) {
-            return '';
-        } else {
-            $this->__galaxy_id = $temp['Galaxy']['id'];
-            $this->__galaxy_name = $temp['Galaxy']['name'];
+            ));
+            if (empty($temp)) {
+                return '';
+            } else {
+                $this->__galaxy_id = $temp['Galaxy']['id'];
+                $this->__galaxy_name = $temp['Galaxy']['name'];
+            }
         }
-        $matrixData = $this->__GalaxyModel->getMatrix($this->__galaxy_id);
+        if (empty($this->__matrixData)) {
+            $this->__matrixData = $this->__GalaxyModel->getMatrix($this->__galaxy_id);
+        }
         if (empty($this->__tabs)) {
-            $this->__tabs = $matrixData['tabs'];
-            $this->__matrixTags = $matrixData['matrixTags'];
-            $this->__killChainOrders = $matrixData['killChain'];
-            $this->__instanceUUID = $matrixData['instance-uuid'];
+            $this->__tabs = $this->__matrixData['tabs'];
+            $this->__matrixTags = $this->__matrixData['matrixTags'];
+            $this->__killChainOrders = $this->__matrixData['killChain'];
+            $this->__instanceUUID = $this->__matrixData['instance-uuid'];
         }
         $this->__scope = empty($options['scope']) ? 'Event' : $options['scope'];
         $clusterData = array();
