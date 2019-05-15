@@ -760,6 +760,8 @@ theEnd () {
   echo "User: ${MISP_USER}"
   echo "Password: ${MISP_PASSWORD} # Or the password you used of your custom user"
   space
+  echo "GnuPG Passphrase is: ${GPG_PASSPHRASE}"
+  space
   echo "To enable outgoing mails via postfix set a permissive SMTP server for the domains you want to contact:"
   echo
   echo "sudo postconf -e 'relayhost = example.com'"
