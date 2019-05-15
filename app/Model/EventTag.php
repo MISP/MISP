@@ -154,7 +154,7 @@ class EventTag extends AppModel
         }
         return $tags;
     }
-    
+
     public function countForTag($tag_id, $user)
     {
         return $this->find('count', array(
@@ -163,34 +163,48 @@ class EventTag extends AppModel
         ));
     }
 
-    public function getTagScores($eventId=0, $allowedTags=array())
+    public function getTagScores($eventId=0, $allowedTags=array(), $propagateToAttribute=false)
     {
-        // get score of galaxy
-        $db = $this->getDataSource();
-        $statementArray = array(
-            'fields' => array('event_tag.tag_id as id', 'count(event_tag.tag_id) as value'),
-            'table' => $db->fullTableName($this),
-            'alias' => 'event_tag',
-            'group' => 'tag_id'
-        );
-        if ($eventId != 0) {
-            $statementArray['conditions'] = array('event_id' => $eventId);
+        if ($propagateToAttribute) {
+            $eventTagScores = $this->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('Tag.id !=' => null),
+                'contain' => array(
+                    'Event',
+                    'Tag' => array(
+                        'conditions' => array('name' => $allowedTags)
+                    )
+                ),
+                'fields' => array('Tag.name', 'Event.attribute_count as value')
+            ));
+        } else {
+            // get score of galaxy
+            $db = $this->getDataSource();
+            $statementArray = array(
+                'fields' => array('event_tag.tag_id as id', 'count(event_tag.tag_id) as value'),
+                'table' => $db->fullTableName($this),
+                'alias' => 'event_tag',
+                'group' => 'tag_id'
+            );
+            if ($eventId != 0) {
+                $statementArray['conditions'] = array('event_id' => $eventId);
+            }
+            // tag along with its occurence in the event
+            $subQuery = $db->buildStatement(
+                $statementArray,
+                $this
+            );
+            $subQueryExpression = $db->expression($subQuery)->value;
+            // get related galaxies
+            $eventTagScores = $this->query("SELECT name, value FROM (" . $subQueryExpression . ") AS Event, Tag WHERE tags.id=score.id;");
         }
-        // tag along with its occurence in the event
-        $subQuery = $db->buildStatement(
-            $statementArray,
-            $this
-        );
-        $subQueryExpression = $db->expression($subQuery)->value;
-        // get related galaxies
-        $attributeTagScores = $this->query("SELECT name, value FROM (" . $subQueryExpression . ") AS score, tags WHERE tags.id=score.id;");
 
         // arrange data
         $scores = array();
         $maxScore = 0;
-        foreach ($attributeTagScores as $item) {
-            $score = $item['score']['value'];
-            $name = $item['tags']['name'];
+        foreach ($eventTagScores as $item) {
+            $score = $item['Event']['value'];
+            $name = $item['Tag']['name'];
             if (in_array($name, $allowedTags)) {
                 $maxScore = $score > $maxScore ? $score : $maxScore;
                 $scores[$name] = $score;

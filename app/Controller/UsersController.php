@@ -1900,101 +1900,159 @@ class UsersController extends AppController
     {
         $this->loadModel('Event');
         $this->loadModel('Galaxy');
+        $this->loadModel('Organisation');
         $mitre_galaxy_id = $this->Galaxy->getMitreAttackGalaxyId();
         if (isset($params['galaxy_id'])) {
             $galaxy_id = $params['galaxy_id'];
         } else {
             $galaxy_id = $mitre_galaxy_id;
         }
-        $matrixData = $this->Galaxy->getMatrix($galaxy_id);
-
-        $tabs = $matrixData['tabs'];
-        $matrixTags = $matrixData['matrixTags'];
-        $killChainOrders = $matrixData['killChain'];
-        $instanceUUID = $matrixData['instance-uuid'];
-
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores(0, $matrixTags);
-        $scoresDataEvent = $this->Event->EventTag->getTagScores(0, $matrixTags);
-        $scoresData = array();
-        foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
-            $scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+        $organisations = $this->Organisation->find('all', array(
+                'recursive' => -1,
+        ));
+        array_unshift($organisations, array('Organisation' => array('id' => 0, 'name' => 'All')));
+        $this->set('organisations', $organisations);
+        $picked_organisation = 0;
+        if (isset($params['organisation']) && $params['organisation'] != 0) {
+            $org = $this->Organisation->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('id' => $params['organisation']),
+            ));
+            if (!empty($org)) {
+                $picked_organisation = $org;
+                $this->set('picked_organisation', $picked_organisation);
+            } else {
+                $this->set('picked_organisation', array('Organisation' => array('id' => '')));
+            }
+        } else {
+            $this->set('picked_organisation', array('Organisation' => array('id' => '')));
         }
-        $maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
-        $scores = $scoresData;
-        // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
-        if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
-            $mergedScore = array();
-            foreach ($scoresData as $tag => $v) {
-                $predicateValue = explode(':', $tag, 2)[1];
-                $predicateValue = explode('=', $predicateValue, 2);
-                $predicate = $predicateValue[0];
-                $clusterValue = $predicateValue[1];
-                $mappedTag = '';
-                $mappingWithoutExternalId = array();
-                if ($predicate == 'mitre-attack-pattern') {
-                    $mappedTag = $tag;
-                    $name = explode(" ", $tag);
-                    $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
-                    $mappingWithoutExternalId[$name] = $tag;
-                } else {
-                    $name = explode(" ", $clusterValue);
-                    $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
-                    if (isset($mappingWithoutExternalId[$name])) {
-                        $mappedTag = $mappingWithoutExternalId[$name];
+
+        $rest_response_empty = true;
+        $ignore_score = false;
+        if (
+            isset($params['dateFrom'])
+            || isset($params['dateTo'])
+            || isset($params['organisation']) && $params['organisation'] != 0
+        ) { // use restSearch
+            $filters = array();
+            if (isset($params['dateFrom'])) {
+                $filters['from'] = $params['dateFrom'];
+                $this->set('dateFrom', $params['dateFrom']);
+            }
+            if (isset($params['dateTo'])) {
+                $filters['to'] = $params['dateTo'];
+                $this->set('dateTo', $params['dateTo']);
+            }
+            if (isset($params['organisation'])) {
+                $filters['org'] = $params['organisation'];
+            }
+            $elementCounter = 0;
+            $renderView = '';
+            $final = $this->Event->Attribute->restSearch($this->Auth->user(), 'attack', $filters, false, false, $elementCounter, $renderView);
+            $final = json_decode($final, true);
+            if (!empty($final)) {
+                $rest_response_empty = false;
+                $ignore_score = true;
+            }
+            foreach ($final as $key => $data) {
+                $this->set($key, $data);
+            }
+        }
+
+        if ($rest_response_empty) {
+            $matrixData = $this->Galaxy->getMatrix($galaxy_id);
+            $tabs = $matrixData['tabs'];
+            $matrixTags = $matrixData['matrixTags'];
+            $killChainOrders = $matrixData['killChain'];
+            $instanceUUID = $matrixData['instance-uuid'];
+            if ($ignore_score) {
+                $scoresDataAttr = array('scores' => array(), 'maxScore' => 0);
+                $scoresDataEvent = array('scores' => array(), 'maxScore' => 0);
+            } else {
+                $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores(0, $matrixTags);
+                $scoresDataEvent = $this->Event->EventTag->getTagScores(0, $matrixTags, true);
+            }
+            $scoresData = array();
+            foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
+                $scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+            }
+            $maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
+            $scores = $scoresData;
+            // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
+            if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
+                $mergedScore = array();
+                foreach ($scoresData as $tag => $v) {
+                    $predicateValue = explode(':', $tag, 2)[1];
+                    $predicateValue = explode('=', $predicateValue, 2);
+                    $predicate = $predicateValue[0];
+                    $clusterValue = $predicateValue[1];
+                    $mappedTag = '';
+                    $mappingWithoutExternalId = array();
+                    if ($predicate == 'mitre-attack-pattern') {
+                        $mappedTag = $tag;
+                        $name = explode(" ", $tag);
+                        $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                        $mappingWithoutExternalId[$name] = $tag;
                     } else {
-                        $adjustedTagName = $this->Galaxy->GalaxyCluster->find('list', array(
-                            'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name'),
-                            'conditions' => array('GalaxyCluster.tag_name LIKE' => 'misp-galaxy:mitre-attack-pattern=' . $name . '% T%'),
-                            'fields' => array('GalaxyCluster.tag_name')
-                        ));
-                        $adjustedTagName = array_values($adjustedTagName)[0];
-                        $mappingWithoutExternalId[$name] = $adjustedTagName;
-                        $mappedTag = $mappingWithoutExternalId[$name];
+                        $name = explode(" ", $clusterValue);
+                        $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                        if (isset($mappingWithoutExternalId[$name])) {
+                            $mappedTag = $mappingWithoutExternalId[$name];
+                        } else {
+                            $adjustedTagName = $this->Galaxy->GalaxyCluster->find('list', array(
+                                'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name'),
+                                'conditions' => array('GalaxyCluster.tag_name LIKE' => 'misp-galaxy:mitre-attack-pattern=' . $name . '% T%'),
+                                'fields' => array('GalaxyCluster.tag_name')
+                            ));
+                            $adjustedTagName = array_values($adjustedTagName)[0];
+                            $mappingWithoutExternalId[$name] = $adjustedTagName;
+                            $mappedTag = $mappingWithoutExternalId[$name];
+                        }
+                    }
+
+                    if (isset($mergedScore[$mappedTag])) {
+                        $mergedScore[$mappedTag] += $v;
+                    } else {
+                        $mergedScore[$mappedTag] = $v;
                     }
                 }
+                $scores = $mergedScore;
+                $maxScore = !empty($mergedScore) ? max(array_values($mergedScore)) : 0;
+            }
+            // end FIXME
 
-                if (isset($mergedScore[$mappedTag])) {
-                    $mergedScore[$mappedTag] += $v;
-                } else {
-                    $mergedScore[$mappedTag] = $v;
+            $this->Galaxy->sortMatrixByScore($tabs, $scores);
+            if ($this->_isRest()) {
+                $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
+                return $this->RestResponse->viewData($json, $this->response->type());
+            } else {
+                App::uses('ColourGradientTool', 'Tools');
+                $gradientTool = new ColourGradientTool();
+                $colours = $gradientTool->createGradientFromValues($scores);
+
+                $this->set('target_type', 'attribute');
+                $this->set('columnOrders', $killChainOrders);
+                $this->set('tabs', $tabs);
+                $this->set('scores', $scores);
+                $this->set('maxScore', $maxScore);
+                if (!empty($colours)) {
+                    $this->set('colours', $colours['mapping']);
+                    $this->set('interpolation', $colours['interpolation']);
                 }
+                $this->set('pickingMode', false);
+                if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
+                    $this->set('defaultTabName', "mitre-attack");
+                    $this->set('removeTrailling', 2);
+                }
+
+                $this->set('galaxyName', $matrixData['galaxy']['name']);
+                $this->set('galaxyId', $matrixData['galaxy']['id']);
+                $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
+                $this->set('matrixGalaxies', $matrixGalaxies);
             }
-            $scores = $mergedScore;
-            $maxScore = max(array_values($mergedScore));
         }
-        // end FIXME
-
-        $this->Galaxy->sortMatrixByScore($tabs, $scores);
-        if ($this->_isRest()) {
-            $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
-            return $this->RestResponse->viewData($json, $this->response->type());
-        } else {
-            App::uses('ColourGradientTool', 'Tools');
-            $gradientTool = new ColourGradientTool();
-            $colours = $gradientTool->createGradientFromValues($scores);
-
-            $this->set('target_type', 'attribute');
-            $this->set('columnOrders', $killChainOrders);
-            $this->set('tabs', $tabs);
-            $this->set('scores', $scores);
-            $this->set('maxScore', $maxScore);
-            if (!empty($colours)) {
-                $this->set('colours', $colours['mapping']);
-                $this->set('interpolation', $colours['interpolation']);
-            }
-            $this->set('pickingMode', false);
-            if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
-                $this->set('defaultTabName', "mitre-attack");
-                $this->set('removeTrailling', 2);
-            }
-
-            $this->set('galaxyName', $matrixData['galaxy']['name']);
-            $this->set('galaxyId', $matrixData['galaxy']['id']);
-            $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
-            $this->set('matrixGalaxies', $matrixGalaxies);
-
-            $this->render('statistics_galaxymatrix');
-        }
+        $this->render('statistics_galaxymatrix');
     }
 
     public function verifyGPG($full = false)
