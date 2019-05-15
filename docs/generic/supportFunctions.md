@@ -117,6 +117,7 @@ checkFlavour () {
 }
 
 checkInstaller () {
+  # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
   if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
     sudo apt install libdigest-sha-perl -qyy
   fi
