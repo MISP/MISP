@@ -3863,7 +3863,10 @@ function checkAndEnableCheckbox(id, enable) {
 function enableDisableObjectRows(rows) {
     rows.forEach(function(i) {
         if ($("#Attribute" + i + "ValueSelect").length != 0) {
-            checkAndEnableCheckbox("#Attribute" + i + "Save", true);
+            checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "ValueSelect").val() != "");
+            $("#Attribute" + i + "ValueSelect").bind('input propertychange', function() {
+                checkAndEnableCheckbox("#Attribute" + i + "Save", $(this).val() != "");
+            })
         } else if ($("#Attribute" + i + "Attachment").length != 0) {
             checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
         } else {
@@ -4105,6 +4108,8 @@ $(document).ready(function() {
         url = "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
         $.get(url, function(data) {
             $('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
+            var $added_row = $('#row_' + object_relation + '_expand').prev().prev();
+            $added_row.find('select.Attribute_value_select option:first').attr('disabled', true);
         });
     });
     $('.quickToggleCheckbox').toggle(function() {
