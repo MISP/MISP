@@ -4077,6 +4077,8 @@ $(document).ready(function() {
         url = "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
         $.get(url, function(data) {
             $('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
+            var $added_row = $('#row_' + object_relation + '_expand').prev().prev();
+            $added_row.find('select.Attribute_value_select option:first').attr('disabled', true);
         });
     });
     $('.quickToggleCheckbox').toggle(function() {
