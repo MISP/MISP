@@ -997,8 +997,54 @@ class ObjectsController extends AppController
     {
         $selected = json_decode($selected, true);
         $potential_templates = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $event_id, $selected);
-        // sort based on compatibility (# item in array)
+        usort($potential_templates, function($a, $b) {
+            if ($a['ObjectTemplate']['id'] == $b['ObjectTemplate']['id']) {
+                return 0;
+            } else if (is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
+                return count($a['ObjectTemplate']['compatibility']) > count($b['ObjectTemplate']['compatibility']) ? 1 : -1;
+            } else if (is_array($a['ObjectTemplate']['compatibility']) && !is_array($b['ObjectTemplate']['compatibility'])) {
+                return 1;
+            } else if (!is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
+                return -1;
+            } else {
+                return 0;
+            }
+        });
         $this->set('potential_templates', $potential_templates);
+        $this->set('event_id', $event_id);
+    }
+
+    function mergeObjectsFromAttributes($event_id, $selected_template, $selected_attribute_ids='[]')
+    {
+        if ($this->request->is('post')) {
+            $event_id = $object['Event']['id'];
+            $event = $this->Object->Event->find('first', array(
+                'recursive' => -1,
+                'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
+                'conditions' => array('Event.id' => $event_id)
+            ));
+            if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+            $template = $this->Object->ObjectTemplate->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('ObjectTemplate.id' => $selected_template, 'ObjectTemplate.active' => true)
+            ));
+            if (empty($template)) {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+        } else {
+            // TODO: validate
+            $selected_attribute_ids = json_decode($selected_attribute_ids, true);
+            $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+            $this->set('distributionData', $distributionData);
+            $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
+            $this->set('selectedTemplateTd', $selected_template);
+            $this->set('selectedAttributeIds', $selected_attribute_ids);
+            $selected_attributes = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $selected_attribute_ids)));
+            $this->set('attributes', $selected_attributes);
+
+        }
     }
 
 }
