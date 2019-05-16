@@ -3644,7 +3644,7 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     $('#temp').html(formData);
     $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
     if (target_id == 'selected') {
-        $('#AttributeAttributeIds').val(getSelected());
+        $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
     }
     $.ajax({
         data: $('#GalaxyAttachMultipleClustersForm').serialize(),
