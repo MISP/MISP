@@ -3793,6 +3793,22 @@ class Server extends AppModel
                     return array('status' => 6);
                 }
             }
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: Connection test failed. Returned data is in the change field.',
+                    'change' => sprintf(
+                        'response () => (%s), response-code () => (%s)',
+                        $response->body,
+                        $response->code
+                    )
+            ));
             return array('status' => 3);
         }
     }
