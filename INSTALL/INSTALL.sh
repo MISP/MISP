@@ -24,11 +24,11 @@
 # 1/ For other Debian based Linux distributions, download script and run as **unprivileged** user |
 #-------------------------------------------------------------------------------------------------|
 #
-# The following installs only MISP-core:
-# $ wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh ; bash /tmp/INSTALL.sh -c
+# The following installs only MISP Core:
+# $ wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh ; bash /tmp/INSTALL.sh -c
 #
-# This will install MISP Core and misp-modules (recommended)
-# $ wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh ; bash /tmp/INSTALL.sh -c -M
+# This will install MISP Core and misp-modules
+# $ wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh ; bash /tmp/INSTALL.sh -c -M
 #
 #
 #-------------------------------------------------------|
@@ -36,7 +36,7 @@
 #-------------------------------------------------------|
 #
 # To install MISP on Kali copy paste the following to your r00t shell:
-# # wget -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
+# # wget --no-cache -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
 #
@@ -276,7 +276,7 @@ checkInstaller () {
   # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
   SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
   for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
-    /usr/bin/wget -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
+    /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
     INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
     chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
 
@@ -1267,6 +1267,9 @@ coreCAKE () {
 
   # The default install is Python >=3.6 in a virtualenv, setting accordingly
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
+
+  # Set default role
+  $SUDO_WWW $RUN_PHP -- $CAKE setDefaultRole 3
 
   # Tune global time outs
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Session.autoRegenerate" 0
