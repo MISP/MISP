@@ -25,10 +25,10 @@
 #-------------------------------------------------------------------------------------------------|
 #
 # The following installs only MISP-core:
-# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s -- -c
+# $ wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh ; bash /tmp/INSTALL.sh -c
 #
 # This will install MISP Core and misp-modules (recommended)
-# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s -- -c -M
+# $ wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh ; bash /tmp/INSTALL.sh -c -M
 #
 #
 #-------------------------------------------------------|
