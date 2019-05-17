@@ -732,26 +732,78 @@ class MispObject extends AppModel
             array(
                 'conditions' => array(
                     'id' => $selected,
-                    'event_id' => $event_id
+                    'event_id' => $event_id,
+                    'object_id' => 0
                 ),
             )
         );
         // $attribute_types = array_keys(Hash::combine($attributes, '{n}.Attribute.type'));
+        if (empty($attributes)) {
+            return array();
+        }
         $attribute_types = array();
         foreach ($attributes as $i => $attribute) {
             $attribute_types[$attribute['Attribute']['type']] = 1;
             $attributes[$i]['Attribute']['object_relation'] = $attribute['Attribute']['type'];
         }
         $attribute_types = array_keys($attribute_types);
-        array_walk($attribute_types, function(&$value) { $value = '"' . $value . '"'; });
         $db = $this->getDataSource();
-        $potential_templates = $db->fetchAll(
-            'SELECT object_templates.id, object_templates.name, count(object_template_elements.type) as type_count FROM object_templates '
-                .'RIGHT JOIN object_template_elements ON object_templates.id = object_template_elements.object_template_id '
-                .'WHERE object_templates.active=1 AND object_template_elements.type IN (' . implode(',', $attribute_types) . ') '
-                .'GROUP BY object_templates.name ORDER BY type_count DESC;'
-        );
-        $potential_template_ids = Hash::extract($potential_templates, '{n}.object_templates.id');
+        // # TEST 1
+        // array_walk($attribute_types, function(&$value) { $value = '"' . $value . '"'; });
+        // $potential_templates = $db->fetchAll(
+        //     'SELECT object_templates.id, object_templates.name, count(object_template_elements.type) as type_count FROM object_templates '
+        //         .'RIGHT JOIN object_template_elements ON object_templates.id = object_template_elements.object_template_id '
+        //         .'WHERE object_templates.active=1 AND object_template_elements.type IN (' . implode(',', $attribute_types) . ') '
+        //         .'GROUP BY object_templates.name ORDER BY type_count DESC;'
+        // );
+        // $potential_template_ids = Hash::extract($potential_templates, '{n}.object_templates.id');
+
+        // TEST 2
+        // $potential_templates = $this->ObjectTemplate->find('all', array(
+        //     'recursive' => -1,
+        //     'fields' => array(
+        //         'ObjectTemplate.id',
+        //         'ObjectTemplate.name',
+        //         'COUNT(ObjectTemplateElement.type) as type_count'
+        //     ),
+        //     'conditions' => array(
+        //         'ObjectTemplate.active' => true,
+        //     ),
+        //     'contain' => array(
+        //         'ObjectTemplateElement' => array(
+        //             'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
+        //             'conditions' => array('ObjectTemplateElement.type' => $attribute_types)
+        //         )
+        //     ),
+        //     'group' => 'ObjectTemplate.name',
+        //     'order' => 'type_count DESC'
+        // ));
+
+        $potential_templates = $this->ObjectTemplate->find('all', array(
+            'recursive' => -1,
+            'fields' => array(
+                'ObjectTemplate.id',
+                'ObjectTemplate.name',
+                'COUNT(ObjectTemplateElement.type) as type_count'
+            ),
+            'conditions' => array(
+                'ObjectTemplate.active' => true,
+                'ObjectTemplateElement.type' => $attribute_types
+            ),
+            'joins' => array(
+                array(
+                    'table' => $db->fullTableName($this->ObjectTemplate->ObjectTemplateElement),
+                    'alias' => 'ObjectTemplateElement',
+                    'type' => 'RIGHT',
+                    'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
+                    'conditions' => array('ObjectTemplate.id = ObjectTemplateElement.object_template_id')
+                )
+            ),
+            'group' => 'ObjectTemplate.name',
+            'order' => 'type_count DESC'
+        ));
+
+        $potential_template_ids = Hash::extract($potential_templates, '{n}.ObjectTemplate.id');
         $templates = $this->ObjectTemplate->find('all', array(
             'recursive' => -1,
             'conditions' => array('id' => $potential_template_ids),
@@ -759,7 +811,10 @@ class MispObject extends AppModel
         ));
 
         foreach ($templates as $i => $template) {
-            $templates[$i]['ObjectTemplate']['compatibility'] = $this->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributes);
+            $res = $this->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributes);
+            $templates[$i]['ObjectTemplate']['compatibility'] = $res['valid'] ? true : $res['missingTypes'];
+            $templates[$i]['ObjectTemplate']['invalidTypes'] = $res['invalidTypes'];
+            $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
         }
         return $templates;
     }

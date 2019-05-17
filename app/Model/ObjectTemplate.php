@@ -206,6 +206,7 @@ class ObjectTemplate extends AppModel
 
     public function checkTemplateConformityBasedOnTypes($template, $attributes)
     {
+        $to_return = array('valid' => true, 'missingTypes' => array());
         if (!empty($template['ObjectTemplate']['requirements'])) {
             // check for all required attributes
             if (!empty($template['ObjectTemplate']['requirements']['required'])) {
@@ -218,7 +219,7 @@ class ObjectTemplate extends AppModel
                         }
                     }
                     if (!$found) {
-                        return array($requiredType);
+                        $to_return = array('valid' => false, 'missingTypes' => array($requiredType));
                     }
                 }
             }
@@ -236,12 +237,38 @@ class ObjectTemplate extends AppModel
                     }
                 }
                 if (!$found) {
-                    return $all_required_type;
+                    $to_return = array('valid' => false, 'missingTypes' => $all_required_type);
                 }
             }
         }
-        // multiple flag ignored. Will be taken care of in client view. For now?
-        return true;
+
+        // at this point, an object can be created; checking if all attribute are valids
+        $valid_types = array();
+        $to_return['invalidTypes'] = array();
+        $to_return['invalidTypesMultiple'] = array();
+        foreach ($template['ObjectTemplateElement'] as $templateElement) {
+            $valid_types[$templateElement['type']] = $templateElement['multiple'];
+        }
+        $check_for_multiple_type = array();
+        foreach ($attributes as $attribute) {
+            if (isset($valid_types[$attribute['Attribute']['type']])) {
+                if (!$valid_types[$attribute['Attribute']['type']]) { // is not multiple
+                    if (isset($check_for_multiple_type[$attribute['Attribute']['type']])) {
+                        $to_return['invalidTypesMultiple'][] = $attribute['Attribute']['type'];
+                    } else {
+                        $check_for_multiple_type[$attribute['Attribute']['type']] = 1;
+                    }
+                }
+            } else {
+                $to_return['invalidTypes'][] = $attribute['Attribute']['type'];
+            }
+        }
+        $to_return['invalidTypes'] = array_unique($to_return['invalidTypes']);
+        $to_return['invalidTypesMultiple'] = array_unique($to_return['invalidTypesMultiple']);
+        if (!empty($to_return['invalidTypesMultiple'])) {
+            $to_return['valid'] = false;
+        }
+        return $to_return;
     }
 
     // simple test to see if there are any object templates - if not trigger update

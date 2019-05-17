@@ -1006,8 +1006,8 @@ class ObjectsController extends AppController
                 return 1;
             } else if (!is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
                 return -1;
-            } else {
-                return 0;
+            } else { // sort based on invalidTypes count
+                return count($a['ObjectTemplate']['invalidTypes']) > count($b['ObjectTemplate']['invalidTypes']) ? 1 : -1;
             }
         });
         $this->set('potential_templates', $potential_templates);
@@ -1018,7 +1018,7 @@ class ObjectsController extends AppController
     {
         if ($this->request->is('post')) {
             $event_id = $object['Event']['id'];
-            $event = $this->Object->Event->find('first', array(
+            $event = $this->MispObject->Event->find('first', array(
                 'recursive' => -1,
                 'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
                 'conditions' => array('Event.id' => $event_id)
@@ -1026,22 +1026,36 @@ class ObjectsController extends AppController
             if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
                 throw new NotFoundException(__('Invalid event.'));
             }
-            $template = $this->Object->ObjectTemplate->find('first', array(
+            $template = $this->MispObject->ObjectTemplate->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('ObjectTemplate.id' => $selected_template, 'ObjectTemplate.active' => true)
             ));
             if (empty($template)) {
-                throw new NotFoundException(__('Invalid event.'));
+                throw new NotFoundException(__('Invalid template.'));
             }
         } else {
             // TODO: validate
             $selected_attribute_ids = json_decode($selected_attribute_ids, true);
+            $template = $this->MispObject->ObjectTemplate->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('ObjectTemplate.id' => $selected_template, 'ObjectTemplate.active' => true),
+                'contain' => array('ObjectTemplateElement' => array('fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type')))
+            ));
+            if (empty($template)) {
+                throw new NotFoundException(__('Invalid template.'));
+            }
+            $object_relations = array();
+            foreach ($template['ObjectTemplateElement'] as $template_element) {
+                $object_relations[$template_element['type']][] = $template_element['object_relation'];
+            }
             $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
             $this->set('distributionData', $distributionData);
             $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
             $this->set('selectedTemplateTd', $selected_template);
             $this->set('selectedAttributeIds', $selected_attribute_ids);
             $selected_attributes = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $selected_attribute_ids)));
+            $this->set('template', $template);
+            $this->set('object_relations', $object_relations);
             $this->set('attributes', $selected_attributes);
 
         }
