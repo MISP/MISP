@@ -97,7 +97,9 @@ function screenshotPopup(url, title) {
     if (!url.startsWith('data:image/')) {
         url = url.slice(0, -1);
     }
-    popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>'
+    popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
+    url = $('<div>').text(url).html();
+    title = $('<div>').text(title).html();
     popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" id="screenshot-image" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();"/>';
     popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
     if (!url.startsWith('data:image/')) {
@@ -3640,11 +3642,10 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
     var formData = fetchFormDataAjax(baseurl + "/galaxies/attachMultipleClusters/" + target_id + "/" + scope);
-    console.log(formData);
     $('#temp').html(formData);
-    $('#GalaxyTargetIds').val(JSON.stringify(cluster_ids));
+    $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
     if (target_id == 'selected') {
-        $('#AttributeAttributeIds').val(getSelected());
+        $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
     }
     $.ajax({
         data: $('#GalaxyAttachMultipleClustersForm').serialize(),
@@ -3832,7 +3833,10 @@ function checkAndEnableCheckbox(id, enable) {
 function enableDisableObjectRows(rows) {
     rows.forEach(function(i) {
         if ($("#Attribute" + i + "ValueSelect").length != 0) {
-            checkAndEnableCheckbox("#Attribute" + i + "Save", true);
+            checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "ValueSelect").val() != "");
+            $("#Attribute" + i + "ValueSelect").bind('input propertychange', function() {
+                checkAndEnableCheckbox("#Attribute" + i + "Save", $(this).val() != "");
+            })
         } else if ($("#Attribute" + i + "Attachment").length != 0) {
             checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
         } else {
@@ -4074,6 +4078,8 @@ $(document).ready(function() {
         url = baseurl + "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
         $.get(url, function(data) {
             $('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
+            var $added_row = $('#row_' + object_relation + '_expand').prev().prev();
+            $added_row.find('select.Attribute_value_select option:first').attr('disabled', true);
         });
     });
     $('.quickToggleCheckbox').toggle(function() {

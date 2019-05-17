@@ -52,7 +52,17 @@
         if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
         $table_data = array();
         $table_data[] = array('key' => __('Event ID'), 'value' => $event['Event']['id']);
-        $table_data[] = array('key' => 'UUID', 'value' => $event['Event']['uuid']);
+        $table_data[] = array(
+            'key' => 'UUID',
+            'html' => sprintf('%s %s',
+                $event['Event']['uuid'],
+                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px;" title="%s">+</a>',
+                    $baseurl,
+                    $event['Event']['id'],
+                    __('Extend this event')
+                )
+            )
+        );
         if (Configure::read('MISP.showorgalternate')) {
             $table_data[] = array(
                 'key' => __('Source Organisation'),

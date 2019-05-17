@@ -1928,6 +1928,9 @@ class EventsController extends AppController
         $this->set('info', $info);
         $this->set('analysisDescriptions', $this->Event->analysisDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
+        if (isset($this->params['named']['extends'])) {
+            $this->set('extends_uuid', $this->params['named']['extends']);
+        }
     }
 
     public function addIOC($id)
@@ -3283,7 +3286,7 @@ class EventsController extends AppController
         $paramArray = array(
             'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
             'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'returnFormat',
-            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless'
+            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy'
         );
         $filterData = array(
             'request' => $this->request,
@@ -3311,9 +3314,20 @@ class EventsController extends AppController
             $returnFormat = 'json';
         }
         $elementCounter = 0;
-        $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
-        $responseType = $this->Event->validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        $renderView = false;
+        $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        if (!empty($renderView) && !empty($final)) {
+            $this->layout = false;
+            $final = json_decode($final, true);
+            foreach ($final as $key => $data) {
+                $this->set($key, $data);
+            }
+            $this->render('/Events/module_views/' . $renderView);
+        } else {
+            $responseType = $this->Event->validFormats[$returnFormat][0];
+            return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        }
+
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)

@@ -9,16 +9,18 @@ To install MISP on a fresh Ubuntu install all you need to do is:
 
 ```bash
 # Please check the installer options first to make the best choice for your install
-curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s
+wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+bash /tmp/INSTALL.sh
 
 # This will install MISP Core and misp-modules (recommended)
-curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s -- -c -M
+wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+bash /tmp/INSTALL.sh -c -M
 ```
 
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190420 (works with **Ubuntu 18.10/19.04** too)
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190513 (works with **Ubuntu 18.10/19.04** too)
 
 !!! notice
     This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
@@ -89,7 +91,6 @@ installCoreDeps () {
   # install Mitre's STIX and its dependencies by running the following commands:
   sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -qy
 
-  sudo apt-get install python3-pip -qy
   sudo apt install expect -qy
 }
 # <snippet-end 0_installCoreDeps.sh>
@@ -242,15 +243,21 @@ permissions () {
 prepareDB () {
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     debug "Setting up database"
+
+    # FIXME: If user 'misp' exists, and has a different password, the below WILL fail.
     # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-    pw=$MISP_PASSWORD
+    if [[ "${PACKER}" == "1" ]]; then
+      pw="Password1234"
+    else
+      pw=${MISP_PASSWORD}
+    fi
 
     expect -f - <<-EOF
       set timeout 10
 
       spawn sudo -k mysql_secure_installation
       expect "*?assword*"
-      send -- "$pw\r"
+      send -- "${pw}\r"
       expect "Enter current password for root (enter for none):"
       send -- "\r"
       expect "Set root password?"
@@ -272,12 +279,13 @@ EOF
     sudo apt-get purge -y expect ; sudo apt autoremove -qy
   fi 
 
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE DATABASE ${DBNAME};"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT USAGE ON *.* to ${DBNAME}@localhost;"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "FLUSH PRIVILEGES;"
   # Import the empty MISP database from MYSQL.sql
-  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+  ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} ${DBNAME}
 }
 # <snippet-end 1_prepareDB.sh>
 ```
@@ -298,6 +306,12 @@ Now configure your Apache webserver with the DocumentRoot ${PATH_TO_MISP}/app/we
 apacheConfig () {
   debug "Generating Apache config"
   sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+
+  if [[ ! -z ${MISP_BASEURL} ]] && [[ "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "http" || "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "https" ]]; then
+
+    echo "Potentially replacing misp.local with $MISP_BASEURL in misp-ssl.conf"
+
+  fi
 
   # If a valid SSL certificate is not already created for the server,
   # create a self-signed certificate:
@@ -438,6 +452,7 @@ backgroundWorkers () {
   debug "Setting up background workers"
   # To make the background workers start on boot
   sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+
   if [ ! -e /etc/rc.local ]
   then
       echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
@@ -445,14 +460,28 @@ backgroundWorkers () {
       sudo chmod u+x /etc/rc.local
   fi
 
-  # Start the workers
-  $SUDO_WWW bash $PATH_TO_MISP/app/Console/worker/start.sh
+  echo "[Unit]
+Description=MISP background workers
+After=network.target
+
+[Service]
+Type=forking
+User=${WWW_USER}
+Group=${WWW_USER}
+ExecStart=${PATH_TO_MISP}/app/Console/worker/start.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target" | sudo tee /etc/systemd/system/misp-workers.service
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now misp-workers
 
   # Add the following lines before the last line (exit 0). Make sure that you replace www-data with your apache user:
   sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-  sudo sed -i -e '$i \sudo -u www-data bash ${PATH_TO_MISP}/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
 }
 # <snippet-end 2_backgroundWorkers.sh>
 ```
@@ -479,12 +508,16 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
 ```bash
-sudo apt-get install librdkafka-dev php-dev -y
-sudo pecl channel-update pecl.php.net
-sudo pecl install rdkafka
-echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
-sudo phpenmod rdkafka
-sudo service apache2 restart
+# <snippet-begin 4_kafka.sh>
+installKafka () {
+  sudo apt-get install librdkafka-dev php-dev -y
+  sudo pecl channel-update pecl.php.net
+  sudo pecl install rdkafka
+  echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
+  sudo phpenmod rdkafka
+  sudo service apache2 restart
+}
+# <snippet-end 4_kafka.sh>
 ```
 
 {!generic/misp-dashboard-debian.md!}
@@ -496,13 +529,6 @@ sudo service apache2 restart
 {!generic/mail_to_misp-debian.md!}
 
 {!generic/hardening.md!}
-
-#### misp-modules (section deprecated)
--------------------------------
-!!! notice
-    If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:<br />
-    https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules<br />
-    Then the enrichment, export and import modules can be enabled in MISP via the settings.
 
 # INSTALL.sh
 

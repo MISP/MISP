@@ -194,20 +194,30 @@ class GalaxiesController extends AppController
                 'recursive' => -1
         ));
         $clusters = array();
+        $cluster_ids = array();
         foreach ($data as $k => $cluster) {
-            $temp = $this->Galaxy->GalaxyCluster->GalaxyElement->find('all', array(
-                'conditions' => array(
-                    'GalaxyElement.galaxy_cluster_id' => $cluster['GalaxyCluster']['id'],
-                    'GalaxyElement.key' => 'synonyms'
-                ),
-                'recursive' => -1
-            ));
+            $cluster_ids[] = $cluster['GalaxyCluster']['id'];
+        }
+        $synonyms = $this->Galaxy->GalaxyCluster->GalaxyElement->find('all', array(
+            'conditions' => array(
+                'GalaxyElement.galaxy_cluster_id' => $cluster_ids,
+                'GalaxyElement.key' => 'synonyms'
+            ),
+            'recursive' => -1
+        ));
+        $sorted_synonyms = array();
+        foreach ($synonyms as $synonym) {
+            $sorted_synonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym;
+        }
+        foreach ($data as $k => $cluster) {
             $cluster['GalaxyCluster']['synonyms_string'] = array();
-            foreach ($temp as $element) {
-                $cluster['GalaxyCluster']['synonyms_string'][] = $element['GalaxyElement']['value'];
-                $cluster['GalaxyElement'][] = $element['GalaxyElement'];
+            if (!empty($sorted_synonyms[$cluster['GalaxyCluster']['id']])) {
+                foreach ($sorted_synonyms[$cluster['GalaxyCluster']['id']] as $element) {
+                    $cluster['GalaxyCluster']['synonyms_string'][] = $element['GalaxyElement']['value'];
+                    $cluster['GalaxyElement'][] = $element['GalaxyElement'];
+                }
+                unset($sorted_synonyms[$cluster['GalaxyCluster']['id']]);
             }
-            unset($temp);
             $cluster['GalaxyCluster']['synonyms_string'] = implode(', ', $cluster['GalaxyCluster']['synonyms_string']);
             unset($cluster['GalaxyElement']);
             $clusters[$cluster['GalaxyCluster']['type']][$cluster['GalaxyCluster']['value']] = $cluster['GalaxyCluster'];

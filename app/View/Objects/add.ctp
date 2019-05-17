@@ -317,8 +317,9 @@
   var rows = <?php echo json_encode($row_list, true); ?>;
   $(document).ready(function() {
     enableDisableObjectRows(rows);
-        $(".Attribute_value_select").each(function() {
+    $(".Attribute_value_select").each(function() {
       checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == '<?php echo __('Enter value manually');?>');
+      $(this).find('option:first').attr('disabled', true);
     });
     $(".Attribute_distribution_select").change(function() {
       checkAndEnable($(this).parent().find('.Attribute_sharing_group_id_select'), $(this).val() == 4);

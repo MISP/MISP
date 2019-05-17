@@ -33,7 +33,7 @@ usage () {
   space
   echo -e "                -C | Only do ${YELLOW}pre-install checks and exit${NC}" # pre
   space
-  echo -e "                -u | Do an unattanded Install, no questions asked"      # UNATTENDED
+  echo -e "                -u | Do an unattended Install, no questions asked"      # UNATTENDED
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
@@ -78,6 +78,28 @@ setOpt () {
   done
 }
 
+# Try to detect what we are running on
+checkCoreOS () {
+
+  # lsb_release can exist on any platform. RedHat package: redhat-lsb
+  LSB_RELEASE=$(which lsb_release > /dev/null ; echo $?)
+  APT=$(which apt > /dev/null 2>&1; echo -n $?)
+  APT_GET=$(which apt-get > /dev/null 2>&1; echo $?)
+
+  # debian specific
+  # /etc/debian_version
+  ## os-release #generic
+  # /etc/os-release
+
+  # Redhat checks
+  if [[ -f "/etc/redhat-release" ]]; then
+    echo "This is some redhat flavour"
+    REDHAT=1
+    RHfla=$(cat /etc/redhat-release | cut -f 1 -d\ | tr [A-Z] [a-z])
+  fi
+
+}
+
 # Extract debian flavour
 checkFlavour () {
   if [ -z $(which lsb_release) ]; then
@@ -94,6 +116,28 @@ checkFlavour () {
   fi
 }
 
+checkInstaller () {
+  # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
+  if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
+    sudo apt install libdigest-sha-perl -qyy
+  fi
+  # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
+  SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
+  for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
+    /usr/bin/wget -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
+    INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
+    chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
+
+    if [[ "${chsum}" == "${INSTsum}" ]]; then
+      echo "sha${sum} matches"
+    else
+      echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
+      echo "Delete installer, re-download and please run again."
+      exit 1
+    fi
+  done
+}
+
 # Extract manufacturer
 checkManufacturer () {
   if [ -z $(which dmidecode) ]; then
@@ -104,9 +148,10 @@ checkManufacturer () {
   echo $MANUFACTURER
 }
 
-# Dynamic horizontal spacer
+# Dynamic horizontal spacer if needed, for autonomeous an no progress bar install, we are static.
 space () {
-  if [[ "$NO_PROGRESS" == "1" ]]; then
+  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then
+    echo "--------------------------------------------------------------------------------"
     return
   fi
   # Check terminal width
@@ -137,20 +182,25 @@ spin()
 
 # Progress bar
 progress () {
-  if [[ "$NO_PROGRESS" == "1" ]]; then
+  progress=$[$progress+$1]
+  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then
+    echo "progress=${progress}" > /tmp/INSTALL.stat
     return
   fi
   bar="#"
+
+  # Prevent progress of overflowing
   if [[ $progress -ge 100 ]]; then
     echo -ne "#####################################################################################################  (100%)\r"
     return
   fi
-  progress=$[$progress+$1]
+  # Display progress
   for p in $(seq 1 $progress); do
     bar+="#"
     echo -ne "$bar  ($p%)\r"
   done
   echo -ne '\n'
+  echo "progress=${progress}" > /tmp/INSTALL.stat
 }
 
 # Check locale
@@ -322,7 +372,7 @@ setBaseURL () {
   CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
   IFACE=`echo $CONN |awk {'print $1'}`
   IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
-  if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
+  if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
@@ -714,6 +764,8 @@ theEnd () {
   echo "User: ${MISP_USER}"
   echo "Password: ${MISP_PASSWORD} # Or the password you used of your custom user"
   space
+  echo "GnuPG Passphrase is: ${GPG_PASSPHRASE}"
+  space
   echo "To enable outgoing mails via postfix set a permissive SMTP server for the domains you want to contact:"
   echo
   echo "sudo postconf -e 'relayhost = example.com'"
@@ -724,6 +776,12 @@ theEnd () {
   if [[ "$UNATTENDED" == "1" ]]; then
     echo -e "${RED}Unattended install!${NC}"
     echo -e "This means we guessed the Base URL, it might be wrong, please double check."
+    space
+  fi
+
+  if [[ "$PACKER" == "1" ]]; then
+    echo -e "${RED}This was an Automated Packer install!${NC}"
+    echo -e "This means we forced an unattended install."
     space
   fi
 
