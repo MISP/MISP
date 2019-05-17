@@ -245,7 +245,7 @@ class AppController extends Controller
                                         'email' => $user['User']['email'],
                                         'action' => 'auth',
                                         'title' => 'Successful authentication using API key',
-                                        'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+                                        'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . Router::url(null, true),
                                 );
                                 $this->Log->save($log);
                             }
@@ -349,7 +349,7 @@ class AppController extends Controller
         } else {
             if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
                 if (!$this->request->is('ajax')) {
-                    $this->Session->write('pre_login_requested_url', $this->here);
+                    $this->Session->write('pre_login_requested_url', Router::url(null, true));
                 }
                 $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
             }
@@ -925,7 +925,7 @@ class AppController extends Controller
                             'email' => $user['User']['email'],
                             'action' => 'auth',
                             'title' => 'Successful authentication using ' . $authName . ' key',
-                            'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+                            'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . Router::url(null, true),
                         );
                         $this->Log->save($log);
                     }

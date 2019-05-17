@@ -796,7 +796,7 @@ class FeedsController extends AppController
         $result = $this->__toggleEnable($id, true);
         $this->set('name', $result['message']);
         $this->set('message', $result['message']);
-        $this->set('url', $this->here);
+        $this->set('url', Router::url(null, true));
         if ($result) {
             $this->set('_serialize', array('name', 'message', 'url'));
         } else {
@@ -810,7 +810,7 @@ class FeedsController extends AppController
         $result = $this->__toggleEnable($id, false);
         $this->set('name', $result['message']);
         $this->set('message', $result['message']);
-        $this->set('url', $this->here);
+        $this->set('url', Router::url(null, true));
         if ($result['result']) {
             $this->set('_serialize', array('name', 'message', 'url'));
         } else {

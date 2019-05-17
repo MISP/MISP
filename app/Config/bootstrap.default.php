@@ -111,9 +111,12 @@ if (!$relativePaths) {
  * Configure base URL for CakePHP
  */
 if (Configure::read('MISP.baseurl')) {
-	$regex = "%^(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,5})(?::(?<port>[0-9]+))?(?<base>/[a-z0-9_\-\.]+)?$%i";
+	$regex = "%^(?<fullBaseUrl>(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,5})(?::(?<port>[0-9]+))?)(?<base>/[a-z0-9_\-\.]+)?$%i";
 	if (preg_match($regex, Configure::read('MISP.baseurl'), $matches)) {
-		if (isset($matches['base'])) Configure::write('App.base', $matches['base']);
+		if (isset($matches['base'])) {
+			Configure::write('App.base', $matches['base']);
+			Configure::write('App.fullBaseUrl', $matches['fullBaseUrl']);
+		}
 	}
 }
 
