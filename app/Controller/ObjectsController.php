@@ -993,10 +993,10 @@ class ObjectsController extends AppController
         $this->set('unmapped', $unmappedAttributes);
     }
 
-    function proposeObjectsFromAttributes($event_id, $selected='[]')
+    function proposeObjectsFromAttributes($event_id, $selected_attributes='[]')
     {
-        $selected = json_decode($selected, true);
-        $potential_templates = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $event_id, $selected);
+        $selected_attributes = json_decode($selected_attributes, true);
+        $potential_templates = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $event_id, $selected_attributes);
         usort($potential_templates, function($a, $b) {
             if ($a['ObjectTemplate']['id'] == $b['ObjectTemplate']['id']) {
                 return 0;
@@ -1034,15 +1034,30 @@ class ObjectsController extends AppController
                 throw new NotFoundException(__('Invalid template.'));
             }
         } else {
-            // TODO: validate
             $selected_attribute_ids = json_decode($selected_attribute_ids, true);
+            $selected_attributes = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array(
+                'Attribute.id' => $selected_attribute_ids,
+                'Attribute.event_id' => $event_id,
+                'Attribute.object_id' => 0
+            )));
+            if (empty($selected_attributes)) {
+                throw new MethodNotAllowedException(__('No Attribute selected.'));
+            }
             $template = $this->MispObject->ObjectTemplate->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('ObjectTemplate.id' => $selected_template, 'ObjectTemplate.active' => true),
-                'contain' => array('ObjectTemplateElement' => array('fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type')))
+                'contain' => 'ObjectTemplateElement'
             ));
             if (empty($template)) {
                 throw new NotFoundException(__('Invalid template.'));
+            }
+            $conformity_result = $this->MispObject->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $selected_attributes);
+            $skipped_attributes = 0;
+            foreach ($selected_attributes as $i => $attribute) {
+                if (in_array($attribute['Attribute']['type'], $conformity_result['invalidTypes'])) {
+                    unset($selected_attributes[$i]);
+                    $skipped_attributes++;
+                }
             }
             $object_relations = array();
             foreach ($template['ObjectTemplateElement'] as $template_element) {
@@ -1053,11 +1068,10 @@ class ObjectsController extends AppController
             $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
             $this->set('selectedTemplateTd', $selected_template);
             $this->set('selectedAttributeIds', $selected_attribute_ids);
-            $selected_attributes = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $selected_attribute_ids)));
             $this->set('template', $template);
             $this->set('object_relations', $object_relations);
             $this->set('attributes', $selected_attributes);
-
+            $this->set('skipped_attributes', $skipped_attributes);
         }
     }
 

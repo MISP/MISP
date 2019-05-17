@@ -29,7 +29,7 @@
                     </td>
                     <?php if ($potential_template['ObjectTemplate']['compatibility'] === true): ?>
                         <td>
-                            <i class="fa fa-check"></i>
+                            <i class="fa fa-check" style="font-size: medium;" title="<?php echo __('This Object is compatible for the merge'); ?>"></i>
                             <?php if (!empty($potential_template['ObjectTemplate']['invalidTypes'])): ?>
                                 <?php foreach ($potential_template['ObjectTemplate']['invalidTypes'] as $type): ?>
                                     <span class="label label-warning" title="<?php echo __('This Attribute type cannot be part of this Object template. If you merge the selected Attributes into this object, all Attribute having this type will be ignored.'); ?>"><?php echo h($type); ?></span>

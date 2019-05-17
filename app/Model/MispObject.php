@@ -726,12 +726,12 @@ class MispObject extends AppModel
         return count($orphans);
     }
 
-    public function validObjectsFromAttributeTypes($user, $event_id, $selected)
+    public function validObjectsFromAttributeTypes($user, $event_id, $selected_attribute_ids)
     {
         $attributes = $this->Attribute->fetchAttributesSimple($user,
             array(
                 'conditions' => array(
-                    'id' => $selected,
+                    'id' => $selected_attribute_ids,
                     'event_id' => $event_id,
                     'object_id' => 0
                 ),

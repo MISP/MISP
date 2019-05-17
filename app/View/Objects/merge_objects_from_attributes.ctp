@@ -79,8 +79,15 @@ echo $this->Form->create('Object');
     </table>
 </div>
 
+<?php if ($skipped_attributes > 0): ?>
+    <div class="alert" style="margin-top: 15px;">
+        <strong><?php echo __('Skipped'); ?></strong> <?php echo h($skipped_attributes) . __(' Attribute(s)') ?>
+    </div>
+<?php endif; ?>
+
+
 <div style="margin-top: 15px; text-align: center;">
-    <button class="btn btn-primary">Merge Selected Attribute into an Object</button>
+    <button class="btn btn-primary"><?php echo __('Merge above Attributes into an Object'); ?></button>
 </div>
 
 <script>
