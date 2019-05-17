@@ -45,6 +45,7 @@ class Log extends AppModel
                             'pull',
                             'push',
                             'remove_dead_workers',
+                            'request',
                             'request_delegation',
                             'reset_auth_key',
                             'serverSettingsEdit',
@@ -115,6 +116,9 @@ class Log extends AppModel
             }
         }
         $this->logData($this->data);
+        if ($this->data['Log']['action'] === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {
+            return false;
+        }
         return true;
     }
 

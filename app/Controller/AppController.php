@@ -444,6 +444,20 @@ class AppController extends Controller
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->userRole = $role;
+            if (Configure::read('MISP.log_paranoid')) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $log = array(
+                        'org' => $this->Auth->user('Organisation')['name'],
+                        'model' => 'User',
+                        'model_id' => $this->Auth->user('id'),
+                        'email' => $this->Auth->user('email'),
+                        'action' => 'request',
+                        'title' => 'Paranoid log entry',
+                        'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+                );
+                $this->Log->save($log);
+            }
         } else {
             $this->set('me', false);
         }

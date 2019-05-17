@@ -712,6 +712,24 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                        'log_paranoid' => array(
+                                'level' => 0,
+                                'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBoolFalse',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
+                        'log_paranoid_skip_db' => array(
+                                'level' => 0,
+                                'description' => __('You can decide to skip the logging of the paranoid logs to the database.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testParanoidSkipDb',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
                         'delegation' => array(
                                 'level' => 1,
                                 'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
@@ -3182,6 +3200,14 @@ class Server extends AppModel
         } else {
             return true;
         }
+    }
+
+    public function testParanoidSkipDb($value)
+    {
+        if (!empty(Configure::read('MISP.log_paranoid')) && empty($value)) {
+            return 'Perhaps consider skipping the database when using paranoid mode. A great number of entries will be added to your log database otherwise that will lead to performance degradation.';
+        }
+        return true;
     }
 
     public function testSalt($value)
