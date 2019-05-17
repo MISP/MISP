@@ -38,8 +38,9 @@ echo $this->Form->create('Object');
     )); ?>
     <div class="hidden">
         <?php
-            echo $this->Form->input('selectedTemplateId', array('hiddenField' => false, 'value' => $selectedTemplateTd));
-            echo $this->Form->input('selectedAttributeIds', array('hiddenField' => false, 'value' => $selectedAttributeIds));
+            echo $this->Form->input('selectedTemplateId', array('type' => 'hidden', 'value' => $selectedTemplateTd));
+            echo $this->Form->input('selectedAttributeIds', array('type' => 'hidden', 'value' => json_encode($selectedAttributeIds)));
+            echo $this->Form->input('selectedObjectRelationMapping', array('value' => ''));
             echo $this->Form->end();
         ?>
     </div>
@@ -50,19 +51,19 @@ echo $this->Form->create('Object');
         <thead>
             <tr>
                 <th><?php echo __('ID'); ?></th>
-                <th><?php echo __('Type'); ?></th>
+                <th><?php echo __('Name :: Type'); ?></th>
                 <th><?php echo __('Date'); ?></th>
                 <th><?php echo __('Category'); ?></th>
                 <th><?php echo __('Value'); ?></th>
                 <th><?php echo __('Distribution'); ?></th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id='attributeMappingBody'>
             <?php foreach ($attributes as $attribute): ?>
                 <tr>
-                    <td><?php echo h($attribute['Attribute']['id']); ?></td>
+                    <td id="isAttributeId"><?php echo h($attribute['Attribute']['id']); ?></td>
                     <td>
-                        <select>
+                        <select id="isAttributeMapping">
                             <?php foreach ($object_relations[$attribute['Attribute']['type']] as $object_relation): ?>
                                 <option value="<?php echo h($object_relation); ?>"><?php echo h($object_relation); ?></option>
                             <?php endforeach; ?>
@@ -87,11 +88,41 @@ echo $this->Form->create('Object');
 
 
 <div style="margin-top: 15px; text-align: center;">
-    <button class="btn btn-primary"><?php echo __('Merge above Attributes into an Object'); ?></button>
+    <button class="btn btn-primary" onclick="submitMergeAttributeIntoObjectForm(this);"><?php echo __('Merge above Attributes into an Object'); ?></button>
 </div>
 
 <script>
 $(".Object_distribution_select").change(function() {
     checkAndEnable($(this).parent().find('.Object_sharing_group_id_select'), $(this).val() == 4);
 });
+
+function submitMergeAttributeIntoObjectForm(btn) {
+    var $btn = $(btn);
+    var $form = $('#ObjectMergeObjectsFromAttributesForm');
+    var attribute_mapping = {};
+    $('#attributeMappingBody').find('tr').each(function() {
+        var $tr = $(this);
+        var attr_id = $tr.find('#isAttributeId').text();
+        var attr_mapping = $tr.find('#isAttributeMapping').val();
+        attribute_mapping[attr_id] = attr_mapping;
+    });
+    $('#ObjectSelectedObjectRelationMapping').val(JSON.stringify(attribute_mapping));
+    $.ajax({
+        data: $form.serialize(),
+        beforeSend: function (XMLHttpRequest) {
+            $btn.html('<it class="fa fa-spinner fa-spin"></it>');
+        },
+        success:function (data, textStatus) {
+            location.reload();
+        },
+        error:function() {
+            showMessage('fail', 'Could not merge Attributes into an Object.');
+        },
+        complete:function() {
+            // close all
+        },
+        type:"post",
+        url: "<?php echo $baseurl . '/objects/mergeObjectsFromAttributes/' . $event_id . '/' . $selectedTemplateTd; ?>"
+    });
+}
 </script>

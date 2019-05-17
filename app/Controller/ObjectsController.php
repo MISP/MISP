@@ -1017,7 +1017,6 @@ class ObjectsController extends AppController
     function mergeObjectsFromAttributes($event_id, $selected_template, $selected_attribute_ids='[]')
     {
         if ($this->request->is('post')) {
-            $event_id = $object['Event']['id'];
             $event = $this->MispObject->Event->find('first', array(
                 'recursive' => -1,
                 'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
@@ -1064,6 +1063,7 @@ class ObjectsController extends AppController
                 $object_relations[$template_element['type']][] = $template_element['object_relation'];
             }
             $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+            $this->set('event_id', $event_id);
             $this->set('distributionData', $distributionData);
             $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
             $this->set('selectedTemplateTd', $selected_template);
