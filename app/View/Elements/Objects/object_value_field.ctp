@@ -58,6 +58,7 @@
             'class' => 'Attribute_value_select',
             'style' => 'width:414px;margin-bottom:0px;',
             'options' => array_combine($list, $list),
+            'empty' => __('-- Select an option --'),
             'label' => false,
             'div' => false,
             'value' => $choice
