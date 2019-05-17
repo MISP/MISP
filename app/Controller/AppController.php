@@ -46,7 +46,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome');
 
-    private $__queryVersion = '69';
+    private $__queryVersion = '68';
     public $pyMispVersion = '2.4.106';
     public $phpmin = '7.0';
     public $phprec = '7.2';
@@ -447,6 +447,14 @@ class AppController extends Controller
             if (Configure::read('MISP.log_paranoid')) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
+                $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
+                if (($this->request->is('post') || $this->request->is('put')) && !empty(Configure::read('MISP.log_paranoid_include_post_body'))) {
+                    $payload = $this->request->data;
+                    if (!empty($payload['_Token'])) {
+                        unset($payload['_Token']);
+                    }
+                    $change .= PHP_EOL . 'Request body: ' . json_encode($payload);
+                }
                 $log = array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'User',
@@ -454,7 +462,7 @@ class AppController extends Controller
                         'email' => $this->Auth->user('email'),
                         'action' => 'request',
                         'title' => 'Paranoid log entry',
-                        'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+                        'change' => $change,
                 );
                 $this->Log->save($log);
             }

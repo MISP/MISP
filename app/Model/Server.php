@@ -730,6 +730,15 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'null' => true
                         ),
+                        'log_paranoid_include_post_body' => array(
+                                'level' => 0,
+                                'description' => __('If paranoid logging is enabled, include the POST body in the entries.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
                         'delegation' => array(
                                 'level' => 1,
                                 'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
