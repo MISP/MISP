@@ -712,6 +712,33 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                        'log_paranoid' => array(
+                                'level' => 0,
+                                'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBoolFalse',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
+                        'log_paranoid_skip_db' => array(
+                                'level' => 0,
+                                'description' => __('You can decide to skip the logging of the paranoid logs to the database.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testParanoidSkipDb',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
+                        'log_paranoid_include_post_body' => array(
+                                'level' => 0,
+                                'description' => __('If paranoid logging is enabled, include the POST body in the entries.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
                         'delegation' => array(
                                 'level' => 1,
                                 'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
@@ -3184,6 +3211,14 @@ class Server extends AppModel
         }
     }
 
+    public function testParanoidSkipDb($value)
+    {
+        if (!empty(Configure::read('MISP.log_paranoid')) && empty($value)) {
+            return 'Perhaps consider skipping the database when using paranoid mode. A great number of entries will be added to your log database otherwise that will lead to performance degradation.';
+        }
+        return true;
+    }
+
     public function testSalt($value)
     {
         if ($this->testForEmpty($value) !== true) {
@@ -3793,6 +3828,22 @@ class Server extends AppModel
                     return array('status' => 6);
                 }
             }
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: Connection test failed. Returned data is in the change field.',
+                    'change' => sprintf(
+                        'response () => (%s), response-code () => (%s)',
+                        $response->body,
+                        $response->code
+                    )
+            ));
             return array('status' => 3);
         }
     }

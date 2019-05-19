@@ -116,6 +116,28 @@ checkFlavour () {
   fi
 }
 
+checkInstaller () {
+  # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
+  if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
+    sudo apt install libdigest-sha-perl -qyy
+  fi
+  # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
+  SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
+  for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
+    /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
+    INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
+    chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
+
+    if [[ "${chsum}" == "${INSTsum}" ]]; then
+      echo "sha${sum} matches"
+    else
+      echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
+      echo "Delete installer, re-download and please run again."
+      exit 1
+    fi
+  done
+}
+
 # Extract manufacturer
 checkManufacturer () {
   if [ -z $(which dmidecode) ]; then
@@ -741,6 +763,8 @@ theEnd () {
   echo -e "The ${RED}LOCAL${NC} system credentials:"
   echo "User: ${MISP_USER}"
   echo "Password: ${MISP_PASSWORD} # Or the password you used of your custom user"
+  space
+  echo "GnuPG Passphrase is: ${GPG_PASSPHRASE}"
   space
   echo "To enable outgoing mails via postfix set a permissive SMTP server for the domains you want to contact:"
   echo

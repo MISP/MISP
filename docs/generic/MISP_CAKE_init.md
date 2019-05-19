@@ -17,6 +17,9 @@ coreCAKE () {
   # The default install is Python >=3.6 in a virtualenv, setting accordingly
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
+  # Set default role
+  $SUDO_WWW $RUN_PHP -- $CAKE setDefaultRole 3
+
   # Tune global time outs
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Session.autoRegenerate" 0
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Session.timeout" 600
