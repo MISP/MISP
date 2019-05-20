@@ -173,19 +173,7 @@ class AppController extends Controller
 
         $this->Security->blackHoleCallback = 'blackHole';
 
-        // Let us access $baseurl from all views
-        $baseurl = Configure::read('MISP.baseurl');
-        if (substr($baseurl, -1) == '/') {
-            // if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
-            $baseurl = rtrim($baseurl, '/');
-            $this->loadModel('Server');
-            $this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
-        }
-        if (trim($baseurl) == 'http://') {
-            $this->Server->serverSettingsSaveValue('MISP.baseurl', '');
-        }
-        $this->baseurl = $baseurl;
-        $this->set('baseurl', h($baseurl));
+        $this->_setupBaseurl();
 
         // send users away that are using ancient versions of IE
         // Make sure to update this if IE 20 comes out :)
@@ -283,7 +271,7 @@ class AppController extends Controller
         // user must accept terms
         //
         // grab the base path from our base url for use in the following checks
-        $base_dir = parse_url($baseurl, PHP_URL_PATH);
+        $base_dir = parse_url($this->baseurl, PHP_URL_PATH);
 
         // if MISP is running out of the web root already, just set this variable to blank so we don't wind up with '//' in the following if statements
         if ($base_dir == '/') {
@@ -516,6 +504,25 @@ class AppController extends Controller
         $this->set('flags', JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         $this->response->type('json');
         $this->render('/Servers/json/simple');
+    }
+
+    /*
+     * Sanitize the configured `MISP.baseurl` and expose it to the view as `baseurl`.
+     */
+    protected function _setupBaseurl() {
+        // Let us access $baseurl from all views
+        $baseurl = Configure::read('MISP.baseurl');
+        if (substr($baseurl, -1) == '/') {
+            // if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
+            $baseurl = rtrim($baseurl, '/');
+            $this->loadModel('Server');
+            $this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
+        }
+        if (trim($baseurl) == 'http://') {
+            $this->Server->serverSettingsSaveValue('MISP.baseurl', '');
+        }
+        $this->baseurl = $baseurl;
+        $this->set('baseurl', h($baseurl));
     }
 
     private function __convertEmailToName($email)
