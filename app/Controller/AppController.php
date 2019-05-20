@@ -124,17 +124,8 @@ class AppController extends Controller
         if (!empty($this->params['named']['sql'])) {
             $this->sql_dump = 1;
         }
-        // check for a supported datasource configuration
-        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-        if (!isset($dataSourceConfig['encoding'])) {
-            $db = ConnectionManager::getDataSource('default');
-            $db->setConfig(array('encoding' => 'utf8'));
-            ConnectionManager::create('default', $db->config);
-        }
-        $dataSource = $dataSourceConfig['datasource'];
-        if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
-            throw new Exception('datasource not supported: ' . $dataSource);
-        }
+
+        $this->_setupDatabaseConnection();
 
         $this->set('ajax', $this->request->is('ajax'));
         $this->set('queryVersion', $this->__queryVersion);
@@ -504,6 +495,24 @@ class AppController extends Controller
         $this->set('flags', JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         $this->response->type('json');
         $this->render('/Servers/json/simple');
+    }
+
+    /*
+     * Setup & validate the database connection configuration
+     * @throws Exception if the configured database is not supported.
+     */
+    protected function _setupDatabaseConnection() {
+        // check for a supported datasource configuration
+        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+        if (!isset($dataSourceConfig['encoding'])) {
+            $db = ConnectionManager::getDataSource('default');
+            $db->setConfig(array('encoding' => 'utf8'));
+            ConnectionManager::create('default', $db->config);
+        }
+        $dataSource = $dataSourceConfig['datasource'];
+        if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
+            throw new Exception('datasource not supported: ' . $dataSource);
+        }
     }
 
     /*
