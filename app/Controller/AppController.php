@@ -177,19 +177,7 @@ class AppController extends Controller
         }
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
-        // Let us access $baseurl from all views
-        $baseurl = Configure::read('MISP.baseurl');
-        if (substr($baseurl, -1) == '/') {
-            // if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
-            $baseurl = rtrim($baseurl, '/');
-            $this->loadModel('Server');
-            $this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
-        }
-        if (trim($baseurl) == 'http://') {
-            $this->Server->serverSettingsSaveValue('MISP.baseurl', '');
-        }
-        $this->baseurl = $baseurl;
-        $this->set('baseurl', h($baseurl));
+        $this->_setupBaseurl();
 
         // send users away that are using ancient versions of IE
         // Make sure to update this if IE 20 comes out :)
@@ -294,7 +282,7 @@ class AppController extends Controller
         // user must accept terms
         //
         // grab the base path from our base url for use in the following checks
-        $base_dir = parse_url($baseurl, PHP_URL_PATH);
+        $base_dir = parse_url($this->baseurl, PHP_URL_PATH);
 
         // if MISP is running out of the web root already, just set this variable to blank so we don't wind up with '//' in the following if statements
         if ($base_dir == '/') {
@@ -369,7 +357,7 @@ class AppController extends Controller
                 $this->Auth->logout();
                 throw new MethodNotAllowedException($message);//todo this should pb be removed?
             } else {
-                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
+                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $this->baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
             }
         }
         if ($this->Session->check(AuthComponent::$sessionKey)) {
@@ -516,6 +504,25 @@ class AppController extends Controller
         $this->set('flags', JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         $this->response->type('json');
         $this->render('/Servers/json/simple');
+    }
+
+    /*
+     * Sanitize the configured `MISP.baseurl` and expose it to the view as `baseurl`.
+     */
+    protected function _setupBaseurl() {
+        // Let us access $baseurl from all views
+        $baseurl = Configure::read('MISP.baseurl');
+        if (substr($baseurl, -1) == '/') {
+            // if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
+            $baseurl = rtrim($baseurl, '/');
+            $this->loadModel('Server');
+            $this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
+        }
+        if (trim($baseurl) == 'http://') {
+            $this->Server->serverSettingsSaveValue('MISP.baseurl', '');
+        }
+        $this->baseurl = $baseurl;
+        $this->set('baseurl', h($baseurl));
     }
 
     private function __convertEmailToName($email)
