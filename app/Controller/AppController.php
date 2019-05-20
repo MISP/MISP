@@ -126,6 +126,7 @@ class AppController extends Controller
         }
 
         $this->_setupDatabaseConnection();
+        $this->_setupDebugMode();
 
         $this->set('ajax', $this->request->is('ajax'));
         $this->set('queryVersion', $this->__queryVersion);
@@ -461,12 +462,7 @@ class AppController extends Controller
             }
         }
 
-        $this->debugMode = 'debugOff';
-        if (Configure::read('debug') > 1) {
-            $this->debugMode = 'debugOn';
-        }
         $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-        $this->set('debugMode', $this->debugMode);
         $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
         $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
@@ -495,6 +491,13 @@ class AppController extends Controller
         $this->set('flags', JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         $this->response->type('json');
         $this->render('/Servers/json/simple');
+    }
+
+    /*
+     * Configure the debugMode view parameter
+     */
+    protected function _setupDebugMode() {
+        $this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
     }
 
     /*
@@ -918,7 +921,6 @@ class AppController extends Controller
 
     private function __preAuthException($message)
     {
-        $this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
         $this->set('me', array());
         throw new ForbiddenException($message);
     }
