@@ -24,7 +24,8 @@ echo $this->Form->create('Object', array('url' => $baseurl . '/objects/groupAttr
     'options' => $distributionData['sgs'],
     'label' => false,
     'div' => false,
-    'style' => 'display:none;margin-bottom:5px;'
+    'style' => 'display:none;margin-bottom:5px;',
+    'value' => 0
     )); ?>
     <dt><?php echo __('Comment');?></dt>
     <dd>
@@ -109,19 +110,25 @@ function submitMergeAttributeIntoObjectForm(btn) {
         attribute_mapping[attr_id] = attr_mapping;
     });
     $('#ObjectSelectedObjectRelationMapping').val(JSON.stringify(attribute_mapping));
+    var btn_text_backup = '';
     $.ajax({
         data: $form.serialize(),
         beforeSend: function (XMLHttpRequest) {
+            btn_text_backup = $btn.text();
             $btn.html('<it class="fa fa-spinner fa-spin"></it>');
         },
         success:function (data, textStatus) {
-            // location.reload();
+            if (responseArray.errors !== undefined) {
+                showMessage('fail', responseArray.errors);
+                $btn.text(btn_text_backup);
+                return false;
+            } else {
+                location.reload();
+            }
         },
         error:function() {
             showMessage('fail', 'Could not merge Attributes into an Object.');
-        },
-        complete:function() {
-            // close all
+            showObjectProposition();
         },
         type:"post",
         url: $form.attr('action')

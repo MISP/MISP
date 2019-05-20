@@ -1020,6 +1020,9 @@ class ObjectsController extends AppController
     function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')
     {
         if ($this->request->is('post')) {
+            if (!$this->request->is('ajax')) {
+                throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
+            }
             $event = $this->MispObject->Event->find('first', array(
                 'recursive' => -1,
                 'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
@@ -1038,8 +1041,8 @@ class ObjectsController extends AppController
             $distribution = $this->request->data['Object']['distribution'];
             $sharing_group_id = $this->request->data['Object']['sharing_group_id'];
             $comment = $this->request->data['Object']['comment'];
-            $selected_attribute_ids = $this->request->data['Object']['selectedAttributeIds'];
-            $selected_object_relation_mapping = $this->request->data['Object']['selectedObjectRelationMapping'];
+            $selected_attribute_ids = json_decode($this->request->data['Object']['selectedAttributeIds'], true);
+            $selected_object_relation_mapping = json_decode($this->request->data['Object']['selectedObjectRelationMapping'], true);
             if ($distribution == 4) {
                 $sg = $this->MispObject->SharingGroup->find('first', array(
                     'conditions' => array('SharingGroup.id' => $sharing_group_id),
@@ -1050,32 +1053,33 @@ class ObjectsController extends AppController
                 if (empty($sg)) {
                     throw new NotFoundException(__('Invalid sharing group.'));
                 }
+            } else {
+                $sharing_group_id = 0;
             }
             $object = array('Object' => array(
                 'distribution' => $distribution,
                 'sharing_group_id' => $sharing_group_id,
                 'comment' => $comment
             ));
-            $attributes = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array(
+            $temp = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array(
                 'Attribute.id' => $selected_attribute_ids,
                 'Attribute.event_id' => $event_id,
                 'Attribute.object_id' => 0
             )));
-            foreach ($attributes as $i => $attribute) {
+            foreach ($temp as $i => $attribute) {
                 if (isset($selected_object_relation_mapping[$attribute['Attribute']['id']])) {
                     $object_relation = $selected_object_relation_mapping[$attribute['Attribute']['id']];
-                    $attributes['Attribute'][$i]['object_id'] = $created_id;
-                    $attributes['Attribute'][$i]['object_relation'] = $object_relation;
+                    $attribute['Attribute']['object_relation'] = $object_relation;
+                    $object['Attribute'][$i] = $attribute['Attribute'];
                 }
             }
-            $object['Attribute'] = $attributes;
-            debug($object);
-            // $result = $this->MispObject->saveObject($object, $event_id, $template, $this->Auth->user());
-            if ($result) {
-                return $this->RestResponse->saveSuccessResponse('Objects', 'Created from Attributes', '1', $this->response->type());
+            $result = $this->MispObject->saveObject($object, $event_id, $template, $this->Auth->user());
+            if (is_numeric($result)) {
+                $this->MispObject->Event->unpublishEvent($event_id);
+                return $this->RestResponse->saveSuccessResponse('Objects', 'Created from Attributes', $result, $this->response->type());
             } else {
-                $error = __('Failed to create an Object from Attributes.');
-                return $this->RestResponse->saveFailResponse('Objects', 'add', false, $error, $this->response->type());
+                $error = __('Failed to create an Object from Attributes. Error: ') . PHP_EOL . h($result);
+                return $this->RestResponse->saveFailResponse('Objects', 'Created from Attributes', false, $error, $this->response->type());
             }
         } else {
             $selected_attribute_ids = json_decode($selected_attribute_ids, true);
