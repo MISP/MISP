@@ -996,7 +996,9 @@ class ObjectsController extends AppController
     function proposeObjectsFromAttributes($event_id, $selected_attributes='[]')
     {
         $selected_attributes = json_decode($selected_attributes, true);
-        $potential_templates = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $event_id, $selected_attributes);
+        $res = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $event_id, $selected_attributes);
+        $potential_templates = $res['templates'];
+        $attribute_types = $res['types'];
         usort($potential_templates, function($a, $b) {
             if ($a['ObjectTemplate']['id'] == $b['ObjectTemplate']['id']) {
                 return 0;
@@ -1011,10 +1013,11 @@ class ObjectsController extends AppController
             }
         });
         $this->set('potential_templates', $potential_templates);
+        $this->set('selected_types', $attribute_types);
         $this->set('event_id', $event_id);
     }
 
-    function mergeObjectsFromAttributes($event_id, $selected_template, $selected_attribute_ids='[]')
+    function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')
     {
         if ($this->request->is('post')) {
             $event = $this->MispObject->Event->find('first', array(
@@ -1031,6 +1034,48 @@ class ObjectsController extends AppController
             ));
             if (empty($template)) {
                 throw new NotFoundException(__('Invalid template.'));
+            }
+            $distribution = $this->request->data['Object']['distribution'];
+            $sharing_group_id = $this->request->data['Object']['sharing_group_id'];
+            $comment = $this->request->data['Object']['comment'];
+            $selected_attribute_ids = $this->request->data['Object']['selectedAttributeIds'];
+            $selected_object_relation_mapping = $this->request->data['Object']['selectedObjectRelationMapping'];
+            if ($distribution == 4) {
+                $sg = $this->MispObject->SharingGroup->find('first', array(
+                    'conditions' => array('SharingGroup.id' => $sharing_group_id),
+                    'recursive' => -1,
+                    'fields' => array('SharingGroup.id', 'SharingGroup.name'),
+                    'order' => false
+                ));
+                if (empty($sg)) {
+                    throw new NotFoundException(__('Invalid sharing group.'));
+                }
+            }
+            $object = array('Object' => array(
+                'distribution' => $distribution,
+                'sharing_group_id' => $sharing_group_id,
+                'comment' => $comment
+            ));
+            $attributes = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array(
+                'Attribute.id' => $selected_attribute_ids,
+                'Attribute.event_id' => $event_id,
+                'Attribute.object_id' => 0
+            )));
+            foreach ($attributes as $i => $attribute) {
+                if (isset($selected_object_relation_mapping[$attribute['Attribute']['id']])) {
+                    $object_relation = $selected_object_relation_mapping[$attribute['Attribute']['id']];
+                    $attributes['Attribute'][$i]['object_id'] = $created_id;
+                    $attributes['Attribute'][$i]['object_relation'] = $object_relation;
+                }
+            }
+            $object['Attribute'] = $attributes;
+            debug($object);
+            // $result = $this->MispObject->saveObject($object, $event_id, $template, $this->Auth->user());
+            if ($result) {
+                return $this->RestResponse->saveSuccessResponse('Objects', 'Created from Attributes', '1', $this->response->type());
+            } else {
+                $error = __('Failed to create an Object from Attributes.');
+                return $this->RestResponse->saveFailResponse('Objects', 'add', false, $error, $this->response->type());
             }
         } else {
             $selected_attribute_ids = json_decode($selected_attribute_ids, true);

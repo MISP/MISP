@@ -816,6 +816,6 @@ class MispObject extends AppModel
             $templates[$i]['ObjectTemplate']['invalidTypes'] = $res['invalidTypes'];
             $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
         }
-        return $templates;
+        return array('templates' => $templates, 'types' => $attribute_types);
     }
 }

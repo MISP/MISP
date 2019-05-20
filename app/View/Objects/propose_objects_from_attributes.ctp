@@ -1,4 +1,10 @@
 <div style="max-width: 1000px; max-height: 800px; overflow-y: auto;">
+    <div>
+        <?php echo !empty($selected_types) ? '<strong>' . __('Selected types: ') . '</strong>' : ''; ?>
+        <?php foreach ($selected_types as $type): ?>
+            <span class="label label-info"><?php echo h($type) ?></span>
+        <?php endforeach; ?>
+    </div>
 <?php if (empty($potential_templates)): ?>
     <?php echo __('No matching Object.'); ?>
 <?php else: ?>
@@ -63,7 +69,7 @@
             $parentDIV.css({height: bb.height, width: bb.width});
             $('#tableGroupAttributeIntoObject').toggle('slide');
             $('#resultPreview').show().html('<div style="align-items: center; justify-content: center; display: flex; height: 100%; width: 100%"><i class="fas fa-spinner fa-spin" style="font-size: xx-large;"></i></div>');
-            $.get('<?php echo $baseurl . '/objects/mergeObjectsFromAttributes/' . h($event_id) . '/' ?>' + object_template_id + '/' + getSelected(), function(data) {
+            $.get('<?php echo $baseurl . '/objects/groupAttributesIntoObject/' . h($event_id) . '/' ?>' + object_template_id + '/' + getSelected(), function(data) {
                 $('#resultPreview').html(data);
             });
         }

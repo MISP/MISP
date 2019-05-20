@@ -1,6 +1,6 @@
 <button class="btn btn-inverse" onclick="showObjectProposition()"><i class="fas fa-chevron-left"></i></button>
 <?php
-echo $this->Form->create('Object');
+echo $this->Form->create('Object', array('url' => $baseurl . '/objects/groupAttributesIntoObject/' . $event_id . '/' . $selectedTemplateTd));
 ?>
 <dl style="margin-top: 10px;">
     <dt><?php echo __('Object Template');?></dt>
@@ -38,8 +38,10 @@ echo $this->Form->create('Object');
     )); ?>
     <div class="hidden">
         <?php
-            echo $this->Form->input('selectedTemplateId', array('type' => 'hidden', 'value' => $selectedTemplateTd));
-            echo $this->Form->input('selectedAttributeIds', array('type' => 'hidden', 'value' => json_encode($selectedAttributeIds)));
+            // echo $this->Form->input('selectedTemplateId', array('type' => 'hidden', 'value' => $selectedTemplateTd));
+            // echo $this->Form->input('selectedAttributeIds', array('type' => 'hidden', 'value' => json_encode($selectedAttributeIds)));
+            echo $this->Form->input('selectedTemplateId', array('type' => 'text', 'value' => $selectedTemplateTd));
+            echo $this->Form->input('selectedAttributeIds', array('type' => 'text', 'value' => json_encode($selectedAttributeIds)));
             echo $this->Form->input('selectedObjectRelationMapping', array('value' => ''));
             echo $this->Form->end();
         ?>
@@ -98,7 +100,7 @@ $(".Object_distribution_select").change(function() {
 
 function submitMergeAttributeIntoObjectForm(btn) {
     var $btn = $(btn);
-    var $form = $('#ObjectMergeObjectsFromAttributesForm');
+    var $form = $('#ObjectGroupAttributesIntoObjectForm');
     var attribute_mapping = {};
     $('#attributeMappingBody').find('tr').each(function() {
         var $tr = $(this);
@@ -113,7 +115,7 @@ function submitMergeAttributeIntoObjectForm(btn) {
             $btn.html('<it class="fa fa-spinner fa-spin"></it>');
         },
         success:function (data, textStatus) {
-            location.reload();
+            // location.reload();
         },
         error:function() {
             showMessage('fail', 'Could not merge Attributes into an Object.');
@@ -122,7 +124,7 @@ function submitMergeAttributeIntoObjectForm(btn) {
             // close all
         },
         type:"post",
-        url: "<?php echo $baseurl . '/objects/mergeObjectsFromAttributes/' . $event_id . '/' . $selectedTemplateTd; ?>"
+        url: $form.attr('action')
     });
 }
 </script>
