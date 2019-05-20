@@ -844,6 +844,7 @@ a.proposal_link_red:hover {
 .ajax_popover_form_large {
     width: 1400px;
     left: calc(50% - 700px);
+    z-index: 30;
 }
 
 .screenshot_box {
