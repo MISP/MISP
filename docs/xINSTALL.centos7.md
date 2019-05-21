@@ -16,9 +16,9 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
     bash /tmp/INSTALL.sh
 
-    # This will install MISP Core and misp-modules (recommended)
+    # This will install MISP Core
     wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-    bash /tmp/INSTALL.sh -c -M
+    bash /tmp/INSTALL.sh -c
     ```
     **The above does NOT work yet**
 
