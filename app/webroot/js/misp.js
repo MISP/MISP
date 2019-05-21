@@ -3675,7 +3675,7 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     $('#temp').html(formData);
     $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
     if (target_id == 'selected') {
-        $('#AttributeAttributeIds').val(getSelected());
+        $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
     }
     $.ajax({
         data: $('#GalaxyAttachMultipleClustersForm').serialize(),
@@ -3742,6 +3742,7 @@ $(document).keyup(function(e){
 });
 
 function closeScreenshot() {
+    $("#popover_box").fadeOut();
     $("#screenshot_box").fadeOut();
     $("#gray_out").fadeOut();
 }

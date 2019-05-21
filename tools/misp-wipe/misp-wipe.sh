@@ -67,6 +67,9 @@ rm -f $MISPPath/app/tmp/cache/models/myapp_*
 rm -f $MISPPath/app/tmp/cache/persistent/myapp_*
 
 echo "Wiping MySQL tables"
+echo "Removes all users and organizations, except default (id=1)"
+echo " - Change DELETE FROM to > 0 in misp-wipe.sql to also remove default ones"
+echo " - Defaults are created on first login"
 MySQLRUser=${MySQLRUser:-$MySQLUUser}
 MySQLRPass=${MySQLRPass:-$MySQLUPass}
 mysql -u $MySQLRUser -p$MySQLRPass $MISPDB < $SQL

@@ -9,10 +9,12 @@ To install MISP on a fresh Ubuntu install all you need to do is:
 
 ```bash
 # Please check the installer options first to make the best choice for your install
-curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s
+wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+bash /tmp/INSTALL.sh
 
-# This will install MISP Core and misp-modules (recommended)
-curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s -- -c -M
+# This will install MISP Core
+wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+bash /tmp/INSTALL.sh -c
 ```
 
 ### 0/ MISP Ubuntu 18.04-server install - status
