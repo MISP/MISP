@@ -118,7 +118,7 @@ function submitMergeAttributeIntoObjectForm(btn) {
             $btn.html('<it class="fa fa-spinner fa-spin"></it>');
         },
         success:function (data, textStatus) {
-            if (responseArray.errors !== undefined) {
+            if (data.errors !== undefined) {
                 showMessage('fail', responseArray.errors);
                 $btn.text(btn_text_backup);
                 return false;

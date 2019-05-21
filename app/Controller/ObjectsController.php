@@ -1104,6 +1104,8 @@ class ObjectsController extends AppController
             foreach ($selected_attributes as $i => $attribute) {
                 if (in_array($attribute['Attribute']['type'], $conformity_result['invalidTypes'])) {
                     unset($selected_attributes[$i]);
+                    $array_position = array_search($attribute['Attribute']['id'], $selected_attribute_ids);
+                    unset($selected_attribute_ids[$array_position]);
                     $skipped_attributes++;
                 }
             }
