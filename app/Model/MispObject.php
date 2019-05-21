@@ -739,7 +739,7 @@ class MispObject extends AppModel
         );
         // $attribute_types = array_keys(Hash::combine($attributes, '{n}.Attribute.type'));
         if (empty($attributes)) {
-            return array();
+            return array('templates' => array(), 'types' => array());
         }
         $attribute_types = array();
         foreach ($attributes as $i => $attribute) {
