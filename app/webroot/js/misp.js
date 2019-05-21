@@ -3711,6 +3711,7 @@ $(document).keyup(function(e){
 });
 
 function closeScreenshot() {
+    $("#popover_box").fadeOut();
     $("#screenshot_box").fadeOut();
     $("#gray_out").fadeOut();
 }
