@@ -390,7 +390,7 @@ class Attribute extends AppModel
         'text' => array('txt', 'TextExport', 'txt'),
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json'),
-        'rpz' => array('rpz', 'RPZExport', 'rpz'),
+        'rpz' => array('txt', 'RPZExport', 'rpz'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'cache' => array('txt', 'CacheExport', 'cache'),
         'attack' => array('html', 'AttackExport', 'html')

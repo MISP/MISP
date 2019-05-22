@@ -171,7 +171,7 @@ class Event extends AppModel
         'xml' => array('xml', 'XmlExport', 'xml'),
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
-        'rpz' => array('rpz', 'RPZExport', 'rpz'),
+        'rpz' => array('txt', 'RPZExport', 'rpz'),
         'text' => array('text', 'TextExport', 'txt'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
