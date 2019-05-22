@@ -3017,6 +3017,11 @@ class Attribute extends AppModel
         }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
+        } else {
+            if ($options['deleted'] === "only") {
+                $options['deleted'] = 1;
+            }
+            $params['conditions']['AND']['(Attribute.deleted + 0)'] = $options['deleted'];
         }
         if (isset($options['group'])) {
             $params['group'] = empty($options['group']) ? $options['group'] : false;
@@ -3993,12 +3998,8 @@ class Attribute extends AppModel
         if (isset($filters['page'])) {
             $params['page'] = $filters['page'];
         }
-        if (!empty($filtes['deleted'])) {
-            $params['deleted'] = 1;
-            if ($params['deleted'] === 'only') {
-                $params['conditions']['AND'][] = array('Attribute.deleted' => 1);
-                $params['conditions']['AND'][] = array('Object.deleted' => 1);
-            }
+        if (!empty($filters['deleted'])) {
+            $params['deleted'] = $filters['deleted'];
         }
         if ($paramsOnly) {
             return $params;
