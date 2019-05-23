@@ -37,6 +37,13 @@ pre {
     font-size: 11px;
 
 }
+
+.ellipsis-overflow {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
 .nav-list {
     padding-right: 5px;
 }
