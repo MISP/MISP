@@ -171,7 +171,7 @@ class Event extends AppModel
         'xml' => array('xml', 'XmlExport', 'xml'),
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
-        'rpz' => array('rpz', 'RPZExport', 'rpz'),
+        'rpz' => array('txt', 'RPZExport', 'rpz'),
         'text' => array('text', 'TextExport', 'txt'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
@@ -1606,6 +1606,7 @@ class Event extends AppModel
                     'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_simple_attribute'),
+                    'object_relation' => array('function' => 'set_filter_simple_attribute'),
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'uuid' => array('function' => 'set_filter_uuid'),
@@ -1918,20 +1919,47 @@ class Event extends AppModel
             $conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
         }
         $softDeletables = array('Attribute', 'Object', 'ObjectReference');
-        if (isset($options['deleted']) && $options['deleted']) {
+        if (isset($options['deleted'])) {
+            if (!is_array($options['deleted'])) {
+                $options['deleted'] = array($options['deleted']);
+            }
+            foreach ($options['deleted'] as $deleted_key => $deleted_value) {
+                if ($deleted_value === 'only') {
+                    $deleted_value = 1;
+                }
+                $options['deleted'][$deleted_key] = intval($deleted_value);
+            }
             if (!$user['Role']['perm_sync']) {
                 foreach ($softDeletables as $softDeletable) {
+                    if (in_array(0, $options['deleted'])) {
+                        $deletion_subconditions = array(
+                            sprintf('%s.deleted', $softDeletable) => 0
+                        );
+                    } else {
+                        $deletion_subconditions = array(
+                            '1=0'
+                        );
+                    }
                     ${'conditions' . $softDeletable . 's'}['AND'][] = array(
                         'OR' => array(
-                            '(SELECT events.org_id FROM events WHERE events.id = ' . $softDeletable . '.event_id)' => $user['org_id'],
-                            $softDeletable . '.deleted LIKE' => 0
+                            'AND' => array(
+                                sprintf('(SELECT events.org_id FROM events WHERE events.id = %s.event_id)', $softDeletable) => $user['org_id'],
+                                sprintf('%s.deleted', $softDeletable) => $options['deleted']
+                            ),
+                            $deletion_subconditions
                         )
+                    );
+                }
+            } else {
+                foreach ($softDeletables as $softDeletable) {
+                    ${'conditions' . $softDeletable . 's'}['AND'][] = array(
+                        sprintf('%s.deleted', $softDeletable) => $options['deleted']
                     );
                 }
             }
         } else {
             foreach ($softDeletables as $softDeletable) {
-                ${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted LIKE'] = 0;
+                ${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted'] = 0;
             }
         }
         $proposal_conditions = array('OR' => array('ShadowAttribute.deleted' => 0));
@@ -2618,6 +2646,7 @@ class Event extends AppModel
             'tags' => array('function' => 'set_filter_tags'),
             'category' => array('function' => 'set_filter_simple_attribute'),
             'type' => array('function' => 'set_filter_simple_attribute'),
+            'object_relation' => array('function' => 'set_filter_simple_attribute'),
             'from' => array('function' => 'set_filter_timestamp'),
             'to' => array('function' => 'set_filter_timestamp'),
             'last' => array('function' => 'set_filter_timestamp'),
