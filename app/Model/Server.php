@@ -4682,7 +4682,11 @@ class Server extends AppModel
             $submodule_name=end($submodule_name);
             $submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
             exec(sprintf('cd %s; git rev-parse HEAD', $path), $submodule_current_commit_id);
-            $submodule_current_commit_id = $submodule_current_commit_id[0];
+            if (!empty($submodule_current_commit_id[0])) {
+                $submodule_current_commit_id = $submodule_current_commit_id[0];
+            } else {
+                $submodule_current_commit_id = null;
+            }
             $status = array(
                 'moduleName' => $submodule_name,
                 'current' => $submodule_current_commit_id,
