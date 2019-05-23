@@ -427,7 +427,9 @@ class RestResponseComponent extends Component
                 $type = $format;
             }
             if (!$raw) {
-                $response = json_encode($response, JSON_PRETTY_PRINT);
+                if (!empty($response)) {
+                    $response = json_encode($response, JSON_PRETTY_PRINT);
+                }
             }
         }
         $cakeResponse = new CakeResponse(array('body'=> $response, 'status' => $code, 'type' => $type));
