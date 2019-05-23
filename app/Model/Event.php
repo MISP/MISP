@@ -1919,20 +1919,47 @@ class Event extends AppModel
             $conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
         }
         $softDeletables = array('Attribute', 'Object', 'ObjectReference');
-        if (isset($options['deleted']) && $options['deleted']) {
+        if (isset($options['deleted'])) {
+            if (!is_array($options['deleted'])) {
+                $options['deleted'] = array($options['deleted']);
+            }
+            foreach ($options['deleted'] as $deleted_key => $deleted_value) {
+                if ($deleted_value === 'only') {
+                    $deleted_value = 1;
+                }
+                $options['deleted'][$deleted_key] = intval($deleted_value);
+            }
             if (!$user['Role']['perm_sync']) {
                 foreach ($softDeletables as $softDeletable) {
+                    if (in_array(0, $options['deleted'])) {
+                        $deletion_subconditions = array(
+                            sprintf('%s.deleted', $softDeletable) => 0
+                        );
+                    } else {
+                        $deletion_subconditions = array(
+                            '1=0'
+                        );
+                    }
                     ${'conditions' . $softDeletable . 's'}['AND'][] = array(
                         'OR' => array(
-                            '(SELECT events.org_id FROM events WHERE events.id = ' . $softDeletable . '.event_id)' => $user['org_id'],
-                            $softDeletable . '.deleted LIKE' => 0
+                            'AND' => array(
+                                sprintf('(SELECT events.org_id FROM events WHERE events.id = %s.event_id)', $softDeletable) => $user['org_id'],
+                                sprintf('%s.deleted', $softDeletable) => $options['deleted']
+                            ),
+                            $deletion_subconditions
                         )
+                    );
+                }
+            } else {
+                foreach ($softDeletables as $softDeletable) {
+                    ${'conditions' . $softDeletable . 's'}['AND'][] = array(
+                        sprintf('%s.deleted', $softDeletable) => $options['deleted']
                     );
                 }
             }
         } else {
             foreach ($softDeletables as $softDeletable) {
-                ${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted LIKE'] = 0;
+                ${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted'] = 0;
             }
         }
         $proposal_conditions = array('OR' => array('ShadowAttribute.deleted' => 0));
