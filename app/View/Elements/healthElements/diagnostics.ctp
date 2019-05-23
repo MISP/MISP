@@ -70,10 +70,11 @@
     </div>
     <h3><?php echo __('Submodules version');?>
         <it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Refresh submodules version.'); ?>"></it>
-        <it id="updateAllJson" class="fas fa-file-upload useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Load all JSON into the database.'); ?>"></it>
     </h3>
-    <div id="divSubmoduleVersions" style="background-color:#f7f7f9;">
-    </div>
+    <div id="divSubmoduleVersions" style="background-color:#f7f7f9;"></div>
+    <span id="updateAllJson" class="btn btn-inverse" title="<?php echo __('Load all JSON into the database.'); ?>">
+        <it class="fas fa-file-upload"></it> <?php echo __("Load JSON into database"); ?>
+    </span>
 
     <h3><?php echo __('Writeable Directories and files');?></h3>
     <p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
