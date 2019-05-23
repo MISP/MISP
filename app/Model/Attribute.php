@@ -2219,9 +2219,8 @@ class Attribute extends AppModel
         }
         $tag = ClassRegistry::init('Tag');
         $params['tags'] = $this->dissectArgs($params['tags']);
-        $tagArray = $tag->fetchTagIds($params['tags'][0], $params['tags'][1]);
-        if (!empty($params['tags'][0]) && empty($tagArray[0]) && empty($params['lax_tags'])) {
-            $tagArray[0] = array(-1);
+        foreach (array(0, 1, 2) as $tag_operator) {
+            $tagArray[$tag_operator] = $tag->fetchTagIdsSimple($params['tags'][$tag_operator]);
         }
         $temp = array();
         if (!empty($tagArray[0])) {
@@ -2286,12 +2285,54 @@ class Attribute extends AppModel
                 $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field, 1));
             }
         }
+        $temp = array();
+        if (!empty($tagArray[2])) {
+            if ($tagArray[2][0] === -1) {
+                $conditions[] = array('Event.id' => -1);
+            } else {
+                foreach ($tagArray[2] as $k => $anded_tag) {
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $anded_tag
+                        ),
+                        'fields' => array(
+                            'event_id'
+                        )
+                    );
+                    $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
+                    $temp[$k]['OR'] = array();
+                    $temp[$k]['OR'] = array_merge(
+                        $temp[$k]['OR'],
+                        $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
+                    );
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $anded_tag
+                        ),
+                        'fields' => array(
+                            $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                        )
+                    );
+                    $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                    $temp[$k]['OR'] = array_merge(
+                        $temp[$k]['OR'],
+                        $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
+                    );
+                }
+            }
+        }
+        if (!empty($temp)) {
+            $conditions['AND'][] = array('AND' => $temp);
+        }
         $params['tags'] = array();
         if (!empty($tagArray[0]) && empty($options['pop'])) {
             $params['tags']['OR'] = $tagArray[0];
         }
         if (!empty($tagArray[1])) {
             $params['tags']['NOT'] = $tagArray[1];
+        }
+        if (!empty($tagArray[2]) && empty($options['pop'])) {
+            $params['tags']['AND'] = $tagArray[2];
         }
         if (empty($params['tags'])) {
             unset($params['tags']);
@@ -2604,18 +2645,21 @@ class Attribute extends AppModel
     public function dissectArgs($args)
     {
         if (empty($args)) {
-            return array(0 => array(), 1 => array());
+            return array(0 => array(), 1 => array(), 2 => array());
         }
         if (!is_array($args)) {
             $args = explode('&&', $args);
         }
-        $result = array(0 => array(), 1 => array());
+        $result = array(0 => array(), 1 => array(), 2 => array());
         if (isset($args['OR']) || isset($args['NOT']) || isset($args['AND'])) {
             if (!empty($args['OR'])) {
                 $result[0] = $args['OR'];
             }
             if (!empty($args['NOT'])) {
                 $result[1] = $args['NOT'];
+            }
+            if (!empty($args['AND'])) {
+                $result[2] = $args['AND'];
             }
         } else {
             foreach ($args as $arg) {

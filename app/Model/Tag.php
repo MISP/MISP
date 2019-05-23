@@ -196,6 +196,19 @@ class Tag extends AppModel
     }
 
     // find all of the tag Ids that belong to the accepted tags and the rejected tags
+    public function fetchTagIdsSimple($tags = array())
+    {
+        $results = array();
+        if (!empty($tags)) {
+            $results = $this->findTagIdsByTagNames($tags);
+            if (empty($results)) {
+                $results[] = -1;
+            }
+        }
+        return $results;
+    }
+
+    // find all of the tag Ids that belong to the accepted tags and the rejected tags
     public function fetchTagIds($accept = array(), $reject = array())
     {
         $acceptIds = array();
