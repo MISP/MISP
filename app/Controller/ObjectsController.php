@@ -1108,7 +1108,7 @@ class ObjectsController extends AppController
             }
             $object_relations = array();
             foreach ($template['ObjectTemplateElement'] as $template_element) {
-                $object_relations[$template_element['type']][] = $template_element['object_relation'];
+                $object_relations[$template_element['type']][] = $template_element;
             }
             $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
             $this->set('event_id', $event_id);

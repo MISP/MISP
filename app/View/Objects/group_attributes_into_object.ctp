@@ -41,6 +41,7 @@ echo $this->Form->create('Object', array('url' => $baseurl . '/objects/groupAttr
         <?php
             // echo $this->Form->input('selectedTemplateId', array('type' => 'hidden', 'value' => $selectedTemplateTd));
             // echo $this->Form->input('selectedAttributeIds', array('type' => 'hidden', 'value' => json_encode($selectedAttributeIds)));
+            // FIXME
             echo $this->Form->input('selectedTemplateId', array('type' => 'text', 'value' => $selectedTemplateTd));
             echo $this->Form->input('selectedAttributeIds', array('type' => 'text', 'value' => json_encode($selectedAttributeIds)));
             echo $this->Form->input('selectedObjectRelationMapping', array('value' => ''));
@@ -66,16 +67,19 @@ echo $this->Form->create('Object', array('url' => $baseurl . '/objects/groupAttr
                 <tr>
                     <td id="isAttributeId"><?php echo h($attribute['Attribute']['id']); ?></td>
                     <td>
-                        <select id="isAttributeMapping">
-                            <?php foreach ($object_relations[$attribute['Attribute']['type']] as $object_relation): ?>
-                                <option value="<?php echo h($object_relation); ?>"><?php echo h($object_relation); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        :: <?php echo h($attribute['Attribute']['type']); ?>
+                        <span style="display: block;">
+                            <select id="isAttributeMapping" style="margin-bottom: 5px;" onchange="updateObjectRelationDescription(this);">
+                                <?php foreach ($object_relations[$attribute['Attribute']['type']] as $object_relation): ?>
+                                    <option value="<?php echo h($object_relation['object_relation']); ?>" title="<?php echo h($object_relation['description']); ?>"><?php echo h($object_relation['object_relation']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            :: <?php echo h($attribute['Attribute']['type']); ?>
+                        </span>
+                        <i id="objectRelationDescription" class="apply_css_arrow"><?php echo h($object_relations[$attribute['Attribute']['type']][0]['description']); ?></i>
                     </td>
-                    <td><?php echo h(date('Y-m-d', $attribute['Attribute']['timestamp'])); ?></td>
+                    <td style="min-width: 75px;"><?php echo h(date('Y-m-d', $attribute['Attribute']['timestamp'])); ?></td>
                     <td><?php echo h($attribute['Attribute']['category']); ?></td>
-                    <td><?php echo h($attribute['Attribute']['value']); ?></td>
+                    <td style="white-space: nowrap;"><?php echo h($attribute['Attribute']['value']); ?></td>
                     <td><?php echo h($distributionLevels[$attribute['Attribute']['distribution']]); ?></td>
                 </tr>
             <?php endforeach; ?>
@@ -133,5 +137,11 @@ function submitMergeAttributeIntoObjectForm(btn) {
         type:"post",
         url: $form.attr('action')
     });
+}
+
+function updateObjectRelationDescription(changed) {
+    var $select = $(changed);
+    var text = $select.find(":selected").attr('title');
+    $select.parent().parent().find('#objectRelationDescription').text(text);
 }
 </script>
