@@ -228,7 +228,8 @@ class ObjectTemplate extends AppModel
                 $found = false;
                 $all_required_type = array();
                 foreach ($template['ObjectTemplate']['requirements']['requiredOneOf'] as $requiredField) {
-                    $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField))[0];
+                    $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField));
+                    $requiredType = empty($requiredType) ? NULL : $requiredType[0];
                     $all_required_type[] = $requiredType;
                     foreach ($attributes as $attribute) {
                         if ($attribute['Attribute']['type'] == $requiredType) {
