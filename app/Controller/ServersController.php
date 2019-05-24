@@ -808,6 +808,19 @@ class ServersController extends AppController
         } else {
             $settingObject = $this->Server->serverSettings;
         }
+
+        // Awful hack to get embedded keys working
+        if ($pathToSetting[0] === "CakeResque") {
+            // Just concatenate the last *n* keys shut up don't make fun of me
+            
+            // Final length should be 0
+            while (count($pathToSetting) !== 2) {
+                $final_key = $pathToSetting[count($pathToSetting) - 1];
+                unset($pathToSetting[count($pathToSetting) - 1]);
+                $pathToSetting[count($pathToSetting) - 1] = $pathToSetting[count($pathToSetting) - 1] . "." . $final_key;
+            }
+        }
+
         foreach ($pathToSetting as $key) {
             if (!isset($settingObject[$key])) {
                 throw new MethodNotAllowedException();
@@ -864,7 +877,7 @@ class ServersController extends AppController
                     'Encryption' => array('count' => 0, 'errors' => 0, 'severity' => 5),
                     'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
                     'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-                    'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
+                    'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             );
             $writeableErrors = array(0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable'));
             $readableErrors = array(0 => __('OK'), 1 => __('not readable'));
