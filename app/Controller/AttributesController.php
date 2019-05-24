@@ -2004,7 +2004,8 @@ class AttributesController extends AppController
         $paramArray = array(
             'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
             'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
-            'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless'
+            'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
+            'includeWarninglistHits', 'attackGalaxy', 'object_relation'
         );
         $filterData = array(
             'request' => $this->request,
@@ -2033,9 +2034,19 @@ class AttributesController extends AppController
             $returnFormat = 'json';
         }
         $elementCounter = 0;
-        $final = $this->Attribute->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
-        $responseType = $validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        $renderView = '';
+        $final = $this->Attribute->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        if (!empty($renderView) && !empty($final)) {
+            $this->layout = false;
+            $final = json_decode($final, true);
+            foreach ($final as $key => $data) {
+                $this->set($key, $data);
+            }
+            $this->render('/Events/module_views/' . $renderView);
+        } else {
+            $responseType = $this->Attribute->validFormats[$returnFormat][0];
+            return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        }
     }
 
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
@@ -2236,8 +2247,8 @@ class AttributesController extends AppController
     {
         // request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
         // The correct format for both is a "request" root element, as shown by the examples below:
-        // For Json: {"request":{"policy": "walled-garden","garden":"garden.example.com"}}
-        // For XML: <request><policy>walled-garden</policy><garden>garden.example.com</gargen></request>
+        // For Json: {"request":{"policy": "Local-Data","walled_garden":"my.stop.page.net"}}
+        // For XML: <request><policy>Local-Data</policy><walled_garden>my.stop.page.net</walled_garden></request>
         // the response type is used to determine the parsing method (xml/json)
         if ($this->request->is('post')) {
             if ($this->request->input('json_decode', true)) {
@@ -2264,7 +2275,7 @@ class AttributesController extends AppController
                 ${$sF} = false;
             }
         }
-        if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden'))) {
+        if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'Local-Data', 'PASSTHRU', 'TCP-only'))) {
             $policy = false;
         }
         App::uses('RPZExport', 'Export');

@@ -421,10 +421,16 @@ class RestResponseComponent extends Component
         } elseif (strtolower($format) == 'csv') {
             $type = 'csv';
         } else {
-            if (!$raw) {
-                $response = json_encode($response, JSON_PRETTY_PRINT);
+            if (empty($format)) {
+                $type = 'json';
+            } else {
+                $type = $format;
             }
-            $type = 'json';
+            if (!$raw) {
+                if (!empty($response)) {
+                    $response = json_encode($response, JSON_PRETTY_PRINT);
+                }
+            }
         }
         $cakeResponse = new CakeResponse(array('body'=> $response, 'status' => $code, 'type' => $type));
 

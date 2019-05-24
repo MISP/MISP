@@ -1,6 +1,7 @@
 <?php
 
 App::uses('JsonExport', 'Export');
+App::uses('AppModel', 'Model');
 
 
 class YaraExport
@@ -128,7 +129,8 @@ class YaraExport
         $out2 = $this->__yara_file_asis->path;
         $logging = $this->__end_of_cmd;
         $raw_flag = $this->__raw_mode ? '--raw' : '';
-        $result = shell_exec($this->getPythonVersion() . " $pythonScript --input $in --out-generated $out1 --out-asis $out2 $raw_flag $logging");
+        $my_server = ClassRegistry::init('Server');
+        $result = shell_exec($my_server->getPythonVersion() . " $pythonScript --input $in --out-generated $out1 --out-asis $out2 $raw_flag $logging");
         $this->__curr_input_file->close();
         $this->__curr_input_file->delete();
         $this->__n_attributes = 0;

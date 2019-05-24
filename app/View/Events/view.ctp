@@ -49,7 +49,6 @@
     <?php
         endif;
         $title = h($event['Event']['info']);
-        if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
         $table_data = array();
         $table_data[] = array('key' => __('Event ID'), 'value' => $event['Event']['id']);
         $table_data[] = array(
@@ -327,7 +326,7 @@
     ?>
     <div class="row-fluid">
         <div class="span8">
-            <h2><?php echo ($extended ? '[' . __('Extended view') . '] ' : '') . nl2br($title); ?></h2>
+            <h2 class="ellipsis-overflow"><?php echo ($extended ? '[' . __('Extended view') . '] ' : '') . nl2br($title); ?></h2>
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>
         <div class="related span4">

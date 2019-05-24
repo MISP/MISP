@@ -10,10 +10,12 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 
     ```bash
     # Please check the installer options first to make the best choice for your install
-    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s
+    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    bash /tmp/INSTALL.sh
 
-    # This will install MISP Core and misp-modules (recommended)
-    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+    # This will install MISP Core
+    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    bash /tmp/INSTALL.sh -c
     ```
     **The above does NOT work yet**
 
@@ -42,30 +44,18 @@ The following assumptions with regard to this installation have been made.
 
 {!generic/globalVariables.md!}
 
-```bash
-# <snippet-begin 0_RHEL_PHP_INI.sh>
-# RHEL/CentOS Specific
-RUN_PHP='/usr/bin/scl enable rh-php72'
-RUN_PYTHON='/usr/bin/scl enable rh-python36'
-SUDO_WWW='sudo -H -u apache'
-WWW_USER='apache'
-
-PHP_INI=/etc/opt/rh/rh-php72/php.ini
-# <snippet-end 0_RHEL_PHP_INI.sh>
-```
-
 !!! note
-		For fresh installs the following tips might be handy.<br />
-		Allow ssh to pass the firewall on the CLI
-		```bash
-		firewall-cmd --zone=public --add-port=22/tcp --permanent
-		firewall-cmd --reload
-		```
-		<br />
-		To quickly make sure if NetworkManager handles your network interface on boot, check in the following location:
-		```
-		/etc/sysconfig/network-scripts/ifcfg-*
-		```
+    For fresh installs the following tips might be handy.<br />
+    Allow ssh to pass the firewall on the CLI
+    ```bash
+    firewall-cmd --zone=public --add-port=22/tcp --permanent
+    firewall-cmd --reload
+    ```
+    <br />
+    To quickly make sure if NetworkManager handles your network interface on boot, check in the following location:
+    ```
+    /etc/sysconfig/network-scripts/ifcfg-*
+    ```
 
 # 1/ OS Install and additional repositories
 
@@ -160,6 +150,8 @@ yumInstallCoreDeps () {
   # Enable and start redis
   sudo systemctl enable --now rh-redis32-redis.service
 
+  RUN_PHP='/usr/bin/scl enable rh-php72'
+  PHP_INI=/etc/opt/rh/rh-php72/php.ini
   # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
   sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel \
                    rh-php72-php-mysqlnd \
@@ -171,6 +163,7 @@ yumInstallCoreDeps () {
 
   # Install Python 3.6 from SCL, see
   # https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
+  RUN_PYTHON='/usr/bin/scl enable rh-python36'
   sudo yum install rh-python36 -y
 
   sudo systemctl enable --now rh-php72-php-fpm.service
@@ -737,6 +730,16 @@ sudo systemctl enable --now misp-modules
   #$SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_asn_history_enabled" true
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_btc_steroids_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ipasn_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_syntax_validator_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_query_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pdf_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_docx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_xlsx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pptx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ods_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_odt_enabled" true
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
 
@@ -746,6 +749,9 @@ sudo systemctl enable --now misp-modules
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_port" 6666
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_timeout" 300
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_mispjson_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_openiocimport_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_threatanalyzer_import_enabled" true
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
 
   # Enable Export modules, set better timeout
@@ -754,12 +760,11 @@ sudo systemctl enable --now misp-modules
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_port" 6666
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
-
 ```
 
 {!generic/misp-dashboard-centos.md!}
 
-{!generic/MISP_CAKE_init_centos.md!}
+{!generic/MISP_CAKE_init.md!}
 
 {!generic/INSTALL.done.md!}
 

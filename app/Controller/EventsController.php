@@ -1057,7 +1057,7 @@ class EventsController extends AppController
             $conditions['overrideLimit'] = 1;
         }
         if (isset($filters['deleted'])) {
-            $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : 1;
+            $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : [0, 1];
         }
         if (isset($filters['toIDS']) && $filters['toIDS'] != 0) {
             $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
@@ -1509,7 +1509,7 @@ class EventsController extends AppController
             $conditions['includeAttachments'] = true;
         }
         if (isset($this->params['named']['deleted'])) {
-            $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? 0 : 1;
+            $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? 0 : [0, 1];
         }
         if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
             $conditions['to_ids'] = $this->params['named']['toIDS'] == 2 ? 0 : 1;
@@ -1996,7 +1996,7 @@ class EventsController extends AppController
             throw new UnauthorizedException(__('You do not have permission to do that.'));
         }
         if ($this->request->is('post')) {
-            $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : None;
+            $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
             if ($this->_isRest()) {
                 $randomFileName = $this->Event->generateRandomFileName();
                 $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
@@ -2009,7 +2009,7 @@ class EventsController extends AppController
                 } elseif (is_numeric($result)) {
                     $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $result));
                     if (!empty($event)) {
-                        return $this->RestResponse->viewData($event[0], $this->response->type());
+                        return $this->RestResponse->viewData($event[0], 'json');
                     } else {
                         return $this->RestResponse->saveFailResponse('Events', 'upload_stix', false, 'Could not read saved event.', $this->response->type());
                     }
@@ -3284,9 +3284,9 @@ class EventsController extends AppController
         $sgReferenceOnly = false
     ) {
         $paramArray = array(
-            'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
+            'value', 'type', 'category', 'object_relation', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
             'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'returnFormat',
-            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless'
+            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'deleted'
         );
         $filterData = array(
             'request' => $this->request,
@@ -3314,9 +3314,20 @@ class EventsController extends AppController
             $returnFormat = 'json';
         }
         $elementCounter = 0;
-        $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
-        $responseType = $this->Event->validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        $renderView = false;
+        $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        if (!empty($renderView) && !empty($final)) {
+            $this->layout = false;
+            $final = json_decode($final, true);
+            foreach ($final as $key => $data) {
+                $this->set($key, $data);
+            }
+            $this->render('/Events/module_views/' . $renderView);
+        } else {
+            $responseType = $this->Event->validFormats[$returnFormat][0];
+            return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        }
+
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)

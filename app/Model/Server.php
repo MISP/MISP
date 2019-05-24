@@ -712,6 +712,33 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                        'log_paranoid' => array(
+                                'level' => 0,
+                                'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBoolFalse',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
+                        'log_paranoid_skip_db' => array(
+                                'level' => 0,
+                                'description' => __('You can decide to skip the logging of the paranoid logs to the database.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testParanoidSkipDb',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
+                        'log_paranoid_include_post_body' => array(
+                                'level' => 0,
+                                'description' => __('If paranoid logging is enabled, include the POST body in the entries.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
                         'delegation' => array(
                                 'level' => 1,
                                 'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
@@ -1231,15 +1258,15 @@ class Server extends AppModel
                         'RPZ_policy' => array(
                             'level' => 2,
                             'description' => __('The default policy action for the values added to the RPZ.'),
-                            'value' => 0,
+                            'value' => 1,
                             'errorMessage' => '',
                             'test' => 'testForRPZBehaviour',
                             'type' => 'numeric',
-                            'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'walled-garden', 4 => 'PASSTHRU', 5 => 'TCP-only' ),
+                            'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'Local-Data', 4 => 'PASSTHRU', 5 => 'TCP-only' ),
                         ),
                         'RPZ_walled_garden' => array(
                             'level' => 2,
-                            'description' => __('The default walled garden used by the RPZ export if the walled garden setting is picked for the export.'),
+                            'description' => __('The default walled garden used by the RPZ export if the Local-Data policy setting is picked for the export.'),
                             'value' => '127.0.0.1',
                             'errorMessage' => '',
                             'test' => 'testForEmpty',
@@ -3184,6 +3211,14 @@ class Server extends AppModel
         }
     }
 
+    public function testParanoidSkipDb($value)
+    {
+        if (!empty(Configure::read('MISP.log_paranoid')) && empty($value)) {
+            return 'Perhaps consider skipping the database when using paranoid mode. A great number of entries will be added to your log database otherwise that will lead to performance degradation.';
+        }
+        return true;
+    }
+
     public function testSalt($value)
     {
         if ($this->testForEmpty($value) !== true) {
@@ -3793,6 +3828,22 @@ class Server extends AppModel
                     return array('status' => 6);
                 }
             }
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: Connection test failed. Returned data is in the change field.',
+                    'change' => sprintf(
+                        'response () => (%s), response-code () => (%s)',
+                        $response->body,
+                        $response->code
+                    )
+            ));
             return array('status' => 3);
         }
     }
@@ -4631,7 +4682,11 @@ class Server extends AppModel
             $submodule_name=end($submodule_name);
             $submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
             exec(sprintf('cd %s; git rev-parse HEAD', $path), $submodule_current_commit_id);
-            $submodule_current_commit_id = $submodule_current_commit_id[0];
+            if (!empty($submodule_current_commit_id[0])) {
+                $submodule_current_commit_id = $submodule_current_commit_id[0];
+            } else {
+                $submodule_current_commit_id = null;
+            }
             $status = array(
                 'moduleName' => $submodule_name,
                 'current' => $submodule_current_commit_id,

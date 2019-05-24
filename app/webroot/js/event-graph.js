@@ -711,7 +711,7 @@ class EventGraph {
                     mass: 5,
                     icon: {
                         color: stringToRGB(label),
-                        face: 'FontAwesome',
+                        face: '"Font Awesome 5 Free"',
                         code: that.get_FA_icon(node['meta-category']),
                     }
                 };
@@ -2270,7 +2270,7 @@ var network_options = {
         object: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 size: 50
             },
             font: {
@@ -2328,7 +2328,7 @@ var network_options = {
         rootNodeObject: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 code: '\uf00a',
             },
             font: {
@@ -2341,7 +2341,7 @@ var network_options = {
         rootNodeAttribute: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 code: '\uf1c0',
             },
             font: {
@@ -2354,7 +2354,7 @@ var network_options = {
         rootNodeKeyType: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 code: '\uf111',
             },
             font: {
@@ -2367,7 +2367,7 @@ var network_options = {
         rootNodeTag: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 code: '\uf02b',
             },
             font: {
@@ -2380,7 +2380,7 @@ var network_options = {
         clustered_object: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 code: '\uf009',
             },
             font: {

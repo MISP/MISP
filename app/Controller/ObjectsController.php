@@ -93,12 +93,9 @@ class ObjectsController extends AppController
         // try to fetch similar objects
         $cur_attrs = Hash::extract($this->request->data, 'Attribute.{n}.value');
         $conditions = array(
-            'AND' => array(
-                $this->MispObject->buildConditions($this->Auth->user()),
-                'event_id' => $event_id,
-                'value1' => $cur_attrs,
-                'object_id !=' => '0'
-            )
+            'event_id' => $event_id,
+            'value1' => $cur_attrs,
+            'object_id !=' => '0'
         );
         $similar_objects = $this->MispObject->Attribute->find('all', array(
             'conditions' => $conditions,
