@@ -249,6 +249,7 @@ class ACLComponent extends Component
                 'edit' => array('perm_add'),
                 'get_row' => array('perm_add'),
                 'orphanedObjectDiagnostics' => array(),
+                'proposeObjectsFromAttributes' => array(),
                 'groupAttributesIntoObject' => array(),
                 'revise_object' => array('perm_add'),
                 'view' => array('*'),
