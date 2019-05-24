@@ -56,7 +56,7 @@
         <?php endforeach; ?>
         </tbody>
     </table>
-    <div id="resultPreview" class="hidden" style="height: 100%;"></div>
+    <div id="resultPreview" class="hidden" style="height: calc(100% - 20px);"></div>
 <?php endif; ?>
 </div>
 

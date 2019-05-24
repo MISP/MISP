@@ -39,11 +39,8 @@ echo $this->Form->create('Object', array('url' => $baseurl . '/objects/groupAttr
     )); ?>
     <div class="hidden">
         <?php
-            // echo $this->Form->input('selectedTemplateId', array('type' => 'hidden', 'value' => $selectedTemplateTd));
-            // echo $this->Form->input('selectedAttributeIds', array('type' => 'hidden', 'value' => json_encode($selectedAttributeIds)));
-            // FIXME
-            echo $this->Form->input('selectedTemplateId', array('type' => 'text', 'value' => $selectedTemplateTd));
-            echo $this->Form->input('selectedAttributeIds', array('type' => 'text', 'value' => json_encode($selectedAttributeIds)));
+            echo $this->Form->input('selectedTemplateId', array('type' => 'hidden', 'value' => $selectedTemplateTd));
+            echo $this->Form->input('selectedAttributeIds', array('type' => 'hidden', 'value' => json_encode($selectedAttributeIds)));
             echo $this->Form->input('selectedObjectRelationMapping', array('value' => ''));
             echo $this->Form->end();
         ?>
@@ -95,7 +92,10 @@ echo $this->Form->create('Object', array('url' => $baseurl . '/objects/groupAttr
 
 
 <div style="margin-top: 15px; text-align: center;">
-    <button class="btn btn-primary" onclick="submitMergeAttributeIntoObjectForm(this);"><?php echo __('Merge above Attributes into an Object'); ?></button>
+    <div>
+        <button class="btn btn-primary" onclick="submitMergeAttributeIntoObjectForm(this);"><?php echo __('Merge above Attributes into an Object'); ?></button>
+    </div>
+    <span class="red bold" data-original-title="" title=""><?php echo __('This process is not reversible') ?></span>
 </div>
 
 <script>
