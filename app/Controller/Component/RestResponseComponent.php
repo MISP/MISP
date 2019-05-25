@@ -228,6 +228,10 @@ class RestResponseComponent extends Component
                 'mandatory' => array('event', 'tag'),
                 'params' => array('tag_id')
             ),
+            'attachTagToObject' => array(
+                'description' => "Attach a Tag to an object, refenced by an UUID. Tag can either be a tag id or a tag name.",
+                'mandatory' => array('uuid', 'tag'),
+            )
         ),
         'User' => array(
             'admin_add' => array(
