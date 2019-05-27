@@ -3768,7 +3768,14 @@ class Attribute extends AppModel
             ));
             $this->Log = ClassRegistry::init('Log');
             if (count($existingAttribute)) {
-                if ($existingAttribute['Attribute']['event_id'] != $eventId || $existingAttribute['Attribute']['object_id'] != $objectId) {
+                if (
+                       $existingAttribute['Attribute']['event_id'] != $eventId ||
+                       (
+                               $existingAttribute['Attribute']['object_id'] != $objectId &&
+                               // Still take into account the attribute if it was merged into an object
+                               $existingAttribute['Attribute']['object_id'] != 0
+                       )
+               ) {
                     $this->Log->create();
                     $result = $this->Log->save(array(
                             'org' => $user['Organisation']['name'],
