@@ -3775,7 +3775,7 @@ class Attribute extends AppModel
                                // Still take into account the attribute if it was merged into an object
                                $existingAttribute['Attribute']['object_id'] != 0
                        )
-               ) {
+                ) {
                     $this->Log->create();
                     $result = $this->Log->save(array(
                             'org' => $user['Organisation']['name'],
@@ -3807,7 +3807,6 @@ class Attribute extends AppModel
                 } else {
                     $date = new DateTime();
                     $attribute['timestamp'] = $date->getTimestamp();
-                    ;
                 }
             } else {
                 $this->create();

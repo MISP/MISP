@@ -1068,6 +1068,7 @@ class ObjectsController extends AppController
                     $object_relation = $selected_object_relation_mapping[$attribute['Attribute']['id']];
                     $attribute['Attribute']['object_relation'] = $object_relation;
                     $object['Attribute'][$i] = $attribute['Attribute'];
+                    unset($object['Attribute'][$i]['timestamp']);
                 }
             }
             $result = $this->MispObject->saveObject($object, $event_id, $template, $this->Auth->user());

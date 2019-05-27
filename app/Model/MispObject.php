@@ -595,7 +595,15 @@ class MispObject extends AppModel
             $objectId = $this->id;
             $partialFails = array();
             foreach ($object['Object']['Attribute'] as $attribute) {
-                $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
+               $existing_attribute = $this->Attribute->find('first', array(
+                   'recursive' => -1,
+                   'conditions' => array('uuid' => $attribute['uuid'])
+               ));
+               if (empty($existing_attribute)) {
+                   $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
+               } else { // The attribute may just have been grouped into an object
+                   $this->Attribute->editAttribute($attribute, $eventId, $user, $objectId, $log);
+               }
             }
             return true;
         } else {
