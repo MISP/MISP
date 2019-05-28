@@ -566,7 +566,7 @@
       "id": "30",
       "name": "Feodo IP Blocklist",
       "provider": "abuse.ch",
-      "url": "https://feodotracker.abuse.ch/blocklist/?download=ipblocklist",
+      "url": "https://feodotracker.abuse.ch/downloads/ipblocklist.csv",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "3",
@@ -579,7 +579,7 @@
       "event_id": "0",
       "publish": false,
       "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "settings": "{\"csv\":{\"value\":\"2\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": true,
@@ -1595,6 +1595,35 @@
       "caching_enabled": true,
       "force_to_ids": false,
       "cached_elements": 3936
+    }
+  },
+  {
+    "Feed": {
+      "id": "89",
+      "name": "Benkow.cc RAT",
+      "provider": "benkow.cc",
+      "url": "http://benkow.cc/export_rat.php",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": false,
+      "distribution": "0",
+      "sharing_group_id": "0",
+      "tag_id": "0",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": false,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"3,4\",\"delimiter\":\";\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "headers": "",
+      "caching_enabled": true,
+      "force_to_ids": false,
+      "cached_elements": 2531,
+      "coverage_by_other_feeds": "11.62%"
     }
   }
 ]
