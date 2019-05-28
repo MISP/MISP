@@ -5914,9 +5914,9 @@ class Event extends AppModel
                     }
                     $attribute['event_id'] = $id;
                     if ($objectType == 'ShadowAttribute') {
-                        $attribute['org_id'] = $user['Role']['org_id'];
+                        $attribute['org_id'] = $user['org_id'];
                         $attribute['event_org_id'] = $event['Event']['orgc_id'];
-                        $attribute['email'] = $user['Role']['email'];
+                        $attribute['email'] = $user['email'];
                         $attribute['event_uuid'] = $event['Event']['uuid'];
                     }
                     // adhere to the warninglist
