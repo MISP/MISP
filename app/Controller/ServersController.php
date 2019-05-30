@@ -1948,7 +1948,7 @@ misp.direct_call(relative_path, body)
             $this->loadModel('Organisation');
             $org_id = $this->Organisation->captureOrg($server['Organisation'], $this->Auth->user());
             $server['remote_org_id'] = $org_id;
-            $defaults = array(
+            $toSave = array(
                 'push' => 0,
                 'pull' => 0,
                 'caching_enabled' => 0,
@@ -1957,15 +1957,13 @@ misp.direct_call(relative_path, body)
                 'pull_rules' => '[]',
                 'self_signed' => 0,
                 'org_id' => $this->Auth->user('org_id'),
-                'name' => $server['url']
+                'name' => empty($server['name']) ? $server['url'] : $server['name'],
+                'url' => $server['url'],
+                'uuid' => $server['uuid'],
+                'authkey' => $server['authkey']
             );
-            foreach ($defaults as $setting => $value) {
-                if (!isset($server[$setting])) {
-                    $server[$setting] = $value;
-                }
-            }
             $this->Server->create();
-            $result = $this->Server->save($server);
+            $result = $this->Server->save($toSave);
             if ($result) {
                 if ($this->_isRest()) {
                     $server = $this->Server->find('first', array(
