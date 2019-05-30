@@ -503,7 +503,7 @@
                     break;
 
                 case 'sync':
-                    if ($menuItem === 'createSync' && ($me['Role']['perm_sync'])) {
+                    if ($me['Role']['perm_sync']) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/servers/createSync',
                             'text' => __('Create Sync Config')
