@@ -433,6 +433,8 @@ class RestResponseComponent extends Component
             if (!$raw) {
                 if (!empty($response)) {
                     $response = json_encode($response, JSON_PRETTY_PRINT);
+                } else {
+                    $response = '[]';
                 }
             }
         }
