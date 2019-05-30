@@ -1975,7 +1975,7 @@ misp.direct_call(relative_path, body)
                     return $this->RestResponse->viewData($server, $this->response->type());
                 } else {
                     $this->Flash->success(__('The server has been saved'));
-                    $this->redirect(array('action' => 'view', $this->Server->id));
+                    $this->redirect(array('action' => 'index', $this->Server->id));
                 }
             } else {
                 if ($this->_isRest()) {
