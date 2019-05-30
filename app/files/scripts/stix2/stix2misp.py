@@ -982,7 +982,8 @@ class ExternalStixParser(StixParser):
                                    ('x509-certificate',): self.parse_x509_observable,
                                    ('url',): self.parse_url_observable,
                                    ('windows-registry-key',): self.parse_regkey_observable}
-        self.pattern_mapping = {('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
+        self.pattern_mapping = {('domain-name',): self.parse_domain_ip_port_pattern,
+                                ('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('domain-name', 'ipv6-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('file',): self.parse_file_pattern,
                                 ('ipv4-addr',): self.parse_ip_address_pattern,
@@ -990,7 +991,8 @@ class ExternalStixParser(StixParser):
                                 ('network-traffic',): self.parse_network_traffic_pattern,
                                 ('process',): self.parse_process_pattern,
                                 ('url',): self.parse_url_pattern,
-                                ('windows-registry-key',): self.parse_regkey_pattern}
+                                ('windows-registry-key',): self.parse_regkey_pattern,
+                                ('x509-certificate',): self.parse_x509_pattern}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
 
     def handler(self):
@@ -1305,6 +1307,11 @@ class ExternalStixParser(StixParser):
         attributes = self.attributes_from_x509_observable(objects)
         self.handle_import_case(attributes, 'x509', marking, uuid)
 
+    def parse_x509_pattern(self, pattern, marking=None, uuid=None):
+        pattern_types, attribute_types = self.get_types_and_values_from_pattern(pattern)
+        attributes = self.fill_pattern_attributes(pattern_types, attribute_types, x509_mapping)
+        self.handle_import_case(attributes, 'x509', marking, uuid)
+
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
     ################################################################################
@@ -1352,7 +1359,10 @@ class ExternalStixParser(StixParser):
         types = []
         values = []
         for p in pattern:
-            type_, value = p.split('=')
+            try:
+                type_, value = p.split('=')
+            except ValueError:
+                type_, value = p.split(' = ')
             types.append(type_.strip())
             values.append(value.strip().strip('\''))
         return types, values
