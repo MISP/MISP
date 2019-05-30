@@ -1947,7 +1947,6 @@ misp.direct_call(relative_path, body)
             }
             $this->loadModel('Organisation');
             $org_id = $this->Organisation->captureOrg($server['Organisation'], $this->Auth->user());
-            $server['remote_org_id'] = $org_id;
             $toSave = array(
                 'push' => 0,
                 'pull' => 0,
@@ -1957,6 +1956,7 @@ misp.direct_call(relative_path, body)
                 'pull_rules' => '[]',
                 'self_signed' => 0,
                 'org_id' => $this->Auth->user('org_id'),
+                'remote_org_id' => $org_id,
                 'name' => empty($server['name']) ? $server['url'] : $server['name'],
                 'url' => $server['url'],
                 'uuid' => $server['uuid'],
