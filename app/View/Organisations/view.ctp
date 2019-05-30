@@ -67,6 +67,12 @@
         <button id="button_events_active" style="display:none;" class="btn btn-primary toggle-right qet orgViewButtonActive" onClick="organisationViewContent('events', '<?php echo $id;?>');"><?php echo __('Events');?></button>
     <br /><br />
     <?php endif;?>
+    <?php
+        echo $this->Html->script('vis');
+        echo $this->Html->css('vis');
+        echo $this->Html->css('distribution-graph');
+        echo $this->Html->script('network-distribution-graph');
+    ?>
     <div id="ajaxContent" style="width:100%;"></div>
 </div>
 <?php
