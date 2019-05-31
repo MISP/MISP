@@ -1367,7 +1367,7 @@ class Event extends AppModel
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
-        $uri = $url . '/events/view/' . $eventId . '/deleted:1/excludeGalaxy:1';
+        $uri = $url . '/events/view/' . $eventId . '/deleted:both/excludeGalaxy:1';
         $response = $HttpSocket->get($uri, $data = '', $request);
         if ($response->isOk()) {
             return json_decode($response->body, true);
@@ -3996,7 +3996,7 @@ class Event extends AppModel
                     'eventid' => $id,
                     'includeAttachments' => true,
                     'includeAllTags' => true,
-                    'deleted' => true,
+                    'deleted' => array(0,1),
                     'excludeGalaxy' => 1
                 ));
                 $event = $this->fetchEvent($elevatedUser, $params);
