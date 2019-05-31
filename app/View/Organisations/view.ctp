@@ -19,7 +19,7 @@
                 $domains[$k] = h($domain);
             }
             $domains = implode("<br />", $domains);
-            $table_data[] = array('key' => __('Domain restrictions'), 'value' => $domains);
+            $table_data[] = array('key' => __('Domain restrictions'), 'html' => $domains);
         }
         $table_data[] = array('key' => __('UUID'), 'value' => !empty(trim($org['Organisation']['uuid'])) ? $org['Organisation']['uuid'] : '');
         if ($isSiteAdmin) {
@@ -29,7 +29,7 @@
         }
         foreach (array('sector' => __('Sector'), 'nationality' => __('Nationality'), 'type' => __('Organisation type'), 'contacts' => __('Contact information')) as $k => $field) {
             if (!empty(trim($org['Organisation'][$k]))) {
-                $table_data[] = array('key' => $field, 'value' => trim(h($org['Organisation'][$k])));
+                $table_data[] = array('key' => $field, 'html' => nl2br(trim(h($org['Organisation'][$k]))));
             }
         }
         echo sprintf(
