@@ -24,7 +24,6 @@ import uuid
 import io
 import re
 import stix2
-from base64 import b64encode
 from stix2misp_mapping import *
 from collections import defaultdict
 
