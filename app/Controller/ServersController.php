@@ -1904,4 +1904,85 @@ misp.direct_call(relative_path, body)
         $results = $this->Server->updateJSON();
         return $this->RestResponse->viewData($results, $this->response->type());
     }
+
+    public function createSync()
+    {
+        if ($this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('Site admin accounts cannot be used to create server sync configurations.');
+        }
+        $baseurl = Configure::read('MISP.external_baseurl');
+        if (empty($baseurl)) {
+            $baseurl = Configure::read('MISP.baseurl');
+            if (empty($baseurl)) {
+                $baseurl = Router::url('/', true);
+            }
+        }
+        $server = array(
+            'Server' => array(
+                'url' => $baseurl,
+                'uuid' => Configure::read('MISP.uuid'),
+                'authkey' => $this->Auth->user('authkey'),
+                'Organisation' => array(
+                    'name' => $this->Auth->user('Organisation')['name'],
+                    'uuid' => $this->Auth->user('Organisation')['uuid']
+                )
+            )
+        );
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($server, $this->response->type());
+        } else {
+            $this->set('server', $server);
+        }
+    }
+
+    public function import()
+    {
+        if ($this->request->is('post')) {
+            $server = $this->request->data;
+            if (isset($server['Server'])) {
+                $server = $server['Server'];
+            }
+            if (isset($server['json'])) {
+                $server = json_decode($server['json'], true)['Server'];
+            }
+            $this->loadModel('Organisation');
+            $org_id = $this->Organisation->captureOrg($server['Organisation'], $this->Auth->user());
+            $toSave = array(
+                'push' => 0,
+                'pull' => 0,
+                'caching_enabled' => 0,
+                'json' => '[]',
+                'push_rules' => '[]',
+                'pull_rules' => '[]',
+                'self_signed' => 0,
+                'org_id' => $this->Auth->user('org_id'),
+                'remote_org_id' => $org_id,
+                'name' => empty($server['name']) ? $server['url'] : $server['name'],
+                'url' => $server['url'],
+                'uuid' => $server['uuid'],
+                'authkey' => $server['authkey']
+            );
+            $this->Server->create();
+            $result = $this->Server->save($toSave);
+            if ($result) {
+                if ($this->_isRest()) {
+                    $server = $this->Server->find('first', array(
+                        'conditions' => array('Server.id' => $this->Server->id),
+                        'recursive' => -1
+                    ));
+                    return $this->RestResponse->viewData($server, $this->response->type());
+                } else {
+                    $this->Flash->success(__('The server has been saved'));
+                    $this->redirect(array('action' => 'index', $this->Server->id));
+                }
+            } else {
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Servers', 'addFromJson', false, $this->Server->validationErrors, $this->response->type());
+                } else {
+                    $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Server->validationErrors, true)));
+                    $this->redirect(array('action' => 'index'));
+                }
+            }
+        }
+    }
 }

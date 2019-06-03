@@ -1191,7 +1191,11 @@ class EventsController extends AppController
             $cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
             $this->set('cortex_modules', $cortex_modules);
         }
-        $this->set('deleted', isset($filters['deleted']) ? ($filters['deleted'] == 2 ? 0 : 1) : 0);
+        $deleted = 0;
+        if (isset($filters['deleted'])) {
+            $deleted = $filters['deleted'] == 2 ? array(0, 1) : $filters['deleted'];
+        }
+        $this->set('deleted', $deleted);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
@@ -1394,7 +1398,6 @@ class EventsController extends AppController
         $sightingsData = $this->Event->getSightingData($event);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, false, $sightingsData);
-
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
         $dataForView = array(
@@ -1462,7 +1465,13 @@ class EventsController extends AppController
         $attributeUri = '/events/viewEventAttributes/' . $event['Event']['id'];
         foreach ($this->params->named as $k => $v) {
             if (!is_numeric($k)) {
-                $attributeUri .= '/' . $v;
+                if (is_array($v)) {
+                    foreach ($v as $value) {
+                        $attributeUri .= sprintf('/%s[]:%s', $k, $value);
+                    }
+                } else {
+                    $attributeUri .= sprintf('/%s:%s', $k, $v);
+                }
             }
         }
         $orgTable = $this->Event->Orgc->find('list', array(
@@ -1509,7 +1518,7 @@ class EventsController extends AppController
             $conditions['includeAttachments'] = true;
         }
         if (isset($this->params['named']['deleted'])) {
-            $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? 0 : [0, 1];
+            $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? array(0,1) : $this->params['named']['deleted'];
         }
         if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
             $conditions['to_ids'] = $this->params['named']['toIDS'] == 2 ? 0 : 1;
@@ -5686,7 +5695,7 @@ class EventsController extends AppController
             $this->layout = false;
             $this->render('/Events/ajax/event_lock');
         } else {
-            return $this->RestResponse->viewData('', $this->response->type());
+            return $this->RestResponse->viewData('', $this->response->type(), false, true);
         }
     }
 
