@@ -1,3 +1,6 @@
+/* Codacy comment to notify that baseurl is a read-only global variable. */
+/* global baseurl */
+
 // tooltips
 var thread = null;
 function setApiInfoBox(isTyping) {
