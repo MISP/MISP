@@ -24,7 +24,6 @@ import uuid
 import io
 import re
 import stix2
-from base64 import b64encode
 from stix2misp_mapping import *
 from collections import defaultdict
 
@@ -1421,7 +1420,7 @@ def main(args):
                 object_type = 'galaxy'
             elif object_type == 'marking-definition':
                 parsed_object = {'object': parsed_object, 'used': False}
-                object_type = object_type
+                # object_type = object_type
             stix_event[object_type][uuid] = parsed_object
     if not stix_event:
         print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
