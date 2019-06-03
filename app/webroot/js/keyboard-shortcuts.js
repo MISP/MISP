@@ -19,6 +19,8 @@ let keyboardShortcutsManager = {
 	 * Fetches the keyboard shortcut config files and populates this.shortcutJSON.
 	 */
 	init() {
+		/* Codacy comment to notify that baseurl is a read-only global variable. */
+		/* global baseurl */
 		let shortcutURIs = [];
 		for(let keyboardShortcutElement of $('.keyboardShortcutsConfig')) {
 			shortcutURIs.push(keyboardShortcutElement.value);
