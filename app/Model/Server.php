@@ -812,6 +812,15 @@ class Server extends AppModel
                                 'type' => 'string',
                                 'null' => false,
                         ),
+                        'org_alert_threshold' => array(
+                                'level' => 1,
+                                'description' => __('Set a value to limit the number of email alerts that events can generate per creator organisation (for example, if an organisation pushes out 2000 events in one shot, only alert on the first 20).'),
+                                'value' => 0,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => true,
+                        ),
                         'block_old_event_alert' => array(
                                 'level' => 1,
                                 'description' => __('Enable this setting to start blocking alert e-mails for old events. The exact timing of what constitutes an old event is defined by MISP.block_old_event_alert_age.'),
