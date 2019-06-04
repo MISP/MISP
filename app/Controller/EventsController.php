@@ -1518,7 +1518,12 @@ class EventsController extends AppController
             $conditions['includeAttachments'] = true;
         }
         if (isset($this->params['named']['deleted'])) {
-            $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? array(0,1) : $this->params['named']['deleted'];
+            // workaround for old instances trying to pull events with both deleted / non deleted data
+            if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $this->params['named']['deleted'] == 1) {
+                $conditions['deleted'] = array(0,1);
+            } else {
+                $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? array(0,1) : $this->params['named']['deleted'];
+            }
         }
         if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
             $conditions['to_ids'] = $this->params['named']['toIDS'] == 2 ? 0 : 1;
