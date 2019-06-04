@@ -2202,6 +2202,31 @@ class Server extends AppModel
         return $event;
     }
 
+    private function __checkIfEventSaveAble($event) {
+        if (!empty($event['Event']['Attribute'])) {
+            foreach ($event['Event']['Attribute'] as $attribute) {
+                if (empty($attribute['deleted'])) {
+                    return true;
+                }
+            }
+        }
+        if (!empty($event['Event']['Object'])) {
+            foreach ($event['Event']['Object'] as $object) {
+                if (!empty($object['deleted'])) {
+                    continue;
+                }
+                if (!empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $attribute) {
+                        if (empty($attribute['deleted'])) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId)
     {
         // check if the event already exist (using the uuid)
@@ -2243,7 +2268,11 @@ class Server extends AppModel
                 return false;
             }
             $event = $this->__updatePulledEventBeforeInsert($event, $server, $user);
-            $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+            if (!$this->__checkIfEventSaveAble($event)) {
+                $fails[$eventId] = __('Empty event detected.');
+            } else {
+                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+            }
         } else {
             // error
             $fails[$eventId] = __('failed downloading the event');
