@@ -2845,6 +2845,15 @@ class Event extends AppModel
     public function sendAlertEmail($id, $senderUser, $oldpublish = null, $processId = null)
     {
         $event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
+        $this->NotificationLog = ClassRegistry::init('NotificationLog');
+        if (!$this->NotificationLog->check($event[0]['Event']['orgc_id'], 'publish')) {
+            if ($processId) {
+                $this->Job->id = $processId;
+                $this->Job->saveField('progress', 100);
+                $this->Job->saveField('message', 'Mails blocked by org alert threshold.');
+            }
+            return true;
+        }
         if (empty($event)) {
             throw new MethodNotFoundException('Invalid Event.');
         }
