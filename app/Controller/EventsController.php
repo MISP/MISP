@@ -5875,4 +5875,34 @@ class EventsController extends AppController
             $this->redirect('/events/view/' . $eventId);
         }
     }
+
+    public function cullEmptyEvents()
+    {
+        $eventIds = $this->Event->find('list', array(
+            'conditions' => array('Event.published' => 1),
+            'fields' => array('Event.id', 'Event.uuid'),
+            'recursive' => -1
+        ));
+        $count = 0;
+        $this->Event->skipBlacklist = true;
+        foreach ($eventIds as $eventId => $eventUuid) {
+            $result = $this->Event->Attribute->find('first', array(
+                'conditions' => array('Attribute.event_id' => $eventId),
+                'recursive' => -1,
+                'fields' => array('Attribute.id', 'Attribute.event_id')
+            ));
+            if (empty($result)) {
+                $this->Event->delete($eventId);
+                $count++;
+            }
+        }
+        $this->Event->skipBlacklist = null;
+        $message = __('%s event(s) deleted.', $count);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($message, $this->response->type());
+        } else {
+            $this->Flash->success($message);
+            $this->redirect($this->referer());
+        }
+    }
 }
