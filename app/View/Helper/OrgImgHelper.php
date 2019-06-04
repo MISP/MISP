@@ -19,7 +19,7 @@ App::uses('AppHelper', 'View/Helper');
                     if ($raw) {
                         $result = sprintf(
                             '<img src="%s/img/orgs/%s" title = "%s" style = "width: %spx; height: %spx;"/>',
-                            $baseurl,
+                            h(Configure::read('MISP.baseurl')),
                             $imgOption,
                             isset($options['name']) ? h($options['name']) : h($options['id']),
                             h($size),
@@ -28,9 +28,9 @@ App::uses('AppHelper', 'View/Helper');
                     } else {
                         $result = sprintf(
                             '<a href="%s/organisations/view/%s"><img src="%s/img/orgs/%s" title = "%s" style = "width: %spx; height: %spx;"/></a>',
-                            $baseurl,
+                            h(Configure::read('MISP.baseurl')),
                             (empty($options['id']) ? h($options['name']) : h($options['id'])),
-                            $baseurl,
+                            h(Configure::read('MISP.baseurl')),
                             $imgOption,
                             isset($options['name']) ? h($options['name']) : h($options['id']),
                             h($size),
@@ -48,7 +48,7 @@ App::uses('AppHelper', 'View/Helper');
                 } else {
                     $result = sprintf(
                         '<a href="%s/organisations/view/%s"><span class="welcome">%s</span></a>',
-                        $baseurl,
+                        h(Configure::read('MISP.baseurl')),
                         (empty($options['id']) ? h($options['name']) : h($options['id'])),
                         h($options['name'])
                     );

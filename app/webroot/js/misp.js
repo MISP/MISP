@@ -2541,12 +2541,12 @@ function objectTemplateViewContent(context, id) {
 
 function organisationViewContent(context, id) {
     organisationViewButtonHighlight(context);
-    var action = baseurl + "/organisations/landingpage/";
+    var action = "/organisations/landingpage/";
     if (context == 'members') {
-        action = baseurl + "/admin/users/index/searchorg:";
+        action = "/admin/users/index/searchorg:";
     }
     if (context == 'events') {
-        action = baseurl + "/events/index/searchorg:";
+        action = "/events/index/searchorg:";
     }
     $.ajax({
         url: baseurl + action + id,
@@ -2558,7 +2558,9 @@ function organisationViewContent(context, id) {
             $('#ajaxContent').html('An error has occured, please reload the page.');
         },
         success: function(response){
+	console.log("Success!!!");
             $('#ajaxContent').html(response);
+	console.log("Completed!!!");
         },
         complete: function() {
             $(".loading").hide();
