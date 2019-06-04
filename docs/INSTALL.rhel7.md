@@ -266,6 +266,15 @@ $SUDO_WWW scl enable devtoolset-7 rh-python36 "bash -c 'cmake3 \
 ..'"
 $SUDO_WWW make -j3 pyLIEF
 
+# In case you get "internal compiler error: Killed (program cc1plus)"
+# You ran out of memory.
+# Create some swap
+# sudo dd if=/dev/zero of=/var/swap.img bs=1024k count=4000
+# sudo mkswap /var/swap.img
+# sudo swapon /var/swap.img
+# And compile again
+# $SUDO_WWW make -j3 pyLIEF
+
 # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
 echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
 
@@ -527,6 +536,8 @@ firewall_RHEL () {
 MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 To rotate these logs install the supplied logrotate script:
 
+FIXME: The below does not work
+
 ```bash
 # <snippet-begin 2_logRotation_RHEL.sh>
 logRotation_RHEL () {
@@ -712,7 +723,9 @@ After=misp-workers.service
 Type=simple
 User=apache
 Group=apache
-ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules –l 127.0.0.1 –s\"
+WorkingDirectory=/usr/local/src/misp-modules
+Environment="PATH=/var/www/MISP/venv/bin"
+ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"
 Restart=always
 RestartSec=10
 

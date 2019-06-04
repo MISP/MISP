@@ -18,7 +18,8 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
   # Set default role
-  $SUDO_WWW $RUN_PHP -- $CAKE setDefaultRole 3
+  # TESTME: The following seem defunct, please test.
+  # $SUDO_WWW $RUN_PHP -- $CAKE setDefaultRole 3
 
   # Tune global time outs
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Session.autoRegenerate" 0
