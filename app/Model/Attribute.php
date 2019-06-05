@@ -4085,7 +4085,11 @@ class Attribute extends AppModel
         $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
         fwrite($tmpfile, $exportTool->footer($exportToolParams));
         fseek($tmpfile, 0);
-        $final = fread($tmpfile, fstat($tmpfile)['size']);
+        if (fstat($tmpfile)['size']) {
+            $final = fread($tmpfile, fstat($tmpfile)['size']);
+        } else {
+            $final = '';
+        }
         fclose($tmpfile);
         return $final;
     }

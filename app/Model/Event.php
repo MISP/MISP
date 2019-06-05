@@ -479,7 +479,7 @@ class Event extends AppModel
     public function beforeDelete($cascade = true)
     {
         // blacklist the event UUID if the feature is enabled
-        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+        if (Configure::read('MISP.enableEventBlacklisting') !== false && empty($this->skipBlacklist)) {
             $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
             $this->EventBlacklist->create();
             $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $this->data['Event']['orgc_id']), 'recursive' => -1, 'fields' => array('Orgc.name')));
@@ -1367,7 +1367,7 @@ class Event extends AppModel
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
-        $uri = $url . '/events/view/' . $eventId . '/deleted:1/excludeGalaxy:1';
+        $uri = $url . '/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1';
         $response = $HttpSocket->get($uri, $data = '', $request);
         if ($response->isOk()) {
             return json_decode($response->body, true);
@@ -2845,6 +2845,15 @@ class Event extends AppModel
     public function sendAlertEmail($id, $senderUser, $oldpublish = null, $processId = null)
     {
         $event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
+        $this->NotificationLog = ClassRegistry::init('NotificationLog');
+        if (!$this->NotificationLog->check($event[0]['Event']['orgc_id'], 'publish')) {
+            if ($processId) {
+                $this->Job->id = $processId;
+                $this->Job->saveField('progress', 100);
+                $this->Job->saveField('message', 'Mails blocked by org alert threshold.');
+            }
+            return true;
+        }
         if (empty($event)) {
             throw new MethodNotFoundException('Invalid Event.');
         }
@@ -3996,7 +4005,7 @@ class Event extends AppModel
                     'eventid' => $id,
                     'includeAttachments' => true,
                     'includeAllTags' => true,
-                    'deleted' => true,
+                    'deleted' => array(0,1),
                     'excludeGalaxy' => 1
                 ));
                 $event = $this->fetchEvent($elevatedUser, $params);
@@ -4615,15 +4624,6 @@ class Event extends AppModel
                 $include = $include && ($filterType['correlation'] == 1);
             } else { // `exclude`
                 $include = $include && ($filterType['correlation'] == 2);
-            }
-
-            /* deleted */
-            if ($filterType['deleted'] == 0) { // `both`
-                // pass, do not consider as `both` is selected
-            } else if ($attribute['deleted'] == 1) { // `include only`
-                $include = $include && ($filterType['deleted'] == 1);
-            } else { // `exclude`
-                $include = $include && ($filterType['deleted'] == 2);
             }
 
             /* feed */
@@ -5914,9 +5914,9 @@ class Event extends AppModel
                     }
                     $attribute['event_id'] = $id;
                     if ($objectType == 'ShadowAttribute') {
-                        $attribute['org_id'] = $user['Role']['org_id'];
+                        $attribute['org_id'] = $user['org_id'];
                         $attribute['event_org_id'] = $event['Event']['orgc_id'];
-                        $attribute['email'] = $user['Role']['email'];
+                        $attribute['email'] = $user['email'];
                         $attribute['event_uuid'] = $event['Event']['uuid'];
                     }
                     // adhere to the warninglist
