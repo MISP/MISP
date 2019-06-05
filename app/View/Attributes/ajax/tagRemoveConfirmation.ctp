@@ -1,6 +1,6 @@
 <div class="confirmation">
     <?php
-    echo $this->Form->create($model, array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/' . strtolower($model) . 's/removeTag/' . $id . '/' . $tag_id));
+    echo $this->Form->create($model, array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/' . strtolower($model) . 's/removeTag/' . $id . '/' . $tag_id));
     $action = "removeObjectTag('" . $model . "', '" . h($id) . "', '" . h($tag_id) . "');";
     ?>
     <legend><?php echo __('Remove Tag'); ?></legend>

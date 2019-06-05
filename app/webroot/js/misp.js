@@ -28,7 +28,7 @@ function deleteObject(type, action, id, event) {
     var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'galaxy_clusters', 'objects', 'object_references'];
     if (alternateDestinations.indexOf(type) > -1) destination = type;
     else destination = type;
-    url = "/" + destination + "/" + action + "/" + id;
+    url = baseurl + "/" + destination + "/" + action + "/" + id;
     $.get(url, function(data) {
         openPopup("#confirmation_box");
         $("#confirmation_box").html(data);
@@ -36,7 +36,7 @@ function deleteObject(type, action, id, event) {
 }
 
 function quickDeleteSighting(id, rawId, context) {
-    url = "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
+    url = baseurl + "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
     $.get(url, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
@@ -44,7 +44,7 @@ function quickDeleteSighting(id, rawId, context) {
 }
 
 function fetchAddSightingForm(type, attribute_id, page, onvalue) {
-    var url = "/sightings/quickAdd/" + attribute_id + "/" + type;
+    var url = baseurl + "/sightings/quickAdd/" + attribute_id + "/" + type;
     if (onvalue) {
         url = url + "/1";
     } else {
@@ -70,14 +70,14 @@ function publishPopup(id, type) {
     if (type == "publish") action = "publish";
     if (type == "unpublish") action = "unpublish";
     var destination = 'attributes';
-    $.get( "/events/" + action + "/" + id, function(data) {
+    $.get(baseurl + "/events/" + action + "/" + id, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
 }
 
 function delegatePopup(id) {
-    simplePopup("/event_delegations/delegateEvent/" + id);
+    simplePopup(baseurl + "/event_delegations/delegateEvent/" + id);
 }
 
 function genericPopup(url, popupTarget, callback) {
@@ -119,7 +119,7 @@ function submitPublish(id, type) {
 }
 
 function editTemplateElement(type, id) {
-    simplePopup("/template_elements/edit/" + type + "/" + id);
+    simplePopup(baseurl + "/template_elements/edit/" + type + "/" + id);
 }
 
 function cancelPrompt(isolated) {
@@ -156,7 +156,7 @@ function submitDeletion(context_id, action, type, id) {
         },
         type:"post",
         cache: false,
-        url:"/" + type + "/" + action + "/" + id,
+        url: baseurl + "/" + type + "/" + action + "/" + id,
     });
 }
 
@@ -177,7 +177,7 @@ function removeSighting(caller) {
             handleGenericAjaxResponse(data);
             var org = "/" + $('#org_id').text();
             updateIndex(id, 'event');
-            $.get( "/sightings/listSightings/" + rawid + "/" + context + org, function(data) {
+            $.get(baseurl + "/sightings/listSightings/" + rawid + "/" + context + org, function(data) {
                 $("#sightingsData").html(data);
             });
         },
@@ -187,7 +187,7 @@ function removeSighting(caller) {
         },
         type:"post",
         cache: false,
-        url:"/sightings/quickDelete/" + id + "/" + rawid + "/" + context,
+        url: baseurl + "/sightings/quickDelete/" + id + "/" + rawid + "/" + context,
     });
 }
 
@@ -237,7 +237,7 @@ function toggleSetting(e, setting, id) {
             handleGenericAjaxResponse(data);
         },
         complete:function() {
-            $.get(replacementForm, function(data) {
+            $.get(baseurl + replacementForm, function(data) {
                 $('#hiddenFormDiv').html(data);
             });
             $(".loading").hide();
@@ -254,7 +254,7 @@ function toggleSetting(e, setting, id) {
 }
 
 function initiatePasswordReset(id) {
-    $.get( "/users/initiatePasswordReset/" + id, function(data) {
+    $.get(baseurl + "/users/initiatePasswordReset/" + id, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
@@ -262,7 +262,7 @@ function initiatePasswordReset(id) {
 
 function submitPasswordReset(id) {
     var formData = $('#PromptForm').serialize();
-    var url = "/users/initiatePasswordReset/" + id;
+    var url = baseurl + "/users/initiatePasswordReset/" + id;
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
@@ -321,7 +321,7 @@ function acceptObject(type, id, event) {
         },
         type:"post",
         cache: false,
-        url:"/shadow_attributes/accept/" + id,
+        url: baseurl + "/shadow_attributes/accept/" + id,
     });
 }
 
@@ -345,7 +345,7 @@ function toggleCorrelation(id, skip_reload) {
         },
         type:"post",
         cache: false,
-        url:'/attributes/toggleCorrelation/' + id,
+        url: baseurl + '/attributes/toggleCorrelation/' + id,
     });
 }
 
@@ -369,7 +369,7 @@ function toggleToIDS(id, skip_reload) {
         },
         type:"post",
         cache: false,
-        url:'/attributes/editField/' + id ,
+        url: baseurl + '/attributes/editField/' + id ,
     });
 }
 
@@ -392,7 +392,7 @@ function updateIndex(id, context, newPage) {
         div = "#attributes_div";
     }
     if (context == 'template') {
-        url = "/template_elements/index/" + id;
+        url = baseurl + "/template_elements/index/" + id;
         div = "#templateElements";
     }
     $.ajax({
@@ -433,7 +433,7 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
                 $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
             }
         },
-        url:"/attributes/fetchViewValue/" + id + "/" + field,
+        url: baseurl + "/attributes/fetchViewValue/" + id + "/" + field,
     });
 }
 
@@ -457,7 +457,7 @@ function activateField(type, id, field, event) {
             $(container_name + '_placeholder').html(data);
             postActivationScripts(name, type, id, field, event);
         },
-        url:"/" + objectType + "/fetchEditForm/" + id + "/" + field,
+        url: baseurl + "/" + objectType + "/fetchEditForm/" + id + "/" + field,
     });
 }
 
@@ -551,7 +551,7 @@ function addSighting(type, attribute_id, event_id, page) {
             updateIndex(context, 'event');
         },
         type:"post",
-        url:"/sightings/add/" + attribute_id
+        url: baseurl + "/sightings/add/" + attribute_id
     });
 }
 
@@ -595,7 +595,7 @@ function submitForm(type, id, field, context) {
             updateIndex(context, 'event');
         },
         type:"post",
-        url:"/" + object_type + "/" + action + "/" + id
+        url: baseurl + "/" + object_type + "/" + action + "/" + id
     });
     $(name + '_field').unbind("keyup");
     $(name + '_form').unbind("focusout");
@@ -604,7 +604,7 @@ function submitForm(type, id, field, context) {
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
-    var formData = fetchFormDataAjax("/events/addTag/" + event_id);
+    var formData = fetchFormDataAjax(baseurl + "/events/addTag/" + event_id);
     $('#temp').html(formData);
     $('#EventTag').val(JSON.stringify(selected_tag_ids));
     $.ajax({
@@ -630,7 +630,7 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
             $(".loading").hide();
         },
         type:"post",
-        url:"/events/addTag/" + event_id
+        url: baseurl + "/events/addTag/" + event_id
     });
     $('#temp').remove();
     return false;
@@ -638,7 +638,7 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
 
 function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     var attribute_id = addData.id;
-    var formData = fetchFormDataAjax("/attributes/addTag/" + attribute_id);
+    var formData = fetchFormDataAjax(baseurl + "/attributes/addTag/" + attribute_id);
     $('#temp').html(formData);
     $('#AttributeTag').val(JSON.stringify(selected_tag_ids));
     if (attribute_id == 'selected') {
@@ -669,7 +669,7 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
             $(".loading").hide();
         },
         type:"post",
-        url:"/attributes/addTag/" + attribute_id
+        url: baseurl + "/attributes/addTag/" + attribute_id
     });
     $('#temp').remove();
     return false;
@@ -677,7 +677,7 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
 
 function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     var tag_collection_id = addData.id;
-    var formData = fetchFormDataAjax("/tag_collections/addTag/" + tag_collection_id);
+    var formData = fetchFormDataAjax(baseurl + "/tag_collections/addTag/" + tag_collection_id);
     $('#temp').html(formData);
     $('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
     $.ajax({
@@ -699,7 +699,7 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
             $(".loading").hide();
         },
         type:"post",
-        url:"/tag_collections/addTag/" + tag_collection_id
+        url: baseurl + "/tag_collections/addTag/" + tag_collection_id
     });
     $('#temp').remove();
     return false;
@@ -708,7 +708,7 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
 function refreshTagCollectionRow(tag_collection_id) {
     $.ajax({
         type:"get",
-        url:"/tag_collections/getRow/" + tag_collection_id,
+        url: baseurl + "/tag_collections/getRow/" + tag_collection_id,
         error:function() {
             showMessage('fail', 'Could not fetch updates to the modified row.');
         },
@@ -823,7 +823,7 @@ function multiSelectDeleteEvents() {
             }
         }
     });
-    $.get("/events/delete/" + JSON.stringify(selected), function(data) {
+    $.get(baseurl + "/events/delete/" + JSON.stringify(selected), function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
@@ -839,7 +839,7 @@ function multiSelectToggleFeeds(on, cache) {
             }
         }
     });
-    $.get("/feeds/toggleSelected/" + on + "/" + cache + "/" + JSON.stringify(selected), function(data) {
+    $.get(baseurl + "/feeds/toggleSelected/" + on + "/" + cache + "/" + JSON.stringify(selected), function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
@@ -884,7 +884,7 @@ function multiSelectAction(event, context) {
             var url = $('#delete_selected').attr('action');
             console.log(url);
         } else {
-            var url = "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
+            var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
         }
         $.ajax({
             data: formData,
@@ -903,25 +903,25 @@ function multiSelectAction(event, context) {
 
 function editSelectedAttributes(event) {
     var selectedAttributeIds = getSelected();
-    simplePopup("/attributes/editSelected/" + event + "/" + selectedAttributeIds);
+    simplePopup(baseurl + "/attributes/editSelected/" + event + "/" + selectedAttributeIds);
 }
 
 function addSelectedTaxonomies(taxonomy) {
-    $.get("/taxonomies/taxonomyMassConfirmation/"+taxonomy, function(data) {
+    $.get(baseurl + "/taxonomies/taxonomyMassConfirmation/"+taxonomy, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
 }
 
 function hideSelectedTags(taxonomy) {
-	$.get("/taxonomies/taxonomyMassHide/"+taxonomy, function(data) {
+	$.get(baseurl + "/taxonomies/taxonomyMassHide/"+taxonomy, function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});
 }
 
 function unhideSelectedTags(taxonomy) {
-	$.get("/taxonomies/taxonomyMassUnhide/"+taxonomy, function(data) {
+	$.get(baseurl + "/taxonomies/taxonomyMassUnhide/"+taxonomy, function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});
@@ -967,7 +967,7 @@ function loadEventTags(id) {
         success:function (data, textStatus) {
             $(".eventTagContainer").html(data);
         },
-        url:"/tags/showEventTag/" + id,
+        url: baseurl + "/tags/showEventTag/" + id,
     });
 }
 
@@ -982,7 +982,7 @@ function loadGalaxies(id, scope) {
                 $("#attribute_" + id + "_galaxy").html(data);
             }
         },
-        url:"/galaxies/showGalaxies/" + id + "/" + scope,
+        url: baseurl + "/galaxies/showGalaxies/" + id + "/" + scope,
     });
 }
 
@@ -993,7 +993,7 @@ function loadTagCollectionTags(id) {
         success:function (data, textStatus) {
             $(".tagCollectionTagContainer").html(data);
         },
-        url:"/tags/showEventTag/" + id,
+        url: baseurl + "/tags/showEventTag/" + id,
     });
 }
 
@@ -1008,7 +1008,7 @@ function removeEventTag(event, tag) {
             data: formData,
             type:"POST",
             cache: false,
-            url:"/events/removeTag/" + event + '/' + tag,
+            url: baseurl + "/events/removeTag/" + event + '/' + tag,
             success:function (data, textStatus) {
                 loadEventTags(event);
                 handleGenericAjaxResponse(data);
@@ -1028,12 +1028,12 @@ function loadAttributeTags(id) {
         success:function (data, textStatus) {
             $("#Attribute_"+id+"_tr .attributeTagContainer").html(data);
         },
-        url:"/tags/showAttributeTag/" + id
+        url: baseurl + "/tags/showAttributeTag/" + id
     });
 }
 
 function removeObjectTagPopup(clicked, context, object, tag) {
-    $.get( "/" + context + "s/removeTag/" + object + '/' + tag, function(data) {
+    $.get(baseurl + "/" + context + "s/removeTag/" + object + '/' + tag, function(data) {
         openPopover(clicked, data);
     });
 }
@@ -1047,7 +1047,7 @@ function removeObjectTag(context, object, tag) {
         data: formData,
         type:"POST",
         cache: false,
-        url:"/" + context.toLowerCase() + "s/removeTag/" + object + '/' + tag,
+        url: baseurl + "/" + context.toLowerCase() + "s/removeTag/" + object + '/' + tag,
         success:function (data, textStatus) {
             $("#confirmation_box").fadeOut();
             $("#gray_out").fadeOut();
@@ -1069,13 +1069,13 @@ function removeObjectTag(context, object, tag) {
 
 function redirectAddObject(templateId, additionalData) {
     var eventId = additionalData['event_id'];
-    window.location = '/objects/add/' + eventId + '/' + templateId;
+    window.location = baseurl + '/objects/add/' + eventId + '/' + templateId;
 }
 
 function clickCreateButton(event, type) {
     var destination = 'attributes';
     if (type == 'Proposal') destination = 'shadow_attributes';
-    simplePopup("/" + destination + "/add/" + event);
+    simplePopup(baseurl + "/" + destination + "/add/" + event);
 }
 
 function submitPopoverForm(context_id, referer, update_context_id) {
@@ -1085,59 +1085,59 @@ function submitPopoverForm(context_id, referer, update_context_id) {
     var closePopover = true;
     switch (referer) {
         case 'add':
-            url = "/attributes/add/" + context_id;
+            url = baseurl + "/attributes/add/" + context_id;
             break;
         case 'edit':
-            url = "/attributes/edit/" + context_id;
+            url = baseurl + "/attributes/edit/" + context_id;
             break;
         case 'propose':
-            url = "/shadow_attributes/add/" + context_id;
+            url = baseurl + "/shadow_attributes/add/" + context_id;
             break;
         case 'massEdit':
-            url = "/attributes/editSelected/" + context_id;
+            url = baseurl + "/attributes/editSelected/" + context_id;
             break;
         case 'addTextElement':
-            url = "/templateElements/add/text/" + context_id;
+            url = baseurl + "/templateElements/add/text/" + context_id;
             context = 'template';
             contextNamingConvention = 'TemplateElementText';
             break;
         case 'editTextElement':
-            url = "/templateElements/edit/text/" + context_id;
+            url = baseurl + "/templateElements/edit/text/" + context_id;
             context = 'template';
             context_id = update_context_id;
             contextNamingConvention = 'TemplateElementText';
             break;
         case 'addAttributeElement':
-            url = "/templateElements/add/attribute/" + context_id;
+            url = baseurl + "/templateElements/add/attribute/" + context_id;
             context = 'template';
             contextNamingConvention = 'TemplateElementAttribute';
             break;
         case 'editAttributeElement':
-            url = "/templateElements/edit/attribute/" + context_id;
+            url = baseurl + "/templateElements/edit/attribute/" + context_id;
             context = 'template';
             context_id = update_context_id;
             contextNamingConvention = 'TemplateElementAttribute';
             break;
         case 'addFileElement':
-            url = "/templateElements/add/file/" + context_id;
+            url = baseurl + "/templateElements/add/file/" + context_id;
             context = 'template';
             contextNamingConvention = 'TemplateElementFile';
             break;
         case 'editFileElement':
-            url = "/templateElements/edit/file/" + context_id;
+            url = baseurl + "/templateElements/edit/file/" + context_id;
             context = 'template';
             context_id = update_context_id;
             contextNamingConvention = 'TemplateElementFile';
             break;
         case 'replaceAttributes':
-            url = "/attributes/attributeReplace/" + context_id;
+            url = baseurl + "/attributes/attributeReplace/" + context_id;
             break;
         case 'addSighting':
-            url = "/sightings/add/" + context_id;
+            url = baseurl + "/sightings/add/" + context_id;
             closePopover = false;
             break;
         case 'addObjectReference':
-            url = "/objectReferences/add/" + context_id;
+            url = baseurl + "/objectReferences/add/" + context_id;
             break;
     }
     if (url !== null) {
@@ -1157,7 +1157,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
                 }
                 if (referer == 'addSighting') {
                     updateIndex(update_context_id, 'event');
-                    $.get( "/sightings/listSightings/" + id + "/attribute", function(data) {
+                    $.get(baseurl + "/sightings/listSightings/" + id + "/attribute", function(data) {
                         $("#sightingsData").html(data);
                     });
                     $('.sightingsToggle').removeClass('btn-primary');
@@ -1260,7 +1260,7 @@ function updateHistogram(selected) {
             $(".loading").hide();
             $("#histogram").html(data);
         },
-        url:"/users/histogram/" + selected,
+        url: baseurl + "/users/histogram/" + selected,
     });
 }
 
@@ -1320,7 +1320,7 @@ function appendTemplateTag(selected_id) {
             $(".loading").hide();
             $("#tags").append(data);
         },
-        url:"/tags/viewTag/" + selected_id,
+        url: baseurl + "/tags/viewTag/" + selected_id,
     });
     updateSelectedTags();
 }
@@ -1360,16 +1360,16 @@ function saveElementSorting(order) {
         },
         type:"post",
         cache: false,
-        url:"/templates/saveElementSorting/",
+        url: baseurl + "/templates/saveElementSorting/",
     });
 }
 
 function templateAddElementClicked(id) {
-    simplePopup("/template_elements/templateElementAddChoices/" + id);
+    simplePopup(baseurl + "/template_elements/templateElementAddChoices/" + id);
 }
 
 function templateAddElement(type, id) {
-    simplePopup("/template_elements/add/" + type + "/" + id);
+    simplePopup(baseurl + "/template_elements/add/" + type + "/" + id);
 }
 
 function templateUpdateAvailableTypes() {
@@ -1560,7 +1560,7 @@ function getMatrixPopup(scope, scope_id, galaxy_id) {
 
 function getPopup(id, context, target, admin, popupType) {
     $("#gray_out").fadeIn();
-    var url = "";
+    var url = baseurl;
     if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
     if (context != '') {
         url += "/" + context;
@@ -1591,7 +1591,7 @@ function getPopup(id, context, target, admin, popupType) {
 
 // Same as getPopup function but create a popover to populate first
 function popoverPopup(clicked, id, context, target, admin) {
-    var url = "";
+    var url = baseurl;
     if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
     if (context != '') {
         url += "/" + context;
@@ -1767,7 +1767,7 @@ function templateDeleteFileBubble(filename, tmp_name, element_id, context, batch
     $.ajax({
         type:"post",
         cache: false,
-        url:"/templates/deleteTemporaryFile/" + tmp_name,
+        url: baseurl + "/templates/deleteTemporaryFile/" + tmp_name,
     });
     var c = this;
     if (context == 'iframe') {
@@ -1808,7 +1808,7 @@ function freetextRemoveRow(id, event_id) {
     $('#row_' + id).hide();
     $('#Attribute' + id + 'Save').attr("value", "0");
     if ($(".freetext_row:visible").length == 0) {
-        window.location = "/events/" + event_id;
+        window.location = baseurl + "/events/" + event_id;
     }
 }
 
@@ -1917,13 +1917,13 @@ function executeFilter(passedArgs, url) {
 }
 
 function quickFilterTaxonomy(taxonomy_id, passedArgs) {
-    var url = "/taxonomies/view/" + taxonomy_id + "/filter:" + $('#quickFilterField').val();
+    var url = baseurl + "/taxonomies/view/" + taxonomy_id + "/filter:" + $('#quickFilterField').val();
     window.location.href=url;
 }
 
 function quickFilterRemoteEvents(passedArgs, id) {
     passedArgs["searchall"] = $('#quickFilterField').val();
-    var url = "/servers/previewIndex/" + id;
+    var url = baseurl + "/servers/previewIndex/" + id;
     for (var key in passedArgs) {
         url += "/" + key + ":" + passedArgs[key];
     }
@@ -2212,7 +2212,7 @@ function serverSettingsActivateField(setting, id) {
             $(fieldName + "_placeholder").show();
             serverSettingsPostActivationScripts(fieldName, setting, id);
         },
-        url:"/servers/serverSettingsEdit/" + setting + "/" + id,
+        url: baseurl + "/servers/serverSettingsEdit/" + setting + "/" + id,
     });
 }
 
@@ -2262,7 +2262,7 @@ function serverSettingSubmitForm(name, setting, id) {
         success:function (data, textStatus) {
             $.ajax({
                 type:"get",
-                url:"/servers/serverSettingsReloadSetting/" + setting + "/" + id,
+                url: baseurl + "/servers/serverSettingsReloadSetting/" + setting + "/" + id,
                 success:function (data2, textStatus2) {
                     $('#' + subGroup + "_" + id + '_row').replaceWith(data2);
                     $(".loading").hide();
@@ -2278,7 +2278,7 @@ function serverSettingSubmitForm(name, setting, id) {
             $('.inline-field-placeholder').hide();
         },
         type:"post",
-        url:"/servers/serverSettingsEdit/" + setting + "/" + id + "/" + 1
+        url: baseurl + "/servers/serverSettingsEdit/" + setting + "/" + id + "/" + 1
     });
     $(name + '_field').unbind("keyup");
     $(name + '_form').unbind("focusout");
@@ -2287,8 +2287,9 @@ function serverSettingSubmitForm(name, setting, id) {
 
 function updateOrgCreateImageField(string) {
     string = escape(string);
+    var imgsrc = baseurl + '/img/orgs/' + string + '.png';
     $.ajax({
-        url:'/img/orgs/' + string + '.png',
+        url: imgsrc,
         type:'HEAD',
         error:
             function(){
@@ -2296,14 +2297,14 @@ function updateOrgCreateImageField(string) {
             },
         success:
             function(){
-                $('#logoDiv').html('<img src="/img/orgs/' + string + '.png" style="width:24px;height:24px;"></img>');
+                $('#logoDiv').html('<img src="' + imgsrc + '" style="width:24px;height:24px;"></img>');
             }
     });
 }
 
 function generateOrgUUID() {
     $.ajax({
-        url:'/admin/organisations/generateuuid.json',
+        url: baseurl + '/admin/organisations/generateuuid.json',
         success:
             function( data ){
                 $('#OrganisationUuid').val(data.uuid);
@@ -2418,13 +2419,13 @@ function freetextImportResultsSubmit(id, count) {
     $.ajax({
         type: "post",
         cache: false,
-        url: "/events/saveFreeText/" + id,
+        url: baseurl + "/events/saveFreeText/" + id,
         data: formData,
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
         success:function (data, textStatus) {
-            window.location = '/events/view/' + id;
+            window.location = baseurl + '/events/view/' + id;
         },
         complete:function() {
             $(".loading").hide();
@@ -2504,12 +2505,12 @@ function moduleResultsSubmit(id) {
     $.ajax({
         type: "post",
         cache: false,
-        url: "/events/handleModuleResults/" + id,
+        url: baseurl + "/events/handleModuleResults/" + id,
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
         success:function (data, textStatus) {
-            window.location = '/events/view/' + id;
+            window.location = baseurl + '/events/view/' + id;
         },
         complete:function() {
             $(".loading").hide();
@@ -2518,7 +2519,7 @@ function moduleResultsSubmit(id) {
 }
 
 function objectTemplateViewContent(context, id) {
-    var url = "/objectTemplateElements/viewElements/" + id + "/" + context;
+    var url = baseurl + "/objectTemplateElements/viewElements/" + id + "/" + context;
     $.ajax({
             url: url,
             type:'GET',
@@ -2548,7 +2549,7 @@ function organisationViewContent(context, id) {
         action = "/events/index/searchorg:";
     }
     $.ajax({
-        url: action + id,
+        url: baseurl + action + id,
         type:'GET',
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
@@ -2557,7 +2558,9 @@ function organisationViewContent(context, id) {
             $('#ajaxContent').html('An error has occured, please reload the page.');
         },
         success: function(response){
+	console.log("Success!!!");
             $('#ajaxContent').html(response);
+	console.log("Completed!!!");
         },
         complete: function() {
             $(".loading").hide();
@@ -2701,10 +2704,10 @@ function sharingGroupPopulateUsers() {
 function sharingGroupAdd(context, type) {
     if (context == 'organisation') {
         var jsonids = JSON.stringify(orgids);
-        url = '/organisations/fetchOrgsForSG/' + jsonids + '/' + type
+        url = baseurl + '/organisations/fetchOrgsForSG/' + jsonids + '/' + type
     } else if (context == 'server') {
         var jsonids = JSON.stringify(serverids);
-        url = '/servers/fetchServersForSG/' + jsonids
+        url = baseurl + '/servers/fetchServersForSG/' + jsonids
     }
     $("#gray_out").fadeIn();
     simplePopup(url);
@@ -2841,7 +2844,7 @@ function sharingGroupPopulateFromJson() {
 
 function testConnection(id) {
     $.ajax({
-        url: '/servers/testConnection/' + id,
+        url: baseurl + '/servers/testConnection/' + id,
         type:'GET',
         beforeSend: function (XMLHttpRequest) {
             $("#connection_test_" + id).html('Running test...');
@@ -2947,13 +2950,13 @@ function pgpChoiceSelect(uri) {
 }
 
 function lookupPGPKey(emailFieldName) {
-    simplePopup("/users/fetchPGPKey/" + $('#' + emailFieldName).val());
+    simplePopup(baseurl + "/users/fetchPGPKey/" + $('#' + emailFieldName).val());
 }
 
 function zeroMQServerAction(action) {
     $.ajax({
         type: "get",
-        url: "/servers/" + action + "ZeroMQServer/",
+        url: baseurl + "/servers/" + action + "ZeroMQServer/",
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -3128,7 +3131,7 @@ function syncUserSelected() {
 }
 
 function filterAttributes(filter, id) {
-    url = "/events/viewEventAttributes/" + id;
+    url = baseurl + "/events/viewEventAttributes/" + id;
     if(filter === 'value'){
         filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
@@ -3282,7 +3285,7 @@ function runHoverLookup(type, id) {
             currentPopover = type + '_' + id + '_container'
         },
         cache: false,
-        url:"/attributes/hoverEnrichment/" + id,
+        url: baseurl + "/attributes/hoverEnrichment/" + id,
     });
 }
 
@@ -3306,7 +3309,7 @@ $(document).on( "click", ".eventViewAttributePopup", function() {
             },
             async: false,
             cache: false,
-            url:"/attributes/hoverEnrichment/" + id + "/1",
+            url: baseurl + "/attributes/hoverEnrichment/" + id + "/1",
         });
     }
     if (type + "_" + id in ajaxResults["persistent"]) {
@@ -3385,7 +3388,7 @@ function serverOwnerOrganisationChange(host_org_id) {
 }
 
 function requestAPIAccess() {
-    url = "/users/request_API/";
+    url = baseurl + "/users/request_API/";
     $.ajax({
         type:"get",
         url:url,
@@ -3516,7 +3519,7 @@ function checkOrphanedAttributes() {
         },
         type:"get",
         cache: false,
-        url: "/attributes/checkOrphanedAttributes/",
+        url: baseurl + "/attributes/checkOrphanedAttributes/",
     });
 }
 
@@ -3539,7 +3542,7 @@ function checkAttachments() {
         },
         type:"get",
         cache: false,
-        url: "/attributes/checkAttachments/",
+        url: baseurl + "/attributes/checkAttachments/",
     });
 }
 
@@ -3557,14 +3560,14 @@ function loadTagTreemap() {
         },
         type:"get",
         cache: false,
-        url: "/users/tagStatisticsGraph",
+        url: baseurl + "/users/tagStatisticsGraph",
     });
 }
 
 function loadSightingsData(timestamp) {
-    url = "/sightings/toplist";
+    url = baseurl + "/sightings/toplist";
     if (timestamp != undefined) {
-        url = url + '/' + timestamp;
+        url += '/' + timestamp;
     }
     $.ajax({
         async:true,
@@ -3597,7 +3600,7 @@ function quickEditEvent(id, field) {
         },
         type:"get",
         cache: false,
-        url: "/events/quickEdit/" + id + "/" + field,
+        url: baseurl + "/events/quickEdit/" + id + "/" + field,
     });
 }
 
@@ -3640,7 +3643,7 @@ function addGalaxyListener(id) {
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
-    var formData = fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope);
+    var formData = fetchFormDataAjax(baseurl + "/galaxies/attachMultipleClusters/" + target_id + "/" + scope);
     $('#temp').html(formData);
     $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
     if (target_id == 'selected') {
@@ -3673,7 +3676,7 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
             $(".loading").hide();
         },
         type:"post",
-        url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
+        url: baseurl + "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
     });
     $('#temp').remove();
     return false;
@@ -3685,7 +3688,7 @@ function checkAndSetPublishedInfo(skip_reload) {
     }
     var id = $('#hiddenSideMenuData').data('event-id');
     if (id !== 'undefined' && !skip_reload) {
-        $.get( "/events/checkPublishedStatus/" + id, function(data) {
+        $.get(baseurl + "/events/checkPublishedStatus/" + id, function(data) {
             if (data == 1) {
                 $('.published').removeClass('hidden');
                 $('.not-published').addClass('hidden');
@@ -3717,7 +3720,7 @@ function closeScreenshot() {
 }
 
 function loadSightingGraph(id, scope) {
-    $.get( "/sightings/viewSightings/" + id + "/" + scope, function(data) {
+    $.get(baseurl + "/sightings/viewSightings/" + id + "/" + scope, function(data) {
         $("#sightingsData").html(data);
     });
 }
@@ -3736,7 +3739,7 @@ function checkRolePerms() {
 }
 
 function updateMISP() {
-    $.get( "/servers/update", function(data) {
+    $.get(baseurl + "/servers/update", function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
@@ -3760,7 +3763,7 @@ function submitMISPUpdate() {
         },
         type:"post",
         cache: false,
-        url:"/servers/update",
+        url: baseurl + "/servers/update",
     });
 }
 
@@ -3806,7 +3809,7 @@ function submitSubmoduleUpdate(clicked) {
                 url:$form.attr('action'),
             });
         },
-        url:'/servers/getSubmoduleQuickUpdateForm/' + (submodule_path !== undefined ? btoa(submodule_path) : ''),
+        url: baseurl + '/servers/getSubmoduleQuickUpdateForm/' + (submodule_path !== undefined ? btoa(submodule_path) : ''),
     });
 }
 
@@ -3940,7 +3943,7 @@ function previewEventBasedOnUuids() {
         $('#extended_event_preview').hide();
     } else {
         $.ajax({
-            url: "/events/getEventInfoById/" + currentValue,
+            url: baseurl + "/events/getEventInfoById/" + currentValue,
             type: "get",
             error: function() {
                 $('#extended_event_preview').hide();
@@ -3969,7 +3972,7 @@ function checkNoticeList(type) {
                     $('#notice_message').append(
                         $('<div/>')
                             .append($('<span/>').text('['))
-                            .append($('<a/>', {href: '/noticelists/view/' + notice['list_id'], class:'bold'}).text(notice['list_name']))
+                            .append($('<a/>', {href: baseurl + '/noticelists/view/' + notice['list_id'], class:'bold'}).text(notice['list_name']))
                             .append($('<span/>').text(']: '))
                             .append($('<span/>').text(notice['message']['en']))
                     );
@@ -4040,7 +4043,7 @@ $(document).ready(function() {
             },
             type:"get",
             cache: false,
-            url: '/admin/roles/set_default/' + (state ? id : ""),
+            url: baseurl + '/admin/roles/set_default/' + (state ? id : ""),
         });
     });
     // clicking on an element with this class will select all of its contents in a
@@ -4075,7 +4078,7 @@ $(document).ready(function() {
         var k = $('#last-row').data('last-row');
         var k = k+1;
         $('#last-row').data('last-row', k);
-        url = "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
+        url = baseurl + "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
         $.get(url, function(data) {
             $('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
             var $added_row = $('#row_' + object_relation + '_expand').prev().prev();
@@ -4100,7 +4103,7 @@ $(document).ready(function() {
 function queryEventLock(event_id, user_org_id) {
     if (tabIsActive) {
         $.ajax({
-            url: "/events/checkLocks/" + event_id,
+            url: baseurl + "/events/checkLocks/" + event_id,
             type: "get",
             success: function(data, statusText, xhr) {
                  if (xhr.status == 200) {
@@ -4119,7 +4122,7 @@ function queryEventLock(event_id, user_org_id) {
 
 function checkIfLoggedIn() {
     if (tabIsActive) {
-        $.get("/users/checkIfLoggedIn.json", function(data) {
+        $.get(baseurl + "/users/checkIfLoggedIn.json", function(data) {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }
@@ -4264,14 +4267,14 @@ function submit_feed_overlap_tool(feedId) {
         },
         type:"post",
         cache: false,
-        url:"/feeds/feedCoverage/" + feedId,
+        url: baseurl + "/feeds/feedCoverage/" + feedId,
     });
 }
 
 function changeTaxonomyRequiredState(checkbox) {
     var checkbox_state = $(checkbox).is(":checked");
     var taxonomy_id = $(checkbox).data('taxonomy-id');
-    var formData = fetchFormDataAjax('/taxonomies/toggleRequired/' + taxonomy_id);
+    var formData = fetchFormDataAjax(baseurl + '/taxonomies/toggleRequired/' + taxonomy_id);
     $.ajax({
         data: $(formData).serialize(),
         success:function (data, textStatus) {
@@ -4284,7 +4287,7 @@ function changeTaxonomyRequiredState(checkbox) {
         async:"false",
         type:"post",
         cache: false,
-        url: '/taxonomies/toggleRequired/' + taxonomy_id,
+        url: baseurl + '/taxonomies/toggleRequired/' + taxonomy_id,
     });
     formData = false;
 }

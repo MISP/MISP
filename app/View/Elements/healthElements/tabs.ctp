@@ -5,7 +5,7 @@
                 'children' => array(
                     array(
                         'text' => __('Overview'),
-                        'url' => '/servers/serverSettings/',
+                        'url' => $baseurl . '/servers/serverSettings/',
                         'active' => $active_tab === false
                     )
                 )
@@ -23,12 +23,12 @@
                     ($tab['severity'] == 0) ? ' <i class="fa fa-exclamation-triangle" title="' . __('This tab reports some potential critical misconfigurations.') . '"></i>' : ''
                 )
             ),
-            'url' => '/servers/serverSettings/' . h($k),
+            'url' => $baseurl . '/servers/serverSettings/' . h($k),
             'active' => $k == $active_tab
         );
     }
     $data['children'][0]['children'][] = array(
-        'url' => '/servers/serverSettings/diagnostics',
+        'url' => $baseurl . '/servers/serverSettings/diagnostics',
         'html' => sprintf(
             '%s%s',
             __('Diagnostics'),
@@ -41,12 +41,12 @@
     );
 
     $data['children'][0]['children'][] = array(
-        'url' => '/servers/serverSettings/files',
+        'url' => $baseurl . '/servers/serverSettings/files',
         'text' => __('Manage files'),
         'active' => $active_tab === 'files'
     );
     $data['children'][0]['children'][] = array(
-        'url' => '/servers/serverSettings/workers',
+        'url' => $baseurl . '/servers/serverSettings/workers',
         'title' => __('Workers'),
         'active' => 'workers' == $active_tab,
         'html' => sprintf(
@@ -61,7 +61,7 @@
         'requirement' => !empty($worker_array)
     );
     $data['children'][0]['children'][] = array(
-        'url' => '/servers/serverSettings/diagnostics',
+        'url' => $baseurl . '/servers/serverSettings/diagnostics',
         'title' => __('Download report'),
         'html' => '<i class="fa fa-download"></i>'
     );

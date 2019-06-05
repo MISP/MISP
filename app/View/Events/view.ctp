@@ -249,7 +249,7 @@
         }
         $table_data[] = array(
             'key' => __('Sightings'),
-            'element' => '/Events/View/eventSightingValue',
+            'element' => $baseurl . '/Events/View/eventSightingValue',
             'element_params' => array(
                 'sightingPopover' => $sightingPopover,
                 'event' => $event,
@@ -406,7 +406,7 @@
                 ?>
                         <span>
                             <?php echo __('This event has ');?><span class="bold"><?php echo h($event['Event']['FeedCount']); ?></span>
-                            <?php echo __('correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href="%s\/overrideLimit:1">here</a> to refresh the page with the feed data loaded.', h($this->here));?>
+                            <?php echo __('correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href="%s\/overrideLimit:1">here</a> to refresh the page with the feed data loaded.', h(Router::url(null, true)));?>
                      </span>
                 <?php
                     endif;
@@ -435,7 +435,7 @@
                 ?>
                         <span>
                             <?php echo __('This event has ');?><span class="bold"><?php echo h($event['Event']['FeedCount']); ?></span>
-                            <?php echo __('correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href="%s\/overrideLimit:1">here</a> to refresh the page with the feed data loaded.', h($this->here));?>
+                            <?php echo __('correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href="%s\/overrideLimit:1">here</a> to refresh the page with the feed data loaded.', h(Router::url(null, true)));?>
                      </span>
                 <?php
                     endif;
@@ -516,20 +516,20 @@ $(document).ready(function () {
         delay: { show: 500, hide: 100 }
     });
 
-    $.get("/threads/view/<?php echo h($event['Event']['id']); ?>/true", function(data) {
+    $.get("<?php echo $baseurl; ?>/threads/view/<?php echo h($event['Event']['id']); ?>/true", function(data) {
         $("#discussions_div").html(data);
     });
 
 });
 
 function enable_correlation_graph() {
-    $.get("/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
+    $.get("<?php echo $baseurl; ?>/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
         $("#correlationgraph_div").html(data);
     });
 }
 
 function enable_attack_matrix() {
-    $.get("/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
+    $.get("<?php echo $baseurl; ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
         $("#attackmatrix_div").html(data);
     });
 }

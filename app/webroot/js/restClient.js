@@ -1,3 +1,6 @@
+/* Codacy comment to notify that baseurl is a read-only global variable. */
+/* global baseurl */
+
 // tooltips
 var thread = null;
 function setApiInfoBox(isTyping) {
@@ -16,7 +19,7 @@ function setApiInfoBox(isTyping) {
             function() {
                 $.ajax({
                     type: "POST",
-                    url: '/servers/getApiInfo',
+                    url: baseurl + '/servers/getApiInfo',
                     data: payload,
                     success:function (data, textStatus) {
                         $('#apiInfo').html(data);
@@ -54,7 +57,7 @@ function populate_rest_history(scope) {
         scope = '1';
         var container_class = 'bookmarked_queries';
     }
-    $.get("/rest_client_history/index/" + scope, function(data) {
+    $.get(baseurl + "/rest_client_history/index/" + scope, function(data) {
         $('.' + container_class).html(data);
     });
 }
@@ -79,7 +82,7 @@ function removeRestClientHistoryItem(id) {
         },
         type:"post",
         cache: false,
-        url: '/rest_client_history/delete/' + id,
+        url: baseurl + '/rest_client_history/delete/' + id,
     });
 }
 

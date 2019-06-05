@@ -23,12 +23,12 @@
                         array(
                             'text' => __('My Org\'s Events'),
                             'active' => !$all,
-                            'url' => '/shadow_attributes/index'
+                            'url' => $baseurl . '/shadow_attributes/index'
                         ),
                         array(
                             'text' => __('All Events'),
                             'active' => $all,
-                            'url' => '/shadow_attributes/index/all:1'
+                            'url' => $baseurl . '/shadow_attributes/index/all:1'
                         )
                     )
                 )

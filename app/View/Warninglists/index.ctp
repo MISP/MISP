@@ -19,7 +19,7 @@
     <div id="hiddenFormDiv">
     <?php
         if ($isSiteAdmin) {
-            echo $this->Form->create('Warninglist', array('url' => '/warninglists/toggleEnable'));
+            echo $this->Form->create('Warninglist', array('url' => $baseurl . '/warninglists/toggleEnable'));
             echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
             echo $this->Form->end();
         }

@@ -406,7 +406,7 @@
                 $clone.find('strong').text('Synchronization result:');
                 if (job_sent) {
                     $clone.find('#submoduleGitResult')
-                        .html('> Synchronizing DB with <a href="/jobs/index/" target="_blank">workers</a>...');
+			    .html('> Synchronizing DB with <a href="<?php echo $baseurl . '/jobs/index/'; ?>" target="_blank">workers</a>...');
                 } else {
                     $clone.find('#submoduleGitResult')
                         .text(sync_result);

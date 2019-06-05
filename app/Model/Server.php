@@ -151,7 +151,7 @@ class Server extends AppModel
                         'branch' => 1,
                         'baseurl' => array(
                                 'level' => 0,
-                                'description' => __('The base url of the application (in the format https://www.mymispinstance.com). Several features depend on this setting being correctly set to function.'),
+                                'description' => __('The base url of the application (in the format https://www.mymispinstance.com or https://myserver.com/misp). Several features depend on this setting being correctly set to function.'),
                                 'value' => '',
                                 'errorMessage' => __('The currenty set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address).'),
                                 'test' => 'testBaseURL',
@@ -3184,7 +3184,10 @@ class Server extends AppModel
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
-        if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) {
+        $regex = "%^(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,5})(?::(?<port>[0-9]+))?(?<base>/[a-z0-9_\-\.]+)?$%i";
+	if ( !preg_match($regex, $value, $matches)
+                || strtolower($matches['proto']) != strtolower($this->getProto())
+                || strtolower($matches['host']) != strtolower($this->getHost()) ) {
             return 'Invalid baseurl, it has to be in the "https://FQDN" format.';
         }
         return true;

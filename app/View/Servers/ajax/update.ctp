@@ -1,6 +1,6 @@
 <div class="confirmation">
     <?php
-        echo $this->Form->create('Server', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/servers/update'));
+        echo $this->Form->create('Server', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/servers/update'));
     ?>
     <legend>Update MISP</legend>
     <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">

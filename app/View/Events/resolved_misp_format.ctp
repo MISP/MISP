@@ -1,7 +1,7 @@
 <div class="index">
     <h2><?php echo h($title); ?></h2>
     <?php
-        $url = '/events/handleModuleResults/' . $event['Event']['id'];
+        $url = $baseurl . '/events/handleModuleResults/' . $event['Event']['id'];
         echo $this->Form->create('Event', array('url' => $url, 'class' => 'mainForm'));
         $formSettings = array(
             'type' => 'hidden',

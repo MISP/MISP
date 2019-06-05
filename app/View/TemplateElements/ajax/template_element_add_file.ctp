@@ -1,6 +1,6 @@
 <div class="template_element_add_file">
 <?php
-    echo $this->Form->create('TemplateElementFile', array('id', 'url' => '/templateElements/add/file/' . $id));
+    echo $this->Form->create('TemplateElementFile', array('id', 'url' => $baseurl . '/templateElements/add/file/' . $id));
 ?>
     <legend><?php echo __('Add File Element To Template'); ?></legend>
     <fieldset>

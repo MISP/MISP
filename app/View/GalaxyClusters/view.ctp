@@ -59,10 +59,10 @@
 </div>
 <script type="text/javascript">
 $(document).ready(function () {
-    $.get("/galaxy_elements/index/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
+    $.get("<?php echo $baseurl; ?>/galaxy_elements/index/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
         $("#elements_div").html(data);
     });
-    $.get("/galaxy_clusters/viewGalaxyMatrix/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
+    $.get("<?php echo $baseurl; ?>/galaxy_clusters/viewGalaxyMatrix/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
         $("#matrix_container").html(data);
     });
 });

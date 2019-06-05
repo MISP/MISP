@@ -12,7 +12,7 @@
                 <div style="padding-left:0px;padding-right:5px;float:left;">
                     <?php if ($isSiteAdmin): ?>
                         <?php
-                            echo $this->Form->create('Server', array('id' => 'removeTag_' . h($tag['Tag']['id']),  'url' => '/servers/removeTag/' . h($server['Server']['id']) . '/' . h($tag['Tag']['id']), 'style' => 'margin:0px;'));
+                            echo $this->Form->create('Server', array('id' => 'removeTag_' . h($tag['Tag']['id']),  'url' => $baseurl . '/servers/removeTag/' . h($server['Server']['id']) . '/' . h($tag['Tag']['id']), 'style' => 'margin:0px;'));
                         ?>
                         <div title="<?php echo __('Remove tag');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove tag');?>" class="tagSecondHalf useCursorPointer noPrint" onClick="removeServerTag('<?php echo h($server['Server']['id']); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
                         <?php

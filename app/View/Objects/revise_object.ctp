@@ -2,7 +2,7 @@
   <h3><?php echo __('Object pre-save review');?></h3>
   <p><?php echo __('Make sure that the below Object reflects your expectation before submiting it.');?></p>
   <?php
-    $url = ($action == 'add') ? '/objects/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/edit/' . $object_id;
+    $url = $baseurl . ($action == 'add') ? '/objects/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/edit/' . $object_id;
     echo $this->Form->create('Object', array('id', 'url' => $url));
     $formSettings = array(
       'type' => 'hidden',

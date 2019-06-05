@@ -103,7 +103,7 @@
             <td class="actions short" style="<?php echo $style; ?>">
 <?php
         if ($worker_array['controls']) {
-            echo $this->Form->postLink('', '/servers/stopWorker/' . h($worker['pid']), array('class' => 'fa fa-trash black' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
+            echo $this->Form->postLink('', $baseurl . '/servers/stopWorker/' . h($worker['pid']), array('class' => 'fa fa-trash black' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
         }
             ?>
             </td>
@@ -115,7 +115,7 @@
     </table>
     <?php
         if ($worker_array['controls']) {
-            echo $this->Form->create('Server', array('url' => '/servers/startWorker/' . h($type)));
+            echo $this->Form->create('Server', array('url' => $baseurl . '/servers/startWorker/' . h($type)));
             echo $this->Form->button(__('Start a worker'), array('class' => 'btn btn-inverse'));
             echo $this->Form->end();
         }
@@ -126,7 +126,7 @@
 
 <?php
 if ($worker_array['controls']) {
-    echo $this->Form->create('Server', array('url' => '/servers/restartWorkers'));
+    echo $this->Form->create('Server', array('url' => $baseurl . '/servers/restartWorkers'));
     echo $this->Form->button(__('Restart all workers'), array('class' => 'btn btn-primary'));
     echo $this->Form->end();
 }

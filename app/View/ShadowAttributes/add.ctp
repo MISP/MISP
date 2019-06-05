@@ -1,5 +1,5 @@
 <div class="shadow_attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
-<?php echo $this->Form->create('ShadowAttribute', array('url' => '/shadow_attributes/add/' . $event_id));?>
+<?php echo $this->Form->create('ShadowAttribute', array('url' => $baseurl . '/shadow_attributes/add/' . $event_id));?>
     <fieldset>
     <legend><?php echo __('Add Proposal'); ?></legend>
     <div id="formWarning" class="message ajaxMessage"></div>

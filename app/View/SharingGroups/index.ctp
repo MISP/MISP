@@ -22,12 +22,12 @@
                 array(
                     'children' => array(
                         array(
-                            'url' => '/sharing_groups/index',
+                            'url' => $baseurl . '/sharing_groups/index',
                             'text' => __('Active Sharing Groups'),
                             'active' => !$passive
                         ),
                         array(
-                            'url' => '/sharing_groups/index/true',
+                            'url' => $baseurl . '/sharing_groups/index/true',
                             'text' => __('Passive Sharing Groups'),
                             'active' => $passive
                         )
@@ -52,7 +52,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
     <tr>
         <td class="short"><?php echo h($sharingGroup['SharingGroup']['id']); ?></td>
         <td class="short"><?php echo h($sharingGroup['SharingGroup']['name']); ?></td>
-        <td class="short"><a href="/organisations/view/<?php echo h($sharingGroup['Organisation']['id']);?>"><?php echo h($sharingGroup['Organisation']['name']); ?></a></td>
+	<td class="short"><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo h($sharingGroup['Organisation']['id']);?>"><?php echo h($sharingGroup['Organisation']['name']); ?></a></td>
         <td><?php echo h($sharingGroup['SharingGroup']['description']); ?></td>
         <?php
             $combined = "";
@@ -60,7 +60,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
             if (count($sharingGroup['SharingGroupOrg']) == 0) $combined .= "<br />N/A";
             foreach ($sharingGroup['SharingGroupOrg'] as $k2 => $sge) {
                 if (!empty($sge['Organisation'])) {
-                    $combined .= "<br /><a href='/Organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
+                    $combined .= "<br /><a href='" . $baseurl . "/Organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
                     if ($sge['extend']) $combined .= (' (can extend)');
                 }
             }
@@ -68,7 +68,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
             if (count($sharingGroup['SharingGroupServer']) == 0) $combined .= "<br />N/A";
             foreach ($sharingGroup['SharingGroupServer'] as $k3 => $sgs) {
                 if ($sgs['server_id'] != 0) {
-                    $combined .= "<br /><a href='/Server/view/" . h($sgs['Server']['id']) . "'>" . h($sgs['Server']['name']) . "</a>";
+                    $combined .= "<br /><a href='" . $baseurl . "/Server/view/" . h($sgs['Server']['id']) . "'>" . h($sgs['Server']['name']) . "</a>";
                 } else {
                     $combined .= "<br />This instance";
                 }
@@ -86,7 +86,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
             <?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit'))); ?>
             <?php echo $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
         <?php endif; ?>
-            <a href="/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="black fa fa-eye" title="<?php echo __('View');?>" aria-label="<?php echo __('View');?>"></a>
+	    <a href="<?php echo $baseurl; ?>/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="black fa fa-eye" title="<?php echo __('View');?>" aria-label="<?php echo __('View');?>"></a>
         </td>
     </tr>
     <?php

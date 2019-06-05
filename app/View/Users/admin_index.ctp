@@ -50,7 +50,7 @@
                         ),
                         array(
                             'requirement' => count($passedArgsArray) > 0,
-                            'url' => '/admin/users/index',
+                            'url' => $baseurl . '/admin/users/index',
                             'title' => __('Remove filters'),
                             'fa-icon' => 'times'
                         )

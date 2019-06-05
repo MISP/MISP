@@ -186,7 +186,7 @@ class ShadowAttributesController extends AppController
                 $response['check_publish'] = true;
                 $this->set('name', $response['success']);
                 $this->set('message', $response['success']);
-                $this->set('url', '/shadow_attributes/accept/' . $id);
+                $this->set('url', $this->baseurl . '/shadow_attributes/accept/' . $id);
                 $this->set('_serialize', array('name', 'message', 'url'));
             } else {
                 throw new MethodNotAllowedException($response['errors']);
@@ -270,7 +270,7 @@ class ShadowAttributesController extends AppController
                 if ($this->_isRest()) {
                     $this->set('name', 'Proposal discarded.');
                     $this->set('message', 'Proposal discarded.');
-                    $this->set('url', '/shadow_attributes/discard/' . $id);
+                    $this->set('url', $this->baseurl . '/shadow_attributes/discard/' . $id);
                     $this->set('_serialize', array('name', 'message', 'url'));
                 } else {
                     $this->autoRender = false;
@@ -1002,7 +1002,7 @@ class ShadowAttributesController extends AppController
             $this->set('name', 'No proposals found.');
             $this->set('message', 'No proposals found');
             $this->set('errors', 'No proposals found');
-            $this->set('url', '/shadow_attributes/getProposalsByUuid/' . $uuid);
+            $this->set('url', $this->baseurl . '/shadow_attributes/getProposalsByUuid/' . $uuid);
             $this->set('_serialize', array('name', 'message', 'url', 'errors'));
             $this->response->send();
             return false;
@@ -1047,7 +1047,7 @@ class ShadowAttributesController extends AppController
             $this->set('name', 'No proposals found.');
             $this->set('message', 'No proposals found');
             $this->set('errors', 'No proposals found');
-            $this->set('url', '/shadow_attributes/getProposalsByUuidList');
+            $this->set('url', $this->baseurl . '/shadow_attributes/getProposalsByUuidList');
             $this->set('_serialize', array('name', 'message', 'url', 'errors'));
             $this->response->send();
             return false;
