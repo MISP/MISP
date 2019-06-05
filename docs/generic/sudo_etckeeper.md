@@ -11,9 +11,9 @@ checkSudoKeeper () {
     su -c "apt install etckeeper -y"
     echo "Please enter your root password below to install sudo"
     su -c "apt install sudo -y"
-    echo "Please enter your root password below to add $MISP_USER to sudo group"
-    su -c "adduser $MISP_USER sudo"
-    echo "We added $MISP_USER to group sudo and now we need to log out and in again."
+    echo "Please enter your root password below to add ${MISP_USER} to sudo group"
+    su -c "adduser ${MISP_USER} sudo"
+    echo "We added ${MISP_USER} to group sudo and now we need to log out and in again."
     exit
   else
     sudo apt update
@@ -44,8 +44,10 @@ checkUsrLocalSrc () {
     echo "/usr/local/src does not exist, creating."
     mkdir -p /usr/local/src
     sudo chmod 2775 /usr/local/src
-    # FIXME: This might fail on distros with no staff user
-    sudo chown root:staff /usr/local/src
+    # TODO: Better handling /usr/local/src permissions
+    if [[ "$(cat /etc/group |grep staff > /dev/null 2>&1)" == "0" ]]; then
+      sudo chown root:staff /usr/local/src
+    fi
   fi
 }
 # <snippet-end add-user.sh>

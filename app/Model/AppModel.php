@@ -75,7 +75,7 @@ class AppModel extends Model
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
-        33 => false, 34 => false
+        33 => false, 34 => false, 35 => false
     );
 
     public $advanced_updates_description = array(
@@ -224,7 +224,7 @@ class AppModel extends Model
     }
 
     // SQL scripts for updates
-    public function updateDatabase($command, $useWorker=true)
+    public function updateDatabase($command, $useWorker=false)
     {
         // Exit if updates are locked
         if ($this->isUpdateLocked()) {
@@ -241,7 +241,7 @@ class AppModel extends Model
                 'job_input' => 'command: ' . $command,
                 'status' => 0,
                 'retries' => 0,
-                'org_id' => '',
+                'org_id' => 0,
                 'org' => '',
                 'message' => 'Updating.',
             );
@@ -1182,6 +1182,17 @@ class AppModel extends Model
                 break;
             case 33:
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_publish_kafka` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 35:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `notification_logs` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `org_id` int(11) NOT NULL,
+                    `type` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `timestamp` int(11) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (`id`),
+                    KEY `org_id` (`org_id`),
+                    KEY `type` (`type`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

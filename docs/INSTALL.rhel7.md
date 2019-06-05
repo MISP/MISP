@@ -10,14 +10,16 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 
     ```bash
     # Please check the installer options first to make the best choice for your install
-    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s
+    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    bash /tmp/INSTALL.sh
 
-    # This will install MISP Core and misp-modules (recommended)
-    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+    # This will install MISP Core
+    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    bash /tmp/INSTALL.sh -c
     ```
     **The above does NOT work yet**
 
-## 0/ Overview and Assumptions
+### 0/ Overview and Assumptions
 
 {!generic/rhelVScentos.md!}
 
@@ -35,39 +37,27 @@ This is a joint RHEL/CentOS install guide. The authors tried to make it contextu
 
 The following assumptions with regard to this installation have been made.
 
-### 0.1/ A valid support agreement allowing the system to register to the Red Hat Customer Portal and receive updates
-### 0.2/ The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
-### 0.3/ This system will have direct or proxy access to the Internet for updates. Or connected to a Red Hat Satellite Server
-### 0.4/ This document will bootstrap a MISP instance running over HTTPS. A full test of all features have yet to be done. [The following GitHub issue](https://github.com/MISP/MISP/issues/4084) details some shortcomings.
+- A valid support agreement allowing the system to register to the Red Hat Customer Portal and receive updates
+- The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
+- This system will have direct or proxy access to the Internet for updates. Or connected to a Red Hat Satellite Server
+- This document will bootstrap a MISP instance running over HTTPS. A full test of all features have yet to be done. [The following GitHub issue](https://github.com/MISP/MISP/issues/4084) details some shortcomings.
 
 {!generic/globalVariables.md!}
 
-```bash
-# <snippet-begin 0_RHEL_PHP_INI.sh>
-# RHEL/CentOS Specific
-RUN_PHP='/usr/bin/scl enable rh-php72'
-RUN_PYTHON='/usr/bin/scl enable rh-python36'
-SUDO_WWW='sudo -H -u apache'
-WWW_USER='apache'
-
-PHP_INI=/etc/opt/rh/rh-php72/php.ini
-# <snippet-end 0_RHEL_PHP_INI.sh>
-```
-
 !!! note
-		For fresh installs the following tips might be handy.<br />
-		Allow ssh to pass the firewall on the CLI
-		```bash
-		firewall-cmd --zone=public --add-port=22/tcp --permanent
-		firewall-cmd --reload
-		```
-		<br />
-		To quickly make sure if NetworkManager handles your network interface on boot, check in the following location:
-		```
-		/etc/sysconfig/network-scripts/ifcfg-*
-		```
+    For fresh installs the following tips might be handy.<br />
+    Allow ssh to pass the firewall on the CLI
+    ```bash
+    firewall-cmd --zone=public --add-port=22/tcp --permanent
+    firewall-cmd --reload
+    ```
+    <br />
+    To quickly make sure if NetworkManager handles your network interface on boot, check in the following location:
+    ```
+    /etc/sysconfig/network-scripts/ifcfg-*
+    ```
 
-# 1/ OS Install and additional repositories
+### 1/ OS Install and additional repositories
 
 ## 1.1/ Complete a minimal RHEL/CentOS installation, configure IP address to connect automatically.
 
@@ -96,24 +86,33 @@ sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
 ## 1.4c/ **[CentOS]** Enable EPEL for additional dependencies
 ```bash
 # <snippet-begin 0_CentOS_EPEL.sh>
-# We need some packages from the Extra Packages for Enterprise Linux repository
-sudo yum install epel-release -y
+centosEPEL () {
+  # We need some packages from the Extra Packages for Enterprise Linux repository
+  sudo yum install epel-release -y
 
-# Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
-# Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
-sudo yum install centos-release-scl -y
+  # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
+  # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
+  sudo yum install centos-release-scl -y
+}
 # <snippet-end 0_CentOS_EPEL.sh>
 ```
 
-### 1.5a/ Install the deltarpm package to help reduce download size when installing updates (optional)
+## 1.5a/ Install the deltarpm package to help reduce download size when installing updates (optional)
 ```bash
 sudo yum install deltarpm -y
 ```
 
-### 1.5.b/ Install vim (optional)
+## 1.5.b/ Install vim (optional)
 ```bash
-# Because vim is just so practical
-sudo yum install vim -y
+# Because (neo)vim is just so practical
+sudo yum install neovim -y
+```
+
+## 1.5.c/ Install ntpdate (optional)
+```bash
+# In case you time is wrong, this will fix it.
+sudo yum install ntpdate -y
+sudo ntpdate pool.ntp.org
 ```
 
 ## 1.5/ Update the system and reboot
@@ -130,7 +129,7 @@ sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noa
 # <snippet-end 0_RHEL_EPEL.sh>
 ```
 
-# 2/ Dependencies
+### 2/ Dependencies
 
 !!! note
     This guide installs PHP 7.2 from SCL
@@ -141,32 +140,36 @@ sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noa
 ## 2.01/ Install some base system dependencies
 ```bash
 # <snippet-begin 0_yumInstallCoreDeps.sh>
-# Install the dependencies:
-sudo yum install gcc git zip rh-git218 \
-       httpd24 \
-       mod_ssl \
-       rh-redis32 \
-       rh-mariadb102 \
-       python-devel python-pip python-zmq \
-       libxslt-devel zlib-devel ssdeep-devel -y
+yumInstallCoreDeps () {
+  # Install the dependencies:
+  sudo yum install gcc git zip rh-git218 \
+                   httpd24 \
+                   mod_ssl \
+                   rh-redis32 \
+                   rh-mariadb102 \
+                   libxslt-devel zlib-devel ssdeep-devel -y
 
-# Enable and start redis
-sudo systemctl enable --now rh-redis32-redis.service
+  # Enable and start redis
+  sudo systemctl enable --now rh-redis32-redis.service
 
-# Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
-sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel \
-       rh-php72-php-mysqlnd \
-       rh-php72-php-mbstring \
-       rh-php72-php-xml \
-       rh-php72-php-bcmath \
-       rh-php72-php-opcache \
-       rh-php72-php-gd -y
+  RUN_PHP="/usr/bin/scl enable rh-php72"
+  PHP_INI="/etc/opt/rh/rh-php72/php.ini"
+  # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
+  sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel \
+                   rh-php72-php-mysqlnd \
+                   rh-php72-php-mbstring \
+                   rh-php72-php-xml \
+                   rh-php72-php-bcmath \
+                   rh-php72-php-opcache \
+                   rh-php72-php-gd -y
 
-# Install Python 3.6 from SCL, see
-# https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
-sudo yum install rh-python36 -y
+  # Install Python 3.6 from SCL, see
+  # https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
+  RUN_PYTHON='/usr/bin/scl enable rh-python36'
+  sudo yum install rh-python36 -y
 
-sudo systemctl enable --now rh-php72-php-fpm.service
+  sudo systemctl enable --now rh-php72-php-fpm.service
+}
 # <snippet-end 0_yumInstallCoreDeps.sh>
 ```
 
@@ -182,7 +185,7 @@ sudo systemctl enable --now haveged.service
 # <snippet-end 0_yumInstallHaveged.sh>
 ```
 
-# 3/ MISP code
+### 3/ MISP code
 ## 3.01/ Download MISP code using git in /var/www/ directory
 
 ```bash
@@ -203,6 +206,8 @@ cd $PATH_TO_MISP
 $SUDO_WWW git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
 $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+# Make git ignore filesystem permission differences
+$SUDO_WWW git config core.filemode false
 
 # Install packaged pears
 sudo $RUN_PHP "pear channel-update pear.php.net"
@@ -214,10 +219,6 @@ $SUDO_WWW $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
 sudo mkdir /usr/share/httpd/.cache
 sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
-
-# install Mitre's STIX and its dependencies by running the following commands:
-## Probably not needed
-##sudo yum install python-lxml python-dateutil python-six -y
 
 cd $PATH_TO_MISP/app/files/scripts
 $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
@@ -265,11 +266,20 @@ $SUDO_WWW scl enable devtoolset-7 rh-python36 "bash -c 'cmake3 \
 ..'"
 $SUDO_WWW make -j3 pyLIEF
 
+# In case you get "internal compiler error: Killed (program cc1plus)"
+# You ran out of memory.
+# Create some swap
+# sudo dd if=/dev/zero of=/var/swap.img bs=1024k count=4000
+# sudo mkswap /var/swap.img
+# sudo swapon /var/swap.img
+# And compile again
+# $SUDO_WWW make -j3 pyLIEF
+
 # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
 echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
 
 # install magic, pydeep
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
 
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
@@ -291,7 +301,7 @@ sudo systemctl restart rh-php72-php-fpm.service
 # <snippet-end 1_mispCoreInstall_RHEL.sh>
 ```
 
-# 4/ CakePHP
+### 4/ CakePHP
 ## 4.01/ Install CakeResque along with its dependencies if you intend to use the built in background jobs
 
 !!! notice
@@ -316,7 +326,7 @@ installCake_RHEL ()
 
   ## sudo yum install php-redis -y
   sudo scl enable rh-php72 'pecl channel-update pecl.php.net'
-  sudo scl enable rh-php72 'pecl install redis'
+  sudo scl enable rh-php72 'yes no|pecl install redis'
   echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
   sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
   sudo systemctl restart rh-php72-php-fpm.service
@@ -342,7 +352,7 @@ installCake_RHEL ()
 # <snippet-begin 1_installCake_RHEL.sh>
 ```
 
-# 5/ Set file permissions
+### 5/ Set file permissions
 ```bash
 # <snippet-begin 2_permissions_RHEL.sh>
 # Main function to fix permissions to something sane
@@ -370,12 +380,13 @@ permissions_RHEL () {
 # <snippet-end 2_permissions_RHEL.sh>
 ```
 
-# 6/ Create database and user
+### 6/ Create database and user
 
 ## 6.01/ Set database to listen on localhost only
 ```bash
 # <snippet-begin 1_prepareDB_RHEL.sh>
 prepareDB_RHEL () {
+  RUN_MYSQL="/usr/bin/scl enable rh-mariadb102"
   # Enable, start and secure your mysql database server
   sudo systemctl enable --now rh-mariadb102-mariadb.service
   echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
@@ -420,7 +431,7 @@ EOF
   sudo systemctl restart rh-mariadb102-mariadb
 
   scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'CREATE DATABASE $DBNAME;'"
-  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBNAME@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
+  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
   scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';\""
   scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'"
 
@@ -429,7 +440,7 @@ EOF
 # <snippet-end 1_prepareDB_RHEL.sh>
 ```
 
-# 7/ Apache Configuration
+### 7/ Apache Configuration
 
 !!! notice
     SELinux note, to check if it is running:
@@ -453,7 +464,9 @@ apacheConfig_RHEL () {
   # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
   echo "The Common Name used below will be: ${OPENSSL_CN}"
   # This will take a rather long time, be ready. (13min on a VM, 8GB Ram, 1 core)
-  sudo openssl dhparam -out /etc/pki/tls/certs/dhparam.pem 4096
+  if [[ ! -e "/etc/pki/tls/certs/dhparam.pem" ]]; then
+    sudo openssl dhparam -out /etc/pki/tls/certs/dhparam.pem 4096
+  fi
   sudo openssl genrsa -des3 -passout pass:xxxx -out /tmp/misp.local.key 4096
   sudo openssl rsa -passin pass:xxxx -in /tmp/misp.local.key -out /etc/pki/tls/private/misp.local.key
   sudo rm /tmp/misp.local.key
@@ -478,8 +491,12 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_script_exec_t /usr/bin/grep
   sudo chcon -t httpd_sys_script_exec_t /usr/bin/awk
   sudo chcon -t httpd_sys_script_exec_t /usr/bin/gpg
+  sudo chcon -t httpd_sys_script_exec_t /usr/bin/gpg-agent
+  sudo chcon -t httpd_sys_script_exec_t /usr/bin/whoami
+  sudo chcon -t httpd_sys_rw_content_t /tmp
   sudo chcon -R -t usr_t $PATH_TO_MISP/venv
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.gnupg
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Lib
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config
@@ -514,10 +531,12 @@ firewall_RHEL () {
 # <snippet-end 1_firewall_RHEL.sh>
 ```
 
-# 8/ Log Rotation
+### 8/ Log Rotation
 ## 8.01/ Enable log rotation
-MISP saves the stdout and stderr of it's workers in /var/www/MISP/app/tmp/logs
+MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 To rotate these logs install the supplied logrotate script:
+
+FIXME: The below does not work
 
 ```bash
 # <snippet-begin 2_logRotation_RHEL.sh>
@@ -545,7 +564,7 @@ logRotation_RHEL () {
 # <snippet-end 2_logRotation_RHEL.sh>
 ```
 
-# 9/ MISP Configuration
+### 9/ MISP Configuration
 
 ```bash
 # <snippet-begin 2_configMISP_RHEL.sh>
@@ -632,12 +651,9 @@ EOF
 # <snippet-end 2_configMISP_RHEL.sh>
 ```
 
-Review:
-```bash
-# Start the workers to enable background jobs
-sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-$SUDO_WWW $RUN_PHP $PATH_TO_MISP/app/Console/worker/start.sh
 
+```bash
+# In case you have no /etc/rc.local make a bare-bones one.
 if [ ! -e /etc/rc.local ]
 then
     echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
@@ -655,10 +671,10 @@ fi
     Make sure that you use the same settings in the MISP Server Settings tool
 
 ## 9.06/ Use MISP's background workers
-### 9.06a/ Create a systemd unit for the workers
+## 9.06a/ Create a systemd unit for the workers
 ```bash
 echo "[Unit]
-Description=MISP's background workers
+Description=MISP background workers
 After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
 
 [Service]
@@ -679,15 +695,15 @@ sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
 sudo systemctl daemon-reload
 ```
 
-### 9.06b/ Start the workers and enable them on boot
+## 9.06b/ Start the workers and enable them on boot
 ```bash
 sudo systemctl enable --now misp-workers.service
 ```
 
-### 9.07/ misp-modules (WIP!)
+## 9.07/ misp-modules (WIP!)
 ```bash
 # some misp-modules dependencies
-sudo yum install openjpeg-devel -y
+sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel -y
 
 sudo chmod 2777 /usr/local/src
 sudo chown root:users /usr/local/src
@@ -700,14 +716,16 @@ $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
 sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
 
 echo "[Unit]
-Description=MISP's modules
+Description=MISP modules
 After=misp-workers.service
 
 [Service]
 Type=simple
 User=apache
 Group=apache
-ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules –l 127.0.0.1 –s\"
+WorkingDirectory=/usr/local/src/misp-modules
+Environment="PATH=/var/www/MISP/venv/bin"
+ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"
 Restart=always
 RestartSec=10
 
@@ -715,23 +733,65 @@ RestartSec=10
 WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-modules.service
 
 sudo systemctl daemon-reload
+# Test misp-modules
+$SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s
 sudo systemctl enable --now misp-modules
+
+  # Enable Enrichment, set better timeouts
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
+  # TODO:"Investigate why the next one fails"
+  #$SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_asn_history_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_btc_steroids_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ipasn_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_syntax_validator_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_query_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pdf_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_docx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_xlsx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pptx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ods_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_odt_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
+
+  # Enable Import modules, set better timeout
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_port" 6666
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_timeout" 300
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_mispjson_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_openiocimport_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_threatanalyzer_import_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
+
+  # Enable Export modules, set better timeout
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_port" 6666
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
 ```
 
 {!generic/misp-dashboard-centos.md!}
 
-{!generic/MISP_CAKE_init_centos.md!}
+{!generic/MISP_CAKE_init.md!}
 
 {!generic/INSTALL.done.md!}
 
 {!generic/recommended.actions.md!}
 
-# 11/ LIEF Installation
+### 11/ LIEF Installation
 *lief* is required for the Advanced Attachment Handler and requires manual compilation
 
 The installation is explained in section **[3.01](https://misp.github.io/MISP/INSTALL.rhel7/#301-download-misp-code-using-git-in-varwww-directory)**
 
-# 12/ Known Issues
+### 12/ Known Issues
 ## 12.01/ Workers cannot be started or restarted from the web page
 Possible also due to package being installed via SCL, attempting to start workers through the web page will result in error. Worker's can be restarted via the CLI using the following command.
 ```bash

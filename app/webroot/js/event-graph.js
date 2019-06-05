@@ -111,7 +111,7 @@ class EventGraph {
 
             for (var event_id in that.extended_event_points) {
                 if (that.extended_event_color_mapping[event_id] === undefined) {
-                    eventGraph.extended_event_color_mapping[event_id] = getRandomColor(event_id);
+                    eventGraph.extended_event_color_mapping[event_id] = stringToRGB(event_id);
                 }
                 var chosen_color = eventGraph.extended_event_color_mapping[event_id];
 
@@ -710,8 +710,8 @@ class EventGraph {
                     group: group,
                     mass: 5,
                     icon: {
-                        color: getRandomColor(),
-                        face: 'FontAwesome',
+                        color: stringToRGB(label),
+                        face: '"Font Awesome 5 Free"',
                         code: that.get_FA_icon(node['meta-category']),
                     }
                 };
@@ -1825,15 +1825,6 @@ function getCentroid(coordList) {
     return {x: cx, y: cy};
 }
 
-function getRandomColor() {
-    var letters = '0123456789ABCDEF';
-    var color = '#';
-    for (var i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-}
-
 function generate_background_shortcuts(shortcut_text) {
     var table = document.createElement('table');
     for (var shortcut of shortcut_text.split("\n")) {
@@ -2279,7 +2270,7 @@ var network_options = {
         object: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 size: 50
             },
             font: {
@@ -2337,7 +2328,7 @@ var network_options = {
         rootNodeObject: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 code: '\uf00a',
             },
             font: {
@@ -2350,7 +2341,7 @@ var network_options = {
         rootNodeAttribute: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 code: '\uf1c0',
             },
             font: {
@@ -2363,7 +2354,7 @@ var network_options = {
         rootNodeKeyType: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 code: '\uf111',
             },
             font: {
@@ -2376,7 +2367,7 @@ var network_options = {
         rootNodeTag: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 code: '\uf02b',
             },
             font: {
@@ -2389,7 +2380,7 @@ var network_options = {
         clustered_object: {
             shape: 'icon',
             icon: {
-                face: 'FontAwesome',
+                face: '"Font Awesome 5 Free"',
                 code: '\uf009',
             },
             font: {

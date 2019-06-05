@@ -46,7 +46,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome');
 
-    private $__queryVersion = '67';
+    private $__queryVersion = '71';
     public $pyMispVersion = '2.4.106';
     public $phpmin = '7.0';
     public $phprec = '7.2';
@@ -444,6 +444,28 @@ class AppController extends Controller
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->userRole = $role;
+            if (Configure::read('MISP.log_paranoid')) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
+                if (($this->request->is('post') || $this->request->is('put')) && !empty(Configure::read('MISP.log_paranoid_include_post_body'))) {
+                    $payload = $this->request->data;
+                    if (!empty($payload['_Token'])) {
+                        unset($payload['_Token']);
+                    }
+                    $change .= PHP_EOL . 'Request body: ' . json_encode($payload);
+                }
+                $log = array(
+                        'org' => $this->Auth->user('Organisation')['name'],
+                        'model' => 'User',
+                        'model_id' => $this->Auth->user('id'),
+                        'email' => $this->Auth->user('email'),
+                        'action' => 'request',
+                        'title' => 'Paranoid log entry',
+                        'change' => $change,
+                );
+                $this->Log->save($log);
+            }
         } else {
             $this->set('me', false);
         }

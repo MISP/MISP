@@ -171,14 +171,15 @@ class Event extends AppModel
         'xml' => array('xml', 'XmlExport', 'xml'),
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
-        'rpz' => array('rpz', 'RPZExport', 'rpz'),
+        'rpz' => array('txt', 'RPZExport', 'rpz'),
         'text' => array('text', 'TextExport', 'txt'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
         'stix2' => array('json', 'Stix2Export', 'json'),
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json'),
-        'cache' => array('txt', 'CacheExport', 'cache')
+        'cache' => array('txt', 'CacheExport', 'cache'),
+        'attack' => array('html', 'AttackExport', 'html')
     );
 
     public $csv_event_context_fields_to_fetch = array(
@@ -478,7 +479,7 @@ class Event extends AppModel
     public function beforeDelete($cascade = true)
     {
         // blacklist the event UUID if the feature is enabled
-        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+        if (Configure::read('MISP.enableEventBlacklisting') !== false && empty($this->skipBlacklist)) {
             $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
             $this->EventBlacklist->create();
             $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $this->data['Event']['orgc_id']), 'recursive' => -1, 'fields' => array('Orgc.name')));
@@ -1366,7 +1367,7 @@ class Event extends AppModel
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
-        $uri = $url . '/events/view/' . $eventId . '/deleted:1/excludeGalaxy:1';
+        $uri = $url . '/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1';
         $response = $HttpSocket->get($uri, $data = '', $request);
         if ($response->isOk()) {
             return json_decode($response->body, true);
@@ -1605,6 +1606,7 @@ class Event extends AppModel
                     'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_simple_attribute'),
+                    'object_relation' => array('function' => 'set_filter_simple_attribute'),
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'uuid' => array('function' => 'set_filter_uuid'),
@@ -1917,20 +1919,55 @@ class Event extends AppModel
             $conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
         }
         $softDeletables = array('Attribute', 'Object', 'ObjectReference');
-        if (isset($options['deleted']) && $options['deleted']) {
+        if (isset($options['deleted'])) {
+            if (!is_array($options['deleted'])) {
+                $options['deleted'] = array($options['deleted']);
+            }
+            foreach ($options['deleted'] as $deleted_key => $deleted_value) {
+                if ($deleted_value === 'only') {
+                    $deleted_value = 1;
+                }
+                $options['deleted'][$deleted_key] = intval($deleted_value);
+            }
             if (!$user['Role']['perm_sync']) {
                 foreach ($softDeletables as $softDeletable) {
+                    if (in_array(0, $options['deleted'])) {
+                        $deletion_subconditions = array(
+                            sprintf('%s.deleted', $softDeletable) => 0
+                        );
+                    } else {
+                        $deletion_subconditions = array(
+                            '1=0'
+                        );
+                    }
                     ${'conditions' . $softDeletable . 's'}['AND'][] = array(
                         'OR' => array(
-                            '(SELECT events.org_id FROM events WHERE events.id = ' . $softDeletable . '.event_id)' => $user['org_id'],
-                            $softDeletable . '.deleted LIKE' => 0
+                            'AND' => array(
+                                sprintf('(SELECT events.org_id FROM events WHERE events.id = %s.event_id)', $softDeletable) => $user['org_id'],
+                                sprintf('%s.deleted', $softDeletable) => $options['deleted']
+                            ),
+                            $deletion_subconditions
                         )
+                    );
+                }
+            } else {
+                foreach ($softDeletables as $softDeletable) {
+                    ${'conditions' . $softDeletable . 's'}['AND'][] = array(
+                        sprintf('%s.deleted', $softDeletable) => $options['deleted']
                     );
                 }
             }
         } else {
             foreach ($softDeletables as $softDeletable) {
-                ${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted LIKE'] = 0;
+                ${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted'] = 0;
+            }
+        }
+        $proposal_conditions = array('OR' => array('ShadowAttribute.deleted' => 0));
+        if (isset($options['deleted_proposals'])) {
+            if ($isSiteAdmin) {
+                $proposal_conditions = array('OR' => array('ShadowAttribute.deleted' => 1));
+            } else {
+                $proposal_conditions['OR'][] = array('(SELECT events.org_id FROM events WHERE events.id = ShadowAttribute.event_id)' => $user['org_id']);
             }
         }
         if ($options['idList'] && !$options['tags']) {
@@ -1994,7 +2031,7 @@ class Event extends AppModel
                 ),
                 'ShadowAttribute' => array(
                     'fields' => $fieldsShadowAtt,
-                    'conditions' => array('deleted' => 0),
+                    'conditions' => $proposal_conditions,
                     'Org' => array('fields' => $fieldsOrg),
                     'order' => false
                 ),
@@ -2059,7 +2096,7 @@ class Event extends AppModel
                 }
             }
             if (isset($event['Attribute'])) {
-                if ($options['enforceWarninglist']) {
+                if (!empty($options['enforceWarninglist']) || !empty($options['includeWarninglistHits'])) {
                     $this->Warninglist = ClassRegistry::init('Warninglist');
                     $warninglists = $this->Warninglist->fetchForEventView();
                 }
@@ -2084,11 +2121,16 @@ class Event extends AppModel
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
                 $event['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Attribute'], $sharingGroupData);
                 foreach ($event['Attribute'] as $key => $attribute) {
-                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
-                        unset($event['Attribute'][$key]);
-                        continue;
+                    if ($options['enforceWarninglist']) {
+                        if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
+                            unset($event['Attribute'][$key]);
+                            continue;
+                        }
+                    } else if (!empty($options['includeWarninglistHits'])) {
+                        $event['Attribute'][$key] = $this->Warninglist->checkForWarning($event['Attribute'][$key], $event['Event']['warnings'], $warninglists, true);
+                        //$event['Attribute'][$key] = $this->Warninglist->simpleCheckForWarning($event['Attribute'][$key], $warninglists);
                     }
-                    $event['Attribute'][$key] = $this->massageTags($attribute, 'Attribute', $options['excludeGalaxy']);
+                    $event['Attribute'][$key] = $this->massageTags($event['Attribute'][$key], 'Attribute', $options['excludeGalaxy']);
                     if ($event['Attribute'][$key]['category'] === 'Financial fraud') {
                         $event['Attribute'][$key] = $this->Attribute->attachValidationWarnings($event['Attribute'][$key]);
                     }
@@ -2604,6 +2646,7 @@ class Event extends AppModel
             'tags' => array('function' => 'set_filter_tags'),
             'category' => array('function' => 'set_filter_simple_attribute'),
             'type' => array('function' => 'set_filter_simple_attribute'),
+            'object_relation' => array('function' => 'set_filter_simple_attribute'),
             'from' => array('function' => 'set_filter_timestamp'),
             'to' => array('function' => 'set_filter_timestamp'),
             'last' => array('function' => 'set_filter_timestamp'),
@@ -2730,17 +2773,17 @@ class Event extends AppModel
 
     public function sendAlertEmailRouter($id, $user, $oldpublish = null)
     {
-        if (Configure::read('MISP.block_old_event_alert') && Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
+        if (Configure::read('MISP.block_old_event_alert') && !empty(Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age')))) {
             $oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
             $event = $this->find('first', array(
                     'conditions' => array('Event.id' => $id),
                     'recursive' => -1,
-                    'fields' => array('Event.date')
+                    'fields' => array('Event.timestamp')
             ));
             if (empty($event)) {
                 return false;
             }
-            if (strtotime($event['Event']['date']) < $oldest) {
+            if (intval($event['Event']['timestamp']) < $oldest) {
                 return true;
             }
         }
@@ -2802,6 +2845,15 @@ class Event extends AppModel
     public function sendAlertEmail($id, $senderUser, $oldpublish = null, $processId = null)
     {
         $event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
+        $this->NotificationLog = ClassRegistry::init('NotificationLog');
+        if (!$this->NotificationLog->check($event[0]['Event']['orgc_id'], 'publish')) {
+            if ($processId) {
+                $this->Job->id = $processId;
+                $this->Job->saveField('progress', 100);
+                $this->Job->saveField('message', 'Mails blocked by org alert threshold.');
+            }
+            return true;
+        }
         if (empty($event)) {
             throw new MethodNotFoundException('Invalid Event.');
         }
@@ -3953,7 +4005,7 @@ class Event extends AppModel
                     'eventid' => $id,
                     'includeAttachments' => true,
                     'includeAllTags' => true,
-                    'deleted' => true,
+                    'deleted' => array(0,1),
                     'excludeGalaxy' => 1
                 ));
                 $event = $this->fetchEvent($elevatedUser, $params);
@@ -4572,15 +4624,6 @@ class Event extends AppModel
                 $include = $include && ($filterType['correlation'] == 1);
             } else { // `exclude`
                 $include = $include && ($filterType['correlation'] == 2);
-            }
-
-            /* deleted */
-            if ($filterType['deleted'] == 0) { // `both`
-                // pass, do not consider as `both` is selected
-            } else if ($attribute['deleted'] == 1) { // `include only`
-                $include = $include && ($filterType['deleted'] == 1);
-            } else { // `exclude`
-                $include = $include && ($filterType['deleted'] == 2);
             }
 
             /* feed */
@@ -5871,9 +5914,9 @@ class Event extends AppModel
                     }
                     $attribute['event_id'] = $id;
                     if ($objectType == 'ShadowAttribute') {
-                        $attribute['org_id'] = $user['Role']['org_id'];
+                        $attribute['org_id'] = $user['org_id'];
                         $attribute['event_org_id'] = $event['Event']['orgc_id'];
-                        $attribute['email'] = $user['Role']['email'];
+                        $attribute['email'] = $user['email'];
                         $attribute['event_uuid'] = $event['Event']['uuid'];
                     }
                     // adhere to the warninglist
@@ -6035,7 +6078,7 @@ class Event extends AppModel
         }
     }
 
-    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0)
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
@@ -6056,6 +6099,11 @@ class Event extends AppModel
                 $filters['published'] = 1;
             }
         }
+
+        if (!empty($exportTool->renderView)) {
+            $renderView = $exportTool->renderView;
+        }
+
         if (!empty($filters['ignore'])) {
             $filters['to_ids'] = array(0, 1);
             $filters['published'] = array(0, 1);
@@ -6135,7 +6183,11 @@ class Event extends AppModel
         unset($temp);
         fwrite($tmpfile, $exportTool->footer($exportToolParams));
         fseek($tmpfile, 0);
-        $final = fread($tmpfile, fstat($tmpfile)['size']);
+        if (fstat($tmpfile)['size'] > 0) {
+            $final = fread($tmpfile, fstat($tmpfile)['size']);
+        } else {
+            $final = 0;
+        }
         fclose($tmpfile);
         return $final;
     }

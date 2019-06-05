@@ -177,10 +177,10 @@ class AdminShell extends AppShell
         }
     }
 
-    # FIXME: Debug and make it work, fails to pass userId/orgId properly
+    # FIXME: Fails to pass userId/orgId properly, global update works.
     public function updateObjectTemplates() {
         if (empty($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin updateNoticeLists [user_id]' . PHP_EOL;
+            echo 'Usage: ' . APP . '/cake ' . 'Admin updateObjectTemplates [user_id]' . PHP_EOL;
         } else {
             $userId = $this->args[0];
             $user = $this->User->find('first', array(
@@ -190,8 +190,15 @@ class AdminShell extends AppShell
                 ),
                 'fields' => array('User.id', 'User.org_id')
             ));
+            # If the user_id passed does not exist, do a global update.
             if (empty($user)) {
-                echo 'User not found' . PHP_EOL;
+                echo 'User with ID: ' . $userId . ' not found' . PHP_EOL;
+                $result = $this->ObjectTemplate->update();
+                if ($result) {
+                    echo 'Object templates updated' . PHP_EOL;
+                } else {
+                    echo 'Could not update object templates' . PHP_EOL;
+                }
             } else {
                 $result = $this->ObjectTemplate->update($user, false,false);
                 if ($result) {
@@ -309,18 +316,18 @@ class AdminShell extends AppShell
 
     public function updateDatabase() {
         $whoami = exec('whoami');
-        if ($whoami === 'httpd' || $whoami === 'www-data') {
+        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
             $this->Server->runUpdates(true);
             echo 'All updates completed.' . PHP_EOL;
         } else {
-            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL);
+            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
         }
     }
 
     public function updateApp() {
         $whoami = exec('whoami');
-        if ($whoami === 'httpd' || $whoami === 'www-data') {
+        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
             $command = $this->args[0];
             if (!empty($this->args[1])) {
                 $processId = $this->args[1];
@@ -345,7 +352,7 @@ class AdminShell extends AppShell
             $job['Job']['message'] = 'Update done';
             $this->Job->save($job);
         } else {
-            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL);
+            die('This OS user is not allowed to run this command.' . PHP_EOL . 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
         }
     }
 
@@ -453,5 +460,43 @@ class AdminShell extends AppShell
             )
         ));
         return $parser;
+    }
+
+    public function recoverSinceLastSuccessfulUpdate()
+    {
+        $this->loadModel('Log');
+        $logs = $this->Log->find('all', array(
+            'conditions' => array(
+                'action' => 'update_database',
+                'title LIKE ' => array(
+                    'Successfuly executed the SQL query for %',
+                    'Issues executing the SQL query for %'
+                )
+            ),
+            'order' => 'id DESC'
+        ));
+        $last_db_num = -1;
+        foreach ($logs as $i => $log) {
+            preg_match_all('/.* the SQL query for (\d+)/', $log['Log']['title'], $matches);
+            if (!empty($matches[1])) {
+                $last_db_num = $matches[1][0];
+                break;
+            }
+        }
+        if ($last_db_num > 0) {
+            echo __('Last DB num which was successfully executed: ') . h($last_db_num) . PHP_EOL;
+            // replay all update from that point.
+            $this->loadModel('AdminSetting');
+            $db_version = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'db_version')));
+            if (!empty($db_version)) {
+                $db_version['AdminSetting']['value'] = $last_db_num;
+                $this->AdminSetting->save($db_version);
+                $this->Server->runUpdates(true);
+            } else {
+                echo __('Something went wrong. Could not find the existing db version') . PHP_EOL;
+            }
+        } else {
+            echo __('DB was never successfully updated or we are on a fresh install') . PHP_EOL;
+        }
     }
 }

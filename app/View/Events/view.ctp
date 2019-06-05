@@ -49,10 +49,19 @@
     <?php
         endif;
         $title = h($event['Event']['info']);
-        if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
         $table_data = array();
         $table_data[] = array('key' => __('Event ID'), 'value' => $event['Event']['id']);
-        $table_data[] = array('key' => 'UUID', 'value' => $event['Event']['uuid']);
+        $table_data[] = array(
+            'key' => 'UUID',
+            'html' => sprintf('%s %s',
+                $event['Event']['uuid'],
+                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px;" title="%s">+</a>',
+                    $baseurl,
+                    $event['Event']['id'],
+                    __('Extend this event')
+                )
+            )
+        );
         if (Configure::read('MISP.showorgalternate')) {
             $table_data[] = array(
                 'key' => __('Source Organisation'),
@@ -317,7 +326,7 @@
     ?>
     <div class="row-fluid">
         <div class="span8">
-            <h2><?php echo ($extended ? '[' . __('Extended view') . '] ' : '') . nl2br($title); ?></h2>
+            <h2 class="ellipsis-overflow"><?php echo ($extended ? '[' . __('Extended view') . '] ' : '') . nl2br($title); ?></h2>
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>
         <div class="related span4">

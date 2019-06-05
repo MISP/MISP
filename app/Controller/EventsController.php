@@ -1057,7 +1057,7 @@ class EventsController extends AppController
             $conditions['overrideLimit'] = 1;
         }
         if (isset($filters['deleted'])) {
-            $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : 1;
+            $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : [0, 1];
         }
         if (isset($filters['toIDS']) && $filters['toIDS'] != 0) {
             $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
@@ -1191,7 +1191,11 @@ class EventsController extends AppController
             $cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
             $this->set('cortex_modules', $cortex_modules);
         }
-        $this->set('deleted', isset($filters['deleted']) ? ($filters['deleted'] == 2 ? 0 : 1) : 0);
+        $deleted = 0;
+        if (isset($filters['deleted'])) {
+            $deleted = $filters['deleted'] == 2 ? array(0, 1) : $filters['deleted'];
+        }
+        $this->set('deleted', $deleted);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
@@ -1394,7 +1398,6 @@ class EventsController extends AppController
         $sightingsData = $this->Event->getSightingData($event);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, false, $sightingsData);
-
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
         $dataForView = array(
@@ -1462,7 +1465,13 @@ class EventsController extends AppController
         $attributeUri = '/events/viewEventAttributes/' . $event['Event']['id'];
         foreach ($this->params->named as $k => $v) {
             if (!is_numeric($k)) {
-                $attributeUri .= '/' . $v;
+                if (is_array($v)) {
+                    foreach ($v as $value) {
+                        $attributeUri .= sprintf('/%s[]:%s', $k, $value);
+                    }
+                } else {
+                    $attributeUri .= sprintf('/%s:%s', $k, $v);
+                }
             }
         }
         $orgTable = $this->Event->Orgc->find('list', array(
@@ -1509,7 +1518,12 @@ class EventsController extends AppController
             $conditions['includeAttachments'] = true;
         }
         if (isset($this->params['named']['deleted'])) {
-            $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? 0 : 1;
+            // workaround for old instances trying to pull events with both deleted / non deleted data
+            if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $this->params['named']['deleted'] == 1) {
+                $conditions['deleted'] = array(0,1);
+            } else {
+                $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? array(0,1) : $this->params['named']['deleted'];
+            }
         }
         if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
             $conditions['to_ids'] = $this->params['named']['toIDS'] == 2 ? 0 : 1;
@@ -1928,6 +1942,9 @@ class EventsController extends AppController
         $this->set('info', $info);
         $this->set('analysisDescriptions', $this->Event->analysisDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
+        if (isset($this->params['named']['extends'])) {
+            $this->set('extends_uuid', $this->params['named']['extends']);
+        }
     }
 
     public function addIOC($id)
@@ -1993,7 +2010,7 @@ class EventsController extends AppController
             throw new UnauthorizedException(__('You do not have permission to do that.'));
         }
         if ($this->request->is('post')) {
-            $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : None;
+            $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
             if ($this->_isRest()) {
                 $randomFileName = $this->Event->generateRandomFileName();
                 $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
@@ -2006,7 +2023,7 @@ class EventsController extends AppController
                 } elseif (is_numeric($result)) {
                     $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $result));
                     if (!empty($event)) {
-                        return $this->RestResponse->viewData($event[0], $this->response->type());
+                        return $this->RestResponse->viewData($event[0], 'json');
                     } else {
                         return $this->RestResponse->saveFailResponse('Events', 'upload_stix', false, 'Could not read saved event.', $this->response->type());
                     }
@@ -3281,9 +3298,9 @@ class EventsController extends AppController
         $sgReferenceOnly = false
     ) {
         $paramArray = array(
-            'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
+            'value', 'type', 'category', 'object_relation', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
             'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'returnFormat',
-            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless'
+            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'deleted'
         );
         $filterData = array(
             'request' => $this->request,
@@ -3311,9 +3328,20 @@ class EventsController extends AppController
             $returnFormat = 'json';
         }
         $elementCounter = 0;
-        $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
-        $responseType = $this->Event->validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        $renderView = false;
+        $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        if (!empty($renderView) && !empty($final)) {
+            $this->layout = false;
+            $final = json_decode($final, true);
+            foreach ($final as $key => $data) {
+                $this->set($key, $data);
+            }
+            $this->render('/Events/module_views/' . $renderView);
+        } else {
+            $responseType = $this->Event->validFormats[$returnFormat][0];
+            return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        }
+
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
@@ -5663,7 +5691,7 @@ class EventsController extends AppController
             $this->layout = false;
             $this->render('/Events/ajax/event_lock');
         } else {
-            return $this->RestResponse->viewData('', $this->response->type());
+            return $this->RestResponse->viewData('', $this->response->type(), false, true);
         }
     }
 
@@ -5845,6 +5873,36 @@ class EventsController extends AppController
                 }
             }
             $this->redirect('/events/view/' . $eventId);
+        }
+    }
+
+    public function cullEmptyEvents()
+    {
+        $eventIds = $this->Event->find('list', array(
+            'conditions' => array('Event.published' => 1),
+            'fields' => array('Event.id', 'Event.uuid'),
+            'recursive' => -1
+        ));
+        $count = 0;
+        $this->Event->skipBlacklist = true;
+        foreach ($eventIds as $eventId => $eventUuid) {
+            $result = $this->Event->Attribute->find('first', array(
+                'conditions' => array('Attribute.event_id' => $eventId),
+                'recursive' => -1,
+                'fields' => array('Attribute.id', 'Attribute.event_id')
+            ));
+            if (empty($result)) {
+                $this->Event->delete($eventId);
+                $count++;
+            }
+        }
+        $this->Event->skipBlacklist = null;
+        $message = __('%s event(s) deleted.', $count);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($message, $this->response->type());
+        } else {
+            $this->Flash->success($message);
+            $this->redirect($this->referer());
         }
     }
 }

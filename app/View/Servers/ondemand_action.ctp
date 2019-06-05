@@ -65,7 +65,7 @@ $disabledBtnText = $updateLocked ? 'title="' . __('An action is already in progr
     <?php endforeach; ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'adminTools'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'adminTools'));
 ?>
 
 <script type="text/javascript">

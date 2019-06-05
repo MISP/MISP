@@ -390,9 +390,10 @@ class Attribute extends AppModel
         'text' => array('txt', 'TextExport', 'txt'),
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json'),
-        'rpz' => array('rpz', 'RPZExport', 'rpz'),
+        'rpz' => array('txt', 'RPZExport', 'rpz'),
         'csv' => array('csv', 'CsvExport', 'csv'),
-        'cache' => array('txt', 'CacheExport', 'cache')
+        'cache' => array('txt', 'CacheExport', 'cache'),
+        'attack' => array('html', 'AttackExport', 'html')
     );
 
     // FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
@@ -2218,9 +2219,8 @@ class Attribute extends AppModel
         }
         $tag = ClassRegistry::init('Tag');
         $params['tags'] = $this->dissectArgs($params['tags']);
-        $tagArray = $tag->fetchTagIds($params['tags'][0], $params['tags'][1]);
-        if (!empty($params['tags'][0]) && empty($tagArray[0]) && empty($params['lax_tags'])) {
-            $tagArray[0] = array(-1);
+        foreach (array(0, 1, 2) as $tag_operator) {
+            $tagArray[$tag_operator] = $tag->fetchTagIdsSimple($params['tags'][$tag_operator]);
         }
         $temp = array();
         if (!empty($tagArray[0])) {
@@ -2285,12 +2285,54 @@ class Attribute extends AppModel
                 $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field, 1));
             }
         }
+        $temp = array();
+        if (!empty($tagArray[2])) {
+            if ($tagArray[2][0] === -1) {
+                $conditions[] = array('Event.id' => -1);
+            } else {
+                foreach ($tagArray[2] as $k => $anded_tag) {
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $anded_tag
+                        ),
+                        'fields' => array(
+                            'event_id'
+                        )
+                    );
+                    $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
+                    $temp[$k]['OR'] = array();
+                    $temp[$k]['OR'] = array_merge(
+                        $temp[$k]['OR'],
+                        $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
+                    );
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $anded_tag
+                        ),
+                        'fields' => array(
+                            $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                        )
+                    );
+                    $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                    $temp[$k]['OR'] = array_merge(
+                        $temp[$k]['OR'],
+                        $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
+                    );
+                }
+            }
+        }
+        if (!empty($temp)) {
+            $conditions['AND'][] = array('AND' => $temp);
+        }
         $params['tags'] = array();
         if (!empty($tagArray[0]) && empty($options['pop'])) {
             $params['tags']['OR'] = $tagArray[0];
         }
         if (!empty($tagArray[1])) {
             $params['tags']['NOT'] = $tagArray[1];
+        }
+        if (!empty($tagArray[2]) && empty($options['pop'])) {
+            $params['tags']['AND'] = $tagArray[2];
         }
         if (empty($params['tags'])) {
             unset($params['tags']);
@@ -2603,18 +2645,21 @@ class Attribute extends AppModel
     public function dissectArgs($args)
     {
         if (empty($args)) {
-            return array(0 => array(), 1 => array());
+            return array(0 => array(), 1 => array(), 2 => array());
         }
         if (!is_array($args)) {
             $args = explode('&&', $args);
         }
-        $result = array(0 => array(), 1 => array());
+        $result = array(0 => array(), 1 => array(), 2 => array());
         if (isset($args['OR']) || isset($args['NOT']) || isset($args['AND'])) {
             if (!empty($args['OR'])) {
                 $result[0] = $args['OR'];
             }
             if (!empty($args['NOT'])) {
                 $result[1] = $args['NOT'];
+            }
+            if (!empty($args['AND'])) {
+                $result[2] = $args['AND'];
             }
         } else {
             foreach ($args as $arg) {
@@ -2972,6 +3017,9 @@ class Attribute extends AppModel
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
         }
+        if (!empty($options['includeGalaxy'])) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        }
         if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
@@ -3008,8 +3056,16 @@ class Attribute extends AppModel
         if (!isset($options['enforceWarninglist'])) {
             $options['enforceWarninglist'] = false;
         }
+        if (!isset($options['includeWarninglistHits'])) {
+            $options['includeWarninglistHits'] = false;
+        }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
+        } else {
+            if ($options['deleted'] === "only") {
+                $options['deleted'] = 1;
+            }
+            $params['conditions']['AND']['(Attribute.deleted + 0)'] = $options['deleted'];
         }
         if (isset($options['group'])) {
             $params['group'] = empty($options['group']) ? $options['group'] : false;
@@ -3036,7 +3092,7 @@ class Attribute extends AppModel
             return $results;
         }
 
-        if ($options['enforceWarninglist'] && !isset($this->warninglists)) {
+        if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->warninglists)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
             $this->warninglists = $this->Warninglist->fetchForEventView();
         }
@@ -3095,6 +3151,9 @@ class Attribute extends AppModel
                 if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($this->warninglists, $attribute['Attribute'])) {
                     continue;
                 }
+                if ($options['includeWarninglistHits']) {
+                    $results[$key]['Attribute'] = $this->Warninglist->simpleCheckForWarning($results[$key]['Attribute'], $this->warninglists, true);
+                }
                 if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
                     $results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
                 }
@@ -3108,6 +3167,10 @@ class Attribute extends AppModel
                     }
                 }
                 if (!empty($results[$key])) {
+                    if (!empty($options['includeGalaxy'])) {
+                        $results[$key] = $this->Event->massageTags($results[$key], 'Attribute');
+                        $results[$key] = $this->Event->massageTags($results[$key], 'Event');
+                    }
                     $attributes[] = $results[$key];
                 }
             }
@@ -3136,8 +3199,10 @@ class Attribute extends AppModel
                 $eventTags[$results[$key]['Event']['id']][] = $tag;
             }
         }
-        foreach ($eventTags[$results[$key]['Event']['id']] as $eventTag) {
-            $results[$key]['EventTag'][] = $eventTag['EventTag'];
+        if (!empty($eventTags)) {
+            foreach ($eventTags[$results[$key]['Event']['id']] as $eventTag) {
+                $results[$key]['EventTag'][] = $eventTag['EventTag'];
+            }
         }
         return $results;
     }
@@ -3876,6 +3941,7 @@ class Attribute extends AppModel
                     'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_simple_attribute'),
+                    'object_relation' => array('function' => 'set_filter_simple_attribute'),
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
@@ -3920,7 +3986,7 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0)
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
@@ -3941,6 +4007,9 @@ class Attribute extends AppModel
                 unset($filters['value']);
             }
         }
+        if (!empty($exportTool->renderView)) {
+            $renderView = $exportTool->renderView;
+        }
         if (isset($filters['searchall'])) {
             if (!empty($filters['value'])) {
                 $filters['wildcard'] = $filters['value'];
@@ -3959,8 +4028,12 @@ class Attribute extends AppModel
                 'flatten' => 1,
                 'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
                 'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
-                'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0
+                'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
+                'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0
         );
+        if (!empty($filters['attackGalaxy'])) {
+            $params['attackGalaxy'] = $filters['attackGalaxy'];
+        }
         if (isset($filters['include_event_uuid'])) {
             $params['includeEventUuid'] = $filters['include_event_uuid'];
         }
@@ -3970,12 +4043,8 @@ class Attribute extends AppModel
         if (isset($filters['page'])) {
             $params['page'] = $filters['page'];
         }
-        if (!empty($filtes['deleted'])) {
-            $params['deleted'] = 1;
-            if ($params['deleted'] === 'only') {
-                $params['conditions']['AND'][] = array('Attribute.deleted' => 1);
-                $params['conditions']['AND'][] = array('Object.deleted' => 1);
-            }
+        if (!empty($filters['deleted'])) {
+            $params['deleted'] = $filters['deleted'];
         }
         if ($paramsOnly) {
             return $params;
@@ -4010,7 +4079,11 @@ class Attribute extends AppModel
         $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
         fwrite($tmpfile, $exportTool->footer($exportToolParams));
         fseek($tmpfile, 0);
-        $final = fread($tmpfile, fstat($tmpfile)['size']);
+        if (fstat($tmpfile)['size']) {
+            $final = fread($tmpfile, fstat($tmpfile)['size']);
+        } else {
+            $final = '';
+        }
         fclose($tmpfile);
         return $final;
     }
