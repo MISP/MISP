@@ -100,13 +100,17 @@ class LoginController extends AppController
      * We always use this function if we are aborting the login. The idea is to only maintain one location with the
      * logic to wipe all the session data.
      */
-    private function _resetSessionData() {
+    private function _resetSessionData()
+    {
         $this->Session->delete(self::LINOTP_USER_NAME_KEY);
         $this->Session->delete(self::LINOTP_TRANSACTION_ID_KEY);
     }
 
     public function index()
     {
+        // Expose the configured LinOTP base URL. This allows us to produce a link to the self-service portal.
+        $this->set('linotpBaseUrl', $this->_getLinOTPBaseUrl());
+
         // check if we are handling a login request that requires additional responses from the user
         // If the login was successful we wouldn't be here. If it was wrong there wouldn't be any additional challenges.
         $challengeData = $this->_getLinOTPChallengeData();
@@ -119,6 +123,23 @@ class LoginController extends AppController
         // in all other cases just render the "index" aka first stage login form
         $this->render("index");
     }
+
+    /*
+     * Retrieve the configured LinOTP base url
+     *
+     * @return string
+     */
+    private function _getLinOTPBaseUrl()
+    {
+        $config = Configure::read('LinOTPAuth');
+
+        if ($config !== null && array_key_exists("baseUrl", $config)) {
+            return $config['baseUrl'];
+        } else {
+            return null;
+        }
+    }
+
 
     /*
      * Extract the LinOTP Challenge data from the identification result that we collect during beforeFilter

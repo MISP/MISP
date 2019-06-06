@@ -35,6 +35,14 @@
 
     <div class="clear"></div>
 
+    <?php
+        if ($linotpBaseUrl != null):
+    ?>
+            <p>Go to <a href="<?php echo $linotpBaseUrl; ?>/selfservice-v2/">LinOTP Selfservice</a> to manage your second factor access tokens.</p>
+    <?php
+        endif;
+    ?>
+
     <?php echo $this->Form->button(__('Login'), array('class' => 'btn btn-primary')); ?>
 
 </div>
