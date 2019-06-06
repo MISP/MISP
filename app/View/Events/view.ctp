@@ -333,7 +333,7 @@
             <?php
                 if (!empty($event['RelatedEvent'])):
             ?>
-                    <h3><?php echo __('Related Events');?></h3>
+                    <h3><?php echo __('Related Events OLD');?></h3>
                     <span class="inline">
                         <?php
                             $count = 0;
@@ -364,6 +364,36 @@
                         <?php
                             endforeach;
                             if ($total > 10):
+                        ?>
+                            <div class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;"><?php echo __('Collapse…');?></div>
+                        <?php
+                            endif;
+                        ?>
+                    </span>
+                    <h3><?php echo __('Related Events');?></h3>
+                    <span class="inline">
+                        <?php
+                            $count = 0;
+                            $display_threshold = 3;
+                            $total = count($event['RelatedEvent']);
+                            foreach ($event['RelatedEvent'] as $relatedEvent):
+                                $count++;
+                                if ($count == $display_threshold+1 && $total > $display_threshold):
+                                    ?>
+                                        <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - $count);?></div>
+                                    <?php
+                                endif;
+                        ?>
+                        <?php
+                            echo $this->element('/Events/View/related_event', array(
+                                'related' => $relatedEvent['Event'],
+                                'color_red' => $relatedEvent['Event']['orgc_id'] == $me['org_id'],
+                                'hide' => $count > $display_threshold
+                            ));
+                        ?>
+                        <?php
+                            endforeach;
+                            if ($total > $display_threshold):
                         ?>
                             <div class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;"><?php echo __('Collapse…');?></div>
                         <?php
