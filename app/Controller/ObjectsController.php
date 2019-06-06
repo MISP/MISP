@@ -1053,25 +1053,15 @@ class ObjectsController extends AppController
             } else {
                 $sharing_group_id = 0;
             }
-            $object = array('Object' => array(
-                'distribution' => $distribution,
-                'sharing_group_id' => $sharing_group_id,
-                'comment' => $comment
-            ));
-            $temp = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array(
-                'Attribute.id' => $selected_attribute_ids,
-                'Attribute.event_id' => $event_id,
-                'Attribute.object_id' => 0
-            )));
-            foreach ($temp as $i => $attribute) {
-                if (isset($selected_object_relation_mapping[$attribute['Attribute']['id']])) {
-                    $object_relation = $selected_object_relation_mapping[$attribute['Attribute']['id']];
-                    $attribute['Attribute']['object_relation'] = $object_relation;
-                    $object['Attribute'][$i] = $attribute['Attribute'];
-                    unset($object['Attribute'][$i]['timestamp']);
-                }
-            }
-            $result = $this->MispObject->saveObject($object, $event_id, $template, $this->Auth->user());
+            $object = array(
+                'Object' => array(
+                    'distribution' => $distribution,
+                    'sharing_group_id' => $sharing_group_id,
+                    'comment' => $comment,
+                ),
+                'Attribute' => array()
+            );
+            $result = $this->MispObject->groupAttributesIntoObject($this->Auth->user(), $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping);
             if (is_numeric($result)) {
                 $this->MispObject->Event->unpublishEvent($event_id);
                 return $this->RestResponse->saveSuccessResponse('Objects', 'Created from Attributes', $result, $this->response->type());

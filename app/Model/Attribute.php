@@ -3768,14 +3768,7 @@ class Attribute extends AppModel
             ));
             $this->Log = ClassRegistry::init('Log');
             if (count($existingAttribute)) {
-                if (
-                       $existingAttribute['Attribute']['event_id'] != $eventId ||
-                       (
-                               $existingAttribute['Attribute']['object_id'] != $objectId &&
-                               // Still take into account the attribute if it was merged into an object
-                               $existingAttribute['Attribute']['object_id'] != 0
-                       )
-                ) {
+                if ($existingAttribute['Attribute']['event_id'] != $eventId || $existingAttribute['Attribute']['object_id'] != $objectId) {
                     $this->Log->create();
                     $result = $this->Log->save(array(
                             'org' => $user['Organisation']['name'],
@@ -3910,6 +3903,74 @@ class Attribute extends AppModel
             }
         }
         return true;
+    }
+
+    public function __delete($id, $user, $hard = false)
+    {
+        $this->id = $id;
+        if (!$this->exists()) {
+            return false;
+        }
+        $result = $this->find('first', array(
+            'conditions' => array('Attribute.id' => $id),
+            'fields' => array('Attribute.*'),
+            'contain' => array('Event' => array(
+                'fields' => array('Event.*')
+            )),
+        ));
+        if (empty($result)) {
+            throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
+        }
+
+        // check for permissions
+        if (!$user['Role']['perm_site_admin']) {
+            if ($result['Event']['locked']) {
+                if ($user['org_id'] != $result['Event']['org_id'] || !$user['Role']['perm_sync']) {
+                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
+                }
+            } else {
+                if ($user['org_id'] != $result['Event']['orgc_id']) {
+                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
+                }
+            }
+        }
+        $date = new DateTime();
+        if ($hard) {
+            $save = $this->delete($id);
+        } else {
+            if (Configure::read('Security.sanitise_attribute_on_delete')) {
+                $result['Attribute']['category'] = 'Other';
+                $result['Attribute']['type'] = 'comment';
+                $result['Attribute']['value'] = 'deleted';
+                $result['Attribute']['comment'] = '';
+                $result['Attribute']['to_ids'] = 0;
+            }
+            $result['Attribute']['deleted'] = 1;
+            $result['Attribute']['timestamp'] = $date->getTimestamp();
+            $save = $this->save($result);
+            $object_refs = $this->Object->ObjectReference->find('all', array(
+                'conditions' => array(
+                    'ObjectReference.referenced_type' => 0,
+                    'ObjectReference.referenced_id' => $id,
+                ),
+                'recursive' => -1
+            ));
+            foreach ($object_refs as $ref) {
+                $ref['ObjectReference']['deleted'] = 1;
+                $this->Object->ObjectReference->save($ref);
+            }
+        }
+        // attachment will be deleted with the beforeDelete() function in the Model
+        if ($save) {
+            // We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
+            $this->Event->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
+
+            // remove the published flag from the event
+            $this->Event->unpublishEvent($result['Event']['id']);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public function attachValidationWarnings($adata)

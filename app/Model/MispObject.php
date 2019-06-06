@@ -595,15 +595,7 @@ class MispObject extends AppModel
             $objectId = $this->id;
             $partialFails = array();
             foreach ($object['Object']['Attribute'] as $attribute) {
-               $existing_attribute = $this->Attribute->find('first', array(
-                   'recursive' => -1,
-                   'conditions' => array('uuid' => $attribute['uuid'])
-               ));
-               if (empty($existing_attribute)) {
-                   $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
-               } else { // The attribute may just have been grouped into an object
-                   $this->Attribute->editAttribute($attribute, $eventId, $user, $objectId, $log);
-               }
+                $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
             }
             return true;
         } else {
@@ -825,5 +817,55 @@ class MispObject extends AppModel
             $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
         }
         return array('templates' => $templates, 'types' => $attribute_types);
+    }
+
+    public function groupAttributesIntoObject($user, $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping)
+    {
+        $saved_object_id = $this->saveObject($object, $event_id, $template, $user);
+
+        if (!is_numeric($saved_object_id)) {
+            return $saved_object_id;
+        }
+
+        $saved_object = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Object.id' => $saved_object_id)
+        ));
+
+        $existing_attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array(
+            'Attribute.id' => $selected_attribute_ids,
+            'Attribute.event_id' => $event_id,
+            'Attribute.object_id' => 0
+        )));
+
+        if (empty($existing_attributes)) {
+            return __('Selected Attributes do not exist.');
+        }
+        $event = array('Event' => $existing_attributes[0]['Event']);
+
+        // Duplicate the attribute and its context, otherwise connected instance will drop the duplicated UUID
+        foreach ($existing_attributes as $i => $existing_attribute) {
+            if (isset($selected_object_relation_mapping[$existing_attribute['Attribute']['id']])) {
+                $sightings = $this->Event->Sighting->attachToEvent($event, $user, $existing_attribute['Attribute']['id']);
+                $object_relation = $selected_object_relation_mapping[$existing_attribute['Attribute']['id']];
+                $created_attribute = $existing_attribute['Attribute'];
+                unset($created_attribute['timestamp']);
+                unset($created_attribute['id']);
+                unset($created_attribute['uuid']);
+                $created_attribute['object_relation'] = $object_relation;
+                $created_attribute['object_id'] = $saved_object['Object']['id'];
+                if (isset($existing_attribute['AttributeTag'])) {
+                    $created_attribute['AttributeTag'] = $existing_attribute['AttributeTag'];
+                }
+                if (!empty($sightings)) {
+                    $created_attribute['Sighting'] = $sightings;
+                }
+                $saved_object['Attribute'][$i] = $created_attribute;
+                $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object['Object']['id']);
+                $this->Attribute->__delete($existing_attribute['Attribute']['id'], $user);
+            }
+        }
+        return $saved_object['Object']['id'];
+
     }
 }
