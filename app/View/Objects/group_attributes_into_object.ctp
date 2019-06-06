@@ -95,8 +95,8 @@ echo $this->Form->create('Object', array('url' => $baseurl . '/objects/groupAttr
         <strong><?php echo __('Dropped Object references'); ?></strong>
         <div><?php echo __('As these Attributes are converted into an Objects, the meaning of the Refences might change. If you whish to preserve the References, you will have to created them after the merge. Take note of them!') ?></div>
         <div><?php echo __('The following References will be dropped after the merge:') ?></div>
-        <div style="max-height: 170px; overflow-y: auto; border: 1px solid #e6cace; border-radius: 4px; padding: 3px;">
-            <table>
+        <div style="max-height: 170px; overflow-y: auto; border: 1px solid #e6cace; border-radius: 4px; padding: 5px;">
+            <table style="margin: 2px;">
             <?php foreach ($object_references as $object_reference): ?>
                 <?php $object_reference = $object_reference['ObjectReference']; ?>
                     <tr>
