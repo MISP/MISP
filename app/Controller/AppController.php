@@ -502,6 +502,9 @@ class AppController extends Controller
             $this->Log = ClassRegistry::init('Log');
             echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
         }
+        if ($this->_isRest()) {
+            session_destroy();
+        }
     }
 
     public function queryACL($debugType='findMissingFunctionNames', $content = false)
