@@ -1101,6 +1101,25 @@ class ObjectsController extends AppController
             foreach ($template['ObjectTemplateElement'] as $template_element) {
                 $object_relations[$template_element['type']][] = $template_element;
             }
+
+            $object_references = $this->MispObject->ObjectReference->find('all', array(
+                'conditions' => array(
+                    'ObjectReference.referenced_id' => $selected_attribute_ids,
+                ),
+                'recursive' => -1
+            ));
+
+            foreach ($object_references as $i => $object_reference) {
+                $temp_object = $this->MispObject->find('first', array('id' => $object_reference['ObjectReference']['object_id'], 'recursive' => -1));
+                $temp_attribute = $this->MispObject->Attribute->find('first', array('id' => $object_reference['ObjectReference']['referenced_id'], 'recursive' => -1));
+                if (!empty($temp_object) && !empty($temp_attribute)) {
+                    $temp_object = $temp_object['Object'];
+                    $temp_attribute = $temp_attribute['Attribute'];
+                    $object_references[$i]['ObjectReference']['object_name'] = $temp_object['name'];
+                    $object_references[$i]['ObjectReference']['attribute_name'] = sprintf('%s/%s: "%s"', $temp_attribute['category'], $temp_attribute['type'], $temp_attribute['value']);
+                }
+            }
+
             $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
             $this->set('event_id', $event_id);
             $this->set('distributionData', $distributionData);
@@ -1111,6 +1130,7 @@ class ObjectsController extends AppController
             $this->set('object_relations', $object_relations);
             $this->set('attributes', $selected_attributes);
             $this->set('skipped_attributes', $skipped_attributes);
+            $this->set('object_references', $object_references);
         }
     }
 

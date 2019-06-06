@@ -90,6 +90,34 @@ echo $this->Form->create('Object', array('url' => $baseurl . '/objects/groupAttr
     </div>
 <?php endif; ?>
 
+<?php if (!empty($object_references)): ?>
+    <div class="alert alert-danger" style="margin-top: 15px;">
+        <strong><?php echo __('Dropped Object references'); ?></strong>
+        <div><?php echo __('As these Attributes are converted into an Objects, the meaning of the Refences might change. If you whish to preserve the References, you will have to created them after the merge. Take note of them!') ?></div>
+        <div><?php echo __('The following References will be dropped after the merge:') ?></div>
+        <table>
+        <?php foreach ($object_references as $object_reference): ?>
+            <?php $object_reference = $object_reference['ObjectReference']; ?>
+                <tr>
+                    <td><span style="margin-right: 5px;">&#8226;</span></td>
+                    <td><?php echo sprintf('<strong>%s</strong> (%s)', h($object_reference['object_name']), h($object_reference['object_id'])); ?></td>
+                    <td style="text-align: center;">
+                        <div style="display: inline-block; position: relative; margin: 10px 10px 0px 10px; top: -8px;">
+                            <span style=""><?php echo h($object_reference['relationship_type']); ?></span>
+                            <i class="fas fa-long-arrow-alt-right" style="font-size: x-large; position: absolute; left: calc(50% - 10px); top: 10px;"></i>
+                        </div>
+                    </td>
+                    <td><?php echo sprintf('<strong>%s</strong> (%s)', h($object_reference['attribute_name']), h($object_reference['referenced_id'])); ?></td>
+                    <?php if ($object_reference['comment'] !== ''): ?>
+                        <td><span style="margin: 0px 10px;">-</span></td>
+                        <td style="margin-left: 10px"><?php echo h($object_reference['comment']); ?></td>
+                    <?php endif; ?>
+                </tr>
+        <?php endforeach; ?>
+        </table>
+    </div>
+<?php endif; ?>
+
 
 <div style="margin-top: 15px; text-align: center;">
     <div>
