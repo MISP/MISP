@@ -199,7 +199,7 @@ cp -p $PATH_TO_MISP/app/Config/database.php $TmpDir/Config
 echo "MySQL Dump"
 MySQLRUser=${MySQLRUser:-$MySQLUUser}
 MySQLRPass=${MySQLRPass:-$MySQLUPass}
-mysqldump --opt -u $MySQLRUser -p$MySQLRPass $MISPDB > $TmpDir/MISPbackupfile.sql
+mysqldump --opt --host $MISPDBHost -u $MySQLRUser -p$MySQLRPass $MISPDB > $TmpDir/MISPbackupfile.sql
 if [[ "$?" != "0" ]]; then
   echo "MySQLdump failed, abort." && exit 1
 fi

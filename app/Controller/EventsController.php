@@ -1518,7 +1518,12 @@ class EventsController extends AppController
             $conditions['includeAttachments'] = true;
         }
         if (isset($this->params['named']['deleted'])) {
-            $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? array(0,1) : $this->params['named']['deleted'];
+            // workaround for old instances trying to pull events with both deleted / non deleted data
+            if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $this->params['named']['deleted'] == 1) {
+                $conditions['deleted'] = array(0,1);
+            } else {
+                $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? array(0,1) : $this->params['named']['deleted'];
+            }
         }
         if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
             $conditions['to_ids'] = $this->params['named']['toIDS'] == 2 ? 0 : 1;
@@ -5877,6 +5882,36 @@ class EventsController extends AppController
                 }
             }
             $this->redirect('/events/view/' . $eventId);
+        }
+    }
+
+    public function cullEmptyEvents()
+    {
+        $eventIds = $this->Event->find('list', array(
+            'conditions' => array('Event.published' => 1),
+            'fields' => array('Event.id', 'Event.uuid'),
+            'recursive' => -1
+        ));
+        $count = 0;
+        $this->Event->skipBlacklist = true;
+        foreach ($eventIds as $eventId => $eventUuid) {
+            $result = $this->Event->Attribute->find('first', array(
+                'conditions' => array('Attribute.event_id' => $eventId),
+                'recursive' => -1,
+                'fields' => array('Attribute.id', 'Attribute.event_id')
+            ));
+            if (empty($result)) {
+                $this->Event->delete($eventId);
+                $count++;
+            }
+        }
+        $this->Event->skipBlacklist = null;
+        $message = __('%s event(s) deleted.', $count);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($message, $this->response->type());
+        } else {
+            $this->Flash->success($message);
+            $this->redirect($this->referer());
         }
     }
 }

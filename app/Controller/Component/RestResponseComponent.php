@@ -47,7 +47,7 @@ class RestResponseComponent extends Component
                     Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
                     This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals'),
+                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals'),
                 'params' => array()
             )
         ),
@@ -75,7 +75,7 @@ class RestResponseComponent extends Component
                     Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
                     This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo'),
+                'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo'),
                 'params' => array()
             )
         ),
@@ -679,6 +679,7 @@ class RestResponseComponent extends Component
                 'todayHighlight' => true,
                 'autoclose' => true
             ),
+            'help' => 'The user set date field on the event level. If you are using restSearch, you can use any of the valid time related filters (examples: 7d, timestamps, [14d, 7d] for ranges, etc.)'
         ),
         'datefrom' => array(
             'type' => 'date',
@@ -838,7 +839,7 @@ class RestResponseComponent extends Component
                 'autoclose' => true
             ),
             'help' => 'The date from which the event was published'
-        ),
+         ),
         'gpgkey' => array(
             'input' => 'text',
             'type' => 'string',
@@ -1537,6 +1538,7 @@ class RestResponseComponent extends Component
                 break;
         }
     }
+
     private function __overwriteCategory($scope, &$field) {
         $field['values'] = array_keys(ClassRegistry::init("Attribute")->categoryDefinitions);
     }

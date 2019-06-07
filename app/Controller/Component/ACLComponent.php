@@ -96,6 +96,7 @@ class ACLComponent extends Component
                     'create_dummy_event' => array(),
                     'create_massive_dummy_events' => array(),
                     'csv' => array('*'),
+                    'cullEmptyEvents' => array(),
                     'delegation_index' => array('*'),
                     'delete' => array('perm_add'),
                     'deleteNode' => array('*'),

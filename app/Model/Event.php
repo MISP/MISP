@@ -479,7 +479,7 @@ class Event extends AppModel
     public function beforeDelete($cascade = true)
     {
         // blacklist the event UUID if the feature is enabled
-        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+        if (Configure::read('MISP.enableEventBlacklisting') !== false && empty($this->skipBlacklist)) {
             $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
             $this->EventBlacklist->create();
             $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $this->data['Event']['orgc_id']), 'recursive' => -1, 'fields' => array('Orgc.name')));
@@ -1590,6 +1590,7 @@ class Event extends AppModel
                     'tags' => array('function' => 'set_filter_tags'),
                     'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'date' => array('function' => 'set_filter_date', 'pop' => true),
                     'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
@@ -2637,6 +2638,18 @@ class Event extends AppModel
         return $conditions;
     }
 
+    public function set_filter_date(&$params, $conditions, $options)
+    {
+        $timestamp = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, 'Event.date', true);
+        if (!is_array($timestamp)) {
+            $conditions['AND']['Event.date >='] = date('Y-m-d', $timestamp);
+        } else {
+            $conditions['AND']['Event.date >='] = date('Y-m-d', $timestamp[0]);
+            $conditions['AND']['Event.date <='] = date('Y-m-d', $timestamp[1]);
+        }
+        return $conditions;
+    }
+
     public function csv($user, $params, $search = false, &$continue = true)
     {
         $conditions = array();
@@ -2845,6 +2858,15 @@ class Event extends AppModel
     public function sendAlertEmail($id, $senderUser, $oldpublish = null, $processId = null)
     {
         $event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
+        $this->NotificationLog = ClassRegistry::init('NotificationLog');
+        if (!$this->NotificationLog->check($event[0]['Event']['orgc_id'], 'publish')) {
+            if ($processId) {
+                $this->Job->id = $processId;
+                $this->Job->saveField('progress', 100);
+                $this->Job->saveField('message', 'Mails blocked by org alert threshold.');
+            }
+            return true;
+        }
         if (empty($event)) {
             throw new MethodNotFoundException('Invalid Event.');
         }
