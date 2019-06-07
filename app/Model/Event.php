@@ -5265,7 +5265,6 @@ class Event extends AppModel
                 $attributes[] = $tmp_attribute;
             }
             $event['Attribute'] = $attributes;
-            unset($result['results']['Attribute']);
         }
         if (!empty($result['results']['Object'])) {
             $object = array();
@@ -5280,7 +5279,11 @@ class Event extends AppModel
                 $objects[] = $tmp_object;
             }
             $event['Object'] = $objects;
-            unset($result['results']['Object']);
+        }
+        foreach (array('Tag', 'Galaxy') as $field) {
+            if (!empty($result['results'][$field])) {
+                $event[$field] = $result['results'][$field];
+            }
         }
         return $event;
     }
