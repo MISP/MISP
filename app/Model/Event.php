@@ -1590,6 +1590,7 @@ class Event extends AppModel
                     'tags' => array('function' => 'set_filter_tags'),
                     'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'date' => array('function' => 'set_filter_date', 'pop' => true),
                     'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
@@ -2633,6 +2634,18 @@ class Event extends AppModel
             foreach ($filters[$options['filter']] as $f) {
                 $conditions = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, $f);
             }
+        }
+        return $conditions;
+    }
+
+    public function set_filter_date(&$params, $conditions, $options)
+    {
+        $timestamp = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, 'Event.date', true);
+        if (!is_array($timestamp)) {
+            $conditions['AND']['Event.date >='] = date('Y-m-d', $timestamp);
+        } else {
+            $conditions['AND']['Event.date >='] = date('Y-m-d', $timestamp[0]);
+            $conditions['AND']['Event.date <='] = date('Y-m-d', $timestamp[1]);
         }
         return $conditions;
     }
