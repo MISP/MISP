@@ -605,8 +605,8 @@ function submitForm(type, id, field, context) {
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
     fetchFormDataAjax("/events/addTag/" + event_id, function(formData) {
-        $('#temp').html(formData);
-        $('#EventTag').val(JSON.stringify(selected_tag_ids));
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #EventTag').val(JSON.stringify(selected_tag_ids));
         $.ajax({
             data: $('#EventAddTagForm').serialize(),
             cache: false,
@@ -624,23 +624,23 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
                 loadGalaxies(event_id, 'event');
             },
             complete:function() {
-                $('#temp').empty();
+                $('#temp').remove();
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
+                $('#temp').remove();
             },
             type:"post",
             url:"/events/addTag/" + event_id
         });
-        $('#temp').remove();
     });
 }
 
 function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     var attribute_id = addData.id;
     fetchFormDataAjax("/attributes/addTag/" + attribute_id, function(formData) {
-        $('#temp').html(formData);
-        $('#AttributeTag').val(JSON.stringify(selected_tag_ids));
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #AttributeTag').val(JSON.stringify(selected_tag_ids));
         if (attribute_id == 'selected') {
             $('#AttributeAttributeIds').val(getSelected());
         }
@@ -667,19 +667,19 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
+                $('#temp').remove();
             },
             type:"post",
             url:"/attributes/addTag/" + attribute_id
         });
-        $('#temp').remove();
     });
 }
 
 function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     var tag_collection_id = addData.id;
     fetchFormDataAjax("/tag_collections/addTag/" + tag_collection_id, function(formData) {
-        $('#temp').html(formData);
-        $('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #TagCollectionTag').val(JSON.stringify(selected_tag_ids));
         $.ajax({
             data: $('#TagCollectionAddTagForm').serialize(),
             beforeSend: function (XMLHttpRequest) {
@@ -697,11 +697,11 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
+                $('#temp').remove();
             },
             type:"post",
             url:"/tag_collections/addTag/" + tag_collection_id
         });
-        $('#temp').remove();
     });
 }
 
@@ -3641,8 +3641,8 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
     fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope, function(formData) {
-        $('#temp').html(formData);
-        $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #GalaxyTargetIds').val(JSON.stringify(selected_tag_ids));
         if (target_id == 'selected') {
             $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
         }
@@ -3671,11 +3671,11 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
+                $('#temp').remove();
             },
             type:"post",
             url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
         });
-        $('#temp').remove();
     });
 }
 
