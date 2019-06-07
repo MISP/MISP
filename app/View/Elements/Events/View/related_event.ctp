@@ -1,5 +1,4 @@
 <?php
-    $style_red = isset($color_red) ? ($color_red ? 'color: red !important;' : '') : '';
     $href_url = isset($href_url) ? $href_url : $baseurl . '/events';
     $hide = isset($hide) ? $hide : false;
 ?>
@@ -8,11 +7,11 @@
         <table>
             <tbody>
                 <tr>
-                    <td rowspan="2" style="border-right: 1px solid #ddd; padding-right: 2px" class="">
+                    <td rowspan="2" style="border-right: 1px solid #ddd; padding-right: 2px">
                         <?php echo $this->OrgImg->getOrgImg(array('name' => $related['Orgc']['name'], 'id' => $related['Orgc']['id'], 'size' => 24)); ?>
                     </td>
                     <td style="line-height: 14px; padding-left: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; max-width: 430px;">
-                        <a title="<?php echo h($related['info']); ?>" style="<?php echo $style_red ?>" href="<?php echo h($href_url) . '/' . $related['id']?>">
+                        <a title="<?php echo h($related['info']); ?>" href="<?php echo h($href_url) . '/' . $related['id']?>">
                             <span><?php echo h($related['info']) ?>
                         </a>
                     </td>

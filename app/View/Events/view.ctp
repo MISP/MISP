@@ -333,48 +333,11 @@
             <?php
                 if (!empty($event['RelatedEvent'])):
             ?>
-                    <h3><?php echo __('Related Events OLD');?></h3>
-                    <span class="inline">
-                        <?php
-                            $count = 0;
-                            $total = count($event['RelatedEvent']);
-                            foreach ($event['RelatedEvent'] as $relatedEvent):
-                                $count++;
-                                $relatedData = array('Orgc' => $relatedEvent['Event']['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
-                                $popover = '';
-                                foreach ($relatedData as $k => $v) {
-                                    $popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
-                                }
-                                if ($count == 11 && $total > 10):
-                                    ?>
-                                        <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - $count);?></div>
-                                    <?php
-                                endif;
-                        ?>
-                                <span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" class="<?php if ($count > 11) echo 'correlation-expanded-area'; ?>" style="white-space: nowrap;<?php echo ($count > 10) ? 'display:none;' : ''; ?>">
-                        <?php
-                                $linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-                                if ($relatedEvent['Event']['orgc_id'] == $me['org_id']) {
-                                    echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
-                                } else {
-                                    echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
-                                }
-                        ?>
-                                </span>&nbsp;
-                        <?php
-                            endforeach;
-                            if ($total > 10):
-                        ?>
-                            <div class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;"><?php echo __('Collapse…');?></div>
-                        <?php
-                            endif;
-                        ?>
-                    </span>
                     <h3><?php echo __('Related Events');?></h3>
                     <span class="inline">
                         <?php
                             $count = 0;
-                            $display_threshold = 3;
+                            $display_threshold = 10;
                             $total = count($event['RelatedEvent']);
                             foreach ($event['RelatedEvent'] as $relatedEvent):
                                 $count++;
