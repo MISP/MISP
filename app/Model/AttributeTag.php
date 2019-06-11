@@ -113,38 +113,29 @@ class AttributeTag extends AppModel
 
     public function getTagScores($eventId=0, $allowedTags=array())
     {
-        // get score of galaxy
-        $db = $this->getDataSource();
-        $statementArray = array(
-            'fields' => array('attr_tag.tag_id as id', 'count(attr_tag.tag_id) as value'),
-            'table' => $db->fullTableName($this),
-            'alias' => 'attr_tag',
-            'group' => 'tag_id'
-        );
+        $conditions = array('Tag.id !=' => null);
         if ($eventId != 0) {
-            $statementArray['conditions'] = array('event_id' => $eventId);
+            $conditions['event_id'] = $eventId;
         }
-        // tag along with its occurence in the event
-        $subQuery = $db->buildStatement(
-            $statementArray,
-            $this
-        );
-        $subQueryExpression = $db->expression($subQuery)->value;
-        // get related galaxies
-        $attributeTagScores = $this->query("SELECT name, value FROM (" . $subQueryExpression . ") AS score, tags WHERE tags.id=score.id;");
-
-        // arrange data
-        $scores = array();
-        $maxScore = 0;
-        foreach ($attributeTagScores as $item) {
-            $score = $item['score']['value'];
-            $name = $item['tags']['name'];
-            if (in_array($name, $allowedTags)) {
-                $maxScore = $score > $maxScore ? $score : $maxScore;
-                $scores[$name] = $score;
+        $attribute_tag_scores = $this->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'contain' => array(
+                'Tag' => array(
+                    'conditions' => array('name' => $allowedTags)
+                )
+            ),
+            'fields' => array('Tag.name', 'AttributeTag.event_id')
+        ));
+        $scores = array('scores' => array(), 'maxScore' => 0);
+        foreach ($attribute_tag_scores as $attribute_tag_score) {
+            if (!isset($scores['scores'][$attribute_tag_score['Tag']['name']])) {
+                $scores['scores'][$attribute_tag_score['Tag']['name']] = 0;
             }
+            $scores['scores'][$attribute_tag_score['Tag']['name']]++;
+            $scores['maxScore'] = $scores['scores'][$attribute_tag_score['Tag']['name']] > $scores['maxScore'] ? $scores['scores'][$attribute_tag_score['Tag']['name']] : $scores['maxScore'];
         }
-        return array('scores' => $scores, 'maxScore' => $maxScore);
+        return $scores;
     }
 
 

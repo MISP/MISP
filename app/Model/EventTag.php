@@ -212,7 +212,7 @@ class EventTag extends AppModel
         return array('scores' => $scores, 'maxScore' => $maxScore);
     }
 
-    // Fetch all tags contained in an event (both event and attributes) ignoring the occurence
+    // Fetch all tags contained in an event (both event and attributes) ignoring the occurence. No ACL
     public function getTagScoresUniform($eventId=0, $allowedTags=array())
     {
         $conditions = array('Tag.id !=' => null);
