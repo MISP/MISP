@@ -203,7 +203,10 @@ class EventTag extends AppModel
             $name = $item['Tag']['name'];
             if (in_array($name, $allowedTags)) {
                 $maxScore = $score > $maxScore ? $score : $maxScore;
-                $scores[$name] = $score;
+                if (!isset($scores[$name])) {
+                    $scores[$name] = 0;
+                }
+                $scores[$name] += $score;
             }
         }
         return array('scores' => $scores, 'maxScore' => $maxScore);

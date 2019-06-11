@@ -1977,7 +1977,7 @@ class UsersController extends AppController
             foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
                 $scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
             }
-            $maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
+            $maxScore = max($scoresData);
             $scores = $scoresData;
             // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
             if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
