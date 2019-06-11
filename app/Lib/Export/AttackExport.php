@@ -21,7 +21,6 @@ class AttackExport
     private $__matrixTags = false;
     private $__killChainOrders = false;
     private $__instanceUUID = false;
-    private $__scope = 'Event';
 
     public function handler($data, $options = array())
     {
@@ -51,17 +50,12 @@ class AttackExport
             $this->__killChainOrders = $this->__matrixData['killChain'];
             $this->__instanceUUID = $this->__matrixData['instance-uuid'];
         }
-        $this->__scope = empty($options['scope']) ? 'Event' : $options['scope'];
-        $clusterData = array();
-        if ($this->__scope === 'Event') {
-            $clusterData = $this->__aggregate($data, $clusterData);
-            if (!empty($data['Attribute'])) {
-                foreach ($data['Attribute'] as $attribute) {
-                    $clusterData = $this->__aggregate($attribute, $clusterData);
-                }
+
+        $clusterData = $this->__aggregate($data, array());
+        if (!empty($data['Attribute'])) {
+            foreach ($data['Attribute'] as $attribute) {
+                $clusterData = $this->__aggregate($attribute, $clusterData);
             }
-        } else {
-            $clusterData = $this->__aggregate($data, $clusterData);
         }
 
         foreach ($clusterData as $key => $value) {
@@ -109,7 +103,7 @@ class AttackExport
         $gradientTool = new ColourGradientTool();
         $colours = $gradientTool->createGradientFromValues($this->__clusterCounts);
         $result = array(
-            'target_type' => strtolower($this->__scope),
+            'target_type' => 'event',
             'columnOrders' => $this->__killChainOrders,
             'tabs' => $this->__tabs,
             'scores' => $this->__clusterCounts,

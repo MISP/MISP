@@ -1913,7 +1913,7 @@ class UsersController extends AppController
         $this->set('organisations', $organisations);
         $picked_organisation = 0;
         if (isset($params['organisation']) && $params['organisation'] != 0) {
-            $org = $this->Organisation->find('first', array(
+            $org = $this->User->Organisation->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('id' => $params['organisation']),
             ));
@@ -1934,6 +1934,7 @@ class UsersController extends AppController
             || isset($params['dateTo'])
             || isset($params['organisation']) && $params['organisation'] != 0
         ) { // use restSearch
+            $ignore_score = true;
             $filters = array();
             if (isset($params['dateFrom'])) {
                 $filters['from'] = $params['dateFrom'];
@@ -1948,14 +1949,14 @@ class UsersController extends AppController
             }
             $elementCounter = 0;
             $renderView = '';
-            $final = $this->Event->Attribute->restSearch($this->Auth->user(), 'attack', $filters, false, false, $elementCounter, $renderView);
+            $final = $this->Event->restSearch($this->Auth->user(), 'attack', $filters, false, false, $elementCounter, $renderView);
+
             $final = json_decode($final, true);
             if (!empty($final)) {
                 $rest_response_empty = false;
-                $ignore_score = true;
-            }
-            foreach ($final as $key => $data) {
-                $this->set($key, $data);
+                foreach ($final as $key => $data) {
+                    $this->set($key, $data);
+                }
             }
         }
 
