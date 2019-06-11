@@ -5134,6 +5134,11 @@ class EventsController extends AppController
             $importComment = !empty($result['comment']) ? $result['comment'] : $attribute[0]['Attribute']['value'] . __(': Enriched via the ') . $module . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
             $this->set('importComment', $importComment);
             $event['Event'] = $attribute[0]['Event'];
+            $org_name = $this->Event->Orgc->find('first', array(
+                'conditions' => array('Orgc.id' => $event['Event']['orgc_id']),
+                'fields' => array('Orgc.name')
+            ));
+            $event['Event']['orgc_name'] = $org_name['Orgc']['name'];
             if ($attribute[0]['Object']['id']) {
                 $object_id = $attribute[0]['Object']['id'];
                 $initial_object = $this->Event->Object->find('first', array(
