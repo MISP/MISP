@@ -211,4 +211,48 @@ class EventTag extends AppModel
         }
         return array('scores' => $scores, 'maxScore' => $maxScore);
     }
+
+    // Fetch all tags contained in an event (both event and attributes) ignoring the occurence
+    public function getTagScoresUniform($eventId=0, $allowedTags=array())
+    {
+        $conditions = array('Tag.id !=' => null);
+        if ($eventId != 0) {
+            $conditions['event_id'] = $eventId;
+        }
+        $event_tag_scores = $this->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'contain' => array(
+                'Tag' => array(
+                    'conditions' => array('name' => $allowedTags)
+                )
+            ),
+            'fields' => array('Tag.name', 'EventTag.event_id')
+        ));
+        $attribute_tag_scores = $this->Event->Attribute->AttributeTag->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'contain' => array(
+                'Tag' => array(
+                    'conditions' => array('name' => $allowedTags)
+                )
+            ),
+            'fields' => array('Tag.name', 'AttributeTag.event_id')
+        ));
+
+        $score_aggregation = array();
+        foreach ($event_tag_scores as $event_tag_score) {
+            $score_aggregation[$event_tag_score['Tag']['name']][$event_tag_score['EventTag']['event_id']] = 1;
+        }
+        foreach ($attribute_tag_scores as $attribute_tag_score) {
+            $score_aggregation[$attribute_tag_score['Tag']['name']][$attribute_tag_score['AttributeTag']['event_id']] = 1;
+        }
+        $scores = array('scores' => array(), 'maxScore' => 0);
+        foreach ($score_aggregation as $name => $array_ids) {
+            $event_count = count($array_ids);
+            $scores['scores'][$name] = $event_count;
+            $scores['maxScore'] = $event_count > $scores['maxScore'] ? $event_count : $scores['maxScore'];
+        }
+        return $scores;
+    }
 }

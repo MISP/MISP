@@ -1967,22 +1967,16 @@ class UsersController extends AppController
             $killChainOrders = $matrixData['killChain'];
             $instanceUUID = $matrixData['instance-uuid'];
             if ($ignore_score) {
-                $scoresDataAttr = array('scores' => array(), 'maxScore' => 0);
-                $scoresDataEvent = array('scores' => array(), 'maxScore' => 0);
+                $scores_uniform = array('scores' => array(), 'maxScore' => 0);
             } else {
-                $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores(0, $matrixTags);
-                $scoresDataEvent = $this->Event->EventTag->getTagScores(0, $matrixTags, true);
+                $scores_uniform = $this->Event->EventTag->getTagScoresUniform(0, $matrixTags);
             }
-            $scoresData = array();
-            foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
-                $scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
-            }
-            $maxScore = max($scoresData);
-            $scores = $scoresData;
+            $scores = $scores_uniform['scores'];
+            $maxScore = $scores_uniform['maxScore'];
             // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
             if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
                 $mergedScore = array();
-                foreach ($scoresData as $tag => $v) {
+                foreach ($scores as $tag => $v) {
                     $predicateValue = explode(':', $tag, 2)[1];
                     $predicateValue = explode('=', $predicateValue, 2);
                     $predicate = $predicateValue[0];
