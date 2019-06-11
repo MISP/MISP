@@ -24,11 +24,11 @@
 # 1/ For other Debian based Linux distributions, download script and run as **unprivileged** user |
 #-------------------------------------------------------------------------------------------------|
 #
-# The following installs only MISP-core:
-# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s -- -c
+# The following installs only MISP Core:
+# $ wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh ; bash /tmp/INSTALL.sh -c
 #
-# This will install MISP Core and misp-modules (recommended)
-# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh | bash -s -- -c -M
+# This will install MISP Core and misp-modules
+# $ wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh ; bash /tmp/INSTALL.sh -c -M
 #
 #
 #-------------------------------------------------------|
@@ -36,7 +36,7 @@
 #-------------------------------------------------------|
 #
 # To install MISP on Kali copy paste the following to your r00t shell:
-# # wget -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
+# # wget --no-cache -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
 #
@@ -507,7 +507,7 @@ installMISPonKali () {
       expect eof" | expect -f -
 
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBNAME@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBUSER_MISP@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
 
@@ -615,6 +615,9 @@ debug "Checking if we are run as the installer template"
 if [[ "$0" == "./INSTALL.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.tpl.sh')" == "INSTALL.tpl.sh" ]]; then
   generateInstaller
 fi
+
+debug "Checking if we are uptodate and checksums match"
+checkInstaller
 
 space
 debug "Setting MISP variables"

@@ -10,10 +10,12 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 
     ```bash
     # Please check the installer options first to make the best choice for your install
-    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s
+    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    bash /tmp/INSTALL.sh
 
-    # This will install MISP Core and misp-modules (recommended)
-    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+    # This will install MISP Core
+    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    bash /tmp/INSTALL.sh -c
     ```
     **The above does NOT work yet**
 
@@ -31,10 +33,10 @@ This document details the steps to install MISP on Red Hat Enterprise Linux 8.x 
 
 The following assumptions with regard to this installation have been made.
 
-### 0.1/ A valid support agreement allowing the system to register to the Red Hat Customer Portal and receive updates
-### 0.2/ The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
-### 0.3/ This system will have direct or proxy access to the Internet for updates. Or connected to a Red Hat Satellite Server
-### 0.4/ This document will bootstrap a MISP instance running over HTTPS. A full test of all features have yet to be done. [The following GitHub issue](https://github.com/MISP/MISP/issues/4084) details some shortcomings.
+- A valid support agreement allowing the system to register to the Red Hat Customer Portal and receive updates
+- The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
+- This system will have direct or proxy access to the Internet for updates. Or connected to a Red Hat Satellite Server
+- This document will bootstrap a MISP instance running over HTTPS. A full test of all features have yet to be done. [The following GitHub issue](https://github.com/MISP/MISP/issues/4084) details some shortcomings.
 
 {!generic/globalVariables.md!}
 
@@ -51,9 +53,9 @@ The following assumptions with regard to this installation have been made.
     /etc/sysconfig/network-scripts/ifcfg-*
     ```
 
-# 1/ OS Install and additional repositories
+### 1/ OS Install and additional repositories
 
-## 1.1/ Complete a minimal RHEL installation, configure IP address to connect automatically.
+## 1.1/ Complete a minimal RHEL/CentOS installation, configure IP address to connect automatically.
 
 ## 1.2/ Configure system hostname (if not done during install)
 ```bash
@@ -107,7 +109,7 @@ sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noa
 # 2/ Dependencies
 
 !!! warning
-    [PHP 5.6 will be EOL in December 2018](https://secure.php.net/supported-versions.php). Please update accordingly. In future only PHP7 will be supported.
+    [PHP 5.6 and 7.0 aren't supported since December 2018](https://secure.php.net/supported-versions.php). Please update accordingly. In the future only PHP7 will be supported.
 
 ## 2.01/ Install some base system dependencies
 ```bash
@@ -160,7 +162,7 @@ sudo systemctl enable --now haveged.service
 # <snippet-end 0_yumInstallHaveged.sh>
 ```
 
-# 3/ MISP code
+### 3/ MISP code
 ## 3.01/ Download MISP code using git in /var/www/ directory
 
 ```bash
@@ -181,11 +183,13 @@ cd $PATH_TO_MISP
 $SUDO_WWW git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
 $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+# Make git ignore filesystem permission differences
+$SUDO_WWW git config core.filemode false
 
 # Install packaged pears
-sudo pear channel-update pear.php.net
-sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
+sudo $RUN_PHP "pear channel-update pear.php.net"
+sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml"
+sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml"
 
 # Create a python3 virtualenv
 $SUDO_WWW virtualenv-3 -p python3 $PATH_TO_MISP/venv

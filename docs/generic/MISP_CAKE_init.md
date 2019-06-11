@@ -17,6 +17,10 @@ coreCAKE () {
   # The default install is Python >=3.6 in a virtualenv, setting accordingly
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
+  # Set default role
+  # TESTME: The following seem defunct, please test.
+  # $SUDO_WWW $RUN_PHP -- $CAKE setDefaultRole 3
+
   # Tune global time outs
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Session.autoRegenerate" 0
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Session.timeout" 600
@@ -129,10 +133,9 @@ coreCAKE () {
 updateGOWNT () {
   # AUTH_KEY Place holder in case we need to **curl** somehing in the future
   # 
-  # AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
-  # RHEL/CentOS
-  # AUTH_KEY=$(scl enable rh-mariadb102 "mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e 'SELECT authkey FROM users;' | tail -1")
-  #
+  $SUDO_WWW $RUN_MYSQL -- mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1 > /tmp/auth.key
+  AUTH_KEY=$(cat /tmp/auth.key)
+  rm /tmp/auth.key
 
   debug "Updating Galaxies, ObjectTemplates, Warninglists, Noticelists and Templates"
   # Update the galaxies…

@@ -213,6 +213,16 @@
                 'requirement' =>  ($isAclSync || $isAdmin || $hostOrgUser),
                 'children' => array(
                     array(
+                        'text' => __('Create Sync Config'),
+                        'url' => '/servers/createSync',
+                        'requirement' => ($isAclSync && !$isSiteAdmin)
+                    ),
+                    array(
+                        'text' => __('Import Server Settings'),
+                        'url' => '/servers/import',
+                        'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
                         'text' => __('List Servers'),
                         'url' => '/servers/index',
                         'requirement' => ($isAclSync || $isAdmin)

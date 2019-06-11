@@ -468,7 +468,10 @@ class AdminShell extends AppShell
         $logs = $this->Log->find('all', array(
             'conditions' => array(
                 'action' => 'update_database',
-                'title LIKE ' => 'Successfuly executed the SQL query for %'
+                'title LIKE ' => array(
+                    'Successfuly executed the SQL query for %',
+                    'Issues executing the SQL query for %'
+                )
             ),
             'order' => 'id DESC'
         ));

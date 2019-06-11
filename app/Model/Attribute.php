@@ -390,7 +390,7 @@ class Attribute extends AppModel
         'text' => array('txt', 'TextExport', 'txt'),
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json'),
-        'rpz' => array('rpz', 'RPZExport', 'rpz'),
+        'rpz' => array('txt', 'RPZExport', 'rpz'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'cache' => array('txt', 'CacheExport', 'cache')
     );
@@ -2218,9 +2218,8 @@ class Attribute extends AppModel
         }
         $tag = ClassRegistry::init('Tag');
         $params['tags'] = $this->dissectArgs($params['tags']);
-        $tagArray = $tag->fetchTagIds($params['tags'][0], $params['tags'][1]);
-        if (!empty($params['tags'][0]) && empty($tagArray[0]) && empty($params['lax_tags'])) {
-            $tagArray[0] = array(-1);
+        foreach (array(0, 1, 2) as $tag_operator) {
+            $tagArray[$tag_operator] = $tag->fetchTagIdsSimple($params['tags'][$tag_operator]);
         }
         $temp = array();
         if (!empty($tagArray[0])) {
@@ -2285,12 +2284,54 @@ class Attribute extends AppModel
                 $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field, 1));
             }
         }
+        $temp = array();
+        if (!empty($tagArray[2])) {
+            if ($tagArray[2][0] === -1) {
+                $conditions[] = array('Event.id' => -1);
+            } else {
+                foreach ($tagArray[2] as $k => $anded_tag) {
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $anded_tag
+                        ),
+                        'fields' => array(
+                            'event_id'
+                        )
+                    );
+                    $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
+                    $temp[$k]['OR'] = array();
+                    $temp[$k]['OR'] = array_merge(
+                        $temp[$k]['OR'],
+                        $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
+                    );
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $anded_tag
+                        ),
+                        'fields' => array(
+                            $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                        )
+                    );
+                    $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                    $temp[$k]['OR'] = array_merge(
+                        $temp[$k]['OR'],
+                        $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
+                    );
+                }
+            }
+        }
+        if (!empty($temp)) {
+            $conditions['AND'][] = array('AND' => $temp);
+        }
         $params['tags'] = array();
         if (!empty($tagArray[0]) && empty($options['pop'])) {
             $params['tags']['OR'] = $tagArray[0];
         }
         if (!empty($tagArray[1])) {
             $params['tags']['NOT'] = $tagArray[1];
+        }
+        if (!empty($tagArray[2]) && empty($options['pop'])) {
+            $params['tags']['AND'] = $tagArray[2];
         }
         if (empty($params['tags'])) {
             unset($params['tags']);
@@ -2603,18 +2644,21 @@ class Attribute extends AppModel
     public function dissectArgs($args)
     {
         if (empty($args)) {
-            return array(0 => array(), 1 => array());
+            return array(0 => array(), 1 => array(), 2 => array());
         }
         if (!is_array($args)) {
             $args = explode('&&', $args);
         }
-        $result = array(0 => array(), 1 => array());
+        $result = array(0 => array(), 1 => array(), 2 => array());
         if (isset($args['OR']) || isset($args['NOT']) || isset($args['AND'])) {
             if (!empty($args['OR'])) {
                 $result[0] = $args['OR'];
             }
             if (!empty($args['NOT'])) {
                 $result[1] = $args['NOT'];
+            }
+            if (!empty($args['AND'])) {
+                $result[2] = $args['AND'];
             }
         } else {
             foreach ($args as $arg) {
@@ -3016,6 +3060,11 @@ class Attribute extends AppModel
         }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
+        } else {
+            if ($options['deleted'] === "only") {
+                $options['deleted'] = 1;
+            }
+            $params['conditions']['AND']['(Attribute.deleted + 0)'] = $options['deleted'];
         }
         if (isset($options['group'])) {
             $params['group'] = empty($options['group']) ? $options['group'] : false;
@@ -3422,7 +3471,7 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp')
+    public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp', $returnRaw = false)
     {
         if (is_array($timestamp)) {
             $timestamp[0] = intval($this->Event->resolveTimeDelta($timestamp[0]));
@@ -3437,6 +3486,9 @@ class Attribute extends AppModel
         } else {
             $timestamp = intval($this->Event->resolveTimeDelta($timestamp));
             $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+        }
+        if ($returnRaw) {
+            return $timestamp;
         }
         return $conditions;
     }
@@ -3893,6 +3945,7 @@ class Attribute extends AppModel
                     'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_simple_attribute'),
+                    'object_relation' => array('function' => 'set_filter_simple_attribute'),
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
@@ -3906,6 +3959,7 @@ class Attribute extends AppModel
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'from' => array('function' => 'set_filter_timestamp'),
                     'to' => array('function' => 'set_filter_timestamp'),
+                    'date' => array('function' => 'set_filter_date'),
                     'tags' => array('function' => 'set_filter_tags'),
                     'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
@@ -3994,12 +4048,8 @@ class Attribute extends AppModel
         if (isset($filters['page'])) {
             $params['page'] = $filters['page'];
         }
-        if (!empty($filtes['deleted'])) {
-            $params['deleted'] = 1;
-            if ($params['deleted'] === 'only') {
-                $params['conditions']['AND'][] = array('Attribute.deleted' => 1);
-                $params['conditions']['AND'][] = array('Object.deleted' => 1);
-            }
+        if (!empty($filters['deleted'])) {
+            $params['deleted'] = $filters['deleted'];
         }
         if ($paramsOnly) {
             return $params;
@@ -4034,10 +4084,10 @@ class Attribute extends AppModel
         $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
         fwrite($tmpfile, $exportTool->footer($exportToolParams));
         fseek($tmpfile, 0);
-        if (fstat($tmpfile)['size'] === 0) {
-            $final = '{}';
-        } else {
+        if (fstat($tmpfile)['size']) {
             $final = fread($tmpfile, fstat($tmpfile)['size']);
+        } else {
+            $final = '';
         }
         fclose($tmpfile);
         return $final;

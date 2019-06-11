@@ -70,10 +70,11 @@
     </div>
     <h3><?php echo __('Submodules version');?>
         <it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Refresh submodules version.'); ?>"></it>
-        <it id="updateAllJson" class="fas fa-file-upload useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Load all JSON into the database.'); ?>"></it>
     </h3>
-    <div id="divSubmoduleVersions" style="background-color:#f7f7f9;">
-    </div>
+    <div id="divSubmoduleVersions" style="background-color:#f7f7f9;"></div>
+    <span id="updateAllJson" class="btn btn-inverse" title="<?php echo __('Load all JSON into the database.'); ?>">
+        <it class="fas fa-file-upload"></it> <?php echo __("Load JSON into database"); ?>
+    </span>
 
     <h3><?php echo __('Writeable Directories and files');?></h3>
     <p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
@@ -368,6 +369,7 @@
     </div><br />
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
     <?php echo $this->Form->postButton(__('Remove orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+    <?php echo $this->Form->postButton(__('Remove published empty events'), $baseurl . '/events/cullEmptyEvents', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
     <h3><?php echo __('Administrator On-demand Action');?></h3>
     <p><?php echo __('Click the following button to go to the Administrator On-demand Action page.');?></p>
     <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/servers/ondemandAction/';"><?php echo __('Administrator On-demand Action');?></span>

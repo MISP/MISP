@@ -159,6 +159,8 @@ class LogsController extends AppController
             'eventid' => $id,
             'includeAllTags' => 1,
             'sgReferenceOnly' => 1,
+            'deleted' => 1,
+            'deleted_proposals' => 1
         ));
         $conditions = array(
             'OR' => array(
@@ -341,7 +343,11 @@ class LogsController extends AppController
                     'conditions' => $conditions,
                     'order' => array('Log.id' => 'DESC')
                 );
-                $this->set('list', $this->paginate());
+                $list = $this->paginate();
+                if (empty($this->Auth->user('Role')['perm_site_admin'])) {
+                    $list = $this->Log->filterSiteAdminSensitiveLogs($list);
+                }
+                $this->set('list', $list);
 
                 // and store into session
                 $this->Session->write('paginate_conditions_log', $this->paginate);
@@ -392,7 +398,11 @@ class LogsController extends AppController
                 }
                 $conditions = $this->__buildSearchConditions($filters);
                 $this->paginate['conditions'] = $conditions;
-                $this->set('list', $this->paginate());
+                $list = $this->paginate();
+                if (empty($this->Auth->user('Role')['perm_site_admin'])) {
+                    $list = $this->Log->filterSiteAdminSensitiveLogs($list);
+                }
+                $this->set('list', $list);
 
                 // set the same view as the index page
                 $this->render('admin_index');

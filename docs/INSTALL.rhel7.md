@@ -10,14 +10,16 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 
     ```bash
     # Please check the installer options first to make the best choice for your install
-    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s
+    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    bash /tmp/INSTALL.sh
 
-    # This will install MISP Core and misp-modules (recommended)
-    curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+    # This will install MISP Core
+    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    bash /tmp/INSTALL.sh -c
     ```
     **The above does NOT work yet**
 
-## 0/ Overview and Assumptions
+### 0/ Overview and Assumptions
 
 {!generic/rhelVScentos.md!}
 
@@ -35,10 +37,10 @@ This is a joint RHEL/CentOS install guide. The authors tried to make it contextu
 
 The following assumptions with regard to this installation have been made.
 
-### 0.1/ A valid support agreement allowing the system to register to the Red Hat Customer Portal and receive updates
-### 0.2/ The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
-### 0.3/ This system will have direct or proxy access to the Internet for updates. Or connected to a Red Hat Satellite Server
-### 0.4/ This document will bootstrap a MISP instance running over HTTPS. A full test of all features have yet to be done. [The following GitHub issue](https://github.com/MISP/MISP/issues/4084) details some shortcomings.
+- A valid support agreement allowing the system to register to the Red Hat Customer Portal and receive updates
+- The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
+- This system will have direct or proxy access to the Internet for updates. Or connected to a Red Hat Satellite Server
+- This document will bootstrap a MISP instance running over HTTPS. A full test of all features have yet to be done. [The following GitHub issue](https://github.com/MISP/MISP/issues/4084) details some shortcomings.
 
 {!generic/globalVariables.md!}
 
@@ -55,7 +57,7 @@ The following assumptions with regard to this installation have been made.
     /etc/sysconfig/network-scripts/ifcfg-*
     ```
 
-# 1/ OS Install and additional repositories
+### 1/ OS Install and additional repositories
 
 ## 1.1/ Complete a minimal RHEL/CentOS installation, configure IP address to connect automatically.
 
@@ -84,27 +86,29 @@ sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
 ## 1.4c/ **[CentOS]** Enable EPEL for additional dependencies
 ```bash
 # <snippet-begin 0_CentOS_EPEL.sh>
-# We need some packages from the Extra Packages for Enterprise Linux repository
-sudo yum install epel-release -y
+centosEPEL () {
+  # We need some packages from the Extra Packages for Enterprise Linux repository
+  sudo yum install epel-release -y
 
-# Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
-# Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
-sudo yum install centos-release-scl -y
+  # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
+  # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
+  sudo yum install centos-release-scl -y
+}
 # <snippet-end 0_CentOS_EPEL.sh>
 ```
 
-### 1.5a/ Install the deltarpm package to help reduce download size when installing updates (optional)
+## 1.5a/ Install the deltarpm package to help reduce download size when installing updates (optional)
 ```bash
 sudo yum install deltarpm -y
 ```
 
-### 1.5.b/ Install vim (optional)
+## 1.5.b/ Install vim (optional)
 ```bash
 # Because (neo)vim is just so practical
 sudo yum install neovim -y
 ```
 
-### 1.5.c/ Install ntpdate (optional)
+## 1.5.c/ Install ntpdate (optional)
 ```bash
 # In case you time is wrong, this will fix it.
 sudo yum install ntpdate -y
@@ -125,7 +129,7 @@ sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noa
 # <snippet-end 0_RHEL_EPEL.sh>
 ```
 
-# 2/ Dependencies
+### 2/ Dependencies
 
 !!! note
     This guide installs PHP 7.2 from SCL
@@ -148,8 +152,8 @@ yumInstallCoreDeps () {
   # Enable and start redis
   sudo systemctl enable --now rh-redis32-redis.service
 
-  RUN_PHP='/usr/bin/scl enable rh-php72'
-  PHP_INI=/etc/opt/rh/rh-php72/php.ini
+  RUN_PHP="/usr/bin/scl enable rh-php72"
+  PHP_INI="/etc/opt/rh/rh-php72/php.ini"
   # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
   sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel \
                    rh-php72-php-mysqlnd \
@@ -181,7 +185,7 @@ sudo systemctl enable --now haveged.service
 # <snippet-end 0_yumInstallHaveged.sh>
 ```
 
-# 3/ MISP code
+### 3/ MISP code
 ## 3.01/ Download MISP code using git in /var/www/ directory
 
 ```bash
@@ -262,6 +266,15 @@ $SUDO_WWW scl enable devtoolset-7 rh-python36 "bash -c 'cmake3 \
 ..'"
 $SUDO_WWW make -j3 pyLIEF
 
+# In case you get "internal compiler error: Killed (program cc1plus)"
+# You ran out of memory.
+# Create some swap
+# sudo dd if=/dev/zero of=/var/swap.img bs=1024k count=4000
+# sudo mkswap /var/swap.img
+# sudo swapon /var/swap.img
+# And compile again
+# $SUDO_WWW make -j3 pyLIEF
+
 # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
 echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
 
@@ -288,7 +301,7 @@ sudo systemctl restart rh-php72-php-fpm.service
 # <snippet-end 1_mispCoreInstall_RHEL.sh>
 ```
 
-# 4/ CakePHP
+### 4/ CakePHP
 ## 4.01/ Install CakeResque along with its dependencies if you intend to use the built in background jobs
 
 !!! notice
@@ -339,7 +352,7 @@ installCake_RHEL ()
 # <snippet-begin 1_installCake_RHEL.sh>
 ```
 
-# 5/ Set file permissions
+### 5/ Set file permissions
 ```bash
 # <snippet-begin 2_permissions_RHEL.sh>
 # Main function to fix permissions to something sane
@@ -367,12 +380,13 @@ permissions_RHEL () {
 # <snippet-end 2_permissions_RHEL.sh>
 ```
 
-# 6/ Create database and user
+### 6/ Create database and user
 
 ## 6.01/ Set database to listen on localhost only
 ```bash
 # <snippet-begin 1_prepareDB_RHEL.sh>
 prepareDB_RHEL () {
+  RUN_MYSQL="/usr/bin/scl enable rh-mariadb102"
   # Enable, start and secure your mysql database server
   sudo systemctl enable --now rh-mariadb102-mariadb.service
   echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
@@ -417,7 +431,7 @@ EOF
   sudo systemctl restart rh-mariadb102-mariadb
 
   scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'CREATE DATABASE $DBNAME;'"
-  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBNAME@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
+  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
   scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';\""
   scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'"
 
@@ -426,7 +440,7 @@ EOF
 # <snippet-end 1_prepareDB_RHEL.sh>
 ```
 
-# 7/ Apache Configuration
+### 7/ Apache Configuration
 
 !!! notice
     SELinux note, to check if it is running:
@@ -517,10 +531,12 @@ firewall_RHEL () {
 # <snippet-end 1_firewall_RHEL.sh>
 ```
 
-# 8/ Log Rotation
+### 8/ Log Rotation
 ## 8.01/ Enable log rotation
 MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 To rotate these logs install the supplied logrotate script:
+
+FIXME: The below does not work
 
 ```bash
 # <snippet-begin 2_logRotation_RHEL.sh>
@@ -548,7 +564,7 @@ logRotation_RHEL () {
 # <snippet-end 2_logRotation_RHEL.sh>
 ```
 
-# 9/ MISP Configuration
+### 9/ MISP Configuration
 
 ```bash
 # <snippet-begin 2_configMISP_RHEL.sh>
@@ -655,7 +671,7 @@ fi
     Make sure that you use the same settings in the MISP Server Settings tool
 
 ## 9.06/ Use MISP's background workers
-### 9.06a/ Create a systemd unit for the workers
+## 9.06a/ Create a systemd unit for the workers
 ```bash
 echo "[Unit]
 Description=MISP background workers
@@ -679,12 +695,12 @@ sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
 sudo systemctl daemon-reload
 ```
 
-### 9.06b/ Start the workers and enable them on boot
+## 9.06b/ Start the workers and enable them on boot
 ```bash
 sudo systemctl enable --now misp-workers.service
 ```
 
-### 9.07/ misp-modules (WIP!)
+## 9.07/ misp-modules (WIP!)
 ```bash
 # some misp-modules dependencies
 sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel -y
@@ -707,7 +723,9 @@ After=misp-workers.service
 Type=simple
 User=apache
 Group=apache
-ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules –l 127.0.0.1 –s\"
+WorkingDirectory=/usr/local/src/misp-modules
+Environment="PATH=/var/www/MISP/venv/bin"
+ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"
 Restart=always
 RestartSec=10
 
@@ -768,12 +786,12 @@ sudo systemctl enable --now misp-modules
 
 {!generic/recommended.actions.md!}
 
-# 11/ LIEF Installation
+### 11/ LIEF Installation
 *lief* is required for the Advanced Attachment Handler and requires manual compilation
 
 The installation is explained in section **[3.01](https://misp.github.io/MISP/INSTALL.rhel7/#301-download-misp-code-using-git-in-varwww-directory)**
 
-# 12/ Known Issues
+### 12/ Known Issues
 ## 12.01/ Workers cannot be started or restarted from the web page
 Possible also due to package being installed via SCL, attempting to start workers through the web page will result in error. Worker's can be restarted via the CLI using the following command.
 ```bash
