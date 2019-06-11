@@ -2649,7 +2649,7 @@ class Server extends AppModel
                         'event_uuid' => $eventUuid,
                         'includeAttachments' => true,
                         'includeAllTags' => true,
-                        'deleted' => true,
+                        'deleted' => array(0,1),
                         'excludeGalaxy' => 1
                     ));
                     $event = $this->Event->fetchEvent($user, $params);
