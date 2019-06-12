@@ -3470,7 +3470,7 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp')
+    public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp', $returnRaw = false)
     {
         if (is_array($timestamp)) {
             $timestamp[0] = intval($this->Event->resolveTimeDelta($timestamp[0]));
@@ -3485,6 +3485,9 @@ class Attribute extends AppModel
         } else {
             $timestamp = intval($this->Event->resolveTimeDelta($timestamp));
             $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+        }
+        if ($returnRaw) {
+            return $timestamp;
         }
         return $conditions;
     }
@@ -4022,6 +4025,7 @@ class Attribute extends AppModel
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'from' => array('function' => 'set_filter_timestamp'),
                     'to' => array('function' => 'set_filter_timestamp'),
+                    'date' => array('function' => 'set_filter_date'),
                     'tags' => array('function' => 'set_filter_tags'),
                     'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
