@@ -1277,7 +1277,7 @@ class AttributesController extends AppController
         }
         if ($this->request->is('ajax')) {
             if ($this->request->is('post')) {
-                if ($this->Attribute->__delete($id, $this->Auth->user(), $hard)) {
+                if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')), 'status'=>200, 'type' => 'json'));
                 } else {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')), 'status'=>200, 'type' => 'json'));
@@ -1291,7 +1291,7 @@ class AttributesController extends AppController
             if (!$this->request->is('post') && !$this->_isRest()) {
                 throw new MethodNotAllowedException();
             }
-            if ($this->Attribute->__delete($id, $this->Auth->user(), $hard)) {
+            if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
                 if ($this->_isRest() || $this->response->type() === 'application/json') {
                     $this->set('message', 'Attribute deleted.');
                     $this->set('_serialize', array('message'));
@@ -1426,11 +1426,11 @@ class AttributesController extends AppController
         $successes = array();
         foreach ($attributes as $a) {
             if ($hard) {
-                if ($this->Attribute->__delete($a['Attribute']['id'], true)) {
+                if ($this->Attribute->deleteAttribute($a['Attribute']['id'], $this->Auth->user(), true)) {
                     $successes[] = $a['Attribute']['id'];
                 }
             } else {
-                if ($this->Attribute->__delete($a['Attribute']['id'], $a['Attribute']['deleted'] == 1 ? true : false)) {
+                if ($this->Attribute->deleteAttribute($a['Attribute']['id'], $this->Auth->user(), $a['Attribute']['deleted'] == 1 ? true : false)) {
                     $successes[] = $a['Attribute']['id'];
                 }
             }

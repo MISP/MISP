@@ -3908,7 +3908,7 @@ class Attribute extends AppModel
         return true;
     }
 
-    public function __delete($id, $user, $hard = false)
+    public function deleteAttribute($id, $user, $hard = false)
     {
         $this->id = $id;
         if (!$this->exists()) {

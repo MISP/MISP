@@ -860,7 +860,7 @@ class MispObject extends AppModel
                 }
                 $saved_object['Attribute'][$i] = $created_attribute;
                 $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object['Object']['id']);
-                $this->Attribute->__delete($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
+                $this->Attribute->deleteAttribute($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
             }
         }
         return $saved_object['Object']['id'];
