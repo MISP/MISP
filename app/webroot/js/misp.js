@@ -855,7 +855,6 @@ function multiSelectDeleteEventBlacklist(on, cache) {
             }
         }
     });
-    console.log(selected);
     $.get("/eventBlacklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
