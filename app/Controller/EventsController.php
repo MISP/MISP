@@ -4913,8 +4913,31 @@ class EventsController extends AppController
             throw new Exception("Invalid options.");
         }
 
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $matrixTags);
-        $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
+        $allowed_tags_attribute = $this->Event->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $eventId, false, true);
+        $allowed_tags_attribute = Hash::extract($allowed_tags_attribute, '{n}.name');
+        $event = $this->Event->fetchEvent($this->Auth->user(), $options = array('metadata' => false, 'eventid' => $eventId));
+        if (empty($event)) {
+            throw new MethodNotAllowedException(__('Invalid Event.'));
+        }
+        $event = $event[0];
+        $allowed_tags_event = Hash::extract($event, 'EventTag.{n}.Tag.name');
+        $whitelist_tags = array();
+        foreach ($allowed_tags_attribute as $tag) {
+            $whitelist_tags[$tag] = 1;
+        }
+        foreach ($allowed_tags_event as $tag) {
+            $whitelist_tags[$tag] = 1;
+        }
+
+        $allowed_matrix_tags = $matrixTags;
+        foreach ($allowed_matrix_tags as $k => $tag) {
+            if (!isset($whitelist_tags[$tag])) {
+                unset($allowed_matrix_tags[$k]);
+            }
+        }
+
+        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $allowed_matrix_tags);
+        $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $allowed_matrix_tags);
         $maxScore = 0;
         $scoresData = array();
         foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {

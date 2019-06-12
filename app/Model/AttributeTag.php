@@ -140,7 +140,7 @@ class AttributeTag extends AppModel
 
 
     // find all tags that belong to a list of attributes (contained in the same event)
-    public function getAttributesTags($user, $requestedEventId, $attributeIds=false) {
+    public function getAttributesTags($user, $requestedEventId, $attributeIds=false, $includeGalaxies=false) {
         $conditions = array('Attribute.event_id' => $requestedEventId);
         if (is_array($attributeIds) && $attributeIds !== false) {
             $conditions['Attribute.id'] = $attributeIds;
@@ -160,12 +160,11 @@ class AttributeTag extends AppModel
                 'recursive' => -1,
                 'fields' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id'),
         ));
-
         $allTags = array();
         foreach ($attributes as $attribute) {
             $attributeTags = $attribute['AttributeTag'];
             foreach ($attributeTags as $k => $attributeTag) {
-                if (!isset($cluster_names[$attributeTag['Tag']['name']])) {
+                if ($includeGalaxies || !isset($cluster_names[$attributeTag['Tag']['name']])) {
                     $allTags[$attributeTag['Tag']['id']] = $attributeTag['Tag'];
                 }
             }
