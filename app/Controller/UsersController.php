@@ -2015,12 +2015,13 @@ class UsersController extends AppController
                                 'conditions' => array('GalaxyCluster.tag_name LIKE' => 'misp-galaxy:mitre-attack-pattern=' . $name . '% T%'),
                                 'fields' => array('GalaxyCluster.tag_name')
                             ));
-                            $adjustedTagName = array_values($adjustedTagName)[0];
-                            $mappingWithoutExternalId[$name] = $adjustedTagName;
-                            $mappedTag = $mappingWithoutExternalId[$name];
+                            if (!empty($adjustedTagName)) {
+                                $adjustedTagName = array_values($adjustedTagName)[0];
+                                $mappingWithoutExternalId[$name] = $adjustedTagName;
+                                $mappedTag = $mappingWithoutExternalId[$name];
+                            }
                         }
                     }
-
                     if (isset($mergedScore[$mappedTag])) {
                         $mergedScore[$mappedTag] += $v;
                     } else {
