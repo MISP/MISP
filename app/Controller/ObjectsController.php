@@ -1016,17 +1016,18 @@ class ObjectsController extends AppController
 
     function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')
     {
+        $event = $this->MispObject->Event->find('first', array(
+            'recursive' => -1,
+            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.publish_timestamp'),
+            'conditions' => array('Event.id' => $event_id)
+        ));
+        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $hard_delete_attribute = $event['Event']['publish_timestamp'] == 0;
         if ($this->request->is('post')) {
             if (!$this->request->is('ajax')) {
                 throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
-            }
-            $event = $this->MispObject->Event->find('first', array(
-                'recursive' => -1,
-                'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
-                'conditions' => array('Event.id' => $event_id)
-            ));
-            if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
-                throw new NotFoundException(__('Invalid event.'));
             }
             $template = $this->MispObject->ObjectTemplate->find('first', array(
                 'recursive' => -1,
@@ -1061,7 +1062,7 @@ class ObjectsController extends AppController
                 ),
                 'Attribute' => array()
             );
-            $result = $this->MispObject->groupAttributesIntoObject($this->Auth->user(), $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping);
+            $result = $this->MispObject->groupAttributesIntoObject($this->Auth->user(), $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping, $hard_delete_attribute);
             if (is_numeric($result)) {
                 $this->MispObject->Event->unpublishEvent($event_id);
                 return $this->RestResponse->saveSuccessResponse('Objects', 'Created from Attributes', $result, $this->response->type());
@@ -1122,6 +1123,7 @@ class ObjectsController extends AppController
 
             $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
             $this->set('event_id', $event_id);
+            $this->set('hard_delete_attribute', $hard_delete_attribute);
             $this->set('distributionData', $distributionData);
             $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
             $this->set('selectedTemplateTd', $selected_template);

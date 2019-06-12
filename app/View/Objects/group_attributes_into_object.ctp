@@ -125,7 +125,9 @@ echo $this->Form->create('Object', array('url' => $baseurl . '/objects/groupAttr
     <div>
         <button class="btn btn-primary" onclick="submitMergeAttributeIntoObjectForm(this);"><?php echo __('Merge above Attributes into an Object'); ?></button>
     </div>
-    <span class="red bold" data-original-title="" title=""><?php echo __('Selected Attributes will be soft-deleted') ?></span>
+    <span class="red bold" data-original-title="" title="">
+        <?php echo sprintf(__('Selected Attributes will be %s deleted'), '<strong style="font-size: medium">' . ($hard_delete_attribute ? __('hard') : __('soft')) . '</strong>'); ?>
+    </span>
 </div>
 
 <script>

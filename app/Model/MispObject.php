@@ -819,7 +819,7 @@ class MispObject extends AppModel
         return array('templates' => $templates, 'types' => $attribute_types);
     }
 
-    public function groupAttributesIntoObject($user, $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping)
+    public function groupAttributesIntoObject($user, $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping, $hard_delete_attribute)
     {
         $saved_object_id = $this->saveObject($object, $event_id, $template, $user);
 
@@ -862,7 +862,7 @@ class MispObject extends AppModel
                 }
                 $saved_object['Attribute'][$i] = $created_attribute;
                 $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object['Object']['id']);
-                $this->Attribute->__delete($existing_attribute['Attribute']['id'], $user);
+                $this->Attribute->__delete($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
             }
         }
         return $saved_object['Object']['id'];
