@@ -992,6 +992,9 @@ class ObjectsController extends AppController
 
     function proposeObjectsFromAttributes($event_id, $selected_attributes='[]')
     {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
+        }
         $selected_attributes = json_decode($selected_attributes, true);
         $res = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $event_id, $selected_attributes);
         $potential_templates = $res['templates'];
@@ -1025,10 +1028,10 @@ class ObjectsController extends AppController
             throw new NotFoundException(__('Invalid event.'));
         }
         $hard_delete_attribute = $event['Event']['publish_timestamp'] == 0;
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
+        }
         if ($this->request->is('post')) {
-            if (!$this->request->is('ajax')) {
-                throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
-            }
             $template = $this->MispObject->ObjectTemplate->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('ObjectTemplate.id' => $selected_template, 'ObjectTemplate.active' => true)

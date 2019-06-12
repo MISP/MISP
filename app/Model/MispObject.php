@@ -728,12 +728,12 @@ class MispObject extends AppModel
 
     public function validObjectsFromAttributeTypes($user, $event_id, $selected_attribute_ids)
     {
-        $attributes = $this->Attribute->fetchAttributesSimple($user,
+        $attributes = $this->Attribute->fetchAttributes($user,
             array(
                 'conditions' => array(
-                    'id' => $selected_attribute_ids,
-                    'event_id' => $event_id,
-                    'object_id' => 0
+                    'Attribute.id' => $selected_attribute_ids,
+                    'Attribute.event_id' => $event_id,
+                    'Attribute.object_id' => 0
                 ),
             )
         );
