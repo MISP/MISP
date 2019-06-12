@@ -75,6 +75,7 @@ class ACLComponent extends Component
                     'delete' => array(),
                     'edit' => array(),
                     'index' => array(),
+                    'massDelete' => array()
             ),
             'eventDelegations' => array(
                     'acceptDelegation' => array('perm_add'),
