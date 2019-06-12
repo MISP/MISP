@@ -4913,6 +4913,11 @@ class EventsController extends AppController
             throw new Exception("Invalid options.");
         }
 
+        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true));
+        if (empty($event)) {
+            throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
+        }
+
         $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($this->Auth->user(), $eventId, $matrixTags);
         $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
         $maxScore = 0;
