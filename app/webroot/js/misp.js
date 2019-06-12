@@ -913,6 +913,11 @@ function addSelectedTaxonomies(taxonomy) {
     });
 }
 
+function proposeObjectsFromSelectedAttributes(clicked, event_id) {
+    var selectedAttributeIds = getSelected();
+    popoverPopup(clicked, event_id + '/' + selectedAttributeIds, 'objects', 'proposeObjectsFromAttributes');
+}
+
 function hideSelectedTags(taxonomy) {
 	$.get("/taxonomies/taxonomyMassHide/"+taxonomy, function(data) {
 		$("#confirmation_box").html(data);
