@@ -3916,10 +3916,8 @@ class Attribute extends AppModel
         }
         $result = $this->find('first', array(
             'conditions' => array('Attribute.id' => $id),
-            'fields' => array('Attribute.*'),
-            'contain' => array('Event' => array(
-                'fields' => array('Event.*')
-            )),
+            'recursive' => -1,
+            'contain' => array('Event')
         ));
         if (empty($result)) {
             throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
