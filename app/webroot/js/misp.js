@@ -1461,20 +1461,23 @@ function templateElementFileCategoryChange(category) {
     }
 }
 
-function openPopup(id) {
-    var window_height = $(window).height();
-    var popup_height = $(id).height();
-    if (window_height < popup_height) {
-        $(id).css("top", 50);
-        $(id).css("height", window_height);
-        $(id).addClass('vertical-scroll');
-    } else {
-        if (window_height > (300 + popup_height)) {
-            var top_offset = ((window_height - popup_height) / 2) - 150;
+function openPopup(id, adjust_layout) {
+    adjust_layout = adjust_layout === undefined ? true : adjust_layout;
+    if (adjust_layout) {
+        var window_height = $(window).height();
+        var popup_height = $(id).height();
+        if (window_height < popup_height) {
+            $(id).css("top", 50);
+            $(id).css("height", window_height);
+            $(id).addClass('vertical-scroll');
         } else {
-            var top_offset = (window_height - popup_height) / 2;
+            if (window_height > (300 + popup_height)) {
+                var top_offset = ((window_height - popup_height) / 2) - 150;
+            } else {
+                var top_offset = (window_height - popup_height) / 2;
+            }
+            $(id).css("top", top_offset + 'px');
         }
-        $(id).css("top", top_offset + 'px');
     }
     $("#gray_out").fadeIn();
     $(id).fadeIn();
@@ -1560,7 +1563,7 @@ function openPopover(clicked, data, hover, placement) {
 
 function getMatrixPopup(scope, scope_id, galaxy_id) {
     cancelPopoverForm();
-    getPopup(scope_id + '/' + galaxy_id + '/' + scope, 'events', 'viewGalaxyMatrix', '', '#popover_form_large');
+    getPopup(scope_id + '/' + galaxy_id + '/' + scope, 'events', 'viewGalaxyMatrix', '', '#popover_matrix');
 }
 
 function getPopup(id, context, target, admin, popupType) {
@@ -1583,7 +1586,7 @@ function getPopup(id, context, target, admin, popupType) {
         success:function (data, textStatus) {
             $(".loading").hide();
             $(popupType).html(data);
-            openPopup(popupType);
+            openPopup(popupType, false);
         },
         error:function() {
             $(".loading").hide();
@@ -3707,6 +3710,7 @@ $(document).keyup(function(e){
     $("#gray_out").fadeOut();
         $("#popover_form").fadeOut();
         $("#popover_form_large").fadeOut();
+        $("#popover_matrix").fadeOut();
         $("#screenshot_box").fadeOut();
         $("#popover_box").fadeOut();
         $("#confirmation_box").fadeOut();

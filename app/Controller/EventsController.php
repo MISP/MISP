@@ -4913,7 +4913,12 @@ class EventsController extends AppController
             throw new Exception("Invalid options.");
         }
 
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $matrixTags);
+        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true));
+        if (empty($event)) {
+            throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
+        }
+
+        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($this->Auth->user(), $eventId, $matrixTags);
         $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
         $maxScore = 0;
         $scoresData = array();
@@ -4967,6 +4972,7 @@ class EventsController extends AppController
         }
         // end FIXME
 
+        $this->Galaxy->sortMatrixByScore($tabs, $scores);
         if ($this->_isRest()) {
             $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
             $this->response->type('json');

@@ -392,8 +392,7 @@ class Attribute extends AppModel
         'yara-json' => array('json', 'YaraExport', 'json'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'csv' => array('csv', 'CsvExport', 'csv'),
-        'cache' => array('txt', 'CacheExport', 'cache'),
-        'attack' => array('html', 'AttackExport', 'html')
+        'cache' => array('txt', 'CacheExport', 'cache')
     );
 
     // FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
@@ -3168,8 +3167,10 @@ class Attribute extends AppModel
                 }
                 if (!empty($results[$key])) {
                     if (!empty($options['includeGalaxy'])) {
-                        $results[$key] = $this->Event->massageTags($results[$key], 'Attribute');
-                        $results[$key] = $this->Event->massageTags($results[$key], 'Event');
+                        $massaged_attribute = $this->Event->massageTags($results[$key], 'Attribute');
+                        $massaged_event = $this->Event->massageTags($results[$key], 'Event');
+                        $massaged_attribute['Galaxy'] = array_merge_recursive($massaged_attribute['Galaxy'], $massaged_event['Galaxy']);
+                        $results[$key] = $massaged_attribute;
                     }
                     $attributes[] = $results[$key];
                 }
