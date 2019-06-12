@@ -72,13 +72,13 @@ echo " - Change DELETE FROM to > 0 in misp-wipe.sql to also remove default ones"
 echo " - Defaults are created on first login"
 MySQLRUser=${MySQLRUser:-$MySQLUUser}
 MySQLRPass=${MySQLRPass:-$MySQLUPass}
-mysql -u $MySQLRUser -p$MySQLRPass $MISPDB < $SQL
+mysql --host $MISPDBHost -u $MySQLRUser -p$MySQLRPass $MISPDB < $SQL
 
 echo "Inserting default values to MySQL tables"
 TMP=/tmp/misp-wipe-$$.sql
 cd $MISPPath
 sed -n '/Default values for initial installation/ { s///; :a; n; p; ba; }' INSTALL/MYSQL.sql | egrep -v '(admin_settings|db_version)' > $TMP
-mysql -u $MySQLRUser -p$MySQLRPass $MISPDB < $TMP
+mysql --host $MISPDBHost -u $MySQLRUser -p$MySQLRPass $MISPDB < $TMP
 rm -f $TMP
 
 echo "Wiping files"
