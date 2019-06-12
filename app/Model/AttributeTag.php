@@ -111,29 +111,51 @@ class AttributeTag extends AppModel
         ));
     }
 
-    public function getTagScores($eventId=0, $allowedTags=array())
+    // Fetch all tags attached to attribute belonging to supplied event. No ACL if user not provided
+    public function getTagScores($user=false, $eventId=0, $allowedTags=array())
     {
-        $conditions = array('Tag.id !=' => null);
-        if ($eventId != 0) {
-            $conditions['event_id'] = $eventId;
-        }
-        $attribute_tag_scores = $this->find('all', array(
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'contain' => array(
-                'Tag' => array(
-                    'conditions' => array('name' => $allowedTags)
-                )
-            ),
-            'fields' => array('Tag.name', 'AttributeTag.event_id')
-        ));
-        $scores = array('scores' => array(), 'maxScore' => 0);
-        foreach ($attribute_tag_scores as $attribute_tag_score) {
-            if (!isset($scores['scores'][$attribute_tag_score['Tag']['name']])) {
-                $scores['scores'][$attribute_tag_score['Tag']['name']] = 0;
+        if ($user === false) {
+            $conditions = array('Tag.id !=' => null);
+            if ($eventId != 0) {
+                $conditions['event_id'] = $eventId;
             }
-            $scores['scores'][$attribute_tag_score['Tag']['name']]++;
-            $scores['maxScore'] = $scores['scores'][$attribute_tag_score['Tag']['name']] > $scores['maxScore'] ? $scores['scores'][$attribute_tag_score['Tag']['name']] : $scores['maxScore'];
+            $attribute_tag_scores = $this->find('all', array(
+                'recursive' => -1,
+                'conditions' => $conditions,
+                'contain' => array(
+                    'Tag' => array(
+                        'conditions' => array('name' => $allowedTags)
+                    )
+                ),
+                'fields' => array('Tag.name', 'AttributeTag.event_id')
+            ));
+            $scores = array('scores' => array(), 'maxScore' => 0);
+            foreach ($attribute_tag_scores as $attribute_tag_score) {
+                $tag_name = $attribute_tag_score['Tag']['name'];
+                if (!isset($scores['scores'][$tag_name])) {
+                    $scores['scores'][$tag_name] = 0;
+                }
+                $scores['scores'][$tag_name]++;
+                $scores['maxScore'] = $scores['scores'][$tag_name] > $scores['maxScore'] ? $scores['scores'][$tag_name] : $scores['maxScore'];
+            }
+        } else {
+            $allowed_tag_lookup_table = array_flip($allowedTags);
+            $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array(
+                'Attribute.event_id' => $eventId
+            )));
+            $scores = array('scores' => array(), 'maxScore' => 0);
+            foreach ($attributes as $attribute) {
+                foreach ($attribute['AttributeTag'] as $tag) {
+                    $tag_name = $tag['Tag']['name'];
+                    if (isset($allowed_tag_lookup_table[$tag_name])) {
+                        if (!isset($scores['scores'][$tag_name])) {
+                            $scores['scores'][$tag_name] = 0;
+                        }
+                        $scores['scores'][$tag_name]++;
+                        $scores['maxScore'] = $scores['scores'][$tag_name] > $scores['maxScore'] ? $scores['scores'][$tag_name] : $scores['maxScore'];
+                    }
+                }
+            }
         }
         return $scores;
     }
