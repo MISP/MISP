@@ -1158,8 +1158,6 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   cd $PATH_TO_MISP/app/files/scripts/python-maec
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
-  # install STIX 1.X extension to support additional data markings
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install stix_edh
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
@@ -1271,7 +1269,8 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
   # Set default role
-  $SUDO_WWW $RUN_PHP -- $CAKE setDefaultRole 3
+  # TESTME: The following seem defunct, please test.
+  # $SUDO_WWW $RUN_PHP -- $CAKE setDefaultRole 3
 
   # Tune global time outs
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Session.autoRegenerate" 0
