@@ -16,8 +16,30 @@
         ?>
         </ul>
     </div>
+    <div>
+    <?php
+        $data = array(
+            'children' => array(
+                array(
+                    'children' => array(
+                        array(
+                            'class' => 'hidden mass-select',
+                            'text' => __('Delete selected'),
+                            'onClick' => "multiSelectDeleteEventBlacklist",
+                            'onClickParams' => array('1', '0')
+                        )
+                    )
+                )
+            )
+        );
+        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+    ?>
+    </div>
     <table class="table table-striped table-hover table-condensed">
     <tr>
+            <th>
+                <input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onClick="toggleAllCheckboxes();" />&nbsp;
+            </th>
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo $this->Paginator->sort('org');?></th>
             <th><?php echo $this->Paginator->sort('event_uuid', __('Event UUID'));?></th>
@@ -28,6 +50,9 @@
     </tr><?php
 foreach ($response as $item): ?>
     <tr>
+        <td style="width:10px;">
+            <input class="select" type="checkbox" data-id="<?php echo h($item['EventBlacklist']['id']); ?>" aria-label="select <?php echo h($item['EventBlacklist']['id'])?>" />
+        </td>
         <td class="short"><?php echo h($item['EventBlacklist']['id']); ?>&nbsp;</td>
         <td class="short"><?php echo (isset($item['EventBlacklist']['event_orgc']) ? h($item['EventBlacklist']['event_orgc']) : '&nbsp;'); ?></td>
         <td class="short"><?php echo h($item['EventBlacklist']['event_uuid']); ?>&nbsp;</td>
@@ -59,6 +84,14 @@ endforeach; ?>
     </div>
 
 </div>
+<script type="text/javascript">
+    $(document).ready(function(){
+        popoverStartup();
+        $('.select').on('change', function() {
+            listCheckboxesChecked();
+        });
+    });
+</script>
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlacklists'));
 ?>

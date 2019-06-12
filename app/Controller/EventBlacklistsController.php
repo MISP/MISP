@@ -51,4 +51,39 @@ class EventBlacklistsController extends AppController
     {
         $this->BlackList->delete($this->_isRest(), $id);
     }
+
+    public function massDelete()
+    {
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $ids = $this->request->data['EventBlacklist']['ids'];
+            $event_ids = json_decode($ids, true);
+            if (empty($event_ids)) {
+                throw new NotFoundException(__('Invalid event IDs.'));
+            }
+            $result = $this->EventBlacklist->deleteAll(array('EventBlacklist.id' => $event_ids));
+            if ($result) {
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('EventBlacklist', 'Deleted', $ids, $this->response->type());
+                } else {
+                    $this->Flash->success('Event deleted.');
+                    $this->redirect(array('controller' => 'eventBlacklists', 'action' => 'index'));
+                }
+            } else {
+                $error = __('Failed to delete Event from EventBlacklist. Error: ') . PHP_EOL . h($result);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('EventBlacklist', 'Deleted', false, $error, $this->response->type());
+                } else {
+                    $this->Flash->error($error);
+                    $this->redirect(array('controller' => 'eventBlacklists', 'action' => 'index'));
+                }
+            }
+        } else {
+            $ids = json_decode($this->request->query('ids'), true);
+            if (empty($ids)) {
+                throw new NotFoundException(__('Invalid event IDs.'));
+
+            }
+            $this->set('event_ids', $ids);
+        }
+    }
 }

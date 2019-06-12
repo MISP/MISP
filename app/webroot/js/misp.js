@@ -845,6 +845,23 @@ function multiSelectToggleFeeds(on, cache) {
     });
 }
 
+function multiSelectDeleteEventBlacklist(on, cache) {
+    var selected = [];
+    $(".select").each(function() {
+        if ($(this).is(":checked")) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    });
+    console.log(selected);
+    $.get("/eventBlacklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
+        $("#confirmation_box").html(data);
+        openPopup("#confirmation_box");
+    });
+}
+
 function multiSelectAction(event, context) {
     var settings = {
             deleteAttributes: {
