@@ -24,11 +24,17 @@
                     'children' => array(
                         array(
                             'class' => 'hidden mass-select',
-                            'text' => __('Delete selected'),
+                            'fa-icon' => 'trash',
                             'onClick' => "multiSelectDeleteEventBlacklist",
                             'onClickParams' => array('1', '0')
                         )
                     )
+                ),
+                array(
+                    'type' => 'search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
+                    'data' => '',
                 )
             )
         );
@@ -89,6 +95,17 @@ endforeach; ?>
         popoverStartup();
         $('.select').on('change', function() {
             listCheckboxesChecked();
+        });
+        $('.select').on('change', function() {
+            listCheckboxesChecked();
+        });
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter();
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter();
+            }
         });
     });
 </script>
