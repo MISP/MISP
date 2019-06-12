@@ -1,4 +1,4 @@
-<div style="max-width: 1000px; max-height: 800px; overflow-y: auto;">
+<div style="max-width: 1000px; max-height: 800px; overflow-y: auto; min-height: 400px; min-width: 700px;">
     <div>
         <?php echo !empty($selected_types) ? '<strong>' . __('Selected types: ') . '</strong>' : ''; ?>
         <?php foreach ($selected_types as $type): ?>
