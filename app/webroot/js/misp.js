@@ -3647,7 +3647,7 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var scope = additionalData['target_type'];
     fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope, function(formData) {
         $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #GalaxyTargetIds').val(JSON.stringify(selected_tag_ids));
+        $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
         if (target_id == 'selected') {
             $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
         }
