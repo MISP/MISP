@@ -1158,6 +1158,8 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   cd $PATH_TO_MISP/app/files/scripts/python-maec
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  # install STIX 1.X extension to support additional data markings
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install stix_edh
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
