@@ -450,7 +450,7 @@ class GalaxyClustersController extends AppController
         }
 
         $maxScore = count($scores) > 0 ? max(array_values($scores)) : 0;
-        $matrixData = $this->GalaxyCluster->Galaxy->getMatrix($mitreAttackGalaxyId);
+        $matrixData = $this->GalaxyCluster->Galaxy->getMatrix($mitreAttackGalaxyId, $scores);
         $tabs = $matrixData['tabs'];
         $matrixTags = $matrixData['matrixTags'];
         $killChainOrders = $matrixData['killChain'];

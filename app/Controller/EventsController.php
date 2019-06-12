@@ -1191,7 +1191,11 @@ class EventsController extends AppController
             $cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
             $this->set('cortex_modules', $cortex_modules);
         }
-        $this->set('deleted', isset($filters['deleted']) ? ($filters['deleted'] == 2 ? 0 : 1) : 0);
+        $deleted = 0;
+        if (isset($filters['deleted'])) {
+            $deleted = $filters['deleted'] == 2 ? array(0, 1) : $filters['deleted'];
+        }
+        $this->set('deleted', $deleted);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
@@ -1394,7 +1398,6 @@ class EventsController extends AppController
         $sightingsData = $this->Event->getSightingData($event);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, false, $sightingsData);
-
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
         $dataForView = array(
@@ -1462,7 +1465,13 @@ class EventsController extends AppController
         $attributeUri = '/events/viewEventAttributes/' . $event['Event']['id'];
         foreach ($this->params->named as $k => $v) {
             if (!is_numeric($k)) {
-                $attributeUri .= '/' . $v;
+                if (is_array($v)) {
+                    foreach ($v as $value) {
+                        $attributeUri .= sprintf('/%s[]:%s', $k, $value);
+                    }
+                } else {
+                    $attributeUri .= sprintf('/%s:%s', $k, $v);
+                }
             }
         }
         $orgTable = $this->Event->Orgc->find('list', array(
@@ -1509,7 +1518,12 @@ class EventsController extends AppController
             $conditions['includeAttachments'] = true;
         }
         if (isset($this->params['named']['deleted'])) {
-            $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? 0 : [0, 1];
+            // workaround for old instances trying to pull events with both deleted / non deleted data
+            if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $this->params['named']['deleted'] == 1) {
+                $conditions['deleted'] = array(0,1);
+            } else {
+                $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? array(0,1) : $this->params['named']['deleted'];
+            }
         }
         if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
             $conditions['to_ids'] = $this->params['named']['toIDS'] == 2 ? 0 : 1;
@@ -4899,7 +4913,12 @@ class EventsController extends AppController
             throw new Exception("Invalid options.");
         }
 
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $matrixTags);
+        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true));
+        if (empty($event)) {
+            throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
+        }
+
+        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($this->Auth->user(), $eventId, $matrixTags);
         $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
         $maxScore = 0;
         $scoresData = array();
@@ -4953,6 +4972,7 @@ class EventsController extends AppController
         }
         // end FIXME
 
+        $this->Galaxy->sortMatrixByScore($tabs, $scores);
         if ($this->_isRest()) {
             $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
             $this->response->type('json');
@@ -5677,7 +5697,7 @@ class EventsController extends AppController
             $this->layout = false;
             $this->render('/Events/ajax/event_lock');
         } else {
-            return $this->RestResponse->viewData('', $this->response->type());
+            return $this->RestResponse->viewData('', $this->response->type(), false, true);
         }
     }
 
@@ -5859,6 +5879,36 @@ class EventsController extends AppController
                 }
             }
             $this->redirect('/events/view/' . $eventId);
+        }
+    }
+
+    public function cullEmptyEvents()
+    {
+        $eventIds = $this->Event->find('list', array(
+            'conditions' => array('Event.published' => 1),
+            'fields' => array('Event.id', 'Event.uuid'),
+            'recursive' => -1
+        ));
+        $count = 0;
+        $this->Event->skipBlacklist = true;
+        foreach ($eventIds as $eventId => $eventUuid) {
+            $result = $this->Event->Attribute->find('first', array(
+                'conditions' => array('Attribute.event_id' => $eventId),
+                'recursive' => -1,
+                'fields' => array('Attribute.id', 'Attribute.event_id')
+            ));
+            if (empty($result)) {
+                $this->Event->delete($eventId);
+                $count++;
+            }
+        }
+        $this->Event->skipBlacklist = null;
+        $message = __('%s event(s) deleted.', $count);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($message, $this->response->type());
+        } else {
+            $this->Flash->success($message);
+            $this->redirect($this->referer());
         }
     }
 }

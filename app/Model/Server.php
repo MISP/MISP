@@ -812,6 +812,15 @@ class Server extends AppModel
                                 'type' => 'string',
                                 'null' => false,
                         ),
+                        'org_alert_threshold' => array(
+                                'level' => 1,
+                                'description' => __('Set a value to limit the number of email alerts that events can generate per creator organisation (for example, if an organisation pushes out 2000 events in one shot, only alert on the first 20).'),
+                                'value' => 0,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => true,
+                        ),
                         'block_old_event_alert' => array(
                                 'level' => 1,
                                 'description' => __('Enable this setting to start blocking alert e-mails for old events. The exact timing of what constitutes an old event is defined by MISP.block_old_event_alert_age.'),
@@ -2193,6 +2202,31 @@ class Server extends AppModel
         return $event;
     }
 
+    private function __checkIfEventSaveAble($event) {
+        if (!empty($event['Event']['Attribute'])) {
+            foreach ($event['Event']['Attribute'] as $attribute) {
+                if (empty($attribute['deleted'])) {
+                    return true;
+                }
+            }
+        }
+        if (!empty($event['Event']['Object'])) {
+            foreach ($event['Event']['Object'] as $object) {
+                if (!empty($object['deleted'])) {
+                    continue;
+                }
+                if (!empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $attribute) {
+                        if (empty($attribute['deleted'])) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId)
     {
         // check if the event already exist (using the uuid)
@@ -2234,7 +2268,11 @@ class Server extends AppModel
                 return false;
             }
             $event = $this->__updatePulledEventBeforeInsert($event, $server, $user);
-            $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+            if (!$this->__checkIfEventSaveAble($event)) {
+                $fails[$eventId] = __('Empty event detected.');
+            } else {
+                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+            }
         } else {
             // error
             $fails[$eventId] = __('failed downloading the event');
@@ -2611,7 +2649,7 @@ class Server extends AppModel
                         'event_uuid' => $eventUuid,
                         'includeAttachments' => true,
                         'includeAllTags' => true,
-                        'deleted' => true,
+                        'deleted' => array(0,1),
                         'excludeGalaxy' => 1
                     ));
                     $event = $this->Event->fetchEvent($user, $params);

@@ -479,7 +479,7 @@ class Event extends AppModel
     public function beforeDelete($cascade = true)
     {
         // blacklist the event UUID if the feature is enabled
-        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+        if (Configure::read('MISP.enableEventBlacklisting') !== false && empty($this->skipBlacklist)) {
             $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
             $this->EventBlacklist->create();
             $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $this->data['Event']['orgc_id']), 'recursive' => -1, 'fields' => array('Orgc.name')));
@@ -1367,7 +1367,7 @@ class Event extends AppModel
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
-        $uri = $url . '/events/view/' . $eventId . '/deleted:1/excludeGalaxy:1';
+        $uri = $url . '/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1';
         $response = $HttpSocket->get($uri, $data = '', $request);
         if ($response->isOk()) {
             return json_decode($response->body, true);
@@ -1590,6 +1590,7 @@ class Event extends AppModel
                     'tags' => array('function' => 'set_filter_tags'),
                     'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'date' => array('function' => 'set_filter_date', 'pop' => true),
                     'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
@@ -2637,6 +2638,18 @@ class Event extends AppModel
         return $conditions;
     }
 
+    public function set_filter_date(&$params, $conditions, $options)
+    {
+        $timestamp = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, 'Event.date', true);
+        if (!is_array($timestamp)) {
+            $conditions['AND']['Event.date >='] = date('Y-m-d', $timestamp);
+        } else {
+            $conditions['AND']['Event.date >='] = date('Y-m-d', $timestamp[0]);
+            $conditions['AND']['Event.date <='] = date('Y-m-d', $timestamp[1]);
+        }
+        return $conditions;
+    }
+
     public function csv($user, $params, $search = false, &$continue = true)
     {
         $conditions = array();
@@ -2845,6 +2858,15 @@ class Event extends AppModel
     public function sendAlertEmail($id, $senderUser, $oldpublish = null, $processId = null)
     {
         $event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
+        $this->NotificationLog = ClassRegistry::init('NotificationLog');
+        if (!$this->NotificationLog->check($event[0]['Event']['orgc_id'], 'publish')) {
+            if ($processId) {
+                $this->Job->id = $processId;
+                $this->Job->saveField('progress', 100);
+                $this->Job->saveField('message', 'Mails blocked by org alert threshold.');
+            }
+            return true;
+        }
         if (empty($event)) {
             throw new MethodNotFoundException('Invalid Event.');
         }
@@ -3996,7 +4018,7 @@ class Event extends AppModel
                     'eventid' => $id,
                     'includeAttachments' => true,
                     'includeAllTags' => true,
-                    'deleted' => true,
+                    'deleted' => array(0,1),
                     'excludeGalaxy' => 1
                 ));
                 $event = $this->fetchEvent($elevatedUser, $params);
@@ -4615,15 +4637,6 @@ class Event extends AppModel
                 $include = $include && ($filterType['correlation'] == 1);
             } else { // `exclude`
                 $include = $include && ($filterType['correlation'] == 2);
-            }
-
-            /* deleted */
-            if ($filterType['deleted'] == 0) { // `both`
-                // pass, do not consider as `both` is selected
-            } else if ($attribute['deleted'] == 1) { // `include only`
-                $include = $include && ($filterType['deleted'] == 1);
-            } else { // `exclude`
-                $include = $include && ($filterType['deleted'] == 2);
             }
 
             /* feed */
