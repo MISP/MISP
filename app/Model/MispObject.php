@@ -746,37 +746,6 @@ class MispObject extends AppModel
             $attributes[$i]['Attribute']['object_relation'] = $attribute['Attribute']['type'];
         }
         $attribute_types = array_keys($attribute_types);
-        $db = $this->getDataSource();
-        // # TEST 1
-        // array_walk($attribute_types, function(&$value) { $value = '"' . $value . '"'; });
-        // $potential_templates = $db->fetchAll(
-        //     'SELECT object_templates.id, object_templates.name, count(object_template_elements.type) as type_count FROM object_templates '
-        //         .'RIGHT JOIN object_template_elements ON object_templates.id = object_template_elements.object_template_id '
-        //         .'WHERE object_templates.active=1 AND object_template_elements.type IN (' . implode(',', $attribute_types) . ') '
-        //         .'GROUP BY object_templates.name ORDER BY type_count DESC;'
-        // );
-        // $potential_template_ids = Hash::extract($potential_templates, '{n}.object_templates.id');
-
-        // TEST 2
-        // $potential_templates = $this->ObjectTemplate->find('all', array(
-        //     'recursive' => -1,
-        //     'fields' => array(
-        //         'ObjectTemplate.id',
-        //         'ObjectTemplate.name',
-        //         'COUNT(ObjectTemplateElement.type) as type_count'
-        //     ),
-        //     'conditions' => array(
-        //         'ObjectTemplate.active' => true,
-        //     ),
-        //     'contain' => array(
-        //         'ObjectTemplateElement' => array(
-        //             'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
-        //             'conditions' => array('ObjectTemplateElement.type' => $attribute_types)
-        //         )
-        //     ),
-        //     'group' => 'ObjectTemplate.name',
-        //     'order' => 'type_count DESC'
-        // ));
 
         $potential_templates = $this->ObjectTemplate->find('all', array(
             'recursive' => -1,
@@ -791,7 +760,7 @@ class MispObject extends AppModel
             ),
             'joins' => array(
                 array(
-                    'table' => $db->fullTableName($this->ObjectTemplate->ObjectTemplateElement),
+                    'table' => 'object_template_elements',
                     'alias' => 'ObjectTemplateElement',
                     'type' => 'RIGHT',
                     'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
