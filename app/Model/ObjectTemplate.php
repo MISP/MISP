@@ -243,7 +243,7 @@ class ObjectTemplate extends AppModel
             }
         }
 
-        // at this point, an object can be created; checking if all attribute are valids
+        // at this point, an object could created; checking if all attribute are valids
         $valid_types = array();
         $to_return['invalidTypes'] = array();
         $to_return['invalidTypesMultiple'] = array();

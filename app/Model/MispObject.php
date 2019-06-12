@@ -737,7 +737,6 @@ class MispObject extends AppModel
                 ),
             )
         );
-        // $attribute_types = array_keys(Hash::combine($attributes, '{n}.Attribute.type'));
         if (empty($attributes)) {
             return array('templates' => array(), 'types' => array());
         }
@@ -822,7 +821,6 @@ class MispObject extends AppModel
     public function groupAttributesIntoObject($user, $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping, $hard_delete_attribute)
     {
         $saved_object_id = $this->saveObject($object, $event_id, $template, $user);
-
         if (!is_numeric($saved_object_id)) {
             return $saved_object_id;
         }
@@ -843,7 +841,7 @@ class MispObject extends AppModel
         }
         $event = array('Event' => $existing_attributes[0]['Event']);
 
-        // Duplicate the attribute and its context, otherwise connected instance will drop the duplicated UUID
+        // Duplicate the attribute and its context, otherwise connected instances will drop the duplicated UUID
         foreach ($existing_attributes as $i => $existing_attribute) {
             if (isset($selected_object_relation_mapping[$existing_attribute['Attribute']['id']])) {
                 $sightings = $this->Event->Sighting->attachToEvent($event, $user, $existing_attribute['Attribute']['id']);
