@@ -989,4 +989,154 @@ class ObjectsController extends AppController
         $this->set('captured', $capturedObjects);
         $this->set('unmapped', $unmappedAttributes);
     }
+
+    function proposeObjectsFromAttributes($event_id, $selected_attributes='[]')
+    {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
+        }
+        $selected_attributes = json_decode($selected_attributes, true);
+        $res = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $event_id, $selected_attributes);
+        $potential_templates = $res['templates'];
+        $attribute_types = $res['types'];
+        usort($potential_templates, function($a, $b) {
+            if ($a['ObjectTemplate']['id'] == $b['ObjectTemplate']['id']) {
+                return 0;
+            } else if (is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
+                return count($a['ObjectTemplate']['compatibility']) > count($b['ObjectTemplate']['compatibility']) ? 1 : -1;
+            } else if (is_array($a['ObjectTemplate']['compatibility']) && !is_array($b['ObjectTemplate']['compatibility'])) {
+                return 1;
+            } else if (!is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
+                return -1;
+            } else { // sort based on invalidTypes count
+                return count($a['ObjectTemplate']['invalidTypes']) > count($b['ObjectTemplate']['invalidTypes']) ? 1 : -1;
+            }
+        });
+        $this->set('potential_templates', $potential_templates);
+        $this->set('selected_types', $attribute_types);
+        $this->set('event_id', $event_id);
+    }
+
+    function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')
+    {
+        $event = $this->MispObject->Event->find('first', array(
+            'recursive' => -1,
+            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.publish_timestamp'),
+            'conditions' => array('Event.id' => $event_id)
+        ));
+        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $hard_delete_attribute = $event['Event']['publish_timestamp'] == 0;
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
+        }
+        if ($this->request->is('post')) {
+            $template = $this->MispObject->ObjectTemplate->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('ObjectTemplate.id' => $selected_template, 'ObjectTemplate.active' => true)
+            ));
+            if (empty($template)) {
+                throw new NotFoundException(__('Invalid template.'));
+            }
+            $distribution = $this->request->data['Object']['distribution'];
+            $sharing_group_id = $this->request->data['Object']['sharing_group_id'];
+            $comment = $this->request->data['Object']['comment'];
+            $selected_attribute_ids = json_decode($this->request->data['Object']['selectedAttributeIds'], true);
+            $selected_object_relation_mapping = json_decode($this->request->data['Object']['selectedObjectRelationMapping'], true);
+            if ($distribution == 4) {
+                $sg = $this->MispObject->SharingGroup->find('first', array(
+                    'conditions' => array('SharingGroup.id' => $sharing_group_id),
+                    'recursive' => -1,
+                    'fields' => array('SharingGroup.id', 'SharingGroup.name'),
+                    'order' => false
+                ));
+                if (empty($sg)) {
+                    throw new NotFoundException(__('Invalid sharing group.'));
+                }
+            } else {
+                $sharing_group_id = 0;
+            }
+            $object = array(
+                'Object' => array(
+                    'distribution' => $distribution,
+                    'sharing_group_id' => $sharing_group_id,
+                    'comment' => $comment,
+                ),
+                'Attribute' => array()
+            );
+            $result = $this->MispObject->groupAttributesIntoObject($this->Auth->user(), $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping, $hard_delete_attribute);
+            if (is_numeric($result)) {
+                $this->MispObject->Event->unpublishEvent($event_id);
+                return $this->RestResponse->saveSuccessResponse('Objects', 'Created from Attributes', $result, $this->response->type());
+            } else {
+                $error = __('Failed to create an Object from Attributes. Error: ') . PHP_EOL . h($result);
+                return $this->RestResponse->saveFailResponse('Objects', 'Created from Attributes', false, $error, $this->response->type());
+            }
+        } else {
+            $selected_attribute_ids = json_decode($selected_attribute_ids, true);
+            $selected_attributes = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array(
+                'Attribute.id' => $selected_attribute_ids,
+                'Attribute.event_id' => $event_id,
+                'Attribute.object_id' => 0
+            )));
+            if (empty($selected_attributes)) {
+                throw new MethodNotAllowedException(__('No Attribute selected.'));
+            }
+            $template = $this->MispObject->ObjectTemplate->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('ObjectTemplate.id' => $selected_template, 'ObjectTemplate.active' => true),
+                'contain' => 'ObjectTemplateElement'
+            ));
+            if (empty($template)) {
+                throw new NotFoundException(__('Invalid template.'));
+            }
+            $conformity_result = $this->MispObject->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $selected_attributes);
+            $skipped_attributes = 0;
+            foreach ($selected_attributes as $i => $attribute) {
+                if (in_array($attribute['Attribute']['type'], $conformity_result['invalidTypes'])) {
+                    unset($selected_attributes[$i]);
+                    $array_position = array_search($attribute['Attribute']['id'], $selected_attribute_ids);
+                    unset($selected_attribute_ids[$array_position]);
+                    $skipped_attributes++;
+                }
+            }
+            $object_relations = array();
+            foreach ($template['ObjectTemplateElement'] as $template_element) {
+                $object_relations[$template_element['type']][] = $template_element;
+            }
+
+            $object_references = $this->MispObject->ObjectReference->find('all', array(
+                'conditions' => array(
+                    'ObjectReference.referenced_id' => $selected_attribute_ids,
+                ),
+                'recursive' => -1
+            ));
+
+            foreach ($object_references as $i => $object_reference) {
+                $temp_object = $this->MispObject->find('first', array('id' => $object_reference['ObjectReference']['object_id'], 'recursive' => -1));
+                $temp_attribute = $this->MispObject->Attribute->find('first', array('id' => $object_reference['ObjectReference']['referenced_id'], 'recursive' => -1));
+                if (!empty($temp_object) && !empty($temp_attribute)) {
+                    $temp_object = $temp_object['Object'];
+                    $temp_attribute = $temp_attribute['Attribute'];
+                    $object_references[$i]['ObjectReference']['object_name'] = $temp_object['name'];
+                    $object_references[$i]['ObjectReference']['attribute_name'] = sprintf('%s/%s: "%s"', $temp_attribute['category'], $temp_attribute['type'], $temp_attribute['value']);
+                }
+            }
+
+            $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+            $this->set('event_id', $event_id);
+            $this->set('hard_delete_attribute', $hard_delete_attribute);
+            $this->set('distributionData', $distributionData);
+            $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
+            $this->set('selectedTemplateTd', $selected_template);
+            $this->set('selectedAttributeIds', $selected_attribute_ids);
+            $this->set('template', $template);
+            $this->set('object_relations', $object_relations);
+            $this->set('attributes', $selected_attributes);
+            $this->set('skipped_attributes', $skipped_attributes);
+            $this->set('object_references', $object_references);
+        }
+    }
+
 }

@@ -465,6 +465,9 @@ installMISPonKali () {
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
 
+  # install zmq needed by mispzmq
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq 2> /dev/null > /dev/null
+
   # Install Crypt_GPG and Console_CommandLine
   debug "Installing pear Console_CommandLine"
   pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml

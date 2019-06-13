@@ -1277,7 +1277,7 @@ class AttributesController extends AppController
         }
         if ($this->request->is('ajax')) {
             if ($this->request->is('post')) {
-                if ($this->__delete($id, $hard)) {
+                if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')), 'status'=>200, 'type' => 'json'));
                 } else {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')), 'status'=>200, 'type' => 'json'));
@@ -1291,7 +1291,7 @@ class AttributesController extends AppController
             if (!$this->request->is('post') && !$this->_isRest()) {
                 throw new MethodNotAllowedException();
             }
-            if ($this->__delete($id, $hard)) {
+            if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
                 if ($this->_isRest() || $this->response->type() === 'application/json') {
                     $this->set('message', 'Attribute deleted.');
                     $this->set('_serialize', array('message'));
@@ -1357,77 +1357,6 @@ class AttributesController extends AppController
             } else {
                 throw new NotFoundException(__('Could not restore the attribute'));
             }
-        }
-    }
-
-
-    // unification of the actual delete for the multi-select
-    private function __delete($id, $hard = false)
-    {
-        $this->Attribute->id = $id;
-        if (!$this->Attribute->exists()) {
-            return false;
-        }
-        $result = $this->Attribute->find('first', array(
-            'conditions' => array('Attribute.id' => $id),
-            'fields' => array('Attribute.*'),
-            'contain' => array('Event' => array(
-                'fields' => array('Event.*')
-            )),
-        ));
-        if (empty($result)) {
-            throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
-        }
-
-        // check for permissions
-        if (!$this->_isSiteAdmin()) {
-            if ($result['Event']['locked']) {
-                if ($this->Auth->user('org_id') != $result['Event']['org_id'] || !$this->userRole['perm_sync']) {
-                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
-                }
-            } else {
-                if ($this->Auth->user('org_id') != $result['Event']['orgc_id']) {
-                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
-                }
-            }
-        }
-        $date = new DateTime();
-        if ($hard) {
-            $save = $this->Attribute->delete($id);
-        } else {
-            if (Configure::read('Security.sanitise_attribute_on_delete')) {
-                $result['Attribute']['category'] = 'Other';
-                $result['Attribute']['type'] = 'comment';
-                $result['Attribute']['value'] = 'deleted';
-                $result['Attribute']['comment'] = '';
-                $result['Attribute']['to_ids'] = 0;
-            }
-            $result['Attribute']['deleted'] = 1;
-            $result['Attribute']['timestamp'] = $date->getTimestamp();
-            $save = $this->Attribute->save($result);
-            $object_refs = $this->Attribute->Object->ObjectReference->find('all', array(
-                'conditions' => array(
-                    'ObjectReference.referenced_type' => 0,
-                    'ObjectReference.referenced_id' => $id,
-                ),
-                'recursive' => -1
-            ));
-            foreach ($object_refs as $ref) {
-                $ref['ObjectReference']['deleted'] = 1;
-                $this->Attribute->Object->ObjectReference->save($ref);
-            }
-        }
-        // attachment will be deleted with the beforeDelete() function in the Model
-        if ($save) {
-            // We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
-            $this->loadModel('ShadowAttribute');
-            $this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
-
-            // remove the published flag from the event
-            $this->Attribute->Event->unpublishEvent($result['Event']['id']);
-            return true;
-        } else {
-            return false;
         }
     }
 
@@ -1497,11 +1426,11 @@ class AttributesController extends AppController
         $successes = array();
         foreach ($attributes as $a) {
             if ($hard) {
-                if ($this->__delete($a['Attribute']['id'], true)) {
+                if ($this->Attribute->deleteAttribute($a['Attribute']['id'], $this->Auth->user(), true)) {
                     $successes[] = $a['Attribute']['id'];
                 }
             } else {
-                if ($this->__delete($a['Attribute']['id'], $a['Attribute']['deleted'] == 1 ? true : false)) {
+                if ($this->Attribute->deleteAttribute($a['Attribute']['id'], $this->Auth->user(), $a['Attribute']['deleted'] == 1 ? true : false)) {
                     $successes[] = $a['Attribute']['id'];
                 }
             }

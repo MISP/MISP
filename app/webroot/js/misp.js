@@ -845,6 +845,22 @@ function multiSelectToggleFeeds(on, cache) {
     });
 }
 
+function multiSelectDeleteEventBlacklist(on, cache) {
+    var selected = [];
+    $(".select").each(function() {
+        if ($(this).is(":checked")) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    });
+    $.get("/eventBlacklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
+        $("#confirmation_box").html(data);
+        openPopup("#confirmation_box");
+    });
+}
+
 function multiSelectAction(event, context) {
     var settings = {
             deleteAttributes: {
@@ -911,6 +927,11 @@ function addSelectedTaxonomies(taxonomy) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
+}
+
+function proposeObjectsFromSelectedAttributes(clicked, event_id) {
+    var selectedAttributeIds = getSelected();
+    popoverPopup(clicked, event_id + '/' + selectedAttributeIds, 'objects', 'proposeObjectsFromAttributes');
 }
 
 function hideSelectedTags(taxonomy) {
@@ -1456,20 +1477,23 @@ function templateElementFileCategoryChange(category) {
     }
 }
 
-function openPopup(id) {
-    var window_height = $(window).height();
-    var popup_height = $(id).height();
-    if (window_height < popup_height) {
-        $(id).css("top", 50);
-        $(id).css("height", window_height);
-        $(id).addClass('vertical-scroll');
-    } else {
-        if (window_height > (300 + popup_height)) {
-            var top_offset = ((window_height - popup_height) / 2) - 150;
+function openPopup(id, adjust_layout) {
+    adjust_layout = adjust_layout === undefined ? true : adjust_layout;
+    if (adjust_layout) {
+        var window_height = $(window).height();
+        var popup_height = $(id).height();
+        if (window_height < popup_height) {
+            $(id).css("top", 50);
+            $(id).css("height", window_height);
+            $(id).addClass('vertical-scroll');
         } else {
-            var top_offset = (window_height - popup_height) / 2;
+            if (window_height > (300 + popup_height)) {
+                var top_offset = ((window_height - popup_height) / 2) - 150;
+            } else {
+                var top_offset = (window_height - popup_height) / 2;
+            }
+            $(id).css("top", top_offset + 'px');
         }
-        $(id).css("top", top_offset + 'px');
     }
     $("#gray_out").fadeIn();
     $(id).fadeIn();
@@ -1555,7 +1579,7 @@ function openPopover(clicked, data, hover, placement) {
 
 function getMatrixPopup(scope, scope_id, galaxy_id) {
     cancelPopoverForm();
-    getPopup(scope_id + '/' + galaxy_id + '/' + scope, 'events', 'viewGalaxyMatrix', '', '#popover_form_large');
+    getPopup(scope_id + '/' + galaxy_id + '/' + scope, 'events', 'viewGalaxyMatrix', '', '#popover_matrix');
 }
 
 function getPopup(id, context, target, admin, popupType) {
@@ -1578,7 +1602,7 @@ function getPopup(id, context, target, admin, popupType) {
         success:function (data, textStatus) {
             $(".loading").hide();
             $(popupType).html(data);
-            openPopup(popupType);
+            openPopup(popupType, false);
         },
         error:function() {
             $(".loading").hide();
@@ -3673,7 +3697,7 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var scope = additionalData['target_type'];
     fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope, function(formData) {
         $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #GalaxyTargetIds').val(JSON.stringify(selected_tag_ids));
+        $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
         if (target_id == 'selected') {
             $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
         }
@@ -3733,6 +3757,7 @@ $(document).keyup(function(e){
     $("#gray_out").fadeOut();
         $("#popover_form").fadeOut();
         $("#popover_form_large").fadeOut();
+        $("#popover_matrix").fadeOut();
         $("#screenshot_box").fadeOut();
         $("#popover_box").fadeOut();
         $("#confirmation_box").fadeOut();

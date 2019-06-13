@@ -49,6 +49,9 @@ td.matrix-interaction.cell-picked {
     overflow-y: auto;
     max-height: 670px;
 }
+#popover_matrix div.fixed-table-container-inner {
+    max-height: calc(80vh - 100px);
+}
 
 .extra-wrap {
     width: 100%;

@@ -22,6 +22,7 @@ import time
 import uuid
 import base64
 import stix2misp_mapping
+import stix_edh
 import stix.extensions.marking.ais
 from mixbox.namespaces import NamespaceNotFoundError
 from operator import attrgetter
@@ -1207,7 +1208,9 @@ def _update_namespaces():
     # can add additional ones whenever it is needed
     ADDITIONAL_NAMESPACES = [
         Namespace('http://us-cert.gov/ciscp', 'CISCP',
-                  'http://www.us-cert.gov/sites/default/files/STIX_Namespace/ciscp_vocab_v1.1.1.xsd')
+                  'http://www.us-cert.gov/sites/default/files/STIX_Namespace/ciscp_vocab_v1.1.1.xsd'),
+        Namespace('http://taxii.mitre.org/messages/taxii_xml_binding-1.1', 'TAXII',
+                  'http://docs.oasis-open.org/cti/taxii/v1.1.1/cs01/schemas/TAXII-XMLMessageBinding-Schema.xsd')
     ]
     for namespace in ADDITIONAL_NAMESPACES:
         register_namespace(namespace)
