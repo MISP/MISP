@@ -24,11 +24,21 @@
         $full = $isAclTagger && $tagAccess;
         $tagData = "";
         foreach ($tags as $tag) {
+            if (empty($tag['Tag'])) {
+                $tag['Tag'] = $tag;
+            }
+            if (empty($tag['Tag']['colour'])) {
+                $tag['Tag']['colour'] = '#0088cc';
+            }
             $aStyle = 'display:inline-block; background-color:' . h($tag['Tag']['colour']) . ';color:' . $this->TextColour->getTextColour($tag['Tag']['colour']) . ';';
             $aClass = $full ? 'tagFirstHalf' : 'tag';
             $aText = h($tag['Tag']['name']);
-            $aSearchTagUrl = $baseurl . '/events/index/searchtag: ' . h($tag['Tag']['id']);
-            $span1 = sprintf('<a href="%s" style="%s" class="%s">%s</a>', $aSearchTagUrl, $aStyle, $aClass, $aText);
+            if (!empty($tag['Tag']['id'])) {
+                $aSearchTagUrl = $baseurl . '/events/index/searchtag: ' . h($tag['Tag']['id']);
+                $span1 = sprintf('<a href="%s" style="%s" class="%s">%s</a>', $aSearchTagUrl, $aStyle, $aClass, $aText);
+            } else {
+                $aSpan1 = sprintf('<span style="%s" class="%s">%s</span>', $aStyle, $aClass, $aText);
+            }
             $span2 = '';
             if ($full) {
                 $spanClass = "tagSecondHalf useCursorPointer noPrint";
