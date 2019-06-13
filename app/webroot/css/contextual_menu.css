@@ -26,6 +26,7 @@
 .contextual-menu > label {
     font-weight: bold;
     margin-right: 3px;
+    user-select: none;
 }
 
 .contextual-menu > div > label {

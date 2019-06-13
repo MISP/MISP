@@ -377,7 +377,7 @@ function reload_timeline() {
                 }
             }
             items_timeline.add(data.items);
-            handle_not_seen_enabled($('#checkbox_timeline_display_hide_not_seen_enabled').val())
+            handle_not_seen_enabled($('#checkbox_timeline_display_hide_not_seen_enabled').prop('checked'), false)
         },
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
@@ -487,7 +487,8 @@ function handle_doubleClick(data) {
     //edit_item(data.item);
 }
 
-function handle_not_seen_enabled(hide) {
+function handle_not_seen_enabled(hide, include_hidden) {
+    include_hidden = include_hidden !== undefined ? include_hidden : true;
     if (hide) {
         var hidden = items_timeline.get({
             filter: function(item) {
@@ -500,8 +501,10 @@ function handle_not_seen_enabled(hide) {
         });
         items_timeline.remove(hidden)
         items_backup = hidden;
-    } else {
-        items_timeline.add(items_backup);
+    } else if (include_hidden) {
+        if (items_backup !== undefined) {
+            items_timeline.add(items_backup);
+        }
     }
 }
 
