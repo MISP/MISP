@@ -628,7 +628,7 @@ class ObjectsController extends AppController
         }
         $this->MispObject->id = $id;
         if (!$this->MispObject->exists()) {
-            return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid object', $this->response->type());
+            return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid object');
         }
         $this->MispObject->recursive = -1;
         $this->MispObject->contain('Event');
@@ -639,7 +639,7 @@ class ObjectsController extends AppController
             || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid attribute', $this->response->type());
+                return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid attribute');
             }
         }
         $validFields = array('comment', 'distribution', 'first_seen', 'last_seen');
@@ -656,13 +656,13 @@ class ObjectsController extends AppController
             }
             if ($object['Object'][$changedKey] == $changedField) {
                 $this->autoRender = false;
-                return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type(), 'nochange');
+                return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, false, 'nochange');
             }
             $object['Object'][$changedKey] = $changedField;
             $changed = true;
         }
         if (!$changed) {
-            return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type(), 'nochange');
+            return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, false, 'nochange');
         }
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
@@ -678,10 +678,10 @@ class ObjectsController extends AppController
             $event['Event']['published'] = 0;
             $this->MispObject->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
             $this->autoRender = false;
-            return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type(), 'Field updated');
+            return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, false, 'Field updated');
         } else {
             $this->autoRender = false;
-            return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $this->MispObject->validationErrors, $this->response->type());
+            return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $this->MispObject->validationErrors);
         }
     }
 

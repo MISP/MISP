@@ -93,13 +93,13 @@
   </td>
   <td colspan="4">&nbsp;
   </td>
-  <td class="shortish">
+  <td class="shortish" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
     <?php
       $turnRed = '';
       if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
     ?>
     <div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class = "inline-field-placeholder"></div>
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
+    <div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid">
       <?php
         if ($object['objectType'] == 0) {
           if ($object['distribution'] == 4):
