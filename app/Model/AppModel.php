@@ -75,7 +75,7 @@ class AppModel extends Model
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
-        33 => false, 34 => false, 35 => false
+        33 => false, 34 => false, 35 => false, 36 => false
     );
 
     public $advanced_updates_description = array(
@@ -208,6 +208,9 @@ class AppModel extends Model
                 break;
             case 34:
                 $this->__fixServerPullPushRules();
+                break;
+            case 36:
+                $this->updateDatabase('seenOnAttributeAndObject', true);
                 break;
             default:
                 $this->updateDatabase($command);
@@ -1241,9 +1244,11 @@ class AppModel extends Model
                         DROP INDEX value1,
                         DROP INDEX value2,
                         DROP INDEX object_id,
-                        DROP INDEX object_relation,
-                        DROP INDEX deleted,
-                    ;";
+                        DROP INDEX object_relation;
+                    ";
+                $sqlArray[] = "ALTER TABLE `attributes` DROP INDEX deleted"; // deleted index may not be present
+                $sqlArray[] = "ALTER TABLE `attributes` DROP INDEX first_seen"; // for replayability
+                $sqlArray[] = "ALTER TABLE `attributes` DROP INDEX last_seen"; // for replayability
                 $sqlArray[] =
                     "ALTER TABLE `attributes`
                         ADD COLUMN `first_seen` BIGINT(20) NULL DEFAULT NULL,
@@ -1263,9 +1268,8 @@ class AppModel extends Model
                         ADD INDEX `object_relation` (`object_relation`),
                         ADD INDEX `deleted` (`deleted`),
                         ADD INDEX `first_seen` (`first_seen`),
-                        ADD INDEX `last_seen` (`last_seen`),
-                        ADD INDEX `comment` (`comment`(767))
-                    ;";
+                        ADD INDEX `last_seen` (`last_seen`);
+                    ";
                 $sqlArray[] = "
                     ALTER TABLE `objects`
                         ADD `first_seen` BIGINT(20) NULL DEFAULT NULL,
