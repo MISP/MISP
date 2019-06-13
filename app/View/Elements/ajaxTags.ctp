@@ -21,7 +21,7 @@
 ?>
 <span style="display:inline-block;">
     <?php
-        $full = $isAclTagger && $tagAccess;
+        $full = $isAclTagger && $tagAccess && empty($static_tags_only);
         $tagData = "";
         foreach ($tags as $tag) {
             if (empty($tag['Tag'])) {
