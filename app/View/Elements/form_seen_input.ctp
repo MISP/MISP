@@ -28,64 +28,66 @@ var time_vals = [
     ['us', 999, 1],
 ];
 
-class MicroDatetime {
-    constructor(value) {
-        this.isoDatetimeMicroRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})(\d*)(\D\S*)/g;
-        this.isotimeMicroRegex = /(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})(\d*)(\D\S*)/g;
-        this.numberRegex = /^(\-|\+)?([0-9]+|Infinity)$/g;
+var MicroDatetime = function(value) {
+    this.isoDatetimeMicroRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})(\d*)(\D\S*)/g;
+    this.isotimeMicroRegex = /(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})(\d*)(\D\S*)/g;
+    this.numberRegex = /^(\-|\+)?([0-9]+|Infinity)$/g;
 
-        if (value === undefined || value === "") {
-            this.moment = undefined;
-            this.micro = 0;
-        } else {
-            // check if timestamp UNIX timestamp (in sec)
-            if (this.numberRegex.test(value)) {
-                var timestamp = parseInt(value);
-                var timestamp_str = String(timestamp);
-                if (timestamp === '' || timestamp === undefined || timestamp === null || isNaN(timestamp)) {
-                    this.moment = moment(0);
-                    this.micro = 0;
+    if (value === undefined || value === "") {
+        this.moment = undefined;
+        this.micro = 0;
+    } else {
+        // check if timestamp UNIX timestamp (in sec)
+        if (this.numberRegex.test(value)) {
+            var timestamp = parseInt(value);
+            var timestamp_str = String(timestamp);
+            if (timestamp === '' || timestamp === undefined || timestamp === null || isNaN(timestamp)) {
+                this.moment = moment(0);
+                this.micro = 0;
+            } else {
+                var all_milli = parseInt(timestamp)*1000;
+                all_milli = isNaN(all_milli) || all_milli === undefined ? 0 : all_milli;
+                this.moment = moment(all_milli);
+                this.micro = 0;
+            }
+        // check if only a time
+        } else { // let moment parse the date
+            try {
+                value = String(value);
+                this.moment = new moment(value);
+                if (this.moment.isValid()) {
+                    var res = this.isoDatetimeMicroRegex.exec(value);
+                    var micro_str = res !== null ? res[8] : 0;
+                    this.micro = parseInt(micro_str);
+                    this.micro = isNaN(this.micro) ? 0 : this.micro;
                 } else {
-                    var all_milli = parseInt(timestamp)*1000;
-                    all_milli = isNaN(all_milli) || all_milli === undefined ? 0 : all_milli;
-                    this.moment = moment(all_milli);
+                    this.moment = undefined;
                     this.micro = 0;
+                    showMessage('fail', 'Failed to parse the date: <strong>' + value + '</strong>');
                 }
-            // check if only a time
-            } else { // let moment parse the date
-                try {
-                    value = String(value);
-                    this.moment = new moment(value);
+            } catch (err) {
+                if (this.isotimeMicroRegex.test(value)) {
+                    this.moment = moment(value, "HH:mm:ss.SSSSSSZ");
                     if (this.moment.isValid()) {
-                        var res = this.isoDatetimeMicroRegex.exec(value);
+                        var res = this.isotimeMicroRegex.exec(value);
                         var micro_str = res !== null ? res[8] : 0;
                         this.micro = parseInt(micro_str);
                         this.micro = isNaN(this.micro) ? 0 : this.micro;
                     } else {
                         this.moment = undefined;
                         this.micro = 0;
-                        showMessage('fail', 'Failed to parse the date: <strong>' + value + '</strong>');
-                    }
-                } catch (err) {
-                    if (this.isotimeMicroRegex.test(value)) {
-                        this.moment = moment(value, "HH:mm:ss.SSSSSSZ");
-                        if (this.moment.isValid()) {
-                            var res = this.isotimeMicroRegex.exec(value);
-                            var micro_str = res !== null ? res[8] : 0;
-                            this.micro = parseInt(micro_str);
-                            this.micro = isNaN(this.micro) ? 0 : this.micro;
-                        } else {
-                            this.moment = undefined;
-                            this.micro = 0;
-                            showMessage('fail', 'Failed to parse the date: ' + value);
-                        }
+                        showMessage('fail', 'Failed to parse the date: ' + value);
                     }
                 }
             }
         }
     }
+}
 
-    get_microISO() {
+MicroDatetime.prototype = {
+    constructor: MicroDatetime,
+
+    get_microISO: function() {
         if (this.moment === undefined || this.moment === null) {
             return "";
         }
@@ -93,29 +95,29 @@ class MicroDatetime {
         var str = this.moment.toISOString(true);
         str = str.replace(tz, pad_zero(this.micro, 3)+tz);
         return str;
-    }
+    },
 
-    get_date() {
+    get_date: function() {
         if (this.moment === undefined || this.moment === null) {
             return "";
         }
         return this.moment.format('YYYY/MM/DD');
-    }
+    },
 
-    get_time() {
+    get_time: function() {
         if (this.moment === undefined || this.moment === null) {
             return "";
         }
         return this.moment.format('HH:mm:ss.SSS')
             + String(pad_zero(this.micro, 3))
             + this.moment.format('Z');
-    }
+    },
 
-    has_date() {
+    has_date: function() {
         return this.moment !== undefined;
-    }
+    },
 
-    has_time() {
+    has_time: function() {
         if (this.moment === undefined) {
             return false;
         } else {
