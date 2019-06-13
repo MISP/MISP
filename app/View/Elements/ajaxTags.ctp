@@ -37,7 +37,7 @@
                 $aSearchTagUrl = $baseurl . '/events/index/searchtag: ' . h($tag['Tag']['id']);
                 $span1 = sprintf('<a href="%s" style="%s" class="%s">%s</a>', $aSearchTagUrl, $aStyle, $aClass, $aText);
             } else {
-                $aSpan1 = sprintf('<span style="%s" class="%s">%s</span>', $aStyle, $aClass, $aText);
+                $span1 = sprintf('<span style="%s" class="%s">%s</span>', $aStyle, $aClass, $aText);
             }
             $span2 = '';
             if ($full) {
