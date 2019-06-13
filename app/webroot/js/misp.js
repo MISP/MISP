@@ -477,7 +477,7 @@ function activateField(type, id, field, event) {
         containerName = 'Object';
     }
     var name = '#' + type + '_' + id + '_' + field;
-    var container_name = '#' + containerName + id + '_' + field;
+    var container_name = '#' + containerName + '_' + id + '_' + field;
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
@@ -1286,7 +1286,6 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
     responseArray = response;
     var message = null;
     var result = "fail";
-    console.log(responseArray);
     if (responseArray.saved) {
         updateIndex(context_id, context);
         if (responseArray.success) {
