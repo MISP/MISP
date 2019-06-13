@@ -824,6 +824,12 @@ class RestResponseComponent extends Component
             'operators' => array('equal'),
             'help' => 'A valid external auth key',
         ),
+        'first_seen' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'A valid ISO 8601 datetime format, up to milli-seconds. i.e.: 2019-06-13T15:56:56.856074+02:00'
+        ),
         'fixed_event' => array(
             'input' => 'select',
             'type' => 'integer',
@@ -933,6 +939,12 @@ class RestResponseComponent extends Component
             'type' => 'string',
             'operators' => array('equal', 'not_equal'),
             'help' => 'Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)'
+        ),
+        'last_seen' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'A valid ISO 8601 datetime format, up to milli-seconds. i.e.: 2019-06-13T15:56:56.856074+02:00'
         ),
         'limit' => array(
             'input' => 'number',
