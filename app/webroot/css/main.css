@@ -293,8 +293,8 @@ td.highlight3 {
 
 }
 
-table-striped tbody > tr > td.objectAddField {
-    padding: 2px 3px;
+table.table-striped > tbody > tr > td.objectAddField {
+    padding: 0px;
     line-height: normal;
     display: inline-block;
     position: relative;
@@ -304,8 +304,16 @@ table-striped tbody > tr > td.objectAddField {
     background-color: #1369a0;
     border: 0px;
     border-radius: 15px;
+    height: 16px;
+    width: 16px;
+    text-align: center;
+}
+
+table.table-striped > tbody > tr > td.objectAddField:before {
+    left: 2px;
     height: 12px;
-    width: 10px;
+    width: 12px;
+    line-height: 16px;
 }
 
 .table-striped tbody > tr > td.objectAddField:hover {

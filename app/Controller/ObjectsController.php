@@ -551,12 +551,27 @@ class ObjectsController extends AppController
                         $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
                         return $this->RestResponse->viewData($objectToSave, $this->response->type());
                     } else {
-                        return $this->RestResponse->saveFailResponse('Objects', 'add', false, $id, $this->response->type());
+                        return $this->RestResponse->saveFailResponse('Objects', 'add', false, $id, false);
                     }
                 } else {
-                    $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
-                    $this->Flash->success('Object saved.');
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+                    $message = __('Object attributes saved.');
+                    $error_message = __('Object attributes could not be saved.');
+                    if ($this->request->is('ajax')) {
+                         $this->autoRender = false;
+                         if (is_numeric($objectToSave)) {
+                            return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type('application/json'), $message);
+                        } else {
+                            return $this->RestResponse->saveFailResponse('Objects', 'edit', $id, $error_message, $this->response->type('application/json'));
+                        }
+                    }  else {
+                        if (is_numeric($objectToSave)) {
+                            $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
+                            $this->Flash->success($message);
+                        } else {
+                            $this->Flash->error($error_message);
+                        }
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+                    }
                 }
             }
         } else {
@@ -888,7 +903,7 @@ class ObjectsController extends AppController
             $this->set('info', $info);
             $this->render('ajax/quickAddAttributeForm');
         } else if ($this->request->is('post') || $this->request->is('put')) {
-            return $this->edit($this->request->data['Object']['id'], true);
+            return $this->edit($this->request->data['Object']['id'], false, true);
         }
     }
 

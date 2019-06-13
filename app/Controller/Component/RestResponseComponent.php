@@ -397,6 +397,7 @@ class RestResponseComponent extends Component
             $message = Inflector::singularize($controller) . ' ' . $action['action'] . ((substr($action['action'], -1) == 'e') ? 'd' : 'ed');
         }
         $response['saved'] = true;
+        $response['success'] = true;
         $response['name'] = $message;
         $response['message'] = $response['name'];
         $response['url'] = $this->__generateURL($action, $controller, $id);
