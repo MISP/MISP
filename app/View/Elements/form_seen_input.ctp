@@ -292,7 +292,7 @@ function reflect_change_on_form() {
 
 $(document).ready(function() {
 
-    var sliders_container = "<?php if ($this->params->controller === 'attributes') { echo 'fieldset'; } else { echo '#meta-div'; } ?>";
+    var sliders_container = "<?php if ($this->params->controller === 'attributes') { echo '#AttributeForm fieldset'; } else { echo '#meta-div'; } ?>";
     var inputs_container = $('<div class="input-group input-daterange"></div>');
     // create separate date and time input
     var date_div_fs = $('<div class="input clear larger-input-field" style="margin-left: 10px;"></div>').append(
