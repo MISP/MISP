@@ -132,10 +132,32 @@ function expandItem() {
 }
 
 function get_next_step(mom) {
-    var scale = eventTimeline.timeAxis.step.scale;
+    var scale = adapt_scale(eventTimeline.timeAxis.step.scale);
     var momAhead = mom.clone();
     momAhead.add(1, scale);
     return momAhead;
+}
+
+function adapt_scale(scale) {
+    first_letter = scale.charAt(0);
+    if (first_letter !== 'm' && first_letter !== 'w') {
+        return first_letter;
+    } else {
+        switch (scale) {
+            case 'millisecond':
+                return 'ms';
+            case 'minute':
+                return 'm';
+            case 'month':
+                return 'M';
+            case 'week':
+                return 'w';
+            case 'weekday':
+                return 'd';
+            default:
+                return scale;
+        }
+    }
 }
 
 function build_attr_template(attr) {
