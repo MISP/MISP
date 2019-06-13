@@ -1,7 +1,7 @@
 <div class="attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php
     $url_params = $action == 'add' ? 'add/' . $event_id : 'edit/' . $attribute['Attribute']['id'];
-    echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/' . $url_params));
+    echo $this->Form->create('Attribute', array('id'=>'AttributeForm', 'url' => '/attributes/' . $url_params));
 ?>
     <fieldset>
         <legend><?php echo $action == 'add' ? __('Add Attribute') : __('Edit Attribute'); ?></legend>
@@ -78,6 +78,7 @@
             echo $this->Form->input('batch_import', array(
                     'type' => 'checkbox'
             ));
+            echo $this->element('form_seen_input');
             echo '<div class="input clear"></div>';
             echo $this->Form->input('disable_correlation', array(
                     'type' => 'checkbox'

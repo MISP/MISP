@@ -353,7 +353,7 @@ class ObjectsController extends AppController
         $this->set('element', $element);
     }
 
-    public function edit($id, $update_template_available=false)
+    public function edit($id, $update_template_available=false, $onlyAddNewAttribute=false)
     {
         if (Validation::uuid($id)) {
             $conditions = array('Object.uuid' => $id);
@@ -532,7 +532,7 @@ class ObjectsController extends AppController
                 $this->request->data = array('Attribute' => $this->request->data);
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
-            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave);
+            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute);
             // we pre-validate the attributes before we create an object at this point
             // This allows us to stop the process and return an error (API) or return
             //  to the add form
@@ -593,6 +593,303 @@ class ObjectsController extends AppController
         $this->set('update_template_available', $update_template_available);
         $this->set('newer_template_version', $newer_template_version);
         $this->render('add');
+    }
+
+    // ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
+    public function editField($id)
+    {
+        if (Validation::uuid($id)) {
+            $this->MispObject->recursive = -1;
+            $temp = $this->MispObject->findByUuid($id);
+            if ($temp == null) {
+                throw new NotFoundException('Invalid object');
+            }
+            $id = $temp['Object']['id'];
+        } elseif (!is_numeric($id)) {
+            throw new NotFoundException(__('Invalid event id.'));
+        }
+        if ((!$this->request->is('post') && !$this->request->is('put'))) {
+            throw new MethodNotAllowedException();
+        }
+        $this->MispObject->id = $id;
+        if (!$this->MispObject->exists()) {
+            return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid object', $this->response->type());
+        }
+        $this->MispObject->recursive = -1;
+        $this->MispObject->contain('Event');
+        $object = $this->MispObject->read();
+        if (!$this->_isSiteAdmin()) {
+            if ($this->MispObject->data['Event']['orgc_id'] == $this->Auth->user('org_id')
+            && (($this->userRole['perm_modify'] && $this->MispObject->data['Event']['user_id'] != $this->Auth->user('id'))
+            || $this->userRole['perm_modify_org'])) {
+                // Allow the edit
+            } else {
+                return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid attribute', $this->response->type());
+            }
+        }
+        $validFields = array('comment', 'distribution', 'first_seen', 'last_seen');
+        $changed = false;
+        if (empty($this->request->data['Object'])) {
+            $this->request->data = array('Object' => $this->request->data);
+            if (empty($this->request->data['Object'])) {
+                throw new MethodNotAllowedException('Invalid input.');
+            }
+        }
+        foreach ($this->request->data['Object'] as $changedKey => $changedField) {
+            if (!in_array($changedKey, $validFields)) {
+                throw new MethodNotAllowedException('Invalid field.');
+            }
+            if ($object['Object'][$changedKey] == $changedField) {
+                $this->autoRender = false;
+                return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type(), 'nochange');
+            }
+            $object['Object'][$changedKey] = $changedField;
+            $changed = true;
+        }
+        if (!$changed) {
+            return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type(), 'nochange');
+        }
+        $date = new DateTime();
+        $object['Object']['timestamp'] = $date->getTimestamp();
+        $this->MispObject->setObjectSeenMetaFromAttribute($object, true);
+        if ($this->MispObject->save($object)) {
+            $event = $this->MispObject->Event->find('first', array(
+                'recursive' => -1,
+                'fields' => array('id', 'published', 'timestamp', 'info', 'uuid'),
+                'conditions' => array(
+                    'id' => $object['Object']['event_id'],
+            )));
+            $event['Event']['timestamp'] = $date->getTimestamp();
+            $event['Event']['published'] = 0;
+            $this->MispObject->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
+            $this->autoRender = false;
+            return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type(), 'Field updated');
+        } else {
+            $this->autoRender = false;
+            return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $this->MispObject->validationErrors, $this->response->type());
+        }
+    }
+
+    public function fetchViewValue($id, $field = null)
+    {
+        $validFields = array('timestamp', 'comment', 'distribution', 'first_seen', 'last_seen');
+        if (!isset($field) || !in_array($field, $validFields)) {
+            throw new MethodNotAllowedException('Invalid field requested.');
+        }
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+        }
+        $this->MispObject->id = $id;
+        if (!$this->MispObject->exists()) {
+            throw new NotFoundException(__('Invalid object'));
+        }
+        $params = array(
+                'conditions' => array('Object.id' => $id),
+                'fields' => array('id', 'distribution', 'event_id', $field),
+                'contain' => array(
+                        'Event' => array(
+                                'fields' => array('distribution', 'id', 'org_id'),
+                        )
+                ),
+                'flatten' => 1
+        );
+        $object = $this->MispObject->fetchObjectSimple($this->Auth->user(), $params);
+        if (empty($object)) {
+            throw new NotFoundException(__('Invalid object'));
+        }
+        $object = $object[0];
+        $result = $object['Object'][$field];
+        if ($field == 'distribution') {
+            $result=$this->MispObject->shortDist[$result];
+        }
+        $this->set('value', $result);
+        $this->layout = 'ajax';
+        $this->render('ajax/objectViewFieldForm');
+    }
+
+    public function fetchEditForm($id, $field = null)
+    {
+        $validFields = array('distribution', 'comment', 'first_seen', 'last_seen');
+        if (!isset($field) || !in_array($field, $validFields)) {
+            throw new MethodNotAllowedException('Invalid field requested.');
+        }
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+        }
+        $this->MispObject->id = $id;
+        if (!$this->MispObject->exists()) {
+            throw new NotFoundException(__('Invalid object'));
+        }
+        $fields = array('id', 'distribution', 'event_id');
+        $fields[] = $field;
+        $params = array(
+            'conditions' => array('Object.id' => $id),
+            'fields' => $fields,
+            'flatten' => 1,
+            'contain' => array(
+                'Event' => array(
+                    'fields' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id'),
+                )
+            )
+        );
+        $object = $this->MispObject->fetchObjectSimple($this->Auth->user(), $params);
+        if (empty($object)) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $object = $object[0];
+        if (!$this->_isSiteAdmin()) {
+            if ($object['Event']['orgc_id'] == $this->Auth->user('org_id')
+            && (($this->userRole['perm_modify'] && $object['Event']['user_id'] != $this->Auth->user('id'))
+                    || $this->userRole['perm_modify_org'])) {
+                // Allow the edit
+            } else {
+                throw new NotFoundException(__('Invalid object'));
+            }
+        }
+        $this->layout = 'ajax';
+        if ($field == 'distribution') {
+            $distributionLevels = $this->MispObject->shortDist;
+            unset($distributionLevels[4]);
+            $this->set('distributionLevels', $distributionLevels);
+        }
+        $this->set('object', $object['Object']);
+        $fieldURL = ucfirst($field);
+        $this->render('ajax/objectEdit' . $fieldURL . 'Form');
+    }
+
+    // Construct a template with valid object attributes to add to an object
+    public function quickFetchTemplateWithValidObjectAttributes($id) {
+        $this->MispObject->id = $id;
+        if (!$this->MispObject->exists()) {
+            if ($this->request->is('ajax')) {
+                return $this->RestResponse->saveFailResponse('Objects', 'add', false, 'Invalid object', $this->response->type());
+            } else {
+                throw new NotFoundException(__('Invalid object'));
+            }
+        }
+        $fields = array('template_uuid', 'template_version', 'id');
+        $params = array(
+            'conditions' => array('Object.id' => $id),
+            'fields' => $fields,
+            'flatten' => 1,
+        );
+        // fetchObjects restrict access based on user
+        $object = $this->MispObject->fetchObjects($this->Auth->user(), $params);
+        if (empty($object)) {
+            if ($this->request->is('ajax')) {
+                return $this->RestResponse->saveFailResponse('Objects', 'add', false, 'Invalid object', $this->response->type());
+            } else {
+                throw new NotFoundException(__('Invalid object'));
+            }
+        } else {
+            $object = $object[0];
+        }
+        // get object attributes already set
+        $objectRelation = array();
+        foreach($object['Attribute'] as $attr) {
+            $objectRelation[$attr['object_relation']] = 1;
+        }
+        $objectRelation = array_keys($objectRelation);
+        // get object attribute defined in the object's template
+        $template = $this->MispObject->ObjectTemplate->find('first', array(
+            'conditions' => array(
+                'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
+                'ObjectTemplate.version' => $object['Object']['template_version'],
+            ),
+            'recursive' => -1,
+            'flatten' => 1,
+            'contain' => 'ObjectTemplateElement'
+        ));
+        if (empty($template)) {
+            if ($this->request->is('ajax')) {
+                return $this->RestResponse->saveFailResponse('Objects', 'add', false, 'Invalid template', $this->response->type());
+            } else {
+                throw new NotFoundException(__('Invalid template'));
+            }
+        }
+        // unset object invalid object attribute
+        foreach($template['ObjectTemplateElement'] as $i => $objAttr) {
+            if (in_array($objAttr['object_relation'], $objectRelation) && !$objAttr['multiple']) {
+                unset($template['ObjectTemplateElement'][$i]);
+            }
+        }
+        if ($this->request->is('get') || $this->request->is('post')) {
+            $this->set('template', $template);
+            $this->set('objectId', $object['Object']['id']);
+            $this->render('ajax/templateWithValidObjectAttributes');
+        } else {
+            return $template;
+        }
+    }
+
+    /**
+     * GET: Returns a form allowing to add a valid object attribute to an object
+     * POST/PUT: Add the attribute to the object
+     */
+    public function quickAddAttributeForm($id, $fieldName = null) {
+        if ($this->request->is('GET')) {
+            if (!isset($fieldName)) {
+                throw new MethodNotAllowedException('No field requested.');
+            }
+            $this->MispObject->id = $id;
+            if (!$this->MispObject->exists()) {
+                throw new NotFoundException(__('Invalid object'));
+            }
+            $fields = array('template_uuid', 'template_version', 'id', 'event_id');
+            $params = array(
+                'conditions' => array('Object.id' => $id),
+                'fields' => $fields,
+                'flatten' => 1,
+            );
+            // fetchObjects restrict access based on user
+            $object = $this->MispObject->fetchObjects($this->Auth->user(), $params);
+            if (empty($object)) {
+                throw new NotFoundException(__('Invalid object'));
+            } else {
+                $object = $object[0];
+            }
+            $template = $this->MispObject->ObjectTemplate->find('first', array(
+                'conditions' => array(
+                    'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
+                    'ObjectTemplate.version' => $object['Object']['template_version'],
+                ),
+                'recursive' => -1,
+                'flatten' => 1,
+                'contain' => array(
+                    'ObjectTemplateElement' => array('conditions' => array(
+                        'object_relation' => $fieldName
+                    ))
+                )
+            ));
+            if (empty($template)) {
+                throw new NotFoundException(__('Invalid object'));
+            }
+            if (empty($template['ObjectTemplateElement'])) {
+                throw new NotFoundException(__('Invalid fields') . ' `' . h($fieldName) . '`');
+            }
+
+            // check if fields can be added
+            foreach($object['Attribute'] as $i => $objAttr) {
+                $objectAttrFromTemplate = $template['ObjectTemplateElement'][0];
+                if ($objAttr['object_relation'] == $fieldName && !$objectAttrFromTemplate['multiple']) {
+                    throw new NotFoundException(__('Invalid field'));
+                }
+            }
+            $template = $this->MispObject->prepareTemplate($template, $object);
+            $this->layout = 'ajax';
+            $this->set('object', $object['Object']);
+            $this->set('template', $template);
+            $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+            $this->set('distributionData', $distributionData);
+            $info = array();
+            foreach ($distributionData['levels'] as $key => $value) {
+                $info['distribution'][$key] = array('key' => $value, 'desc' => $this->MispObject->Event->Attribute->distributionDescriptions[$key]['formdesc']);
+            }
+            $this->set('info', $info);
+            $this->render('ajax/quickAddAttributeForm');
+        } else if ($this->request->is('post') || $this->request->is('put')) {
+            return $this->edit($this->request->data['Object']['id'], true);
+        }
     }
 
     public function delete($id, $hard = false)

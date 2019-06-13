@@ -46,6 +46,8 @@ class MispObject extends AppModel
         ),
     );
 
+    public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
+
     public $validate = array(
         'uuid' => array(
             'uuid' => array(
@@ -59,6 +61,51 @@ class MispObject extends AppModel
             )
         )
     );
+
+    public function afterFind($results, $primary = false)
+    {
+        foreach ($results as $k => $v) {
+            if (!empty($v[$this->alias]['first_seen'])) {
+                $fs = $results[$k][$this->alias]['first_seen'];
+                $fs_sec = intval($fs / 1000000); // $fs is in micro (10^6)
+                $fs_micro = $fs % 1000000;
+                $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+                $fs = $fs_sec . '.' . $fs_micro;
+                $results[$k][$this->alias]['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
+            }
+            if (!empty($v[$this->alias]['last_seen'])) {
+                $ls = $results[$k][$this->alias]['last_seen'];
+                $ls_sec = intval($ls / 1000000); // $ls is in micro (10^6)
+                $ls_micro = $ls % 1000000;
+                $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+                $ls = $ls_sec . '.' . $ls_micro;
+                $results[$k][$this->alias]['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
+            }
+        }
+        return $results;
+    }
+
+    public function beforeSave($options = array()) {
+        // convert into utc and micro sec
+        if (!empty($this->data[$this->alias]['first_seen'])) {
+            $d = new DateTime($this->data[$this->alias]['first_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $fs_sec = $d->format('U');
+            $fs_micro = $d->format('u');
+            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+            $fs = $fs_sec . $fs_micro;
+            $this->data[$this->alias]['first_seen'] = $fs;
+        }
+        if (!empty($this->data[$this->alias]['last_seen'])) {
+            $d = new DateTime($this->data[$this->alias]['last_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $ls_sec = $d->format('U');
+            $ls_micro = $d->format('u');
+            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+            $ls = $ls_sec . $ls_micro;
+            $this->data[$this->alias]['last_seen'] = $ls;
+        }
+    }
 
     public function beforeValidate($options = array())
     {
@@ -74,6 +121,14 @@ class MispObject extends AppModel
         if (empty($this->data[$this->alias]['timestamp'])) {
             $date = new DateTime();
             $this->data[$this->alias]['timestamp'] = $date->getTimestamp();
+        }
+        // parse first_seen different formats
+        if (isset($this->data[$this->alias]['first_seen'])) {
+            $this->data[$this->alias]['first_seen'] = $this->data[$this->alias]['first_seen'] === '' ? null : $this->data[$this->alias]['first_seen'];
+        }
+        // parse last_seen different formats
+        if (isset($this->data[$this->alias]['last_seen'])) {
+            $this->data[$this->alias]['last_seen'] = $this->data[$this->alias]['last_seen'] === '' ? null : $this->data[$this->alias]['last_seen'];
         }
         if (empty($this->data[$this->alias]['template_version'])) {
             $this->data[$this->alias]['template_version'] = 1;
@@ -254,6 +309,27 @@ class MispObject extends AppModel
         return $conditions;
     }
 
+    public function fetchObjectSimple($user, $options = array())
+        {
+            $params = array(
+                'conditions' => $this->buildConditions($user),
+                'fields' => array(),
+                'recursive' => -1
+            );
+            if (isset($options['conditions'])) {
+                $params['conditions']['AND'][] = $options['conditions'];
+            }
+            if (isset($options['fields'])) {
+                $params['fields'] = $options['fields'];
+            }
+            $results = $this->find('all', array(
+                'conditions' => $params['conditions'],
+                'recursive' => -1,
+                'fields' => $params['fields'],
+                'sort' => false
+            ));
+            return $results;
+        }
 
     // Method that fetches all objects
     // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
@@ -493,7 +569,42 @@ class MispObject extends AppModel
         return $attributes;
     }
 
-    public function deltaMerge($object, $objectToSave)
+    // EUH????? No sure we should do that. Maybe the other way around??? #FIXME
+    // delete first/last-seen object attribute and set object's meta accordingly
+    // set object's meta (fs/ls) and potentially delete objectAttributes
+    public function setObjectSeenMetaFromAttribute($object, $delete=false) {
+        if ( !$delete && isset($object['Object']['first-seen']) && isset($object['Object']['last-seen'])) {
+            return;
+        }
+        if (isset($object['Attribute'])) {
+            foreach($object['Attribute'] as $i => $attribute) {
+                if ($attribute['object_relation'] == 'first-seen') {
+                    // set object meta if unset
+                    if (!isset($object['Object']['first-seen'])) {
+                        $object['Object']['first-seen'] = $attribute['value'];
+                    }
+                    if ($delete) {
+                        $object['Attribute'][$i]['deleted'] = 1;
+                        $this->Event->Attribute->save($object['Attribute'][$i]);
+                    }
+                    continue;
+                }
+                if ($attribute['object_relation'] == 'last-seen') {
+                    // set object meta if unset
+                    if (!isset($object['Object']['last-seen'])) {
+                        $object['Object']['last-seen'] = $attribute['value'];
+                    }
+                    if ($delete) {
+                        $object['Attribute'][$i]['deleted'] = 1;
+                        $this->Event->Attribute->save($object['Attribute'][$i]);
+                    }
+                    continue;
+                }
+            }
+        }
+    }
+
+    public function deltaMerge($object, $objectToSave, $onlyAddNewAttribute=false)
     {
         if (!isset($objectToSave['Object'])) {
             $dataToBackup = array('ObjectReferences', 'Attribute', 'ShadowAttribute');
@@ -512,67 +623,95 @@ class MispObject extends AppModel
             }
             unset($dataToBackup);
         }
-        $object['Object']['comment'] = $objectToSave['Object']['comment'];
-        $object['Object']['distribution'] = $objectToSave['Object']['distribution'];
-        if ($object['Object']['distribution'] == 4) {
-            $object['Object']['sharing_group_id'] = $objectToSave['Object']['sharing_group_id'];
+        if (isset($objectToSave['Object']['comment'])) {
+            $object['Object']['comment'] = $objectToSave['Object']['comment'];
+        }
+        if (isset($objectToSave['Object']['distribution'])) {
+            $object['Object']['distribution'] = $objectToSave['Object']['distribution'];
+            if ($object['Object']['distribution'] == 4) {
+                $object['Object']['sharing_group_id'] = $objectToSave['Object']['sharing_group_id'];
+            }
         }
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
+        if (isset($objectToSave['Object']['first_seen'])) {
+            $object['Object']['first_seen'] = $objectToSave['Object']['first_seen'];
+        }
+        if (isset($objectToSave['Object']['last_seen'])) {
+            $object['Object']['last_seen'] = $objectToSave['Object']['last_seen'];
+        }
+        $this->setObjectSeenMetaFromAttribute($object, true);
         $this->save($object);
-        $checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment', 'disable_correlation');
-        foreach ($objectToSave['Attribute'] as $newKey => $newAttribute) {
-            foreach ($object['Attribute'] as $origKey => $originalAttribute) {
-                if (!empty($newAttribute['uuid'])) {
-                    if ($newAttribute['uuid'] == $originalAttribute['uuid']) {
-                        $different = false;
-                        foreach ($checkFields as $f) {
-                            if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
-                                $newAttribute[$f] = 0;
+
+        if (!$onlyAddNewAttribute) {
+            $checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment', 'disable_correlation');
+            foreach ($objectToSave['Attribute'] as $newKey => $newAttribute) {
+                foreach ($object['Attribute'] as $origKey => $originalAttribute) {
+                    if (!empty($newAttribute['uuid'])) {
+                        if ($newAttribute['uuid'] == $originalAttribute['uuid']) {
+                            $different = false;
+                            foreach ($checkFields as $f) {
+                                if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
+                                    $newAttribute[$f] = 0;
+                                }
+                                if ($newAttribute[$f] != $originalAttribute[$f]) {
+                                    $different = true;
+                                }
                             }
-                            if ($newAttribute[$f] != $originalAttribute[$f]) {
-                                $different = true;
+                            if ($different) {
+                                $newAttribute['id'] = $originalAttribute['id'];
+                                $newAttribute['event_id'] = $object['Object']['event_id'];
+                                $newAttribute['object_id'] = $object['Object']['id'];
+                                $newAttribute['timestamp'] = $date->getTimestamp();
+                                $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array(
+                                    'category',
+                                    'value',
+                                    'to_ids',
+                                    'distribution',
+                                    'sharing_group_id',
+                                    'comment',
+                                    'timestamp',
+                                    'object_id',
+                                    'event_id',
+                                    'disable_correlation'
+                                ));
                             }
+                            unset($object['Attribute'][$origKey]);
+                            continue 2;
                         }
-                        if ($different) {
-                            $newAttribute['id'] = $originalAttribute['id'];
-                            $newAttribute['event_id'] = $object['Object']['event_id'];
-                            $newAttribute['object_id'] = $object['Object']['id'];
-                            $newAttribute['timestamp'] = $date->getTimestamp();
-                            $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array(
-                                'category',
-                                'value',
-                                'to_ids',
-                                'distribution',
-                                'sharing_group_id',
-                                'comment',
-                                'timestamp',
-                                'object_id',
-                                'event_id',
-                                'disable_correlation'
-                            ));
-                        }
-                        unset($object['Attribute'][$origKey]);
-                        continue 2;
                     }
                 }
-            }
-            $this->Event->Attribute->create();
-            $newAttribute['event_id'] = $object['Object']['event_id'];
-            $newAttribute['object_id'] = $object['Object']['id'];
-            if (!isset($newAttribute['timestamp'])) {
-                $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-                if ($newAttribute['distribution'] == 'event') {
-                    $newAttribute['distribution'] = 5;
+                $this->Event->Attribute->create();
+                $newAttribute['event_id'] = $object['Object']['event_id'];
+                $newAttribute['object_id'] = $object['Object']['id'];
+                if (!isset($newAttribute['timestamp'])) {
+                    $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+                    if ($newAttribute['distribution'] == 'event') {
+                        $newAttribute['distribution'] = 5;
+                    }
                 }
+                $this->Event->Attribute->save($newAttribute);
+                $attributeArrays['add'][] = $newAttribute;
+                unset($objectToSave['Attribute'][$newKey]);
             }
-            $this->Event->Attribute->save($newAttribute);
-            $attributeArrays['add'][] = $newAttribute;
-            unset($objectToSave['Attribute'][$newKey]);
-        }
-        foreach ($object['Attribute'] as $origKey => $originalAttribute) {
-            $originalAttribute['deleted'] = 1;
-            $this->Event->Attribute->save($originalAttribute);
+            foreach ($object['Attribute'] as $origKey => $originalAttribute) {
+                $originalAttribute['deleted'] = 1;
+                $this->Event->Attribute->save($originalAttribute);
+            }
+        } else { // we only add the new attribute
+            $newAttribute = $objectToSave['Attribute'][0];
+            if ($newAttribute != 'last-seen' && $newAttribute != 'first-seen') { // fs/ls should be added in the object's meta
+                $this->Event->Attribute->create();
+                $newAttribute['event_id'] = $object['Object']['event_id'];
+                $newAttribute['object_id'] = $object['Object']['id'];
+                if (!isset($newAttribute['timestamp'])) {
+                    $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+                    if ($newAttribute['distribution'] == 'event') {
+                        $newAttribute['distribution'] = 5;
+                    }
+                }
+                $this->Attribute->saveAttributes(array($newAttribute));
+            }
         }
         return $this->id;
     }

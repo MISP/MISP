@@ -20,13 +20,13 @@ class RestResponseComponent extends Component
             'add' => array(
                 'description' => "POST a MISP Attribute JSON to this API to create an Attribute.",
                 'mandatory' => array('value', 'type'),
-                'optional' => array('category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
+                'optional' => array('category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'first_seen', 'last_seen'),
                 'params' => array('event_id')
             ),
             'edit' => array(
                 'description' => "POST a MISP Attribute JSON to this API to update an Attribute. If the timestamp is set, it has to be newer than the existing Attribute.",
                 'mandatory' => array(),
-                'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
+                'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'first_seen', 'last_seen'),
                 'params' => array('attribute_id')
             ),
             'deleteSelected' => array(
@@ -382,6 +382,7 @@ class RestResponseComponent extends Component
         if (isset($this->__convertActionToMessage[$controller][$action['action']])) {
             $stringifiedAction = $this->__convertActionToMessage[$controller][$action['action']];
         }
+        $response['saved'] = false;
         $response['name'] = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
         $response['message'] = $response['name'];
         $response['url'] = $this->__generateURL($action, $controller, $id);
@@ -395,6 +396,7 @@ class RestResponseComponent extends Component
         if (!$message) {
             $message = Inflector::singularize($controller) . ' ' . $action['action'] . ((substr($action['action'], -1) == 'e') ? 'd' : 'ed');
         }
+        $response['saved'] = true;
         $response['name'] = $message;
         $response['message'] = $response['name'];
         $response['url'] = $this->__generateURL($action, $controller, $id);

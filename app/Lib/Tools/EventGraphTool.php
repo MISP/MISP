@@ -40,7 +40,7 @@
 
         private function __get_event($id)
         {
-            $this->__json['available_rotation_key'] = $this->__authorized_JSON_key;
+            $this->__json['available_pivot_key'] = $this->__authorized_JSON_key;
 
             $fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'extended' => $this->__extended_view));
             $event = array();
@@ -232,12 +232,12 @@
             $event = $this->__get_filtered_event($id);
             $this->__json['items'] = array();
             $this->__json['relations'] = array();
-            
+
             $this->__json['existing_object_relation'] = array();
             if (empty($event)) {
                 return $this->__json;
             }
-            
+
             if (!empty($event['Object'])) {
                 $object = $event['Object'];
             } else {
@@ -312,7 +312,7 @@
             if (empty($event)) {
                 return $this->__json;
             }
-            
+
             if (!empty($event['Object'])) {
                 $object = $event['Object'];
             } else {
@@ -419,7 +419,7 @@
             if (empty($event)) {
                 return $this->__json;
             }
-            
+
             if (!empty($event['Object'])) {
                 $object = $event['Object'];
             } else {

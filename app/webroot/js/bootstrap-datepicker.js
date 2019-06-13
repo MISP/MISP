@@ -1461,6 +1461,7 @@
 			return i.jquery ? i[0] : i;
 		});
 		delete options.inputs;
+        this.preventMultipleSet = options.preventMultipleSet;
 
 		datepickerPlugin.call($(this.inputs), options)
 			.on('changeDate', $.proxy(this.dateUpdated, this));
@@ -1507,10 +1508,12 @@
 			if (i === -1)
 				return;
 
-			$.each(this.pickers, function(i, p){
-				if (!p.getUTCDate())
-					p.setUTCDate(new_date);
-			});
+			if (!this.preventMultipleSet) {
+				$.each(this.pickers, function(i, p){
+					if (!p.getUTCDate())
+						p.setUTCDate(new_date);
+				});
+			}
 
 			if (new_date < this.dates[j]){
 				// Date being moved earlier/left

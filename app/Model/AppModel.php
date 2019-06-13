@@ -79,6 +79,26 @@ class AppModel extends Model
     );
 
     public $advanced_updates_description = array(
+        'seenOnAttributeAndObject' => array(
+            'title' => 'First seen/Last seen Attribute table',
+            'description' => 'Update the Attribute table to support first_seen and last_seen feature, with a microsecond resolution.',
+            'liveOff' => true, # should the instance be offline for users other than site_admin
+            'recommendBackup' => true, # should the update recommend backup
+            'exitOnError' => false, # should the update exit on error
+            'requirements' => 'MySQL version must be >= 5.6', # message stating the requirements necessary for the update
+            'record' => true, # should the update success be saved in the admin_table
+            'preUpdate' => 'seenOnAttributeAndObjectPreUpdate', # Function to execute before the update. If it throws an error, it cancels the update
+            'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
+        ),
+        'testUpdate' => array(
+            'title' => 'Test Update',
+            'description' => 'Runs a test update',
+            'liveOff' => true,
+            'recommendBackup' => true,
+            'exitOnError' => true,
+            'preUpdate' => 'failingPreUpdate', # Function to execute before the update. If it returns false, cancel the update
+            'url' => '/servers/updateDatabase/testUpdate/'
+        )
     );
     public $actions_description = array(
         'verifyGnuPGkeys' => array(
@@ -1210,6 +1230,55 @@ class AppModel extends Model
                 $sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
                 $sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
                 break;
+            case 'seenOnAttributeAndObject':
+                $sqlArray[] =
+                    "ALTER TABLE `attributes`
+                        DROP INDEX uuid,
+                        DROP INDEX event_id,
+                        DROP INDEX sharing_group_id,
+                        DROP INDEX type,
+                        DROP INDEX category,
+                        DROP INDEX value1,
+                        DROP INDEX value2,
+                        DROP INDEX object_id,
+                        DROP INDEX object_relation,
+                        DROP INDEX deleted,
+                    ;";
+                $sqlArray[] =
+                    "ALTER TABLE `attributes`
+                        ADD COLUMN `first_seen` BIGINT(20) NULL DEFAULT NULL,
+                        ADD COLUMN `last_seen` BIGINT(20) NULL DEFAULT NULL,
+                        MODIFY comment TEXT COLLATE utf8_unicode_ci
+                    ;";
+                $sqlArray[] = "
+                    ALTER TABLE `attributes`
+                        ADD INDEX `uuid` (`uuid`),
+                        ADD INDEX `event_id` (`event_id`),
+                        ADD INDEX `sharing_group_id` (`sharing_group_id`),
+                        ADD INDEX `type` (`type`),
+                        ADD INDEX `category` (`category`),
+                        ADD INDEX `value1` (`value1`(255)),
+                        ADD INDEX `value2` (`value2`(255)),
+                        ADD INDEX `object_id` (`object_id`),
+                        ADD INDEX `object_relation` (`object_relation`),
+                        ADD INDEX `deleted` (`deleted`),
+                        ADD INDEX `first_seen` (`first_seen`),
+                        ADD INDEX `last_seen` (`last_seen`),
+                        ADD INDEX `comment` (`comment`(767))
+                    ;";
+                $sqlArray[] = "
+                    ALTER TABLE `objects`
+                        ADD `first_seen` BIGINT(20) NULL DEFAULT NULL,
+                        ADD `last_seen` BIGINT(20) NULL DEFAULT NULL
+                    ;";
+                $indexArray[] = array('objects', 'first_seen');
+                $indexArray[] = array('objects', 'last_seen');
+                break;
+            case 'testUpdate':
+                $sqlArray[] = "SELECT SLEEP(10);";
+                $sqlArray[] = "SELECT SLEEPsdcfsac(4);";
+                $sqlArray[] = "SELECT SLEEP(12);";
+                break;
             default:
                 return false;
                 break;
@@ -1479,6 +1548,29 @@ class AppModel extends Model
             return ucfirst($field) . ' cannot be empty.';
         }
         return true;
+    }
+
+    // Try to create a table with a BIGINT(20)
+    public function seenOnAttributeAndObjectPreUpdate() {
+        $sqlArray[] = "CREATE TABLE IF NOT EXISTS testtable (
+            `testfield` BIGINT(6) NULL DEFAULT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+        try {
+            foreach($sqlArray as $i => $sql) {
+                $this->query($sql);
+            }
+        } catch (Exception $e) {
+            throw new Exception('Pre update test failed: ' . PHP_EOL . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage());
+        }
+        // clean up
+        $sqlArray[] = "DROP TABLE testtable;";
+        foreach($sqlArray as $i => $sql) {
+            $this->query($sql);
+        }
+    }
+
+    public function failingPreUpdate() {
+        throw new Exception('Yolo fail');
     }
 
     public function runUpdates($verbose = false)
