@@ -22,12 +22,15 @@ import time
 import uuid
 import base64
 import stix2misp_mapping
-import stix_edh
 import stix.extensions.marking.ais
 from mixbox.namespaces import NamespaceNotFoundError
 from operator import attrgetter
 from stix.core import STIXPackage
 from collections import defaultdict
+try:
+    import stix_edh
+except ModuleNotFoundError:
+    pass
 
 _MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-3]])
 _PyMISP_dir = '{_MISP_dir}/PyMISP'.format(_MISP_dir=_MISP_dir)
@@ -1225,13 +1228,16 @@ def generate_event(filename, tries=0):
             sys.exit()
         _update_namespaces()
         return generate_event(filename, 1)
+    except NotImplementedError:
+        print('ERROR - Missing python library: stix_edh', file=sys.stderr)
     except Exception:
         try:
             import maec
             print(2)
         except ImportError:
+            print('ERROR - Missing python library: maec', file=sys.stderr)
             print(3)
-        sys.exit(0)
+    sys.exit(0)
 
 def main(args):
     filename = '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
