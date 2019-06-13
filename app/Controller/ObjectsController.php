@@ -831,7 +831,24 @@ class ObjectsController extends AppController
         if ($this->request->is('get') || $this->request->is('post')) {
             $this->set('template', $template);
             $this->set('objectId', $object['Object']['id']);
-            $this->render('ajax/templateWithValidObjectAttributes');
+
+            $items = array();
+            foreach ($template['ObjectTemplateElement'] as $objectAttribute) {
+                $name = sprintf('%s :: %s', $objectAttribute['object_relation'], $objectAttribute['type']);
+                $items[] = array(
+                    'name' => $name,
+                    'value' => '/objects/quickAddAttributeForm/' . $object['Object']['id'] . '/' . $objectAttribute['object_relation'],
+                    'template' => array(
+                        'name' => $name,
+                        'infoExtra' => $objectAttribute['description'],
+                    )
+                );
+            }
+            $this->set('options', array(
+                'flag_redraw_chosen' => true
+            ));
+            $this->set('items', $items);
+            $this->render('/Elements/generic_picker');
         } else {
             return $template;
         }
@@ -893,7 +910,9 @@ class ObjectsController extends AppController
             $template = $this->MispObject->prepareTemplate($template, $object);
             $this->layout = 'ajax';
             $this->set('object', $object['Object']);
-            $this->set('template', $template);
+            $template_element = $template['ObjectTemplateElement'][0];
+            unset($template_element['value']); // avoid filling if multiple
+            $this->set('template_element', $template_element);
             $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
             $this->set('distributionData', $distributionData);
             $info = array();

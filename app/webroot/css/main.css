@@ -1033,6 +1033,16 @@ a.pill-pre-picker {
     position: absolute;
 }
 
+div.generic-picker-wrapper > div.generic-picker-embeded-block {
+    margin-left: 15px;
+    margin-top: -12px;
+    display: inline-block;
+}
+
+div.generic-picker-embeded-block legend {
+    margin-bottom: 0px;
+}
+
 .generic-picker-item-element-check {
     float: right;
     border: 1px solid #999;

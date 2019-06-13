@@ -786,58 +786,6 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
     }
 }
 
-function quickFetchValidObjectAttribute(objectId) {
-    var itemType = "objects";
-    var formUrl= "quickFetchTemplateWithValidObjectAttributes";
-    var compiledUrlForm = "/" + itemType + "/" + formUrl + "/" + objectId;
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            if (data.fail !== undefined && data.fail) {
-                showMessage('fail', data.errors);
-            } else {
-                $('#popover_form').html(data);
-                openPopup('#popover_form');
-            }
-        },
-        error:function() {
-            showMessage('fail', 'Could not fetch allowed attribute type.');
-        },
-        complete:function() {
-            $(".loading").hide();
-        },
-        type: "get",
-        url: compiledUrlForm
-    });
-    return false;
-}
-
-function fetchAddObjectAttributeForm(objectId, fieldName) {
-    var itemType = "objects";
-    var formUrl= "quickAddAttributeForm";
-    var compiledUrlForm = "/" + itemType + "/" + formUrl + "/" + objectId + "/" + fieldName;
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            $('#popover_form').html(data);
-            openPopup('#popover_form');
-        },
-        error:function() {
-            showMessage('fail', 'Could not fetch allowed attribute type.');
-        },
-        complete:function() {
-            $(".loading").hide();
-        },
-        type: "get",
-        url: compiledUrlForm
-    });
-    return false;
-}
-
 function handleGenericAjaxResponse(data, skip_reload) {
     if (typeof skip_reload === "undefined") {
         skip_reload = false;
@@ -1181,7 +1129,7 @@ function clickCreateButton(event, type) {
     simplePopup("/" + destination + "/add/" + event);
 }
 
-function submitPopoverForm(context_id, referer, update_context_id) {
+function submitPopoverForm(context_id, referer, update_context_id, popover_dissmis_id_to_close) {
     var url = null;
     var context = 'event';
     var contextNamingConvention = 'Attribute';
@@ -1253,6 +1201,9 @@ function submitPopoverForm(context_id, referer, update_context_id) {
                 if (closePopover) {
                     $("#gray_out").fadeOut();
                     $("#popover_form").fadeOut();
+                    if (popover_dissmis_id_to_close !== undefined) {
+                        $('[data-dismissid="' + popover_dissmis_id_to_close + '"]').popover('destroy');
+                    }
                 }
             },
             data: $("#submitButton").closest("form").serialize(),
