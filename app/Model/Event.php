@@ -6079,6 +6079,14 @@ class Event extends AppModel
                 $items_count += count($resolved_data[$feature]);
             }
         }
+        if (!empty($resolved_data['Tag'])) {
+            foreach ($resolved_data['Tag'] as $tag) {
+                $tag_id = $this->EventTag->Tag->captureTag($tag, $user);
+                if ($tag_id) {
+                    $this->EventTag->attachTagToEvent($id, $tag_id);
+                }
+            }
+        }
         if (!empty($resolved_data['Attribute'])) {
             $total_attributes = count($resolved_data['Attribute']);
             foreach ($resolved_data['Attribute'] as $a => $attribute) {

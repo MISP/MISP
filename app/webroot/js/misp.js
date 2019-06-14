@@ -2459,6 +2459,15 @@ function freetextImportResultsSubmit(id, count) {
 function moduleResultsSubmit(id) {
     var data_collected = {};
     var temp;
+    if ($('.meta_table').length) {
+        var tags = [];
+        $('.meta_table').find('.tag').each(function() {
+            tags.push({name: $(this).text()});
+        });
+        if (tags.length) {
+            data_collected['Tag'] = tags;
+        }
+    }
     if ($('.MISPObject').length) {
         var objects = [];
         $(".MISPObject").each(function(o) {
