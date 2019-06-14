@@ -2521,6 +2521,13 @@ function moduleResultsSubmit(id) {
                     if (attribute['distribution'] != '4') {
                         attribute['sharing_group_id'] = '0';
                     }
+                    if ($(this).find('.objectAttributeTagContainer').length) {
+                        var tags = [];
+                        $(this).find('.objectAttributeTag').each(function() {
+                            tags.push({name: $(this).attr('title')});
+                        });
+                        attribute['Tag'] = tags;
+                    }
                     object_attributes.push(attribute);
                 });
                 temp['Attribute'] = object_attributes;
@@ -2557,6 +2564,13 @@ function moduleResultsSubmit(id) {
             }
             if (temp['distribution'] != '4') {
                 temp['sharing_group_id'] = '0';
+            }
+            if ($(this).find('.attributeTagContainer').length) {
+                var tags = [];
+                $(this).find('.attributeTag').each(function() {
+                    tags.push({name: $(this).attr('title')});
+                });
+                temp['Tag'] = tags;
             }
             attributes.push(temp);
         });

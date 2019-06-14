@@ -81,6 +81,7 @@
           <th><?php echo __('Type');?></th>
           <th><?php echo __('Value');?></th>
           <th><?php echo __('UUID');?></th>
+          <th><?php echo __('Tags');?></th>
           <th><?php echo __('IDS');?></th>
           <th><?php echo __('Disable Correlation');?></th>
           <th><?php echo __('Comment');?></th>
@@ -92,7 +93,7 @@
         ?>
         <tbody class='MISPObject'>
           <tr class='tableHighlightBorderTop borderBlue blueRow' tabindex='0'>
-            <td colspan="6">
+            <td colspan="7">
               <?php if(!empty($object['id'])) { ?>
               <span class="bold"><?php echo __('ID: ');?></span><span class="ObjectID"><?php echo h($object['id']); ?></span><br />
               <?php } ?>
@@ -180,6 +181,26 @@
             </td>
             <td class="AttributeValue limitedWidth"><?php echo h($attribute['value']); ?></td>
             <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
+            <td style="max-width:150px;width:10px;">
+              <?php if (!empty($attribute['Tag'])) { ?>
+              <span class="objectAttributeTagContainer">
+                <?php
+                    foreach ($attribute['Tag'] as $tag) {
+                        $tagText = explode('=', $tag['name']);
+                        $tagText = trim(end($tagText), "\"");
+                        $color = !empty($tag['colour']) ? $tag['colour'] : '#0088cc';
+                ?>
+                <span style="display:inline-block;">
+                  <span style="padding:1px;display:flex;white-space:nowrap;margin-right:2px;word-wrap:break-word;">
+                    <span class="objectAttributeTag" style="display:inline-block;background-color:<?php echo h($color); ?>;color:white;" title="<?php echo h($tag['name']); ?>">
+                    <?php echo h($tagText); ?>
+                    </span>
+                  </span>
+                </span>
+                <?php } ?>
+              </span>
+              <?php } ?>
+            </td>
             <td class="short" style="width:40px;text-align:center;">
               <input type="checkbox" class="AttributeToIds" <?php if (!empty($attribute['to_ids'])) echo 'checked'; ?>/>
             </td>
@@ -211,7 +232,7 @@
                         echo '</tr>';
                     }
                 }
-                echo '<tr><td colspan="8" /></tr>';
+                echo '<tr><td colspan="9" /></tr>';
             ?>
         </tbody>
         <?php
@@ -227,6 +248,7 @@
               <th><?php echo __('Type');?></th>
               <th><?php echo __('Value');?></th>
               <th><?php echo __('UUID');?></th>
+              <th><?php echo __('Tags');?></th>
               <th><?php echo __('IDS');?></th>
               <th><?php echo __('Disable Correlation');?></th>
               <th><?php echo __('Comment');?></th>
@@ -255,6 +277,26 @@
           ?>
           <td class="AttributeValue limitedWidth"><?php echo h($attribute['value']); ?></td>
           <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
+          <td style="max-width:150px;width:10px;">
+            <?php if (!empty($attribute['Tag'])) { ?>
+            <span class="attributeTagContainer">
+              <?php
+                  foreach ($attribute['Tag'] as $tag) {
+                      $tagText = explode('=', $tag['name']);
+                      $tagText = trim(end($tagText), "\"");
+                      $color = !empty($tag['colour']) ? $tag['colour'] : '#0088cc';
+              ?>
+              <span style="display:inline-block;">
+                <span style="padding:1px;display:flex;white-space:nowrap;margin-right:2px;word-wrap:break-word;">
+                  <span class="attributeTag" style="display:inline-block;background-color:<?php echo h($color); ?>;color:white;" title="<?php echo h($tag['name']); ?>">
+                  <?php echo h($tagText); ?>
+                  </span>
+                </span>
+              </span>
+              <?php } ?>
+            </span>
+            <?php } ?>
+          </td>
           <td class="short" style="width:40px;text-align:center;">
             <input type="checkbox" class="AttributeToIds" <?php if (isset($attribute['to_ids']) && $attribute['to_ids']) echo 'checked'; ?>/>
           </td>

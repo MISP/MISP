@@ -6097,6 +6097,14 @@ class Event extends AppModel
                 $attribute['event_id'] = $id;
                 if ($this->Attribute->save($attribute)) {
                     $saved_attributes++;
+                    if (!empty($attribute['Tag'])) {
+                        foreach ($attribute['Tag'] as $tag) {
+                            $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
+                            if ($tag_id) {
+                                $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $id, $tag_id);
+                            }
+                        }
+                    }
                 } else {
                     $failed_attributes++;
                     $lastAttributeError = $this->Attribute->validationErrors;
@@ -6374,7 +6382,18 @@ class Event extends AppModel
             $attribute['comment'] = $default_comment;
         }
         $this->Attribute->create();
-        return $this->Attribute->save($attribute);
+        $attribute_save = $this->Attribute->save($attribute);
+        if ($attribute_save) {
+            if (!empty($attribute['Tag'])) {
+                foreach ($attribute['Tag'] as $tag) {
+                    $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
+                    if ($tag_id) {
+                        $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $event_id, $tag_id);
+                    }
+                }
+            }
+        }
+        return $attribute_save;
     }
 
     public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false)
