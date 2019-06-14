@@ -666,7 +666,7 @@ fi
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
-  RELEASE=$(lsb_release -s -r| tr [A-Z] [a-z])
+  RELEASE=$(lsb_release -s -r| tr '[:upper:]' '[:lower:]')
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
@@ -692,7 +692,7 @@ fi
 
 # If Debian is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "debian" ]; then
-  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [ "${CODE}" == "buster" ]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
@@ -714,7 +714,7 @@ fi
 
 # If Tsurugi is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "tsurugi" ]; then
-  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [ "${CODE}" == "bamboo" ]; then
     echo "Install on Tsurugi Lab partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
