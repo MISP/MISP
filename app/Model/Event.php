@@ -6161,7 +6161,7 @@ class Event extends AppModel
                             if (isset($initial_attributes[$object_relation]) && in_array($object_attribute['value'], $initial_attributes[$object_relation])) {
                                 continue;
                             }
-                            if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $initial_object_id)) {
+                            if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $initial_object_id, $user)) {
                                 $saved_object_attributes++;
                             } else {
                               $failed_object_attributes++;
@@ -6194,7 +6194,7 @@ class Event extends AppModel
                             if ($this->Object->save($object)) {
                                 $object_id = $this->Object->id;
                                 foreach ($object['Attribute'] as $object_attribute) {
-                                    if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $object_id)) {
+                                    if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $object_id, $user)) {
                                         $saved_object_attributes++;
                                     } else {
                                         $failed_object_attributes++;
@@ -6374,7 +6374,7 @@ class Event extends AppModel
         return 0;
     }
 
-    private function __saveObjectAttribute($attribute, $default_comment, $event_id, $object_id)
+    private function __saveObjectAttribute($attribute, $default_comment, $event_id, $object_id, $user)
     {
         $attribute['object_id'] = $object_id;
         $attribute['event_id'] = $event_id;
