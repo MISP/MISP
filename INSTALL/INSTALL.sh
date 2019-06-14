@@ -247,7 +247,7 @@ checkCoreOS () {
   if [[ -f "/etc/redhat-release" ]]; then
     echo "This is some redhat flavour"
     REDHAT=1
-    RHfla=$(cat /etc/redhat-release | cut -f 1 -d\ | tr [A-Z] [a-z])
+    RHfla=$(cat /etc/redhat-release | cut -f 1 -d\ | tr '[:upper:]' '[:lower:]')
   fi
 
 }
@@ -259,7 +259,7 @@ checkFlavour () {
     sudo apt install lsb-release dialog -y
   fi
 
-  FLAVOUR=$(lsb_release -s -i |tr [A-Z] [a-z])
+  FLAVOUR=$(lsb_release -s -i |tr '[:upper:]' '[:lower:]')
   if [ FLAVOUR == "ubuntu" ]; then
     RELEASE=$(lsb_release -s -r)
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
@@ -377,6 +377,27 @@ checkFail () {
   fi
 }
 
+ask_o () {
+
+  ANSWER=""
+
+  if [ -z ${1} ]; then
+    echo "This function needs at least 1 parameter."
+    exit 1
+  fi
+
+  [ -z $2 ] && OPT1="y" || OPT1=$2
+  [ -z $3 ] && OPT2="n" || OPT2=$3
+
+  while true; do
+    case $ANSWER in ${OPT1} | ${OPT2}) break ;; esac
+    echo -n "${1} (${OPT1}/${OPT2}) "
+    read ANSWER
+    ANSWER=$(echo $ANSWER |  tr '[:upper:]' '[:lower:]')
+  done
+
+}
+
 # Check if misp user is present and if run as root
 checkID () {
   debug "Checking if run as root and $MISP_USER is present"
@@ -387,7 +408,7 @@ checkID () {
     if [[ "$UNATTENDED" != "1" ]]; then 
       echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' (y) or continue as $USER (n)? (y/n) "
       read ANSWER
-      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+      ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
     else
       ANSWER="y"
     fi
@@ -530,7 +551,7 @@ setBaseURL () {
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
-      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+      ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
       if [[ "$ANSWER" == "y" ]]; then
         if [[ ! -z $IP ]]; then
           echo "It seems you have an interface called $IFACE UP with the following IP: $IP - FYI"
@@ -2318,7 +2339,7 @@ fi
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
-  RELEASE=$(lsb_release -s -r| tr [A-Z] [a-z])
+  RELEASE=$(lsb_release -s -r| tr '[:upper:]' '[:lower:]')
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
@@ -2344,7 +2365,7 @@ fi
 
 # If Debian is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "debian" ]; then
-  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [ "${CODE}" == "buster" ]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
@@ -2366,7 +2387,7 @@ fi
 
 # If Tsurugi is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "tsurugi" ]; then
-  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [ "${CODE}" == "bamboo" ]; then
     echo "Install on Tsurugi Lab partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
