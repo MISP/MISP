@@ -25,6 +25,10 @@
 ## Time to set some variables
 ##
 
+# This makes use of the standard variables used by the installer
+eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | grep -v \`\`\`)"
+MISPvars > /dev/null 2>&1
+
 LUSER_ID="$(id -u)"
 
 if [[ "${LUSER_ID}" > "0" ]]; then
@@ -54,17 +58,17 @@ fi
 # Fill in any missing values with defaults
 
 # MISP path
-MISPPath=${MISPPath:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
+PATH_TO_MISP=${PATH_TO_MISP:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
 # database.php
-MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $MISPPath/app/Config/database.php)
-MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/database.php)
-MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" $MISPPath/app/Config/database.php)
-DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" $MISPPath/app/Config/database.php)
-MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" $MISPPath/app/Config/database.php)
+MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php)
+MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php)
+MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php)
+DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" $PATH_TO_MISP/app/Config/database.php)
+MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php)
 
 echo "Clearing data model cache files"
-rm -f $MISPPath/app/tmp/cache/models/myapp_*
-rm -f $MISPPath/app/tmp/cache/persistent/myapp_*
+rm -f $PATH_TO_MISP/app/tmp/cache/models/myapp_*
+rm -f $PATH_TO_MISP/app/tmp/cache/persistent/myapp_*
 
 echo "Wiping MySQL tables"
 echo "Removes all users and organizations, except default (id=1)"
@@ -76,7 +80,7 @@ mysql --host $MISPDBHost -u $MySQLRUser -p$MySQLRPass $MISPDB < $SQL
 
 echo "Inserting default values to MySQL tables"
 TMP=/tmp/misp-wipe-$$.sql
-cd $MISPPath
+cd $PATH_TO_MISP
 sed -n '/Default values for initial installation/ { s///; :a; n; p; ba; }' INSTALL/MYSQL.sql | egrep -v '(admin_settings|db_version)' > $TMP
 mysql --host $MISPDBHost -u $MySQLRUser -p$MySQLRPass $MISPDB < $TMP
 rm -f $TMP
@@ -88,7 +92,7 @@ git clean -f -d -x app/tmp
 git clean -f -d -x app/files
 
 echo "Updating taxonomies"
-baseurl=$(grep -o -P "(?<='baseurl' => ').*(?=')" $MISPPath/app/Config/config.php)
+baseurl=$(grep -o -P "(?<='baseurl' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php)
 AuthKey=$(echo 'select authkey from users where role_id = 1 order by id limit 1;' | mysql -u $MySQLRUser -p$MySQLRPass $MISPDB 2>/dev/null | tail -1)
 curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/taxonomies/update
 
