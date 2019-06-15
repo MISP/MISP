@@ -877,6 +877,7 @@ genRCLOCAL () {
   sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
+  sed -i -e '$i \[ -f /etc/init.d/firstBoot ] && bash /etc/init.d/firstBoot\n' /etc/rc.local
 }
 
 # Run PyMISP tests
