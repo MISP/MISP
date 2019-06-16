@@ -26,10 +26,13 @@
 ## vi misp-backup.conf # adjust values
 ## sudo bash misp-backup.sh 2>&1 | tee misp-backup.log
 ##
-## TODO: Target directory, rudimentary free space check: stat -f --format="%a" OutputDirName
-## TODO: Make sure no directories are blank
+## TODO: Make sure no directories are blank, $OutputDirName==Done
 ## TODO: Review how much sense it makes to ask fo MySQL credentials when most of the script does auto detection anyway.
 ##
+
+# This makes use of the standard variables used by the installer
+eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | grep -v \`\`\`)"
+MISPvars > /dev/null 2>&1
 
 # Leave empty for NO debug messages, if run with set -x or bash -x it will enable DEBUG by default
 DEBUG=
@@ -59,6 +62,10 @@ checkDiskFree () {
   if [[ ! -e $1 ]]; then
     echo "$1 does not exist, creating"
     mkdir -p $1
+    if [[ $? != 0 ]]; then
+      echo "Could not create $1, please fix permissions."
+      exit 126
+    fi
   fi
   threshhold=90
   free=$(df -l --sync --output=pcent $1 |tail -1|cut -f 1 -d% | tr -d \ )

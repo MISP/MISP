@@ -1,1 +1,1 @@
-MISPPath=/var/www/MISP
+PATH_TO_MISP=/var/www/MISP
