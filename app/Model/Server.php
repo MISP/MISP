@@ -3076,6 +3076,9 @@ class Server extends AppModel
 
     public function testForBinExec($value)
     {
+        if (substr($value, 0, 7) === "phar://") {
+            return 'Phar protocol not allowed.';
+        }
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($value === '') {
             return true;
@@ -3094,6 +3097,9 @@ class Server extends AppModel
 
     public function testForWritableDir($value)
     {
+        if (substr($value, 0, 7) === "phar://") {
+            return 'Phar protocol not allowed.';
+        }
         if (!is_dir($value)) {
             return 'Not a valid directory.';
         }
