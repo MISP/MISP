@@ -210,11 +210,13 @@ class StixParser():
     # Return type & value of an ip address attribute
     @staticmethod
     def handle_address(properties):
-        if properties.is_source:
-            ip_type = "ip-src"
+        if properties.category == 'e-mail':
+            attribute_type = 'email-src'
+            relation = 'from'
         else:
-            ip_type = "ip-dst"
-        return ip_type, properties.address_value.value, "ip"
+            attribute_type = "ip-src" if properties.is_source else "ip-dst"
+            relation = 'ip'
+        return attribute_type, properties.address_value.value, relation
 
     def handle_as(self, properties):
         attributes = self.fetch_attributes_with_partial_key_parsing(properties, stix2misp_mapping._as_mapping)
@@ -1103,12 +1105,14 @@ class ExternalStixParser(StixParser):
                             self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True, object_uuid=uuid)
                 except AttributeError:
                     self.parse_description(indicator)
+            elif hasattr(observable, 'observable_composition') and observable.observable_composition:
+                self.parse_external_observable(observable.observable_composition.observables, to_ids=True)
         if hasattr(indicator, 'related_indicators') and indicator.related_indicators:
             for related_indicator in indicator.related_indicators:
                 self.parse_external_single_indicator(related_indicator.item)
 
     # Parse observables of an external STIX document
-    def parse_external_observable(self, observables):
+    def parse_external_observable(self, observables, to_ids=False):
         for observable in observables:
             title = observable.title
             observable_object = observable.object_
@@ -1126,7 +1130,7 @@ class ExternalStixParser(StixParser):
                 object_uuid = self.fetch_uuid(observable_object.id_)
                 if isinstance(attribute_value, (str, int)):
                     # if the returned value is a simple value, we build an attribute
-                    attribute = {'to_ids': False, 'uuid': object_uuid}
+                    attribute = {'to_ids': to_ids, 'uuid': object_uuid}
                     if hasattr(observable, 'handling') and observable.handling:
                         attribute['Tag'] = []
                         for handling in observable.handling:

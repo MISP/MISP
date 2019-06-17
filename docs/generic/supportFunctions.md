@@ -229,19 +229,19 @@ ask_o () {
 
   ANSWER=""
 
-  if [ -z ${1} ]; then
+  if [ -z "${1}" ]; then
     echo "This function needs at least 1 parameter."
     exit 1
   fi
 
-  [ -z $2 ] && OPT1="y" || OPT1=$2
-  [ -z $3 ] && OPT2="n" || OPT2=$3
+  [ -z "${2}" ] && OPT1="y" || OPT1="${2}"
+  [ -z "${3}" ] && OPT2="n" || OPT2="${3}"
 
   while true; do
-    case $ANSWER in ${OPT1} | ${OPT2}) break ;; esac
+    case "${ANSWER}" in "${OPT1}" | "${OPT2}") break ;; esac
     echo -n "${1} (${OPT1}/${OPT2}) "
     read ANSWER
-    ANSWER=$(echo $ANSWER |  tr '[:upper:]' '[:lower:]')
+    ANSWER=$(echo "${ANSWER}" |  tr '[:upper:]' '[:lower:]')
   done
 
 }
@@ -727,6 +727,7 @@ genRCLOCAL () {
   sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
+  sed -i -e '$i \[ -f /etc/init.d/firstBoot ] && bash /etc/init.d/firstBoot\n' /etc/rc.local
 }
 
 # Run PyMISP tests
