@@ -55,18 +55,20 @@
             }
             $objects_string = $objects_count > 1 ? ' Objects)' : 'Object)';
             $count = $attributes_count . ' (' . $objects_count . $objects_string;
-            $table_data[] = array(
-                'key' => __('Tags'),
-                'html' => sprintf(
-                    '<span class="eventTagContainer">%s</span>',
-                    $this->element('ajaxTags', array(
-                        'event' => $event,
-                        'tags' => $event['Tag'],
-                        'tagAccess' => ($isSiteAdmin || $me['org_id'] == $event['Event']['orgc_id']),
-                        'static_tags_only' => 1
-                    ))
-                )
-            );
+            if (!empty($event['Tag'])) {
+                $table_data[] = array(
+                    'key' => __('Tags'),
+                    'html' => sprintf(
+                        '<span class="eventTagContainer">%s</span>',
+                        $this->element('ajaxTags', array(
+                            'event' => $event,
+                            'tags' => $event['Tag'],
+                            'tagAccess' => ($isSiteAdmin || $me['org_id'] == $event['Event']['orgc_id']),
+                            'static_tags_only' => 1
+                        ))
+                    )
+                );
+            }
             $table_data[] = array('key' => __('#Resolved Attributes'), 'value' => $count);
             echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data));
         }
