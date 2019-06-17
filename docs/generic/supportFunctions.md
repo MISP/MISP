@@ -239,7 +239,7 @@ ask_o () {
 
   while true; do
     case "${ANSWER}" in "${OPT1}" | "${OPT2}") break ;; esac
-    echo -n "${1} (${OPT1}/${OPT2}) "
+    echo -e -n "${1} (${OPT1}/${OPT2}) "
     read ANSWER
     ANSWER=$(echo "${ANSWER}" |  tr '[:upper:]' '[:lower:]')
   done
