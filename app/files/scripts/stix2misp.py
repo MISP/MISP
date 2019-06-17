@@ -210,11 +210,13 @@ class StixParser():
     # Return type & value of an ip address attribute
     @staticmethod
     def handle_address(properties):
-        if properties.is_source:
-            ip_type = "ip-src"
+        if properties.category == 'e-mail':
+            attribute_type = 'email-src'
+            relation = 'from'
         else:
-            ip_type = "ip-dst"
-        return ip_type, properties.address_value.value, "ip"
+            attribute_type = "ip-src" if properties.is_source else "ip-dst"
+            relation = 'ip'
+        return attribute_type, properties.address_value.value, relation
 
     def handle_as(self, properties):
         attributes = self.fetch_attributes_with_partial_key_parsing(properties, stix2misp_mapping._as_mapping)
