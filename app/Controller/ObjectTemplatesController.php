@@ -163,11 +163,21 @@ class ObjectTemplatesController extends AppController
 
     public function index($all = false)
     {
+        $passedArgsArray = array();
+        $passedArgs = $this->passedArgs;
         if (!$all || !$this->_isSiteAdmin()) {
             $this->paginate['conditions'][] = array('ObjectTemplate.active' => 1);
             $this->set('all', false);
         } else {
             $this->set('all', true);
+        }
+        if (!empty($this->params['named']['searchall'])) {
+            $this->paginate['conditions']['AND']['OR'] = array(
+                'ObjectTemplate.uuid LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%',
+                'LOWER(ObjectTemplate.name) LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%',
+                'ObjectTemplate.meta-category LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%',
+                'LOWER(ObjectTemplate.description) LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%'
+            );
         }
         if ($this->_isRest()) {
             $rules = $this->paginate;
@@ -180,6 +190,8 @@ class ObjectTemplatesController extends AppController
             $objectTemplates = $this->paginate();
             $this->set('list', $objectTemplates);
         }
+        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgsArray', $passedArgsArray);
     }
 
     public function update($type = false, $force = false)
