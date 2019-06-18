@@ -4148,6 +4148,8 @@ function checkIfLoggedIn() {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }
+        }).fail(function() {
+                window.location.replace(baseurl + "/users/login"); 
         });
     }
     setTimeout(function() { checkIfLoggedIn(); }, 5000);
