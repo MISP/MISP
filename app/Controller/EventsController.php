@@ -1549,6 +1549,8 @@ class EventsController extends AppController
         $conditions['includeFeedCorrelations'] = 1;
         if (!$this->_isRest()) {
             $conditions['includeGranularCorrelations'] = 1;
+        } else if (!empty($this->params['named']['includeGranularCorrelations'])) {
+            $conditions['includeGranularCorrelations'] = 1;
         }
         if (!isset($this->params['named']['includeServerCorrelations'])) {
             $conditions['includeServerCorrelations'] = 1;
@@ -1559,6 +1561,28 @@ class EventsController extends AppController
             $conditions['includeServerCorrelations'] = $this->params['named']['includeServerCorrelations'];
         }
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
+        if (!empty($this->params['named']['includeGranularCorrelations'])) {
+            foreach ($results as $k => $event) {
+                if (!empty($event['RelatedAttribute'])) {
+                    foreach ($event['RelatedAttribute'] as $attribute_id => $relation) {
+                        foreach ($event['Attribute'] as $k2 => $attribute) {
+                            if ((int)$attribute['id'] == $attribute_id) {
+                                $results[$k]['Attribute'][$k2]['RelatedAttribute'][] = $relation;
+                                break 2;
+                            }
+                        }
+                        foreach ($event['Object'] as $k2 => $object) {
+                            foreach ($object['Attribute'] as $k3 => $attribute) {
+                                if ((int)$attribute['id'] == $attribute_id) {
+                                    $results[$k]['Object'][$k2]['Attribute'][$k3]['RelatedAttribute'][] = $relation;
+                                    break 3;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
         }
