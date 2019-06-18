@@ -1168,6 +1168,9 @@ class ServersController extends AppController
         }
 
         $setting = $this->Server->getSettingData($setting_name);
+        if (!empty($setting['cli_only'])) {
+            throw new MethodNotAllowedException(__('This setting can only be edited via the CLI.'));
+        }
         if ($this->request->is('get')) {
             if ($setting != null) {
                 $value = Configure::read($setting['name']);
