@@ -77,7 +77,7 @@ class EventBlacklistsController extends AppController
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('EventBlacklist', 'Deleted', $ids, $this->response->type());
                 } else {
-                    $this->Flash->success('Event deleted.');
+                    $this->Flash->success('Blacklist entry removed');
                     $this->redirect(array('controller' => 'eventBlacklists', 'action' => 'index'));
                 }
             } else {
