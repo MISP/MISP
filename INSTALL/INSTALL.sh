@@ -403,7 +403,7 @@ ask_o () {
 # Check if misp user is present and if run as root
 checkID () {
   debug "Checking if run as root and $MISP_USER is present"
-  if [[ $EUID == 0 ]]; then
+  if [[ $EUID -ne 0 ]]; then
     echo "This script cannot be run as a root"
     exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
