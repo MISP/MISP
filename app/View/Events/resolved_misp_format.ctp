@@ -74,6 +74,7 @@
         }
         $attributeFields = array('category', 'type', 'value', 'uuid');
         $header_present = false;
+        $typesWithData = array('attachment', 'malware-sample');
         if (!empty($event['Object'])) {
     ?>
     <table class='table table-striped table-condensed'>
@@ -182,6 +183,9 @@
               <span class="AttributeType"><?php echo h($attribute['type']); ?></span>
             </td>
             <td class="AttributeValue limitedWidth"><?php echo h($attribute['value']); ?></td>
+            <?php if (in_array($attribute['type'], $typesWithData) && !empty($attribute['data'])) {?>
+              <input class='AttributeData' type='hidden' value="<?php echo h($attribute['data']); ?>"/>
+            <?php } ?>
             <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
             <td style="max-width:150px;width:10px;">
               <?php if (!empty($attribute['Tag'])) { ?>
@@ -278,6 +282,9 @@
                 }
           ?>
           <td class="AttributeValue limitedWidth"><?php echo h($attribute['value']); ?></td>
+          <?php if (in_array($attribute['type'], $typesWithData) && !empty($attribute['data'])) {?>
+            <input class='AttributeData' type='hidden' value="<?php echo $attribute['data']; ?>"/>
+          <?php } ?>
           <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
           <td style="max-width:150px;width:10px;">
             <?php if (!empty($attribute['Tag'])) { ?>
@@ -335,6 +342,7 @@
     </table>
     <span>
       <button class="btn btn-primary" style="float:left;" onClick="moduleResultsSubmit('<?php echo h($event_id); ?>');"><?php echo __('Submit'); ?></button>
+      <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse"><?php echo __('Cancel');?></a>
     </span>
 </div>
 <script type="text/javascript">
