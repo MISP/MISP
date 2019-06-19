@@ -376,7 +376,7 @@ class Organisation extends AppModel
             'conditions' => $conditions,
             'recursive' => -1
         ));
-        return (empty($org)) ? false : $org[$this->alias];
+        return (empty($org)) ? false : $org;
     }
 
     public function attachOrgsToEvent($event, $fields)
