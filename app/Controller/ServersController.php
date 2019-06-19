@@ -1103,7 +1103,13 @@ class ServersController extends AppController
         } else {
             shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
         }
-        $this->redirect('/servers/serverSettings/workers');
+        $message = __('Worker start signal sent');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Servers', 'startWorker', $type, $this->response->type(), $message);
+        } else {
+            $this->Flash->info($message);
+            $this->redirect('/servers/serverSettings/workers');
+        }
     }
 
     public function stopWorker($pid)
@@ -1112,7 +1118,20 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
         $this->Server->killWorker($pid, $this->Auth->user());
-        $this->redirect('/servers/serverSettings/workers');
+        $message = __('Worker stop signal sent');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Servers', 'stopWorker', $pid, $this->response->type(), $message);
+        } else {
+            $this->Flash->info($message);
+            $this->redirect('/servers/serverSettings/workers');
+        }
+    }
+
+    public function getWorkers()
+    {
+        $issues = 0;
+        $worker_array = $this->Server->workerDiagnostics($issues);
+        return $this->RestResponse->viewData($worker_array);
     }
 
     private function __checkVersion()
