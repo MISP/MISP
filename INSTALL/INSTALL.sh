@@ -393,7 +393,7 @@ ask_o () {
 
   while true; do
     case "${ANSWER}" in "${OPT1}" | "${OPT2}") break ;; esac
-    echo -n "${1} (${OPT1}/${OPT2}) "
+    echo -e -n "${1} (${OPT1}/${OPT2}) "
     read ANSWER
     ANSWER=$(echo "${ANSWER}" |  tr '[:upper:]' '[:lower:]')
   done
@@ -967,7 +967,16 @@ aptUpgrade () {
   debug "Upgrading system"
   checkAptLock
   sudo apt-get update
-  sudo apt-get upgrade -qy
+
+  # If we run in non-interactive mode, make sure we do not stop all of a sudden
+  if [[ "${PACKER}" == "1" || "${UNATTENDED}" == "1" ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    export DEBIAN_PRIORITY=critical
+    sudo -E apt-get -qy -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" upgrade
+    sudo -E apt-get -qy autoclean
+  else
+    sudo apt-get upgrade -qy
+  fi
 }
 
 # check if sudo is installed
@@ -2140,6 +2149,9 @@ installMISPonKali () {
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
+
+  # install plyara
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara 2> /dev/null > /dev/null
 
   # install zmq needed by mispzmq
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq 2> /dev/null > /dev/null

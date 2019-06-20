@@ -210,6 +210,7 @@ class Server extends AppModel
                                 'test' => 'testForBinExec',
                                 'beforeHook' => 'beforeHookBinExec',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'disable_auto_logout' => array(
                                 'level' => 1,
@@ -465,6 +466,7 @@ class Server extends AppModel
                                 'null' => false,
                                 'test' => 'testForWritableDir',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'cached_attachments' => array(
                                 'level' => 1,
@@ -856,6 +858,7 @@ class Server extends AppModel
                                 'test' => 'testForPath',
                                 'type' => 'string',
                                 'null' => true,
+                                'cli_only' => 1
                         ),
                         'custom_css' => array(
                                 'level' => 2,
@@ -979,6 +982,7 @@ class Server extends AppModel
                                 'errorMessage' => '',
                                 'test' => 'testForGPGBinary',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'onlyencrypted' => array(
                                 'level' => 0,
