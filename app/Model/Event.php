@@ -6350,8 +6350,11 @@ class Event extends AppModel
     {
         $conditions = array();
         foreach($attributes as $attribute) {
-            $conditions[] = array('AND' => array('Attribute.object_relation' => $attribute['object_relation'],
-                                                 'Attribute.value' => $attribute['value']));
+            $conditions[] = array('AND' => array(
+                'Attribute.object_relation' => $attribute['object_relation'],
+                'Attribute.value' => $attribute['value'],
+                'Attribute.type' => $attribute['type']
+            ));
         }
         $ids = array();
         foreach ($this->Object->Attribute->find('all', array(
