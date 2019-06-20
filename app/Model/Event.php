@@ -5318,6 +5318,7 @@ class Event extends AppModel
         if (!isset($attribute['to_ids'])) {
             $attribute['to_ids'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
         }
+        $attribute['value'] = $this->Attribute->runRegexp($attribute['type'], $attribute['value']);
         $attribute['distribution'] = (isset($attribute['distribution']) ? (int)$attribute['distribution'] : $defaultDistribution);
         $attribute['sharing_group_id'] = (isset($attribute['sharing_group_id']) ? (int)$attribute['sharing_group_id'] : 0);
         return $attribute;
