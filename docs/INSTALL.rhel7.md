@@ -703,7 +703,7 @@ sudo systemctl enable --now misp-workers.service
 ## 9.07/ misp-modules (WIP!)
 ```bash
 # some misp-modules dependencies
-sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel -y
+sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python-devel redhat-rpm-config -y
 
 sudo chmod 2777 /usr/local/src
 sudo chown root:users /usr/local/src
