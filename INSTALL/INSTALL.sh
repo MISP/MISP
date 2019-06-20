@@ -393,7 +393,7 @@ ask_o () {
 
   while true; do
     case "${ANSWER}" in "${OPT1}" | "${OPT2}") break ;; esac
-    echo -n "${1} (${OPT1}/${OPT2}) "
+    echo -e -n "${1} (${OPT1}/${OPT2}) "
     read ANSWER
     ANSWER=$(echo "${ANSWER}" |  tr '[:upper:]' '[:lower:]')
   done
@@ -2140,6 +2140,9 @@ installMISPonKali () {
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
+
+  # install plyara
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara 2> /dev/null > /dev/null
 
   # install zmq needed by mispzmq
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq 2> /dev/null > /dev/null
