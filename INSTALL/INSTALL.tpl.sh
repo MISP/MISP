@@ -465,6 +465,9 @@ installMISPonKali () {
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
 
+  # install plyara
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara 2> /dev/null > /dev/null
+
   # install zmq needed by mispzmq
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq 2> /dev/null > /dev/null
 
