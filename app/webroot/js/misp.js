@@ -2457,6 +2457,7 @@ function freetextImportResultsSubmit(id, count) {
 }
 
 function moduleResultsSubmit(id) {
+    var typesWithData = ['attachment', 'malware-sample'];
     var data_collected = {};
     var temp;
     if ($('.meta_table').length) {
@@ -2506,10 +2507,11 @@ function moduleResultsSubmit(id) {
             if ($(this).find('.ObjectAttribute').length) {
                 var object_attributes = [];
                 $(this).find('.ObjectAttribute').each(function(a) {
+                    var attribute_type = $(this).find('.AttributeType').text();
                     attribute = {
                         object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
-                        type: $(this).find('.AttributeType').text(),
+                        type: attribute_type,
                         value: $(this).find('.AttributeValue').text(),
                         uuid: $(this).find('.AttributeUuid').text(),
                         to_ids: $(this).find('.AttributeToIds')[0].checked,
@@ -2527,6 +2529,9 @@ function moduleResultsSubmit(id) {
                             tags.push({name: $(this).attr('title')});
                         });
                         attribute['Tag'] = tags;
+                    }
+                    if (typesWithData.indexOf(attribute_type) != -1 && $(this).find('.AttributeData').length) {
+                        attribute['data'] = $(this).find('.AttributeData').val();
                     }
                     object_attributes.push(attribute);
                 });
@@ -2571,6 +2576,9 @@ function moduleResultsSubmit(id) {
                     tags.push({name: $(this).attr('title')});
                 });
                 temp['Tag'] = tags;
+            }
+            if (typesWithData.indexOf(type_value) != -1 && $(this).find('.AttributeData').length) {
+                temp['data'] = $(this).find('.AttributeData').val();
             }
             attributes.push(temp);
         });
