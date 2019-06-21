@@ -1086,7 +1086,6 @@ class EventsController extends AppController
         }
         $event = $results[0];
 
-
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event, 'both');
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
         $this->set('attributeClusters', array_values($attributeTagsName['clusters']));

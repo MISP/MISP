@@ -104,6 +104,7 @@
             <li class="<?php echo $i > $display_threshold ? 'correlation-expanded-area' : ''; ?>" style="<?php echo $i > $display_threshold ? 'display: none;' : ''; ?>">
                 <?php echo $this->element('/Events/View/related_event', array(
                     'related' => $relatedEvent['Event'],
+                    'relatedEventCorrelationCount' => array(),
                     'href_url' => $baseurl . '/servers/previewEvent/' . $server['Server']['id']
                 )); ?>
             </li>
