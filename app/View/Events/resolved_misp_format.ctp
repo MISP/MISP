@@ -33,17 +33,23 @@
         } else {
             $scope = join(' and ', $objects_array);
             echo '<p>Below you can see the ' . $scope . ' that are to be created from the results of the enrichment module.</p>';
-            $table_data = array(
-                array('key' => __('Event ID'), 'value' => $event['Event']['id']),
-                array('key' => __('Event UUID'), 'value' => $event['Event']['uuid']),
-                array('key' => __('Event creator org'), 'html' => sprintf(
+            $table_data = array(array('key' => __('Event ID'), 'value' => $event_id));
+            $event_metadata = $event['Event'];
+            if (!empty($event_metadata['uuid'])) {
+                $table_data[] = array('key' => __('Event UUID'),
+                                      'value' => $event_metadata['uuid']);
+            }
+            if (!empty($event_metadata['orgc_id']) && !empty($event_metadata['orgc_name'])) {
+                $table_data[] = array('key' => __('Event creator org'), 'html' => sprintf(
                     '<a href=%s/organisations/view/%s>%s</a>',
                     $baseurl,
                     h($event['Event']['orgc_id']),
                     h($event['Event']['orgc_name'])
-                )),
-                array('key' => __('Event info'), 'value' => $event['Event']['info'])
-            );
+                ));
+            }
+            if (!empty($event_metadata['info'])) {
+                array('key' => __('Event info'), 'value' => $event['Event']['info']);
+            }
             $attributes_count = isset($event['Attribute']) ? count($event['Attribute']) : 0;
             $objects_count = isset($event['Object']) ? count($event['Object']) : 0;
             if (!empty($event['Object'])) {
