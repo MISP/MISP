@@ -192,6 +192,15 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'null' => true
                         ),
+                        'server_settings_skip_backup_rotate' => array(
+                            'level' => 1,
+                            'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'python_bin' => array(
                                 'level' => 1,
                                 'description' => __('It is highly recommended to install all the python dependencies in a virtualenv. The recommended location is: %s/venv', ROOT),
@@ -201,6 +210,7 @@ class Server extends AppModel
                                 'test' => 'testForBinExec',
                                 'beforeHook' => 'beforeHookBinExec',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'disable_auto_logout' => array(
                                 'level' => 1,
@@ -456,6 +466,7 @@ class Server extends AppModel
                                 'null' => false,
                                 'test' => 'testForWritableDir',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'cached_attachments' => array(
                                 'level' => 1,
@@ -847,6 +858,7 @@ class Server extends AppModel
                                 'test' => 'testForPath',
                                 'type' => 'string',
                                 'null' => true,
+                                'cli_only' => 1
                         ),
                         'custom_css' => array(
                                 'level' => 2,
@@ -970,6 +982,7 @@ class Server extends AppModel
                                 'errorMessage' => '',
                                 'test' => 'testForGPGBinary',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'onlyencrypted' => array(
                                 'level' => 0,
@@ -2649,7 +2662,7 @@ class Server extends AppModel
                         'event_uuid' => $eventUuid,
                         'includeAttachments' => true,
                         'includeAllTags' => true,
-                        'deleted' => true,
+                        'deleted' => array(0,1),
                         'excludeGalaxy' => 1
                     ));
                     $event = $this->Event->fetchEvent($user, $params);
@@ -3076,6 +3089,9 @@ class Server extends AppModel
 
     public function testForBinExec($value)
     {
+        if (substr($value, 0, 7) === "phar://") {
+            return 'Phar protocol not allowed.';
+        }
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($value === '') {
             return true;
@@ -3094,6 +3110,9 @@ class Server extends AppModel
 
     public function testForWritableDir($value)
     {
+        if (substr($value, 0, 7) === "phar://") {
+            return 'Phar protocol not allowed.';
+        }
         if (!is_dir($value)) {
             return 'Not a valid directory.';
         }
@@ -3724,26 +3743,30 @@ class Server extends AppModel
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
-        $randomFilename = $this->generateRandomFileName();
-        // To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
-        file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
-        rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
-        $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
-        // if the saved config file is empty, restore the backup.
-        if (strlen($config_saved) < 20) {
-            copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
-            ));
-            return false;
+        if (empty(Configure::read('MISP.server_settings_skip_backup_rotate'))) {
+            $randomFilename = $this->generateRandomFileName();
+            // To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
+            file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
+            rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
+            $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
+            // if the saved config file is empty, restore the backup.
+            if (strlen($config_saved) < 20) {
+                copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $this->Log->save(array(
+                        'org' => 'SYSTEM',
+                        'model' => 'Server',
+                        'model_id' => $id,
+                        'email' => 'SYSTEM',
+                        'action' => 'error',
+                        'user_id' => 0,
+                        'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
+                ));
+                return false;
+            }
+        } else {
+            file_put_contents(APP . 'Config' . DS . 'config.php', $settingsString);
         }
         return true;
     }

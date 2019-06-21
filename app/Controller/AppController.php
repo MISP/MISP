@@ -46,10 +46,11 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome');
 
-    private $__queryVersion = '71';
+    private $__queryVersion = '77';
     public $pyMispVersion = '2.4.106';
     public $phpmin = '7.0';
     public $phprec = '7.2';
+    public $isApiAuthed = false;
 
     public $baseurl = '';
     public $sql_dump = false;
@@ -251,6 +252,7 @@ class AppController extends Controller
                             }
                             $this->Session->renew();
                             $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+                            $this->isApiAuthed = true;
                         } else {
                             // User not authenticated correctly
                             // reset the session information
@@ -502,6 +504,9 @@ class AppController extends Controller
             $this->Log = ClassRegistry::init('Log');
             echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
         }
+        if ($this->isApiAuthed && $this->_isRest()) {
+            session_destroy();
+        }
     }
 
     public function queryACL($debugType='findMissingFunctionNames', $content = false)
@@ -520,7 +525,7 @@ class AppController extends Controller
 
     private function __convertEmailToName($email)
     {
-        $name = explode('@', $email);
+        $name = explode('@', (string)$email);
         $name = explode('.', $name[0]);
         foreach ($name as $key => $value) {
             $name[$key] = ucfirst($value);
@@ -663,7 +668,7 @@ class AppController extends Controller
             foreach ($options['paramArray'] as $p) {
                 if (
                     isset($options['ordered_url_params'][$p]) &&
-                    (!in_array(strtolower($options['ordered_url_params'][$p]), array('null', '0', false, 'false', null)))
+                    (!in_array(strtolower((string)$options['ordered_url_params'][$p]), array('null', '0', false, 'false', null)))
                 ) {
                     $data[$p] = $options['ordered_url_params'][$p];
                     $data[$p] = str_replace(';', ':', $data[$p]);

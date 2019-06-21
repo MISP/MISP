@@ -853,6 +853,14 @@ a.proposal_link_red:hover {
     left: calc(50% - 700px);
 }
 
+.ajax_popover_matrix {
+    width: 96vw;
+    min-width: 1400px;
+    left: 2vw;
+    max-height: 80vh;
+    position: absolute;
+}
+
 .popover_box {
     display:none;
     position: fixed;

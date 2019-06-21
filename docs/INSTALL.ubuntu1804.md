@@ -46,7 +46,16 @@ aptUpgrade () {
   debug "Upgrading system"
   checkAptLock
   sudo apt-get update
-  sudo apt-get upgrade -qy
+
+  # If we run in non-interactive mode, make sure we do not stop all of a sudden
+  if [[ "${PACKER}" == "1" || "${UNATTENDED}" == "1" ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    export DEBIAN_PRIORITY=critical
+    sudo -E apt-get -qy -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" upgrade
+    sudo -E apt-get -qy autoclean
+  else
+    sudo apt-get upgrade -qy
+  fi
 }
 # <snippet-end 0_apt-upgrade.sh>
 ```
@@ -172,6 +181,9 @@ installCore () {
 
   # install lief
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+
+  # install zmq needed by mispzmq
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic

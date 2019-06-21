@@ -75,6 +75,7 @@ class ACLComponent extends Component
                     'delete' => array(),
                     'edit' => array(),
                     'index' => array(),
+                    'massDelete' => array()
             ),
             'eventDelegations' => array(
                     'acceptDelegation' => array('perm_add'),
@@ -250,6 +251,8 @@ class ACLComponent extends Component
                 'edit' => array('perm_add'),
                 'get_row' => array('perm_add'),
                 'orphanedObjectDiagnostics' => array(),
+                'proposeObjectsFromAttributes' => array('*'),
+                'groupAttributesIntoObject' => array('perm_add'),
                 'revise_object' => array('perm_add'),
                 'view' => array('*'),
             ),
@@ -340,6 +343,7 @@ class ACLComponent extends Component
                     'getPyMISPVersion' => array('*'),
                     'getSubmodulesStatus' => array('perm_site_admin'),
                     'getSubmoduleQuickUpdateForm' => array('perm_site_admin'),
+                    'getWorkers' => array(),
                     'getVersion' => array('*'),
                     'import' => ('perm_site_admin'),
                     'index' => array('OR' => array('perm_sync', 'perm_admin')),

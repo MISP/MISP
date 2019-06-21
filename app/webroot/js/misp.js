@@ -604,105 +604,105 @@ function submitForm(type, id, field, context) {
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
-    var formData = fetchFormDataAjax("/events/addTag/" + event_id);
-    $('#temp').html(formData);
-    $('#EventTag').val(JSON.stringify(selected_tag_ids));
-    $.ajax({
-        data: $('#EventAddTagForm').serialize(),
-        cache: false,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            loadEventTags(event_id);
-            loadGalaxies(event_id, 'event');
-            handleGenericAjaxResponse(data);
-        },
-        error:function() {
-            showMessage('fail', 'Could not add tag.');
-            loadEventTags(event_id);
-            loadGalaxies(event_id, 'event');
-        },
-        complete:function() {
-            $('#temp').empty();
-            $("#popover_form").fadeOut();
-            $("#gray_out").fadeOut();
-            $(".loading").hide();
-        },
-        type:"post",
-        url:"/events/addTag/" + event_id
+    fetchFormDataAjax("/events/addTag/" + event_id, function(formData) {
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #EventTag').val(JSON.stringify(selected_tag_ids));
+        $.ajax({
+            data: $('#EventAddTagForm').serialize(),
+            cache: false,
+            beforeSend: function (XMLHttpRequest) {
+                $(".loading").show();
+            },
+            success:function (data, textStatus) {
+                loadEventTags(event_id);
+                loadGalaxies(event_id, 'event');
+                handleGenericAjaxResponse(data);
+            },
+            error:function() {
+                showMessage('fail', 'Could not add tag.');
+                loadEventTags(event_id);
+                loadGalaxies(event_id, 'event');
+            },
+            complete:function() {
+                $('#temp').remove();
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+                $('#temp').remove();
+            },
+            type:"post",
+            url:"/events/addTag/" + event_id
+        });
     });
-    $('#temp').remove();
-    return false;
 }
 
 function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     var attribute_id = addData.id;
-    var formData = fetchFormDataAjax("/attributes/addTag/" + attribute_id);
-    $('#temp').html(formData);
-    $('#AttributeTag').val(JSON.stringify(selected_tag_ids));
-    if (attribute_id == 'selected') {
-        $('#AttributeAttributeIds').val(getSelected());
-    }
-    $.ajax({
-        data: $('#AttributeAddTagForm').serialize(),
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            if (attribute_id == 'selected') {
-                updateIndex(0, 'event');
-            } else {
+    fetchFormDataAjax("/attributes/addTag/" + attribute_id, function(formData) {
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #AttributeTag').val(JSON.stringify(selected_tag_ids));
+        if (attribute_id == 'selected') {
+            $('#AttributeAttributeIds').val(getSelected());
+        }
+        $.ajax({
+            data: $('#AttributeAddTagForm').serialize(),
+            beforeSend: function (XMLHttpRequest) {
+                $(".loading").show();
+            },
+            success:function (data, textStatus) {
+                if (attribute_id == 'selected') {
+                    updateIndex(0, 'event');
+                } else {
+                    loadAttributeTags(attribute_id);
+                    loadGalaxies(attribute_id, 'attribute');
+                }
+                handleGenericAjaxResponse(data);
+            },
+            error:function() {
+                showMessage('fail', 'Could not add tag.');
                 loadAttributeTags(attribute_id);
                 loadGalaxies(attribute_id, 'attribute');
-            }
-            handleGenericAjaxResponse(data);
-        },
-        error:function() {
-            showMessage('fail', 'Could not add tag.');
-            loadAttributeTags(attribute_id);
-            loadGalaxies(attribute_id, 'attribute');
-        },
-        complete:function() {
-            $("#popover_form").fadeOut();
-            $("#gray_out").fadeOut();
-            $(".loading").hide();
-        },
-        type:"post",
-        url:"/attributes/addTag/" + attribute_id
+            },
+            complete:function() {
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+                $('#temp').remove();
+            },
+            type:"post",
+            url:"/attributes/addTag/" + attribute_id
+        });
     });
-    $('#temp').remove();
-    return false;
 }
 
 function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     var tag_collection_id = addData.id;
-    var formData = fetchFormDataAjax("/tag_collections/addTag/" + tag_collection_id);
-    $('#temp').html(formData);
-    $('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
-    $.ajax({
-        data: $('#TagCollectionAddTagForm').serialize(),
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            handleGenericAjaxResponse(data);
-            refreshTagCollectionRow(tag_collection_id);
-        },
-        error:function() {
-            showMessage('fail', 'Could not add tag.');
-            loadTagCollectionTags(tag_collection_id);
-        },
-        complete:function() {
-            $("#popover_form").fadeOut();
-            $("#gray_out").fadeOut();
-            $(".loading").hide();
-        },
-        type:"post",
-        url:"/tag_collections/addTag/" + tag_collection_id
+    fetchFormDataAjax("/tag_collections/addTag/" + tag_collection_id, function(formData) {
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #TagCollectionTag').val(JSON.stringify(selected_tag_ids));
+        $.ajax({
+            data: $('#TagCollectionAddTagForm').serialize(),
+            beforeSend: function (XMLHttpRequest) {
+                $(".loading").show();
+            },
+            success:function (data, textStatus) {
+                handleGenericAjaxResponse(data);
+                refreshTagCollectionRow(tag_collection_id);
+            },
+            error:function() {
+                showMessage('fail', 'Could not add tag.');
+                loadTagCollectionTags(tag_collection_id);
+            },
+            complete:function() {
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+                $('#temp').remove();
+            },
+            type:"post",
+            url:"/tag_collections/addTag/" + tag_collection_id
+        });
     });
-    $('#temp').remove();
-    return false;
 }
 
 function refreshTagCollectionRow(tag_collection_id) {
@@ -845,6 +845,22 @@ function multiSelectToggleFeeds(on, cache) {
     });
 }
 
+function multiSelectDeleteEventBlacklist(on, cache) {
+    var selected = [];
+    $(".select").each(function() {
+        if ($(this).is(":checked")) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    });
+    $.get("/eventBlacklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
+        $("#confirmation_box").html(data);
+        openPopup("#confirmation_box");
+    });
+}
+
 function multiSelectAction(event, context) {
     var settings = {
             deleteAttributes: {
@@ -911,6 +927,11 @@ function addSelectedTaxonomies(taxonomy) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
+}
+
+function proposeObjectsFromSelectedAttributes(clicked, event_id) {
+    var selectedAttributeIds = getSelected();
+    popoverPopup(clicked, event_id + '/' + selectedAttributeIds, 'objects', 'proposeObjectsFromAttributes');
 }
 
 function hideSelectedTags(taxonomy) {
@@ -1456,20 +1477,23 @@ function templateElementFileCategoryChange(category) {
     }
 }
 
-function openPopup(id) {
-    var window_height = $(window).height();
-    var popup_height = $(id).height();
-    if (window_height < popup_height) {
-        $(id).css("top", 50);
-        $(id).css("height", window_height);
-        $(id).addClass('vertical-scroll');
-    } else {
-        if (window_height > (300 + popup_height)) {
-            var top_offset = ((window_height - popup_height) / 2) - 150;
+function openPopup(id, adjust_layout) {
+    adjust_layout = adjust_layout === undefined ? true : adjust_layout;
+    if (adjust_layout) {
+        var window_height = $(window).height();
+        var popup_height = $(id).height();
+        if (window_height < popup_height) {
+            $(id).css("top", 50);
+            $(id).css("height", window_height);
+            $(id).addClass('vertical-scroll');
         } else {
-            var top_offset = (window_height - popup_height) / 2;
+            if (window_height > (300 + popup_height)) {
+                var top_offset = ((window_height - popup_height) / 2) - 150;
+            } else {
+                var top_offset = (window_height - popup_height) / 2;
+            }
+            $(id).css("top", top_offset + 'px');
         }
-        $(id).css("top", top_offset + 'px');
     }
     $("#gray_out").fadeIn();
     $(id).fadeIn();
@@ -1555,7 +1579,7 @@ function openPopover(clicked, data, hover, placement) {
 
 function getMatrixPopup(scope, scope_id, galaxy_id) {
     cancelPopoverForm();
-    getPopup(scope_id + '/' + galaxy_id + '/' + scope, 'events', 'viewGalaxyMatrix', '', '#popover_form_large');
+    getPopup(scope_id + '/' + galaxy_id + '/' + scope, 'events', 'viewGalaxyMatrix', '', '#popover_matrix');
 }
 
 function getPopup(id, context, target, admin, popupType) {
@@ -1578,7 +1602,7 @@ function getPopup(id, context, target, admin, popupType) {
         success:function (data, textStatus) {
             $(".loading").hide();
             $(popupType).html(data);
-            openPopup(popupType);
+            openPopup(popupType, false);
         },
         error:function() {
             $(".loading").hide();
@@ -3640,43 +3664,43 @@ function addGalaxyListener(id) {
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
-    var formData = fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope);
-    $('#temp').html(formData);
-    $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
-    if (target_id == 'selected') {
-        $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
-    }
-    $.ajax({
-        data: $('#GalaxyAttachMultipleClustersForm').serialize(),
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            if (target_id === 'selected') {
-                location.reload();
-            } else {
-                if (scope == 'tag_collection') {
+    fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope, function(formData) {
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
+        if (target_id == 'selected') {
+            $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
+        }
+        $.ajax({
+            data: $('#GalaxyAttachMultipleClustersForm').serialize(),
+            beforeSend: function (XMLHttpRequest) {
+                $(".loading").show();
+            },
+            success:function (data, textStatus) {
+                if (target_id === 'selected') {
                     location.reload();
                 } else {
-                    loadGalaxies(target_id, scope);
-                    handleGenericAjaxResponse(data);
+                    if (scope == 'tag_collection') {
+                        location.reload();
+                    } else {
+                        loadGalaxies(target_id, scope);
+                        handleGenericAjaxResponse(data);
+                    }
                 }
-            }
-        },
-        error:function() {
-            showMessage('fail', 'Could not add cluster.');
-            loadGalaxies(target_id, scope);
-        },
-        complete:function() {
-            $("#popover_form").fadeOut();
-            $("#gray_out").fadeOut();
-            $(".loading").hide();
-        },
-        type:"post",
-        url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
+            },
+            error:function() {
+                showMessage('fail', 'Could not add cluster.');
+                loadGalaxies(target_id, scope);
+            },
+            complete:function() {
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+                $('#temp').remove();
+            },
+            type:"post",
+            url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
+        });
     });
-    $('#temp').remove();
-    return false;
 }
 
 function checkAndSetPublishedInfo(skip_reload) {
@@ -3702,6 +3726,7 @@ $(document).keyup(function(e){
     $("#gray_out").fadeOut();
         $("#popover_form").fadeOut();
         $("#popover_form_large").fadeOut();
+        $("#popover_matrix").fadeOut();
         $("#screenshot_box").fadeOut();
         $("#popover_box").fadeOut();
         $("#confirmation_box").fadeOut();
@@ -3990,32 +4015,6 @@ $(document).ready(function() {
             $('#quickFilterButton').trigger("click");
         }
     });
-    $(".eventViewAttributeHover").mouseenter(function() {
-        $('#' + currentPopover).popover('destroy');
-        var type = $(this).attr('data-object-type');
-        var id = $(this).attr('data-object-id');
-
-        if (type + "_" + id in ajaxResults["hover"]) {
-            var element = $('#' + type + '_' + id + '_container');
-            element.popover({
-                title: attributeHoverTitle(id, type),
-                content: ajaxResults["hover"][type + "_" + id],
-                placement: attributeHoverPlacement(element),
-                html: true,
-                trigger: 'manual',
-                container: 'body'
-            }).popover('show');
-            currentPopover = type + '_' + id + '_container';
-        } else {
-          timer = setTimeout(function () {
-              runHoverLookup(type, id)
-            },
-            500
-          );
-        }
-    }).mouseout(function() {
-        clearTimeout(timer);
-    });
     $(".queryPopover").click(function() {
         url = $(this).data('url');
         id = $(this).data('id');
@@ -4123,6 +4122,8 @@ function checkIfLoggedIn() {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }
+        }).fail(function() {
+                window.location.replace(baseurl + "/users/login"); 
         });
     }
     setTimeout(function() { checkIfLoggedIn(); }, 5000);
@@ -4271,30 +4272,30 @@ function submit_feed_overlap_tool(feedId) {
 function changeTaxonomyRequiredState(checkbox) {
     var checkbox_state = $(checkbox).is(":checked");
     var taxonomy_id = $(checkbox).data('taxonomy-id');
-    var formData = fetchFormDataAjax('/taxonomies/toggleRequired/' + taxonomy_id);
-    $.ajax({
-        data: $(formData).serialize(),
-        success:function (data, textStatus) {
-            handleGenericAjaxResponse({'saved':true, 'success':['Taxonomy\'s required state toggled.']});
-        },
-        error:function() {
-            $(checkbox).prop('checked', !$(checkbox).prop('checked'));
-            handleGenericAjaxResponse({'saved':false, 'errors':['Could not toggle the required state of the taxonomy.']});
-        },
-        async:"false",
-        type:"post",
-        cache: false,
-        url: '/taxonomies/toggleRequired/' + taxonomy_id,
+    fetchFormDataAjax('/taxonomies/toggleRequired/' + taxonomy_id, function(formData) {
+        $.ajax({
+            data: $(formData).serialize(),
+            success:function (data, textStatus) {
+                handleGenericAjaxResponse({'saved':true, 'success':['Taxonomy\'s required state toggled.']});
+            },
+            error:function() {
+                $(checkbox).prop('checked', !$(checkbox).prop('checked'));
+                handleGenericAjaxResponse({'saved':false, 'errors':['Could not toggle the required state of the taxonomy.']});
+            },
+            async:"false",
+            type:"post",
+            cache: false,
+            url: '/taxonomies/toggleRequired/' + taxonomy_id,
+        });
     });
-    formData = false;
 }
 
-function fetchFormDataAjax(url) {
+function fetchFormDataAjax(url, callback) {
     var formData = false;
     $.ajax({
         data: '[]',
         success:function (data, textStatus) {
-            formData = data;
+            callback(data);
         },
         error:function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
@@ -4304,7 +4305,6 @@ function fetchFormDataAjax(url) {
         cache: false,
         url: url
     });
-    return formData;
 }
 
 (function(){
