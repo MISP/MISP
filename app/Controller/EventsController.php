@@ -3671,7 +3671,6 @@ class EventsController extends AppController
                                 if (empty($tagCollection)) {
                                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
                                 }
-                                $tag_id_list = array();
                                 foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
                                     $tag_id_list[] = $tagCollectionTag['tag_id'];
                                 }
