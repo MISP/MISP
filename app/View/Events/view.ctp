@@ -347,13 +347,14 @@
                                     <?php
                                 endif;
                         ?>
-                        <?php
-                            echo $this->element('/Events/View/related_event', array(
-                                'related' => $relatedEvent['Event'],
-                                'color_red' => $relatedEvent['Event']['orgc_id'] == $me['org_id'],
-                                'hide' => $count > $display_threshold
-                            ));
-                        ?>
+                            <?php
+                                echo $this->element('/Events/View/related_event', array(
+                                    'related' => $relatedEvent['Event'],
+                                    'color_red' => $relatedEvent['Event']['orgc_id'] == $me['org_id'],
+                                    'hide' => $count > $display_threshold,
+                                    'relatedEventCorrelationCount' => $relatedEventCorrelationCount
+                                ));
+                            ?>
                         <?php
                             endforeach;
                             if ($total > $display_threshold):

@@ -1086,6 +1086,7 @@ class EventsController extends AppController
         }
         $event = $results[0];
 
+
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event, 'both');
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
         $this->set('attributeClusters', array_values($attributeTagsName['clusters']));
@@ -1292,8 +1293,9 @@ class EventsController extends AppController
                 'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisDescriptions' => 'analysisDescriptions', 'analysisLevels' => 'analysisLevels')
         );
 
-        // workaround to get the event dates in to the attribute relations
+        // workaround to get the event dates in to the attribute relations and number of correlation per related event
         $relatedDates = array();
+        $relatedEventCorrelationCount = array();
         if (!empty($event['RelatedEvent'])) {
             foreach ($event['RelatedEvent'] as $relation) {
                 $relatedDates[$relation['Event']['id']] = $relation['Event']['date'];
@@ -1304,9 +1306,13 @@ class EventsController extends AppController
                         if (!empty($relatedDates[$relation['id']])) {
                             $event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
                         }
+                        $relatedEventCorrelationCount[$relation['id']][$relation['value']] = 1;
                     }
                 }
             }
+        }
+        foreach ($relatedEventCorrelationCount as $key => $relation) {
+            $relatedEventCorrelationCount[$key] = count($relatedEventCorrelationCount[$key]);
         }
 
         foreach ($dataForView as $m => $variables) {
@@ -1477,6 +1483,7 @@ class EventsController extends AppController
         $orgTable = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
+        $this->set('relatedEventCorrelationCount', $relatedEventCorrelationCount);
         $this->set('oldest_timestamp', $oldest_timestamp);
         $this->set('required_taxonomies', $this->Event->getRequiredTaxonomies());
         $this->set('orgTable', $orgTable);
