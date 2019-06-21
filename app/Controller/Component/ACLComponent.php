@@ -343,6 +343,7 @@ class ACLComponent extends Component
                     'getPyMISPVersion' => array('*'),
                     'getSubmodulesStatus' => array('perm_site_admin'),
                     'getSubmoduleQuickUpdateForm' => array('perm_site_admin'),
+                    'getWorkers' => array(),
                     'getVersion' => array('*'),
                     'import' => ('perm_site_admin'),
                     'index' => array('OR' => array('perm_sync', 'perm_admin')),

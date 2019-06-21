@@ -1477,9 +1477,6 @@ class Attribute extends AppModel
                 $value = strtolower($value);
                 str_replace(':', '|', $value);
                 break;
-            case 'float':
-                $value = floatval($value);
-                break;
             case 'hex':
                 $value = strtoupper($value);
                 break;
