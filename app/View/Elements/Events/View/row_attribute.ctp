@@ -255,9 +255,10 @@
                             $liContents .= sprintf(
                                 '<form>%s</form>',
                                 sprintf(
-                                    '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;">%s</a>',
+                                    '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
                                     $baseurl,
                                     h($feed['id']),
+                                    h($popover),
                                     h($feed['id'])
                                 )
                             );
