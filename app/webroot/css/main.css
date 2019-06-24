@@ -1096,6 +1096,7 @@ li .generic-picker-item-element-check {
     background-color: #f9f9f9;
     padding: 5px;
     border: 1px solid #dddddd;
+    border-radius: 3px;
 }
 
 .inline-input {
