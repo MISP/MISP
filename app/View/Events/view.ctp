@@ -334,7 +334,7 @@
                 if (!empty($event['RelatedEvent'])):
             ?>
                     <h3><?php echo __('Related Events');?></h3>
-                    <span class="inline">
+                    <div class="inline correlation-container">
                         <?php
                             $count = 0;
                             $display_threshold = 10;
@@ -363,7 +363,7 @@
                         <?php
                             endif;
                         ?>
-                    </span>
+                    </div>
             <?php
                 endif;
                 if (!empty($event['Feed']) || !empty($event['Event']['FeedCount'])):
@@ -371,6 +371,9 @@
                     <h3>Related Feeds</h3>
             <?php
                     if (!empty($event['Feed'])):
+            ?>
+            <div class="correlation-container">
+                <?php
                         foreach ($event['Feed'] as $relatedFeed):
                             $relatedData = array('Name' => $relatedFeed['name'], 'URL' => $relatedFeed['url'], 'Provider' => $relatedFeed['provider'], 'Source Format' => $relatedFeed['source_format'] == 'misp' ? 'MISP' : $relatedFeed['source_format']);
                             $popover = '';
@@ -394,8 +397,9 @@
                                         endif;
                                     ?>
                                 </span>
+                <?php endforeach; ?>
+            </div>
                 <?php
-                        endforeach;
                     elseif (!empty($event['Event']['FeedCount'])):
                 ?>
                         <span>
@@ -410,6 +414,9 @@
                     <h3>Related Server</h3>
             <?php
                     if (!empty($event['Server'])):
+            ?>
+                    <div class="correlation-container" style="margin-bottom: 15px;">
+            <?php
                         foreach ($event['Server'] as $relatedServer):
                             if (empty($relatedServer['id'])) {
                                 continue;
@@ -420,11 +427,14 @@
                                 $popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
                             }
                 ?>
-                                <span style="white-space: nowrap;">
+                                <span style="white-space: nowrap; display: inline-block">
                                     <a href="<?php echo $baseurl; ?>/servers/previewIndex/<?php echo h($relatedServer['id']); ?>" class="linkButton useCursorPointer" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover"><?php echo h($relatedServer['name']) . ' (' . $relatedServer['id'] . ')'; ?></a>&nbsp;
                                 </span>
                 <?php
                         endforeach;
+                ?>
+                    </div>
+                <?php
                     elseif (!empty($event['Event']['FeedCount'])):
                 ?>
                         <span>

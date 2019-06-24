@@ -1090,6 +1090,14 @@ li .generic-picker-item-element-check {
     width:665px;
 }
 
+.correlation-container {
+    max-height: 500px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    padding: 5px;
+    border: 1px solid #dddddd;
+}
+
 .inline-input {
     width:100% !important;
     margin-bottom:0px !important;

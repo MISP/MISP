@@ -3,7 +3,7 @@
     $hide = isset($hide) ? $hide : false;
 ?>
 <span class="<?php echo $hide ? 'hidden correlation-expanded-area' : '' ?>">
-    <span style="display: inline-block; border: 1px solid #ddd; border-radius: 5px; padding: 3px;">
+    <span style="display: inline-block; border: 1px solid #ddd; border-radius: 5px; padding: 3px; background-color: white;">
         <table>
             <tbody>
                 <tr>
