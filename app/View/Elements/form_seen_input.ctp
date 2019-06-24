@@ -21,10 +21,14 @@
 <script>
 <?php
     $temp = explode('_', $this->params->controller);
-    $temp = array_map(function($i, $str) {
-        return $i > 0 ? substr(ucfirst($str), 0, -1) : ucfirst($str);
-    }, array_keys($temp), $temp);
-    $temp = implode('', $temp);
+    if (count($temp) > 1) {
+        $temp = array_map(function($i, $str) {
+            return $i > 0 ? substr(ucfirst($str), 0, -1) : ucfirst($str);
+        }, array_keys($temp), $temp);
+        $temp = implode('', $temp);
+    } else {
+        $temp = substr(ucfirst($this->params->controller), 0, -1);
+    }
 ?>
 var controller = "<?php echo $temp; ?>"; // get current controller name so that we can access all form fields
 var time_vals = [
