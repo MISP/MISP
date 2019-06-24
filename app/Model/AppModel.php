@@ -1277,6 +1277,13 @@ class AppModel extends Model
                     ;";
                 $indexArray[] = array('objects', 'first_seen');
                 $indexArray[] = array('objects', 'last_seen');
+                $sqlArray[] = "
+                    ALTER TABLE `shadow_attributes`
+                        ADD `first_seen` BIGINT(20) NULL DEFAULT NULL,
+                        ADD `last_seen` BIGINT(20) NULL DEFAULT NULL
+                    ;";
+                $indexArray[] = array('shadow_attributes', 'first_seen');
+                $indexArray[] = array('shadow_attributes', 'last_seen');
                 break;
             case 'testUpdate':
                 $sqlArray[] = "SELECT SLEEP(10);";

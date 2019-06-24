@@ -40,6 +40,7 @@
         echo $this->Form->input('to_ids', array(
                 'label' => __('IDS Signature?'),
         ));
+        echo $this->element('form_seen_input');
     ?>
     </fieldset>
     <p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message"><?php echo __('Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.');?></p>

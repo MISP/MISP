@@ -127,6 +127,16 @@ class ShadowAttribute extends AppModel
                         'rule' => array('boolean'),
                 ),
         ),
+        'first_seen' => array(
+            'rule' => array('datetimeOrNull'),
+            'required' => false,
+            'message' => array('Invalid ISO 8601 format')
+        ),
+        'last_seen' => array(
+            'rule' => array('datetimeOrNull'),
+            'required' => false,
+            'message' => array('Invalid ISO 8601 format')
+        )
     );
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -170,6 +180,26 @@ class ShadowAttribute extends AppModel
         }
         if ($this->data['ShadowAttribute']['deleted']) {
             $this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
+        }
+
+        // convert into utc and micro sec
+        if (!empty($this->data['ShadowAttribute']['first_seen'])) {
+            $d = new DateTime($this->data['ShadowAttribute']['first_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $fs_sec = $d->format('U');
+            $fs_micro = $d->format('u');
+            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+            $fs = $fs_sec . $fs_micro;
+            $this->data['ShadowAttribute']['first_seen'] = $fs;
+        }
+        if (!empty($this->data['ShadowAttribute']['last_seen'])) {
+            $d = new DateTime($this->data['ShadowAttribute']['last_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $ls_sec = $d->format('U');
+            $ls_micro = $d->format('u');
+            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+            $ls = $ls_sec . $ls_micro;
+            $this->data['ShadowAttribute']['last_seen'] = $ls;
         }
         return true;
     }
@@ -348,6 +378,29 @@ class ShadowAttribute extends AppModel
         return true;
     }
 
+    public function afterFind($results, $primary = false)
+    {
+        foreach ($results as $k => $v) {
+            if (!empty($v['ShadowAttribute']['first_seen'])) {
+                $fs = $results[$k]['ShadowAttribute']['first_seen'];
+                $fs_sec = intval($fs / 1000000); // $fs is in micro (10^6)
+                $fs_micro = $fs % 1000000;
+                $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+                $fs = $fs_sec . '.' . $fs_micro;
+                $results[$k]['ShadowAttribute']['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
+            }
+            if (!empty($v['ShadowAttribute']['last_seen'])) {
+                $ls = $results[$k]['ShadowAttribute']['last_seen'];
+                $ls_sec = intval($ls / 1000000); // $ls is in micro (10^6)
+                $ls_micro = $ls % 1000000;
+                $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+                $ls = $ls_sec . '.' . $ls_micro;
+                $results[$k]['ShadowAttribute']['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
+            }
+        }
+        return $results;
+    }
+
     public function validateTypeValue($fields)
     {
         $category = $this->data['ShadowAttribute']['category'];
@@ -462,6 +515,20 @@ class ShadowAttribute extends AppModel
             }
         }
         return $fails;
+    }
+
+    // check whether the variable is null or datetime
+    public function datetimeOrNull($fields)
+    {
+        $k = array_keys($fields)[0];
+        $seen = $fields[$k];
+        try {
+            new DateTime($seen);
+            $returnValue = true;
+        } catch (Exception $e) {
+            $returnValue = false;
+        }
+        return $returnValue || is_null($seen);
     }
 
     public function setDeleted($id)

@@ -19,7 +19,14 @@
 
 
 <script>
-var controller = "<?php echo(substr(ucfirst($this->params->controller), 0, -1)); ?>"; // get current controller name fo that we can access all form fields
+<?php
+    $temp = explode('_', $this->params->controller);
+    $temp = array_map(function($i, $str) {
+        return $i > 0 ? substr(ucfirst($str), 0, -1) : ucfirst($str);
+    }, array_keys($temp), $temp);
+    $temp = implode('', $temp);
+?>
+var controller = "<?php echo $temp; ?>"; // get current controller name so that we can access all form fields
 var time_vals = [
     ['Hour', 23, 1000*1000*60*60],
     ['Minute', 59, 1000*1000*60],
@@ -294,7 +301,14 @@ function reflect_change_on_form() {
 
 $(document).ready(function() {
 
-    var sliders_container = "<?php if ($this->params->controller === 'attributes') { echo '#AttributeForm fieldset'; } else { echo '#meta-div'; } ?>";
+<?php if ($this->params->controller === 'attributes'): ?>
+    var sliders_container = "<?php echo '#AttributeForm fieldset'; ?>"
+<?php elseif ($this->params->controller === 'shadow_attributes'): ?>
+    var sliders_container = "<?php echo '#ShadowAttributeAddForm fieldset'; ?>"
+<?php else: ?>
+    var sliders_container = "<?php echo '#meta-div'; ?>"
+<?php endif; ?>
+
     var inputs_container = $('<div class="input-group input-daterange"></div>');
     // create separate date and time input
     var date_div_fs = $('<div class="input clear larger-input-field" style="margin-left: 10px;"></div>').append(
