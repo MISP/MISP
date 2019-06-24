@@ -203,9 +203,11 @@ function reflect_change(onIndex, itemType, itemId) {
             updatedItem.last_seen = lastSeen;
             updatedItem.first_seen_overwrite = false;
             updatedItem.last_seen_overwrite = false;
-            var e = $.extend({}, default_editable);
-            e.remove = true;
-            updatedItem.editable = e;
+            if (user_manipulation) {
+                var e = $.extend({}, default_editable);
+                e.remove = true;
+                updatedItem.editable = e;
+            }
             set_spanned_time(updatedItem);
             items_timeline.remove(updatedItem.id);
             items_timeline.add(updatedItem);
@@ -332,9 +334,11 @@ function set_spanned_time(item) {
     }
 
     if (item.first_seen_overwrite === true || item.last_seen_overwrite === true) {
-        var e = $.extend({}, default_editable);
-        e.remove = false;
-        item.editable = e;
+        if (user_manipulation) {
+            var e = $.extend({}, default_editable);
+            e.remove = false;
+            item.editable = e;
+        }
         item.overwrite_enabled = true;
     }
 }
