@@ -886,11 +886,10 @@ class MispObject extends AppModel
         }
         $attribute_types = array_keys($attribute_types);
 
-        $potential_templates = $this->ObjectTemplate->find('all', array(
+        $potential_templates = $this->ObjectTemplate->find('list', array(
             'recursive' => -1,
             'fields' => array(
                 'ObjectTemplate.id',
-                'ObjectTemplate.name',
                 'COUNT(ObjectTemplateElement.type) as type_count'
             ),
             'conditions' => array(
@@ -906,11 +905,11 @@ class MispObject extends AppModel
                     'conditions' => array('ObjectTemplate.id = ObjectTemplateElement.object_template_id')
                 )
             ),
-            'group' => 'ObjectTemplate.name',
+            'group' => 'ObjectTemplate.id',
             'order' => 'type_count DESC'
         ));
 
-        $potential_template_ids = Hash::extract($potential_templates, '{n}.ObjectTemplate.id');
+        $potential_template_ids = array_keys($potential_templates);
         $templates = $this->ObjectTemplate->find('all', array(
             'recursive' => -1,
             'conditions' => array('id' => $potential_template_ids),

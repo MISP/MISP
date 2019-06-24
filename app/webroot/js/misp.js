@@ -891,6 +891,22 @@ function multiSelectToggleFeeds(on, cache) {
     });
 }
 
+function multiSelectDeleteEventBlacklist(on, cache) {
+    var selected = [];
+    $(".select").each(function() {
+        if ($(this).is(":checked")) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    });
+    $.get("/eventBlacklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
+        $("#confirmation_box").html(data);
+        openPopup("#confirmation_box");
+    });
+}
+
 function multiSelectAction(event, context) {
     var settings = {
             deleteAttributes: {
@@ -4051,32 +4067,6 @@ $(document).ready(function() {
             $('#quickFilterButton').trigger("click");
         }
     });
-    $(".eventViewAttributeHover").mouseenter(function() {
-        $('#' + currentPopover).popover('destroy');
-        var type = $(this).attr('data-object-type');
-        var id = $(this).attr('data-object-id');
-
-        if (type + "_" + id in ajaxResults["hover"]) {
-            var element = $('#' + type + '_' + id + '_container');
-            element.popover({
-                title: attributeHoverTitle(id, type),
-                content: ajaxResults["hover"][type + "_" + id],
-                placement: attributeHoverPlacement(element),
-                html: true,
-                trigger: 'manual',
-                container: 'body'
-            }).popover('show');
-            currentPopover = type + '_' + id + '_container';
-        } else {
-          timer = setTimeout(function () {
-              runHoverLookup(type, id)
-            },
-            500
-          );
-        }
-    }).mouseout(function() {
-        clearTimeout(timer);
-    });
     $(".queryPopover").click(function() {
         url = $(this).data('url');
         id = $(this).data('id');
@@ -4184,6 +4174,8 @@ function checkIfLoggedIn() {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }
+        }).fail(function() {
+                window.location.replace(baseurl + "/users/login"); 
         });
     }
     setTimeout(function() { checkIfLoggedIn(); }, 5000);

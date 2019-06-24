@@ -1292,8 +1292,9 @@ class EventsController extends AppController
                 'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisDescriptions' => 'analysisDescriptions', 'analysisLevels' => 'analysisLevels')
         );
 
-        // workaround to get the event dates in to the attribute relations
+        // workaround to get the event dates in to the attribute relations and number of correlation per related event
         $relatedDates = array();
+        $relatedEventCorrelationCount = array();
         if (!empty($event['RelatedEvent'])) {
             foreach ($event['RelatedEvent'] as $relation) {
                 $relatedDates[$relation['Event']['id']] = $relation['Event']['date'];
@@ -1304,9 +1305,13 @@ class EventsController extends AppController
                         if (!empty($relatedDates[$relation['id']])) {
                             $event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
                         }
+                        $relatedEventCorrelationCount[$relation['id']][$relation['value']] = 1;
                     }
                 }
             }
+        }
+        foreach ($relatedEventCorrelationCount as $key => $relation) {
+            $relatedEventCorrelationCount[$key] = count($relatedEventCorrelationCount[$key]);
         }
 
         foreach ($dataForView as $m => $variables) {
@@ -1477,6 +1482,7 @@ class EventsController extends AppController
         $orgTable = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
+        $this->set('relatedEventCorrelationCount', $relatedEventCorrelationCount);
         $this->set('oldest_timestamp', $oldest_timestamp);
         $this->set('required_taxonomies', $this->Event->getRequiredTaxonomies());
         $this->set('orgTable', $orgTable);
@@ -1549,6 +1555,8 @@ class EventsController extends AppController
         $conditions['includeFeedCorrelations'] = 1;
         if (!$this->_isRest()) {
             $conditions['includeGranularCorrelations'] = 1;
+        } else if (!empty($this->params['named']['includeGranularCorrelations'])) {
+            $conditions['includeGranularCorrelations'] = 1;
         }
         if (!isset($this->params['named']['includeServerCorrelations'])) {
             $conditions['includeServerCorrelations'] = 1;
@@ -1559,6 +1567,28 @@ class EventsController extends AppController
             $conditions['includeServerCorrelations'] = $this->params['named']['includeServerCorrelations'];
         }
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
+        if (!empty($this->params['named']['includeGranularCorrelations'])) {
+            foreach ($results as $k => $event) {
+                if (!empty($event['RelatedAttribute'])) {
+                    foreach ($event['RelatedAttribute'] as $attribute_id => $relation) {
+                        foreach ($event['Attribute'] as $k2 => $attribute) {
+                            if ((int)$attribute['id'] == $attribute_id) {
+                                $results[$k]['Attribute'][$k2]['RelatedAttribute'][] = $relation;
+                                break 2;
+                            }
+                        }
+                        foreach ($event['Object'] as $k2 => $object) {
+                            foreach ($object['Attribute'] as $k3 => $attribute) {
+                                if ((int)$attribute['id'] == $attribute_id) {
+                                    $results[$k]['Object'][$k2]['Attribute'][$k3]['RelatedAttribute'][] = $relation;
+                                    break 3;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
         }
@@ -3647,7 +3677,6 @@ class EventsController extends AppController
                                 if (empty($tagCollection)) {
                                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
                                 }
-                                $tag_id_list = array();
                                 foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
                                     $tag_id_list[] = $tagCollectionTag['tag_id'];
                                 }

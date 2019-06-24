@@ -329,6 +329,17 @@
         echo sprintf('<h3>%s</h3>', $data['title']);
         echo sprintf('<p>%s</p>', implode(" ", $data['description']));
         echo sprintf("<pre>%s</pre>", implode("\n", $data['url']));
+        $data = array(
+            'title' => __('Administering the background workers via the API.'),
+            'description' => array(
+                __('You can start/stop and view the bacground workers via the API.'),
+                sprintf('<br /><span class="bold">%s</span>: <code>%s/servers/%s</code><br />', __('Add worker'), $baseurl, 'startWorker/[queue_name]'),
+                sprintf('<span class="bold">%s</span>: <code>%s/servers/%s</code><br />', __('Stop worker'), $baseurl, 'stopWorker/[worker_pid]'),
+                sprintf('<span class="bold">%s</span>: <code>%s/servers/%s</code><br />', __('Get worker info'), $baseurl, 'getWorkers')
+            )
+        );
+        echo sprintf('<h3>%s</h3>', $data['title']);
+        echo sprintf('<p>%s</p>', implode(" ", $data['description']));
         foreach ($command_line_functions as $clusterRef => $cluster) {
             echo sprintf('<a id="%s"></a><h3>%s</h3>', $clusterRef, $cluster['header']);
             echo sprintf('<p>%s:<br />', $cluster['description']);
