@@ -326,6 +326,7 @@ class MispObject extends AppModel
                 'conditions' => $params['conditions'],
                 'recursive' => -1,
                 'fields' => $params['fields'],
+                'contain' => array('Event' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id')),
                 'sort' => false
             ));
             return $results;
