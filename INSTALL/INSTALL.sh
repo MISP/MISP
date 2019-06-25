@@ -400,11 +400,17 @@ ask_o () {
 
 }
 
+clean () {
+  rm /tmp/INSTALL.stat
+  rm /tmp/INSTALL.sh.*
+}
+
 # Check if misp user is present and if run as root
 checkID () {
   debug "Checking if run as root and $MISP_USER is present"
   if [[ $EUID == 0 ]]; then
     echo "This script cannot be run as a root"
+    clean > /dev/null 2>&1
     exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
     if [[ "$UNATTENDED" != "1" ]]; then 
@@ -547,6 +553,7 @@ setBaseURL () {
   CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
   IFACE=`echo $CONN |awk {'print $1'}`
   IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
+  # TODO: Consider "QEMU"
   if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
@@ -1041,7 +1048,7 @@ installDepsPhp72 () {
   libapache2-mod-php \
   php php-cli \
   php-dev \
-  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring \
   php-pear \
   php-redis php-gnupg \
   php-gd
