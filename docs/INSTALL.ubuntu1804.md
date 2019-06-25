@@ -115,7 +115,7 @@ installDepsPhp72 () {
   libapache2-mod-php \
   php php-cli \
   php-dev \
-  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring \
   php-pear \
   php-redis php-gnupg \
   php-gd

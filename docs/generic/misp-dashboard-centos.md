@@ -7,7 +7,7 @@
 ```bash
 sudo yum install wget screen -y
 sudo mkdir /var/www/misp-dashboard
-sudo chown $WWW_USER:$WWW_USER misp-dashboard
+sudo chown $WWW_USER:$WWW_USER /var/www/misp-dashboard
 $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git /var/www/misp-dashboard
 cd /var/www/misp-dashboard
 sudo sed -i -E 's/sudo apt/#sudo apt/' install_dependencies.sh
