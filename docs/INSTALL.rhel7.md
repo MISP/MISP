@@ -329,6 +329,12 @@ installCake_RHEL ()
   sudo scl enable rh-php72 'yes no|pecl install redis'
   echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
   sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
+
+  # Install gnupg extension
+  sudo yum install gpgme-devel
+  sudo scl enable rh-php72 'pecl install gnupg'
+  echo "extension=gnupg.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/gnupg.ini
+  sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/gnupg.ini /etc/opt/rh/rh-php72/php.d/99-gnupg.ini
   sudo systemctl restart rh-php72-php-fpm.service
 
   # If you have not yet set a timezone in php.ini
@@ -487,9 +493,7 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/start.sh
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmq.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmqtest.py
-  sudo chcon -t httpd_sys_script_exec_t /usr/bin/ps
-  sudo chcon -t httpd_sys_script_exec_t /usr/bin/grep
-  sudo chcon -t httpd_sys_script_exec_t /usr/bin/awk
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
   sudo chcon -t httpd_sys_script_exec_t /usr/bin/gpg
   sudo chcon -t httpd_sys_script_exec_t /usr/bin/gpg-agent
   sudo chcon -t httpd_sys_script_exec_t /usr/bin/whoami
