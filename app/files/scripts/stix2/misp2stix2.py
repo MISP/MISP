@@ -177,6 +177,8 @@ class StixBuilder():
         self.objects_mapping = {
             'asn': {'observable': self.resolve_asn_observable,
                     'pattern': self.resolve_asn_pattern},
+            'credential': {'observable': self.resolve_credential_observable,
+                           'pattern': self.resolve_credential_pattern},
             'domain-ip': {'observable': self.resolve_domain_ip_observable,
                           'pattern': self.resolve_domain_ip_pattern},
             'email': {'observable': self.resolve_email_object_observable,
@@ -763,6 +765,31 @@ class StixBuilder():
                 pattern += "{0}:{1} = '{2}' AND ".format(define_address_type(attribute_value), stix_type, attribute_value)
             else:
                 pattern += mapping.format(stix_type, attribute_value)
+        return "[{}]".format(pattern[:-5])
+
+    def resolve_credential_observable(self, attributes, object_id):
+        user_account = objectsMapping['credential']['observable']
+        for attribute in attributes:
+            self.parse_galaxies(attribute['Galaxy'], object_id)
+            relation = attribute['object_relation']
+            try:
+                stix_type = credentialObjectMapping[relation]
+            except KeyError:
+                stix_type = "x_misp_{}_{}".format(attribute['type'], relation)
+            user_account[stix_type] = attribute['value']
+        return {'0': user_account}
+
+    def resolve_credential_pattern(self, attributes, object_id):
+        mapping = objectsMapping['credential']['pattern']
+        pattern = ""
+        for attribute in attributes:
+            self.parse_galaxies(attribute['Galaxy'], object_id)
+            relation = attribute['object_relation']
+            try:
+                stix_type = credentialObjectMapping[relation]
+            except KeyError:
+                stix_type = "x_misp_{}_{}".format(attribute['type'], relation)
+            pattern += mapping.format(stix_type, attribute['value'])
         return "[{}]".format(pattern[:-5])
 
     def resolve_domain_ip_observable(self, attributes, object_id):

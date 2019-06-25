@@ -276,6 +276,9 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                           'observable': {'type': 'autonomous-system'},
                           'pattern': "autonomous-system:{0} = '{1}' AND "},
                   'course-of-action': {'to_call': 'add_course_of_action_from_object'},
+                  'credential': {'to_call': 'handle_usual_object_name',
+                                 'observable': {'type': 'user-account'},
+                                 'pattern': "user-account:{0} = '{1}' AND "},
                   'domain-ip': {'to_call': 'handle_usual_object_name',
                                 'pattern': "domain-name:{0} = '{1}' AND "},
                   'email': {'to_call': 'handle_usual_object_name',
@@ -304,6 +307,8 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
 }
 
 asnObjectMapping = {'asn': 'number', 'description': 'name', 'subnet-announced': 'value'}
+
+credentialObjectMapping = {'password': 'credential', 'username': 'account_login'}
 
 domainIpObjectMapping = {'ip-dst': 'resolves_to_refs[*].value', 'domain': 'value'}
 
