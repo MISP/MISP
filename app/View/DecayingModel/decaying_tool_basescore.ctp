@@ -99,13 +99,29 @@ function updateTree(new_data) {
     nodes.enter()
         .append("div")
         .attr("class", "node useCursorPointer")
-        .style("background", function(d) { return !d.children ? color(d.name) : null; })
+        .style("background", function(d) {
+            if (d.depth == 0) {
+                return 'white';
+            } else if (!d.children) {
+                return color(d.name);
+            } else {
+                return null;
+            }
+        })
         .attr("id", function(d) { return d.name + '-node'})
         .on('click', function() { $('#table_taxonomy_search').val(d3.select(this).data()[0].name).trigger('input');})
     nodes.transition().duration(100)
         .call(position)
         .attr("title", function(d) { return d.name + ': ' + d.size})
-        .text(function(d) { return d.children ? null : d.name + ' ('+parseInt(d.ratio*100)+'%)'; });
+        .text(function(d) {
+            if (d.children) {
+                return '';
+            } else if (d.name !== '' && !isNaN(d.ratio) ) {
+                return d.name + ' ('+parseInt(d.ratio*100)+'%)';
+            } else {
+                return '';
+            }
+        });
 
     nodes.exit()
         .remove();
@@ -113,7 +129,7 @@ function updateTree(new_data) {
 
 function genTreeData() {
     var root = {
-        name: 'root',
+        name: '',
         children: []
     };
     var sum = 0;
