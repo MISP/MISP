@@ -164,4 +164,39 @@ class DecayingModel extends AppModel
         return false;
     }
 
+    // filter out taxonomies and entries not having a numerical value
+    public function listTaxonomiesWithNumericalValue()
+    {
+        $this->Taxonomy = ClassRegistry::init('Taxonomy');
+        $taxonomies = $this->Taxonomy->listTaxonomies(array('full' => true, 'enabled' => true));
+        $start_count = count($taxonomies);
+        foreach ($taxonomies as $namespace => $taxonomy) {
+            if(!empty($taxonomy['TaxonomyPredicate'])) {
+                foreach($taxonomy['TaxonomyPredicate'] as $p => $predicate) {
+                    if(!empty($predicate['TaxonomyEntry'])) {
+                        foreach ($predicate['TaxonomyEntry'] as $e => $entry) {
+                            if (!is_numeric($entry['numerical_value'])) {
+                                unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]);
+                            }
+                        }
+                        if (empty($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'])) {
+                            unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]);
+                        }
+                    } else {
+                        unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]);
+                    }
+                }
+                if (empty($taxonomies[$namespace]['TaxonomyPredicate'])) {
+                    unset($taxonomies[$namespace]);
+                }
+            } else {
+                unset($taxonomies[$namespace]);
+            }
+        }
+        return array(
+            'taxonomies' => $taxonomies,
+            'not_having_numerical_value' => $start_count - count($taxonomies)
+        );
+    }
+
 }

@@ -180,8 +180,8 @@ class DecayingModelController extends AppController
     }
 
     public function decayingToolBasescore() {
-        $this->loadModel('Taxonomy');
-        $taxonomies = $this->Taxonomy->listTaxonomies();
-        $this->set('taxonomies', $taxonomies);
+        $taxonomies = $this->DecayingModel->listTaxonomiesWithNumericalValue();
+        $this->set('taxonomies', $taxonomies['taxonomies']);
+        $this->set('taxonomies_not_having_numerical_value', $taxonomies['not_having_numerical_value']);
     }
 }

@@ -2,6 +2,7 @@
     <div class="span8" style="height: calc(90vh); overflow-y: scroll; border: 1px solid #ddd;">
         <input id="table_taxonomy_search" class="input" style="width: 250px; margin: 0px;" type="text" placeholder="<?php echo _('Search Taxonomy'); ?>"></input>
         <it class="fa fa-times useCursorPointer" title="<?php echo __('Clear search field'); ?>" onclick="$('#table_taxonomy_search').val('').trigger('input');"></it>
+        <span style="float: right;"><b><?php echo h($taxonomies_not_having_numerical_value); ?></b><?php echo __(' not having numerical value'); ?></span>
         <table id="tableTaxonomy" class="table table-striped table-bordered table-condensed">
             <thead>
                 <tr>
@@ -28,18 +29,49 @@
         <div style="margin-bottom: 5px;">
             <div id="treemapGraphTax" style="border: 1px solid #dddddd; border-radius: 4px; text-align: center;"></div>
         </div>
+        <div style="margin-bottom: 5px; border: 1px solid #dddddd; border-radius: 4px; text-align: center; background-color: white;">
+            <?php echo __('Placeholder for `Organisation source confidence`') ?>
+        </div>
         <div>
+            <h3><?php echo __('Example') ?></h3>
             <table id="tableTaxonomy" class="table table-striped table-bordered table-condensed">
                 <thead>
                     <tr>
-                        <th><?php echo __('Example') ?></th>
+                        <th>Attribute</th>
+                        <th>Tags</th>
+                        <th>Base score</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td>
-                            cscsc
+                            Tag your attribute
                         </td>
+                        <td>
+                            <div style="width:100%;display:inline-block;" data-original-title="" title="">
+                                <div style="float:left" data-original-title="" title="">
+                                    <button id="basescore-example-score-addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" title="Add tag" onclick="popoverPopup(this, '0', 'tags', 'selectTaxonomy');">+</button>
+                                </div>
+                            </div>
+                        </td>
+                        <td id="basescore-example-score-custom">
+                            Base score
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Attribute 1</td>
+                        <td id="basescore-example-tag-1">tags</td>
+                        <td id="basescore-example-score-1">100</td>
+                    </tr>
+                    <tr>
+                        <td>Attribute 2</td>
+                        <td id="basescore-example-tag-2">tags</td>
+                        <td id="basescore-example-score-2">100</td>
+                    </tr>
+                    <tr>
+                        <td>Attribute 3</td>
+                        <td id="basescore-example-tag-3">tags</td>
+                        <td id="basescore-example-score-3">100</td>
                     </tr>
                 </tbody>
             </table>
