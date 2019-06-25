@@ -18,7 +18,7 @@
                         </td>
                         <td>
                             <input id="slider_<?php echo h($name) ?>" data-taxonomyname="<?php echo h($name) ?>" type="range" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" onchange="sliderChanged(this);" oninput="sliderChanged(this);"></input>
-                            <input type="number" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" style="display: inline-block; margin-left: 5px; margin: 0px; width: 40px;" onchange="inputChanged(this);" oninput="inputChanged(this);"></input>
+                            <input type="number" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" style="display: inline-block; margin-left: 5px; margin: 0px; width: 40px;" data-taxonomyname="<?php echo h($name) ?>" onchange="inputChanged(this);" oninput="inputChanged(this);"></input>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -33,7 +33,7 @@
             <?php echo __('Placeholder for `Organisation source confidence`') ?>
         </div>
         <div>
-            <h3><?php echo __('Example') ?></h3>
+            <h3><?php echo __('Example') ?><it class="fa fa-sync useCursorPointer" style="margin-left: 5px; font-size: small;" onclick="refreshExamples()"></it></h3>
             <table id="tableTaxonomy" class="table table-striped table-bordered table-condensed">
                 <thead>
                     <tr>
@@ -55,23 +55,22 @@
                             </div>
                         </td>
                         <td id="basescore-example-score-custom">
-                            Base score
                         </td>
                     </tr>
                     <tr>
                         <td>Attribute 1</td>
-                        <td id="basescore-example-tag-1">tags</td>
-                        <td id="basescore-example-score-1">100</td>
+                        <td id="basescore-example-tag-1"><?php echo __('Pick a Taxonomy'); ?></td>
+                        <td id="basescore-example-score-1"></td>
                     </tr>
                     <tr>
                         <td>Attribute 2</td>
-                        <td id="basescore-example-tag-2">tags</td>
-                        <td id="basescore-example-score-2">100</td>
+                        <td id="basescore-example-tag-2"><?php echo __('Pick a Taxonomy'); ?></td>
+                        <td id="basescore-example-score-2"></td>
                     </tr>
                     <tr>
                         <td>Attribute 3</td>
-                        <td id="basescore-example-tag-3">tags</td>
-                        <td id="basescore-example-score-3">100</td>
+                        <td id="basescore-example-tag-3"><?php echo __('Pick a Taxonomy'); ?></td>
+                        <td id="basescore-example-score-3"></td>
                     </tr>
                 </tbody>
             </table>
@@ -88,6 +87,73 @@ echo $this->element('genericElements/assetLoader', array(
 ?>
 
 <script>
+var taxonomies_with_num_value = <?php echo json_encode($taxonomies); ?>;
+
+function getRandomInt(max) {
+    return Math.floor(Math.random() * Math.floor(max));
+}
+
+function pickRandomTags() {
+    var matching_inputs = $('#body_taxonomies > tr')
+    .find('input[type="number"]')
+    .filter(function() {
+        return $(this).val() > 0;
+    });
+    var taxonomies_name = [];
+    matching_inputs.each(function() {
+        taxonomies_name.push($(this).data('taxonomyname'));
+    });
+    var tags = [];
+
+    if (taxonomies_name.length == 0) {
+        return [];
+    }
+
+    var temp_taxonomies_name = taxonomies_name.slice();
+    var max_tag_num = taxonomies_name.length > 3 ? 3 : taxonomies_name.length;
+    var picked_tag_number = getRandomInt(max_tag_num) + 1;
+    for (var i = 0; i < picked_tag_number; i++) { // number of tags
+        // pick a taxonomy
+        var picked_number_taxonomy = getRandomInt(temp_taxonomies_name.length);
+        var picked_taxonomy_name = temp_taxonomies_name[picked_number_taxonomy];
+        var picked_taxonomy = taxonomies_with_num_value[picked_taxonomy_name];
+        // pick a random predicate
+        var picked_number_predicate = getRandomInt(picked_taxonomy['TaxonomyPredicate'].length);
+        var picked_predicate = picked_taxonomy['TaxonomyPredicate'][picked_number_predicate];
+        // pick a random entry -> tag
+        var picked_number_entry = getRandomInt(picked_predicate['TaxonomyEntry'].length);
+        var picked_entry = picked_predicate['TaxonomyEntry'][picked_number_entry];
+        tags.push(picked_entry['Tag']);
+        // delete temp_taxonomies_name[picked_number_taxonomy];
+        temp_taxonomies_name.splice(picked_number_taxonomy, 1);
+    }
+    return tags;
+}
+
+function refreshExamples() {
+    for (var i = 1; i <= 3; i++) {
+        var numerical_values = [];
+        tags = pickRandomTags();
+        tags_html = '';
+        tags.forEach(function(tag) {
+            numerical_values.push({name: tag.name.split(':')[0], value: tag['numerical_value']})
+            var text_color = getTextColour(tag.colour);
+            tags_html += '<span class="tag decayingExampleTags" style="background-color: ' + tag.colour + ';color:' + text_color + '" '
+                + 'title="numerical_value=' + tag['numerical_value'] + '" '
+                + 'data-placement="right">' + tag.name + '</span>&nbsp;';
+        });
+
+        var base_score = compute_base_score(numerical_values);
+        $('#basescore-example-tag-'+i).empty().append(tags_html);
+        $('#basescore-example-score-'+i).text(base_score);
+        $('span.decayingExampleTags').tooltip();
+    }
+}
+
+function compute_base_score(numerical_values) {
+    return 0;
+}
+
 function filterTableTaxonomy(searchString) {
     var $table = $('#tableTaxonomy');
     var $body = $table.find('tbody');

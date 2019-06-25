@@ -168,19 +168,27 @@ class DecayingModel extends AppModel
     public function listTaxonomiesWithNumericalValue()
     {
         $this->Taxonomy = ClassRegistry::init('Taxonomy');
+        $this->Tag = ClassRegistry::init('Tag');
         $taxonomies = $this->Taxonomy->listTaxonomies(array('full' => true, 'enabled' => true));
         $start_count = count($taxonomies);
         foreach ($taxonomies as $namespace => $taxonomy) {
             if(!empty($taxonomy['TaxonomyPredicate'])) {
+                $tags = $this->Tag->getTagsForNamespace($taxonomy['namespace'], false);
                 foreach($taxonomy['TaxonomyPredicate'] as $p => $predicate) {
                     if(!empty($predicate['TaxonomyEntry'])) {
                         foreach ($predicate['TaxonomyEntry'] as $e => $entry) {
                             if (!is_numeric($entry['numerical_value'])) {
                                 unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]);
+                            } else {
+                                $tag_name = sprintf('%s:%s="%s"', $taxonomy['namespace'], $predicate['value'], $entry['value']);
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag']['numerical_value'] = $entry['numerical_value'];
                             }
                         }
                         if (empty($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'])) {
                             unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]);
+                        } else {
+                            $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'] = array_values($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry']);
                         }
                     } else {
                         unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]);
@@ -188,11 +196,14 @@ class DecayingModel extends AppModel
                 }
                 if (empty($taxonomies[$namespace]['TaxonomyPredicate'])) {
                     unset($taxonomies[$namespace]);
+                } else {
+                    $taxonomies[$namespace]['TaxonomyPredicate'] = array_values($taxonomies[$namespace]['TaxonomyPredicate']);
                 }
             } else {
                 unset($taxonomies[$namespace]);
             }
         }
+
         return array(
             'taxonomies' => $taxonomies,
             'not_having_numerical_value' => $start_count - count($taxonomies)
