@@ -1026,51 +1026,47 @@ class StixBuilder():
         return "[{}]".format(pattern[:-5])
 
     def resolve_network_socket_observable(self, attributes, object_id):
-        observable, socket_extension = {}, {}
-        network_object = defaultdict(list)
-        network_object['type'] = 'network-traffic'
-        n = 0
-        ip_src, ip_dst, domain_src, domain_dst = [None] * 4
+        tmp_attributes = {}
+        states = []
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             relation = attribute['object_relation']
-            if relation in ('address-family', 'domain-family'):
-                socket_extension[networkSocketMapping[relation]] = attribute['value']
-            elif relation == 'state':
-                state_type = "is_{}".format(attribute['value'])
-                socket_extension[state_type] = True
-            elif relation == 'protocol':
-                network_object['protocols'].append(attribute['value'])
-            elif relation == 'ip-src': ip_src = attribute['value']
-            elif relation == 'ip-dst': ip_dst = attribute['value']
-            elif relation == 'hostname-src': domain_src = attribute['value']
-            elif relation == 'hostname-dst': domain_dst = attribute['value']
+            if relation == 'state':
+                states.append(attribute['value'])
             else:
-                try:
-                    network_object[networkSocketMapping[relation]] = attribute['value']
-                except KeyError:
-                    continue
-        if ip_src is not None:
-            str_n = str(n)
-            observable[str_n] = {'type': define_address_type(ip_src), 'value': ip_src}
-            network_object['src_ref'] = str_n
+                tmp_attributes[relation] = attribute['value']
+        observable = {}
+        socket_extension = {}
+        network_object = defaultdict(list)
+        network_object['type'] = 'network-traffic'
+        n = 0
+        for feature in ('address-family', 'domain-family'):
+            if feature in tmp_attributes:
+                socket_extension[networkSocketMapping[feature]] = tmp_attributes[feature]
+        for state in states:
+            state_type = "is_{}".format(state)
+            socket_extension[state_type] = True
+        if 'protocol' in tmp_attributes:
+            network_object['protocols'].append(attribute['value'])
+        for feature in ('src', 'dst'):
+            ip_feature = 'ip-{}'.format(feature)
+            host_feature = 'hostname-{}'.format(feature)
+            if ip_feature not in tmp_attributes and host_feature in tmp_attributes:
+                str_n = str(n)
+                observable[str_n] = {'type': 'domain-name', 'value': tmp_attributes[host_feature]}
+            elif ip_feature in tmp_attributes:
+                feature_value = tmp_attributes[ip_feature]
+                str_n = str(n)
+                observable[str_n] = {'type': define_address_type(feature_value), 'value': feature_value}
+            else:
+                continue
+            network_object['{}_ref'.format(feature)] = str_n
             n += 1
-        elif domain_src is not None:
-            str_n = str(n)
-            observable[str_n] = {'type': 'domain-name', 'value': domain_src}
-            network_object['src_ref'] = str_n
-            n += 1
-        if ip_dst is not None:
-            str_n = str(n)
-            observable[str_n] = {'type': define_address_type(ip_dst), 'value': ip_dst}
-            network_object['dst_ref'] = str_n
-            n += 1
-        elif domain_dst is not None:
-            str_n = str(n)
-            observable[str_n] = {'type': 'domain-name', 'value': domain_dst}
-            network_object['dst_ref'] = str_n
-            n += 1
-        if socket_extension: network_object['extensions'] = {'socket-ext': socket_extension}
+        for feature in ('src-port', 'dst-port'):
+            if feature in tmp_attributes:
+                network_object[networkSocketMapping[feature]] = tmp_attributes[feature]
+        if socket_extension:
+            network_object['extensions'] = {'socket-ext': socket_extension}
         observable[str(n)] = network_object
         return observable
 
