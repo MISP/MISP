@@ -57,6 +57,7 @@ echo "<VirtualHost *:8001>
     ServerSignature Off
 </VirtualHost>" | sudo tee /etc/httpd/conf.d/misp-dashboard.conf
 
+sudo semanage port -a -t http_port_t -p tcp 8001
 sudo systemctl restart httpd.service
 
 # Add misp-dashboard to rc.local to start on boot.
