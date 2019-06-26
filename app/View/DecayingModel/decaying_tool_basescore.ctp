@@ -14,7 +14,28 @@
                 <?php foreach ($taxonomies as $name => $taxonomy): ?>
                     <tr>
                         <td>
-                            <?php echo h($name) ?>
+                            <div class="btn-group">
+                                <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+                                      <?php echo h($name) ?>
+                                      <span class="caret"></span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <?php foreach ($taxonomy['TaxonomyPredicate'] as $p => $predicate): ?>
+                                        <?php foreach ($predicate['TaxonomyEntry'] as $e => $entry): ?>
+                                            <li>
+                                                <a style="position: relative; padding: 3px 5px;">
+                                                    <span class="tag"
+                                                    style="margin-right: 35px;background-color: <?php echo $entry['Tag']['colour']; ?>;color:<?php echo $this->TextColour->getTextColour($entry['Tag']['colour']);?>"
+                                                    title="<?php echo sprintf('%s: %s', h($entry['expanded']), h($entry['description'])) ?>"><?php echo $entry['Tag']['name']; ?>
+                                                    </span>
+                                                    <span class="label label-inverse" style="position: absolute; right: 5px; top: 50%; margin-top: -9px;
+"><?php echo h($entry['numerical_value']) ?></span>
+                                                </a>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
                         </td>
                         <td>
                             <input id="slider_<?php echo h($name) ?>" data-taxonomyname="<?php echo h($name) ?>" type="range" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" onchange="sliderChanged(this);" oninput="sliderChanged(this);"></input>
