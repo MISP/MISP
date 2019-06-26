@@ -308,7 +308,7 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
 
 asnObjectMapping = {'asn': 'number', 'description': 'name', 'subnet-announced': 'value'}
 
-credentialObjectMapping = {'password': 'credential', 'username': 'account_login'}
+credentialObjectMapping = {'password': 'credential', 'username': 'user_id'}
 
 domainIpObjectMapping = {'ip-dst': 'resolves_to_refs[*].value', 'domain': 'value'}
 
