@@ -336,6 +336,9 @@
                 params.tau = parseInt($('#input_Tau').val());
                 params.delta = parseFloat($('#input_Delta').val());
                 params.threshold = parseInt($('#input_Threshold').val());
+                var base_score_config = $('#input_base_score_config').val();
+                base_score_config = base_score_config === '' ? '{}' : base_score_config;
+                params.base_score_config = JSON.parse(base_score_config)
                 data.parameters = params;
                 return data;
             },
@@ -351,6 +354,8 @@
                         return;
                     }
                 }
+                console.log(data);
+                return;
                 this.fetchFormAndSubmit($clicked, type, model_id, data);
             },
             fetchFormAndSubmit: function($clicked, type, model_id, formData, baseurl) {
@@ -457,6 +462,9 @@
                     $row[0].outerHTML = row;
                 }
                 this.highlightMatchingRow();
+            },
+            apply_base_score: function(taxonomy_config) {
+                $('#input_base_score_config').val(JSON.stringify(taxonomy_config));
             },
 
             /* TYPE TABLE */

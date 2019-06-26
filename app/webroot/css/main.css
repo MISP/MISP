@@ -1191,6 +1191,10 @@ span.success {
     border-top: 1px solid #ddd;
 }
 
+.cellHeavyTopBorder {
+    border-top: 2px solid #000;
+}
+
 .tabMenuFilterFieldHeader {
     border-radius: 10px 0px 0 0 !important;
     height:14px !important;
@@ -1474,6 +1478,13 @@ span.success {
     padding-left:0px !important;
     padding-right:0px !important;
     border-top:0px !important;
+}
+
+.fa.helptext-in-cell, .fas.helptext-in-cell {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    margin-top: -6px;
 }
 
 .templateTableHeader {

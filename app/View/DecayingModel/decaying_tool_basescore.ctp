@@ -54,27 +54,50 @@
                                 </div>
                             </div>
                         </td>
-                        <td id="basescore-example-score-custom">
+                        <td id="basescore-example-score-custom" style="position: relative; text-align: center; vertical-align: middle;">
                         </td>
                     </tr>
-                    <tr>
+                    <tr onclick="genHelpBaseScoreComputation(1)">
                         <td>Attribute 1</td>
                         <td id="basescore-example-tag-1"><?php echo __('Pick a Taxonomy'); ?></td>
-                        <td id="basescore-example-score-1"></td>
+                        <td id="basescore-example-score-1" style="position: relative; text-align: center; vertical-align: middle;"></td>
                     </tr>
-                    <tr>
+                    <tr onclick="genHelpBaseScoreComputation(2)">
                         <td>Attribute 2</td>
                         <td id="basescore-example-tag-2"><?php echo __('Pick a Taxonomy'); ?></td>
-                        <td id="basescore-example-score-2"></td>
+                        <td id="basescore-example-score-2" style="position: relative; text-align: center; vertical-align: middle;"></td>
                     </tr>
-                    <tr>
+                    <tr onclick="genHelpBaseScoreComputation(3)">
                         <td>Attribute 3</td>
                         <td id="basescore-example-tag-3"><?php echo __('Pick a Taxonomy'); ?></td>
-                        <td id="basescore-example-score-3"></td>
+                        <td id="basescore-example-score-3" style="position: relative; text-align: center; vertical-align: middle;"></td>
                     </tr>
                 </tbody>
             </table>
+
+            <h3><?php echo __('Computation steps') ?></h3>
+            <div id="computation_help_container" style="margin-bottom: 5px; border: 1px solid #dddddd; border-radius: 4px; text-align: center; background-color: white;">
+                <table class="table histogram-legendH4">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" style="vertical-align: middle;"><?php echo __('Tag') ?></th>
+                            <th colspan="3"><?php echo __('Computation') ?></th>
+                            <th rowspan="2" style="vertical-align: middle;"><?php echo __('Result') ?></th>
+                        </tr>
+                        <tr>
+                            <th style="padding: 0px; width: 90px;"><?php echo __('Taxonomy ratio') ?></th>
+                            <th></th>
+                            <th style="padding: 0px; width: 90px;"><?php echo __('Tag value') ?></th>
+                        </tr>
+                    </thead>
+                    <tbody id="computation_help_container_body">
+                        <tr><td></td><td></td><td></td><td></td><td></td></tr>
+                    </tbody>
+                </table>
+                <b id="pick_notice"><?php echo __('Pick an Attribute') ?></b>
+            </div>
         </div>
+        <span class="btn btn-primary" onclick="applyBaseScoreConfig();"><i class="fas fa-wrench"> Apply base score</i></span>
     </div>
 </div>
 
@@ -88,21 +111,48 @@ echo $this->element('genericElements/assetLoader', array(
 
 <script>
 var taxonomies_with_num_value = <?php echo json_encode($taxonomies); ?>;
+var base_score_computation = [];
 
 function getRandomInt(max) {
     return Math.floor(Math.random() * Math.floor(max));
 }
 
-function pickRandomTags() {
+function applyBaseScoreConfig() {
+    decayingTool.apply_base_score(getRatioScore());
+    $('#popover_form_large').fadeOut();
+    $('#gray_out').fadeOut();
+}
+
+function fetchTaxonomyConfig() {
     var matching_inputs = $('#body_taxonomies > tr')
     .find('input[type="number"]')
     .filter(function() {
-        return $(this).val() > 0;
+        return parseInt($(this).val()) > 0;
     });
-    var taxonomies_name = [];
+    var taxonomy_config = {};
     matching_inputs.each(function() {
-        taxonomies_name.push($(this).data('taxonomyname'));
+        taxonomy_config[$(this).data('taxonomyname')] = parseInt($(this).val());
     });
+    return taxonomy_config;
+}
+
+function getRatioScore(taxonomies_name) {
+    if (taxonomies_name === undefined) {
+        taxonomies_name = Object.keys(fetchTaxonomyConfig());
+    }
+    var config = fetchTaxonomyConfig();
+    var ratioScore = {};
+    total_score = taxonomies_name.reduce(function(acc, name) {
+        return acc + config[name];
+    }, 0)
+    taxonomies_name.forEach(function(name) {
+        ratioScore[name] = config[name] / total_score;
+    });
+    return ratioScore;
+}
+
+function pickRandomTags() {
+    var taxonomies_name = Object.keys(fetchTaxonomyConfig());
     var tags = [];
 
     if (taxonomies_name.length == 0) {
@@ -123,11 +173,73 @@ function pickRandomTags() {
         // pick a random entry -> tag
         var picked_number_entry = getRandomInt(picked_predicate['TaxonomyEntry'].length);
         var picked_entry = picked_predicate['TaxonomyEntry'][picked_number_entry];
+        picked_entry['Tag']['numerical_value'] = parseInt(picked_entry['Tag']['numerical_value']);
         tags.push(picked_entry['Tag']);
         // delete temp_taxonomies_name[picked_number_taxonomy];
         temp_taxonomies_name.splice(picked_number_taxonomy, 1);
     }
     return tags;
+}
+
+function html_computation_step(steps, i) {
+    var step = steps.steps.computation[i];
+    if (step === undefined) {
+        return ['', '', ''];
+    }
+    var html1 = step.ratio.toFixed(2);
+    var html2 = '*';
+    var html3 = step.tag_value.toFixed(2);
+    return [html1, html2, html3];
+}
+
+function computation_step(steps, i) {
+    var step = steps.steps.computation[i];
+    if (step === undefined) { // last row, just sum everything up
+        return  (steps.score).toFixed(2);
+    }
+    return  (step.ratio * step.tag_value).toFixed(2);
+}
+
+function genHelpBaseScoreComputation(index) {
+    $('#tableTaxonomy > tbody > tr').removeClass('success').css('font-weight', 'inherit');
+    $('#tableTaxonomy > tbody > tr:nth-child(' + (index+1) + ')').addClass('success').css('font-weight', 'bold');
+    var steps = base_score_computation[index];
+    var $tags = $('#basescore-example-tag-'+index + ' > span');
+    var last_tag_index = $tags.length;
+    $tags.push($(''));
+    $('#computation_help_container_body').empty();
+    var	tbody = d3.select('#computation_help_container_body');
+
+    // create a row for each object in the data
+    var rows = tbody.selectAll('tr')
+        .data($tags)
+        .enter()
+        .append('tr')
+        .attr('class', function(e, row_i) {
+            if (last_tag_index == row_i) {
+                return 'cellHeavyTopBorder bold';
+            }
+        });
+
+    // create a cell in each row for each column
+    var cells = rows.selectAll('td')
+        .data(function (tag, row_i) {
+            var html_computation = html_computation_step(steps, row_i);
+            return [
+                tag.outerHTML,
+                html_computation[0], html_computation[1], html_computation[2],
+                computation_step(steps, row_i),
+            ]
+        });
+    cells.enter()
+        .append('td')
+        .html(function (e) { return e; })
+        .style('opacity', 0.0)
+        .transition().duration(500)
+        .style('opacity', 1.0);
+
+    $('#pick_notice').remove();
+
 }
 
 function refreshExamples() {
@@ -143,15 +255,31 @@ function refreshExamples() {
                 + 'data-placement="right">' + tag.name + '</span>&nbsp;';
         });
 
-        var base_score = compute_base_score(numerical_values);
+        base_score_computation[i] = compute_base_score(numerical_values);
+        var base_score = base_score_computation[i].score.toFixed(1);
+        var base_score_computation_steps = base_score_computation[i].steps;
         $('#basescore-example-tag-'+i).empty().append(tags_html);
-        $('#basescore-example-score-'+i).text(base_score);
+        $('#basescore-example-score-'+i).empty()
+            .text(base_score)
+            .append('<i class="fas fa-question-circle helptext-in-cell useCursorPointer" onclick="genHelpBaseScoreComputation(' + i + ')"></i>');
         $('span.decayingExampleTags').tooltip();
     }
 }
 
 function compute_base_score(numerical_values) {
-    return 0;
+    var base_score = 0;
+    var config = getRatioScore(numerical_values.map(x => x.name));
+    var steps = {
+        init: {
+            config
+        },
+        computation: []
+    };
+    numerical_values.forEach(function(tag) {
+        base_score += config[tag.name] * tag.value;
+        steps.computation.push({ ratio: config[tag.name], tag_value: tag.value });
+    });
+    return { score: base_score, steps: steps };
 }
 
 function filterTableTaxonomy(searchString) {
@@ -175,15 +303,25 @@ $('#table_taxonomy_search').on('input', function() {
     filterTableTaxonomy(this.value);
 });
 
+var refreshExamplesTimeout = null;
+function refreshExamplesThrottle() {
+    if (refreshExamplesTimeout !== null) {
+        clearTimeout(refreshExamplesTimeout);
+    }
+    refreshExamplesTimeout = setTimeout(function() { refreshExamples(); }, 200);
+}
+
 function sliderChanged(changed) {
     $(changed).parent().find('input[type="number"]').val(changed.value);
     var new_data = genTreeData();
     updateTree(new_data);
+    refreshExamplesThrottle();
 }
 function inputChanged(changed) {
     $(changed).parent().find('input[type="range"]').val(changed.value);
     var new_data = genTreeData();
     updateTree(new_data);
+    refreshExamplesThrottle();
 }
 
 function updateTree(new_data) {
@@ -269,6 +407,7 @@ function genTreeData() {
     	.style("top", margin.top + "px");
 
     updateTree(root);
+    refreshExamples();
 
     function position() {
       this.style("left", function(d) { return d.x + "px"; })
