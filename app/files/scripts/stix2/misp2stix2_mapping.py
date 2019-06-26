@@ -268,7 +268,7 @@ mispTypesMapping = {
     #                           'pattern': 'email-addr:display_name = \'{0}\''}
 }
 
-network_traffic_pattern = "network-traffic:{0} = '{1}' AND "
+network_traffic_pattern = "network-traffic:{0} = '{1}'"
 network_traffic_src_ref = "src_ref.type = '{0}' AND network-traffic:src_ref.value"
 network_traffic_dst_ref = "dst_ref.type = '{0}' AND network-traffic:dst_ref.value"
 
@@ -280,7 +280,7 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                                  'observable': {'type': 'user-account'},
                                  'pattern': "user-account:{0} = '{1}' AND "},
                   'domain-ip': {'to_call': 'handle_usual_object_name',
-                                'pattern': "domain-name:{0} = '{1}' AND "},
+                                'pattern': "domain-name:{0} = '{1}'"},
                   'email': {'to_call': 'handle_usual_object_name',
                             'observable': {'0': {'type': 'email-message'}},
                             'pattern': "email-{0}:{1} = '{2}' AND "},
@@ -300,7 +300,7 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                                    'pattern': "windows-registry-key:{0} = '{1}' AND "},
                   'url': {'to_call': 'handle_usual_object_name',
                           'observable': {'0': {'type': 'url'}},
-                          'pattern': "url:{0} = '{1}' AND "},
+                          'pattern': "url:{0} = '{1}'"},
                   'vulnerability': {'to_call': 'add_object_vulnerability'},
                   'x509': {'to_call': 'handle_usual_object_name',
                            'pattern': "x509-certificate:{0} = '{1}' AND "}
@@ -330,7 +330,7 @@ ipPortObjectMapping = {'ip': network_traffic_dst_ref,
                        'first-seen': 'start', 'last-seen': 'end',
                        'domain': 'value'}
 
-networkSocketMapping = {'address-family': 'address_family', 'domain-family': 'protocol_family',
+networkTrafficMapping = {'address-family': 'address_family', 'domain-family': 'protocol_family',
                         'protocol': 'protocols', 'src-port': 'src_port', 'dst-port': 'dst_port',
                         'ip-src': network_traffic_src_ref, 'ip-dst': network_traffic_dst_ref,
                         'hostname-src': network_traffic_src_ref, 'hostname-dst': network_traffic_dst_ref}
