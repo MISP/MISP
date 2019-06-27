@@ -1026,45 +1026,13 @@ class StixBuilder():
         return "[{}]".format(" AND ".join(pattern))
 
     def resolve_network_socket_observable(self, attributes, object_id):
-        tmp_attributes = {}
-        states = []
-        for attribute in attributes:
-            self.parse_galaxies(attribute['Galaxy'], object_id)
-            relation = attribute['object_relation']
-            if relation == 'state':
-                states.append(attribute['value'])
-            else:
-                tmp_attributes[relation] = attribute['value']
-        observable = {}
-        socket_extension = {}
-        network_object = defaultdict(list)
-        network_object['type'] = 'network-traffic'
-        n = 0
-        for feature in ('address-family', 'domain-family'):
-            if feature in tmp_attributes:
-                socket_extension[networkSocketMapping[feature]] = tmp_attributes[feature]
+        states, tmp_attributes = self.parse_network_socket_attributes(attributes, object_id)
+        n, network_object, observable = self.create_network_observable(tmp_attributes)
+        socket_extension = {networkTrafficMapping[feature]: tmp_attributes[feature] for feature in ('address-family', 'domain-family') if feature in tmp_attributes}
         for state in states:
             state_type = "is_{}".format(state)
             socket_extension[state_type] = True
-        if 'protocol' in tmp_attributes:
-            network_object['protocols'].append(attribute['value'])
-        for feature in ('src', 'dst'):
-            ip_feature = 'ip-{}'.format(feature)
-            host_feature = 'hostname-{}'.format(feature)
-            if ip_feature not in tmp_attributes and host_feature in tmp_attributes:
-                str_n = str(n)
-                observable[str_n] = {'type': 'domain-name', 'value': tmp_attributes[host_feature]}
-            elif ip_feature in tmp_attributes:
-                feature_value = tmp_attributes[ip_feature]
-                str_n = str(n)
-                observable[str_n] = {'type': define_address_type(feature_value), 'value': feature_value}
-            else:
-                continue
-            network_object['{}_ref'.format(feature)] = str_n
-            n += 1
-        for feature in ('src-port', 'dst-port'):
-            if feature in tmp_attributes:
-                network_object[networkSocketMapping[feature]] = tmp_attributes[feature]
+        network_object['protocols'] = [tmp_attributes['protocol']] if 'protocol' in tmp_attributes else ['tcp']
         if socket_extension:
             network_object['extensions'] = {'socket-ext': socket_extension}
         observable[str(n)] = network_object
@@ -1171,6 +1139,34 @@ class StixBuilder():
                 stix_type = "'x_misp_{}_{}'".format(attribute['type'], attribute['object_relation'])
             pattern += mapping.format(stix_type, attribute['value'])
         return "[{}]".format(pattern[:-5])
+
+    @staticmethod
+    def create_network_observable(attributes):
+        n = 0
+        network_object = {'type': 'network-traffic'}
+        observable = {}
+        for feature in ('src', 'dst'):
+            ip_feature = 'ip-{}'.format(feature)
+            host_feature = 'hostname-{}'.format(feature)
+            refs = []
+            if host_feature in attributes:
+                str_n = str(n)
+                observable[str_n] = {'type': 'domain-name', 'value': attributes[host_feature]}
+                refs.append(str_n)
+                n += 1
+            if ip_feature in attributes:
+                feature_value = attributes[ip_feature]
+                str_n = str(n)
+                observable[str_n] = {'type': define_address_type(feature_value), 'value': feature_value}
+                refs.append(str_n)
+                n +=1
+            if refs:
+                ref_str, ref_list = ('ref', refs[0]) if len(refs) == 1 else ('refs', refs)
+                network_object['{}_{}'.format(feature, ref_str)] = ref_list
+        for feature in ('src-port', 'dst-port'):
+            if feature in attributes:
+                network_object[networkTrafficMapping[feature]] = attributes[feature]
+        return n, network_object, observable
 
     @staticmethod
     def create_network_pattern(attributes, mapping):
