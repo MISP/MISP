@@ -167,6 +167,8 @@ def observable_regkey(_, attribute_value):
     return {'0': {'type': 'windows-registry-key', 'key': attribute_value.strip()}}
 
 def pattern_regkey(_, attribute_value):
+    if '\\\\' not in attribute_value:
+        attribute_value = attribute_value.replace('\\', '\\\\')
     return "[windows-registry-key:key = '{}']".format(attribute_value.strip())
 
 def observable_regkey_value(_, attribute_value):
@@ -178,6 +180,8 @@ def observable_regkey_value(_, attribute_value):
 
 def pattern_regkey_value(_, attribute_value):
     key, value = attribute_value.split('|')
+    if '\\\\' not in value:
+        value = value.replace('\\', '\\\\')
     regkey = pattern_regkey(_, key)[1:-1]
     regkey += " AND windows-registry-key:values = '{}'".format(value.strip())
     return "[{}]".format(regkey)
@@ -299,7 +303,7 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                               'pattern': "process:{0} = '{1}' AND "},
                   'registry-key': {'to_call': 'handle_usual_object_name',
                                    'observable': {'0': {'type': 'windows-registry-key'}},
-                                   'pattern': "windows-registry-key:{0} = '{1}' AND "},
+                                   'pattern': "windows-registry-key:{0} = '{1}'"},
                   'url': {'to_call': 'handle_usual_object_name',
                           'observable': {'0': {'type': 'url'}},
                           'pattern': "url:{0} = '{1}'"},

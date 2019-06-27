@@ -1150,15 +1150,18 @@ class StixBuilder():
 
     def resolve_regkey_pattern(self, attributes, object_id):
         mapping = objectsMapping['registry-key']['pattern']
-        pattern = ""
+        pattern = []
+        fields = ('key', 'value')
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
+            relation = attribute['object_relation']
             try:
-                stix_type = regkeyMapping[attribute['object_relation']]
+                stix_type = regkeyMapping[relation]
             except KeyError:
-                stix_type = "'x_misp_{}_{}'".format(attribute['type'], attribute['object_relation'])
-            pattern += mapping.format(stix_type, attribute['value'])
-        return "[{}]".format(pattern[:-5])
+                stix_type = "'x_misp_{}_{}'".format(attribute['type'], relation)
+            value = attribute['value'].strip().replace('\\', '\\\\') if relation in fields and '\\\\' not in attribute['value'] else attribute['value'].strip()
+            pattern.append(mapping.format(stix_type, value))
+        return "[{}]".format(" AND ".join(pattern))
 
     @staticmethod
     def create_network_observable(attributes):
