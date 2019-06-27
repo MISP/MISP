@@ -814,7 +814,7 @@ theEnd () {
     space
   fi
 
-  if [[ "$USER" != "$MISP_USER" ]]; then
+  if [[ "$USER" != "$MISP_USER" && "$UNATTENDED" != "1" ]]; then
     sudo su - ${MISP_USER}
   fi
 }
