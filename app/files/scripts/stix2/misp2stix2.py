@@ -187,6 +187,8 @@ class StixBuilder():
                      'pattern': self.resolve_file_pattern},
             'ip-port': {'observable': self.resolve_ip_port_observable,
                         'pattern': self.resolve_ip_port_pattern},
+            'network-connection': {'observable': self.resolve_network_connection_observable,
+                                   'pattern': self.resolve_network_connection_pattern},
             'network-socket': {'observable': self.resolve_network_socket_observable,
                                'pattern': self.resolve_network_socket_pattern},
             'process': {'observable': self.resolve_process_observable,
@@ -1023,6 +1025,24 @@ class StixBuilder():
                 except KeyError:
                     continue
             pattern.append(objectsMapping[mapping_type]['pattern'].format(stix_type, attribute_value))
+        return "[{}]".format(" AND ".join(pattern))
+
+    def resolve_network_connection_observable(self, attributes, object_id):
+        attributes = {attribute['object_relation']: attribute['value'] for attribute in attributes}
+        n, network_object, observable = self.create_network_observable(attributes)
+        protocols = [attributes[layer] for layer in ('layer3-protocol', 'layer4-protocol', 'layer7-protocol') if layer in attributes]
+        network_object['protocols'] = protocols if protocols else ['tcp']
+        observable[str(n)] = network_object
+        return observable
+
+    def resolve_network_connection_pattern(self, attributes, object_id):
+        mapping = objectsMapping['network-connection']['pattern']
+        attributes = {attribute['object_relation']: attribute['value'] for attribute in attributes}
+        pattern = self.create_network_pattern(attributes, mapping)
+        protocols = [attributes[layer] for layer in ('layer3-protocol', 'layer4-protocol', 'layer7-protocol') if layer in attributes]
+        if protocols:
+            for p in range(len(protocols)):
+                pattern.append("network-traffic:protocols[{}] = '{}'".format(p, protocols[p]))
         return "[{}]".format(" AND ".join(pattern))
 
     def resolve_network_socket_observable(self, attributes, object_id):
