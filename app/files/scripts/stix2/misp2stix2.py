@@ -676,10 +676,15 @@ class StixBuilder():
                 'from_object']
 
     def create_marking(self, tag):
-        id = 'marking-definition--%s' % uuid.uuid4()
-        definition_type, definition = tag.split(':')
-        self.markings[tag] = {'type': 'marking-definition', 'id': id, 'definition_type': definition_type,
-                              'definition': {definition_type: definition}}
+        try:
+            marking_definition = globals()[tlp_markings[tag]]
+            id = marking_definition.id
+        except KeyError:
+            id = 'marking-definition--%s' % uuid.uuid4()
+            definition_type, definition = tag.split(':')
+            marking_definition = {'type': 'marking-definition', 'id': id, 'definition_type': definition_type,
+                                  'definition': {definition_type: definition}}
+        self.markings[tag] = marking_definition
         return id
 
     @staticmethod

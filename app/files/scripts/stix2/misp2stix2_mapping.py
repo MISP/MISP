@@ -360,6 +360,9 @@ x509mapping = {'pubkey-info-algorithm': 'subject_public_key_algorithm', 'subject
 
 defineProtocols = {'80': 'http', '443': 'https'}
 
+tlp_markings = {'tlp:white': 'TLP_WHITE', 'tlp:green': 'TLP_GREEN',
+                'tlp:amber': 'TLP_AMBER', 'tlp:red': 'TLP_RED'}
+
 relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'identity': 'targets',
                                                  'malware': 'uses', 'tool': 'uses'},
                               'campaign': {'intrusion-set': 'attributed-to', 'threat-actor': 'attributed-to',
