@@ -232,9 +232,14 @@ setOpt () {
   done
 }
 
+# check if command_exists
+command_exists() {
+  command -v "$@" > /dev/null 2>&1
+}
+
+# TODO: fix os detection mess
 # Try to detect what we are running on
 checkCoreOS () {
-
   # lsb_release can exist on any platform. RedHat package: redhat-lsb
   LSB_RELEASE=$(which lsb_release > /dev/null ; echo $?)
   APT=$(which apt > /dev/null 2>&1; echo -n $?)
@@ -256,12 +261,63 @@ checkCoreOS () {
 
 # Extract debian flavour
 checkFlavour () {
-  if [ -z $(which lsb_release) ]; then
-    checkAptLock
-    sudo apt install lsb-release dialog -y
+  lsb_dist=""
+  # Every system that we officially support has /etc/os-release
+  if [ -r /etc/os-release ]; then
+    FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
   fi
 
-  FLAVOUR=$(lsb_release -s -i |tr '[:upper:]' '[:lower:]')
+  case "$FLAVOUR" in
+
+    ubuntu)
+      if command_exists lsb_release; then
+        dist_version="$(lsb_release --codename | cut -f2)"
+      fi
+      if [ -z "$dist_version" ] && [ -r /etc/lsb-release ]; then
+        dist_version="$(. /etc/lsb-release && echo "$DISTRIB_CODENAME")"
+      fi
+    ;;
+
+    debian|raspbian)
+      dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
+      case "$dist_version" in
+        10)
+          dist_version="buster"
+        ;;
+        9)
+          dist_version="stretch"
+        ;;
+      esac
+    ;;
+
+    centos)
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+      echo "$lsb_dist not supported at the moment"
+      exit 1
+    ;;
+
+    rhel|ol|sles)
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+      echo "$lsb_dist not supported at the moment"
+      exit 1
+    ;;
+
+    *)
+      if command_exists lsb_release; then
+        dist_version="$(lsb_release --release | cut -f2)"
+      fi
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+      ;;
+
+  esac
+
+  # FIXME: The below want to be refactored
   if [ FLAVOUR == "ubuntu" ]; then
     RELEASE=$(lsb_release -s -r)
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
@@ -2358,6 +2414,35 @@ fi
 [[ -n $UPGRADE ]] && upgrade
 
 [[ -n $NUKE ]] && nuke && exit
+
+# TODO: Move support map to top
+
+SUPPORT_MAP="
+x86_64-centos-8
+x86_64-rhel-7
+x86_64-rhel-8
+x86_64-fedora-30
+x86_64-debian-stretch
+x86_64-debian-buster
+x86_64-ubuntu-bionic
+armv6l-raspbian-stretch
+armv7l-raspbian-stretch
+armv7l-debian-jessie
+armv7l-debian-stretch
+armv7l-debian-buster
+armv7l-ubuntu-bionic
+"
+
+# Check if we actually support this configuration
+if ! echo "$SUPPORT_MAP" | grep "$(uname -m)-$lsb_dist-$dist_version" >/dev/null; then
+  cat >&2 <<-'EOF'
+    Either your platform is not easily detectable or is not supported by this
+    installer script.
+    Please visit the following URL for more detailed installation instructions:
+    https://misp.github.io/MISP/
+EOF
+  exit 1
+fi
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
