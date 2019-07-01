@@ -102,7 +102,6 @@ checkCoreOS () {
     REDHAT=1
     RHfla=$(cat /etc/redhat-release | cut -f 1 -d\ | tr '[:upper:]' '[:lower:]')
   fi
-
 }
 
 # Extract debian flavour
@@ -114,7 +113,6 @@ checkFlavour () {
   fi
 
   case "$FLAVOUR" in
-
     ubuntu)
       if command_exists lsb_release; then
         dist_version="$(lsb_release --codename | cut -f2)"
@@ -123,7 +121,6 @@ checkFlavour () {
         dist_version="$(. /etc/lsb-release && echo "$DISTRIB_CODENAME")"
       fi
     ;;
-
     debian|raspbian)
       dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
       case "$dist_version" in
@@ -135,7 +132,6 @@ checkFlavour () {
         ;;
       esac
     ;;
-
     centos)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
@@ -143,7 +139,6 @@ checkFlavour () {
       echo "$lsb_dist not supported at the moment"
       exit 1
     ;;
-
     rhel|ol|sles)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
@@ -151,7 +146,6 @@ checkFlavour () {
       echo "$lsb_dist not supported at the moment"
       exit 1
     ;;
-
     *)
       if command_exists lsb_release; then
         dist_version="$(lsb_release --release | cut -f2)"
@@ -159,8 +153,7 @@ checkFlavour () {
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
       fi
-      ;;
-
+    ;;
   esac
 
   # FIXME: The below want to be refactored
@@ -169,6 +162,54 @@ checkFlavour () {
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
   else
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1}${NC}"
+  fi
+}
+
+
+# Check if this is a forked Linux distro
+check_forked() {
+
+  # Check for lsb_release command existence, it usually exists in forked distros
+  if command_exists lsb_release; then
+    # Check if the `-u` option is supported
+    set +e
+    lsb_release -a -u > /dev/null 2>&1
+    lsb_release_exit_code=$?
+    set -e
+
+    # Check if the command has exited successfully, it means we're in a forked distro
+    if [ "$lsb_release_exit_code" = "0" ]; then
+      # Print info about current distro
+      cat <<-EOF
+      You're using '$lsb_dist' version '$dist_version'.
+EOF
+
+      # Get the upstream release info
+      lsb_dist=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
+      dist_version=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'codename' | cut -d ':' -f 2 | tr -d '[:space:]')
+
+      # Print info about upstream distro
+      cat <<-EOF
+      Upstream release is '$lsb_dist' version '$dist_version'.
+      EOF
+    else
+      if [ -r /etc/debian_version ] && [ "$lsb_dist" != "ubuntu" ] && [ "$lsb_dist" != "raspbian" ]; then
+        # We're Debian and don't even know it!
+        lsb_dist=debian
+        dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
+        case "$dist_version" in
+          10)
+            dist_version="buster"
+          ;;
+          9)
+            dist_version="stretch"
+          ;;
+          8|'Kali Linux 2')
+            dist_version="jessie"
+          ;;
+        esac
+      fi
+    fi
   fi
 }
 
