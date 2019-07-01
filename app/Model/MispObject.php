@@ -573,7 +573,7 @@ class MispObject extends AppModel
     // EUH????? No sure we should do that. Maybe the other way around??? #FIXME
     // delete first/last-seen object attribute and set object's meta accordingly
     // set object's meta (fs/ls) and potentially delete objectAttributes
-    public function setObjectSeenMetaFromAttribute($object, $delete=false) {
+    public function setObjectSeenMetaFromAttribute(&$object, $delete=false) {
         if ( !$delete && isset($object['Object']['first-seen']) && isset($object['Object']['last-seen'])) {
             return;
         }
