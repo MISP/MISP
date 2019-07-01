@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2019-04-20 04:40\n"
+"PO-Revision-Date: 2019-07-01 11:58\n"
 "Last-Translator: Steve Clement (SteveClement)\n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -16,35 +16,35 @@ msgstr ""
 
 #: Console/Command/AdminShell.php:59
 msgid "Database updated: "
-msgstr ""
+msgstr "База данных обновлена: "
 
 #: Console/Command/AdminShell.php:61
 msgid "Could not update the database: "
-msgstr ""
+msgstr "Не удалось обновить базу данных: "
 
 #: Console/Command/AdminShell.php:73
 msgid "Worker restarted."
-msgstr ""
+msgstr "Рабочий процесс перезагружен."
 
 #: Console/Command/AdminShell.php:75
 msgid "Could not restart the worker. Reason: %s"
-msgstr ""
+msgstr "Не удалось перезагрузить рабочий процесс. Причина: %s"
 
 #: Console/Command/AdminShell.php:96
 msgid "Worker killed."
-msgstr ""
+msgstr "Рабочий процесс завершен."
 
 #: Console/Command/AdminShell.php:112
 msgid "Worker started."
-msgstr ""
+msgstr "Рабочий процесс запущен."
 
 #: Console/Command/AdminShell.php:123
 msgid "%s updated."
-msgstr ""
+msgstr "%s обновлен."
 
 #: Console/Command/AdminShell.php:128
 msgid "Could not update %s."
-msgstr ""
+msgstr "Не удалось обновить %s."
 
 #: Console/Command/AdminShell.php:411
 msgid "Update the JSON definitions of MISP."
@@ -112,23 +112,23 @@ msgstr ""
 #: Controller/AttributesController.php:2445
 #: Controller/ShadowAttributesController.php:1278
 msgid "Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs)."
-msgstr ""
+msgstr "Задача помещена в очередь. Вы можете просмотреть прогресс, перейдя к форме просмотра текущих задач (администрирование -> задачи)."
 
 #: Controller/AttributesController.php:116;1460
 #: Controller/EventGraphController.php:19;77
 msgid "No event ID set."
-msgstr ""
+msgstr "Не указан ID события."
 
 #: Controller/AttributesController.php:119
 msgid "You don't have permissions to create attributes"
-msgstr ""
+msgstr "У вас недостаточно прав для создания атрибутов"
 
 #: Controller/AttributesController.php:139;492;672
 #: Controller/EventGraphController.php:88
 #: Controller/EventsController.php:1943;1964;1998
 #: Controller/ObjectsController.php:456
 msgid "You do not have permission to do that."
-msgstr ""
+msgstr "У вас недостаточно прав для этого."
 
 #: Controller/AttributesController.php:415;870;875;879;1087;1167;1209;2461;2475;2508;2530;2539;3136;3240;3244
 #: Controller/ShadowAttributesController.php:824;1069;1093;1126;1136
@@ -139,11 +139,11 @@ msgstr "Некорректный атрибут"
 #: Controller/AttributesController.php:425
 #: Controller/ShadowAttributesController.php:501
 msgid "You do not have the permission to view this event."
-msgstr ""
+msgstr "У вас недостаточно прав для просмотра этого события."
 
 #: Controller/AttributesController.php:472
 msgid "Attribute not an attachment or malware-sample"
-msgstr ""
+msgstr "Атрибут не является вложением или вредоносным образцом"
 
 #: Controller/AttributesController.php:489;656;947;1469
 #: Controller/EventsController.php:4646;4660;5407;5421
@@ -153,24 +153,24 @@ msgstr "Некорректное событие."
 #: Controller/AttributesController.php:507;683
 #: Controller/ShadowAttributesController.php:548
 msgid "PHP says file was not uploaded. Are you attacking me?"
-msgstr ""
+msgstr "PHP сообщает, что файл не был загружен. Вы нападаете на меня?"
 
 #: Controller/AttributesController.php:686
 #: Controller/ShadowAttributesController.php:551;561
 msgid "There was a problem to upload the file."
-msgstr ""
+msgstr "Произошла ошибка при загрузке файла."
 
 #: Controller/AttributesController.php:830
 msgid "The ThreatConnect data has been imported."
-msgstr ""
+msgstr "Данные ThreatConnect импортированы."
 
 #: Controller/AttributesController.php:833
 msgid "%s entries imported."
-msgstr ""
+msgstr "%s записей импортировано."
 
 #: Controller/AttributesController.php:837
 msgid "%s entries could not be imported."
-msgstr ""
+msgstr "%s записей не может быть импортировано."
 
 #: Controller/AttributesController.php:887;935;937
 #: Controller/ShadowAttributesController.php:831
@@ -179,15 +179,15 @@ msgstr "Некорректный атрибут."
 
 #: Controller/AttributesController.php:931
 msgid "Attribute could not be saved: Attribute in the request not newer than the local copy."
-msgstr ""
+msgstr "Произошла ошибка при сохранении атрибута: атрибут в запросе старее локальной копии."
 
 #: Controller/AttributesController.php:964
 msgid "The attribute has been saved"
-msgstr ""
+msgstr "Атрибут сохранен"
 
 #: Controller/AttributesController.php:999
 msgid "The attribute could not be saved. Please, try again."
-msgstr ""
+msgstr "Произошла ошибка при сохранении атрибута. Пожалуйста, попробуйте еще раз."
 
 #: Controller/AttributesController.php:1091
 msgid "Invalid event id."
@@ -226,7 +226,7 @@ msgstr "Не удалось восстановить атрибут"
 
 #: Controller/AttributesController.php:1379;1386;1390
 msgid "Attribute not found or not authorised."
-msgstr ""
+msgstr "Атрибут не найден или пользователь не авторизован."
 
 #: Controller/AttributesController.php:1440
 msgid "This function is only accessible via POST requests."
@@ -246,7 +246,7 @@ msgstr "Вы не авторизованы для редактирования �
 
 #: Controller/AttributesController.php:1637
 msgid "No event ID provided."
-msgstr ""
+msgstr "Не указан ID события."
 
 #: Controller/AttributesController.php:1682
 #: Controller/GalaxiesController.php:225
@@ -255,15 +255,15 @@ msgstr "Синонимы: "
 
 #: Controller/AttributesController.php:2054;2161
 msgid "You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml."
-msgstr ""
+msgstr "Вы не авторизованы. Пожалуйста, отправьте заголовок Authorization с вашим ключом авторизации вместе с заголовком Accept равным application/xml."
 
 #: Controller/AttributesController.php:2067
 msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct accept and content type headers)."
-msgstr ""
+msgstr "Или укажите условия поиска в url, или отправьте POST-запрос с json-массивом / xml (с корневым элементом \"request\" и укажите правильные заголовки Accept и Content-type)."
 
 #: Controller/AttributesController.php:2087
 msgid "You don't have access to that event."
-msgstr ""
+msgstr "У вас нет доступа к данному событию."
 
 #: Controller/AttributesController.php:2150
 msgid "No matches."
@@ -271,7 +271,7 @@ msgstr "Нет совпадений."
 
 #: Controller/AttributesController.php:2172;2181
 msgid "Invalid attribute or no authorisation to view it."
-msgstr ""
+msgstr "Недопустимый атрибут или недостаточно прав для его просмотра."
 
 #: Controller/AttributesController.php:2249
 msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct headers based on content type."
@@ -298,7 +298,7 @@ msgstr "Эта функция доступна только через AJAX."
 #: Controller/AttributesController.php:2569;2577
 #: Controller/EventsController.php:3773;3922;5227
 msgid "Event not found or you don't have permissions to create attributes"
-msgstr ""
+msgstr "Событие не найдено или у вас недостаточно прав для создания атрибутов"
 
 #: Controller/AttributesController.php:2598
 msgid "This action can only be accessed via AJAX."
@@ -308,7 +308,7 @@ msgstr "Это действие доступно только через AJAX."
 #: Controller/OrganisationsController.php:418
 #: Controller/ServersController.php:623;691
 msgid "You are not authorised to do that."
-msgstr ""
+msgstr "У вас недостаточно прав на это действие."
 
 #: Controller/AttributesController.php:2712
 #: Controller/EventsController.php:4439
@@ -321,7 +321,7 @@ msgstr "Это действие только для API. Пожалуйста, �
 
 #: Controller/AttributesController.php:2732
 msgid "No hash or event ID received. You need to set at least one of the two."
-msgstr ""
+msgstr "Не получен хеш или идентификатор события. Необходимо установить хотя бы один из двух параметров."
 
 #: Controller/AttributesController.php:2893
 msgid "Invalid script."
@@ -329,7 +329,7 @@ msgstr "Некорректный сценарий."
 
 #: Controller/AttributesController.php:2960
 msgid "No valid enrichment options found for this attribute."
-msgstr ""
+msgstr "Для этого атрибута не найдено допустимых параметров обогащения."
 
 #: Controller/AttributesController.php:3028
 msgid "Invalid type requested."
@@ -338,7 +338,7 @@ msgstr "Недопустимый тип запроса."
 #: Controller/AttributesController.php:3307
 #: Controller/EventsController.php:5403
 msgid "Disabling the correlation is not permitted on this instance."
-msgstr ""
+msgstr "Отключение корреляции не допускается на данном сервере."
 
 #: Controller/AttributesController.php:3311;3326
 #: Controller/ShadowAttributesController.php:679
@@ -410,7 +410,7 @@ msgstr "Вы не можете создать события из-за огра�
 
 #: Controller/EventsController.php:1891;2219
 msgid "The event could not be saved. Please, try again."
-msgstr "Произошла ошибка при сохранеии события. Пожалуйста, попробуйте еще раз."
+msgstr "Произошла ошибка при сохранении события. Пожалуйста, попробуйте еще раз."
 
 #: Controller/EventsController.php:1931
 msgid "The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published."
@@ -438,7 +438,7 @@ msgstr "Не удалось импортировать документ STIX: "
 
 #: Controller/EventsController.php:2041
 msgid "File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn't exceed the maximum file size of "
-msgstr ""
+msgstr "Не удалось загрузить файл. Убедитесь, что вы выбрали файл формата stix для загрузки и что файл не превышает максимальный размер "
 
 #: Controller/EventsController.php:2065;2150
 msgid "You are not authorised to do that. Please consider using the 'propose attribute' feature."
@@ -446,15 +446,15 @@ msgstr ""
 
 #: Controller/EventsController.php:2073
 msgid "Invalid event ID entered."
-msgstr ""
+msgstr "Введен неверный идентификатор события."
 
 #: Controller/EventsController.php:2078
 msgid "You are not authorised to read the selected event."
-msgstr ""
+msgstr "Вы не авторизованы для чтения выбранного события."
 
 #: Controller/EventsController.php:2368;2418;2488
 msgid "You don't have the permission to do that."
-msgstr ""
+msgstr "У вас недостаточно прав для этого."
 
 #: Controller/EventsController.php:2377
 msgid "Event unpublished."
@@ -462,7 +462,7 @@ msgstr "Событие не опубликовано."
 
 #: Controller/EventsController.php:2430
 msgid "Could not publish event - no tag for required taxonomies missing: %s"
-msgstr ""
+msgstr "Не удалось опубликовать событие - нет тега для требуемых таксономий: %s"
 
 #: Controller/EventsController.php:2575
 msgid "Email sent to the reporter."
@@ -470,15 +470,15 @@ msgstr "Письмо отправлено адресату."
 
 #: Controller/EventsController.php:2577
 msgid "Sending of email failed"
-msgstr "Не удалось отправить email"
+msgstr "Не удалось отправить письмо"
 
 #: Controller/EventsController.php:2710
 msgid "This feature is currently disabled"
-msgstr ""
+msgstr "Эта функция в настоящее время отключена"
 
 #: Controller/EventsController.php:2752;4023
 msgid "Either specify the search terms in the url, or POST an xml (with the root element being \"request\")."
-msgstr ""
+msgstr "Или укажите условия поиска в url, или отправьте POST-запрос с xml (с корневым элементом \"request\")."
 
 #: Controller/EventsController.php:2788
 msgid "Invalid Event ID."
@@ -486,15 +486,15 @@ msgstr "Некорректный идентификатор события."
 
 #: Controller/EventsController.php:2835
 msgid "No events found that match the passed parameters."
-msgstr ""
+msgstr "Не найдено событий, которые соответствуют указанным параметрам."
 
 #: Controller/EventsController.php:2860
 msgid "Either specify the search terms in the url, or POST a json or xml with the filter parameters. Valid filters: id (event ID), tags (list of tags), from (from date in YYYY-MM-DD format), to (to date in YYYY-MM-DD format), last (events with a published timestamp newer than - valid options are in time + unit format such as 6d or 2w, etc)"
-msgstr ""
+msgstr "Укажите условия поиска в url или отправьте POST-запрос с json или xml с параметрами фильтра. Допустимые фильтры: id (ID события), tags (список тегов), from (с даты в формате YYYY-MM-DD), to (до даты в формате YYYY-MM-DD), last (события с датой публикации новее чем - допустимые опции в формате времени, например 6d или 2w, и т.д.)"
 
 #: Controller/EventsController.php:2935
 msgid "Either specify the search terms in the url, or POST a json or xml with the filter parameters."
-msgstr ""
+msgstr "Укажите условия поиска в url или отправьте POST-запрос с json или xml с параметрами фильтра."
 
 #: Controller/EventsController.php:2954
 #: Model/Attribute.php:2070
@@ -507,11 +507,11 @@ msgstr "Имя файла не разрешен."
 
 #: Controller/EventsController.php:3077
 msgid "Problem with writing the ioc file. Please report to administrator."
-msgstr ""
+msgstr "Проблема с формированием IoC файла. Пожалуйста, сообщите администратору."
 
 #: Controller/EventsController.php:3171
 msgid "This is not a valid MISP XML file."
-msgstr ""
+msgstr "Этот файл не является корректным MISP XML файлом."
 
 #: Controller/EventsController.php:3323
 msgid "Not yet implemented"
@@ -519,11 +519,11 @@ msgstr "Пока не реализовано"
 
 #: Controller/EventsController.php:3341;3345
 msgid "Invalid event or not authorised."
-msgstr ""
+msgstr "Неверное событие или вы не авторизованы."
 
 #: Controller/EventsController.php:3365;3435
 msgid "You don't have the privileges to access this."
-msgstr ""
+msgstr "У вас нет прав доступа."
 
 #: Controller/EventsController.php:3646
 #: Controller/TagCollectionsController.php:311
@@ -533,7 +533,7 @@ msgstr "Некорректный тег."
 #: Controller/EventsController.php:3662
 #: Controller/TagCollectionsController.php:327
 msgid "Tag is already attached to this event."
-msgstr ""
+msgstr "Тег уже прикреплен к этому событию."
 
 #: Controller/EventsController.php:3673;3679
 #: Controller/TagCollectionsController.php:334
@@ -568,7 +568,7 @@ msgstr "Неверный ID"
 
 #: Controller/EventsController.php:4201;4341
 msgid "Event not found or you are not authorised to view it."
-msgstr ""
+msgstr "Событие не найдено или вы не авторизованы для его просмотра."
 
 #: Controller/EventsController.php:4442;4449
 msgid "Please POST the samples as described on the automation page."
@@ -620,11 +620,11 @@ msgstr ""
 
 #: Controller/EventsController.php:5187
 msgid ": Enriched via the %s"
-msgstr ""
+msgstr ": Обогащено с помощью %s"
 
 #: Controller/EventsController.php:5330
 msgid "Import service not reachable."
-msgstr ""
+msgstr "Служба импорта недоступна."
 
 #: Controller/EventsController.php:5550
 #: Controller/WarninglistsController.php:229
@@ -638,7 +638,7 @@ msgstr "Некорректное событие"
 
 #: Controller/EventsController.php:5619
 msgid "Enrichment task queued for background processing. Check back later to see the results."
-msgstr ""
+msgstr "Задача по обогащению добавлено в очередь. Проверьте позже, чтобы увидеть результаты."
 
 #: Controller/FeedsController.php:28
 msgid "You don't have the required privileges to do that."
@@ -646,39 +646,39 @@ msgstr ""
 
 #: Controller/FeedsController.php:238;337
 msgid "Feed added."
-msgstr ""
+msgstr "Фид добавлен."
 
 #: Controller/FeedsController.php:246
 msgid "Feed could not be added. Invalid field: %s"
-msgstr ""
+msgstr "Произошла ошибка при добавлении фида. Неверное поле: %s"
 
 #: Controller/FeedsController.php:271;372;394;516;551;755
 msgid "Invalid feed."
-msgstr ""
+msgstr "Некорректный фид."
 
 #: Controller/FeedsController.php:345
 msgid "Feed could not be updated. Invalid fields: %s"
-msgstr ""
+msgstr "Произошла ошибка при обновлении фида. Неверные поля: %s"
 
 #: Controller/FeedsController.php:368
 msgid "This action requires a post request."
-msgstr ""
+msgstr "Это действие требует POST-запроса."
 
 #: Controller/FeedsController.php:401;520
 msgid "Feed is currently not enabled. Make sure you enable it."
-msgstr ""
+msgstr "Фид выключен в настоящее время. Убедитесь в том, что включили его."
 
 #: Controller/FeedsController.php:414;480
 msgid "Starting fetch from Feed."
-msgstr ""
+msgstr "Начинается загрузка из фида."
 
 #: Controller/FeedsController.php:425
 msgid "Pull queued for background execution."
-msgstr ""
+msgstr "Загрузка помещена в очередь задач."
 
 #: Controller/FeedsController.php:430;432
 msgid "Fetching the feed has failed."
-msgstr ""
+msgstr "Произошла ошибка при получении информации из фида."
 
 #: Controller/FeedsController.php:436
 msgid "Fetching the feed has successfuly completed."
@@ -686,15 +686,15 @@ msgstr ""
 
 #: Controller/FeedsController.php:497
 msgid "Fetching the feed has successfully completed."
-msgstr ""
+msgstr "Получение информации из фида успешно завершено."
 
 #: Controller/FeedsController.php:527
 msgid "Event added."
-msgstr ""
+msgstr "Событие добавлено."
 
 #: Controller/FeedsController.php:530
 msgid "Event already up to date."
-msgstr ""
+msgstr "Событие уже обновлено."
 
 #: Controller/FeedsController.php:532
 msgid "Event updated."
@@ -710,55 +710,55 @@ msgstr "Ошибка загрузки."
 
 #: Controller/FeedsController.php:631
 msgid "Feed could not be fetched. The HTTP error code returned was: "
-msgstr ""
+msgstr "Не удалось получить информацию из фида. Возвращен код ошибки HTTP: "
 
 #: Controller/FeedsController.php:670;721
 msgid "Invalid feed type."
-msgstr ""
+msgstr "Некорректный тип фида."
 
 #: Controller/FeedsController.php:787
 msgid "This event is blocked by the Feed filters."
-msgstr ""
+msgstr "Это событие заблокировано фильтрами фида."
 
 #: Controller/FeedsController.php:789
 msgid "Could not download the selected Event"
-msgstr ""
+msgstr "Не удалось загрузить выбранное событие"
 
 #: Controller/FeedsController.php:825;829
 msgid "Invalid Feed."
-msgstr ""
+msgstr "Недопустимый фид."
 
 #: Controller/FeedsController.php:850
 msgid "Only POST requests are allowed."
-msgstr ""
+msgstr "Разрешены только POST-запросы."
 
 #: Controller/FeedsController.php:854
 msgid "Feed not found."
-msgstr ""
+msgstr "Фид не найден."
 
 #: Controller/FeedsController.php:863
 msgid "Data pulled."
-msgstr ""
+msgstr "Данные получены."
 
 #: Controller/FeedsController.php:865
 msgid "Could not pull the selected data. Reason: %s"
-msgstr ""
+msgstr "Не удалось загрузить выбранные данные. Причина: %s"
 
 #: Controller/FeedsController.php:882
 msgid "Starting feed caching."
-msgstr ""
+msgstr "Запуск кэширования фидов."
 
 #: Controller/FeedsController.php:897
 msgid "Caching the feeds has failed."
-msgstr ""
+msgstr "Произошла ошибка при кешировании фидов."
 
 #: Controller/FeedsController.php:900
 msgid "Caching the feeds has successfully completed."
-msgstr ""
+msgstr "Кэширование фидов успешно завершено."
 
 #: Controller/FeedsController.php:934
 msgid "Invalid feed list received."
-msgstr ""
+msgstr "Получен неверный список фидов."
 
 #: Controller/GalaxiesController.php:124
 msgid "All clusters"
@@ -770,43 +770,43 @@ msgstr ""
 
 #: Controller/GalaxiesController.php:283
 msgid "Failed to parse request."
-msgstr ""
+msgstr "Не удалось разобрать запрос."
 
 #: Controller/GalaxiesController.php:286
 msgid "No clusters picked."
-msgstr ""
+msgstr "Не выбраны кластеры."
 
 #: Controller/JobsController.php:156
 msgid "All completed jobs have been purged"
-msgstr ""
+msgstr "Все завершенные задания были очищены"
 
 #: Controller/JobsController.php:159
 msgid "All jobs have been purged"
-msgstr ""
+msgstr "Все задания были очищены"
 
 #: Controller/NewsController.php:51
 msgid "News item added."
-msgstr ""
+msgstr "Новость добавлена."
 
 #: Controller/NewsController.php:54
 msgid "The news item could not be added."
-msgstr ""
+msgstr "Новость не может быть добавлена."
 
 #: Controller/NewsController.php:68
 msgid "News item updated."
-msgstr ""
+msgstr "Новость обновлена."
 
 #: Controller/NewsController.php:71
 msgid "Could not update news item."
-msgstr ""
+msgstr "Не удалось обновить новость."
 
 #: Controller/NewsController.php:89
 msgid "News item deleted."
-msgstr ""
+msgstr "Новость удалена."
 
 #: Controller/NewsController.php:92
 msgid "News item could not be deleted."
-msgstr ""
+msgstr "Новость не может быть удалена."
 
 #: Controller/ObjectReferencesController.php:37
 msgid "Invalid object"
@@ -814,7 +814,7 @@ msgstr "Недопустимый объект"
 
 #: Controller/ObjectReferencesController.php:188
 msgid "Invalid object reference"
-msgstr ""
+msgstr "Неверная ссылка на объект"
 
 #: Controller/ObjectTemplatesController.php:31
 msgid "All Objects"
@@ -822,27 +822,27 @@ msgstr "Все объекты"
 
 #: Controller/ObjectTemplatesController.php:99
 msgid "Invalid object template"
-msgstr ""
+msgstr "Неверный шаблон объекта"
 
 #: Controller/ObjectTemplatesController.php:103
 msgid "Invalid object template id."
-msgstr ""
+msgstr "Неверный идентификатор шаблона объекта."
 
 #: Controller/ObjectTemplatesController.php:143
 msgid "ObjectTemplate deleted"
-msgstr ""
+msgstr "Шаблон объекта удален"
 
 #: Controller/ObjectsController.php:29
 msgid "This action can only be reached via POST requests"
-msgstr ""
+msgstr "Это действие работает только через POST-запросы"
 
 #: Controller/ObjectsController.php:69;82
 msgid "Invalid sharing group."
-msgstr ""
+msgstr "Неверная группа распространения."
 
 #: Controller/ObjectsController.php:103
 msgid "You don't have permissions to create objects."
-msgstr ""
+msgstr "У вас нет прав на создание объектов."
 
 #: Controller/ObjectsController.php:131
 #: Model/Template.php:25
@@ -851,7 +851,7 @@ msgstr "Недопустимый шаблон."
 
 #: Controller/ObjectsController.php:313
 msgid "You don't have permissions to edit objects."
-msgstr ""
+msgstr "У вас недостаточно прав для редактирования объектов."
 
 #: Controller/ObjectsController.php:327;338;441
 msgid "Invalid object."
@@ -859,7 +859,7 @@ msgstr "Недопустимый объект."
 
 #: Controller/ObjectsController.php:435
 msgid "You don't have permissions to delete objects."
-msgstr ""
+msgstr "У вас недостаточно прав на удаление объектов."
 
 #: Controller/ObjectsController.php:545;552;556
 msgid "Object not found or not authorised."
@@ -1350,7 +1350,7 @@ msgstr ""
 
 #: Controller/SharingGroupsController.php:242
 msgid "Sharing Group could not be deleted. Make sure that there are no events, attributes or threads belonging to this sharing group."
-msgstr ""
+msgstr "Произошла ошибка при удалении группы распространения. Убедитесь, что нет событий, атрибутов или обсуждений, принадлежащих этой группе."
 
 #: Controller/SightingsController.php:86
 msgid "Could not add the Sighting. Reason: "
@@ -1631,7 +1631,7 @@ msgstr ""
 
 #: Controller/UsersController.php:1565
 msgid "Usage data"
-msgstr ""
+msgstr "Данные об использовании"
 
 #: Controller/UsersController.php:1566
 #: View/Elements/global_menu.ctp:151
@@ -1645,7 +1645,7 @@ msgstr "Организации"
 
 #: Controller/UsersController.php:1567
 msgid "User and Organisation statistics"
-msgstr ""
+msgstr "Статистика пользователей и организаций"
 
 #: Controller/UsersController.php:1568
 #: View/Attributes/index.ctp:53
@@ -1673,11 +1673,11 @@ msgstr "Теги"
 
 #: Controller/UsersController.php:1569
 msgid "Attribute histogram"
-msgstr ""
+msgstr "Гистограмма атрибутов"
 
 #: Controller/UsersController.php:1570
 msgid "Sightings toplists"
-msgstr ""
+msgstr "Источники голосов"
 
 #: Controller/UsersController.php:1571
 msgid "Galaxy Matrix"
@@ -3919,7 +3919,7 @@ msgstr "Группа распространения"
 #: View/ShadowAttributes/add_attachment.ctp:13
 #: View/ShadowAttributes/edit.ctp:32
 msgid "Contextual Comment"
-msgstr ""
+msgstr "Контекстный комментарий"
 
 #: View/Attributes/add.ctp:76
 #: View/Attributes/edit.ctp:55
@@ -4771,19 +4771,19 @@ msgstr "Удалить"
 
 #: View/Attributes/ajax/toggle_correlation.ctp:6
 msgid "Toggle Correlation %s "
-msgstr ""
+msgstr "Переключить корреляцию %s "
 
 #: View/Attributes/ajax/toggle_correlation.ctp:11
 msgid "Re-enable the correlation for this attribute."
-msgstr ""
+msgstr "Включить корреляцию для этого атрибута."
 
 #: View/Attributes/ajax/toggle_correlation.ctp:13
 msgid "This will remove all correlations that already exist for this attribute and prevents any attributes to be related as long as this setting is disabled. Make sure you understand the downsides of disabling correlations."
-msgstr ""
+msgstr "Данное действие удалит все корреляции, которые уже существуют для этого атрибута, и предотвращает дальнейшие корреляции с значением этого атрибута, если этот параметр отключен. Убедитесь, что вы понимаете, что вы понимаете значение отключения корреляций."
 
 #: View/Attributes/ajax/toggle_correlation.ctp:20
 msgid "Toggle correlation for attribute"
-msgstr ""
+msgstr "Переключить корреляцию для атрибута"
 
 #: View/Elements/ajaxAttributeTags.ctp:28
 #: View/Elements/ajaxTagCollectionTags.ctp:16
@@ -5216,7 +5216,7 @@ msgstr ""
 
 #: View/Elements/global_menu.ctp:7
 msgid "Home"
-msgstr ""
+msgstr "Главная"
 
 #: View/Elements/global_menu.ctp:11
 #: View/Pages/doc/general.ctp:20
@@ -5467,7 +5467,7 @@ msgstr "Фиды"
 #: View/Elements/global_menu.ctp:226
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:879
 msgid "Search Feed Caches"
-msgstr ""
+msgstr "Поиск в кеше фидов"
 
 #: View/Elements/global_menu.ctp:234
 #: View/Pages/doc/administration.ctp:8
@@ -5579,11 +5579,11 @@ msgstr "Выход"
 
 #: View/Elements/histogram.ctp:1
 msgid "Attribute Types Histogram"
-msgstr ""
+msgstr "Гистограмма типов атрибутов"
 
 #: View/Elements/histogram.ctp:4
 msgid "you can also choose specific histogram items by clicking on attributes below"
-msgstr ""
+msgstr "вы также можете выбрать конкретные элементы гистограммы, нажав на атрибуты ниже"
 
 #: View/Elements/histogram.ctp:16
 msgid "Toggle histogram"
@@ -5782,7 +5782,7 @@ msgstr ""
 
 #: View/Elements/Events/View/eventSightingValue.ctp:17;18
 msgid "Advanced Sightings"
-msgstr ""
+msgstr "Расширенное голосование"
 
 #: View/Elements/Events/View/row_attribute.ctp:43
 msgid "Select attribute"
@@ -5798,7 +5798,7 @@ msgstr ""
 #: View/Elements/Events/View/row_attribute.ctp:196
 #: View/Events/ajax/toggle_correlation.ctp:20
 msgid "Toggle correlation"
-msgstr ""
+msgstr "Переключить корреляцию"
 
 #: View/Elements/Events/View/row_attribute.ctp:321
 msgid "Toggle IDS flag"
@@ -6239,7 +6239,7 @@ msgstr ""
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:99
 #: View/Events/ajax/enrich_event.ctp:2
 msgid "Enrich Event"
-msgstr ""
+msgstr "Обогатить событие"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:104
 msgid "Merge attributes from..."
@@ -6247,12 +6247,12 @@ msgstr ""
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:111
 msgid "Propose Attribute"
-msgstr ""
+msgstr "Предложить атрибут"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:116
 #: View/ShadowAttributes/add_attachment.ctp:4
 msgid "Propose Attachment"
-msgstr ""
+msgstr "Предложить вложение"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:136
 msgid "Publish (no email)"
@@ -6293,7 +6293,7 @@ msgstr ""
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:197
 msgid "Contact Reporter"
-msgstr ""
+msgstr "Связь с автором"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:204;291
 msgid "Download as..."
@@ -8499,28 +8499,31 @@ msgstr "Содержимое тела POST-запроса - текст для п
 
 #: View/Events/contact.ctp:8
 msgid "Contact organization reporting event "
-msgstr ""
+msgstr "Связь с организацией-автором события "
 
 #: View/Events/contact.ctp:9
 msgid "You are about to contact the organization that reported event %s.<br/>\n"
 "                Feel free to add a custom message that will be sent to the reporting organization. <br/>\n"
 "                Your email address and details about the event will be added automagically to the message."
-msgstr ""
+msgstr "Вы собираетесь связаться с организацией, которая сообщила событие %s.<br/>\n"
+"                Не стесняйтесь в написании сообщения, которое будет отправлено в эту организацию. <br/>\n"
+"                Ваш адрес электронной почты и детали о событии будут добавлены автоматически."
 
 #: View/Events/contact.ctp:21
 msgid "Submit only to the person that created the event"
-msgstr ""
+msgstr "Отправить только человеку, создавшему событие"
 
 #: View/Events/export.ctp:3
 #: View/Events/export_alternate.ctp:3
 msgid "Export functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.\n"
 "        Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artifacts. Support for more attribute types is planned."
-msgstr ""
+msgstr "Функция экспорта предназначена для автоматической генерации сигнатур для систем обнаружения вторжений. Для включения генерации сигнатур для данного атрибута поле IDS Signature этого атрибута должно быть включено.\n"
+"        Обратите внимание, что не все типы атрибутов применимы для генерации сигнатур, в настоящее время мы поддерживаем только создание NIDS-сигнатур для IP-адресов, имен доменов и хостов, user-agent и т.д., и генерацию хеш-значений MD5/SHA1 файлов. Поддержка большего количества типов атрибутов запланирована в дальнейшей работе."
 
 #: View/Events/export.ctp:6
 #: View/Events/export_alternate.ctp:6
 msgid "Simply click on any of the following buttons to download the appropriate data."
-msgstr ""
+msgstr "Просто нажмите на любую из следующих кнопок для загрузки соответствующих данных."
 
 #: View/Events/export.ctp:26
 #: View/Pages/doc/using_the_system.ctp:378
@@ -8544,11 +8547,11 @@ msgstr "Прогресс"
 
 #: View/Events/export.ctp:63
 msgid "Attachments are enabled on this instance"
-msgstr ""
+msgstr "Вложения разрешены на данном сервере"
 
 #: View/Events/export.ctp:63
 msgid "Attachments are disabled on this instance"
-msgstr ""
+msgstr "Вложения отключены на данном сервере"
 
 #: View/Events/export.ctp:76
 msgid "Loading…"
@@ -8557,7 +8560,7 @@ msgstr "Загрузка…"
 #: View/Events/export.ctp:78
 #: View/Jobs/index.ctp:122
 msgid "Queued"
-msgstr ""
+msgstr "В очереди"
 
 #: View/Events/export.ctp:83
 #: View/Events/filter_event_index.ctp:39;196
@@ -8568,7 +8571,7 @@ msgstr "Завершено"
 
 #: View/Events/export.ctp:115;144
 msgid "Download"
-msgstr ""
+msgstr "Скачать"
 
 #: View/Events/export.ctp:125
 msgid "Generate"
@@ -8576,43 +8579,43 @@ msgstr "Генерировать"
 
 #: View/Events/export.ctp:206
 msgid "Warning, the background worker is not responding!"
-msgstr ""
+msgstr "Внимание, рабочий процесс не отвечает!"
 
 #: View/Events/export.ctp:220
 msgid "0 seconds ago"
-msgstr ""
+msgstr "0 секунд назад"
 
 #: View/Events/export_alternate.ctp:10
 msgid "Download all as XML"
-msgstr ""
+msgstr "Скачать все как XML"
 
 #: View/Events/export_alternate.ctp:12
 msgid "Click this to download all events and attributes that you have access to <small>(except file attachments)</small> in a custom XML format."
-msgstr ""
+msgstr "Нажмите, чтобы загрузить все события и атрибуты, к которым у вас есть доступ <small>(кроме вложений файлов)</small> в пользовательском формате XML."
 
 #: View/Events/export_alternate.ctp:17
 msgid "Download all signatures as CSV"
-msgstr ""
+msgstr "Скачать все сигнатуры в CSV"
 
 #: View/Events/export_alternate.ctp:19
 msgid "Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format."
-msgstr ""
+msgstr "Нажмите, чтобы загрузить все атрибуты, которые являются индикаторами и к которым у вас есть доступ <small>(кроме вложений файлов)</small> в формате CSV."
 
 #: View/Events/export_alternate.ctp:24
 msgid "Download all as CSV"
-msgstr ""
+msgstr "Скачать все как CSV"
 
 #: View/Events/export_alternate.ctp:26
 msgid "Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format."
-msgstr ""
+msgstr "Нажмите, чтобы загрузить все атрибуты, к которым у вас есть доступ <small>(кроме вложений в файл)</small> в формате CSV."
 
 #: View/Events/export_alternate.ctp:31
 msgid "Download Suricata signatures"
-msgstr ""
+msgstr "Скачать сигнатуры Suricata"
 
 #: View/Events/export_alternate.ctp:32
 msgid "Download Snort signatures"
-msgstr ""
+msgstr "Скачать сигнатуры Snort"
 
 #: View/Events/export_alternate.ctp:34
 msgid "Click these to download all network related attributes that you\n"
@@ -8620,11 +8623,15 @@ msgid "Click these to download all network related attributes that you\n"
 "                        events and attributes marked as <em>IDS Signature</em> are exported.\n"
 "                        Administration is able to maintain a whitelist containing host,\n"
 "                        domain name and IP numbers to exclude from the NIDS export."
-msgstr ""
+msgstr "Нажмите, чтобы загрузить все связанные с сетью атрибуты, к которым у вас есть\n"
+"                        доступ в формате правил Suricata или Snort. Только <em>опубликованные</em>\n"
+"                        события и атрибуты, отмеченные как <em>IDS Signature</em> будут экспортированы.\n"
+"                        Вы можете с помощью настроек исключить из файла экспорта хосты,\n"
+"                        доменные имена и IP-адреса."
 
 #: View/Events/export_alternate.ctp:43
 msgid "Download Bro signatures"
-msgstr ""
+msgstr "Скачать сигнатуры Bro"
 
 #: View/Events/export_alternate.ctp:45
 msgid "Click these to download all network related attributes that you\n"
@@ -8632,23 +8639,27 @@ msgid "Click these to download all network related attributes that you\n"
 "                events and attributes marked as <em>IDS Signature</em> are exported.\n"
 "                Administration is able to maintain a whitelist containing host,\n"
 "                domain name and IP numbers to exclude from the NIDS export."
-msgstr ""
+msgstr "Нажмите, чтобы загрузить все связанные с сетью атрибуты, к которым у вас есть\n"
+"                        доступ в формате правил Bro. Только <em>опубликованные</em>\n"
+"                        события и атрибуты, отмеченные как <em>IDS Signature</em> будут экспортированы.\n"
+"                        Вы можете с помощью настроек исключить из файла экспорта хосты,\n"
+"                        доменные имена и IP-адреса."
 
 #: View/Events/export_alternate.ctp:54
 msgid "Download RPZ Zone File"
-msgstr ""
+msgstr "Скачать файл зоны RPZ"
 
 #: View/Events/export_alternate.ctp:56
 msgid "Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported."
-msgstr ""
+msgstr "Нажмите, чтобы загрузить файл зоны RPZ, созданный из всех ip-src/ip-dst, hostname, domain атрибутов. Это может быть полезно для межсетевого экрана уровня DNS. Экспортируются только опубликованные события и атрибуты, отмеченные как IDS Signature."
 
 #: View/Events/export_alternate.ctp:61
 msgid "Download all MD5 hashes"
-msgstr ""
+msgstr "Скачать все хеши MD5"
 
 #: View/Events/export_alternate.ctp:62
 msgid "Download all SHA1 hashes"
-msgstr ""
+msgstr "Скачать все хеши SHA1"
 
 #: View/Events/export_alternate.ctp:64
 msgid "Click on one of these two buttons to download all MD5 or SHA1\n"
@@ -8656,11 +8667,14 @@ msgid "Click on one of these two buttons to download all MD5 or SHA1\n"
 "                        used to feed forensic software when searching for susipicious files.\n"
 "                        Only <em>published</em> events and attributes marked as <em>IDS\n"
 "                            Signature</em> are exported."
-msgstr ""
+msgstr "Нажмите на одну из этих двух кнопок для загрузки всех MD5 или SHA1\n"
+"                        хешей, содержащихся в файловых атрибутах. Этот список может быть\n"
+"                        использован для использования в программном обеспечении расследования инцидентов при поиске подозрительных файлов.\n"
+"                        Экспортируются только <em>опубликованные</em> события и атрибуты, отмеченные как <em>IDS Signature</em>."
 
 #: View/Events/export_alternate.ctp:72
 msgid "Click on one of these buttons to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported."
-msgstr ""
+msgstr "Нажмите на одну из этих кнопок для загрузки всех атрибутов соответствующего типа. Этот список может быть использован для использования в программном обеспечении расследования инцидентов при поиске подозрительных файлов. Экспортируются только <em>опубликованные</em> события и атрибуты, отмеченные как <em>IDS Signature</em>."
 
 #: View/Events/filter_event_index.ctp:4
 #: View/Servers/filter_event_index.ctp:4
@@ -8688,7 +8702,7 @@ msgstr "Средний"
 #: View/Pages/doc/using_the_system.ctp:174
 #: View/Users/statistics_sightings.ctp:21
 msgid "Undefined"
-msgstr ""
+msgstr "Не определено"
 
 #: View/Events/filter_event_index.ctp:39;194
 #: View/Pages/doc/using_the_system.ctp:72;180
@@ -8770,7 +8784,7 @@ msgstr ""
 
 #: View/Events/index.ctp:45
 msgid "Delete selected Events"
-msgstr ""
+msgstr "Удалить выбранные события"
 
 #: View/Events/index.ctp:73
 msgid "My events only"
@@ -9128,15 +9142,15 @@ msgstr ""
 
 #: View/Events/merge.ctp:4
 msgid "Merge events"
-msgstr "События слияний"
+msgstr "Объединить события"
 
 #: View/Events/merge.ctp:9
 msgid "Event id to copy the attributes from"
-msgstr ""
+msgstr "Идентификатор события для копирования атрибутов"
 
 #: View/Events/merge.ctp:20
 msgid "copy only IDS attributes"
-msgstr ""
+msgstr "копировать только атрибуты с флагом IDS"
 
 #: View/Events/proposal_event_index.ctp:2
 msgid "Event with proposals"
@@ -9190,7 +9204,7 @@ msgstr "Похожие атрибуты"
 #: View/Events/resolved_misp_format.ctp:132;203
 #: View/Objects/add.ctp:98
 msgid "Disable Correlation"
-msgstr ""
+msgstr "Отключить корреляцию"
 
 #: View/Events/resolved_attributes.ctp:52
 #: View/Events/resolved_misp_format.ctp:133;204
@@ -9536,23 +9550,23 @@ msgstr "Развернуть"
 
 #: View/Events/ajax/enrich_event.ctp:4
 msgid "Select the enrichments you wish to run"
-msgstr ""
+msgstr "Выберите механизмы обогащения, которые вы хотите запустить"
 
 #: View/Events/ajax/enrichmentChoice.ctp:7
 msgid "Choose the enrichment module that you wish to use for the expansion"
-msgstr ""
+msgstr "Выберите модуль обогащения, который вы хотите использовать для расширения"
 
 #: View/Events/ajax/eventDeleteConfirmationForm.ctp:6
 msgid "Event Deletion"
-msgstr ""
+msgstr "Удаление события"
 
 #: View/Events/ajax/eventDeleteConfirmationForm.ctp:9
 msgid "Are you sure you want to delete "
-msgstr ""
+msgstr "Вы уверены, что хотите удалить "
 
 #: View/Events/ajax/eventDeleteConfirmationForm.ctp:13
 msgid " Event #"
-msgstr ""
+msgstr " Событие #"
 
 #: View/Events/ajax/eventPublishConfirmationForm.ctp:6
 msgid "Publish Event%s"
@@ -9560,15 +9574,15 @@ msgstr "Опубликовать событие%s"
 
 #: View/Events/ajax/eventPublishConfirmationForm.ctp:8
 msgid "Unpublish Event%s"
-msgstr ""
+msgstr "Отменить публикацию события%s"
 
 #: View/Events/ajax/eventPublishConfirmationForm.ctp:18
 msgid "Are you sure you wish to unpublish the event?"
-msgstr ""
+msgstr "Вы уверены, что хотите отменить публикацию события?"
 
 #: View/Events/ajax/eventPublishConfirmationForm.ctp:20
 msgid "Publish but do NOT send alert email? Only for minor changes!"
-msgstr ""
+msgstr "Опубликовать, но НЕ ОТПРАВЛЯТЬ уведомления по электронной почте? Только для незначительных изменений!"
 
 #: View/Events/ajax/eventPublishConfirmationForm.ctp:26
 #: View/Feeds/index.ctp:105
@@ -9579,7 +9593,7 @@ msgstr "Опубликовать"
 
 #: View/Events/ajax/exportChoice.ctp:2
 msgid "Choose the format that you wish to download the event in"
-msgstr ""
+msgstr "Выберите формат, в котором вы хотите скачать событие"
 
 #: View/Events/ajax/importChoice.ctp:2
 msgid "Choose the format that you would like to use for the import"
@@ -9591,15 +9605,15 @@ msgstr "Импорт %s"
 
 #: View/Events/ajax/toggle_correlation.ctp:6
 msgid "Toggle Correlation %s"
-msgstr ""
+msgstr "Переключить корреляцию %s"
 
 #: View/Events/ajax/toggle_correlation.ctp:11
 msgid "Re-enable the correlation for this event. This will automatically re-correlate all contained attributes."
-msgstr ""
+msgstr "Включить корреляцию для этого события. Это автоматически пересчитывает все содержащиеся атрибуты."
 
 #: View/Events/ajax/toggle_correlation.ctp:13
 msgid "This will remove all correlations that already exist for the event and prevent any events to be related via correlations as long as this setting is disabled. Make sure you understand the downsides of disabling correlations."
-msgstr ""
+msgstr "Данное действие удалит все корреляции, которые уже существуют для этого события и предотвращает дальнейшие корреляции с этим событием, если этот параметр отключен. Убедитесь, что вы понимаете, что вы понимаете значение отключения корреляций."
 
 #: View/Feeds/add.ctp:4
 msgid "Add MISP Feed"
@@ -9613,12 +9627,12 @@ msgstr "Добавление нового фида MISP."
 #: View/Feeds/index.ctp:97
 #: View/Feeds/view.ctp:63
 msgid "Caching enabled"
-msgstr ""
+msgstr "Кэширование включено"
 
 #: View/Feeds/add.ctp:12
 #: View/Feeds/index.ctp:110
 msgid "Lookup visible"
-msgstr ""
+msgstr "Просмотр включен"
 
 #: View/Feeds/add.ctp:15
 #: View/Feeds/edit.ctp:15
@@ -9629,7 +9643,7 @@ msgstr "Имя фида"
 #: View/Feeds/index.ctp:100
 #: View/Feeds/view.ctp:30
 msgid "Provider"
-msgstr ""
+msgstr "Провайдер"
 
 #: View/Feeds/add.ctp:21
 #: View/Feeds/edit.ctp:20
@@ -9817,7 +9831,7 @@ msgstr "Менее 1% данных из %s содержится в %s (совп�
 
 #: View/Feeds/compare_feeds.ctp:74
 msgid "%s% of the data of %s is contained in %s (%s matching values)"
-msgstr ""
+msgstr "%s% данных %s содержится в %s (%s совпадающих значений)"
 
 #: View/Feeds/edit.ctp:4
 msgid "Edit MISP Feed"
@@ -9825,55 +9839,55 @@ msgstr "Редактировать MISP фид"
 
 #: View/Feeds/edit.ctp:5
 msgid "Edit a new MISP feed source."
-msgstr ""
+msgstr "Редактировать новый источник MISP-фида."
 
 #: View/Feeds/edit.ctp:127
 msgid "Regex pattern, for example: \"/^https://myfeedurl/i\""
-msgstr ""
+msgstr "Regex шаблон, например: \"/^https://myfeedurl/i\""
 
 #: View/Feeds/edit.ctp:207
 msgid "The base-url to the external server you want to sync with. Example: https://misppriv.circl.lu"
-msgstr ""
+msgstr "Базовый URL для внешнего сервера, с которым вы хотите синхронизироваться. Пример: https://misppriv.circl.lu"
 
 #: View/Feeds/edit.ctp:208
 #: View/Servers/add.ctp:136
 #: View/Servers/edit.ctp:183
 msgid "A name that will make it clear to your users what this instance is. For example: Organisation A's instance"
-msgstr ""
+msgstr "Имя, которое будет понятно для ваших пользователей. Например: Организация A"
 
 #: View/Feeds/edit.ctp:209
 #: View/Servers/add.ctp:137
 #: View/Servers/edit.ctp:182
 msgid "The organization having the external server you want to sync with. Example: BE"
-msgstr ""
+msgstr "Организация, имеющая внешний сервер, с которым вы хотите синхронизироваться. Пример: BE"
 
 #: View/Feeds/edit.ctp:210
 #: View/Servers/add.ctp:138
 #: View/Servers/edit.ctp:184
 msgid "You can find the authentication key on your profile on the external server."
-msgstr ""
+msgstr "Вы можете узнать ключ аутентификации в вашем профиле на внешнем сервере."
 
 #: View/Feeds/edit.ctp:211
 #: View/Servers/add.ctp:139
 #: View/Servers/edit.ctp:185
 msgid "Allow the upload of events and their attributes."
-msgstr ""
+msgstr "Разрешить загрузку событий и их атрибутов."
 
 #: View/Feeds/edit.ctp:212
 #: View/Servers/add.ctp:140
 #: View/Servers/edit.ctp:186
 msgid "Allow the download of events and their attributes from the server."
-msgstr ""
+msgstr "Разрешить загрузку событий и их атрибутов с сервера."
 
 #: View/Feeds/edit.ctp:213
 #: View/Servers/edit.ctp:187
 msgid "Unpublish new event (working with Push event)."
-msgstr ""
+msgstr "Отменить публикацию нового события (работает с Push-событием)."
 
 #: View/Feeds/edit.ctp:214
 #: View/Servers/edit.ctp:188
 msgid "Publish new event without email (working with Pull event)."
-msgstr ""
+msgstr "Опубликовать новое событие без email (работает с Pull event)."
 
 #: View/Feeds/edit.ctp:215
 #: View/Servers/edit.ctp:189
@@ -9888,7 +9902,7 @@ msgstr ""
 
 #: View/Feeds/freetext_index.ctp:2
 msgid "Parsed attributes from feed "
-msgstr ""
+msgstr "Полученные атрибуты из фида "
 
 #: View/Feeds/freetext_index.ctp:7
 msgid "Fetch selected"
@@ -10031,7 +10045,7 @@ msgstr "Не закеширован"
 
 #: View/Feeds/index.ctp:269
 msgid "Cache feed"
-msgstr ""
+msgstr "Закешировать фид"
 
 #: View/Feeds/index.ctp:276
 msgid "Explore the events remotely"
@@ -10082,15 +10096,15 @@ msgstr "ID"
 
 #: View/Feeds/search_caches.ctp:53
 msgid "Feed URL"
-msgstr ""
+msgstr "URL фида"
 
 #: View/Feeds/search_caches.ctp:58
 msgid "Link to correlation"
-msgstr ""
+msgstr "Ссылка на корреляцию"
 
 #: View/Feeds/search_caches.ctp:64
 msgid "Feed Cache Search"
-msgstr ""
+msgstr "Поиск в кеше фидов"
 
 #: View/Feeds/search_caches.ctp:65
 msgid "Search for values potentially contained in the cached feeds and servers."
@@ -10143,7 +10157,7 @@ msgstr "Порядок реализации атаки"
 
 #: View/GalaxyClusters/cluster_matrix.ctp:1
 msgid "Toggle ATT&CK Matrix"
-msgstr ""
+msgstr "Свернуть/развернуть матрицу ATT&CK"
 
 #: View/GalaxyClusters/view.ctp:11
 msgid "Cluster ID"
@@ -12180,7 +12194,7 @@ msgstr ""
 
 #: View/Pages/doc/general.ctp:19
 msgid "Home button"
-msgstr "Кнопка Домой"
+msgstr "Кнопка \"Главная\""
 
 #: View/Pages/doc/general.ctp:19
 msgid "This button will return you to the start screen of the application, which is the event index page (more about this later)."
@@ -12595,7 +12609,7 @@ msgstr ""
 #: View/Users/statistics.ctp:42
 #: View/Users/statistics_data.ctp:53
 msgid "Activity Heatmap"
-msgstr ""
+msgstr "Карта активности"
 
 #: View/Pages/doc/user_management.ctp:61
 msgid "This graph shows a heatmap of all activity related to creating event related data on a day by day basis. By default, the graph shows the sum of the contributions of all organisations, but using the buttons representing each organisation in existance on the platform you can switch to the activity heatmap of a single organisation. If you'd like to see the activity further back in the past, just use the arrow buttons to navigate the heatmap."
@@ -13262,7 +13276,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:234
 msgid "Attributes can have a contextual comment to further describe the attribute. These comments are not used for correlation and are purely informative."
-msgstr ""
+msgstr "Атрибуты могут иметь контекстный комментарий для описания атрибута. Эти комментарии не используются для корреляции и чисто информативны."
 
 #: View/Pages/doc/using_the_system.ctp:235
 msgid "A list of the event IDs that also contain an attribute with the same value."
@@ -13447,7 +13461,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:284
 msgid "An optional contextual comment attached to the attribute."
-msgstr ""
+msgstr "Необязательный контекстный комментарий, прикрепленный к атрибуту."
 
 #: View/Pages/doc/using_the_system.ctp:285
 msgid "Shows whether the attribute has been flagged for NIDS signature generation or not."
@@ -14573,7 +14587,7 @@ msgstr "Добавить предложение"
 #: View/ShadowAttributes/add_attachment.ctp:35
 #: View/ShadowAttributes/edit.ctp:51
 msgid "Propose"
-msgstr ""
+msgstr "Предложить"
 
 #: View/ShadowAttributes/edit.ctp:41
 msgid "IDS Signature?"
@@ -14613,7 +14627,7 @@ msgstr "Вы уверены что хотите удалить атрибут #%
 
 #: View/ShadowAttributes/ajax/deletionProposalConfirmationForm.ctp:11
 msgid "Propose to delete attribute"
-msgstr ""
+msgstr "Предложить удалить атрибут"
 
 #: View/ShadowAttributes/ajax/shadowAttributeConfirmationForm.ctp:5
 msgid "Proposal Deletion"
@@ -15595,7 +15609,7 @@ msgstr "Граф работает некорректно в Internet Explorer 9.
 
 #: View/Users/statistics_data.ctp:24
 msgid "Attributes / event"
-msgstr ""
+msgstr "Атрибуты / событие"
 
 #: View/Users/statistics_data.ctp:32
 msgid "Users with PGP keys"
@@ -15611,7 +15625,7 @@ msgstr "Пользователей на организацию"
 
 #: View/Users/statistics_galaxymatrix.ctp:6
 msgid "A heatmap showing the usage of %s."
-msgstr ""
+msgstr "Карта активности показывает использование %s."
 
 #: View/Users/statistics_orgs.ctp:17
 msgid "Organisation list"
