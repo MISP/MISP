@@ -193,11 +193,11 @@ function build_object_template(obj) {
     return html;
 }
 
-function reflect_change(onIndex, itemType, itemId) {
+function reflect_change(onIndex, itemType, itemId, item) {
     if (onIndex) {
         updateIndex(scope_id, 'event'); // MISP function
     } else { // reflect change on item only
-        quick_fetch_seens(itemType, itemId, function(firstSeen, lastSeen) {
+        quick_fetch_seens(itemType, item.orig_id, function(firstSeen, lastSeen) {
             var updatedItem = items_timeline.get(itemId);
             updatedItem.first_seen = firstSeen;
             updatedItem.last_seen = lastSeen;
@@ -250,7 +250,7 @@ function update_seen(item, seenType, value, reflect, callback) {
 }
 
 function fetch_form_and_submit(itemType, item, seenType, value, reflect, callback) {
-    var url = "/" + itemType + "/fetchEditForm/" + item.id + "/" + seenType+"_seen";
+    var url = "/" + itemType + "/fetchEditForm/" + item.orig_id + "/" + seenType+"_seen";
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
             $(".loadingTimeline").show();
@@ -269,7 +269,7 @@ function fetch_form_and_submit(itemType, item, seenType, value, reflect, callbac
                 cache: false,
                 success:function (data, textStatus) {
                     if (reflect) {
-                        reflect_change(false, itemType, item.id);
+                        reflect_change(false, itemType, item.id, item);
                     }
                     form.remove()
                 },
@@ -363,6 +363,7 @@ function timelinePopupCallback(state) {
 
 function adjust_text_length(elem) {
     var maxChar = $('#slider_timeline_display_max_char_num').val();
+    maxChar = maxChar === undefined ? 64 : maxChar;
     elem.content = elem.content.substring(0, maxChar) + (elem.content.length < maxChar ? "" : "[...]");
 }
 
@@ -391,14 +392,16 @@ function reload_timeline() {
             items_timeline.clear();
             for (var item of data.items) {
                 item.className = item.group;
+                item.orig_id = item.id;
+                item.id = item.uuid;
                 set_spanned_time(item);
                 if (item.group == 'object') {
                     for (var attr of item.Attribute) {
-                        mapping_text_to_id.set(attr.contentType+': '+attr.content+' ('+item.id+')', item.id);
+                        mapping_text_to_id.set(attr.contentType+': '+attr.content+' ('+item.orig_id+')', item.id);
                         adjust_text_length(attr);
                     }
                 } else {
-                    mapping_text_to_id.set(item.content+' ('+item.id+')', item.id);
+                    mapping_text_to_id.set(item.content+' ('+item.orig_id+')', item.id);
                     adjust_text_length(item);
                 }
             }
@@ -450,14 +453,16 @@ function enable_timeline() {
 
             for (var item of data.items) {
                 item.className = item.group;
+                item.orig_id = item.id;
+                item.id = item.uuid;
                 set_spanned_time(item);
                 if (item.group == 'object') {
                     for (var attr of item.Attribute) {
-                        mapping_text_to_id.set(attr.contentType+': '+attr.content+' ('+item.id+')', item.id);
+                        mapping_text_to_id.set(attr.contentType+': '+attr.content+' ('+item.orig_id+')', item.id);
                         adjust_text_length(attr);
                     }
                 } else {
-                    mapping_text_to_id.set(item.content+' ('+item.id+')', item.id);
+                    mapping_text_to_id.set(item.content+' ('+item.orig_id+')', item.id);
                     adjust_text_length(item);
                 }
             }
@@ -500,11 +505,12 @@ function handle_selection(data) {
 }
 
 function edit_item(id, callback) {
-    var group = items_timeline.get(id).group;
+    var item = items_timeline.get(id);
+    var group = item.group;
     if (group == 'attribute') {
-        simplePopup('/attributes/edit/'+id);
+        simplePopup('/attributes/edit/'+item.orig_id);
     } else if (group == 'object') {
-        window.location = '/objects/edit/'+id;
+        window.location = '/objects/edit/'+item.orig_id;
     }
 }
 
