@@ -1255,21 +1255,18 @@ class AppModel extends Model
                         ADD COLUMN `last_seen` BIGINT(20) NULL DEFAULT NULL,
                         MODIFY comment TEXT COLLATE utf8_unicode_ci
                     ;";
-                $sqlArray[] = "
-                    ALTER TABLE `attributes`
-                        ADD INDEX `uuid` (`uuid`),
-                        ADD INDEX `event_id` (`event_id`),
-                        ADD INDEX `sharing_group_id` (`sharing_group_id`),
-                        ADD INDEX `type` (`type`),
-                        ADD INDEX `category` (`category`),
-                        ADD INDEX `value1` (`value1`(255)),
-                        ADD INDEX `value2` (`value2`(255)),
-                        ADD INDEX `object_id` (`object_id`),
-                        ADD INDEX `object_relation` (`object_relation`),
-                        ADD INDEX `deleted` (`deleted`),
-                        ADD INDEX `first_seen` (`first_seen`),
-                        ADD INDEX `last_seen` (`last_seen`);
-                    ";
+                $indexArray[] = array('attributes', 'uuid');
+                $indexArray[] = array('attributes', 'event_id');
+                $indexArray[] = array('attributes', 'sharing_group_id');
+                $indexArray[] = array('attributes', 'type');
+                $indexArray[] = array('attributes', 'category');
+                $indexArray[] = array('attributes', 'value1');
+                $indexArray[] = array('attributes', 'value2');
+                $indexArray[] = array('attributes', 'object_id');
+                $indexArray[] = array('attributes', 'object_relation');
+                $indexArray[] = array('attributes', 'deleted');
+                $indexArray[] = array('attributes', 'first_seen');
+                $indexArray[] = array('attributes', 'last_seen');
                 $sqlArray[] = "
                     ALTER TABLE `objects`
                         ADD `first_seen` BIGINT(20) NULL DEFAULT NULL,
@@ -1287,7 +1284,7 @@ class AppModel extends Model
                 break;
             case 'testUpdate':
                 $sqlArray[] = "SELECT SLEEP(10);";
-                $sqlArray[] = "SELECT SLEEPsdcfsac(4);";
+                $sqlArray[] = "SELECT SLEEP(4);";
                 $sqlArray[] = "SELECT SLEEP(12);";
                 break;
             default:
