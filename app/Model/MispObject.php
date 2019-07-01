@@ -641,7 +641,7 @@ class MispObject extends AppModel
         if (isset($objectToSave['Object']['last_seen'])) {
             $object['Object']['last_seen'] = $objectToSave['Object']['last_seen'];
         }
-        $this->setObjectSeenMetaFromAttribute($object, true);
+        $this->setObjectSeenMetaFromAttribute($object, false);
         $this->save($object);
 
         if (!$onlyAddNewAttribute) {
