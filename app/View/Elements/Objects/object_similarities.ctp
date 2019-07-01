@@ -99,13 +99,13 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
                     <?php switch ($field):
                         case 'id': ?>
                             <div>
-                                <span class="bold"><?php echo h(__(Inflector::humanize($field))) . ':'; ?></span>
+                                <span class="bold"><?php echo h(Inflector::humanize($field)) . ':'; ?></span>
                                 <a href="<?php echo $baseurl . '/objects/edit/' . h($object['Object'][$field]); ?>" style="color: white;"><?php echo h($object['Object'][$field]); ?></a>
                             </div>
                             <?php break; ?>
                         <?php case 'distribution': ?>
                             <div>
-                                <span class="bold"><?php echo h(__(Inflector::humanize($field))) . ':'; ?></span>
+                                <span class="bold"><?php echo h(Inflector::humanize($field)) . ':'; ?></span>
                                 <span>
                                     <?php
                                         echo h($distributionLevels[$object['Object'][$field]])
@@ -123,13 +123,13 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
                                 }
                             ?>
                             <div style="<?php echo $temp_style ?> border-radius: 3px;" data-templatecomparison="<?php echo $temp_comparison; ?>" title="<?php echo __('The template version used by this object.'); ?>">
-                                <span class="bold"><?php echo h(__(Inflector::humanize($field))) . ':'; ?></span>
+                                <span class="bold"><?php echo h(Inflector::humanize($field)) . ':'; ?></span>
                                 <span ><?php echo h($object['Object'][$field]); ?></span>
                             </div>
                             <?php break; ?>
                         <?php default: ?>
                             <div>
-                                <span class="bold"><?php echo h(__(Inflector::humanize($field))) . ':'; ?></span>
+                                <span class="bold"><?php echo h(Inflector::humanize($field)) . ':'; ?></span>
                                 <span><?php echo h($object['Object'][$field]); ?></span>
                             </div>
                             <?php break; ?>
