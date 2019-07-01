@@ -79,7 +79,7 @@ setOpt () {
 }
 
 # check if command_exists
-command_exists() {
+command_exists () {
   command -v "$@" > /dev/null 2>&1
 }
 
@@ -157,7 +157,7 @@ checkFlavour () {
   esac
 
   # FIXME: The below want to be refactored
-  if [ FLAVOUR == "ubuntu" ]; then
+  if [ "$FLAVOUR" == "ubuntu" ]; then
     RELEASE=$(lsb_release -s -r)
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
   else
@@ -167,8 +167,7 @@ checkFlavour () {
 
 
 # Check if this is a forked Linux distro
-check_forked() {
-
+check_forked () {
   # Check for lsb_release command existence, it usually exists in forked distros
   if command_exists lsb_release; then
     # Check if the `-u` option is supported
@@ -183,7 +182,6 @@ check_forked() {
       cat <<-EOF
       You're using '$lsb_dist' version '$dist_version'.
 EOF
-
       # Get the upstream release info
       lsb_dist=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
       dist_version=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'codename' | cut -d ':' -f 2 | tr -d '[:space:]')
@@ -191,7 +189,7 @@ EOF
       # Print info about upstream distro
       cat <<-EOF
       Upstream release is '$lsb_dist' version '$dist_version'.
-      EOF
+EOF
     else
       if [ -r /etc/debian_version ] && [ "$lsb_dist" != "ubuntu" ] && [ "$lsb_dist" != "raspbian" ]; then
         # We're Debian and don't even know it!
