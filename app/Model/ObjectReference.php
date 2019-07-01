@@ -262,4 +262,37 @@ class ObjectReference extends AppModel
         $result = $this->save(array('ObjectReference' => $reference));
         return true;
     }
+
+    public function getReferencedInfo($referencedUuid, $object)
+    {
+        $referenced_type = 1;
+        $target_object = $this->Object->find('first', array(
+            'conditions' => array('Object.uuid' => $referencedUuid, 'Object.deleted' => 0),
+            'recursive' => -1,
+            'fields' => array('Object.id', 'Object.uuid', 'Object.event_id')
+        ));
+        if (!empty($target_object)) {
+            $referenced_id = $target_object['Object']['id'];
+            $referenced_uuid = $target_object['Object']['uuid'];
+            if ($target_object['Object']['event_id'] != $object['Event']['id']) {
+                throw new NotFoundException('Invalid target. Target has to be within the same event.');
+            }
+        } else {
+            $target_attribute = $this->Object->Attribute->find('first', array(
+                'conditions' => array('Attribute.uuid' => $referencedUuid, 'Attribute.deleted' => 0),
+                'recursive' => -1,
+                'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
+            ));
+            if (empty($target_attribute)) {
+                throw new NotFoundException('Invalid target.');
+            }
+            if ($target_attribute['Attribute']['event_id'] != $object['Event']['id']) {
+                throw new NotFoundException('Invalid target. Target has to be within the same event.');
+            }
+            $referenced_id = $target_attribute['Attribute']['id'];
+            $referenced_uuid = $target_attribute['Attribute']['uuid'];
+            $referenced_type = 0;
+        }
+        return array($referenced_id, $referenced_uuid, $referenced_type);
+    }
 }
