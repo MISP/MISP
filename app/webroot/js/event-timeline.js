@@ -177,7 +177,7 @@ function build_object_template(obj) {
     if (!obj.seen_enabled) {
         table.addClass('timestamp-obj');
     }
-    var bolt_html = obj.overwrite_enabled ? " <i class=\"fa fa-bolt\" style=\"color: yellow; font-size: large;\" title=\"Object is (or can be) overwritten by its attributes\">" : "";
+    var bolt_html = obj.overwrite_enabled ? " <i class=\"fa fa-bolt\" style=\"color: yellow; font-size: large;\" title=\"The Object is overwritten by its attributes\">" : "";
     table.append($('<tr class="timeline-objectName"><th>'+obj.content+bolt_html+'</th><th></th></tr>'));
     for (var attr of obj.Attribute) {
         var overwritten = obj.overwrite_enabled && (attr.contentType == "first-seen" || attr.contentType == "last-seen") ? " <i class=\"fa fa-bolt\" style=\"color: yellow;\" title=\"Overwrite object "+attr.contentType+"\"></i>" : "";
