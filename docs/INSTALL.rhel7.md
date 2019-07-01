@@ -211,16 +211,15 @@ installCoreRHEL () {
   $SUDO_WWW git config core.filemode false
 
   # Install packaged pears
-  sudo $RUN_PHP "pear channel-update pear.php.net"
-  sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml"
-  sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml"
+  sudo $RUN_PHP -- pear channel-update pear.php.net
+  sudo $RUN_PHP -- pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+  sudo $RUN_PHP -- pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 
   # Create a python3 virtualenv
-  $SUDO_WWW $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
+  $SUDO_WWW $RUN_PYTHON -- virtualenv -p python3 $PATH_TO_MISP/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
   cd $PATH_TO_MISP/app/files/scripts
   $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
@@ -466,6 +465,7 @@ apacheConfig_RHEL () {
   # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
 
   sudo cp $PATH_TO_MISP/INSTALL/apache.misp.centos7.ssl /etc/httpd/conf.d/misp.ssl.conf
+  #sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
   sudo rm /etc/httpd/conf.d/ssl.conf
   sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
   sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
@@ -653,17 +653,6 @@ EOF
 # <snippet-end 2_configMISP_RHEL.sh>
 ```
 
-
-```bash
-# In case you have no /etc/rc.local make a bare-bones one.
-if [ ! -e /etc/rc.local ]
-then
-    echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
-    echo 'exit 0' | sudo tee -a /etc/rc.local
-    sudo chmod u+x /etc/rc.local
-fi
-```
-
 !!! note
     There is a bug that if a passphrase is added MISP will produce an error on the diagnostic page.<br />
     /!\ THIS WANTS TO BE VERIFIED AND LINKED WITH A CORRESPONDING ISSUE.
@@ -702,7 +691,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now misp-workers.service
 ```
 
-## 9.07/ misp-modules (WIP!)
+## 9.07/ misp-modules
 ```bash
 # some misp-modules dependencies
 sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python-devel redhat-rpm-config -y
