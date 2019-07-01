@@ -133,10 +133,10 @@ def pattern_ip_port(attribute_type, attribute_value):
     return "[network-traffic:{} = '{}' AND {}]".format(port_type, port, pattern_ip(ip_type, ip)[1:-1])
 
 def observable_mac_address(_, attribute_value):
-    return {'0': {'type': 'mac-addr', 'value': attribute_value}}
+    return {'0': {'type': 'mac-addr', 'value': attribute_value.lower()}}
 
 def pattern_mac_address(_, attribute_value):
-    return "[mac-addr:value = '{}']".format(attribute_value)
+    return "[mac-addr:value = '{}']".format(attribute_value.lower())
 
 def observable_malware_sample(*args):
     observable = observable_file_hash("filename|md5", args[1])
