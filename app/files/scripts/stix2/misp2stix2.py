@@ -1138,6 +1138,7 @@ class StixBuilder():
     def resolve_regkey_observable(self, attributes, object_id):
         observable = {'type': 'windows-registry-key'}
         values = {}
+        registry_value_types = ('data', 'data-type', 'name')
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             relation = attribute['object_relation']
@@ -1145,7 +1146,7 @@ class StixBuilder():
                 stix_type = regkeyMapping[relation]
             except KeyError:
                 stix_type = "x_misp_{}_{}".format(attribute['type'], relation)
-            if relation in ('data', 'data-type', 'name'):
+            if relation in registry_value_types:
                 values[stix_type] = attribute['value']
             else:
                 observable[stix_type] = attribute['value']
@@ -1157,6 +1158,7 @@ class StixBuilder():
         mapping = objectsMapping['registry-key']['pattern']
         pattern = []
         fields = ('key', 'value')
+        registry_value_types = ('data', 'data-type', 'name')
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             relation = attribute['object_relation']
@@ -1165,6 +1167,8 @@ class StixBuilder():
             except KeyError:
                 stix_type = "'x_misp_{}_{}'".format(attribute['type'], relation)
             value = attribute['value'].strip().replace('\\', '\\\\') if relation in fields and '\\\\' not in attribute['value'] else attribute['value'].strip()
+            if relation in registry_value_types:
+                stix_type = "values.{}".format(stix_type)
             pattern.append(mapping.format(stix_type, value))
         return "[{}]".format(" AND ".join(pattern))
 
