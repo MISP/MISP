@@ -1258,6 +1258,7 @@ class AppModel extends Model
                         DROP INDEX object_relation;
                     ";
                 $sqlArray[] = "ALTER TABLE `attributes` DROP INDEX deleted"; // deleted index may not be present
+                $sqlArray[] = "ALTER TABLE `attributes` DROP INDEX comment"; // for replayability
                 $sqlArray[] = "ALTER TABLE `attributes` DROP INDEX first_seen"; // for replayability
                 $sqlArray[] = "ALTER TABLE `attributes` DROP INDEX last_seen"; // for replayability
                 $sqlArray[] =
@@ -1282,17 +1283,21 @@ class AppModel extends Model
                 $sqlArray[] = "
                     ALTER TABLE `objects`
                         ADD `first_seen` BIGINT(20) NULL DEFAULT NULL,
-                        ADD `last_seen` BIGINT(20) NULL DEFAULT NULL
+                        ADD `last_seen` BIGINT(20) NULL DEFAULT NULL,
+                        MODIFY comment TEXT COLLATE utf8_unicode_ci
                     ;";
                 $indexArray[] = array('objects', 'first_seen');
                 $indexArray[] = array('objects', 'last_seen');
+                $indexArray[] = array('objects', 'comment', 767);
                 $sqlArray[] = "
                     ALTER TABLE `shadow_attributes`
                         ADD `first_seen` BIGINT(20) NULL DEFAULT NULL,
-                        ADD `last_seen` BIGINT(20) NULL DEFAULT NULL
+                        ADD `last_seen` BIGINT(20) NULL DEFAULT NULL,
+                        MODIFY comment TEXT COLLATE utf8_unicode_ci
                     ;";
                 $indexArray[] = array('shadow_attributes', 'first_seen');
                 $indexArray[] = array('shadow_attributes', 'last_seen');
+                $indexArray[] = array('shadow_attributes', 'comment', 767);
                 break;
             case 'testUpdate':
                 $sqlArray[] = "SELECT SLEEP(10);";
