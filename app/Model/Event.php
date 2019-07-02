@@ -6195,8 +6195,10 @@ class Event extends AppModel
             $total_objects = count($resolved_data['Object']);
             $references = array();
             foreach ($resolved_data['Object'] as $o => $object) {
-                $object['meta-category'] = $object['meta_category'];
-                unset($object['meta_category']);
+                if (isset($object['meta_category']) && !isset($object['meta-category'])) {
+                    $object['meta-category'] = $object['meta_category'];
+                    unset($object['meta_category']);
+                }
                 $object['event_id'] = $id;
                 if (isset($object['id']) && $object['id'] == $initial_object_id) {
                     $initial_object = $resolved_data['initialObject'];
