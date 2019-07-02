@@ -421,8 +421,8 @@ $SUDO_WWW sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_
 sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
 
 echo "[Unit]
-Description=MISP's background workers
-After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
+Description=MISP background workers
+After=mariadb.service redis-server.service
 
 [Service]
 Type=forking
