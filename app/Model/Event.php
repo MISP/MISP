@@ -5270,6 +5270,60 @@ class Event extends AppModel
         return $resultArray;
     }
 
+    public function handleMispFormatFromModuleResult(&$result)
+    {
+        $defaultDistribution = 5;
+        if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
+            $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
+            if ($defaultDistribution == 'event') {
+                $defaultDistribution = 5;
+            }
+        }
+        $event = array();
+        if (!empty($result['results']['Attribute'])) {
+            $attributes = array();
+            foreach ($result['results']['Attribute'] as &$tmp_attribute) {
+                $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
+                $attributes[] = $tmp_attribute;
+            }
+            $event['Attribute'] = $attributes;
+        }
+        if (!empty($result['results']['Object'])) {
+            $object = array();
+            foreach ($result['results']['Object'] as $tmp_object) {
+                $tmp_object['distribution'] = (isset($tmp_object['distribution']) ? (int)$tmp_object['distribution'] : $defaultDistribution);
+                $tmp_object['sharing_group_id'] = (isset($tmp_object['sharing_group_id']) ? (int)$tmp_object['sharing_group_id'] : 0);
+                if (!empty($tmp_object['Attribute'])) {
+                    foreach ($tmp_object['Attribute'] as &$tmp_attribute) {
+                        $tmp_attribute = $this->__fillAttribute($tmp_attribute, $defaultDistribution);
+                    }
+                }
+                $objects[] = $tmp_object;
+            }
+            $event['Object'] = $objects;
+        }
+        foreach (array('Tag', 'Galaxy') as $field) {
+            if (!empty($result['results'][$field])) {
+                $event[$field] = $result['results'][$field];
+            }
+        }
+        return $event;
+    }
+
+    private function __fillAttribute($attribute, $defaultDistribution)
+    {
+        if (!isset($attribute['category'])) {
+            $attribute['category'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['default_category'];
+        }
+        if (!isset($attribute['to_ids'])) {
+            $attribute['to_ids'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
+        }
+        $attribute['value'] = $this->Attribute->runRegexp($attribute['type'], $attribute['value']);
+        $attribute['distribution'] = (isset($attribute['distribution']) ? (int)$attribute['distribution'] : $defaultDistribution);
+        $attribute['sharing_group_id'] = (isset($attribute['sharing_group_id']) ? (int)$attribute['sharing_group_id'] : 0);
+        return $attribute;
+    }
+
     public function export($user = false, $module = false, $options = array())
     {
         if (empty($user)) {
@@ -5990,11 +6044,7 @@ class Event extends AppModel
                 }
             }
         }
-        if ($saved == 1) {
-            $messageScopeSaved = Inflector::singularize($messageScope);
-        } else {
-            $messageScopeSaved = Inflector::pluralize($messageScope);
-        }
+        $messageScopeSaved = $this-> __apply_inflector($saved, $messageScope);
         if ($failed > 0) {
             if ($failed == 1) {
                 $messageScopeFailed = Inflector::singularize($messageScope);
@@ -6014,27 +6064,346 @@ class Event extends AppModel
         return $message;
     }
 
+    public function processModuleResultsData($user, $resolved_data, $id, $default_comment = '', $jobId = false, $adhereToWarninglists = false)
+    {
+        if ($jobId) {
+            $this->Job = ClassRegistry::init('Job');
+            $this->Job->id = $jobId;
+        }
+        $failed_attributes = $failed_objects = $failed_object_attributes = 0;
+        $saved_attributes = $saved_objects = $saved_object_attributes = 0;
+        $items_count = 0;
+        $failed = array();
+        $recovered_uuids = array();
+        foreach (array('Attribute', 'Object') as $feature) {
+            if (isset($resolved_data[$feature])) {
+                $items_count += count($resolved_data[$feature]);
+            }
+        }
+        if (!empty($resolved_data['Tag'])) {
+            foreach ($resolved_data['Tag'] as $tag) {
+                $tag_id = $this->EventTag->Tag->captureTag($tag, $user);
+                if ($tag_id) {
+                    $this->EventTag->attachTagToEvent($id, $tag_id);
+                }
+            }
+        }
+        if (!empty($resolved_data['Attribute'])) {
+            $total_attributes = count($resolved_data['Attribute']);
+            foreach ($resolved_data['Attribute'] as $a => $attribute) {
+                $this->Attribute->create();
+                if (empty($attribute['comment'])) {
+                    $attribute['comment'] = $default_comment;
+                }
+                $attribute['event_id'] = $id;
+                if ($this->Attribute->save($attribute)) {
+                    $saved_attributes++;
+                    if (!empty($attribute['Tag'])) {
+                        foreach ($attribute['Tag'] as $tag) {
+                            $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
+                            if ($tag_id) {
+                                $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $id, $tag_id);
+                            }
+                        }
+                    }
+                } else {
+                    $failed_attributes++;
+                    $lastAttributeError = $this->Attribute->validationErrors;
+                    $original_uuid = $this->Object->Attribute->find('first', array(
+                        'conditions' => array('Attribute.event_id' => $id, 'Attribute.object_id' => 0, 'Attribute.deleted' => 0,
+                                              'Attribute.type' => $attribute['type'], 'Attribute.value' => $attribute['value']),
+                        'recursive' => -1,
+                        'fields' => array('Attribute.uuid')
+                    ));
+                    if (!empty($original_uuid)) {
+                        $recovered_uuids[$attribute['uuid']] = $original_uuid['Attribute']['uuid'];
+                    } else {
+                        $failed[] = $attribute['uuid'];
+                    }
+                }
+                if ($jobId) {
+                    $current = ($a + 1);
+                    $this->Job->saveField('message', 'Attribute ' . $current . '/' . $total_attributes);
+                    $this->Job->saveField('progress', ($current * 100 / $items_count));
+                }
+            }
+        } else {
+            $total_attributes = 0;
+        }
+        if (!empty($resolved_data['Object'])) {
+            $initial_object_id = isset($resolved_data['initialObject']) ? $resolved_data['initialObject']['Object']['id'] : "0";
+            $total_objects = count($resolved_data['Object']);
+            $references = array();
+            foreach ($resolved_data['Object'] as $o => $object) {
+                $object['meta-category'] = $object['meta_category'];
+                unset($object['meta_category']);
+                $object['event_id'] = $id;
+                if (isset($object['id']) && $object['id'] == $initial_object_id) {
+                    $initial_object = $resolved_data['initialObject'];
+                    $recovered_uuids[$object['uuid']] = $initial_object['Object']['uuid'];
+                    if ($object['name'] != $initial_object['Object']['name']) {
+                        throw new NotFoundException(__('Invalid object.'));
+                    }
+                    $initial_attributes = array();
+                    if (!empty($initial_object['Attribute'])) {
+                        foreach ($initial_object['Attribute'] as $initial_attribute) {
+                            $initial_attributes[$initial_attribute['object_relation']][] = $initial_attribute['value'];
+                        }
+                    }
+                    $initial_references = array();
+                    if (!empty($initial_object['ObjectReference'])) {
+                        foreach ($initial_object['ObjectReference'] as $initial_reference) {
+                            $initial_references[$initial_reference['relationship_type']][] = $initial_reference['referenced_uuid'];
+                        }
+                    }
+                    if (!empty($object['Attribute'])) {
+                        foreach ($object['Attribute'] as $object_attribute) {
+                            $object_relation = $object_attribute['object_relation'];
+                            if (isset($initial_attributes[$object_relation]) && in_array($object_attribute['value'], $initial_attributes[$object_relation])) {
+                                continue;
+                            }
+                            if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $initial_object_id, $user)) {
+                                $saved_object_attributes++;
+                            } else {
+                              $failed_object_attributes++;
+                              $lastObjectAttributeError = $this->Attribute->validationErrors;
+                            }
+                        }
+                    }
+                    if (!empty($object['ObjectReference'])) {
+                        foreach ($object['ObjectReference'] as $object_reference) {
+                            array_push($references, array('objectId' => $initial_object_id, 'reference' => $object_reference));
+                        }
+                    }
+                    $saved_objects++;
+                } else {
+                    if (!empty($object['Attribute'])) {
+                        $current_object_id = $this->__findCurrentObjectId($id, $object['Attribute']);
+                        if ($current_object_id) {
+                            $original_uuid = $this->Object->find('first', array(
+                                'conditions' => array('Object.id' => $current_object_id, 'Object.event_id' => $id,
+                                                      'Object.name' => $object['name'], 'Object.deleted' => 0),
+                                'recursive' => -1,
+                                'fields' => array('Object.uuid')
+                            ));
+                            if (!empty($original_uuid)) {
+                                $recovered_uuids[$object['uuid']] = $original_uuid['Object']['uuid'];
+                            }
+                            $object_id = $current_object_id;
+                        } else {
+                            $this->Object->create();
+                            if ($this->Object->save($object)) {
+                                $object_id = $this->Object->id;
+                                foreach ($object['Attribute'] as $object_attribute) {
+                                    if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $object_id, $user)) {
+                                        $saved_object_attributes++;
+                                    } else {
+                                        $failed_object_attributes++;
+                                        $lastObjectAttributeError = $this->Attribute->validationErrors;
+                                    }
+                                }
+                                $saved_objects++;
+                            } else {
+                                $failed_objects++;
+                                $lastObjectError = $this->Object->validationErrors;
+                                $failed[] = $object['uuid'];
+                                continue;
+                            }
+                        }
+                    } else {
+                        $this->Object->create();
+                        if ($this->Object->save($object)) {
+                            $object_id = $this->Object->id;
+                            $saved_objects++;
+                        } else {
+                            $failed_objects++;
+                            $lastObjectError = $this->Object->validationErrors;
+                            $failed[] = $object['uuid'];
+                            continue;
+                        }
+                    }
+                    if (!empty($object['ObjectReference'])) {
+                        foreach($object['ObjectReference'] as $object_reference) {
+                            array_push($references, array('objectId' => $object_id, 'reference' => $object_reference));
+                        }
+                    }
+                }
+                if ($jobId) {
+                    $current = ($o + 1);
+                    $this->Job->saveField('message', 'Object ' . $current . '/' . $total_objects);
+                    $this->Job->saveField('progress', (($current + $total_attributes) * 100 / $items_count));
+                }
+            }
+        }
+        if (!empty($references)) {
+            $reference_errors = array();
+            foreach($references as $reference) {
+                $object_id = $reference['objectId'];
+                $reference = $reference['reference'];
+                if (in_array($reference['object_uuid'], $failed) || in_array($reference['referenced_uuid'], $failed)) {
+                    continue;
+                }
+                if (isset($recovered_uuids[$reference['object_uuid']])) {
+                    $reference['object_uuid'] = $recovered_uuids[$reference['object_uuid']];
+                }
+                if (isset($recovered_uuids[$reference['referenced_uuid']])) {
+                    $reference['referenced_uuid'] = $recovered_uuids[$reference['referenced_uuid']];
+                }
+                $current_reference = $this->Object->ObjectReference->find('all', array(
+                    'conditions' => array('ObjectReference.object_id' => $object_id,
+                                          'ObjectReference.referenced_uuid' => $reference['referenced_uuid'],
+                                          'ObjectReference.relationship_type' => $reference['relationship_type'],
+                                          'ObjectReference.event_id' => $id, 'ObjectReference.deleted' => 0),
+                    'recursive' => -1,
+                    'fields' => ('ObjectReference.uuid')
+                ));
+                if (!empty($current_reference)) {
+                    continue;
+                }
+                list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
+                        $reference['referenced_uuid'],
+                        array('Event' => array('id' => $id))
+                );
+                $reference = array(
+                    'event_id' => $id,
+                    'referenced_id' => $referenced_id,
+                    'referenced_uuid' => $referenced_uuid,
+                    'referenced_type' => $referenced_type,
+                    'object_id' => $object_id,
+                    'object_uuid' => $reference['object_uuid'],
+                    'relationship_type' => $reference['relationship_type']
+                );
+                $this->Object->ObjectReference->create();
+                if (!$this->Object->ObjectReference->save($reference)) {
+                    $reference_errors[] = $this->Object->ObjectReference->validationErrors;
+                }
+            }
+        }
+        if ($saved_attributes > 0 || $saved_objects > 0) {
+            $event = $this->find('first', array(
+                    'conditions' => array('Event.id' => $id),
+                    'recursive' => -1
+            ));
+            if ($event['Event']['published'] == 1) {
+                $event['Event']['published'] = 0;
+            }
+            $date = new DateTime();
+            $event['Event']['timestamp'] = $date->getTimestamp();
+            $this->save($event);
+        }
+        $message = '';
+        if ($saved_attributes > 0) {
+            $message .= $saved_attributes . ' ' . $this->__apply_inflector($saved_attributes, 'attribute') . ' created. ';
+        }
+        if ($failed_attributes > 0) {
+            if ($failed_attributes == 1) {
+                $reason = ' attribute could not be saved. Reason for the failure: ' . json_encode($lastAttributeError) . ' ';
+            } else {
+                $reason = ' attributes could not be saved. This may be due to attributes with similar values already existing. ';
+            }
+            $message .= $failed_attributes . $reason;
+        }
+        if ($saved_objects > 0) {
+            $message .= $saved_objects . ' ' . $this->__apply_inflector($saved_objects, 'object') . ' created';
+            if ($saved_object_attributes > 0) {
+                $message .= ' (including a total of ' . $saved_object_attributes . ' object ' . $this->__apply_inflector($saved_object_attributes, 'attribute') . '). ';
+            } else {
+                $message .= '. ';
+            }
+        }
+        if ($failed_objects > 0) {
+            if ($failed_objects == 1) {
+                $reason = ' object could not be saved. Reason for the failure: ';
+            } else {
+                $reason = ' objects could not be saved. An example of reason for the failure: ';
+            }
+            $message .= $failed_objects . $reason . json_encode($lastObjectError) . ' ';
+        }
+        if ($failed_object_attributes > 0) {
+            if ($failed_object_attributes == 1) {
+                $reason = 'object attribute could not be saved. Reason for the failure: ';
+            } else {
+                $reason = 'object attributes could not be saved. An example of reason for the failure: ';
+            }
+            $message .= 'By the way, ' . $failed_object_attributes . $reason . json_encode($lastObjectAttributeError) . '.';
+        }
+        if (!empty($reference_errors)) {
+            $reference_error = sizeof($reference_errors) == 1 ? 'a reference is' : 'some references are';
+            $message .= ' Also, be aware that ' . $reference_error . ' missing: ';
+            foreach ($reference_errors as $error) {
+                $message .= $error;
+            }
+            $message .= 'you can have a look at the module results view you just left, to compare.';
+        }
+        if ($jobId) {
+            $this->Job->saveField('message', 'Processing complete. ' . $message);
+            $this->Job->saveField('progress', 100);
+        }
+        return $message;
+    }
+
+    private function __apply_inflector($count, $scope)
+    {
+        return ($count == 1 ? Inflector::singularize($scope) : Inflector::pluralize($scope));
+    }
+
+    private function __findCurrentObjectId($event_id, $attributes)
+    {
+        $conditions = array();
+        foreach($attributes as $attribute) {
+            $conditions[] = array('AND' => array(
+                'Attribute.object_relation' => $attribute['object_relation'],
+                'Attribute.value' => $attribute['value'],
+                'Attribute.type' => $attribute['type']
+            ));
+        }
+        $ids = array();
+        foreach ($this->Object->Attribute->find('all', array(
+            'conditions' => array(
+                'Attribute.event_id' => $event_id,
+                'Attribute.object_id !=' => 0,
+                'Attribute.deleted' => 0,
+                'OR' => $conditions
+            ),
+            'recursive' => -1,
+            'fields' => array('Attribute.object_id'))) as $found_id) {
+            $ids[] = $found_id['Attribute']['object_id'];
+        }
+        $attributes_count = sizeof($attributes);
+        foreach (array_count_values($ids) as $id => $count) {
+            if ($count >= $attributes_count) {
+                return $id;
+            }
+        }
+        return 0;
+    }
+
+    private function __saveObjectAttribute($attribute, $default_comment, $event_id, $object_id, $user)
+    {
+        $attribute['object_id'] = $object_id;
+        $attribute['event_id'] = $event_id;
+        if (empty($attribute['comment'])) {
+            $attribute['comment'] = $default_comment;
+        }
+        $this->Attribute->create();
+        $attribute_save = $this->Attribute->save($attribute);
+        if ($attribute_save) {
+            if (!empty($attribute['Tag'])) {
+                foreach ($attribute['Tag'] as $tag) {
+                    $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
+                    if ($tag_id) {
+                        $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $event_id, $tag_id);
+                    }
+                }
+            }
+        }
+        return $attribute_save;
+    }
+
     public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false)
     {
         if (Configure::read('MISP.background_jobs')) {
-            $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'process_freetext_data',
-                    'job_input' => 'Event: ' . $id,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Processing...',
-            );
-            $job->save($data);
-            $randomFileName = $this->generateRandomFileName() . '.json';
-            App::uses('Folder', 'Utility');
-            App::uses('File', 'Utility');
-            $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0755);
-            $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
+            list($job, $randomFileName, $tempFile) = $this->__initiateProcessJob($user, $id);
             $tempData = array(
                     'user' => $user,
                     'attributes' => $attributes,
@@ -6050,7 +6419,6 @@ class Event extends AppModel
                 return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
             }
             $tempFile->close();
-            $jobId = $job->id;
             $process_id = CakeResque::enqueue(
                     'prio',
                     'EventShell',
@@ -6060,8 +6428,59 @@ class Event extends AppModel
             $job->saveField('process_id', $process_id);
             return 'Freetext ingestion queued for background processing. Attributes will be added to the event as they are being processed.';
         } else {
-            return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
+            return $this->processFreeTextData($user, $resolved_data, $id, $default_comment);
         }
+    }
+
+    public function processModuleResultsDataRouter($user, $resolved_data, $id, $default_comment = '', $adhereToWarninglists = false)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            list($job, $randomFileName, $tempFile) = $this->__initiateProcessJob($user, $id, 'module_results');
+            $tempData = array(
+                    'user' => $user,
+                    'misp_format' => $resolved_data,
+                    'id' => $id,
+                    'default_comment' => $default_comment,
+                    'jobId' => $job->id
+            );
+            $writeResult = $tempFile->write(json_encode($tempData));
+            if ($writeResult) {
+                $tempFile->close();
+                $process_id = CakeResque::enqueue(
+                        'prio',
+                        'EventShell',
+                        array('processmoduleresult', $randomFileName),
+                        true
+                );
+                $job->saveField('process_id', $process_id);
+                return 'Module results ingestion queued for background processing. Related data will be added to the event as it is being processed.';
+            }
+            $tempFile->delete();
+        }
+        return ($this->processModuleResultsData($user, $attributes, $id, $default_comment = ''));
+    }
+
+    private function __initiateProcessJob($user, $id, $format = 'freetext')
+    {
+        $job = ClassRegistry::init('Job');
+        $job->create();
+        $data = array(
+                'worker' => 'default',
+                'job_type' => __('process_' . $format . '_data'),
+                'job_input' => 'Event: ' . $id,
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
+                'message' => 'Processing...'
+        );
+        $job->save($data);
+        $randomFileName = $this->generateRandomFileName() . '.json';
+        App::uses('Folder', 'Utility');
+        App::uses('File', 'Utility');
+        $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0755);
+        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
+        return array($job, $randomFileName, $tempFile);
     }
 
     private function __attachReferences($user, &$event, $sgids, $fields)

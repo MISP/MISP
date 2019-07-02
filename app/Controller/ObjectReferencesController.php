@@ -54,34 +54,7 @@ class ObjectReferencesController extends AppController
             if (!isset($this->request->data['ObjectReference'])) {
                 $this->request->data['ObjectReference'] = $this->request->data;
             }
-            $referenced_type = 1;
-            $target_object = $this->ObjectReference->Object->find('first', array(
-                'conditions' => array('Object.uuid' => $this->request->data['ObjectReference']['referenced_uuid'], 'Object.deleted' => 0),
-                'recursive' => -1,
-                'fields' => array('Object.id', 'Object.uuid', 'Object.event_id')
-            ));
-            if (!empty($target_object)) {
-                $referenced_id = $target_object['Object']['id'];
-                $referenced_uuid = $target_object['Object']['uuid'];
-                if ($target_object['Object']['event_id'] != $object['Event']['id']) {
-                    throw new NotFoundException('Invalid target. Target has to be within the same event.');
-                }
-            } else {
-                $target_attribute = $this->ObjectReference->Object->Attribute->find('first', array(
-                    'conditions' => array('Attribute.uuid' => $this->request->data['ObjectReference']['referenced_uuid'], 'Attribute.deleted' => 0),
-                    'recursive' => -1,
-                    'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
-                ));
-                if (empty($target_attribute)) {
-                    throw new NotFoundException('Invalid target.');
-                }
-                if ($target_attribute['Attribute']['event_id'] != $object['Event']['id']) {
-                    throw new NotFoundException('Invalid target. Target has to be within the same event.');
-                }
-                $referenced_id = $target_attribute['Attribute']['id'];
-                $referenced_uuid = $target_attribute['Attribute']['uuid'];
-                $referenced_type = 0;
-            }
+            list($referenced_id, $referenced_uuid, $referenced_type) = $this->ObjectReference->getReferencedInfo($this->request->data['ObjectReference']['referenced_uuid'], $object);
             $relationship_type = empty($this->request->data['ObjectReference']['relationship_type']) ? '' : $this->request->data['ObjectReference']['relationship_type'];
             if (!empty($this->request->data['ObjectReference']['relationship_type_select']) && $this->request->data['ObjectReference']['relationship_type_select'] !== 'custom') {
                 $relationship_type = $this->request->data['ObjectReference']['relationship_type_select'];

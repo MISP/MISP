@@ -599,4 +599,21 @@ class EventShell extends AppShell
         );
         return true;
     }
+
+    public function processmoduleresult()
+    {
+        $inputFile = $this->args[0];
+        $tempDir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
+        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
+        $inputData = json_decode($tempFile->read(), true);
+        $tempFile->delete();
+        $this->Event->processModuleResultsData(
+            $inputData['user'],
+            $inputData['misp_format'],
+            $inputData['id'],
+            $inputData['default_comment'],
+            $inputData['jobId']
+        );
+        return true;
+    }
 }
