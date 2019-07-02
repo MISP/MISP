@@ -824,7 +824,7 @@ class StixBuilder():
     def resolve_email_object_observable(self, attributes, object_id):
         observable = {}
         message = defaultdict(list)
-        reply_to = []
+        additional_header = {}
         object_num = 0
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
@@ -840,8 +840,6 @@ class StixBuilder():
                     else:
                         message[mapping].append(object_str)
                     object_num += 1
-                elif relation == 'reply-to':
-                    reply_to.append(attribute_value)
                 elif relation == 'attachment':
                     object_str = str(object_num)
                     body = {"content_disposition": "{}; filename='{}'".format(relation, attribute_value),
@@ -849,11 +847,9 @@ class StixBuilder():
                     message['body_multipart'].append(body)
                     observable[object_str] = {'type': 'file', 'name': attribute_value}
                     object_num += 1
-                elif relation == 'x-mailer':
-                    if 'additional_header_fields' in message:
-                        message['additional_header_fields']['X-Mailer'] = attribute_value
-                    else:
-                        message['additional_header_fields'] = {'X-Mailer': attribute_value}
+                elif relation in ('x-mailer', 'reply-to'):
+                    key = '-'.join([part.capitalize() for part in relation.split('-')])
+                    additional_header[key] = attribute_value
                 else:
                     message[mapping] = attribute_value
             except Exception:
@@ -862,8 +858,8 @@ class StixBuilder():
                     message[mapping] = {'value': attribute_value, 'data': attribute['data']}
                 else:
                     message[mapping] = attribute_value
-        if reply_to and 'additional_header_fields' in message:
-            message['additional_header_fields']['Reply-To'] = reply_to
+        if additional_header:
+            message['additional_header_fields'] = additional_header
         message['type'] = 'email-message'
         if 'body_multipart' in message:
             message['is_multipart'] = True
@@ -1138,6 +1134,7 @@ class StixBuilder():
     def resolve_regkey_observable(self, attributes, object_id):
         observable = {'type': 'windows-registry-key'}
         values = {}
+        registry_value_types = ('data', 'data-type', 'name')
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             relation = attribute['object_relation']
@@ -1145,7 +1142,7 @@ class StixBuilder():
                 stix_type = regkeyMapping[relation]
             except KeyError:
                 stix_type = "x_misp_{}_{}".format(attribute['type'], relation)
-            if relation in ('data', 'data-type', 'name'):
+            if relation in registry_value_types:
                 values[stix_type] = attribute['value']
             else:
                 observable[stix_type] = attribute['value']
@@ -1157,6 +1154,7 @@ class StixBuilder():
         mapping = objectsMapping['registry-key']['pattern']
         pattern = []
         fields = ('key', 'value')
+        registry_value_types = ('data', 'data-type', 'name')
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             relation = attribute['object_relation']
@@ -1165,6 +1163,8 @@ class StixBuilder():
             except KeyError:
                 stix_type = "'x_misp_{}_{}'".format(attribute['type'], relation)
             value = attribute['value'].strip().replace('\\', '\\\\') if relation in fields and '\\\\' not in attribute['value'] else attribute['value'].strip()
+            if relation in registry_value_types:
+                stix_type = "values.{}".format(stix_type)
             pattern.append(mapping.format(stix_type, value))
         return "[{}]".format(" AND ".join(pattern))
 
