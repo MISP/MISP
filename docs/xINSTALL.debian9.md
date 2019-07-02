@@ -56,9 +56,7 @@ sudo postfix reload
 
 #### Install all the dependencies (some might already be installed)
 
-You need to update python3.5 to python3.7 for [PyMISP](https://github.com/MISP/PyMISP) to work properly.
-
-FIXME: The below breaks redis-server and mariadb-server
+You need to use at least Python3.6 for [PyMISP](https://github.com/MISP/PyMISP) to work properly.
 
 ```bash
 # Manual Python3.7.3 install in $HOME
