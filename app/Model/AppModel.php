@@ -210,7 +210,7 @@ class AppModel extends Model
                 $this->__fixServerPullPushRules();
                 break;
             case 36:
-                $this->updateDatabase('seenOnAttributeAndObject', false);
+                $this->updateDatabase('seenOnAttributeAndObject', true);
                 break;
             default:
                 $this->updateDatabase($command);
