@@ -1280,7 +1280,7 @@ class ExternalStixParser(StixParser):
     def parse_process_pattern(self, pattern, marking=None, uuid=None):
         pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
         attributes = self.fill_pattern_attributes(pattern_types, pattern_values, process_mapping)
-        self.object_case_import(attributes, 'process', marking, uuid)
+        self.handle_import_case(attributes, 'process', marking, uuid)
 
     def parse_regkey_observable(self, objects, marking, uuid):
         _object = objects['0']

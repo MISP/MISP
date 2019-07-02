@@ -2509,9 +2509,19 @@ function freetextImportResultsSubmit(id, count) {
 }
 
 function moduleResultsSubmit(id) {
+    var typesWithData = ['attachment', 'malware-sample'];
     var data_collected = {};
     var temp;
-    if ($('.MISPObjects').length) {
+    if ($('.meta_table').length) {
+        var tags = [];
+        $('.meta_table').find('.tag').each(function() {
+            tags.push({name: $(this).text()});
+        });
+        if (tags.length) {
+            data_collected['Tag'] = tags;
+        }
+    }
+    if ($('.MISPObject').length) {
         var objects = [];
         $(".MISPObject").each(function(o) {
             var object_uuid = $(this).find('.ObjectUUID').text();
@@ -2522,27 +2532,38 @@ function moduleResultsSubmit(id) {
                 distribution: $(this).find('.ObjectDistribution').val(),
                 sharing_group_id: $(this).find('.ObjectSharingGroup').val()
             }
+            if (temp['distribution'] != '4') {
+                temp['sharing_group_id'] = '0';
+            }
             if ($(this).has('.ObjectID').length) {
                 temp['id'] = $(this).find('.ObjectID').text();
             }
-            if ($(this).has('.ObjectReferences').length) {
+            if ($(this).has('.TemplateVersion').length) {
+                temp['template_version'] = $(this).find('.TemplateVersion').text();
+            }
+            if ($(this).has('.TemplateUUID').length) {
+                temp['template_uuid'] = $(this).find('.TemplateUUID').text();
+            }
+            if ($(this).has('.ObjectReference').length) {
                 var references = [];
                 $(this).find('.ObjectReference').each(function() {
                     var reference = {
                         object_uuid: object_uuid,
                         referenced_uuid: $(this).find('.ReferencedUUID').text(),
-                        relationhip_type: $(this).find('.Relationship').text()
+                        relationship_type: $(this).find('.Relationship').text()
                     };
                     references.push(reference);
                 });
                 temp['ObjectReference'] = references;
             }
-            if ($(this).find('.ObjectAttributes').length) {
+            if ($(this).find('.ObjectAttribute').length) {
                 var object_attributes = [];
                 $(this).find('.ObjectAttribute').each(function(a) {
+                    var attribute_type = $(this).find('.AttributeType').text();
                     attribute = {
+                        object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
-                        type: $(this).find('.AttributeType').text(),
+                        type: attribute_type,
                         value: $(this).find('.AttributeValue').text(),
                         uuid: $(this).find('.AttributeUuid').text(),
                         to_ids: $(this).find('.AttributeToIds')[0].checked,
@@ -2550,6 +2571,19 @@ function moduleResultsSubmit(id) {
                         comment: $(this).find('.AttributeComment').val(),
                         distribution: $(this).find('.AttributeDistribution').val(),
                         sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                    }
+                    if (attribute['distribution'] != '4') {
+                        attribute['sharing_group_id'] = '0';
+                    }
+                    if ($(this).find('.objectAttributeTagContainer').length) {
+                        var tags = [];
+                        $(this).find('.objectAttributeTag').each(function() {
+                            tags.push({name: $(this).attr('title')});
+                        });
+                        attribute['Tag'] = tags;
+                    }
+                    if (typesWithData.indexOf(attribute_type) != -1 && $(this).find('.AttributeData').length) {
+                        attribute['data'] = $(this).find('.AttributeData').val();
                     }
                     object_attributes.push(attribute);
                 });
@@ -2559,12 +2593,24 @@ function moduleResultsSubmit(id) {
         });
         data_collected['Object'] = objects;
     }
-    if ($('.MISPAttributes').length) {
+    if ($('.MISPAttribute').length) {
         var attributes = [];
         $('.MISPAttribute').each(function(a) {
+            var category_value;
+            var type_value;
+            if ($(this).find('.AttributeCategorySelect').length) {
+                category_value = $(this).find('.AttributeCategorySelect').val();
+            } else {
+                category_value = $(this).find('.AttributeCategory').text();
+            }
+            if ($(this).find('.AttributeTypeSelect').length) {
+                type_value = $(this).find('.AttributeTypeSelect').val();
+            } else {
+                type_value = $(this).find('.AttributeType').text();
+            }
             temp = {
-                category: $(this).find('.AttributeCategory').text(),
-                type: $(this).find('.AttributeType').text(),
+                category: category_value,
+                type: type_value,
                 value: $(this).find('.AttributeValue').text(),
                 uuid: $(this).find('.AttributeUuid').text(),
                 to_ids: $(this).find('.AttributeToIds')[0].checked,
@@ -2573,14 +2619,30 @@ function moduleResultsSubmit(id) {
                 distribution: $(this).find('.AttributeDistribution').val(),
                 sharing_group_id: $(this).find('.AttributeSharingGroup').val()
             }
+            if (temp['distribution'] != '4') {
+                temp['sharing_group_id'] = '0';
+            }
+            if ($(this).find('.attributeTagContainer').length) {
+                var tags = [];
+                $(this).find('.attributeTag').each(function() {
+                    tags.push({name: $(this).attr('title')});
+                });
+                temp['Tag'] = tags;
+            }
+            if (typesWithData.indexOf(type_value) != -1 && $(this).find('.AttributeData').length) {
+                temp['data'] = $(this).find('.AttributeData').val();
+            }
             attributes.push(temp);
         });
         data_collected['Attribute'] = attributes;
     }
+    $("#EventJsonObject").val(JSON.stringify(data_collected));
+    var formData = $('.mainForm').serialize();
     $.ajax({
         type: "post",
         cache: false,
         url: "/events/handleModuleResults/" + id,
+        data: formData,
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },

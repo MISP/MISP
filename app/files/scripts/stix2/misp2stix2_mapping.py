@@ -133,10 +133,10 @@ def pattern_ip_port(attribute_type, attribute_value):
     return "[network-traffic:{} = '{}' AND {}]".format(port_type, port, pattern_ip(ip_type, ip)[1:-1])
 
 def observable_mac_address(_, attribute_value):
-    return {'0': {'type': 'mac-addr', 'value': attribute_value}}
+    return {'0': {'type': 'mac-addr', 'value': attribute_value.lower()}}
 
 def pattern_mac_address(_, attribute_value):
-    return "[mac-addr:value = '{}']".format(attribute_value)
+    return "[mac-addr:value = '{}']".format(attribute_value.lower())
 
 def observable_malware_sample(*args):
     observable = observable_file_hash("filename|md5", args[1])
@@ -167,6 +167,8 @@ def observable_regkey(_, attribute_value):
     return {'0': {'type': 'windows-registry-key', 'key': attribute_value.strip()}}
 
 def pattern_regkey(_, attribute_value):
+    if '\\\\' not in attribute_value:
+        attribute_value = attribute_value.replace('\\', '\\\\')
     return "[windows-registry-key:key = '{}']".format(attribute_value.strip())
 
 def observable_regkey_value(_, attribute_value):
@@ -178,13 +180,15 @@ def observable_regkey_value(_, attribute_value):
 
 def pattern_regkey_value(_, attribute_value):
     key, value = attribute_value.split('|')
+    if '\\\\' not in value:
+        value = value.replace('\\', '\\\\')
     regkey = pattern_regkey(_, key)[1:-1]
     regkey += " AND windows-registry-key:values = '{}'".format(value.strip())
     return "[{}]".format(regkey)
 
 def observable_reply_to(_, attribute_value):
     return {'0': {'type': 'email-addr', 'value': attribute_value},
-            '1': {'type': 'email-message', 'additional_header_fields': {'Reply-To': ['0']}, 'is_multipart': 'false'}}
+            '1': {'type': 'email-message', 'additional_header_fields': {'Reply-To': '0'}, 'is_multipart': 'false'}}
 
 def pattern_reply_to(_, attribute_value):
     return "[email-message:additional_header_fields.reply_to = '{}']".format(attribute_value)
@@ -268,7 +272,7 @@ mispTypesMapping = {
     #                           'pattern': 'email-addr:display_name = \'{0}\''}
 }
 
-network_traffic_pattern = "network-traffic:{0} = '{1}' AND "
+network_traffic_pattern = "network-traffic:{0} = '{1}'"
 network_traffic_src_ref = "src_ref.type = '{0}' AND network-traffic:src_ref.value"
 network_traffic_dst_ref = "dst_ref.type = '{0}' AND network-traffic:dst_ref.value"
 
@@ -276,8 +280,11 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                           'observable': {'type': 'autonomous-system'},
                           'pattern': "autonomous-system:{0} = '{1}' AND "},
                   'course-of-action': {'to_call': 'add_course_of_action_from_object'},
+                  'credential': {'to_call': 'handle_usual_object_name',
+                                 'observable': {'type': 'user-account'},
+                                 'pattern': "user-account:{0} = '{1}' AND "},
                   'domain-ip': {'to_call': 'handle_usual_object_name',
-                                'pattern': "domain-name:{0} = '{1}' AND "},
+                                'pattern': "domain-name:{0} = '{1}'"},
                   'email': {'to_call': 'handle_usual_object_name',
                             'observable': {'0': {'type': 'email-message'}},
                             'pattern': "email-{0}:{1} = '{2}' AND "},
@@ -286,6 +293,8 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                            'pattern': "file:{0} = '{1}' AND "},
                   'ip-port': {'to_call': 'handle_usual_object_name',
                               'pattern': network_traffic_pattern},
+                  'network-connection': {'to_call': 'handle_usual_object_name',
+                                         'pattern': network_traffic_pattern},
                   'network-socket': {'to_call': 'handle_usual_object_name',
                                      'pattern': network_traffic_pattern},
                   'pe': {'to_call': 'populate_objects_to_parse'},
@@ -294,16 +303,18 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                               'pattern': "process:{0} = '{1}' AND "},
                   'registry-key': {'to_call': 'handle_usual_object_name',
                                    'observable': {'0': {'type': 'windows-registry-key'}},
-                                   'pattern': "windows-registry-key:{0} = '{1}' AND "},
+                                   'pattern': "windows-registry-key:{0} = '{1}'"},
                   'url': {'to_call': 'handle_usual_object_name',
                           'observable': {'0': {'type': 'url'}},
-                          'pattern': "url:{0} = '{1}' AND "},
+                          'pattern': "url:{0} = '{1}'"},
                   'vulnerability': {'to_call': 'add_object_vulnerability'},
                   'x509': {'to_call': 'handle_usual_object_name',
                            'pattern': "x509-certificate:{0} = '{1}' AND "}
 }
 
 asnObjectMapping = {'asn': 'number', 'description': 'name', 'subnet-announced': 'value'}
+
+credentialObjectMapping = {'password': 'credential', 'username': 'user_id'}
 
 domainIpObjectMapping = {'ip-dst': 'resolves_to_refs[*].value', 'domain': 'value'}
 
@@ -325,7 +336,7 @@ ipPortObjectMapping = {'ip': network_traffic_dst_ref,
                        'first-seen': 'start', 'last-seen': 'end',
                        'domain': 'value'}
 
-networkSocketMapping = {'address-family': 'address_family', 'domain-family': 'protocol_family',
+networkTrafficMapping = {'address-family': 'address_family', 'domain-family': 'protocol_family',
                         'protocol': 'protocols', 'src-port': 'src_port', 'dst-port': 'dst_port',
                         'ip-src': network_traffic_src_ref, 'ip-dst': network_traffic_dst_ref,
                         'hostname-src': network_traffic_src_ref, 'hostname-dst': network_traffic_dst_ref}
@@ -348,6 +359,9 @@ x509mapping = {'pubkey-info-algorithm': 'subject_public_key_algorithm', 'subject
                'version': 'version',}
 
 defineProtocols = {'80': 'http', '443': 'https'}
+
+tlp_markings = {'tlp:white': 'TLP_WHITE', 'tlp:green': 'TLP_GREEN',
+                'tlp:amber': 'TLP_AMBER', 'tlp:red': 'TLP_RED'}
 
 relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'identity': 'targets',
                                                  'malware': 'uses', 'tool': 'uses'},
