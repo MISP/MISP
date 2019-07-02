@@ -1276,6 +1276,7 @@ class AppModel extends Model
                 $indexArray[] = array('attributes', 'object_id');
                 $indexArray[] = array('attributes', 'object_relation');
                 $indexArray[] = array('attributes', 'deleted');
+                $indexArray[] = array('attributes', 'comment', 767);  // https://dev.mysql.com/doc/refman/5.7/en/create-index.html
                 $indexArray[] = array('attributes', 'first_seen');
                 $indexArray[] = array('attributes', 'last_seen');
                 $sqlArray[] = "
