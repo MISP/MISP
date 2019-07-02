@@ -3507,7 +3507,6 @@ class EventsController extends AppController
             'org_id' => $this->Auth->user('org_id'),
             'orgc_id' => $this->Auth->user('org_id'),
             'timestamp' => $ts,
-            'uuid' => CakeText::uuid(),
             'user_id' => $this->Auth->user('id'),
         ));
         $default['Event']['info'] = 'A junk event for load testing';
@@ -3517,6 +3516,7 @@ class EventsController extends AppController
         $default['Event']['distribution'] = '0';
         for ($i = 0; $i < 50; $i++) {
             $data = $default;
+            $data['Event']['uuid'] = CakeText::uuid();
             for ($j = 0; $j < 3000; $j++) {
                 $value = mt_rand();
                 $data['Attribute'][] = array(
@@ -3530,6 +3530,7 @@ class EventsController extends AppController
                         'comment' => '',
                         'uuid' => CakeText::uuid(),
                         'timestamp' => $ts,
+                        'disable_correlation' => 1
                 );
             }
             $this->Event->create();
