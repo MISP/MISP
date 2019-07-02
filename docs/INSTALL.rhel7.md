@@ -76,10 +76,12 @@ sudo subscription-manager register --auto-attach # register your system to an ac
 ## 1.4/ **[RHEL]** Enable the optional, extras and Software Collections (SCL) repos
 ```bash
 # <snippet-begin 0_RHEL_SCL.sh>
-sudo subscription-manager refresh 
-sudo subscription-manager repos --enable rhel-7-server-optional-rpms
-sudo subscription-manager repos --enable rhel-7-server-extras-rpms
-sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
+enableReposRHEL () {
+  sudo subscription-manager refresh
+  sudo subscription-manager repos --enable rhel-7-server-optional-rpms
+  sudo subscription-manager repos --enable rhel-7-server-extras-rpms
+  sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
+}
 # <snippet-end 0_RHEL_SCL.sh>
 ```
 
@@ -118,14 +120,18 @@ sudo ntpdate pool.ntp.org
 ## 1.5/ Update the system and reboot
 ```bash
 # <snippet-begin 0_yum-update.sh>
-sudo yum update -y
+yumUpdate () {
+  sudo yum update -y
+}
 # <snippet-end 0_yum-update.sh>
 ```
 
 ## 1.6/ **[RHEL]** Install the EPEL repo
 ```bash
 # <snippet-begin 0_RHEL_EPEL.sh>
-sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
+enableEPEL () {
+  sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
+}
 # <snippet-end 0_RHEL_EPEL.sh>
 ```
 
@@ -211,16 +217,15 @@ installCoreRHEL () {
   $SUDO_WWW git config core.filemode false
 
   # Install packaged pears
-  sudo $RUN_PHP "pear channel-update pear.php.net"
-  sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml"
-  sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml"
+  sudo $RUN_PHP -- pear channel-update pear.php.net
+  sudo $RUN_PHP -- pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+  sudo $RUN_PHP -- pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 
   # Create a python3 virtualenv
-  $SUDO_WWW $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
+  $SUDO_WWW $RUN_PYTHON -- virtualenv -p python3 $PATH_TO_MISP/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
   cd $PATH_TO_MISP/app/files/scripts
   $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
@@ -268,14 +273,18 @@ installCoreRHEL () {
   ..'"
   $SUDO_WWW make -j3 pyLIEF
 
-  # In case you get "internal compiler error: Killed (program cc1plus)"
-  # You ran out of memory.
-  # Create some swap
-  # sudo dd if=/dev/zero of=/var/swap.img bs=1024k count=4000
-  # sudo mkswap /var/swap.img
-  # sudo swapon /var/swap.img
-  # And compile again
-  # $SUDO_WWW make -j3 pyLIEF
+  if [ $? == 2 ]; then
+    # In case you get "internal compiler error: Killed (program cc1plus)"
+    # You ran out of memory.
+    # Create some swap
+    sudo dd if=/dev/zero of=/var/swap.img bs=1024k count=4000
+    sudo mkswap /var/swap.img
+    sudo swapon /var/swap.img
+    # And compile again
+    $SUDO_WWW make -j3 pyLIEF
+    sudo swapoff /var/swap.img
+    sudo rm /var/swap.img
+  fi
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
   echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
@@ -466,6 +475,7 @@ apacheConfig_RHEL () {
   # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
 
   sudo cp $PATH_TO_MISP/INSTALL/apache.misp.centos7.ssl /etc/httpd/conf.d/misp.ssl.conf
+  #sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
   sudo rm /etc/httpd/conf.d/ssl.conf
   sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
   sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
@@ -653,17 +663,6 @@ EOF
 # <snippet-end 2_configMISP_RHEL.sh>
 ```
 
-
-```bash
-# In case you have no /etc/rc.local make a bare-bones one.
-if [ ! -e /etc/rc.local ]
-then
-    echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
-    echo 'exit 0' | sudo tee -a /etc/rc.local
-    sudo chmod u+x /etc/rc.local
-fi
-```
-
 !!! note
     There is a bug that if a passphrase is added MISP will produce an error on the diagnostic page.<br />
     /!\ THIS WANTS TO BE VERIFIED AND LINKED WITH A CORRESPONDING ISSUE.
@@ -672,117 +671,39 @@ fi
     The email address should match the one set in the config.php configuration file
     Make sure that you use the same settings in the MISP Server Settings tool
 
-## 9.06/ Use MISP's background workers
-## 9.06a/ Create a systemd unit for the workers
+## 9.06/ Use MISP background workers
+
 ```bash
-echo "[Unit]
-Description=MISP background workers
-After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
+# <snippet-begin 3_configWorkers_RHEL.sh>
+configWorkersRHEL () {
+  echo "[Unit]
+  Description=MISP background workers
+  After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
 
-[Service]
-Type=forking
-User=apache
-Group=apache
-ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh
-Restart=always
-RestartSec=10
+  [Service]
+  Type=forking
+  User=apache
+  Group=apache
+  ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh
+  Restart=always
+  RestartSec=10
 
-[Install]
-WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-workers.service
+  [Install]
+  WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-workers.service
+
+  sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
+  sudo systemctl daemon-reload
+
+  sudo systemctl enable --now misp-workers.service
+}
+# <snippet-end 3_configWorkers_RHEL.sh>
 ```
 
-Make the workers' script executable and reload the systemd units :
-```bash
-sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
-sudo systemctl daemon-reload
-```
-
-## 9.06b/ Start the workers and enable them on boot
-```bash
-sudo systemctl enable --now misp-workers.service
-```
-
-## 9.07/ misp-modules (WIP!)
-```bash
-# some misp-modules dependencies
-sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python-devel redhat-rpm-config -y
-
-sudo chmod 2777 /usr/local/src
-sudo chown root:users /usr/local/src
-cd /usr/local/src/
-$SUDO_WWW git clone https://github.com/MISP/misp-modules.git
-cd misp-modules
-# pip install
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
-sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
-
-echo "[Unit]
-Description=MISP modules
-After=misp-workers.service
-
-[Service]
-Type=simple
-User=apache
-Group=apache
-WorkingDirectory=/usr/local/src/misp-modules
-Environment="PATH=/var/www/MISP/venv/bin"
-ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-modules.service
-
-sudo systemctl daemon-reload
-# Test misp-modules
-$SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s
-sudo systemctl enable --now misp-modules
-
-  # Enable Enrichment, set better timeouts
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
-  # TODO:"Investigate why the next one fails"
-  #$SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_asn_history_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_btc_steroids_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ipasn_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_syntax_validator_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_query_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pdf_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_docx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_xlsx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pptx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ods_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_odt_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
-
-  # Enable Import modules, set better timeout
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_port" 6666
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_mispjson_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_openiocimport_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_threatanalyzer_import_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
-
-  # Enable Export modules, set better timeout
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_port" 6666
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
-```
-
-{!generic/misp-dashboard-centos.md!}
+{!generic/misp-modules-centos.md!}
 
 {!generic/MISP_CAKE_init.md!}
+
+{!generic/misp-dashboard-centos.md!}
 
 {!generic/INSTALL.done.md!}
 

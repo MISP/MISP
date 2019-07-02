@@ -465,8 +465,10 @@ checkUsrLocalSrc () {
     echo "/usr/local/src does not exist, creating."
     mkdir -p /usr/local/src
     sudo chmod 2775 /usr/local/src
-    # FIXME: This might fail on distros with no staff user
-    sudo chown root:staff /usr/local/src
+    # TODO: Better handling /usr/local/src permissions
+    if [[ "$(cat /etc/group |grep staff > /dev/null 2>&1)" == "0" ]]; then
+      sudo chown root:staff /usr/local/src
+    fi
   fi
 }
 
