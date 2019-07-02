@@ -667,6 +667,35 @@ fi
 
 [[ -n $NUKE ]] && nuke && exit
 
+# TODO: Move support map to top
+
+SUPPORT_MAP="
+x86_64-centos-8
+x86_64-rhel-7
+x86_64-rhel-8
+x86_64-fedora-30
+x86_64-debian-stretch
+x86_64-debian-buster
+x86_64-ubuntu-bionic
+armv6l-raspbian-stretch
+armv7l-raspbian-stretch
+armv7l-debian-jessie
+armv7l-debian-stretch
+armv7l-debian-buster
+armv7l-ubuntu-bionic
+"
+
+# Check if we actually support this configuration
+if ! echo "$SUPPORT_MAP" | grep "$(uname -m)-$lsb_dist-$dist_version" >/dev/null; then
+  cat >&2 <<-'EOF'
+    Either your platform is not easily detectable or is not supported by this
+    installer script.
+    Please visit the following URL for more detailed installation instructions:
+    https://misp.github.io/MISP/
+EOF
+  exit 1
+fi
+
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
   RELEASE=$(lsb_release -s -r| tr '[:upper:]' '[:lower:]')
