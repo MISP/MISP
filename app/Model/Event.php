@@ -5814,10 +5814,11 @@ class Event extends AppModel
                         if (!empty($module['config'])) {
                             $data['config'] = $module['config'];
                         }
+                        $data['attribute'] = $attribute;
                         $data = json_encode($data);
                         $result = $this->Module->queryModuleServer('/query', $data, false, 'Enrichment');
                         if (!$result) {
-                            throw new MethodNotAllowedException($type . ' service not reachable.');
+                            throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
                         }
                         //if (isset($result['error'])) $this->Session->setFlash($result['error']);
                         if (!is_array($result)) {
