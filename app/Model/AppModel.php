@@ -86,7 +86,7 @@ class AppModel extends Model
             'recommendBackup' => true, # should the update recommend backup
             'exitOnError' => false, # should the update exit on error
             'requirements' => 'MySQL version must be >= 5.6', # message stating the requirements necessary for the update
-            'record' => true, # should the update success be saved in the admin_table
+            'record' => false, # should the update success be saved in the admin_table
             // 'preUpdate' => 'seenOnAttributeAndObjectPreUpdate', # Function to execute before the update. If it throws an error, it cancels the update
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
         ),
@@ -210,7 +210,7 @@ class AppModel extends Model
                 $this->__fixServerPullPushRules();
                 break;
             case 36:
-                $this->updateDatabase('seenOnAttributeAndObject', true);
+                $this->updateDatabase('seenOnAttributeAndObject', false);
                 break;
             default:
                 $this->updateDatabase($command);
@@ -249,8 +249,20 @@ class AppModel extends Model
     // SQL scripts for updates
     public function updateDatabase($command, $useWorker=false)
     {
+        $this->Log = ClassRegistry::init('Log');
         // Exit if updates are locked
         if ($this->isUpdateLocked()) {
+            $this->Log->create();
+            $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => 0,
+                'email' => 'SYSTEM',
+                'action' => 'update_database',
+                'user_id' => 0,
+                'title' => __('Updates on database are locked.'),
+                'change' => sprintf(__('Updates will unlock in %s min'), number_format($this->__getRemaingSecondsUntilUpdateUnlock() / 60, 0))
+            ));
             return false;
         }
         $this->__resetUpdateProgress();
@@ -282,16 +294,15 @@ class AppModel extends Model
 
         $liveOff = false;
         $exitOnError = false;
-        if (isset($advanced_updates_description[$command])) {
-            $liveOff = isset($advanced_updates_description[$command]['liveOff']) ? $advanced_updates_description[$command]['liveOff'] : $liveOff;
-            $exitOnError = isset($advanced_updates_description[$command]['exitOnError']) ? $advanced_updates_description[$command]['exitOnError'] : $exitOnError;
+        if (isset($this->advanced_updates_description[$command])) {
+            $liveOff = isset($this->advanced_updates_description[$command]['liveOff']) ? $this->advanced_updates_description[$command]['liveOff'] : $liveOff;
+            $exitOnError = isset($this->advanced_updates_description[$command]['exitOnError']) ? $this->advanced_updates_description[$command]['exitOnError'] : $exitOnError;
         }
 
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
         $sqlArray = array();
         $indexArray = array();
-        $this->Log = ClassRegistry::init('Log');
         $clean = true;
         switch ($command) {
             case 'extendServerOrganizationLength':
@@ -1718,18 +1729,9 @@ class AppModel extends Model
         $this->AdminSetting->changeSetting('update_locked', $locked);
     }
 
-    private function getUpdateLockState()
+    private function __getRemaingSecondsUntilUpdateUnlock()
     {
-        if (!isset($this->AdminSetting)) {
-            $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        }
-        $locked = $this->AdminSetting->getSetting('update_locked');
-        return is_null($locked) ? false : $locked;
-    }
-
-    public function isUpdateLocked()
-    {
-        $lockState = $this->getUpdateLockState();
+        $lockState = $this->__getUpdateLockState();
         if ($lockState !== false && $lockState !== '') {
             // if lock is old, still allows the update
             // This can be useful if the update process crashes
@@ -1740,11 +1742,24 @@ class AppModel extends Model
                 $this->Server = ClassRegistry::init('Server');
                 $updateWaitThreshold = intval($this->Server->serverSettings['MISP']['updateTimeThreshold']['value']);
             }
-            if ($diffSec < $updateWaitThreshold) {
-                return true;
-            }
+            return $diffSec < $updateWaitThreshold ? $updateWaitThreshold - $diffSec : 0;
         }
-        return false;
+        return 0;
+    }
+
+    private function __getUpdateLockState()
+    {
+        if (!isset($this->AdminSetting)) {
+            $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        }
+        $locked = $this->AdminSetting->getSetting('update_locked');
+        return is_null($locked) ? false : $locked;
+    }
+
+    public function isUpdateLocked()
+    {
+        $remaining_seconds = $this->__getRemaingSecondsUntilUpdateUnlock();
+        return $remaining_seconds > 0 ? true : false;
     }
 
     private function __queueCleanDB()
