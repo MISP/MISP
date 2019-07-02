@@ -524,8 +524,10 @@ checkUsrLocalSrc () {
     echo "/usr/local/src does not exist, creating."
     mkdir -p /usr/local/src
     sudo chmod 2775 /usr/local/src
-    # FIXME: This might fail on distros with no staff user
-    sudo chown root:staff /usr/local/src
+    # TODO: Better handling /usr/local/src permissions
+    if [[ "$(cat /etc/group |grep staff > /dev/null 2>&1)" == "0" ]]; then
+      sudo chown root:staff /usr/local/src
+    fi
   fi
 }
 
@@ -1725,6 +1727,11 @@ viper () {
   sudo apt-get install \
     libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2 \
     python3-magic python3-sqlalchemy python3-prettytable libffi-dev libfreetype6-dev libpng-dev -qy
+  if [[ -f "/etc/debian_version" ]]; then
+    if [[ "$(cat /etc/debian_version)" == "9.9" ]]; then
+      sudo apt-get install libpython3.5-dev -qy
+    fi
+  fi
   echo "Cloning Viper"
   $SUDO_USER git clone https://github.com/viper-framework/viper.git
   sudo chown -R $MISP_USER:$MISP_USER viper
