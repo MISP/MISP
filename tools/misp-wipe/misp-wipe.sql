@@ -30,6 +30,9 @@ TRUNCATE `bruteforces`;
 TRUNCATE `news`;
 TRUNCATE `template_tags`;
 TRUNCATE `whitelist`;
+TRUNCATE `event_locks`;
+TRUNCATE `fuzzy_correlate_ssdeep`;
+TRUNCATE `tasks`;
 
 -- Clear tables that can be re-populated
 TRUNCATE `taxonomies`;
@@ -42,6 +45,8 @@ TRUNCATE `galaxies`;
 TRUNCATE `galaxy_clusters`;
 TRUNCATE `galaxy_elements`;
 TRUNCATE `galaxy_reference`;
+TRUNCATE `noticelists`;
+TRUNCATE `noticelist_entries`;
 
 -- Clear tables that have defaults
 TRUNCATE `feeds`;
@@ -55,7 +60,7 @@ TRUNCATE `template_element_files`;
 TRUNCATE `template_element_texts`;
 
 -- Remove entries from tables and reset index
-DELETE FROM `users` WHERE id > 3;
-ALTER TABLE `users` AUTO_INCREMENT = 4;
-DELETE FROM `organisations` WHERE id > 2;
-ALTER TABLE `organisations` AUTO_INCREMENT = 3;
+DELETE FROM `users` WHERE id > 1;
+ALTER TABLE `users` AUTO_INCREMENT = 2;
+DELETE FROM `organisations` WHERE id > 1;
+ALTER TABLE `organisations` AUTO_INCREMENT = 2;

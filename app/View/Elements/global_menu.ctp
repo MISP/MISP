@@ -1,215 +1,410 @@
-<div id="topBar" class="navbar-wrapper header <?php echo $debugMode;?>">
-	<div class="navbar navbar-inverse">
-		<div class="navbar-inner">
-		  <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
-	    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-	      <span class="icon-bar"></span>
-	      <span class="icon-bar"></span>
-	      <span class="icon-bar"></span>
-	    </a>
-		<?php if ($me != false ):?>
-			<div class="nav-collapse collapse">
-				<ul class="nav">
-					<?php
-						$logo = 'Home';
-						if (Configure::read('MISP.home_logo')) $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">';
-					?>
-					<li><a href="<?php echo !empty($baseurl) ? $baseurl : '/';?>" style="color:white"><?php echo $logo; ?></a></li>
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-							Event Actions
-							<b class="caret"></b>
-						</a>
-						<ul class="dropdown-menu">
-							<li><a href="<?php echo $baseurl;?>/events/index">List Events</a></li>
-							<?php if ($isAclAdd): ?>
-							<li><a href="<?php echo $baseurl;?>/events/add">Add Event</a></li>
-							<?php endif; ?>
-							<li><a href="<?php echo $baseurl;?>/attributes/index">List Attributes</a></li>
-							<li><a href="<?php echo $baseurl;?>/attributes/search">Search Attributes</a></li>
-							<li class="divider"></li>
-							<li><a href="<?php echo $baseurl;?>/shadow_attributes/index">View Proposals</a></li>
-							<li><a href="<?php echo $baseurl;?>/events/proposalEventIndex">Events with proposals</a></li>
-							<li class="divider"></li>
-							<li><a href="<?php echo $baseurl;?>/tags/index">List Tags</a></li>
-							<?php if ($isAclTagEditor): ?>
-							<li><a href="<?php echo $baseurl;?>/tags/add">Add Tag</a></li>
-							<?php endif; ?>
-							<li><a href="<?php echo $baseurl;?>/taxonomies/index">List Taxonomies</a></li>
-							<li class="divider"></li>
-							<li><a href="<?php echo $baseurl;?>/templates/index">List Templates</a></li>
-							<?php if ($isAclTemplate): ?>
-							<li><a href="<?php echo $baseurl;?>/templates/add">Add Template</a></li>
-							<?php endif; ?>
-							<li class="divider"></li>
-							<li><a href="<?php echo $baseurl;?>/events/export">Export</a></li>
-							<?php if ($isAclAuth): ?>
-							<li><a href="<?php echo $baseurl;?>/events/automation">Automation</a></li>
-							<?php endif;?>
-
-						</ul>
-					</li>
-
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-							Galaxies
-							<b class="caret"></b>
-						</a>
-						<ul class="dropdown-menu">
-							<li><a href="<?php echo $baseurl;?>/galaxies/index">List Galaxies</a></li>
-						</ul>
-					</li>
-
-
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-							Input Filters
-							<b class="caret"></b>
-						</a>
-						<ul class="dropdown-menu">
-							<?php if ($isAclRegexp): ?>
-							<li><a href="<?php echo $baseurl;?>/admin/regexp/index">Import Regexp</a></li>
-							<li><a href="<?php echo $baseurl;?>/admin/whitelists/index">Signature Whitelist</a></li>
-							<?php endif;?>
-							<?php if (!$isAclRegexp): ?>
-							<li><a href="<?php echo $baseurl;?>/regexp/index">Import Regexp</a></li>
-							<li><a href="<?php echo $baseurl;?>/whitelists/index">Signature Whitelist</a></li>
-							<?php endif;?>
-							<li><a href="<?php echo $baseurl;?>/warninglists/index">List Warninglists</a></li>
-						</ul>
-					</li>
-
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-							Global Actions
-							<b class="caret"></b>
-						</a>
-						<ul class="dropdown-menu">
-							<li><a href="<?php echo $baseurl;?>/news">News</a></li>
-							<li><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
-							<li><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
-						<?php
-							if ($isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))):
-						?>
-								<li><a href="<?php echo $baseurl;?>/organisations/index">Organisations</a></li>
-						<?php
-							endif;
-						?>
-							<li><a href="<?php echo $baseurl;?>/roles/index">Role Permissions</a></li>
-							<li class="divider"></li>
-							<li><a href="<?php echo $baseurl;?>/objectTemplates/index">List Object Templates</a></li>
-							<li class="divider"></li>
-							<li><a href="<?php echo $baseurl;?>/sharing_groups/index">List Sharing Groups</a></li>
-							<?php if ($isAclSharingGroup): ?>
-							<li><a href="<?php echo $baseurl;?>/sharing_groups/add">Add Sharing Group</a></li>
-							<?php endif; ?>
-							<li class="divider"></li>
-							<li><a href="<?php echo $baseurl;?>/pages/display/doc/quickstart">User Guide</a></li>
-							<li><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
-							<li><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
-							<li class="divider"></li>
-							<li><a href="<?php echo $baseurl;?>/threads/index">List Discussions</a></li>
-							<li><a href="<?php echo $baseurl;?>/posts/add">Start Discussion</a></li>
-						</ul>
-					</li>
-
-					<?php if ($isAclSync || $isAdmin): ?>
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-							Sync Actions
-							<b class="caret"></b>
-						</a>
-						<ul class="dropdown-menu">
-							<li><a href="<?php echo $baseurl;?>/servers/index">List Servers</a></li>
-							<?php if ($isSiteAdmin): ?>
-								<li><a href="<?php echo $baseurl;?>/feeds/index">List Feeds</a></li>
-							<?php endif;?>
-						</ul>
-					</li>
-					<?php endif;?>
-
-					<?php if ($isAdmin || $isSiteAdmin): ?>
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-							Administration
-							<b class="caret"></b>
-						</a>
-						<ul class="dropdown-menu">
-							<li><a href="<?php echo $baseurl;?>/admin/users/index">List Users</a></li>
-							<li><a href="<?php echo $baseurl;?>/admin/users/add">Add User</a></li>
-							<li><a href="<?php echo $baseurl;?>/admin/users/email">Contact Users</a></li>
-							<li class="divider"></li>
-								<li><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
-							<?php if ($isSiteAdmin): ?>
-								<li><a href="<?php echo $baseurl;?>/admin/organisations/add">Add Organisation</a></li>
-							<?php endif;?>
-							<li class="divider"></li>
-							<li><a href="<?php echo $baseurl;?>/admin/roles/index">List Roles</a></li>
-							<?php if ($isSiteAdmin): ?>
-							<li><a href="<?php echo $baseurl;?>/admin/roles/add">Add Role</a></li>
-							<?php endif; ?>
-							<?php if ($isSiteAdmin): ?>
-								<li class="divider"></li>
-								<li><a href="<?php echo $baseurl;?>/servers/serverSettings">Server Settings &<br />Maintenance</a></li>
-								<?php if (Configure::read('MISP.background_jobs')): ?>
-									<li class="divider"></li>
-									<li><a href="<?php echo $baseurl;?>/jobs/index">Jobs</a></li>
-									<li class="divider"></li>
-									<li><a href="<?php echo $baseurl;?>/tasks">Scheduled Tasks</a></li>
-								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
-									<li class="divider"></li>
-									<li><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklist Event</a></li>
-									<li><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
-								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
-									<li class="divider"></li>
-									<li><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklist Organisation</a></li>
-									<li><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
-								<?php endif; ?>
-							<?php endif; ?>
-						</ul>
-					</li>
-					<?php endif; ?>
-
-					<?php if ($isAclAudit): ?>
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-							Audit
-							<b class="caret"></b>
-						</a>
-						<ul class="dropdown-menu">
-							<li><a href="<?php echo $baseurl;?>/admin/logs/index">List Logs</a></li>
-							<li><a href="<?php echo $baseurl;?>/admin/logs/search">Search Logs</a></li>
-						</ul>
-					</li>
-					<?php endif;?>
-				</ul>
-			</div>
-			<div class="nav-collapse collapse pull-right">
-				<ul class="nav">
-					<li>
-						<a href="<?php echo $baseurl;?>/" id="smallLogo" style="font-weight:bold;">
-							<span class="logoBlueStatic">MISP</span>
-						</a>
-					</li>
-					<li>
-						<a href="<?php echo $baseurl;?>/users/view/me" class="white" style="padding-left:0px;padding-right:5px;" title="<?php echo h($me['email']);?>"><?php echo $loggedInUserName;?></a>
-					</li>
-					<li>
-						<a href="<?php echo $baseurl;?>/users/dashboard" style="padding-left:0px;padding-right:0px;">
-							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="icon-envelope icon-white" title="Dashboard" role="button" tabindex="0" aria-label="Dashboard"></span></span>
-						</a>
-					</li>
-					<?php if (!$externalAuthUser && !Configure::read('Plugin.CustomAuth_disable_logout')): ?>
-						<li><a href="<?php echo $baseurl;?>/users/logout">Log out</a></li>
-					<?php elseif (Configure::read('Plugin.CustomAuth_custom_logout')): ?>
-						<li><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_logout'));?>">Log out</a></li>
-					<?php endif; ?>
-				</ul>
-			</div>
-		<?php endif;?>
-		</div>
-	</div>
+<?php
+    if (!empty($me)) {
+        $menu = array(
+            array(
+                'type' => 'root',
+                'url' => $baseurl . '/',
+                'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : __('Home'))
+            ),
+            array(
+                'type' => 'root',
+                'text' => __('Event Actions'),
+                'children' => array(
+                    array(
+                        'text' => __('List Events'),
+                        'url' => '/events/index'
+                    ),
+                    array(
+                        'text' => __('Add Event'),
+                        'url' => '/events/add',
+                        'requirement' => $isAclAdd
+                    ),
+                    array(
+                        'text' => __('List Attributes'),
+                        'url' => '/attributes/index'
+                    ),
+                    array(
+                        'text' => __('Search Attributes'),
+                        'url' => '/attributes/search'
+                    ),
+                    array(
+                        'text' => __('REST client'),
+                        'url' => '/servers/rest'
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
+                        'text' => __('View Proposals'),
+                        'url' => '/shadow_attributes/index'
+                    ),
+                    array(
+                        'text' => __('Events with proposals'),
+                        'url' => '/events/proposalEventIndex'
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
+                        'text' => __('List Tags'),
+                        'url' => '/tags/index'
+                    ),
+                    array(
+                        'text' => __('List Tag Collections'),
+                        'url' => '/tag_collections/index'
+                    ),
+                    array(
+                        'text' => __('Add Tag'),
+                        'url' => '/tags/add',
+                        'requirement' => $isAclTagEditor
+                    ),
+                    array(
+                        'text' => __('List Taxonomies'),
+                        'url' => '/taxonomies/index'
+                    ),
+                    array(
+                        'text' => __('List Templates'),
+                        'url' => '/templates/index'
+                    ),
+                    array(
+                        'text' => __('Add Template'),
+                        'url' => '/templates/add',
+                        'requirement' => $isAclTemplate
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
+                        'text' => __('Export'),
+                        'url' => '/events/export'
+                    ),
+                    array(
+                        'text' => __('Automation'),
+                        'url' => '/events/automation',
+                        'requirement' => $isAclAuth
+                    )
+                )
+            ),
+            array(
+                'type' => 'root',
+                'text' => __('Galaxies'),
+                'url' => '/galaxies/index',
+                'children' => array(
+                    array(
+                        'text' => __('List Galaxies'),
+                        'url' => '/galaxies/index'
+                    )
+                )
+            ),
+            array(
+                'type' => 'root',
+                'text' => __('Input Filters'),
+                'children' => array(
+                    array(
+                        'text' => __('Import Regexp'),
+                        'url' => '/admin/regexp/index',
+                        'requirement' => $isAclRegexp
+                    ),
+                    array(
+                        'text' => __('Import Regexp'),
+                        'url' => '/regexp/index',
+                        'requirement' => !$isAclRegexp
+                    ),
+                    array(
+                        'text' => __('Signature Whitelist'),
+                        'url' => '/admin/whitelists/index',
+                        'requirement' => $isAclRegexp
+                    ),
+                    array(
+                        'text' => __('Signature Whitelist'),
+                        'url' => '/whitelists/index',
+                        'requirement' => !$isAclRegexp
+                    ),
+                    array(
+                        'text' => __('List Warninglists'),
+                        'url' => '/warninglists/index'
+                    ),
+                    array(
+                        'text' => __('List Noticelists'),
+                        'url' => '/noticelists/index'
+                    )
+                )
+            ),
+            array(
+                'type' => 'root',
+                'text' => __('Global Actions'),
+                'url' => '/users/dashboard',
+                'children' => array(
+                    array(
+                        'text' => __('News'),
+                        'url' => '/news'
+                    ),
+                    array(
+                        'text' => __('My Profile'),
+                        'url' => '/users/view/me'
+                    ),
+                    array(
+                        'text' => __('Dashboard'),
+                        'url' => '/users/dashboard'
+                    ),
+                    array(
+                        'text' => __('Organisations'),
+                        'url' => '/organisations/index',
+                        'requirement' => $isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))
+                    ),
+                    array(
+                        'text' => __('Role Permissions'),
+                        'url' => '/roles/index'
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
+                        'text' => __('List Object Templates'),
+                        'url' => '/objectTemplates/index'
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
+                        'text' => __('List Sharing Groups'),
+                        'url' => '/sharing_groups/index'
+                    ),
+                    array(
+                        'text' => __('Add Sharing Group'),
+                        'url' => '/sharing_groups/add',
+                        'requirement' => $isAclSharingGroup
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
+                        'text' => __('User Guide'),
+                        'url' => 'https://www.circl.lu/doc/misp/'
+                    ),
+                    array(
+                        'text' => __('Categories & Types'),
+                        'url' => '/pages/display/doc/categories_and_types'
+                    ),
+                    array(
+                        'text' => __('Terms & Conditions'),
+                        'url' => '/users/terms'
+                    ),
+                    array(
+                        'text' => __('Statistics'),
+                        'url' => '/users/statistics'
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
+                        'text' => __('List Discussions'),
+                        'url' => '/threads/index'
+                    ),
+                    array(
+                        'text' => __('Start Discussion'),
+                        'url' => '/posts/add'
+                    )
+                )
+            ),
+            array(
+                'type' => 'root',
+                'text' => __('Sync Actions'),
+                'requirement' =>  ($isAclSync || $isAdmin || $hostOrgUser),
+                'children' => array(
+                    array(
+                        'text' => __('Create Sync Config'),
+                        'url' => '/servers/createSync',
+                        'requirement' => ($isAclSync && !$isSiteAdmin)
+                    ),
+                    array(
+                        'text' => __('Import Server Settings'),
+                        'url' => '/servers/import',
+                        'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
+                        'text' => __('List Servers'),
+                        'url' => '/servers/index',
+                        'requirement' => ($isAclSync || $isAdmin)
+                    ),
+                    array(
+                        'text' => __('List Feeds'),
+                        'url' => '/feeds/index',
+                        'requirement' => ($isSiteAdmin || $hostOrgUser)
+                    ),
+                    array(
+                        'text' => __('Search Feed Caches'),
+                        'url' => '/feeds/searchCaches',
+                        'requirement' => ($isSiteAdmin || $hostOrgUser)
+                    )
+                )
+            ),
+            array(
+                'type' => 'root',
+                'text' => __('Administration'),
+                'url' => '/servers/serverSettings',
+                'requirement' =>  ($isAdmin),
+                'children' => array(
+                    array(
+                        'text' => __('List Users'),
+                        'url' => '/admin/users/index'
+                    ),
+                    array(
+                        'text' => __('Add User'),
+                        'url' => '/admin/users/add'
+                    ),
+                    array(
+                        'text' => __('Contact Users'),
+                        'url' => '/admin/users/email'
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
+                        'text' => __('List Organisations'),
+                        'url' => '/organisations/index'
+                    ),
+                    array(
+                        'text' => __('Add Organisations'),
+                        'url' => '/admin/organisations/add'
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
+                        'text' => __('List Roles'),
+                        'url' => '/admin/roles/index'
+                    ),
+                    array(
+                        'text' => __('Add Roles'),
+                        'url' => '/admin/roles/add',
+                        'requirement' => $isSiteAdmin
+                    ),
+                    array(
+                        'type' => 'separator',
+                        'requirement' => $isSiteAdmin
+                    ),
+                    array(
+                        'text' => __('Server Settings & Maintenance'),
+                        'url' => '/servers/serverSettings',
+                        'requirement' => $isSiteAdmin
+                    ),
+                    array(
+                        'type' => 'separator',
+                        'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
+                    ),
+                    array(
+                        'text' => __('Jobs'),
+                        'url' => '/jobs/index',
+                        'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
+                    ),
+                    array(
+                        'type' => 'separator',
+                        'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
+                    ),
+                    array(
+                        'text' => __('Scheduled Tasks'),
+                        'url' => '/tasks',
+                        'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
+                    ),
+                    array(
+                        'type' => 'separator',
+                        'requirement' => Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin
+                    ),
+                    array(
+                        'text' => __('Blacklist Event'),
+                        'url' => '/eventBlacklists/add',
+                        'requirement' => Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin
+                    ),
+                    array(
+                        'text' => __('Manage Event Blacklists'),
+                        'url' => '/eventBlacklists',
+                        'requirement' => Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin
+                    ),
+                    array(
+                        'type' => 'separator',
+                        'requirement' => Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin
+                    ),
+                    array(
+                        'text' => __('Blacklist Organisation'),
+                        'url' => '/orgBlacklists/add',
+                        'requirement' => Configure::read('MISP.enableOrgBlacklisting') !== false && $isSiteAdmin
+                    ),
+                    array(
+                        'text' => __('Manage Org Blacklists'),
+                        'url' => '/orgBlacklists',
+                        'requirement' => Configure::read('MISP.enableOrgBlacklisting') !== false && $isSiteAdmin
+                    ),
+                )
+            ),
+            array(
+                'type' => 'root',
+                'text' => __('Audit'),
+                'requirement' =>  ($isAclAudit),
+                'children' => array(
+                    array(
+                        'text' => __('List Logs'),
+                        'url' => '/admin/logs/index'
+                    ),
+                    array(
+                        'text' => __('Search Logs'),
+                        'url' => '/admin/logs/search'
+                    )
+                )
+            )
+        );
+        $menu_right = array(
+            array(
+                'type' => 'root',
+                'url' => $baseurl . '/',
+                'html' => '<span class="logoBlueStatic bold" id="smallLogo">MISP</span>'
+            ),
+            array(
+                'type' => 'root',
+                'url' => '/users/dashboard',
+                'html' => sprintf(
+                    '<span class="white" title="%s">%s&nbsp;&nbsp;&nbsp;%s</span>',
+                    h($me['email']),
+                    h($loggedInUserName),
+                    sprintf(
+                        '<i class="fa fa-envelope %s"></i>',
+                        (($notifications['total'] == 0) ? 'white' : 'red')
+                    )
+                )
+            ),
+            array(
+                'url' => h(Configure::read('Plugin.CustomAuth_custom_logout')),
+                'text' => __('Log out'),
+                'requirement' => (Configure::read('Plugin.CustomAuth_custom_logout') && empty(Configure::read('Plugin.CustomAuth_disable_logout')))
+            ),
+            array(
+                'url' => '/users/logout',
+                'text' => __('Log out'),
+                'requirement' => (!$externalAuthUser && empty(Configure::read('Plugin.CustomAuth_disable_logout')))
+            )
+        );
+    }
+?>
+<div id="topBar" class="navbar navbar-inverse <?php echo $debugMode;?>" style="z-index: 20;">
+  <div class="navbar-inner">
+    <ul class="nav">
+        <?php
+            if (!empty($menu)) {
+                foreach ($menu as $root_element) {
+                    echo $this->element('/genericElements/GlobalMenu/global_menu_root', array('data' => $root_element));
+                }
+            }
+        ?>
+    </ul>
+    <ul class="nav pull-right">
+        <?php
+            if (!empty($menu_right)) {
+                foreach ($menu_right as $root_element) {
+                    echo $this->element('/genericElements/GlobalMenu/global_menu_root', array('data' => $root_element));
+                }
+            }
+        ?>
+    </ul>
+  </div>
 </div>
 <input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />

@@ -1,0 +1,59 @@
+<VirtualHost *:80>
+    ServerAdmin me@me.local
+    ServerName misp.local
+
+    Redirect permanent / https://127.0.0.1
+
+    LogLevel warn
+    ErrorLog /var/log/httpd/misp.local_error.log
+    CustomLog /var/log/httpd/misp.local_access.log combined
+
+    Header always unset "X-Powered-By"
+
+    ServerSignature Off
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerAdmin me@me.local
+    ServerName misp.local
+    DocumentRoot /var/www/MISP/app/webroot
+    <Directory /var/www/MISP/app/webroot>
+        Options -Indexes
+        AllowOverride all
+        Order allow,deny
+        Allow from all
+    </Directory>
+
+    <IfModule !mod_php5.c>
+        SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+        DirectoryIndex /index.php index.php
+        <FilesMatch \.php$>
+            SetHandler "proxy:fcgi://127.0.0.1:9000"
+        </FilesMatch>
+    </IfModule>
+
+    SSLEngine On
+# The line below disable unsecure Ciphers, might be enabled by default
+#	  SSLCipherSuite HIGH:!aNULL:!MD5
+    SSLCertificateFile /etc/pki/tls/certs/misp.local.crt
+    SSLCertificateKeyFile /etc/pki/tls/private/misp.local.key
+    SSLCertificateChainFile /etc/pki/tls/certs/misp-chain.crt
+
+    LogLevel warn
+    ErrorLog /var/log/httpd/misp.local_error.log
+    CustomLog /var/log/httpd/misp.local_access.log combined
+
+    ServerSignature Off
+
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubdomains;"
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options SAMEORIGIN 
+    Header always unset "X-Powered-By"
+
+    # TODO: Think about X-XSS-Protection, Content-Security-Policy, Referrer-Policy & Feature-Policy
+    ## Example:
+    # Header always set X-XSS-Protection "1; mode=block"
+    # Header always set Content-Security-Policy "default-src 'none'; style-src 'self' ... script-src/font-src/img-src/connect-src
+    # Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Header always set Feature-Policy "geolocation 'self'; midi 'none'; notifications 'self'; push 'self'; sync-xhr 'self'; microphone 'none'; camera 'self'; magnometer 'self'; gyroscope 'self'; speake 'none'; vibrate 'self'; fullscreen 'none'"
+</VirtualHost>

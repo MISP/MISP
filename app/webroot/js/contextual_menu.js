@@ -2,6 +2,7 @@ class ContextualMenu {
     constructor(options) {
         this.options = options;
         this.trigger_container = options.trigger_container;
+        this.container = options.container;
         this.bootstrap_popover = options.bootstrap_popover;
         this.right_click = options.right_click;
         this.has_been_shown_once = false;
@@ -53,6 +54,18 @@ class ContextualMenu {
         this.items[select.id] = select;
     }
 
+    add_select_button(options) {
+        this.__create_divider_if_needed('select_button');
+        var select_button = this.__create_select_button(options);
+        this.items[select_button.id] = select_button;
+    }
+
+    add_fileinput(options) {
+        this.__create_divider_if_needed('fileinput');
+        var fileinput = this.__create_fileinput(options);
+        this.items[fileinput.id] = fileinput;
+    }
+
     add_action_table(options) {
         this.__create_divider_if_needed('action_table');
         var action_table = this.__create_action_table(options);
@@ -90,7 +103,7 @@ class ContextualMenu {
     __toggleMenu(x, y, hide) {
         var that = this;
         if(this.__is_shown || hide) {
-            that.menu.style.visibility = 'hidden';
+            this.menu.style.visibility = 'hidden';
         } else {
             this.menu.style.left = x+'px';
             this.menu.style.top = y+'px';
@@ -103,15 +116,15 @@ class ContextualMenu {
         var div = document.createElement('div');
         div.classList.add("contextual-menu");
         div.classList.add("contextual-menu-styling");
-        document.body.appendChild(div);
+        this.container.appendChild(div);
         // register on click for the trigger_container
         var that = this;
         if (this.right_click) {
             this.trigger_container.addEventListener('contextmenu', function(evt) {
                 evt.preventDefault();
-                var offsetX = 0;
-                var offsetY = 1;
-                that.__toggleMenu(evt.pageX+offsetX, evt.pageY+offsetY);
+                var offsetX = $(that.trigger_container).offset().left;
+                var offsetY = $(that.trigger_container).offset().top-40;
+                that.__toggleMenu(evt.pageX-offsetX, evt.pageY-offsetY);
             });
             // hide the contextual menu on any click
             document.getElementsByTagName("BODY")[0].addEventListener("click", function(evt) {
@@ -130,16 +143,17 @@ class ContextualMenu {
     __create_menu_div_bootstrap_popover() {
         var div = document.createElement('div');
         div.classList.add("contextual-menu");
-        document.body.appendChild(div);
+        this.container.appendChild(div);
         var that = this;
         this.trigger_container.tabIndex = 0; // required for the popover focus feature
+	var additional_styling = this.options.style === undefined ? "" : this.options.style;
         $(this.trigger_container).popover({
             container: 'body',
             html: true,
             placement: "bottom",
-            content: function () {return $(that.menu); }, // return contextual menu htlm
+            content: function () {return $(that.menu); }, // return contextual menu html
             trigger: "manual",
-            template: '<div class="popover" id="popover-contextual-menu-'+this.trigger_container.id+'" role="tooltip"><div class="arrow"></div></h3><div class="popover-content"></div></div>'
+            template: '<div class="popover" id="popover-contextual-menu-'+this.trigger_container.id+'" role="tooltip" style="'+additional_styling+'"><div class="arrow"></div></h3><div class="popover-content"></div></div>'
         })
 
         // Overwrite the default popover behavior: hidding cause the popover to be detached from the DOM, making impossible to fetch input values in the form
@@ -208,6 +222,54 @@ class ContextualMenu {
         return input;
     }
 
+    __create_fileinput(options) {
+        var div = document.createElement('div');
+        var label = document.createElement('label');
+        label.innerHTML = options.label+":";
+        var input = document.createElement("input");
+        input.classList.add("form-group");
+        input.id = options.id === undefined ? 'contextualMenu_'+this.__get_uniq_index() : options.id;
+        if(options.tooltip !== undefined) {
+            input.title = options.tooltip;
+        }
+        input.type = "file";
+        input.accept = ".json";
+        var file_status = document.createElement('span');
+        file_status.id = input.id + "_status";
+        input.dataset.relatedStatusId = file_status.id;
+        if(options.event !== undefined) {
+            input.addEventListener("change", function(evtInput) {
+                var file = this.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.readAsText(file, "UTF-8");
+                    reader.onload = function (evtReader) {
+                        document.getElementById(evtInput.target.dataset.relatedStatusId).innerHTML = "File loaded";
+                        var content = evtReader.target.result;
+			evtInput.target.value = '';
+                        options.event(content);
+                    };
+                    reader.onerror = function (evtReader) {
+                        document.getElementById(evtInput.target.dataset.relatedStatusId).innerHTML = "Error while reading the file";
+                    };
+                    reader.onprogress = function (evtReader) {
+                        if (evtReader.lengthComputable) {
+                            var loaded = (evtReader.loaded / evtReader.total)*100;
+                            if (loaded < 100) {
+                                document.getElementById(evtInput.target.dataset.relatedStatusId).innerHTML = "Reading file: "+loaded.toFixed(2)+"%";
+                            }
+                        }
+                    };
+                }
+            });
+        }
+        div.appendChild(label);
+        div.appendChild(input);
+        div.appendChild(file_status);
+        this.menu.appendChild(div);
+        return input;
+    }
+
     __create_slider(options) {
         var div = document.createElement('div');
         var label = document.createElement('label');
@@ -233,6 +295,9 @@ class ContextualMenu {
                 options.event(evt.target.value);
             });
         }
+        $(slider).on('reflectOnSpan', function(evt) {
+            span.innerHTML = evt.target.value; // Update associated span
+        });
         div.appendChild(label);
         div.appendChild(span);
         if (options.applyButton !== undefined) {
@@ -281,6 +346,38 @@ class ContextualMenu {
             select.addEventListener("change", function(evt) { select_options.event(evt.target.value); });
         }
         return select;
+    }
+
+    __create_select_button(options) {
+        var div = document.createElement('div');
+	div.style = "width: inherit;";
+        var select = document.createElement('select');
+        var label = document.createElement('label');
+        var button = document.createElement('button');
+        button.classList.add("btn-dropdown", "btn", "btn-default");
+        button.style = "padding: 4px 12px; line-height: 20px; margin-left: 7px;";
+        button.id = options.id === undefined ? 'contextualMenu_'+this.__get_uniq_index() : options.id+"_btn";
+	button.innerHTML = options.textButton !== undefined ? options.textButton : "";
+        label.innerHTML = options.label+":";
+        label.title = options.tooltip;
+        select.id = options.id === undefined ? 'contextualMenu_'+this.__get_uniq_index() : options.id+"_select";
+        button.dataset.correspondingId = select.id;
+        this.__add_options_to_select(select, options.options);
+        if(options.default !== undefined) {
+            select.value = options.default;
+        }
+        div.appendChild(select);
+        div.appendChild(button);
+        this.menu.appendChild(label);
+        this.menu.appendChild(div);
+        if(options.event !== undefined) {
+            button.addEventListener("click", function(evt) { 
+		var corresponding_select_id = evt.target.dataset.correspondingId;
+		var selected_value = $('#'+corresponding_select_id).val();
+		options.event(selected_value);
+	    });
+        }
+        return button;
     }
 
     __add_options_to_select(select, options) {

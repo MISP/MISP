@@ -21,36 +21,39 @@
 
 App::uses('AppController', 'Controller');
 
-class PagesController extends AppController {
+class PagesController extends AppController
+{
+    public $name = 'Pages';
+    public $uses = array();
 
-	public $name = 'Pages';
-	public $uses = array();
+    // displays a view based on the page to display passed as parameters
+    public function display()
+    {
+        $path = func_get_args();
 
-	// displays a view based on the page to display passed as parameters
-	public function display() {
-		$path = func_get_args();
+        $count = count($path);
+        if (!$count) {
+            $this->redirect('/');
+        }
+        $page = $subpage = $title_for_layout = null;
 
-		$count = count($path);
-		if (!$count) {
-			$this->redirect('/');
-		}
-		$page = $subpage = $title_for_layout = null;
-
-		if (!empty($path[0])) {
-			$page = $path[0];
-		}
-		if (!empty($path[1])) {
-			$subpage = $path[1];
-			if ($path[1] === 'md') $this->layout = false;
-		}
-		if (!empty($path[$count - 1])) {
-			$title_for_layout = Inflector::humanize($path[$count - 1]);
-		}
-		$this->loadModel('Attribute');
-		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
-		$this->set('user', $this->Auth->User());
-		$this->set(compact('page', 'subpage', 'title_for_layout'));
-		$this->render(implode('/', $path));
-	}
+        if (!empty($path[0])) {
+            $page = $path[0];
+        }
+        if (!empty($path[1])) {
+            $subpage = $path[1];
+            if ($path[1] === 'md') {
+                $this->layout = false;
+            }
+        }
+        if (!empty($path[$count - 1])) {
+            $title_for_layout = Inflector::humanize($path[$count - 1]);
+        }
+        $this->loadModel('Attribute');
+        $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+        $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+        $this->set('user', $this->Auth->User());
+        $this->set(compact('page', 'subpage', 'title_for_layout'));
+        $this->render(implode('/', $path));
+    }
 }

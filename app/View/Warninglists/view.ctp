@@ -1,70 +1,49 @@
-<div class="warninglist view">
-<h2><?php echo h(strtoupper($warninglist['Warninglist']['name'])); ?></h2>
-	<dl>
-		<dt><?php echo __('Id');?></dt>
-		<dd>
-			<?php echo h($warninglist['Warninglist']['id']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Name');?></dt>
-		<dd>
-			<?php echo h($warninglist['Warninglist']['name']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Description');?></dt>
-		<dd>
-			<?php echo h($warninglist['Warninglist']['description']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Version');?></dt>
-		<dd>
-			<?php echo h($warninglist['Warninglist']['version']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Type');?></dt>
-		<dd>
-			<?php echo h($warninglist['Warninglist']['type']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Accepted attribute types');?></dt>
-		<dd>
-			<?php
-				$text = array();
-				foreach ($warninglist['WarninglistType'] as $temp) $text[] = $temp['type'];
-				$text = implode(', ', $text);
-				echo h($text);
-			?>
-		</dd>
-		<dt><?php echo __('Enabled');?></dt>
-		<dd>
-			<?php echo $warninglist['Warninglist']['enabled'] ? '<span class="green">Yes</span>&nbsp;&nbsp;' : '<span class="red">No</span>&nbsp;&nbsp;';
-				if ($isSiteAdmin) {
-					if ($warninglist['Warninglist']['enabled']) {
-						echo $this->Form->postLink('(disable)', array('action' => 'enableWarninglist', h($warninglist['Warninglist']['id'])), array('title' => 'Disable'));
-					} else {
-						echo $this->Form->postLink('(enable)', array('action' => 'enableWarninglist', h($warninglist['Warninglist']['id']), 'true') ,array('title' => 'Enable'));
-					}
-				}
-			?>
-
-			&nbsp;
-		</dd>
-	</dl>
-	<br />
-	<h3><?php echo __('Values');?></h3>
-	<div><?php
-		foreach ($warninglist['WarninglistEntry'] as $entry) echo h($entry['value']) . '<br />';
-	?></div>
-</div>
-<script type="text/javascript">
-	$(document).ready(function(){
-		$('input:checkbox').removeAttr('checked');
-		$('.mass-select').hide();
-		$('.select_taxonomy, .select_all').click(function(){
-			taxonomyListAnyCheckBoxesChecked();
-		});
-	});
-</script>
 <?php
-	echo $this->element('side_menu', array('menuList' => 'warninglist', 'menuItem' => 'view'));
+    $data = $warninglist['Warninglist'];
+    $text = array();
+    foreach ($warninglist['WarninglistType'] as $temp) {
+        $text[] = $temp['type'];
+    }
+    $text = implode(', ', $text);
+    $table_data = array(
+        array('key' => __('Id'), 'value' => $data['id']),
+        array('key' => __('Name'), 'value' => $data['name']),
+        array('key' => __('Description'), 'value' => $data['description']),
+        array('key' => __('Version'), 'value' => $data['version']),
+        array('key' => __('Type'), 'value' => $data['type']),
+        array('key' => __('Accepted attribute types'), 'value' => $text),
+        array(
+            'key' => __('Accepted attribute types'),
+            'boolean' => $data['enabled'],
+            'html' => sprintf(
+                '(<a href="%s/warninglists/enableWarninglist/%s%s" title="%s">%s</a>)',
+                $baseurl,
+                h($warninglist['Warninglist']['id']),
+                $data['enabled'] ? '' : '/1',
+                $data['enabled'] ? __('Disable') : __('Enable'),
+                $data['enabled'] ? __('disable') : __('enable')
+            )
+        ),
+    );
+    echo sprintf(
+        '<div class="warninglist view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div><h4>%s</h4>%s</div>%s',
+        sprintf(
+            '<h2>%s</h2>%s',
+            h(strtoupper($warninglist['Warninglist']['name'])),
+            $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
+        ),
+        __('Values'),
+        implode('<br />', array_column($warninglist['WarninglistEntry'], 'value')),
+        $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'warninglist', 'menuItem' => 'view'))
+    );
+
 ?>
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('input:checkbox').removeAttr('checked');
+        $('.mass-select').hide();
+        $('.select_taxonomy, .select_all').click(function(){
+            taxonomyListAnyCheckBoxesChecked();
+        });
+    });
+</script>

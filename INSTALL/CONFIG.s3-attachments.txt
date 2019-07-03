@@ -1,0 +1,1 @@
+../docs/CONFIG.s3-attachments.md

@@ -1,3 +1,12 @@
+# Ignore tooling config files
+tools/misp-wipe/misp-wipe.conf
+tools/misp-backup/misp-backup.conf
+
+# Ignore mkdocs site directory and mkdocs virtualenv
+site/
+tools/mkdocs
+
+# Other
 /vendors
 /app/Vendor
 /app/vendor
@@ -28,6 +37,8 @@
 !/app/files/scripts/
 !/app/files/warninglists
 !/app/files/warninglists/*
+!/app/files/noticelists
+!/app/files/noticelists/*
 !/app/files/misp-galaxy
 !/app/files/misp-galaxy/*
 !/app/files/misp-objects
@@ -37,11 +48,18 @@
 /app/files/scripts/mixbox/
 /app/files/scripts/*.pyc
 /app/files/scripts/*.py~
+/app/files/scripts/__pycache__
+/app/files/scripts/yara/__pycache__
+/app/files/scripts/yara/*.pyc
+/app/files/scripts/yara/*.py~
 /app/files/scripts/mispzmq/*
 !/app/files/scripts/mispzmq/mispzmq.py
 !/app/files/scripts/mispzmq/mispzmqtest.py
 /app/files/scripts/tmp/*
 !/app/files/scripts/tmp/empty
+/app/files/scripts/stix2/*
+!/app/files/scripts/stix2/misp2stix2*.py
+!/app/files/scripts/stix2/stix2misp*.py
 !/app/files/empty
 /app/files/terms/*
 !/app/files/terms/empty
@@ -58,6 +76,7 @@
 /app/Config/database.php
 /app/Config/core.php
 /app/Config/config.php
+/app/Console/Command/training.json
 /app/Lib/cakephp
 /app/webroot/gpg.asc
 /app/tmp/logs

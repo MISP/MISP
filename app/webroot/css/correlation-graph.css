@@ -79,3 +79,24 @@ line.link {
   top:-5px;
   margin-left:100px;
 }
+.fullscreen-btn-correlation {
+  position: absolute;
+  right: 5px;
+  bottom: 2px;
+  font-weight: bold;
+  z-index: 1;
+  cursor: nesw-resize;
+}
+
+.graph-view {
+    float: right;
+    width: calc(100% - 216px);
+    border-left: 1px solid #666;
+    padding: 0px 10px;
+}
+
+.correlation-stop-btn {
+    position: absolute;
+    top: 60px;
+    right:10px;
+}
