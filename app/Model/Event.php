@@ -6227,8 +6227,8 @@ class Event extends AppModel
                             if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $initial_object_id, $user)) {
                                 $saved_object_attributes++;
                             } else {
-                              $failed_object_attributes++;
-                              $lastObjectAttributeError = $this->Attribute->validationErrors;
+                                $failed_object_attributes++;
+                                $lastObjectAttributeError = $this->Attribute->validationErrors;
                             }
                         }
                     }
@@ -6324,8 +6324,12 @@ class Event extends AppModel
                 }
                 list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
                         $reference['referenced_uuid'],
-                        array('Event' => array('id' => $id))
+                        array('Event' => array('id' => $id)),
+                        false
                 );
+                if (!$referenced_id && !$referenced_uuid && !$referenced_type) {
+                    continue;
+                }
                 $reference = array(
                     'event_id' => $id,
                     'referenced_id' => $referenced_id,
