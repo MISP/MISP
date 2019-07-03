@@ -1499,7 +1499,7 @@ function openPopup(id, adjust_layout) {
     $(id).fadeIn();
 }
 
-function openPopover(clicked, data, hover, placement) {
+function openPopover(clicked, data, hover, placement, callback) {
     hover = hover === undefined ? false : hover;
     placement = placement === undefined ? 'right' : placement;
     /* popup handling */
@@ -1534,6 +1534,9 @@ function openPopover(clicked, data, hover, placement) {
             }
             var popoverTitle = popover.find('h3.popover-title');
             popoverTitle.html(title + closeButtonHtml);
+            if (callback !== undefined) {
+                callback(popover);
+            }
         })
         .on('keydown.volatilePopover', function(e) {
             if(e.keyCode == 27) { // ESC
@@ -4198,7 +4201,7 @@ function checkIfLoggedIn() {
                 window.location.replace(baseurl + "/users/login");
             }
         }).fail(function() {
-                window.location.replace(baseurl + "/users/login"); 
+                window.location.replace(baseurl + "/users/login");
         });
     }
     setTimeout(function() { checkIfLoggedIn(); }, 5000);

@@ -2,7 +2,7 @@
     <div class="span8" style="height: calc(90vh); overflow-y: scroll; border: 1px solid #ddd;">
         <input id="table_taxonomy_search" class="input" style="width: 250px; margin: 0px;" type="text" placeholder="<?php echo _('Search Taxonomy'); ?>"></input>
         <it class="fa fa-times useCursorPointer" title="<?php echo __('Clear search field'); ?>" onclick="$('#table_taxonomy_search').val('').trigger('input');"></it>
-        <span style="float: right;"><b><?php echo h($taxonomies_not_having_numerical_value); ?></b><?php echo __(' not having numerical value'); ?></span>
+        <span style="float: right; margin-top: 6px;" class="badge badge-info"><b><?php echo h($taxonomies_not_having_numerical_value); ?></b><?php echo __(' not having numerical value'); ?></span>
         <table id="tableTaxonomy" class="table table-striped table-bordered table-condensed">
             <thead>
                 <tr>
@@ -70,8 +70,8 @@
                         </td>
                         <td>
                             <div style="width:100%;display:inline-block;" data-original-title="" title="">
-                                <div style="float:left" data-original-title="" title="">
-                                    <button id="basescore-example-score-addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" title="Add tag" onclick="popoverPopup(this, '0', 'tags', 'selectTaxonomy');">+</button>
+                                <div id="basescore-example-customtag-container" style="float:left" data-original-title="" title="">
+                                    <button id="basescore-example-score-addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" title="Add tag" onclick="addTagWithValue(this);">+</button>
                                 </div>
                             </div>
                         </td>
@@ -132,10 +132,49 @@ echo $this->element('genericElements/assetLoader', array(
 
 <script>
 var taxonomies_with_num_value = <?php echo json_encode($taxonomies); ?>;
+var mapping_tag_name_to_tag = {};
 var base_score_computation = [];
 
 function getRandomInt(max) {
     return Math.floor(Math.random() * Math.floor(max));
+}
+
+function addTagWithValue(clicked) {
+    var $select = regenerateValidTags();
+    var html = '<div>' + $select[0].outerHTML + '<button class="btn btn-primary" style="margin-left: 5px;" onclick="addPickedTags(this)"><?php echo __('Tag'); ?></button> </div>';
+    openPopover(clicked, html, false, 'right', function($popover) {
+        $popover.find('select').chosen({
+            width: '300px',
+        });
+    });
+}
+
+function addPickedTags(clicked) {
+    $select = $('#basescore-example-tag-picker');
+    $select.val().forEach(function(tag_id) {
+        var tag = mapping_tag_name_to_tag[tag_id];
+        var tag_html = '<div style="display: inline-block;"><span class="tagFirstHalf" style="background-color: ' + tag.colour + '; color: ' + getTextColour(tag.colour) + ';">' + tag.name + '</span>'
+            + '<span class="tagSecondHalf useCursorPointer" onclick="$(this).add($(this).prev()).remove()">×</span></div>&nbsp;'
+        $('#basescore-example-customtag-container').append(tag_html);
+    });
+    $('#basescore-example-score-addTagButton').popover('destroy');
+}
+
+function regenerateValidTags() {
+    var $select = $('<select id="basescore-example-tag-picker" multiple="multiple"/>');
+    Object.keys(taxonomies_with_num_value).forEach(function(taxonomy_name) {
+        var taxonomy = taxonomies_with_num_value[taxonomy_name];
+        var $optgroup = $('<optgroup label="' + taxonomy_name + '"></optgroup>');
+            taxonomy['TaxonomyPredicate'].forEach(function(predicate) {
+                predicate['TaxonomyEntry'].forEach(function(entry) {
+                    mapping_tag_name_to_tag[entry['Tag']['id']] = entry['Tag'];
+                    var $option = $('<option value="' + entry['Tag']['id'] + '">' + entry['Tag']['name'] + ' [' + entry['Tag']['numerical_value'] + ']</option>');
+                    $optgroup.append($option);
+                });
+            });
+        $select.append($optgroup);
+    });
+    return $select;
 }
 
 function applyBaseScoreConfig() {
