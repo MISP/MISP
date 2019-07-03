@@ -878,6 +878,7 @@ class ServersController extends AppController
             $mixboxVersion = array(0 => __('Incorrect mixbox version installed, found $current, expecting $expected'), 1 => __('OK'));
             $maecVersion = array(0 => __('Incorrect maec version installed, found $current, expecting $expected'), 1 => __('OK'));
             $pymispVersion = array(0 => __('Incorrect PyMISP version installed, found $current, expecting $expected'), 1 => __('OK'));
+            $plyaraVersion = array(0 => __('Incorrect plyara version installed, found $current, expecting $expected'), 1 => __('OK'));
             $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
             $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
 
@@ -999,6 +1000,8 @@ class ServersController extends AppController
                 // check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
                 $stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion, $mixboxVersion, $maecVersion, $stix2Version, $pymispVersion);
 
+                $yaraStatus = $this->Server->yaraDiagnostics($diagnostic_errors);
+
                 // if GnuPG is set up in the settings, try to encrypt a test message
                 $gpgStatus = $this->Server->gpgDiagnostics($diagnostic_errors);
 
@@ -1018,7 +1021,7 @@ class ServersController extends AppController
                 $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
                 $this->set('sessionCount', $sessionCount);
 
-                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes');
+                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes');
             }
             // check whether the files are writeable
             $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
@@ -1100,7 +1103,13 @@ class ServersController extends AppController
         } else {
             shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
         }
-        $this->redirect('/servers/serverSettings/workers');
+        $message = __('Worker start signal sent');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Servers', 'startWorker', $type, $this->response->type(), $message);
+        } else {
+            $this->Flash->info($message);
+            $this->redirect('/servers/serverSettings/workers');
+        }
     }
 
     public function stopWorker($pid)
@@ -1109,7 +1118,20 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
         $this->Server->killWorker($pid, $this->Auth->user());
-        $this->redirect('/servers/serverSettings/workers');
+        $message = __('Worker stop signal sent');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Servers', 'stopWorker', $pid, $this->response->type(), $message);
+        } else {
+            $this->Flash->info($message);
+            $this->redirect('/servers/serverSettings/workers');
+        }
+    }
+
+    public function getWorkers()
+    {
+        $issues = 0;
+        $worker_array = $this->Server->workerDiagnostics($issues);
+        return $this->RestResponse->viewData($worker_array);
     }
 
     private function __checkVersion()
@@ -1165,6 +1187,9 @@ class ServersController extends AppController
         }
 
         $setting = $this->Server->getSettingData($setting_name);
+        if (!empty($setting['cli_only'])) {
+            throw new MethodNotAllowedException(__('This setting can only be edited via the CLI.'));
+        }
         if ($this->request->is('get')) {
             if ($setting != null) {
                 $value = Configure::read($setting['name']);
@@ -1542,6 +1567,69 @@ class ServersController extends AppController
         }
     }
 
+    public function ondemandAction()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $actions = $this->Server->actions_description;
+        $default_fields = array(
+            'title' => '',
+            'description' => '',
+            'liveOff' => false,
+            'recommendBackup' => false,
+            'exitOnError' => false,
+            'requirements' => '',
+            'url' => '/'
+        );
+        foreach($actions as $id => $action) {
+            foreach($default_fields as $field => $value) {
+                if (!isset($action[$field])) {
+                    $actions[$id][$field] = $value;
+                }
+            }
+            $done = $this->AdminSetting->getSetting($id);
+            $actions[$id]['done'] = ($done == '1');
+        }
+        $this->set('actions', $actions);
+        $this->set('updateLocked', $this->Server->isUpdateLocked());
+    }
+
+    public function updateProgress()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+        $update_progress = $this->Server->getUpdateProgress();
+        $current_index = $update_progress['current'];
+        $current_command = !isset($update_progress['commands'][$current_index]) ? '' : $update_progress['commands'][$current_index];
+        $lookup_string = preg_replace('/\s{2,}/', '', substr($current_command, 0, -1));
+        $sql_info = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
+        if (empty($sql_info)) {
+            $update_progress['process_list'] = array();
+        } else {
+            // retreive current update process
+            foreach($sql_info as $row) {
+                if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookup_string) {
+                    $sql_info = $row['PROCESSLIST'];
+                    break;
+                }
+            }
+            $update_progress['process_list'] = array();
+            $update_progress['process_list']['STATE'] = isset($sql_info['STATE']) ? $sql_info['STATE'] : '';
+            $update_progress['process_list']['PROGRESS'] = isset($sql_info['PROGRESS']) ? $sql_info['PROGRESS'] : 0;
+            $update_progress['process_list']['STAGE'] = isset($sql_info['STAGE']) ? $sql_info['STAGE'] : 0;
+            $update_progress['process_list']['MAX_STAGE'] = isset($sql_info['MAX_STAGE']) ? $sql_info['MAX_STAGE'] : 0;
+        }
+        if ($this->request->is('ajax')) {
+            return $this->RestResponse->viewData(h($update_progress), $this->response->type());
+        } else {
+            $this->set('updateProgress', $update_progress);
+        }
+    }
+
+
     public function getSubmoduleQuickUpdateForm($submodule_path=false) {
         $this->set('submodule', base64_decode($submodule_path));
         $this->render('ajax/submodule_quick_update_form');
@@ -1830,6 +1918,93 @@ misp.direct_call(relative_path, body)
         } else {
             $this->Flash->info($message);
             $this->redirect(array('action' => 'index'));
+        }
+    }
+
+    public function updateJSON()
+    {
+        $results = $this->Server->updateJSON();
+        return $this->RestResponse->viewData($results, $this->response->type());
+    }
+
+    public function createSync()
+    {
+        if ($this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('Site admin accounts cannot be used to create server sync configurations.');
+        }
+        $baseurl = Configure::read('MISP.external_baseurl');
+        if (empty($baseurl)) {
+            $baseurl = Configure::read('MISP.baseurl');
+            if (empty($baseurl)) {
+                $baseurl = Router::url('/', true);
+            }
+        }
+        $server = array(
+            'Server' => array(
+                'url' => $baseurl,
+                'uuid' => Configure::read('MISP.uuid'),
+                'authkey' => $this->Auth->user('authkey'),
+                'Organisation' => array(
+                    'name' => $this->Auth->user('Organisation')['name'],
+                    'uuid' => $this->Auth->user('Organisation')['uuid']
+                )
+            )
+        );
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($server, $this->response->type());
+        } else {
+            $this->set('server', $server);
+        }
+    }
+
+    public function import()
+    {
+        if ($this->request->is('post')) {
+            $server = $this->request->data;
+            if (isset($server['Server'])) {
+                $server = $server['Server'];
+            }
+            if (isset($server['json'])) {
+                $server = json_decode($server['json'], true)['Server'];
+            }
+            $this->loadModel('Organisation');
+            $org_id = $this->Organisation->captureOrg($server['Organisation'], $this->Auth->user());
+            $toSave = array(
+                'push' => 0,
+                'pull' => 0,
+                'caching_enabled' => 0,
+                'json' => '[]',
+                'push_rules' => '[]',
+                'pull_rules' => '[]',
+                'self_signed' => 0,
+                'org_id' => $this->Auth->user('org_id'),
+                'remote_org_id' => $org_id,
+                'name' => empty($server['name']) ? $server['url'] : $server['name'],
+                'url' => $server['url'],
+                'uuid' => $server['uuid'],
+                'authkey' => $server['authkey']
+            );
+            $this->Server->create();
+            $result = $this->Server->save($toSave);
+            if ($result) {
+                if ($this->_isRest()) {
+                    $server = $this->Server->find('first', array(
+                        'conditions' => array('Server.id' => $this->Server->id),
+                        'recursive' => -1
+                    ));
+                    return $this->RestResponse->viewData($server, $this->response->type());
+                } else {
+                    $this->Flash->success(__('The server has been saved'));
+                    $this->redirect(array('action' => 'index', $this->Server->id));
+                }
+            } else {
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Servers', 'addFromJson', false, $this->Server->validationErrors, $this->response->type());
+                } else {
+                    $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Server->validationErrors, true)));
+                    $this->redirect(array('action' => 'index'));
+                }
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 18.04.1-server
+## for Ubuntu 18.04.2-server
 
 ### -1/ Installer and Manual install instructions
 
@@ -9,19 +9,21 @@ To install MISP on a fresh Ubuntu install all you need to do is:
 
 ```bash
 # Please check the installer options first to make the best choice for your install
-curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s
+wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+bash /tmp/INSTALL.sh
 
-# This will install MISP Core and misp-modules (recommended)
-curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+# This will install MISP Core
+wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+bash /tmp/INSTALL.sh -c
 ```
 
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190212 (works with **Ubuntu 18.10** too)
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190513 (works with **Ubuntu 18.10/19.04** too)
 
 !!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.debian.sh) script.
+    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
     Which explains why you will see the use of shell *functions* in various steps.
     Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
 
@@ -44,7 +46,16 @@ aptUpgrade () {
   debug "Upgrading system"
   checkAptLock
   sudo apt-get update
-  sudo apt-get upgrade -qy
+
+  # If we run in non-interactive mode, make sure we do not stop all of a sudden
+  if [[ "${PACKER}" == "1" || "${UNATTENDED}" == "1" ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    export DEBIAN_PRIORITY=critical
+    sudo -E apt-get -qy -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" upgrade
+    sudo -E apt-get -qy autoclean
+  else
+    sudo apt-get upgrade -qy
+  fi
 }
 # <snippet-end 0_apt-upgrade.sh>
 ```
@@ -89,7 +100,6 @@ installCoreDeps () {
   # install Mitre's STIX and its dependencies by running the following commands:
   sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -qy
 
-  sudo apt-get install python3-pip -qy
   sudo apt install expect -qy
 }
 # <snippet-end 0_installCoreDeps.sh>
@@ -105,7 +115,7 @@ installDepsPhp72 () {
   libapache2-mod-php \
   php php-cli \
   php-dev \
-  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring \
   php-pear \
   php-redis php-gnupg \
   php-gd
@@ -126,45 +136,45 @@ installCore () {
   debug "Installing ${LBLUE}MISP${NC} core"
   # Download MISP using git in the /var/www/ directory.
   sudo mkdir ${PATH_TO_MISP}
-  sudo chown www-data:www-data ${PATH_TO_MISP}
+  sudo chown $WWW_USER:$WWW_USER ${PATH_TO_MISP}
   cd ${PATH_TO_MISP}
-  sudo -u www-data git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}
-  sudo -u www-data git submodule update --init --recursive
+  $SUDO_WWW git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}
+  $SUDO_WWW git submodule update --init --recursive
   # Make git ignore filesystem permission differences for submodules
-  sudo -u www-data git submodule foreach --recursive git config core.filemode false
+  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
   # Make git ignore filesystem permission differences
-  sudo -u www-data git config core.filemode false
+  $SUDO_WWW git config core.filemode false
 
   # Create a python3 virtualenv
-  sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
+  $SUDO_WWW virtualenv -p python3 ${PATH_TO_MISP}/venv
 
   # make pip happy
   sudo mkdir /var/www/.cache/
-  sudo chown www-data:www-data /var/www/.cache
+  sudo chown $WWW_USER:$WWW_USER /var/www/.cache
 
   cd ${PATH_TO_MISP}/app/files/scripts
-  sudo -H -u www-data git clone https://github.com/CybOXProject/python-cybox.git
-  sudo -H -u www-data git clone https://github.com/STIXProject/python-stix.git
-  sudo -H -u www-data git clone https://github.com/MAECProject/python-maec.git
+  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
+  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
+  $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git
 
   # install mixbox to accommodate the new STIX dependencies:
-  sudo -H -u www-data git clone https://github.com/CybOXProject/mixbox.git
+  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
   cd ${PATH_TO_MISP}/app/files/scripts/mixbox
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   cd ${PATH_TO_MISP}/app/files/scripts/python-stix
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   cd $PATH_TO_MISP/app/files/scripts/python-maec
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install PyMISP
   cd ${PATH_TO_MISP}/PyMISP
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install pydeep
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
@@ -172,8 +182,14 @@ installCore () {
   # install lief
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
 
+  # install zmq needed by mispzmq
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
+
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
+
+  # install plyara
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
 
   # Install Crypt_GPG and Console_CommandLine
   sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
@@ -194,17 +210,17 @@ installCake () {
   cd ${PATH_TO_MISP}/app
   # Make composer cache happy
   # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
-  sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
-  sudo -H -u www-data php composer.phar require kamisama/cake-resque:4.1.2
-  sudo -H -u www-data php composer.phar config vendor-dir Vendor
-  sudo -H -u www-data php composer.phar install
+  sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
+  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
+  $SUDO_WWW php composer.phar config vendor-dir Vendor
+  $SUDO_WWW php composer.phar install
 
   # Enable CakeResque with php-redis
   sudo phpenmod redis
   sudo phpenmod gnupg
 
   # To use the scheduler worker for scheduled tasks, do the following:
-  sudo -u www-data cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
+  $SUDO_WWW cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 
   # If you have multiple MISP instances on the same system, don't forget to have a different Redis per MISP instance for the CakeResque workers
   # The default Redis port can be updated in Plugin/CakeResque/Config/config.php
@@ -239,15 +255,21 @@ permissions () {
 prepareDB () {
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     debug "Setting up database"
+
+    # FIXME: If user 'misp' exists, and has a different password, the below WILL fail.
     # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-    pw=$MISP_PASSWORD
+    if [[ "${PACKER}" == "1" ]]; then
+      pw="Password1234"
+    else
+      pw=${MISP_PASSWORD}
+    fi
 
     expect -f - <<-EOF
       set timeout 10
 
       spawn sudo -k mysql_secure_installation
       expect "*?assword*"
-      send -- "$pw\r"
+      send -- "${pw}\r"
       expect "Enter current password for root (enter for none):"
       send -- "\r"
       expect "Set root password?"
@@ -269,12 +291,13 @@ EOF
     sudo apt-get purge -y expect ; sudo apt autoremove -qy
   fi 
 
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
-  sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE DATABASE ${DBNAME};"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT USAGE ON *.* to ${DBUSER_MISP}@localhost;"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "FLUSH PRIVILEGES;"
   # Import the empty MISP database from MYSQL.sql
-  sudo -u www-data cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+  ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} ${DBNAME}
 }
 # <snippet-end 1_prepareDB.sh>
 ```
@@ -295,6 +318,12 @@ Now configure your Apache webserver with the DocumentRoot ${PATH_TO_MISP}/app/we
 apacheConfig () {
   debug "Generating Apache config"
   sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+
+  if [[ ! -z ${MISP_BASEURL} ]] && [[ "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "http" || "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "https" ]]; then
+
+    echo "Potentially replacing misp.local with $MISP_BASEURL in misp-ssl.conf"
+
+  fi
 
   # If a valid SSL certificate is not already created for the server,
   # create a self-signed certificate:
@@ -385,10 +414,10 @@ logRotation () {
 configMISP () {
   debug "Generating ${LBLUE}MISP${NC} config files"
   # There are 4 sample configuration files in ${PATH_TO_MISP}/app/Config that need to be copied
-  sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
-  sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
-  sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
-  sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
+  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
+  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
+  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
+  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
 
   echo "<?php
   class DATABASE_CONFIG {
@@ -405,7 +434,7 @@ configMISP () {
                   'prefix' => '',
                   'encoding' => 'utf8',
           );
-  }" | sudo -u www-data tee $PATH_TO_MISP/app/Config/database.php
+  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
 
   # Important! Change the salt key in ${PATH_TO_MISP}/app/Config/config.php
   # The salt key must be a string at least 32 bytes long.
@@ -414,7 +443,7 @@ configMISP () {
   # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
   # and make sure the file permissions are still OK
-  sudo chown -R www-data:www-data ${PATH_TO_MISP}/app/Config
+  sudo chown -R $WWW_USER:$WWW_USER ${PATH_TO_MISP}/app/Config
   sudo chmod -R 750 ${PATH_TO_MISP}/app/Config
 }
 # <snippet-end 2_configMISP.sh>
@@ -435,6 +464,7 @@ backgroundWorkers () {
   debug "Setting up background workers"
   # To make the background workers start on boot
   sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+
   if [ ! -e /etc/rc.local ]
   then
       echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
@@ -442,14 +472,28 @@ backgroundWorkers () {
       sudo chmod u+x /etc/rc.local
   fi
 
-  # Start the workers
-  $SUDO_WWW bash $PATH_TO_MISP/app/Console/worker/start.sh
+  echo "[Unit]
+Description=MISP background workers
+After=network.target
+
+[Service]
+Type=forking
+User=${WWW_USER}
+Group=${WWW_USER}
+ExecStart=${PATH_TO_MISP}/app/Console/worker/start.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target" | sudo tee /etc/systemd/system/misp-workers.service
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now misp-workers
 
   # Add the following lines before the last line (exit 0). Make sure that you replace www-data with your apache user:
   sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-  sudo sed -i -e '$i \sudo -u www-data bash ${PATH_TO_MISP}/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
 }
 # <snippet-end 2_backgroundWorkers.sh>
 ```
@@ -471,14 +515,21 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 -----------------
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 ```bash
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
 ```bash
-apt-get install librdkafka-dev php-dev
-pecl install rdkafka
-find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
+# <snippet-begin 4_kafka.sh>
+installKafka () {
+  sudo apt-get install librdkafka-dev php-dev -y
+  sudo pecl channel-update pecl.php.net
+  sudo pecl install rdkafka
+  echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
+  sudo phpenmod rdkafka
+  sudo service apache2 restart
+}
+# <snippet-end 4_kafka.sh>
 ```
 
 {!generic/misp-dashboard-debian.md!}
@@ -491,17 +542,10 @@ find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a 
 
 {!generic/hardening.md!}
 
-#### misp-modules (section deprecated)
--------------------------------
-!!! notice
-    If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:<br />
-    https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules<br />
-    Then the enrichment, export and import modules can be enabled in MISP via the settings.
-
-# INSTALL.debian.sh
+# INSTALL.sh
 
 !!! notice
-    The following section is an administrative section that is used by the "[INSTALL.debian.sh](https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh)" script.
+    The following section is an administrative section that is used by the "[INSTALL.sh](https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh)" script.
     Please ignore.
 
 {!generic/supportFunctions.md!}

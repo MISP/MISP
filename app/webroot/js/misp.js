@@ -9,6 +9,20 @@ if (!String.prototype.startsWith) {
   };
 }
 
+function stringToRGB(str){
+    var hash = 0;
+    if (str.length == 0) return hash;
+    for (i = 0; i < str.length; i++) {
+        hash = ((hash<<5)-hash) + str.charCodeAt(i);
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    var c = (hash & 0x00FFFFFF)
+        .toString(16)
+        .toUpperCase();
+
+    return "#" + "00000".substring(0, 6 - c.length) + c;
+}
+
 function deleteObject(type, action, id, event) {
     var destination = 'attributes';
     var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'galaxy_clusters', 'objects', 'object_references'];
@@ -83,7 +97,9 @@ function screenshotPopup(url, title) {
     if (!url.startsWith('data:image/')) {
         url = url.slice(0, -1);
     }
-    popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>'
+    popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
+    url = $('<div>').text(url).html();
+    title = $('<div>').text(title).html();
     popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" id="screenshot-image" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();"/>';
     popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
     if (!url.startsWith('data:image/')) {
@@ -588,104 +604,105 @@ function submitForm(type, id, field, context) {
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
-    var formData = fetchFormDataAjax("/events/addTag/" + event_id);
-    $('#temp').html(formData);
-    $('#EventTag').val(JSON.stringify(selected_tag_ids));
-    $.ajax({
-        data: $('#EventAddTagForm').serialize(),
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            loadEventTags(event_id);
-            loadGalaxies(event_id, 'event');
-            handleGenericAjaxResponse(data);
-        },
-        error:function() {
-            showMessage('fail', 'Could not add tag.');
-            loadEventTags(event_id);
-            loadGalaxies(event_id, 'event');
-        },
-        complete:function() {
-            $('#temp').empty();
-            $("#popover_form").fadeOut();
-            $("#gray_out").fadeOut();
-            $(".loading").hide();
-        },
-        type:"post",
-        url:"/events/addTag/" + event_id
+    fetchFormDataAjax("/events/addTag/" + event_id, function(formData) {
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #EventTag').val(JSON.stringify(selected_tag_ids));
+        $.ajax({
+            data: $('#EventAddTagForm').serialize(),
+            cache: false,
+            beforeSend: function (XMLHttpRequest) {
+                $(".loading").show();
+            },
+            success:function (data, textStatus) {
+                loadEventTags(event_id);
+                loadGalaxies(event_id, 'event');
+                handleGenericAjaxResponse(data);
+            },
+            error:function() {
+                showMessage('fail', 'Could not add tag.');
+                loadEventTags(event_id);
+                loadGalaxies(event_id, 'event');
+            },
+            complete:function() {
+                $('#temp').remove();
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+                $('#temp').remove();
+            },
+            type:"post",
+            url:"/events/addTag/" + event_id
+        });
     });
-    $('#temp').remove();
-    return false;
 }
 
 function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     var attribute_id = addData.id;
-    var formData = fetchFormDataAjax("/attributes/addTag/" + attribute_id);
-    $('#temp').html(formData);
-    $('#AttributeTag').val(JSON.stringify(selected_tag_ids));
-    if (attribute_id == 'selected') {
-        $('#AttributeAttributeIds').val(getSelected());
-    }
-    $.ajax({
-        data: $('#AttributeAddTagForm').serialize(),
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            if (attribute_id == 'selected') {
-                updateIndex(0, 'event');
-            } else {
+    fetchFormDataAjax("/attributes/addTag/" + attribute_id, function(formData) {
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #AttributeTag').val(JSON.stringify(selected_tag_ids));
+        if (attribute_id == 'selected') {
+            $('#AttributeAttributeIds').val(getSelected());
+        }
+        $.ajax({
+            data: $('#AttributeAddTagForm').serialize(),
+            beforeSend: function (XMLHttpRequest) {
+                $(".loading").show();
+            },
+            success:function (data, textStatus) {
+                if (attribute_id == 'selected') {
+                    updateIndex(0, 'event');
+                } else {
+                    loadAttributeTags(attribute_id);
+                    loadGalaxies(attribute_id, 'attribute');
+                }
+                handleGenericAjaxResponse(data);
+            },
+            error:function() {
+                showMessage('fail', 'Could not add tag.');
                 loadAttributeTags(attribute_id);
                 loadGalaxies(attribute_id, 'attribute');
-            }
-            handleGenericAjaxResponse(data);
-        },
-        error:function() {
-            showMessage('fail', 'Could not add tag.');
-            loadAttributeTags(attribute_id);
-            loadGalaxies(attribute_id, 'attribute');
-        },
-        complete:function() {
-            $("#popover_form").fadeOut();
-            $("#gray_out").fadeOut();
-            $(".loading").hide();
-        },
-        type:"post",
-        url:"/attributes/addTag/" + attribute_id
+            },
+            complete:function() {
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+                $('#temp').remove();
+            },
+            type:"post",
+            url:"/attributes/addTag/" + attribute_id
+        });
     });
-    $('#temp').remove();
-    return false;
 }
 
 function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     var tag_collection_id = addData.id;
-    var formData = fetchFormDataAjax("/tag_collections/addTag/" + tag_collection_id);
-    $('#temp').html(formData);
-    $('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
-    $.ajax({
-        data: $('#TagCollectionAddTagForm').serialize(),
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            handleGenericAjaxResponse(data);
-            refreshTagCollectionRow(tag_collection_id);
-        },
-        error:function() {
-            showMessage('fail', 'Could not add tag.');
-            loadTagCollectionTags(tag_collection_id);
-        },
-        complete:function() {
-            $("#popover_form").fadeOut();
-            $("#gray_out").fadeOut();
-            $(".loading").hide();
-        },
-        type:"post",
-        url:"/tag_collections/addTag/" + tag_collection_id
+    fetchFormDataAjax("/tag_collections/addTag/" + tag_collection_id, function(formData) {
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #TagCollectionTag').val(JSON.stringify(selected_tag_ids));
+        $.ajax({
+            data: $('#TagCollectionAddTagForm').serialize(),
+            beforeSend: function (XMLHttpRequest) {
+                $(".loading").show();
+            },
+            success:function (data, textStatus) {
+                handleGenericAjaxResponse(data);
+                refreshTagCollectionRow(tag_collection_id);
+            },
+            error:function() {
+                showMessage('fail', 'Could not add tag.');
+                loadTagCollectionTags(tag_collection_id);
+            },
+            complete:function() {
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+                $('#temp').remove();
+            },
+            type:"post",
+            url:"/tag_collections/addTag/" + tag_collection_id
+        });
     });
-    $('#temp').remove();
-    return false;
 }
 
 function refreshTagCollectionRow(tag_collection_id) {
@@ -828,6 +845,22 @@ function multiSelectToggleFeeds(on, cache) {
     });
 }
 
+function multiSelectDeleteEventBlacklist(on, cache) {
+    var selected = [];
+    $(".select").each(function() {
+        if ($(this).is(":checked")) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    });
+    $.get("/eventBlacklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
+        $("#confirmation_box").html(data);
+        openPopup("#confirmation_box");
+    });
+}
+
 function multiSelectAction(event, context) {
     var settings = {
             deleteAttributes: {
@@ -894,6 +927,11 @@ function addSelectedTaxonomies(taxonomy) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
+}
+
+function proposeObjectsFromSelectedAttributes(clicked, event_id) {
+    var selectedAttributeIds = getSelected();
+    popoverPopup(clicked, event_id + '/' + selectedAttributeIds, 'objects', 'proposeObjectsFromAttributes');
 }
 
 function hideSelectedTags(taxonomy) {
@@ -1265,6 +1303,7 @@ function cancelPopoverForm(id) {
     $("#popover_form").fadeOut();
     $("#popover_form_large").fadeOut();
     $("#screenshot_box").fadeOut();
+    $("#popover_box").fadeOut();
     $("#confirmation_box").fadeOut();
     $('#gray_out').fadeOut();
     $('#popover_form').fadeOut();
@@ -1438,20 +1477,23 @@ function templateElementFileCategoryChange(category) {
     }
 }
 
-function openPopup(id) {
-    var window_height = $(window).height();
-    var popup_height = $(id).height();
-    if (window_height < popup_height) {
-        $(id).css("top", 50);
-        $(id).css("height", window_height);
-        $(id).addClass('vertical-scroll');
-    } else {
-        if (window_height > (300 + popup_height)) {
-            var top_offset = ((window_height - popup_height) / 2) - 150;
+function openPopup(id, adjust_layout) {
+    adjust_layout = adjust_layout === undefined ? true : adjust_layout;
+    if (adjust_layout) {
+        var window_height = $(window).height();
+        var popup_height = $(id).height();
+        if (window_height < popup_height) {
+            $(id).css("top", 50);
+            $(id).css("height", window_height);
+            $(id).addClass('vertical-scroll');
         } else {
-            var top_offset = (window_height - popup_height) / 2;
+            if (window_height > (300 + popup_height)) {
+                var top_offset = ((window_height - popup_height) / 2) - 150;
+            } else {
+                var top_offset = (window_height - popup_height) / 2;
+            }
+            $(id).css("top", top_offset + 'px');
         }
-        $(id).css("top", top_offset + 'px');
     }
     $("#gray_out").fadeIn();
     $(id).fadeIn();
@@ -1537,7 +1579,7 @@ function openPopover(clicked, data, hover, placement) {
 
 function getMatrixPopup(scope, scope_id, galaxy_id) {
     cancelPopoverForm();
-    getPopup(scope_id + '/' + galaxy_id + '/' + scope, 'events', 'viewGalaxyMatrix', '', '#popover_form_large');
+    getPopup(scope_id + '/' + galaxy_id + '/' + scope, 'events', 'viewGalaxyMatrix', '', '#popover_matrix');
 }
 
 function getPopup(id, context, target, admin, popupType) {
@@ -1560,7 +1602,7 @@ function getPopup(id, context, target, admin, popupType) {
         success:function (data, textStatus) {
             $(".loading").hide();
             $(popupType).html(data);
-            openPopup(popupType);
+            openPopup(popupType, false);
         },
         error:function() {
             $(".loading").hide();
@@ -2415,9 +2457,19 @@ function freetextImportResultsSubmit(id, count) {
 }
 
 function moduleResultsSubmit(id) {
+    var typesWithData = ['attachment', 'malware-sample'];
     var data_collected = {};
     var temp;
-    if ($('.MISPObjects').length) {
+    if ($('.meta_table').length) {
+        var tags = [];
+        $('.meta_table').find('.tag').each(function() {
+            tags.push({name: $(this).text()});
+        });
+        if (tags.length) {
+            data_collected['Tag'] = tags;
+        }
+    }
+    if ($('.MISPObject').length) {
         var objects = [];
         $(".MISPObject").each(function(o) {
             var object_uuid = $(this).find('.ObjectUUID').text();
@@ -2428,27 +2480,38 @@ function moduleResultsSubmit(id) {
                 distribution: $(this).find('.ObjectDistribution').val(),
                 sharing_group_id: $(this).find('.ObjectSharingGroup').val()
             }
+            if (temp['distribution'] != '4') {
+                temp['sharing_group_id'] = '0';
+            }
             if ($(this).has('.ObjectID').length) {
                 temp['id'] = $(this).find('.ObjectID').text();
             }
-            if ($(this).has('.ObjectReferences').length) {
+            if ($(this).has('.TemplateVersion').length) {
+                temp['template_version'] = $(this).find('.TemplateVersion').text();
+            }
+            if ($(this).has('.TemplateUUID').length) {
+                temp['template_uuid'] = $(this).find('.TemplateUUID').text();
+            }
+            if ($(this).has('.ObjectReference').length) {
                 var references = [];
                 $(this).find('.ObjectReference').each(function() {
                     var reference = {
                         object_uuid: object_uuid,
                         referenced_uuid: $(this).find('.ReferencedUUID').text(),
-                        relationhip_type: $(this).find('.Relationship').text()
+                        relationship_type: $(this).find('.Relationship').text()
                     };
                     references.push(reference);
                 });
                 temp['ObjectReference'] = references;
             }
-            if ($(this).find('.ObjectAttributes').length) {
+            if ($(this).find('.ObjectAttribute').length) {
                 var object_attributes = [];
                 $(this).find('.ObjectAttribute').each(function(a) {
+                    var attribute_type = $(this).find('.AttributeType').text();
                     attribute = {
+                        object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
-                        type: $(this).find('.AttributeType').text(),
+                        type: attribute_type,
                         value: $(this).find('.AttributeValue').text(),
                         uuid: $(this).find('.AttributeUuid').text(),
                         to_ids: $(this).find('.AttributeToIds')[0].checked,
@@ -2456,6 +2519,19 @@ function moduleResultsSubmit(id) {
                         comment: $(this).find('.AttributeComment').val(),
                         distribution: $(this).find('.AttributeDistribution').val(),
                         sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                    }
+                    if (attribute['distribution'] != '4') {
+                        attribute['sharing_group_id'] = '0';
+                    }
+                    if ($(this).find('.objectAttributeTagContainer').length) {
+                        var tags = [];
+                        $(this).find('.objectAttributeTag').each(function() {
+                            tags.push({name: $(this).attr('title')});
+                        });
+                        attribute['Tag'] = tags;
+                    }
+                    if (typesWithData.indexOf(attribute_type) != -1 && $(this).find('.AttributeData').length) {
+                        attribute['data'] = $(this).find('.AttributeData').val();
                     }
                     object_attributes.push(attribute);
                 });
@@ -2465,12 +2541,24 @@ function moduleResultsSubmit(id) {
         });
         data_collected['Object'] = objects;
     }
-    if ($('.MISPAttributes').length) {
+    if ($('.MISPAttribute').length) {
         var attributes = [];
         $('.MISPAttribute').each(function(a) {
+            var category_value;
+            var type_value;
+            if ($(this).find('.AttributeCategorySelect').length) {
+                category_value = $(this).find('.AttributeCategorySelect').val();
+            } else {
+                category_value = $(this).find('.AttributeCategory').text();
+            }
+            if ($(this).find('.AttributeTypeSelect').length) {
+                type_value = $(this).find('.AttributeTypeSelect').val();
+            } else {
+                type_value = $(this).find('.AttributeType').text();
+            }
             temp = {
-                category: $(this).find('.AttributeCategory').text(),
-                type: $(this).find('.AttributeType').text(),
+                category: category_value,
+                type: type_value,
                 value: $(this).find('.AttributeValue').text(),
                 uuid: $(this).find('.AttributeUuid').text(),
                 to_ids: $(this).find('.AttributeToIds')[0].checked,
@@ -2479,14 +2567,30 @@ function moduleResultsSubmit(id) {
                 distribution: $(this).find('.AttributeDistribution').val(),
                 sharing_group_id: $(this).find('.AttributeSharingGroup').val()
             }
+            if (temp['distribution'] != '4') {
+                temp['sharing_group_id'] = '0';
+            }
+            if ($(this).find('.attributeTagContainer').length) {
+                var tags = [];
+                $(this).find('.attributeTag').each(function() {
+                    tags.push({name: $(this).attr('title')});
+                });
+                temp['Tag'] = tags;
+            }
+            if (typesWithData.indexOf(type_value) != -1 && $(this).find('.AttributeData').length) {
+                temp['data'] = $(this).find('.AttributeData').val();
+            }
             attributes.push(temp);
         });
         data_collected['Attribute'] = attributes;
     }
+    $("#EventJsonObject").val(JSON.stringify(data_collected));
+    var formData = $('.mainForm').serialize();
     $.ajax({
         type: "post",
         cache: false,
         url: "/events/handleModuleResults/" + id,
+        data: formData,
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -2970,7 +3074,8 @@ function zeroMQServerAction(action) {
 function convertServerFilterRules(rules) {
     validOptions.forEach(function (type) {
         container = "#"+ modelContext + type.ucfirst() + "Rules";
-        if($(container).val() != '') rules[type] = JSON.parse($(container).val());
+        if ($(container).val() != '' && $(container).val() != '[]') rules[type] = JSON.parse($(container).val());
+        else {rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}};
     });
     serverRuleUpdate();
     return rules;
@@ -3167,14 +3272,28 @@ function pivotObjectReferences(url, uuid) {
 }
 
 function toggleBoolFilter(url, param) {
-    url = url.replace(/view\//i, 'viewEventAttributes/');
-    if (url.indexOf(param) > -1) {
-        var replace = '\/' + param + ".+1";
-        var re = new RegExp(replace,"i");
-        url = url.replace(re, '');
-    } else {
-        url = url + '/' + param + ':1'
+    if (querybuilderTool === undefined) {
+        triggerEventFilteringTool(true); // allows to fetch rules
     }
+    var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
+    var res = cleanRules(rules);
+    Object.keys(res).forEach(function(k) {
+        if (url.indexOf(k) > -1) { // delete url rule (will be replaced by query builder value later on)
+            var replace = '\/' + k + ".+/?";
+            var re = new RegExp(replace,"i");
+            url = url.replace(re, '');
+        }
+    });
+
+    if (res[param] !== undefined) { // allow toggle for `deleted`.
+        res[param] = res[param] == '0' ? '2' : '0';
+    } else {
+        res[param] = '0';
+    }
+
+    url += buildFilterURL(res);
+    url = url.replace(/view\//i, 'viewEventAttributes/');
+
     $.ajax({
         type:"get",
         url:url,
@@ -3183,6 +3302,7 @@ function toggleBoolFilter(url, param) {
         },
         success:function (data) {
             $("#attributes_div").html(data);
+            querybuilderTool = undefined;
             $(".loading").hide();
         },
         error:function() {
@@ -3275,7 +3395,7 @@ $(".cortex-json").click(function() {
 
 // add the same as below for click popup
 $(document).on( "click", ".eventViewAttributePopup", function() {
-    $('#screenshot_box').empty();
+    $('#popover_box').empty();
     type = $(this).attr('data-object-type');
     id = $(this).attr('data-object-id');
     if (!(type + "_" + id in ajaxResults["persistent"])) {
@@ -3291,16 +3411,16 @@ $(document).on( "click", ".eventViewAttributePopup", function() {
     if (type + "_" + id in ajaxResults["persistent"]) {
         var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
         enrichment_popover += '<div class="close-icon useCursorPointer popup-close-icon" onClick="closeScreenshot();"></div>';
-        $('#screenshot_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
-        $('#screenshot_box').show();
+        $('#popover_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
+        $('#popover_box').show();
         $("#gray_out").fadeIn();
-        $('#screenshot_box').css({'padding': '5px'});
-        $('#screenshot_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
-        $('#screenshot_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
-        $('#screenshot_box').css( "overflow-y", "auto");
+        $('#popover_box').css({'padding': '5px'});
+        $('#popover_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
+        $('#popover_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
+        $('#popover_box').css( "overflow-y", "auto");
 
-        var left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
-        $('#screenshot_box').css({'left': left + 'px'});
+        var left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
+        $('#popover_box').css({'left': left + 'px'});
     }
     $('#' + currentPopover).popover('destroy');
 });
@@ -3619,44 +3739,43 @@ function addGalaxyListener(id) {
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
-    var formData = fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope);
-    console.log(formData);
-    $('#temp').html(formData);
-    $('#GalaxyTargetIds').val(JSON.stringify(cluster_ids));
-    if (target_id == 'selected') {
-        $('#AttributeAttributeIds').val(getSelected());
-    }
-    $.ajax({
-        data: $('#GalaxyAttachMultipleClustersForm').serialize(),
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            if (target_id === 'selected') {
-                location.reload();
-            } else {
-                if (scope == 'tag_collection') {
+    fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope, function(formData) {
+        $('body').append($('<div id="temp"/>').html(formData));
+        $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
+        if (target_id == 'selected') {
+            $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
+        }
+        $.ajax({
+            data: $('#GalaxyAttachMultipleClustersForm').serialize(),
+            beforeSend: function (XMLHttpRequest) {
+                $(".loading").show();
+            },
+            success:function (data, textStatus) {
+                if (target_id === 'selected') {
                     location.reload();
                 } else {
-                    loadGalaxies(target_id, scope);
-                    handleGenericAjaxResponse(data);
+                    if (scope == 'tag_collection') {
+                        location.reload();
+                    } else {
+                        loadGalaxies(target_id, scope);
+                        handleGenericAjaxResponse(data);
+                    }
                 }
-            }
-        },
-        error:function() {
-            showMessage('fail', 'Could not add cluster.');
-            loadGalaxies(target_id, scope);
-        },
-        complete:function() {
-            $("#popover_form").fadeOut();
-            $("#gray_out").fadeOut();
-            $(".loading").hide();
-        },
-        type:"post",
-        url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
+            },
+            error:function() {
+                showMessage('fail', 'Could not add cluster.');
+                loadGalaxies(target_id, scope);
+            },
+            complete:function() {
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+                $('#temp').remove();
+            },
+            type:"post",
+            url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
+        });
     });
-    $('#temp').remove();
-    return false;
 }
 
 function checkAndSetPublishedInfo(skip_reload) {
@@ -3682,7 +3801,9 @@ $(document).keyup(function(e){
     $("#gray_out").fadeOut();
         $("#popover_form").fadeOut();
         $("#popover_form_large").fadeOut();
+        $("#popover_matrix").fadeOut();
         $("#screenshot_box").fadeOut();
+        $("#popover_box").fadeOut();
         $("#confirmation_box").fadeOut();
         $(".loading").hide();
         resetForms();
@@ -3690,6 +3811,7 @@ $(document).keyup(function(e){
 });
 
 function closeScreenshot() {
+    $("#popover_box").fadeOut();
     $("#screenshot_box").fadeOut();
     $("#gray_out").fadeOut();
 }
@@ -3747,7 +3869,8 @@ function submitSubmoduleUpdate(clicked) {
     var submodule_path = $clicked.data('submodule');
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
-            $clicked.addClass('fa-spin');
+            $clicked.removeClass('fa-download');
+            $clicked.addClass('fa-spin fa-spinner');
         },
         dataType:"html",
         cache: false,
@@ -3774,7 +3897,8 @@ function submitSubmoduleUpdate(clicked) {
                     $('#submoduleGitResult').removeClass('green').addClass('red').text(data.output);
                 },
                 complete:function() {
-                    $clicked.removeClass('fa-spin');
+                    $clicked.removeClass('fa-spin fa-spinner');
+                    $clicked.addClass('fa-download');
                     $form.remove();
                 },
                 type:"post",
@@ -3809,7 +3933,10 @@ function checkAndEnableCheckbox(id, enable) {
 function enableDisableObjectRows(rows) {
     rows.forEach(function(i) {
         if ($("#Attribute" + i + "ValueSelect").length != 0) {
-            checkAndEnableCheckbox("#Attribute" + i + "Save", true);
+            checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "ValueSelect").val() != "");
+            $("#Attribute" + i + "ValueSelect").bind('input propertychange', function() {
+                checkAndEnableCheckbox("#Attribute" + i + "Save", $(this).val() != "");
+            })
         } else if ($("#Attribute" + i + "Attachment").length != 0) {
             checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
         } else {
@@ -3963,32 +4090,6 @@ $(document).ready(function() {
             $('#quickFilterButton').trigger("click");
         }
     });
-    $(".eventViewAttributeHover").mouseenter(function() {
-        $('#' + currentPopover).popover('destroy');
-        var type = $(this).attr('data-object-type');
-        var id = $(this).attr('data-object-id');
-
-        if (type + "_" + id in ajaxResults["hover"]) {
-            var element = $('#' + type + '_' + id + '_container');
-            element.popover({
-                title: attributeHoverTitle(id, type),
-                content: ajaxResults["hover"][type + "_" + id],
-                placement: attributeHoverPlacement(element),
-                html: true,
-                trigger: 'manual',
-                container: 'body'
-            }).popover('show');
-            currentPopover = type + '_' + id + '_container';
-        } else {
-          timer = setTimeout(function () {
-              runHoverLookup(type, id)
-            },
-            500
-          );
-        }
-    }).mouseout(function() {
-        clearTimeout(timer);
-    });
     $(".queryPopover").click(function() {
         url = $(this).data('url');
         id = $(this).data('id');
@@ -4030,16 +4131,16 @@ $(document).ready(function() {
         cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
         var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
         popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-        $('#screenshot_box').html(popupHtml);
-        $('#screenshot_box').show();
-        $('#screenshot_box').css({'padding': '5px'});
-        left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
-        if (($('#screenshot_box').height() + 250) > $(window).height()) {
-            $('#screenshot_box').height($(window).height() - 250);
-            $('#screenshot_box').css("overflow-y", "scroll");
-            $('#screenshot_box').css("overflow-x", "hidden");
+        $('#popover_box').html(popupHtml);
+        $('#popover_box').show();
+        $('#popover_box').css({'padding': '5px'});
+        left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
+        if (($('#popover_box').height() + 250) > $(window).height()) {
+            $('#popover_box').height($(window).height() - 250);
+            $('#popover_box').css("overflow-y", "scroll");
+            $('#popover_box').css("overflow-x", "hidden");
         }
-        $('#screenshot_box').css({'left': left + 'px'});
+        $('#popover_box').css({'left': left + 'px'});
         $("#gray_out").fadeIn();
     });
     $('.add_object_attribute_row').click(function() {
@@ -4051,6 +4152,8 @@ $(document).ready(function() {
         url = "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
         $.get(url, function(data) {
             $('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
+            var $added_row = $('#row_' + object_relation + '_expand').prev().prev();
+            $added_row.find('select.Attribute_value_select option:first').attr('disabled', true);
         });
     });
     $('.quickToggleCheckbox').toggle(function() {
@@ -4078,7 +4181,7 @@ function queryEventLock(event_id, user_org_id) {
                      if ($('#event_lock_warning').length != 0) {
                          $('#event_lock_warning').remove();
                      }
-                     if (data.startsWith('Warning:')) {
+                     if (data != '') {
                          $('#main-view-container').append(data);
                      }
                  }
@@ -4094,6 +4197,8 @@ function checkIfLoggedIn() {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }
+        }).fail(function() {
+                window.location.replace(baseurl + "/users/login"); 
         });
     }
     setTimeout(function() { checkIfLoggedIn(); }, 5000);
@@ -4242,30 +4347,30 @@ function submit_feed_overlap_tool(feedId) {
 function changeTaxonomyRequiredState(checkbox) {
     var checkbox_state = $(checkbox).is(":checked");
     var taxonomy_id = $(checkbox).data('taxonomy-id');
-    var formData = fetchFormDataAjax('/taxonomies/toggleRequired/' + taxonomy_id);
-    $.ajax({
-        data: $(formData).serialize(),
-        success:function (data, textStatus) {
-            handleGenericAjaxResponse({'saved':true, 'success':['Taxonomy\'s required state toggled.']});
-        },
-        error:function() {
-            $(checkbox).prop('checked', !$(checkbox).prop('checked'));
-            handleGenericAjaxResponse({'saved':false, 'errors':['Could not toggle the required state of the taxonomy.']});
-        },
-        async:"false",
-        type:"post",
-        cache: false,
-        url: '/taxonomies/toggleRequired/' + taxonomy_id,
+    fetchFormDataAjax('/taxonomies/toggleRequired/' + taxonomy_id, function(formData) {
+        $.ajax({
+            data: $(formData).serialize(),
+            success:function (data, textStatus) {
+                handleGenericAjaxResponse({'saved':true, 'success':['Taxonomy\'s required state toggled.']});
+            },
+            error:function() {
+                $(checkbox).prop('checked', !$(checkbox).prop('checked'));
+                handleGenericAjaxResponse({'saved':false, 'errors':['Could not toggle the required state of the taxonomy.']});
+            },
+            async:"false",
+            type:"post",
+            cache: false,
+            url: '/taxonomies/toggleRequired/' + taxonomy_id,
+        });
     });
-    formData = false;
 }
 
-function fetchFormDataAjax(url) {
+function fetchFormDataAjax(url, callback) {
     var formData = false;
     $.ajax({
         data: '[]',
         success:function (data, textStatus) {
-            formData = data;
+            callback(data);
         },
         error:function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
@@ -4275,7 +4380,6 @@ function fetchFormDataAjax(url) {
         cache: false,
         url: url
     });
-    return formData;
 }
 
 (function(){

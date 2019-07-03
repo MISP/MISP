@@ -725,4 +725,113 @@ class MispObject extends AppModel
         }
         return count($orphans);
     }
+
+    public function validObjectsFromAttributeTypes($user, $event_id, $selected_attribute_ids)
+    {
+        $attributes = $this->Attribute->fetchAttributes($user,
+            array(
+                'conditions' => array(
+                    'Attribute.id' => $selected_attribute_ids,
+                    'Attribute.event_id' => $event_id,
+                    'Attribute.object_id' => 0
+                ),
+            )
+        );
+        if (empty($attributes)) {
+            return array('templates' => array(), 'types' => array());
+        }
+        $attribute_types = array();
+        foreach ($attributes as $i => $attribute) {
+            $attribute_types[$attribute['Attribute']['type']] = 1;
+            $attributes[$i]['Attribute']['object_relation'] = $attribute['Attribute']['type'];
+        }
+        $attribute_types = array_keys($attribute_types);
+
+        $potential_templates = $this->ObjectTemplate->find('list', array(
+            'recursive' => -1,
+            'fields' => array(
+                'ObjectTemplate.id',
+                'COUNT(ObjectTemplateElement.type) as type_count'
+            ),
+            'conditions' => array(
+                'ObjectTemplate.active' => true,
+                'ObjectTemplateElement.type' => $attribute_types
+            ),
+            'joins' => array(
+                array(
+                    'table' => 'object_template_elements',
+                    'alias' => 'ObjectTemplateElement',
+                    'type' => 'RIGHT',
+                    'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
+                    'conditions' => array('ObjectTemplate.id = ObjectTemplateElement.object_template_id')
+                )
+            ),
+            'group' => 'ObjectTemplate.id',
+            'order' => 'type_count DESC'
+        ));
+
+        $potential_template_ids = array_keys($potential_templates);
+        $templates = $this->ObjectTemplate->find('all', array(
+            'recursive' => -1,
+            'conditions' => array('id' => $potential_template_ids),
+            'contain' => 'ObjectTemplateElement'
+        ));
+
+        foreach ($templates as $i => $template) {
+            $res = $this->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributes);
+            $templates[$i]['ObjectTemplate']['compatibility'] = $res['valid'] ? true : $res['missingTypes'];
+            $templates[$i]['ObjectTemplate']['invalidTypes'] = $res['invalidTypes'];
+            $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
+        }
+        return array('templates' => $templates, 'types' => $attribute_types);
+    }
+
+    public function groupAttributesIntoObject($user, $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping, $hard_delete_attribute)
+    {
+        $saved_object_id = $this->saveObject($object, $event_id, $template, $user);
+        if (!is_numeric($saved_object_id)) {
+            return $saved_object_id;
+        }
+
+        $saved_object = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Object.id' => $saved_object_id)
+        ));
+
+        $existing_attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array(
+            'Attribute.id' => $selected_attribute_ids,
+            'Attribute.event_id' => $event_id,
+            'Attribute.object_id' => 0
+        )));
+
+        if (empty($existing_attributes)) {
+            return __('Selected Attributes do not exist.');
+        }
+        $event = array('Event' => $existing_attributes[0]['Event']);
+
+        // Duplicate the attribute and its context, otherwise connected instances will drop the duplicated UUID
+        foreach ($existing_attributes as $i => $existing_attribute) {
+            if (isset($selected_object_relation_mapping[$existing_attribute['Attribute']['id']])) {
+                $sightings = $this->Event->Sighting->attachToEvent($event, $user, $existing_attribute['Attribute']['id']);
+                $object_relation = $selected_object_relation_mapping[$existing_attribute['Attribute']['id']];
+                $created_attribute = $existing_attribute['Attribute'];
+                unset($created_attribute['timestamp']);
+                unset($created_attribute['id']);
+                unset($created_attribute['uuid']);
+                $created_attribute['object_relation'] = $object_relation;
+                $created_attribute['object_id'] = $saved_object['Object']['id'];
+                if (isset($existing_attribute['AttributeTag'])) {
+                    $created_attribute['AttributeTag'] = $existing_attribute['AttributeTag'];
+                }
+                if (!empty($sightings)) {
+                    $created_attribute['Sighting'] = $sightings;
+                }
+                $saved_object['Attribute'][$i] = $created_attribute;
+                $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object['Object']['id']);
+                $this->Attribute->deleteAttribute($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
+            }
+        }
+        return $saved_object['Object']['id'];
+
+    }
 }

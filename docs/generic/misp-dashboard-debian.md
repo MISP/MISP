@@ -10,14 +10,14 @@ mispDashboard () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
   cd /var/www
   sudo mkdir misp-dashboard
-  sudo chown www-data:www-data misp-dashboard
+  sudo chown $WWW_USER:$WWW_USER misp-dashboard
 
   $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git
   cd misp-dashboard
   sudo -H /var/www/misp-dashboard/install_dependencies.sh
   sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
   sudo sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/apache2/ports.conf
-  sudo apt install libapache2-mod-wsgi-py3 -y
+  sudo apt install libapache2-mod-wsgi-py3 net-tools -y
   echo "<VirtualHost *:8001>
       ServerAdmin admin@misp.local
       ServerName misp.local
@@ -75,22 +75,22 @@ mispDashboard () {
 # <snippet-begin 4_misp-dashboard-cake.sh>
 dashboardCAKE () {
   # Enable ZeroMQ for misp-dashboard
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
-  sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 }
 # <snippet-end 4_misp-dashboard-cake.sh>
 ```

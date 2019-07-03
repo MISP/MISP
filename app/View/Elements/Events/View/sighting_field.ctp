@@ -7,7 +7,7 @@
   ?>
   </span>
   <?php
-    if ($isAclAdd):
+    if ($isAclSighting):
   ?>
       <span class="icon-thumbs-up useCursorPointer" title="<?php echo __('Add sighting');?>" role="button" tabindex="0" aria-label="<?php echo __('Add sighting');?>" onmouseover="flexibleAddSighting(this, '0', '<?php echo h($object['id']); ?>', '<?php echo h($object['event_id']);?>', '<?php echo h($object['value']);?>', '<?php echo h($page); ?>', 'top');" onclick="addSighting('0', '<?php echo h($object['id']); ?>', '<?php echo h($object['event_id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
       <span class="icon-thumbs-down useCursorPointer" title="<?php echo __('Mark as false-positive');?>" role="button" tabindex="0" aria-label="<?php echo __('Mark as false-positive');?>" onmouseover="flexibleAddSighting(this, '1', '<?php echo h($object['id']); ?>', '<?php echo h($object['event_id']);?>', '<?php echo h($object['value']);?>', '<?php echo h($page); ?>', 'bottom');" onclick="addSighting('1', '<?php echo h($object['id']); ?>', '<?php echo h($object['event_id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>

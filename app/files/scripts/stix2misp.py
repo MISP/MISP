@@ -27,6 +27,10 @@ from mixbox.namespaces import NamespaceNotFoundError
 from operator import attrgetter
 from stix.core import STIXPackage
 from collections import defaultdict
+try:
+    import stix_edh
+except (ModuleNotFoundError, ImportError):
+    pass
 
 _MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-3]])
 _PyMISP_dir = '{_MISP_dir}/PyMISP'.format(_MISP_dir=_MISP_dir)
@@ -206,11 +210,13 @@ class StixParser():
     # Return type & value of an ip address attribute
     @staticmethod
     def handle_address(properties):
-        if properties.is_source:
-            ip_type = "ip-src"
+        if properties.category == 'e-mail':
+            attribute_type = 'email-src'
+            relation = 'from'
         else:
-            ip_type = "ip-dst"
-        return ip_type, properties.address_value.value, "ip"
+            attribute_type = "ip-src" if properties.is_source else "ip-dst"
+            relation = 'ip'
+        return attribute_type, properties.address_value.value, relation
 
     def handle_as(self, properties):
         attributes = self.fetch_attributes_with_partial_key_parsing(properties, stix2misp_mapping._as_mapping)
@@ -274,14 +280,24 @@ class StixParser():
         else:
             attributes = []
         if properties.attachments:
-            attributes.append(self.handle_email_attachment(properties.parent))
+            attributes.extend(self.handle_email_attachment(properties))
         return attributes[0] if len(attributes) == 1 else ("email", self.return_attributes(attributes), "")
 
     # Return type & value of an email attachment
-    @staticmethod
-    def handle_email_attachment(indicator_object):
-        properties = indicator_object.related_objects[0].properties
-        return ["email-attachment", properties.file_name.value, "attachment"]
+    def handle_email_attachment(self, properties):
+        attributes = []
+        related_objects = {}
+        if properties.parent.related_objects:
+            related_objects = {related.id_: related.properties for related in properties.parent.related_objects}
+        for attachment in (attachment.object_reference for attachment in properties.attachments):
+            if attachment in related_objects:
+                attributes.append(["email-attachment", related_objects[attachment].file_name.value, "attachment"])
+            else:
+                parent_id = self.fetch_uuid(properties.parent.id_)
+                referenced_id = self.fetch_uuid(attachment)
+                self.references[parent_id].append({'idref': referenced_id,
+                                                   'relationship': 'attachment'})
+        return attributes
 
     # Return type & attributes of a file object
     def handle_file(self, properties, is_object):
@@ -764,6 +780,8 @@ class StixFromMISPParser(StixParser):
                     # if ttp.handling:
                     #     self.parse_tlp_marking(ttp.handling)
         self.set_event_fields()
+        if self.references:
+            self.build_references()
 
     # Return type & attributes (or value) of a Custom Object
     def handle_custom(self, properties):
@@ -1087,12 +1105,14 @@ class ExternalStixParser(StixParser):
                             self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True, object_uuid=uuid)
                 except AttributeError:
                     self.parse_description(indicator)
+            elif hasattr(observable, 'observable_composition') and observable.observable_composition:
+                self.parse_external_observable(observable.observable_composition.observables, to_ids=True)
         if hasattr(indicator, 'related_indicators') and indicator.related_indicators:
             for related_indicator in indicator.related_indicators:
                 self.parse_external_single_indicator(related_indicator.item)
 
     # Parse observables of an external STIX document
-    def parse_external_observable(self, observables):
+    def parse_external_observable(self, observables, to_ids=False):
         for observable in observables:
             title = observable.title
             observable_object = observable.object_
@@ -1110,7 +1130,7 @@ class ExternalStixParser(StixParser):
                 object_uuid = self.fetch_uuid(observable_object.id_)
                 if isinstance(attribute_value, (str, int)):
                     # if the returned value is a simple value, we build an attribute
-                    attribute = {'to_ids': False, 'uuid': object_uuid}
+                    attribute = {'to_ids': to_ids, 'uuid': object_uuid}
                     if hasattr(observable, 'handling') and observable.handling:
                         attribute['Tag'] = []
                         for handling in observable.handling:
@@ -1195,7 +1215,9 @@ def _update_namespaces():
     # can add additional ones whenever it is needed
     ADDITIONAL_NAMESPACES = [
         Namespace('http://us-cert.gov/ciscp', 'CISCP',
-                  'http://www.us-cert.gov/sites/default/files/STIX_Namespace/ciscp_vocab_v1.1.1.xsd')
+                  'http://www.us-cert.gov/sites/default/files/STIX_Namespace/ciscp_vocab_v1.1.1.xsd'),
+        Namespace('http://taxii.mitre.org/messages/taxii_xml_binding-1.1', 'TAXII',
+                  'http://docs.oasis-open.org/cti/taxii/v1.1.1/cs01/schemas/TAXII-XMLMessageBinding-Schema.xsd')
     ]
     for namespace in ADDITIONAL_NAMESPACES:
         register_namespace(namespace)
@@ -1210,13 +1232,16 @@ def generate_event(filename, tries=0):
             sys.exit()
         _update_namespaces()
         return generate_event(filename, 1)
+    except NotImplementedError:
+        print('ERROR - Missing python library: stix_edh', file=sys.stderr)
     except Exception:
         try:
             import maec
             print(2)
         except ImportError:
+            print('ERROR - Missing python library: maec', file=sys.stderr)
             print(3)
-        sys.exit(0)
+    sys.exit(0)
 
 def main(args):
     filename = '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])

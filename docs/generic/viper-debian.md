@@ -10,6 +10,11 @@ viper () {
   sudo apt-get install \
     libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2 \
     python3-magic python3-sqlalchemy python3-prettytable libffi-dev libfreetype6-dev libpng-dev -qy
+  if [[ -f "/etc/debian_version" ]]; then
+    if [[ "$(cat /etc/debian_version)" == "9.9" ]]; then
+      sudo apt-get install libpython3.5-dev -qy
+    fi
+  fi
   echo "Cloning Viper"
   $SUDO_USER git clone https://github.com/viper-framework/viper.git
   sudo chown -R $MISP_USER:$MISP_USER viper
@@ -49,11 +54,17 @@ viper () {
   $SUDO_USER sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
   # Reset admin password to: admin/Password1234
   echo "Fixing admin.db with default password"
+  VIPER_COUNT=0
   while [ "$(sudo sqlite3 ${VIPER_HOME}/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
     # FIXME This might lead to a race condition, the while loop is sub-par
     sudo chown $MISP_USER:$MISP_USER ${VIPER_HOME}/admin.db
     echo "Updating viper-web admin password, giving process time to start-up, sleeping 5, 4, 3,…"
     sleep 6
+    VIPER_COUNT=$[$VIPER_COUNT+1]
+    if [[ "$VIPER_COUNT" > '10' ]]; then
+      echo "Something is wrong with updating viper. Continuing without db update."
+      break
+    fi
   done
 
   # Add viper-web to rc.local to be started on boot

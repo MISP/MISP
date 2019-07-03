@@ -503,6 +503,18 @@
                     break;
 
                 case 'sync':
+                    if ($me['Role']['perm_sync']) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/servers/createSync',
+                            'text' => __('Create Sync Config')
+                        ));
+                    }
+                    if ($menuItem === 'import' && ($me['Role']['perm_site_admin'])) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/servers/import',
+                            'text' => __('Import Server Settings')
+                        ));
+                    }
                     if ($menuItem === 'previewEvent' && ($isSiteAdmin || $hostOrg)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => sprintf(
@@ -594,7 +606,7 @@
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'event_id' => 'deleteUser',
-                            'url' => '/admin/delete/' . h($id),
+                            'url' => '/admin/users/delete/' . h($id),
                             'text' => __('Delete User'),
                             'message' => __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id))
                         ));

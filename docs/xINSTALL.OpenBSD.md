@@ -1,16 +1,15 @@
 # INSTALLATION INSTRUCTIONS
-## for OpenBSD 6.4-amd64
+## for OpenBSD 6.5-amd64
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
-		LIEF, will probably not be available for a long long time on OpenBSD, until someone is brave enough to make it work.
-		GnuPG also needs some more TLC.
+    LIEF, will probably not be available for a long long time on OpenBSD, until someone is brave enough to make it work.
+    GnuPG also needs some more TLC.
 
-### 0/ WIP! You are warned, this does not work yet!
+### 0/ WIP! You are warned, this does only partially work!
 ------------
 
 !!! notice
-    Current issues: php-redis only available in binary for php-56, workaround: use OpenBSD 6.4.
     This guide attempts to offer native httpd or apache2/nginx.
 
 !!! warning
@@ -39,7 +38,9 @@ export AUTOCONF_VERSION=2.69
 
 #### doas & pkg (as root)
 ```bash
-echo https://cdn.openbsd.org/pub/OpenBSD/ > /etc/installurl
+if [[ ! -e /etc/installurl ]]; then
+  echo https://cdn.openbsd.org/pub/OpenBSD/ > /etc/installurl
+fi
 echo "permit keepenv setenv { PKG_PATH ENV PS1 SSH_AUTH_SOCK } :wheel" > /etc/doas.conf
 ## FIXME: this does NOT set the HOME env correctly, please fix to make pip happier
 echo "permit nopass setenv { ENV PS1 HOME=/var/www } www" >> /etc/doas.conf
@@ -52,6 +53,18 @@ cd /tmp
 ftp https://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/{ports.tar.gz,SHA256.sig}
 signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig ports.tar.gz
 doas tar -x -z -f /tmp/ports.tar.gz -C /usr
+```
+
+##### If you want to use php-gd (resizing of images) you need X (optional)
+
+```bash
+cd /tmp
+ftp https://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/$(uname -m)/{xbase$(uname -r| tr -d \.).tgz,SHA256.sig}
+signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig xbase$(uname -r |tr -d \.).tgz
+doas tar -xzphf /tmp/xbase$(uname -r| tr -d \.).tgz -C /
+ftp https://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/$(uname -m)/{xshare$(uname -r| tr -d \.).tgz,SHA256.sig}
+signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig xshare$(uname -r |tr -d \.).tgz
+doas tar -xzphf /tmp/xshare$(uname -r| tr -d \.).tgz -C /
 ```
 
 #### Update system
@@ -119,10 +132,14 @@ doas /usr/local/sbin/ntpd -p /var/run/ntpd.pid
 
 #### misp user
 ```bash
-doas useradd -m -s /usr/local/bin/bash -G wheel,www misp
+if [[ -z $(id misp 2>/dev/null) ]]; then
+  doas useradd -m -s /usr/local/bin/bash -G wheel,www misp
+else
+  doas usermod -G www misp
+fi
 ```
 
-#### /etc/httpd.conf
+#### /etc/httpd.conf (native httpd)
 ```bash
 doas cp /etc/examples/httpd.conf /etc # adjust by hand, or copy/paste the config example below
 ```
@@ -256,33 +273,33 @@ doas pkg_add -v fcgi-cgi fcgi
 !!! notice
     php-5.6 is marked as end-of-life starting December 2018, use php 7.0 instead.
     Option 2.
-    If on OpenBSD 6.3, upgrade to 6.4 to make your life much easier.
+    If on OpenBSD 6.3, upgrade to 6.5 to make your life much easier.
 
 ```
-doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl72-redis php-gd
+doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl73-redis php-gd
 ```
 
-#### /etc/php-7.2.ini 
+#### /etc/php-7.3.ini 
 ```
 ## TODO: sed foo as .ini exists
 allow_url_fopen = On
 ```
 
 ```bash
-cd /etc/php-7.2
-doas cp ../php-7.2.sample/* .
+cd /etc/php-7.3
+doas cp ../php-7.3.sample/* .
 ```
 
 #### php symlinks
 ```bash
-doas ln -s /usr/local/bin/php-7.2 /usr/local/bin/php
-doas ln -s /usr/local/bin/phpize-7.2 /usr/local/bin/phpize
-doas ln -s /usr/local/bin/php-config-7.2 /usr/local/bin/php-config
+doas ln -s /usr/local/bin/php-7.3 /usr/local/bin/php
+doas ln -s /usr/local/bin/phpize-7.3 /usr/local/bin/phpize
+doas ln -s /usr/local/bin/php-config-7.3 /usr/local/bin/php-config
 ```
 
 #### Enable php fpm 
 ```bash
-doas rcctl enable php72_fpm
+doas rcctl enable php73_fpm
 ```
 
 #### Configure fpm
@@ -312,7 +329,7 @@ pm.min_spare_servers = 1
 pm.max_spare_servers = 3
 chroot = /var/www" | doas tee /etc/php-fpm.d/default.conf
 
-doas /etc/rc.d/php72_fpm start 
+doas /etc/rc.d/php73_fpm start 
 ```
 
 !!! notice
@@ -514,7 +531,7 @@ DirectoryIndex index.php
 ```
 
 ```bash
-doas ln -sf /var/www/conf/modules.sample/php-7.2.conf /var/www/conf/modules/php.conf
+doas ln -sf /var/www/conf/modules.sample/php-7.3.conf /var/www/conf/modules/php.conf
 # Restart apache
 doas /etc/rc.d/apache2 restart
 ``` 

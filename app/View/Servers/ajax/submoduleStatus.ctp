@@ -9,7 +9,7 @@
                 echo $this->Form->create('Server', array('url' => array('action' => 'updateSubmodule'), 'div' => false, 'style' => 'margin: 0px; display: inline-block;'));
                 echo $this->Form->hidden('submodule', array('value' => false));
                 echo $this->Form->end();
-                echo '<it class="fas fa-sync useCursorPointer" title="' . __('Update all submodules') . '" aria-label="Update all" onclick="submitSubmoduleUpdate(this);"></it>';
+                echo '<it class="fas fa-download useCursorPointer" title="' . __('Update all submodules') . '" aria-label="Update all" onclick="submitSubmoduleUpdate(this);"></it>';
                 ?>
             </th>
         </tr>
@@ -56,7 +56,7 @@
                 <td class="updateActionCell">
                     <?php
                     if ($status['upToDate'] != 'same' && $status['isReadable']) {
-                        echo '<it class="fas fa-sync useCursorPointer" title="' . __('Update submodule') . '" aria-label="Update" data-submodule="' . h($submodule) . '" onclick="submitSubmoduleUpdate(this);"></it>';
+                        echo '<it class="fas fa-download useCursorPointer" title="' . __('Update submodule') . '" aria-label="Update" data-submodule="' . h($submodule) . '" onclick="submitSubmoduleUpdate(this);"></it>';
                     }
                     ?>
                 </td>

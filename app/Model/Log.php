@@ -45,6 +45,7 @@ class Log extends AppModel
                             'pull',
                             'push',
                             'remove_dead_workers',
+                            'request',
                             'request_delegation',
                             'reset_auth_key',
                             'serverSettingsEdit',
@@ -115,6 +116,9 @@ class Log extends AppModel
             }
         }
         $this->logData($this->data);
+        if ($this->data['Log']['action'] === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {
+            return false;
+        }
         return true;
     }
 
@@ -290,5 +294,32 @@ class Log extends AppModel
             $syslog->write($action, $entry);
         }
         return true;
+    }
+
+    public function filterSiteAdminSensitiveLogs($list)
+    {
+        $this->User = ClassRegistry::init('User');
+        $site_admin_roles = $this->User->Role->find('list', array(
+            'recursive' => -1,
+            'conditions' => array('Role.perm_site_admin' => 1),
+            'fields' => array('Role.id', 'Role.id')
+        ));
+        $site_admins = $this->User->find('list', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'User.role_id' => array_values($site_admin_roles)
+            ),
+            'fields' => array('User.id', 'User.id')
+        ));
+        foreach ($list as $k => $v) {
+            if (
+                $v['Log']['model'] === 'User' &&
+                in_array($v['Log']['model_id'], array_values($site_admins)) &&
+                in_array($v['Log']['action'], array('add', 'edit', 'reset_auth_key'))
+            ) {
+                $list[$k]['Log']['change'] = __('Redacted');
+            }
+        }
+        return $list;
     }
 }

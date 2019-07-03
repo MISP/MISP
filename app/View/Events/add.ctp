@@ -59,6 +59,7 @@
                 ));
         echo $this->Form->input('extends_uuid', array(
                     'label' => __('Extends event'),
+                    'value' => isset($extends_uuid) ? $extends_uuid : '',
                     'div' => 'clear',
                     'class' => 'form-control span6',
                     'placeholder' => __('Event UUID or ID. Leave blank if not applicable.')
@@ -105,6 +106,7 @@ echo $this->Form->end();
         if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
         else $('#SGContainer').hide();
         initPopoverContent('Event');
+        previewEventBasedOnUuids();
     });
 </script>
 <?php echo $this->Js->writeBuffer();

@@ -88,16 +88,9 @@
                 )
             )
         );
-        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
     ?>
     <div id="attributeList" class="attributeListContainer">
-        <div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
-            <span id="filter_header" class="attribute_filter_header"><?php echo __('Filters');?>: </span>
-            <div id="filter_all" title="<?php echo __('Show all queues');?>" role="button" tabindex="0" aria-label="<?php echo __('Show all queues');?>" class="attribute_filter_text<?php if (!$queue) echo '_active';?>" onClick="window.location='/jobs/index';"><?php echo __('All');?></div>
-            <div id="filter_default" title="<?php echo __('Show default queue');?>" role="button" tabindex="0" aria-label="<?php echo __('Show default queue');?>" class="attribute_filter_text<?php if ($queue === 'default') echo '_active';?>" onClick="window.location='/jobs/index/default';"><?php echo __('Default');?></div>
-            <div id="filter_email" title="<?php echo __('Show email queue');?>" role="button" tabindex="0" aria-label="<?php echo __('Show email queue');?>" class="attribute_filter_text<?php if ($queue === 'email') echo '_active';?>" onClick="window.location='/jobs/index/email';"><?php echo __('Email');?></div>
-            <div id="filter_cache" title="<?php echo __('Show cache queue');?>" role="button" tabindex="0" aria-label="<?php echo __('Show cache queue');?>" class="attribute_filter_text<?php if ($queue === 'cache') echo '_active';?>" onClick="window.location='/jobs/index/cache';"><?php echo __('Cache');?></div>
-        </div>
+        <?php echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data)); ?>
         <table class="table table-striped table-hover table-condensed">
         <tr>
                 <th><?php echo $this->Paginator->sort('id');?></th>

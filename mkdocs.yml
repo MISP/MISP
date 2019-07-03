@@ -70,18 +70,16 @@ nav:
     - Install Guides:
       - 'Ubuntu 18.04': 'INSTALL.ubuntu1804.md'
       - 'Kali Linux': 'INSTALL.kali.md'
-      - 'Redhat Enterprise Linux 7': 'INSTALL.rhel7.md'
+      - 'RHEL7/CentOS7': 'INSTALL.rhel7.md'
+      - 'RHEL8': 'INSTALL.rhel8.md'
     - xInstall Guides: 
       - 'Warning': 'xINSTALL.md'
       - 'Centos 6': 'xINSTALL.centos6.md'
-      - 'Centos 7': 'xINSTALL.centos7.md'
       - 'Debian stable': 'xINSTALL.debian9.md'
       - 'Debian testing': 'xINSTALL.debian_testing.md'
-      - 'Debian 9 \w postgresql': 'xINSTALL.debian9-postgresql.md'
       - 'Ubuntu 18.04 \w webmin': 'xINSTALL.ubuntu1804.with.webmin.md'
       - 'Tsurugi Linux': 'xINSTALL.tsurugi.md'
-      - 'OpenBSD 6.4': 'xINSTALL.OpenBSD.md'
-      - 'Redhat Enterprise Linux 7.6 (BETA)': 'xINSTALL.rhel7.md'
+      - 'OpenBSD 6.5': 'xINSTALL.OpenBSD.md'
     - Config Guides:
       - 'Elastic Search Logging': 'CONFIG.elasticsearch-logging.md'
       - 'Amazon S3 attachments': 'CONFIG.s3-attachments.md'

@@ -64,9 +64,7 @@
         <li class="all <?php if ($all) echo 'disabled'; ?>">
             <?php
                 if ($all):
-            ?>
-                <span class="red">view all</span>
-            <?php
+                    echo '<span class="red">' . __('view all') . '</span>';
                 else:
                     echo $this->Paginator->link(__('view all'), 'all');
                 endif;
@@ -233,9 +231,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         <li class="all <?php if ($all) echo 'disabled'; ?>">
             <?php
                 if ($all):
-            ?>
-                <span class="red">view all</span>
-            <?php
+                    echo '<span class="red">' . __('view all') . '</span>';
                 else:
                     echo $this->Paginator->link(__('view all'), 'all');
                 endif;
@@ -317,7 +313,33 @@ attributes or the appropriate distribution level. If you think there is a mistak
                 object_id = selected.join('|');
             }
             url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
-            genericPopup(url, '#screenshot_box');
+            genericPopup(url, '#popover_box');
+        });
+        $(".eventViewAttributeHover").mouseenter(function() {
+            $('#' + currentPopover).popover('destroy');
+            var type = $(this).attr('data-object-type');
+            var id = $(this).attr('data-object-id');
+
+            if (type + "_" + id in ajaxResults["hover"]) {
+                var element = $('#' + type + '_' + id + '_container');
+                element.popover({
+                    title: attributeHoverTitle(id, type),
+                    content: ajaxResults["hover"][type + "_" + id],
+                    placement: attributeHoverPlacement(element),
+                    html: true,
+                    trigger: 'manual',
+                    container: 'body'
+                }).popover('show');
+                currentPopover = type + '_' + id + '_container';
+            } else {
+              timer = setTimeout(function () {
+                  runHoverLookup(type, id)
+                },
+                500
+              );
+            }
+        }).mouseout(function() {
+            clearTimeout(timer);
         });
     });
     $('#attributesFilterField').bind("keydown", function(e) {

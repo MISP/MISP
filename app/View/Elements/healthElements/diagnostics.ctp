@@ -34,6 +34,12 @@
                 <?php
                     echo $version['current'] . ' (' . h($commit) . ')';
                 ?>
+                <?php if ($commit === ''): ?>
+                    <br />
+                    <span class="red bold apply_css_arrow">
+                        <?php echo __('Unable to fetch current commit id, check apache user read privilege.'); ?>
+                    </span>
+                <?php endif; ?>
             </span>
         </span><br />
         <span><?php echo __('Latest available version…');?>
@@ -60,10 +66,15 @@
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
+        <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><?php echo __('Update Progress');?></a>
     </div>
-    <h3><?php echo __('Submodules version');?><it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;"></it></h3>
-    <div id="divSubmoduleVersions" style="background-color:#f7f7f9;">
-    </div>
+    <h3><?php echo __('Submodules version');?>
+        <it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Refresh submodules version.'); ?>"></it>
+    </h3>
+    <div id="divSubmoduleVersions" style="background-color:#f7f7f9;"></div>
+    <span id="updateAllJson" class="btn btn-inverse" title="<?php echo __('Load all JSON into the database.'); ?>">
+        <it class="fas fa-file-upload"></it> <?php echo __("Load JSON into database"); ?>
+    </span>
 
     <h3><?php echo __('Writeable Directories and files');?></h3>
     <p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
@@ -250,6 +261,20 @@
             }
         ?>
     </div>
+    <h3><?php echo __('Yara');?></h3>
+    <p><?php echo __('This tool tests whether plyara, the library used by the yara export tool is installed or not.');?></p>
+    <div style="background-color:#f7f7f9;width:400px;">
+        <?php
+            $colour = 'green';
+            $message = __('OK');
+            if ($yaraStatus['operational'] == 0) {
+                $colour = 'red';
+                $message = __('Invalid plyara version / plyara not installed. Please run pip3 install plyara');
+            }
+            echo __('plyara library installed') . '…<span style="color:' . $colour . ';">' . $message . '</span>';
+        ?>
+    </div>
+
     <h3><?php echo __('GnuPG');?></h3>
     <p><?php echo __('This tool tests whether your GnuPG is set up correctly or not.');?></p>
     <div style="background-color:#f7f7f9;width:400px;">
@@ -344,12 +369,10 @@
     </div><br />
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
     <?php echo $this->Form->postButton(__('Remove orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
-    <h3><?php echo __('Verify GnuPG keys');?></h3>
-    <p><?php echo __('Run a full validation of all GnuPG keys within this instance\'s userbase. The script will try to identify possible issues with each key and report back on the results.');?></p>
-    <span class="btn btn-inverse" onClick="location.href='<?php echo $baseurl;?>/users/verifyGPG';"><?php echo __('Verify GnuPG keys');?></span> (<?php echo __('Check whether every user\'s GnuPG key is usable');?>)</li>
-    <h3><?php echo __('Database cleanup scripts');?></h3>
-    <p><?php echo __('If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.');?></p>
-    <?php echo $this->Form->postButton(__('Prune upgrade logs'), $baseurl . '/logs/pruneUpdateLogs', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+    <?php echo $this->Form->postButton(__('Remove published empty events'), $baseurl . '/events/cullEmptyEvents', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+    <h3><?php echo __('Administrator On-demand Action');?></h3>
+    <p><?php echo __('Click the following button to go to the Administrator On-demand Action page.');?></p>
+    <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/servers/ondemandAction/';"><?php echo __('Administrator On-demand Action');?></span>
     <h3><?php echo __('Legacy Administrative Tools');?></h3>
     <p><?php echo __('Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions.');?></p>
     <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';"><?php echo __('Legacy Administrative Tools');?></span>
@@ -365,9 +388,10 @@
 <script>
     $(document).ready(function() {
         updateSubModulesStatus();
+        $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
+        $('#updateAllJson').click(function() { updateAllJson(); });
     });
 
-    $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
     function updateSubModulesStatus(message, job_sent, sync_result) {
         job_sent = job_sent === undefined ? false : job_sent;
         sync_result = sync_result === undefined ? '' : sync_result;
@@ -388,6 +412,26 @@
                         .text(sync_result);
                 }
                 $clone.appendTo($('#submoduleGitResultDiv').parent());
+            }
+        });
+    }
+    function updateAllJson() {
+        $.ajax({
+            url: '<?php echo $baseurl . '/servers/updateJSON/'; ?>',
+            type: "get",
+            beforeSend: function() {
+                $('#submoduleGitResultDiv').show();
+                $('#submoduleGitResult').append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');
+            },
+            success: function(data, statusText, xhr) {
+                Object.keys(data).forEach(function(k) {
+                    var val = data[k];
+                    data[k] = val ? 'Updated' : 'Update failed';
+                });
+                $('#submoduleGitResult').html(syntaxHighlightJson(data));
+            },
+            complete: function() {
+                $('#submoduleGitResult').find('fa-spinner').remove();
             }
         });
     }

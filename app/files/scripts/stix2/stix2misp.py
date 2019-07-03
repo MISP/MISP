@@ -24,7 +24,6 @@ import uuid
 import io
 import re
 import stix2
-from base64 import b64encode
 from stix2misp_mapping import *
 from collections import defaultdict
 
@@ -982,7 +981,8 @@ class ExternalStixParser(StixParser):
                                    ('x509-certificate',): self.parse_x509_observable,
                                    ('url',): self.parse_url_observable,
                                    ('windows-registry-key',): self.parse_regkey_observable}
-        self.pattern_mapping = {('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
+        self.pattern_mapping = {('domain-name',): self.parse_domain_ip_port_pattern,
+                                ('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('domain-name', 'ipv6-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('file',): self.parse_file_pattern,
                                 ('ipv4-addr',): self.parse_ip_address_pattern,
@@ -990,7 +990,8 @@ class ExternalStixParser(StixParser):
                                 ('network-traffic',): self.parse_network_traffic_pattern,
                                 ('process',): self.parse_process_pattern,
                                 ('url',): self.parse_url_pattern,
-                                ('windows-registry-key',): self.parse_regkey_pattern}
+                                ('windows-registry-key',): self.parse_regkey_pattern,
+                                ('x509-certificate',): self.parse_x509_pattern}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
 
     def handler(self):
@@ -1279,7 +1280,7 @@ class ExternalStixParser(StixParser):
     def parse_process_pattern(self, pattern, marking=None, uuid=None):
         pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
         attributes = self.fill_pattern_attributes(pattern_types, pattern_values, process_mapping)
-        self.object_case_import(attributes, 'process', marking, uuid)
+        self.handle_import_case(attributes, 'process', marking, uuid)
 
     def parse_regkey_observable(self, objects, marking, uuid):
         _object = objects['0']
@@ -1303,6 +1304,11 @@ class ExternalStixParser(StixParser):
 
     def parse_x509_observable(self, objects, marking, uuid):
         attributes = self.attributes_from_x509_observable(objects)
+        self.handle_import_case(attributes, 'x509', marking, uuid)
+
+    def parse_x509_pattern(self, pattern, marking=None, uuid=None):
+        pattern_types, attribute_types = self.get_types_and_values_from_pattern(pattern)
+        attributes = self.fill_pattern_attributes(pattern_types, attribute_types, x509_mapping)
         self.handle_import_case(attributes, 'x509', marking, uuid)
 
     ################################################################################
@@ -1352,7 +1358,10 @@ class ExternalStixParser(StixParser):
         types = []
         values = []
         for p in pattern:
-            type_, value = p.split('=')
+            try:
+                type_, value = p.split('=')
+            except ValueError:
+                type_, value = p.split(' = ')
             types.append(type_.strip())
             values.append(value.strip().strip('\''))
         return types, values
@@ -1411,7 +1420,7 @@ def main(args):
                 object_type = 'galaxy'
             elif object_type == 'marking-definition':
                 parsed_object = {'object': parsed_object, 'used': False}
-                object_type = object_type
+                # object_type = object_type
             stix_event[object_type][uuid] = parsed_object
     if not stix_event:
         print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))

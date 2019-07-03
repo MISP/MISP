@@ -46,10 +46,11 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome');
 
-    private $__queryVersion = '65';
-    public $pyMispVersion = '2.4.103';
+    private $__queryVersion = '79';
+    public $pyMispVersion = '2.4.106';
     public $phpmin = '7.0';
     public $phprec = '7.2';
+    public $isApiAuthed = false;
 
     public $baseurl = '';
     public $sql_dump = false;
@@ -251,6 +252,7 @@ class AppController extends Controller
                             }
                             $this->Session->renew();
                             $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+                            $this->isApiAuthed = true;
                         } else {
                             // User not authenticated correctly
                             // reset the session information
@@ -372,7 +374,7 @@ class AppController extends Controller
                 $this->Auth->logout();
                 throw new MethodNotAllowedException($message);//todo this should pb be removed?
             } else {
-                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)', array('clear' => 1));
+                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $baseurl . '/servers/advancedUpdate/', 'urlName' => 'Advanced Update'), 'clear' => 1));
             }
         }
 
@@ -444,6 +446,28 @@ class AppController extends Controller
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->userRole = $role;
+            if (Configure::read('MISP.log_paranoid')) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
+                if (($this->request->is('post') || $this->request->is('put')) && !empty(Configure::read('MISP.log_paranoid_include_post_body'))) {
+                    $payload = $this->request->data;
+                    if (!empty($payload['_Token'])) {
+                        unset($payload['_Token']);
+                    }
+                    $change .= PHP_EOL . 'Request body: ' . json_encode($payload);
+                }
+                $log = array(
+                        'org' => $this->Auth->user('Organisation')['name'],
+                        'model' => 'User',
+                        'model_id' => $this->Auth->user('id'),
+                        'email' => $this->Auth->user('email'),
+                        'action' => 'request',
+                        'title' => 'Paranoid log entry',
+                        'change' => $change,
+                );
+                $this->Log->save($log);
+            }
         } else {
             $this->set('me', false);
         }
@@ -480,6 +504,9 @@ class AppController extends Controller
             $this->Log = ClassRegistry::init('Log');
             echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
         }
+        if ($this->isApiAuthed && $this->_isRest()) {
+            session_destroy();
+        }
     }
 
     public function queryACL($debugType='findMissingFunctionNames', $content = false)
@@ -498,7 +525,7 @@ class AppController extends Controller
 
     private function __convertEmailToName($email)
     {
-        $name = explode('@', $email);
+        $name = explode('@', (string)$email);
         $name = explode('.', $name[0]);
         foreach ($name as $key => $value) {
             $name[$key] = ucfirst($value);
@@ -641,7 +668,7 @@ class AppController extends Controller
             foreach ($options['paramArray'] as $p) {
                 if (
                     isset($options['ordered_url_params'][$p]) &&
-                    (!in_array(strtolower($options['ordered_url_params'][$p]), array('null', '0', false, 'false', null)))
+                    (!in_array(strtolower((string)$options['ordered_url_params'][$p]), array('null', '0', false, 'false', null)))
                 ) {
                     $data[$p] = $options['ordered_url_params'][$p];
                     $data[$p] = str_replace(';', ':', $data[$p]);
@@ -835,7 +862,11 @@ class AppController extends Controller
         }
         $this->Server->updateDatabase($command);
         $this->Flash->success('Done.');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        if ($liveOff) {
+            $this->redirect(array('controller' => 'servers', 'action' => 'updateProgress'));
+        } else {
+            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        }
     }
 
     public function upgrade2324()

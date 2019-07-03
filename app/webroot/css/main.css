@@ -37,6 +37,13 @@ pre {
     font-size: 11px;
 
 }
+
+.ellipsis-overflow {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
 .nav-list {
     padding-right: 5px;
 }
@@ -847,6 +854,24 @@ a.proposal_link_red:hover {
     z-index: 30;
 }
 
+.ajax_popover_matrix {
+    width: 96vw;
+    min-width: 1400px;
+    left: 2vw;
+    max-height: 80vh;
+    position: absolute;
+}
+
+.popover_box {
+    display:none;
+    position: fixed;
+    top:150px;
+    background-color:#f4f4f4;
+    border-radius: 11px 11px 10px 10px;
+    box-shadow: 4px 4px 4px #333;
+    z-index:5;
+}
+
 .screenshot_box {
     display:none;
     position: absolute;
@@ -1068,6 +1093,15 @@ span.success {
     display:none;
     margin-left:10px;
     width:665px;
+}
+
+.correlation-container {
+    max-height: 500px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    padding: 5px;
+    border: 1px solid #dddddd;
+    border-radius: 3px;
 }
 
 .inline-input {
@@ -2276,6 +2310,7 @@ table tr:hover .down-expand-button {
     margin-left:2px;
     color: black;
 }
+
 .decayingGraphLine {
     fill: none;
     stroke: steelblue;
@@ -2330,4 +2365,16 @@ table tr:hover .down-expand-button {
 
 .decayingGraphAxis.grid path {
     stroke-width: 0;
+
+.fixedRightPanel {
+    position: fixed;
+    top: 45px;
+    right: 0px;
+    height: 800px;
+    width: 800px;
+    background: #ffffffcc;;
+    z-index: 1;
+    border: 1px solid #0088cc;
+    border-radius: 6px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
 }

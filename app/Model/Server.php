@@ -192,6 +192,15 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'null' => true
                         ),
+                        'server_settings_skip_backup_rotate' => array(
+                            'level' => 1,
+                            'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'python_bin' => array(
                                 'level' => 1,
                                 'description' => __('It is highly recommended to install all the python dependencies in a virtualenv. The recommended location is: %s/venv', ROOT),
@@ -201,6 +210,7 @@ class Server extends AppModel
                                 'test' => 'testForBinExec',
                                 'beforeHook' => 'beforeHookBinExec',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'disable_auto_logout' => array(
                                 'level' => 1,
@@ -456,6 +466,7 @@ class Server extends AppModel
                                 'null' => false,
                                 'test' => 'testForWritableDir',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'cached_attachments' => array(
                                 'level' => 1,
@@ -712,6 +723,33 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                        'log_paranoid' => array(
+                                'level' => 0,
+                                'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBoolFalse',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
+                        'log_paranoid_skip_db' => array(
+                                'level' => 0,
+                                'description' => __('You can decide to skip the logging of the paranoid logs to the database.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testParanoidSkipDb',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
+                        'log_paranoid_include_post_body' => array(
+                                'level' => 0,
+                                'description' => __('If paranoid logging is enabled, include the POST body in the entries.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
                         'delegation' => array(
                                 'level' => 1,
                                 'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
@@ -785,6 +823,15 @@ class Server extends AppModel
                                 'type' => 'string',
                                 'null' => false,
                         ),
+                        'org_alert_threshold' => array(
+                                'level' => 1,
+                                'description' => __('Set a value to limit the number of email alerts that events can generate per creator organisation (for example, if an organisation pushes out 2000 events in one shot, only alert on the first 20).'),
+                                'value' => 0,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => true,
+                        ),
                         'block_old_event_alert' => array(
                                 'level' => 1,
                                 'description' => __('Enable this setting to start blocking alert e-mails for old events. The exact timing of what constitutes an old event is defined by MISP.block_old_event_alert_age.'),
@@ -811,6 +858,7 @@ class Server extends AppModel
                                 'test' => 'testForPath',
                                 'type' => 'string',
                                 'null' => true,
+                                'cli_only' => 1
                         ),
                         'custom_css' => array(
                                 'level' => 2,
@@ -915,7 +963,15 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                                 'null' => true
-                        )
+                        ),
+                        'updateTimeThreshold' => array(
+                               'level' => 1,
+                               'description' => __('Sets the minimum time before being able to re-trigger an update if the previous one failed. (safe guard to avoid starting the same update multiple time)'),
+                               'value' => '7200',
+                               'test' => 'testForNumeric',
+                               'type' => 'numeric',
+                               'null' => true
+                       )
                 ),
                 'GnuPG' => array(
                         'branch' => 1,
@@ -926,6 +982,7 @@ class Server extends AppModel
                                 'errorMessage' => '',
                                 'test' => 'testForGPGBinary',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'onlyencrypted' => array(
                                 'level' => 0,
@@ -1223,15 +1280,15 @@ class Server extends AppModel
                         'RPZ_policy' => array(
                             'level' => 2,
                             'description' => __('The default policy action for the values added to the RPZ.'),
-                            'value' => 0,
+                            'value' => 1,
                             'errorMessage' => '',
                             'test' => 'testForRPZBehaviour',
                             'type' => 'numeric',
-                            'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'walled-garden'),
+                            'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'Local-Data', 4 => 'PASSTHRU', 5 => 'TCP-only' ),
                         ),
                         'RPZ_walled_garden' => array(
                             'level' => 2,
-                            'description' => __('The default walled garden used by the RPZ export if the walled garden setting is picked for the export.'),
+                            'description' => __('The default walled garden used by the RPZ export if the Local-Data policy setting is picked for the export.'),
                             'value' => '127.0.0.1',
                             'errorMessage' => '',
                             'test' => 'testForEmpty',
@@ -1239,7 +1296,7 @@ class Server extends AppModel
                         ),
                         'RPZ_serial' => array(
                                 'level' => 2,
-                                'description' => __('The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting).'),
+                                'description' => __('The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting). Setting it to $time will give you an unixtime-based serial (good then you need more than 99 revisions per day).'),
                                 'value' => '$date00',
                                 'errorMessage' => '',
                                 'test' => 'testForRPZSerial',
@@ -2158,6 +2215,31 @@ class Server extends AppModel
         return $event;
     }
 
+    private function __checkIfEventSaveAble($event) {
+        if (!empty($event['Event']['Attribute'])) {
+            foreach ($event['Event']['Attribute'] as $attribute) {
+                if (empty($attribute['deleted'])) {
+                    return true;
+                }
+            }
+        }
+        if (!empty($event['Event']['Object'])) {
+            foreach ($event['Event']['Object'] as $object) {
+                if (!empty($object['deleted'])) {
+                    continue;
+                }
+                if (!empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $attribute) {
+                        if (empty($attribute['deleted'])) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId)
     {
         // check if the event already exist (using the uuid)
@@ -2199,7 +2281,11 @@ class Server extends AppModel
                 return false;
             }
             $event = $this->__updatePulledEventBeforeInsert($event, $server, $user);
-            $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+            if (!$this->__checkIfEventSaveAble($event)) {
+                $fails[$eventId] = __('Empty event detected.');
+            } else {
+                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+            }
         } else {
             // error
             $fails[$eventId] = __('failed downloading the event');
@@ -2576,7 +2662,7 @@ class Server extends AppModel
                         'event_uuid' => $eventUuid,
                         'includeAttachments' => true,
                         'includeAllTags' => true,
-                        'deleted' => true,
+                        'deleted' => array(0,1),
                         'excludeGalaxy' => 1
                     ));
                     $event = $this->Event->fetchEvent($user, $params);
@@ -3003,6 +3089,9 @@ class Server extends AppModel
 
     public function testForBinExec($value)
     {
+        if (substr($value, 0, 7) === "phar://") {
+            return 'Phar protocol not allowed.';
+        }
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($value === '') {
             return true;
@@ -3021,6 +3110,9 @@ class Server extends AppModel
 
     public function testForWritableDir($value)
     {
+        if (substr($value, 0, 7) === "phar://") {
+            return 'Phar protocol not allowed.';
+        }
         if (!is_dir($value)) {
             return 'Not a valid directory.';
         }
@@ -3176,6 +3268,14 @@ class Server extends AppModel
         }
     }
 
+    public function testParanoidSkipDb($value)
+    {
+        if (!empty(Configure::read('MISP.log_paranoid')) && empty($value)) {
+            return 'Perhaps consider skipping the database when using paranoid mode. A great number of entries will be added to your log database otherwise that will lead to performance degradation.';
+        }
+        return true;
+    }
+
     public function testSalt($value)
     {
         if ($this->testForEmpty($value) !== true) {
@@ -3286,8 +3386,8 @@ class Server extends AppModel
         if ($numeric !== true) {
             return $numeric;
         }
-        if ($value < 0 || $value > 3) {
-            return 'Invalid setting, valid range is 0-3 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden.';
+        if ($value < 0 || $value > 5) {
+            return 'Invalid setting, valid range is 0-5 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden, 4 = PASSTHRU, 5 = TCP-only.';
         }
         return true;
     }
@@ -3317,7 +3417,7 @@ class Server extends AppModel
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
-        if (!preg_match('/^((\$date(\d*)|\d*))$/', $value)) {
+        if (!preg_match('/^((\$date(\d*)|\$time|\d*))$/', $value)) {
             return 'Invalid format.';
         }
         return true;
@@ -3643,26 +3743,30 @@ class Server extends AppModel
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
-        $randomFilename = $this->generateRandomFileName();
-        // To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
-        file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
-        rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
-        $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
-        // if the saved config file is empty, restore the backup.
-        if (strlen($config_saved) < 20) {
-            copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
-            ));
-            return false;
+        if (empty(Configure::read('MISP.server_settings_skip_backup_rotate'))) {
+            $randomFilename = $this->generateRandomFileName();
+            // To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
+            file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
+            rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
+            $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
+            // if the saved config file is empty, restore the backup.
+            if (strlen($config_saved) < 20) {
+                copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $this->Log->save(array(
+                        'org' => 'SYSTEM',
+                        'model' => 'Server',
+                        'model_id' => $id,
+                        'email' => 'SYSTEM',
+                        'action' => 'error',
+                        'user_id' => 0,
+                        'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
+                ));
+                return false;
+            }
+        } else {
+            file_put_contents(APP . 'Config' . DS . 'config.php', $settingsString);
         }
         return true;
     }
@@ -3785,6 +3889,22 @@ class Server extends AppModel
                     return array('status' => 6);
                 }
             }
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: Connection test failed. Returned data is in the change field.',
+                    'change' => sprintf(
+                        'response () => (%s), response-code () => (%s)',
+                        $response->body,
+                        $response->code
+                    )
+            ));
             return array('status' => 3);
         }
     }
@@ -4044,6 +4164,13 @@ class Server extends AppModel
             }
         }
         return $readableFiles;
+    }
+
+    public function yaraDiagnostics(&$diagnostic_errors)
+    {
+        $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'yaratest.py');
+        $scriptResult = json_decode($scriptResult, true);
+        return array('operational' => $scriptResult['success'], 'plyara' => $scriptResult['plyara']);
     }
 
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
@@ -4616,7 +4743,11 @@ class Server extends AppModel
             $submodule_name=end($submodule_name);
             $submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
             exec(sprintf('cd %s; git rev-parse HEAD', $path), $submodule_current_commit_id);
-            $submodule_current_commit_id = $submodule_current_commit_id[0];
+            if (!empty($submodule_current_commit_id[0])) {
+                $submodule_current_commit_id = $submodule_current_commit_id[0];
+            } else {
+                $submodule_current_commit_id = null;
+            }
             $status = array(
                 'moduleName' => $submodule_name,
                 'current' => $submodule_current_commit_id,
@@ -4640,7 +4771,11 @@ class Server extends AppModel
             }
 
             if ($status['isReadable'] && !empty($status['remoteTimestamp']) && !empty($status['currentTimestamp'])) {
-                $status['timeDiff'] = (new DateTime('@' . $status['remoteTimestamp']))->diff(new DateTime('@' . $status['currentTimestamp']));
+                $date1 = new DateTime();
+                $date1->setTimestamp($status['remoteTimestamp']);
+                $date2 = new DateTime();
+                $date2->setTimestamp($status['currentTimestamp']);
+                $status['timeDiff'] = $date1->diff($date2);
             } else {
                 $status['upToDate'] = 'error';
             }
@@ -4685,7 +4820,7 @@ class Server extends AppModel
                     'retries' => 0,
                     'org_id' => $user['org_id'],
                     'org' => $user['Organisation']['name'],
-                    'message' => 'Update database after PULL.',
+                    'message' => 'Update the database after PULLing the submodule(s).',
             );
             $job->save($data);
             $jobId = $job->id;
@@ -4917,5 +5052,17 @@ class Server extends AppModel
             $data[$k]['Server']['cache_timestamp'] = $redis->get('misp:server_cache_timestamp:' . $data[$k]['Server']['id']);
         }
         return $data;
+    }
+
+    public function updateJSON()
+    {
+        $toUpdate = array('Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate');
+        $results = array();
+        foreach ($toUpdate as $target) {
+            $this->$target = ClassRegistry::init($target);
+            $result = $this->$target->update();
+            $results[$target] = $result === false ? false : true;
+        }
+        return $results;
     }
 }

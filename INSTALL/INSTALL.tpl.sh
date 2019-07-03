@@ -24,11 +24,11 @@
 # 1/ For other Debian based Linux distributions, download script and run as **unprivileged** user |
 #-------------------------------------------------------------------------------------------------|
 #
-# The following installs only MISP-core:
-# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c
+# The following installs only MISP Core:
+# $ wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh ; bash /tmp/INSTALL.sh -c
 #
-# This will install MISP Core and misp-modules (recommended)
-# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+# This will install MISP Core and misp-modules
+# $ wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh ; bash /tmp/INSTALL.sh -c -M
 #
 #
 #-------------------------------------------------------|
@@ -36,7 +36,7 @@
 #-------------------------------------------------------|
 #
 # To install MISP on Kali copy paste the following to your r00t shell:
-# # wget -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh && bash /tmp/misp-kali.sh
+# # wget --no-cache -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
 #
@@ -49,7 +49,7 @@
 # $ git clone https://github.com/SteveClement/xsnippet.git
 # Make sure xsnippet resides somewhere in your $PATH - It is a shell script so a simple, copy to somewhere sane is enough.
 # $ git clone https://github.com/MISP/MISP.git
-# $ cd MISP/INSTALL ; ./INSTALL.debian.tpl.sh
+# $ cd MISP/INSTALL ; ./INSTALL.tpl.sh
 #
 ##
 ###
@@ -117,15 +117,15 @@ generateInstaller () {
     exit 1
   fi
 
-  if [[ $(echo $0 |grep -e '^\.\/') != "./INSTALL.debian.tpl.sh" ]]; then
+  if [[ $(echo $0 |grep -e '^\.\/') != "./INSTALL.tpl.sh" ]]; then
     echo -e "${RED}iAmError!${NC}"
-    echo -e "To generate the installer call it with './INSTALL.debian.tpl.sh' otherwise things will break."
+    echo -e "To generate the installer call it with './INSTALL.tpl.sh' otherwise things will break."
     echo -e "You called: ${RED}$0${NC}"
     exit 1
   fi
 
   mkdir installer ; cd installer
-  cp ../INSTALL.debian.tpl.sh .
+  cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
   for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
@@ -139,39 +139,43 @@ generateInstaller () {
 
   # TODO: Fix the below.
   # $ for f in `echo ls [0-9]_*`; do
-  # $   perl -pe 's/## ${f} ##/`cat ${f}`/ge' -i INSTALL.debian.sh
+  # $   perl -pe 's/## ${f} ##/`cat ${f}`/ge' -i INSTALL.sh
   # $ done
   #
   # Temporary copy/paste holder
-  perl -pe 's/^## 0_global-vars.sh ##/`cat 0_global-vars.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_installDepsPhp70.sh ##/`cat 0_installDepsPhp70.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 1_prepareDB.sh ##/`cat 1_prepareDB.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 1_apacheConfig.sh ##/`cat 1_apacheConfig.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 1_mispCoreInstall.sh ##/`cat 1_mispCoreInstall.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 1_installCake.sh ##/`cat 1_installCake.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_permissions.sh ##/`cat 2_permissions.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_configMISP.sh ##/`cat 2_configMISP.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 0_support-functions.sh ##/`cat 0_support-functions.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_gnupg.sh ##/`cat 2_gnupg.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_logRotation.sh ##/`cat 2_logRotation.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_backgroundWorkers.sh ##/`cat 2_backgroundWorkers.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 5_mail_to_misp.sh ##/`cat 5_mail_to_misp.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.debian.tpl.sh
-  perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 0_global-vars.sh ##/`cat 0_global-vars.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp70.sh ##/`cat 0_installDepsPhp70.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_prepareDB.sh ##/`cat 1_prepareDB.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig.sh ##/`cat 1_apacheConfig.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall.sh ##/`cat 1_mispCoreInstall.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_installCake.sh ##/`cat 1_installCake.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions.sh ##/`cat 2_permissions.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_configMISP.sh ##/`cat 2_configMISP.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_support-functions.sh ##/`cat 0_support-functions.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_gnupg.sh ##/`cat 2_gnupg.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_logRotation.sh ##/`cat 2_logRotation.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_backgroundWorkers.sh ##/`cat 2_backgroundWorkers.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 5_mail_to_misp.sh ##/`cat 5_mail_to_misp.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.tpl.sh
 
-  cp INSTALL.debian.tpl.sh ../INSTALL.debian.sh
+  cp INSTALL.tpl.sh ../INSTALL.sh
   cd ..
+  for ALGO in $(echo "1 256 384 512"); do
+    shasum -a ${ALGO} INSTALL.sh > INSTALL.sh.sha${ALGO}
+  done
+  [[ "$(which rhash > /dev/null 2>&1 ; echo $?)" == "0" ]] && rhash --sfv --sha1 --sha256 --sha384 --sha512 INSTALL.sh > INSTALL.sh.sfv
   rm -rf installer
-  echo -e "${LBLUE}Generated INSTALL.debian.sh${NC}"
+  echo -e "${LBLUE}Generated INSTALL.sh${NC}"
   exit 0
 }
 
@@ -204,6 +208,7 @@ installSupported () {
 
   # Check if sudo is installed and etckeeper - functionLocation('generic/sudo_etckeeper.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper 2> /dev/null > /dev/null
+  [[ ! -z ${MISP_USER} ]] && [[ ! -f /etc/sudoers.d/misp ]] && echo "%${MISP_USER} ALL=(ALL:ALL) NOPASSWD:ALL" |sudo tee /etc/sudoers.d/misp
   progress 4
 
   # Set locale if not set - functionLocation('generic/supportFunctions.md')
@@ -390,7 +395,7 @@ installMISPonKali () {
 
   debug "git clone, submodule update everything"
   mkdir $PATH_TO_MISP
-  chown www-data:www-data $PATH_TO_MISP
+  chown $WWW_USER:$WWW_USER $PATH_TO_MISP
   cd $PATH_TO_MISP
   $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
 
@@ -413,43 +418,43 @@ installMISPonKali () {
   MISP_USER_HOME=$(sudo -Hiu $MISP_USER env | grep HOME |cut -f 2 -d=)
   mkdir $MISP_USER_HOME/.cache
   chown $MISP_USER:$MISP_USER $MISP_USER_HOME/.cache
-  chown www-data:www-data /var/www/.cache
+  chown $WWW_USER:$WWW_USER /var/www/.cache
 
   debug "Generating rc.local"
   genRCLOCAL
 
   debug "Setting up main MISP virtualenv"
   # Needs virtualenv
-  sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
+  $SUDO_WWW virtualenv -p python3 ${PATH_TO_MISP}/venv
 
   debug "Installing MISP dashboard"
   mispDashboard
 
   debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   debug "Installing python-stix"
   cd $PATH_TO_MISP/app/files/scripts/python-stix
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   debug "Install maec"
   cd $PATH_TO_MISP/app/files/scripts/python-maec
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
   cd ${PATH_TO_MISP}/cti-python-stix2
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
 
   debug "Installing mixbox"
   cd $PATH_TO_MISP/app/files/scripts/mixbox
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   # install PyMISP
   debug "Installing PyMISP"
   cd $PATH_TO_MISP/PyMISP
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   # install pydeep
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git 2> /dev/null > /dev/null
@@ -459,6 +464,12 @@ installMISPonKali () {
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
+
+  # install plyara
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara 2> /dev/null > /dev/null
+
+  # install zmq needed by mispzmq
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq 2> /dev/null > /dev/null
 
   # Install Crypt_GPG and Console_CommandLine
   debug "Installing pear Console_CommandLine"
@@ -472,7 +483,7 @@ installMISPonKali () {
 
   $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 
-  chown -R www-data:www-data $PATH_TO_MISP
+  chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
   chmod -R 750 $PATH_TO_MISP
   chmod -R g+ws $PATH_TO_MISP/app/tmp
   chmod -R g+ws $PATH_TO_MISP/app/files
@@ -502,7 +513,7 @@ installMISPonKali () {
       expect eof" | expect -f -
 
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBNAME@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBUSER_MISP@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
 
@@ -562,7 +573,7 @@ installMISPonKali () {
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
 
-  chown -R www-data:www-data $PATH_TO_MISP/app/Config
+  chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config
   chmod -R 750 $PATH_TO_MISP/app/Config
 
   debug "Setting up GnuPG"
@@ -607,9 +618,12 @@ installMISPonKali () {
 
 colors
 debug "Checking if we are run as the installer template"
-if [[ "$0" == "./INSTALL.debian.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.debian.tpl.sh')" == "INSTALL.debian.tpl.sh" ]]; then
+if [[ "$0" == "./INSTALL.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.tpl.sh')" == "INSTALL.tpl.sh" ]]; then
   generateInstaller
 fi
+
+debug "Checking if we are uptodate and checksums match"
+checkInstaller
 
 space
 debug "Setting MISP variables"
@@ -653,9 +667,38 @@ fi
 
 [[ -n $NUKE ]] && nuke && exit
 
+# TODO: Move support map to top
+
+SUPPORT_MAP="
+x86_64-centos-8
+x86_64-rhel-7
+x86_64-rhel-8
+x86_64-fedora-30
+x86_64-debian-stretch
+x86_64-debian-buster
+x86_64-ubuntu-bionic
+armv6l-raspbian-stretch
+armv7l-raspbian-stretch
+armv7l-debian-jessie
+armv7l-debian-stretch
+armv7l-debian-buster
+armv7l-ubuntu-bionic
+"
+
+# Check if we actually support this configuration
+if ! echo "$SUPPORT_MAP" | grep "$(uname -m)-$FLAVOUR-$dist_version" >/dev/null; then
+  cat >&2 <<-'EOF'
+    Either your platform is not easily detectable or is not supported by this
+    installer script.
+    Please visit the following URL for more detailed installation instructions:
+    https://misp.github.io/MISP/
+EOF
+  exit 1
+fi
+
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
-  RELEASE=$(lsb_release -s -r| tr [A-Z] [a-z])
+  RELEASE=$(lsb_release -s -r| tr '[:upper:]' '[:lower:]')
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
@@ -666,7 +709,9 @@ if [ "${FLAVOUR}" == "ubuntu" ]; then
     installSupported && exit || exit
   fi
   if [ "${RELEASE}" == "19.04" ]; then
-    echo "Install on Ubuntu 19.04 not supported, bye"
+    echo "Install on Ubuntu 19.04 under development."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installSupported && exit || exit
     exit 1
   fi
   if [ "${RELEASE}" == "19.10" ]; then
@@ -679,7 +724,7 @@ fi
 
 # If Debian is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "debian" ]; then
-  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [ "${CODE}" == "buster" ]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
@@ -701,7 +746,7 @@ fi
 
 # If Tsurugi is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "tsurugi" ]; then
-  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [ "${CODE}" == "bamboo" ]; then
     echo "Install on Tsurugi Lab partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"

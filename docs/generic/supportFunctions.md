@@ -33,7 +33,7 @@ usage () {
   space
   echo -e "                -C | Only do ${YELLOW}pre-install checks and exit${NC}" # pre
   space
-  echo -e "                -u | Do an unattanded Install, no questions asked"      # UNATTENDED
+  echo -e "                -u | Do an unattended Install, no questions asked"      # UNATTENDED
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
@@ -78,20 +78,159 @@ setOpt () {
   done
 }
 
+# check if command_exists
+command_exists () {
+  command -v "$@" > /dev/null 2>&1
+}
+
+# TODO: fix os detection mess
+# Try to detect what we are running on
+checkCoreOS () {
+  # lsb_release can exist on any platform. RedHat package: redhat-lsb
+  LSB_RELEASE=$(which lsb_release > /dev/null ; echo $?)
+  APT=$(which apt > /dev/null 2>&1; echo -n $?)
+  APT_GET=$(which apt-get > /dev/null 2>&1; echo $?)
+
+  # debian specific
+  # /etc/debian_version
+  ## os-release #generic
+  # /etc/os-release
+
+  # Redhat checks
+  if [[ -f "/etc/redhat-release" ]]; then
+    echo "This is some redhat flavour"
+    REDHAT=1
+    RHfla=$(cat /etc/redhat-release | cut -f 1 -d\ | tr '[:upper:]' '[:lower:]')
+  fi
+}
+
 # Extract debian flavour
 checkFlavour () {
-  if [ -z $(which lsb_release) ]; then
-    checkAptLock
-    sudo apt install lsb-release dialog -y
+  FLAVOUR=""
+  # Every system that we officially support has /etc/os-release
+  if [ -r /etc/os-release ]; then
+    FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
   fi
 
-  FLAVOUR=$(lsb_release -s -i |tr [A-Z] [a-z])
-  if [ FLAVOUR == "ubuntu" ]; then
+  case "$FLAVOUR" in
+    ubuntu)
+      if command_exists lsb_release; then
+        dist_version="$(lsb_release --codename | cut -f2)"
+      fi
+      if [ -z "$dist_version" ] && [ -r /etc/lsb-release ]; then
+        dist_version="$(. /etc/lsb-release && echo "$DISTRIB_CODENAME")"
+      fi
+    ;;
+    debian|raspbian)
+      dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
+      case "$dist_version" in
+        10)
+          dist_version="buster"
+        ;;
+        9)
+          dist_version="stretch"
+        ;;
+      esac
+    ;;
+    centos)
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+      echo "$FLAVOUR not supported at the moment"
+      exit 1
+    ;;
+    rhel|ol|sles)
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+      echo "$FLAVOUR not supported at the moment"
+      exit 1
+    ;;
+    *)
+      if command_exists lsb_release; then
+        dist_version="$(lsb_release --release | cut -f2)"
+      fi
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+    ;;
+  esac
+
+  # FIXME: The below want to be refactored
+  if [ "$FLAVOUR" == "ubuntu" ]; then
     RELEASE=$(lsb_release -s -r)
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
   else
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1}${NC}"
   fi
+}
+
+
+# Check if this is a forked Linux distro
+check_forked () {
+  # Check for lsb_release command existence, it usually exists in forked distros
+  if command_exists lsb_release; then
+    # Check if the `-u` option is supported
+    set +e
+    lsb_release -a -u > /dev/null 2>&1
+    lsb_release_exit_code=$?
+    set -e
+
+    # Check if the command has exited successfully, it means we're in a forked distro
+    if [ "$lsb_release_exit_code" = "0" ]; then
+      # Print info about current distro
+      cat <<-EOF
+      You're using '$FLAVOUR' version '$dist_version'.
+EOF
+      # Get the upstream release info
+      FLAVOUR=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
+      dist_version=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'codename' | cut -d ':' -f 2 | tr -d '[:space:]')
+
+      # Print info about upstream distro
+      cat <<-EOF
+      Upstream release is '$FLAVOUR' version '$dist_version'.
+EOF
+    else
+      if [ -r /etc/debian_version ] && [ "$FLAVOUR" != "ubuntu" ] && [ "$FLAVOUR" != "raspbian" ]; then
+        # We're Debian and don't even know it!
+        FLAVOUR=debian
+        dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
+        case "$dist_version" in
+          10)
+            dist_version="buster"
+          ;;
+          9)
+            dist_version="stretch"
+          ;;
+          8|'Kali Linux 2')
+            dist_version="jessie"
+          ;;
+        esac
+      fi
+    fi
+  fi
+}
+
+checkInstaller () {
+  # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
+  if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
+    sudo apt install libdigest-sha-perl -qyy
+  fi
+  # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
+  SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
+  for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
+    /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
+    INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
+    chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
+
+    if [[ "${chsum}" == "${INSTsum}" ]]; then
+      echo "sha${sum} matches"
+    else
+      echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
+      echo "Delete installer, re-download and please run again."
+      exit 1
+    fi
+  done
 }
 
 # Extract manufacturer
@@ -104,9 +243,10 @@ checkManufacturer () {
   echo $MANUFACTURER
 }
 
-# Dynamic horizontal spacer
+# Dynamic horizontal spacer if needed, for autonomeous an no progress bar install, we are static.
 space () {
-  if [[ "$NO_PROGRESS" == "1" ]]; then
+  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then
+    echo "--------------------------------------------------------------------------------"
     return
   fi
   # Check terminal width
@@ -137,20 +277,25 @@ spin()
 
 # Progress bar
 progress () {
-  if [[ "$NO_PROGRESS" == "1" ]]; then
+  progress=$[$progress+$1]
+  if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then
+    echo "progress=${progress}" > /tmp/INSTALL.stat
     return
   fi
   bar="#"
+
+  # Prevent progress of overflowing
   if [[ $progress -ge 100 ]]; then
     echo -ne "#####################################################################################################  (100%)\r"
     return
   fi
-  progress=$[$progress+$1]
+  # Display progress
   for p in $(seq 1 $progress); do
     bar+="#"
     echo -ne "$bar  ($p%)\r"
   done
   echo -ne '\n'
+  echo "progress=${progress}" > /tmp/INSTALL.stat
 }
 
 # Check locale
@@ -175,17 +320,44 @@ checkFail () {
   fi
 }
 
+ask_o () {
+
+  ANSWER=""
+
+  if [ -z "${1}" ]; then
+    echo "This function needs at least 1 parameter."
+    exit 1
+  fi
+
+  [ -z "${2}" ] && OPT1="y" || OPT1="${2}"
+  [ -z "${3}" ] && OPT2="n" || OPT2="${3}"
+
+  while true; do
+    case "${ANSWER}" in "${OPT1}" | "${OPT2}") break ;; esac
+    echo -e -n "${1} (${OPT1}/${OPT2}) "
+    read ANSWER
+    ANSWER=$(echo "${ANSWER}" |  tr '[:upper:]' '[:lower:]')
+  done
+
+}
+
+clean () {
+  rm /tmp/INSTALL.stat
+  rm /tmp/INSTALL.sh.*
+}
+
 # Check if misp user is present and if run as root
 checkID () {
   debug "Checking if run as root and $MISP_USER is present"
   if [[ $EUID == 0 ]]; then
     echo "This script cannot be run as a root"
+    clean > /dev/null 2>&1
     exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
     if [[ "$UNATTENDED" != "1" ]]; then 
       echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' (y) or continue as $USER (n)? (y/n) "
       read ANSWER
-      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+      ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
     else
       ANSWER="y"
     fi
@@ -196,22 +368,31 @@ checkID () {
       echo "User $MISP_USER added, password is: $MISP_PASSWORD"
     elif [[ $ANSWER == "n" ]]; then
       echo "Using $USER as install user, hope that is what you want."
-      echo -e "${RED}Adding $USER to groups www-data and staff${NC}"
+      echo -e "${RED}Adding $USER to groups $WWW_USER and staff${NC}"
       MISP_USER=$USER
       sudo adduser $MISP_USER staff
-      sudo adduser $MISP_USER www-data
+      sudo adduser $MISP_USER $WWW_USER
     else
       echo "yes or no was asked, try again."
       sudo adduser $MISP_USER staff
-      sudo adduser $MISP_USER www-data
+      sudo adduser $MISP_USER $WWW_USER
       exit 1
     fi
   else
     echo "User ${MISP_USER} exists, skipping creation"
-    echo -e "${RED}Adding $MISP_USER to groups www-data and staff${NC}"
+    echo -e "${RED}Adding $MISP_USER to groups $WWW_USER and staff${NC}"
     sudo adduser $MISP_USER staff
-    sudo adduser $MISP_USER www-data
+    sudo adduser $MISP_USER $WWW_USER
   fi
+
+  # FIXME: the below SUDO_USER check is a duplicate from global variables, try to have just one check
+  # sudo config to run $LUSER commands
+  if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
+    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+  else
+    SUDO_USER="sudo -H -u ${MISP_USER}"
+  fi
+
 }
 
 # pre-install check to make sure what we will be installing on, is ready and not a half installed system
@@ -284,8 +465,10 @@ checkUsrLocalSrc () {
     echo "/usr/local/src does not exist, creating."
     mkdir -p /usr/local/src
     sudo chmod 2775 /usr/local/src
-    # FIXME: This might fail on distros with no staff user
-    sudo chown root:staff /usr/local/src
+    # TODO: Better handling /usr/local/src permissions
+    if [[ "$(cat /etc/group |grep staff > /dev/null 2>&1)" == "0" ]]; then
+      sudo chown root:staff /usr/local/src
+    fi
   fi
 }
 
@@ -313,13 +496,14 @@ setBaseURL () {
   CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
   IFACE=`echo $CONN |awk {'print $1'}`
   IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
-  if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
+  # TODO: Consider "QEMU"
+  if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
-      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+      ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
       if [[ "$ANSWER" == "y" ]]; then
         if [[ ! -z $IP ]]; then
           echo "It seems you have an interface called $IFACE UP with the following IP: $IP - FYI"
@@ -343,6 +527,8 @@ setBaseURL () {
     FQDN='misp.local'
   else
     MISP_BASEURL='https://localhost:8443'
+    IP=$(ip addr show | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}' |grep -v "127.0.0.1" |tail -1)
+    sudo iptables -t nat -A OUTPUT -p tcp --dport 8443 -j DNAT --to ${IP}:443
     # Webserver configuration
     FQDN='localhost.localdomain'
   fi
@@ -603,7 +789,7 @@ alias composer70='composer72'
 # Composer on php 7.2 does not need any special treatment the provided phar works well
 composer72 () {
   cd $PATH_TO_MISP/app
-  mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
+  mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
   $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
   $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
@@ -612,16 +798,16 @@ composer72 () {
 # Composer on php 7.3 needs a recent version of composer.phar
 composer73 () {
   cd $PATH_TO_MISP/app
-  mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
+  mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
   # Update composer.phar
   # If hash changes, check here: https://getcomposer.org/download/ and replace with the correct one
   # Current Sum for: v1.8.3
   SHA384_SUM='48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5'
-  sudo -H -u www-data php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
+  $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
   checkFail "composer.phar checksum failed, please investigate manually. " $?
-  sudo -H -u www-data php composer-setup.php
-  sudo -H -u www-data php -r "unlink('composer-setup.php');"
+  $SUDO_WWW php composer-setup.php
+  $SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
   $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
@@ -645,6 +831,7 @@ genRCLOCAL () {
   sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
+  sed -i -e '$i \[ -f /etc/init.d/firstBoot ] && bash /etc/init.d/firstBoot\n' /etc/rc.local
 }
 
 # Run PyMISP tests
@@ -703,6 +890,8 @@ theEnd () {
   echo "User: ${MISP_USER}"
   echo "Password: ${MISP_PASSWORD} # Or the password you used of your custom user"
   space
+  echo "GnuPG Passphrase is: ${GPG_PASSPHRASE}"
+  space
   echo "To enable outgoing mails via postfix set a permissive SMTP server for the domains you want to contact:"
   echo
   echo "sudo postconf -e 'relayhost = example.com'"
@@ -716,7 +905,13 @@ theEnd () {
     space
   fi
 
-  if [[ "$USER" != "$MISP_USER" ]]; then
+  if [[ "$PACKER" == "1" ]]; then
+    echo -e "${RED}This was an Automated Packer install!${NC}"
+    echo -e "This means we forced an unattended install."
+    space
+  fi
+
+  if [[ "$USER" != "$MISP_USER" && "$UNATTENDED" != "1" ]]; then
     sudo su - ${MISP_USER}
   fi
 }

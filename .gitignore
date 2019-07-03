@@ -48,6 +48,10 @@ tools/mkdocs
 /app/files/scripts/mixbox/
 /app/files/scripts/*.pyc
 /app/files/scripts/*.py~
+/app/files/scripts/__pycache__
+/app/files/scripts/yara/__pycache__
+/app/files/scripts/yara/*.pyc
+/app/files/scripts/yara/*.py~
 /app/files/scripts/mispzmq/*
 !/app/files/scripts/mispzmq/mispzmq.py
 !/app/files/scripts/mispzmq/mispzmqtest.py

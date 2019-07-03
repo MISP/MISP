@@ -137,10 +137,10 @@ foreach ($orgs as $org): ?>
             <?php if ($isSiteAdmin): ?>
                 <a href='/admin/organisations/edit/<?php echo $org['Organisation']['id'];?>' class = "fa fa-edit" title = "<?php echo __('Edit');?>" aria-label = "<?php echo __('Edit');?>"></a>
                 <?php
-                    echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $org['Organisation']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $org['Organisation']['name']));
+                    echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $org['Organisation']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete %s?', $org['Organisation']['name']));
                 ?>
             <?php endif; ?>
-            <a href='/organisations/view/<?php echo $org['Organisation']['id']; ?>' class = "fa fa-eye" title = "<?php echo __('View');?>"></a>
+            <a href='/organisations/view/<?php echo $org['Organisation']['id']; ?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
         </td>
     </tr>
     <?php
@@ -174,11 +174,11 @@ endforeach; ?>
             runIndexFilter(this);
         });
         $('#quickFilterButton').click(function() {
-            runIndexQuickFilter();
+            runIndexQuickFilter('/scope:<?php echo h($scope); ?>');
         });
         $('#quickFilterField').on('keypress', function (e) {
             if(e.which === 13) {
-                runIndexQuickFilter();
+                runIndexQuickFilter('/scope:<?php echo h($scope); ?>');
             }
         });
     });

@@ -65,7 +65,7 @@ class AdminShell extends AppShell
     public function restartWorker()
     {
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin restartWorker [PID]';
+            echo 'Usage: ' . APP . '/cake ' . 'Admin restartWorker [PID]' . PHP_EOL;
         }
         $pid = $this->args[0];
         $result = $this->Server->restartWorker($pid);
@@ -85,7 +85,7 @@ class AdminShell extends AppShell
     public function killWorker()
     {
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin killWorker [PID]';
+            echo 'Usage: ' . APP . '/cake ' . 'Admin killWorker [PID]' . PHP_EOL;
             die();
         }
         $pid = $this->args[0];
@@ -101,7 +101,7 @@ class AdminShell extends AppShell
     public function startWorker()
     {
         if (empty($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin startWorker [queue]';
+            echo 'Usage: ' . APP . '/cake ' . 'Admin startWorker [queue]' . PHP_EOL;
             die();
         }
         $queue = $this->args[0];
@@ -115,19 +115,18 @@ class AdminShell extends AppShell
     }
 
     public function updateJSON() {
-        $toUpdate = array('Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate');
         echo 'Updating all JSON structures.' . PHP_EOL;
-        foreach ($toUpdate as $target) {
-            $result = $this->$target->update();
+        $results = $this->Server->updateJSON();
+        foreach ($results as $type => $result) {
             if ($result !== false) {
                 echo sprintf(
                     __('%s updated.') . PHP_EOL,
-                    Inflector::pluralize(Inflector::humanize($target))
+                    Inflector::pluralize(Inflector::humanize($type))
                 );
             } else {
                 echo sprintf(
                     __('Could not update %s.') . PHP_EOL,
-                    Inflector::pluralize(Inflector::humanize($target))
+                    Inflector::pluralize(Inflector::humanize($type))
                 );
             }
         }
@@ -144,9 +143,9 @@ class AdminShell extends AppShell
         $force = $value;
         $result = $this->Galaxy->update($force);
         if ($result) {
-            echo 'Galaxies updated';
+            echo 'Galaxies updated' . PHP_EOL;
         } else {
-            echo 'Could not update Galaxies';
+            echo 'Could not update Galaxies' . PHP_EOL;
         }
     }
 
@@ -154,34 +153,34 @@ class AdminShell extends AppShell
     public function updateTaxonomies() {
         $result = $this->Taxonomy->update();
         if ($result) {
-            echo 'Taxonomies updated';
+            echo 'Taxonomies updated' . PHP_EOL;
         } else {
-            echo 'Could not update Taxonomies';
+            echo 'Could not update Taxonomies' . PHP_EOL;
         }
     }
 
     public function updateWarningLists() {
         $result = $this->Galaxy->update();
         if ($result) {
-            echo 'Warning lists updated';
+            echo 'Warning lists updated' . PHP_EOL;
         } else {
-            echo 'Could not update warning lists';
+            echo 'Could not update warning lists' . PHP_EOL;
         }
     }
 
     public function updateNoticeLists() {
         $result = $this->Noticelist->update();
         if ($result) {
-            echo 'Notice lists updated';
+            echo 'Notice lists updated' . PHP_EOL;
         } else {
-            echo 'Could not update notice lists';
+            echo 'Could not update notice lists' . PHP_EOL;
         }
     }
 
-    # FIXME: Debug and make it work, fails to pass userId/orgId properly
+    # FIXME: Fails to pass userId/orgId properly, global update works.
     public function updateObjectTemplates() {
         if (empty($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin updateNoticeLists [user_id]';
+            echo 'Usage: ' . APP . '/cake ' . 'Admin updateObjectTemplates [user_id]' . PHP_EOL;
         } else {
             $userId = $this->args[0];
             $user = $this->User->find('first', array(
@@ -191,14 +190,21 @@ class AdminShell extends AppShell
                 ),
                 'fields' => array('User.id', 'User.org_id')
             ));
+            # If the user_id passed does not exist, do a global update.
             if (empty($user)) {
-                echo 'User not found';
+                echo 'User with ID: ' . $userId . ' not found' . PHP_EOL;
+                $result = $this->ObjectTemplate->update();
+                if ($result) {
+                    echo 'Object templates updated' . PHP_EOL;
+                } else {
+                    echo 'Could not update object templates' . PHP_EOL;
+                }
             } else {
                 $result = $this->ObjectTemplate->update($user, false,false);
                 if ($result) {
-                    echo 'Object templates updated';
+                    echo 'Object templates updated' . PHP_EOL;
                 } else {
-                    echo 'Could not update object templates';
+                    echo 'Could not update object templates' . PHP_EOL;
                 }
             }
         }
@@ -276,15 +282,15 @@ class AdminShell extends AppShell
         if ($value === 'true') $value = 1;
         $cli_user = array('id' => 0, 'email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'));
         if (empty($setting_name) || $value === null) {
-            echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setSetting [setting_name] [setting_value]';
+            echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setSetting [setting_name] [setting_value]' . PHP_EOL;
         } else {
             $setting = $this->Server->getSettingData($setting_name);
             if (empty($setting)) {
-                echo 'Invalid setting. Please make sure that the setting that you are attempting to change exists.';
+                echo 'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
             }
             $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value);
             if ($result === true) {
-                echo 'Setting changed.';
+                echo 'Setting "' . $setting_name . '" changed to ' . $value . PHP_EOL;
             } else {
                 echo $result;
             }
@@ -309,10 +315,47 @@ class AdminShell extends AppShell
     }
 
     public function updateDatabase() {
-        echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
-        $this->Server->runUpdates(true);
-        echo 'All updates completed.' . PHP_EOL;
+        $whoami = exec('whoami');
+        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
+            echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
+            $this->Server->runUpdates(true);
+            echo 'All updates completed.' . PHP_EOL;
+        } else {
+            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
+        }
     }
+
+    public function updateApp() {
+        $whoami = exec('whoami');
+        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
+            $command = $this->args[0];
+            if (!empty($this->args[1])) {
+                $processId = $this->args[1];
+                $job = $this->Job->read(null, $processId);
+            } else { // create worker
+                $this->Job->create();
+                $job_data = array(
+                    'worker' => 'prio',
+                    'job_type' => 'update_app',
+                    'job_input' => 'command: ' . $command,
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => '',
+                    'org' => '',
+                    'message' => 'Updating.',
+                );
+                $this->Job->save($job_data);
+                $job = $this->Job->read(null, $this->Job->id);
+            }
+            $result = $this->Server->updateDatabase($command, false);
+            $job['Job']['progress'] = 100;
+            $job['Job']['message'] = 'Update done';
+            $this->Job->save($job);
+        } else {
+            die('This OS user is not allowed to run this command.' . PHP_EOL . 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
+        }
+    }
+
 
     public function getAuthkey() {
         if (empty($this->args[0])) {
@@ -380,7 +423,7 @@ class AdminShell extends AppShell
     public function change_authkey()
     {
         if (empty($this->args[0])) {
-            echo 'MISP apikey command line tool.' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Password [email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Password [email] [authkey]';
+            echo 'MISP apikey command line tool.' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Password [email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Password [email] [authkey]' . PHP_EOL;
             die();
         }
         if (!empty($this->args[1])) {
@@ -394,7 +437,7 @@ class AdminShell extends AppShell
             'fields' => array('User.id', 'User.email', 'User.authkey')
         ));
         if (empty($user)) {
-            echo 'Invalid e-mail, user not found.';
+            echo 'Invalid e-mail, user not found.' . PHP_EOL;
             die();
         }
         $user['User']['authkey'] = $authKey;
@@ -404,5 +447,56 @@ class AdminShell extends AppShell
             die();
         }
         echo 'Updated, new key:' . PHP_EOL . $authKey . PHP_EOL;
+    }
+
+    public function getOptionParser() {
+        $parser = parent::getOptionParser();
+        $parser->addSubcommand('updateJSON', array(
+            'help' => __('Update the JSON definitions of MISP.'),
+            'parser' => array(
+                'arguments' => array(
+                    'update' => array('help' => __('Update the submodules before ingestion.'), 'short' => 'u', 'boolean' => 1)
+                )
+            )
+        ));
+        return $parser;
+    }
+
+    public function recoverSinceLastSuccessfulUpdate()
+    {
+        $this->loadModel('Log');
+        $logs = $this->Log->find('all', array(
+            'conditions' => array(
+                'action' => 'update_database',
+                'title LIKE ' => array(
+                    'Successfuly executed the SQL query for %',
+                    'Issues executing the SQL query for %'
+                )
+            ),
+            'order' => 'id DESC'
+        ));
+        $last_db_num = -1;
+        foreach ($logs as $i => $log) {
+            preg_match_all('/.* the SQL query for (\d+)/', $log['Log']['title'], $matches);
+            if (!empty($matches[1])) {
+                $last_db_num = $matches[1][0];
+                break;
+            }
+        }
+        if ($last_db_num > 0) {
+            echo __('Last DB num which was successfully executed: ') . h($last_db_num) . PHP_EOL;
+            // replay all update from that point.
+            $this->loadModel('AdminSetting');
+            $db_version = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'db_version')));
+            if (!empty($db_version)) {
+                $db_version['AdminSetting']['value'] = $last_db_num;
+                $this->AdminSetting->save($db_version);
+                $this->Server->runUpdates(true);
+            } else {
+                echo __('Something went wrong. Could not find the existing db version') . PHP_EOL;
+            }
+        } else {
+            echo __('DB was never successfully updated or we are on a fresh install') . PHP_EOL;
+        }
     }
 }

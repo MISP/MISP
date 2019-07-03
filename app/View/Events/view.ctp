@@ -49,10 +49,19 @@
     <?php
         endif;
         $title = h($event['Event']['info']);
-        if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
         $table_data = array();
         $table_data[] = array('key' => __('Event ID'), 'value' => $event['Event']['id']);
-        $table_data[] = array('key' => 'UUID', 'value' => $event['Event']['uuid']);
+        $table_data[] = array(
+            'key' => 'UUID',
+            'html' => sprintf('%s %s',
+                $event['Event']['uuid'],
+                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px;" title="%s">+</a>',
+                    $baseurl,
+                    $event['Event']['id'],
+                    __('Extend this event')
+                )
+            )
+        );
         if (Configure::read('MISP.showorgalternate')) {
             $table_data[] = array(
                 'key' => __('Source Organisation'),
@@ -317,7 +326,7 @@
     ?>
     <div class="row-fluid">
         <div class="span8">
-            <h2><?php echo ($extended ? '[' . __('Extended view') . '] ' : '') . nl2br($title); ?></h2>
+            <h2 class="ellipsis-overflow"><?php echo ($extended ? '[' . __('Extended view') . '] ' : '') . nl2br($title); ?></h2>
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>
         <div class="related span4">
@@ -325,42 +334,36 @@
                 if (!empty($event['RelatedEvent'])):
             ?>
                     <h3><?php echo __('Related Events');?></h3>
-                    <span class="inline">
+                    <div class="inline correlation-container">
                         <?php
                             $count = 0;
+                            $display_threshold = 10;
                             $total = count($event['RelatedEvent']);
                             foreach ($event['RelatedEvent'] as $relatedEvent):
                                 $count++;
-                                $relatedData = array('Orgc' => $relatedEvent['Event']['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
-                                $popover = '';
-                                foreach ($relatedData as $k => $v) {
-                                    $popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
-                                }
-                                if ($count == 11 && $total > 10):
+                                if ($count == $display_threshold+1 && $total > $display_threshold):
                                     ?>
                                         <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - $count);?></div>
                                     <?php
                                 endif;
                         ?>
-                                <span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" class="<?php if ($count > 11) echo 'correlation-expanded-area'; ?>" style="white-space: nowrap;<?php echo ($count > 10) ? 'display:none;' : ''; ?>">
-                        <?php
-                                $linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-                                if ($relatedEvent['Event']['orgc_id'] == $me['org_id']) {
-                                    echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
-                                } else {
-                                    echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
-                                }
-                        ?>
-                                </span>&nbsp;
+                            <?php
+                                echo $this->element('/Events/View/related_event', array(
+                                    'related' => $relatedEvent['Event'],
+                                    'color_red' => $relatedEvent['Event']['orgc_id'] == $me['org_id'],
+                                    'hide' => $count > $display_threshold,
+                                    'relatedEventCorrelationCount' => $relatedEventCorrelationCount
+                                ));
+                            ?>
                         <?php
                             endforeach;
-                            if ($total > 10):
+                            if ($total > $display_threshold):
                         ?>
                             <div class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;"><?php echo __('Collapse…');?></div>
                         <?php
                             endif;
                         ?>
-                    </span>
+                    </div>
             <?php
                 endif;
                 if (!empty($event['Feed']) || !empty($event['Event']['FeedCount'])):
@@ -368,6 +371,9 @@
                     <h3>Related Feeds</h3>
             <?php
                     if (!empty($event['Feed'])):
+            ?>
+            <div class="correlation-container">
+                <?php
                         foreach ($event['Feed'] as $relatedFeed):
                             $relatedData = array('Name' => $relatedFeed['name'], 'URL' => $relatedFeed['url'], 'Provider' => $relatedFeed['provider'], 'Source Format' => $relatedFeed['source_format'] == 'misp' ? 'MISP' : $relatedFeed['source_format']);
                             $popover = '';
@@ -391,8 +397,9 @@
                                         endif;
                                     ?>
                                 </span>
+                <?php endforeach; ?>
+            </div>
                 <?php
-                        endforeach;
                     elseif (!empty($event['Event']['FeedCount'])):
                 ?>
                         <span>
@@ -407,6 +414,9 @@
                     <h3>Related Server</h3>
             <?php
                     if (!empty($event['Server'])):
+            ?>
+                    <div class="correlation-container" style="margin-bottom: 15px;">
+            <?php
                         foreach ($event['Server'] as $relatedServer):
                             if (empty($relatedServer['id'])) {
                                 continue;
@@ -417,11 +427,14 @@
                                 $popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
                             }
                 ?>
-                                <span style="white-space: nowrap;">
+                                <span style="white-space: nowrap; display: inline-block">
                                     <a href="<?php echo $baseurl; ?>/servers/previewIndex/<?php echo h($relatedServer['id']); ?>" class="linkButton useCursorPointer" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover"><?php echo h($relatedServer['name']) . ' (' . $relatedServer['id'] . ')'; ?></a>&nbsp;
                                 </span>
                 <?php
                         endforeach;
+                ?>
+                    </div>
+                <?php
                     elseif (!empty($event['Event']['FeedCount'])):
                 ?>
                         <span>

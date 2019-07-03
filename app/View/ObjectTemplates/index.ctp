@@ -41,6 +41,12 @@
                             'active' => $all
                         )
                     )
+                ),
+                array(
+                    'type' => 'search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
+                    'data' => '',
                 )
             )
         );
@@ -141,5 +147,17 @@ endforeach; ?>
         </ul>
     </div>
 </div>
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter();
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter();
+            }
+        });
+    });
+</script>
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'objectTemplates', 'menuItem' => 'index'));

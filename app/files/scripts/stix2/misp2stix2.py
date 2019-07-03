@@ -70,7 +70,7 @@ class StixBuilder():
                        'created_by_ref': self.identity_id, 'created': self.misp_event['date'],
                        'published': self.get_datetime_from_timestamp(self.misp_event['publish_timestamp']),
                        'interoperability': True}
-        labels = _MISP_event_tags
+        labels = [tag for tag in _MISP_event_tags]
         if self.misp_event.get('Tag'):
             markings = []
             for tag in self.misp_event['Tag']:
@@ -177,6 +177,8 @@ class StixBuilder():
         self.objects_mapping = {
             'asn': {'observable': self.resolve_asn_observable,
                     'pattern': self.resolve_asn_pattern},
+            'credential': {'observable': self.resolve_credential_observable,
+                           'pattern': self.resolve_credential_pattern},
             'domain-ip': {'observable': self.resolve_domain_ip_observable,
                           'pattern': self.resolve_domain_ip_pattern},
             'email': {'observable': self.resolve_email_object_observable,
@@ -185,6 +187,8 @@ class StixBuilder():
                      'pattern': self.resolve_file_pattern},
             'ip-port': {'observable': self.resolve_ip_port_observable,
                         'pattern': self.resolve_ip_port_pattern},
+            'network-connection': {'observable': self.resolve_network_connection_observable,
+                                   'pattern': self.resolve_network_connection_pattern},
             'network-socket': {'observable': self.resolve_network_socket_observable,
                                'pattern': self.resolve_network_socket_pattern},
             'process': {'observable': self.resolve_process_observable,
@@ -672,10 +676,15 @@ class StixBuilder():
                 'from_object']
 
     def create_marking(self, tag):
-        id = 'marking-definition--%s' % uuid.uuid4()
-        definition_type, definition = tag.split(':')
-        self.markings[tag] = {'type': 'marking-definition', 'id': id, 'definition_type': definition_type,
-                              'definition': {definition_type: definition}}
+        try:
+            marking_definition = globals()[tlp_markings[tag]]
+            id = marking_definition.id
+        except KeyError:
+            id = 'marking-definition--%s' % uuid.uuid4()
+            definition_type, definition = tag.split(':')
+            marking_definition = {'type': 'marking-definition', 'id': id, 'definition_type': definition_type,
+                                  'definition': {definition_type: definition}}
+        self.markings[tag] = marking_definition
         return id
 
     @staticmethod
@@ -765,6 +774,31 @@ class StixBuilder():
                 pattern += mapping.format(stix_type, attribute_value)
         return "[{}]".format(pattern[:-5])
 
+    def resolve_credential_observable(self, attributes, object_id):
+        user_account = objectsMapping['credential']['observable']
+        for attribute in attributes:
+            self.parse_galaxies(attribute['Galaxy'], object_id)
+            relation = attribute['object_relation']
+            try:
+                stix_type = credentialObjectMapping[relation]
+            except KeyError:
+                stix_type = "x_misp_{}_{}".format(attribute['type'], relation)
+            user_account[stix_type] = attribute['value']
+        return {'0': user_account}
+
+    def resolve_credential_pattern(self, attributes, object_id):
+        mapping = objectsMapping['credential']['pattern']
+        pattern = ""
+        for attribute in attributes:
+            self.parse_galaxies(attribute['Galaxy'], object_id)
+            relation = attribute['object_relation']
+            try:
+                stix_type = credentialObjectMapping[relation]
+            except KeyError:
+                stix_type = "x_misp_{}_{}".format(attribute['type'], relation)
+            pattern += mapping.format(stix_type, attribute['value'])
+        return "[{}]".format(pattern[:-5])
+
     def resolve_domain_ip_observable(self, attributes, object_id):
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
@@ -777,20 +811,20 @@ class StixBuilder():
 
     def resolve_domain_ip_pattern(self, attributes, object_id):
         mapping = objectsMapping['domain-ip']['pattern']
-        pattern = ""
+        pattern = []
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             try:
                 stix_type = domainIpObjectMapping[attribute['type']]
             except KeyError:
                 continue
-            pattern += mapping.format(stix_type, attribute['value'])
-        return "[{}]".format(pattern[:-5])
+            pattern.append(mapping.format(stix_type, attribute['value']))
+        return "[{}]".format(" AND ".join(pattern))
 
     def resolve_email_object_observable(self, attributes, object_id):
         observable = {}
         message = defaultdict(list)
-        reply_to = []
+        additional_header = {}
         object_num = 0
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
@@ -806,8 +840,6 @@ class StixBuilder():
                     else:
                         message[mapping].append(object_str)
                     object_num += 1
-                elif relation == 'reply-to':
-                    reply_to.append(attribute_value)
                 elif relation == 'attachment':
                     object_str = str(object_num)
                     body = {"content_disposition": "{}; filename='{}'".format(relation, attribute_value),
@@ -815,11 +847,9 @@ class StixBuilder():
                     message['body_multipart'].append(body)
                     observable[object_str] = {'type': 'file', 'name': attribute_value}
                     object_num += 1
-                elif relation == 'x-mailer':
-                    if 'additional_header_fields' in message:
-                        message['additional_header_fields']['X-Mailer'] = attribute_value
-                    else:
-                        message['additional_header_fields'] = {'X-Mailer': attribute_value}
+                elif relation in ('x-mailer', 'reply-to'):
+                    key = '-'.join([part.capitalize() for part in relation.split('-')])
+                    additional_header[key] = attribute_value
                 else:
                     message[mapping] = attribute_value
             except Exception:
@@ -828,8 +858,8 @@ class StixBuilder():
                     message[mapping] = {'value': attribute_value, 'data': attribute['data']}
                 else:
                     message[mapping] = attribute_value
-        if reply_to and 'additional_header_fields' in message:
-            message['additional_header_fields']['Reply-To'] = reply_to
+        if additional_header:
+            message['additional_header_fields'] = additional_header
         message['type'] = 'email-message'
         if 'body_multipart' in message:
             message['is_multipart'] = True
@@ -978,7 +1008,7 @@ class StixBuilder():
         return observable
 
     def resolve_ip_port_pattern(self, attributes, object_id):
-        pattern = ""
+        pattern = []
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             relation = attribute['object_relation']
@@ -995,92 +1025,66 @@ class StixBuilder():
                     mapping_type = 'ip-port'
                 except KeyError:
                     continue
-            pattern += objectsMapping[mapping_type]['pattern'].format(stix_type, attribute_value)
-        return "[{}]".format(pattern[:-5])
+            pattern.append(objectsMapping[mapping_type]['pattern'].format(stix_type, attribute_value))
+        return "[{}]".format(" AND ".join(pattern))
+
+    def resolve_network_connection_observable(self, attributes, object_id):
+        attributes = {attribute['object_relation']: attribute['value'] for attribute in attributes}
+        n, network_object, observable = self.create_network_observable(attributes)
+        protocols = [attributes[layer] for layer in ('layer3-protocol', 'layer4-protocol', 'layer7-protocol') if layer in attributes]
+        network_object['protocols'] = protocols if protocols else ['tcp']
+        observable[str(n)] = network_object
+        return observable
+
+    def resolve_network_connection_pattern(self, attributes, object_id):
+        mapping = objectsMapping['network-connection']['pattern']
+        attributes = {attribute['object_relation']: attribute['value'] for attribute in attributes}
+        pattern = self.create_network_pattern(attributes, mapping)
+        protocols = [attributes[layer] for layer in ('layer3-protocol', 'layer4-protocol', 'layer7-protocol') if layer in attributes]
+        if protocols:
+            for p in range(len(protocols)):
+                pattern.append("network-traffic:protocols[{}] = '{}'".format(p, protocols[p]))
+        return "[{}]".format(" AND ".join(pattern))
 
     def resolve_network_socket_observable(self, attributes, object_id):
-        observable, socket_extension = {}, {}
-        network_object = defaultdict(list)
-        network_object['type'] = 'network-traffic'
-        n = 0
-        ip_src, ip_dst, domain_src, domain_dst = [None] * 4
-        for attribute in attributes:
-            self.parse_galaxies(attribute['Galaxy'], object_id)
-            relation = attribute['object_relation']
-            if relation in ('address-family', 'domain-family'):
-                socket_extension[networkSocketMapping[relation]] = attribute['value']
-            elif relation == 'state':
-                state_type = "is_{}".format(attribute['value'])
-                socket_extension[state_type] = True
-            elif relation == 'protocol':
-                network_object['protocols'].append(attribute['value'])
-            elif relation == 'ip-src': ip_src = attribute['value']
-            elif relation == 'ip-dst': ip_dst = attribute['value']
-            elif relation == 'hostname-src': domain_src = attribute['value']
-            elif relation == 'hostname-dst': domain_dst = attribute['value']
-            else:
-                try:
-                    network_object[networkSocketMapping[relation]] = attribute['value']
-                except KeyError:
-                    continue
-        if ip_src is not None:
-            str_n = str(n)
-            observable[str_n] = {'type': define_address_type(ip_src), 'value': ip_src}
-            network_object['src_ref'] = str_n
-            n += 1
-        elif domain_src is not None:
-            str_n = str(n)
-            observable[str_n] = {'type': 'domain-name', 'value': domain_src}
-            network_object['src_ref'] = str_n
-            n += 1
-        if ip_dst is not None:
-            str_n = str(n)
-            observable[str_n] = {'type': define_address_type(ip_dst), 'value': ip_dst}
-            network_object['dst_ref'] = str_n
-            n += 1
-        elif domain_dst is not None:
-            str_n = str(n)
-            observable[str_n] = {'type': 'domain-name', 'value': domain_dst}
-            network_object['dst_ref'] = str_n
-            n += 1
-        if socket_extension: network_object['extensions'] = {'socket-ext': socket_extension}
+        states, tmp_attributes = self.parse_network_socket_attributes(attributes, object_id)
+        n, network_object, observable = self.create_network_observable(tmp_attributes)
+        socket_extension = {networkTrafficMapping[feature]: tmp_attributes[feature] for feature in ('address-family', 'domain-family') if feature in tmp_attributes}
+        for state in states:
+            state_type = "is_{}".format(state)
+            socket_extension[state_type] = True
+        network_object['protocols'] = [tmp_attributes['protocol']] if 'protocol' in tmp_attributes else ['tcp']
+        if socket_extension:
+            network_object['extensions'] = {'socket-ext': socket_extension}
         observable[str(n)] = network_object
         return observable
 
     def resolve_network_socket_pattern(self, attributes, object_id):
         mapping = objectsMapping['network-socket']['pattern']
-        pattern = ""
+        states, tmp_attributes = self.parse_network_socket_attributes(attributes, object_id)
+        pattern = self.create_network_pattern(tmp_attributes, mapping)
         stix_type = "extensions.'socket-ext'.{}"
-        ip_src, ip_dst, domain_src, domain_dst = [None] * 4
+        if "protocol" in tmp_attributes:
+            pattern.append("network-traffic:protocols[0] = '{}'".format(tmp_attributes['protocol']))
+        for feature in ('address-family', 'domain-family'):
+            if feature in tmp_attributes:
+                pattern.append(mapping.format(stix_type.format(networkTrafficMapping[feature]), tmp_attributes[feature]))
+        for state in states:
+            state_type = "is_{}".format(state)
+            pattern.append(mapping.format(stix_type.format(state_type), True))
+        return "[{}]".format(" AND ".join(pattern))
+
+    def parse_network_socket_attributes(self, attributes, object_id):
+        states = []
+        tmp_attributes = {}
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             relation = attribute['object_relation']
-            attribute_value = attribute['value']
-            if relation in ('address-family', 'domain-family'):
-                pattern += mapping.format(stix_type.format(networkSocketMapping[relation]), attribute_value)
-            elif relation == 'state':
-                state_type = "is_{}".format(attribute_value)
-                pattern += mapping.format(stix_type.format(state_type), True)
-            elif relation == 'protocol':
-                pattern += "network-traffic:{0}[0] = '{1}' AND ".format(networkSocketMapping[relation], attribute_value)
-            elif relation == 'ip-src':
-                ip_src = mapping.format(networkSocketMapping[relation].format(define_address_type(attribute_value)), attribute_value)
-            elif relation == 'ip-dst':
-                ip_dst = mapping.format(networkSocketMapping[relation].format(define_address_type(attribute_value)), attribute_value)
-            elif relation == 'hostname-src':
-                domain_src = mapping.format(networkSocketMapping[relation].format('domain-name'), attribute_value)
-            elif relation == 'hostname-dst':
-                domain_dst = mapping.format(networkSocketMapping[relation].format('domain-name'), attribute_value)
+            if relation == 'state':
+                states.append(attribute['value'])
             else:
-                try:
-                    pattern += mapping.format(networkSocketMapping[relation], attribute_value)
-                except KeyError:
-                    continue
-        if ip_src is not None: pattern += ip_src
-        elif domain_src is not None: pattern += domain_src
-        if ip_dst is not None: pattern += ip_dst
-        elif domain_dst is not None: pattern += domain_dst
-        return "[{}]".format(pattern[:-5])
+                tmp_attributes[relation] = attribute['value']
+        return states, tmp_attributes
 
     def resolve_process_observable(self, attributes, object_id):
         observable = {}
@@ -1130,6 +1134,7 @@ class StixBuilder():
     def resolve_regkey_observable(self, attributes, object_id):
         observable = {'type': 'windows-registry-key'}
         values = {}
+        registry_value_types = ('data', 'data-type', 'name')
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             relation = attribute['object_relation']
@@ -1137,7 +1142,7 @@ class StixBuilder():
                 stix_type = regkeyMapping[relation]
             except KeyError:
                 stix_type = "x_misp_{}_{}".format(attribute['type'], relation)
-            if relation in ('data', 'data-type', 'name'):
+            if relation in registry_value_types:
                 values[stix_type] = attribute['value']
             else:
                 observable[stix_type] = attribute['value']
@@ -1147,15 +1152,65 @@ class StixBuilder():
 
     def resolve_regkey_pattern(self, attributes, object_id):
         mapping = objectsMapping['registry-key']['pattern']
-        pattern = ""
+        pattern = []
+        fields = ('key', 'value')
+        registry_value_types = ('data', 'data-type', 'name')
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
+            relation = attribute['object_relation']
             try:
-                stix_type = regkeyMapping[attribute['object_relation']]
+                stix_type = regkeyMapping[relation]
             except KeyError:
-                stix_type = "'x_misp_{}_{}'".format(attribute['type'], attribute['object_relation'])
-            pattern += mapping.format(stix_type, attribute['value'])
-        return "[{}]".format(pattern[:-5])
+                stix_type = "'x_misp_{}_{}'".format(attribute['type'], relation)
+            value = attribute['value'].strip().replace('\\', '\\\\') if relation in fields and '\\\\' not in attribute['value'] else attribute['value'].strip()
+            if relation in registry_value_types:
+                stix_type = "values.{}".format(stix_type)
+            pattern.append(mapping.format(stix_type, value))
+        return "[{}]".format(" AND ".join(pattern))
+
+    @staticmethod
+    def create_network_observable(attributes):
+        n = 0
+        network_object = {'type': 'network-traffic'}
+        observable = {}
+        for feature in ('src', 'dst'):
+            ip_feature = 'ip-{}'.format(feature)
+            host_feature = 'hostname-{}'.format(feature)
+            refs = []
+            if host_feature in attributes:
+                str_n = str(n)
+                observable[str_n] = {'type': 'domain-name', 'value': attributes[host_feature]}
+                refs.append(str_n)
+                n += 1
+            if ip_feature in attributes:
+                feature_value = attributes[ip_feature]
+                str_n = str(n)
+                observable[str_n] = {'type': define_address_type(feature_value), 'value': feature_value}
+                refs.append(str_n)
+                n +=1
+            if refs:
+                ref_str, ref_list = ('ref', refs[0]) if len(refs) == 1 else ('refs', refs)
+                network_object['{}_{}'.format(feature, ref_str)] = ref_list
+        for feature in ('src-port', 'dst-port'):
+            if feature in attributes:
+                network_object[networkTrafficMapping[feature]] = attributes[feature]
+        return n, network_object, observable
+
+    @staticmethod
+    def create_network_pattern(attributes, mapping):
+        pattern = []
+        for feature in ('src', 'dst'):
+            ip_feature = 'ip-{}'.format(feature)
+            if ip_feature in attributes:
+                value = attributes[ip_feature]
+                pattern.append(mapping.format(networkTrafficMapping[ip_feature].format(define_address_type(value)), value))
+            host_feature = 'hostname-{}'.format(feature)
+            if host_feature in attributes:
+                pattern.append(mapping.format(networkTrafficMapping[host_feature].format('domain-name'), attributes[host_feature]))
+            port_feature = '{}-port'.format(feature)
+            if port_feature in attributes:
+                pattern.append(mapping.format(networkTrafficMapping[port_feature], attributes[port_feature]))
+        return pattern
 
     @staticmethod
     def resolve_stix2_pattern(attributes):
@@ -1189,7 +1244,7 @@ class StixBuilder():
         return observable
 
     def resolve_url_pattern(self, attributes, object_id):
-        pattern = ""
+        pattern = []
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             attribute_type = attribute['type']
@@ -1203,8 +1258,8 @@ class StixBuilder():
                 mapping = 'domain-ip'
             else:
                 mapping = attribute_type
-            pattern += objectsMapping[mapping]['pattern'].format(stix_type, attribute['value'])
-        return "[{}]".format(pattern[:-5])
+            pattern.append(objectsMapping[mapping]['pattern'].format(stix_type, attribute['value']))
+        return "[{}]".format(" AND ".join(pattern))
 
     def resolve_x509_observable(self, attributes, object_id):
         observable = {'type': 'x509-certificate'}

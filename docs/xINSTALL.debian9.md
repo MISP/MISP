@@ -1,17 +1,16 @@
 # INSTALLATION INSTRUCTIONS
-## for Debian 9.8 "stretch"
+## for Debian 9.9 "stretch"
 
 ### 0/ MISP debian stable install - Status
---------------------------------------
+------------------------------------
 
 !!! notice
-    Maintained and tested by @SteveClement on 20190405
+    Maintained and tested by @SteveClement on 20190702
 
 !!! warning
-    This install document is NOT working as expected. There are Python issues as we "only" have python 3.5 but need at least python 3.6
-    This guide effectively converts your "stretch" install into a partial "testing" install.
-    Thus following the "testing" install guide is a better choice, but not for production.
-    One manual work-around is to install Python >3.5 from source.
+    This install document is compiles a custom Python 3.7 meaning some things might be unexpected.
+    Debian stretch has Python 3.5 but we need at least python 3.6
+
 
 ### 1/ Minimal Debian install
 -------------------------
@@ -23,8 +22,11 @@
 {!generic/globalVariables.md!}
 
 ```bash
-PHP_ETC_BASE=/etc/php/7.3
+PHP_ETC_BASE=/etc/php/7.0
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+
+sudo adduser $MISP_USER staff
+sudo adduser $MISP_USER $WWW_USER
 ```
 
 {!generic/sudo_etckeeper.md!}
@@ -34,7 +36,7 @@ PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 #### Make sure your system is up2date
 ```bash
 sudo apt update
-sudo apt -y dist-upgrade
+sudo apt dist-upgrade -y
 ```
 
 #### install postfix, there will be some questions. (optional)
@@ -59,40 +61,46 @@ You need to update python3.5 to python3.7 for [PyMISP](https://github.com/MISP/P
 FIXME: The below breaks redis-server and mariadb-server
 
 ```bash
-echo "deb http://ftp.de.debian.org/debian testing main" | sudo tee -a /etc/apt/sources.list
-echo 'APT::Default-Release "stable";' | sudo tee -a /etc/apt/apt.conf.d/00local
-sudo apt update
-sudo apt-get -t testing install -y python3 python3-setuptools python3-dev python3-pip python3-redis python3-zmq virtualenv
+# Manual Python3.7.3 install in $HOME
+sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev \
+libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
+xz-utils tk-dev libffi-dev liblzma-dev -qqy
+mkdir -p ~/opt/python3
+cd /tmp
+wget https://www.python.org/ftp/python/3.7.3/Python-3.7.3.tar.xz
+tar xvfJ Python-3.7.3.tar.xz
+rm Python-3.7.3.tar.xz
+cd Python-3.7.3
+# --enable-optimizations will run tests to optimize the resulting python binary, this takes time and is expected
+./configure --enable-optimizations --with-ensurepip=install --prefix="$HOME"/opt/python3
+make -j3
+make altinstall
+sudo apt install virtualenv -qqy
 ```
 
 ```bash
-sudo apt -t testing install -y \
+sudo apt install \
 curl gcc git gnupg-agent make openssl redis-server vim zip libyara-dev \
 apache2 apache2-doc apache2-utils \
 libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
 jq ntp ntpdate imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev \
-net-tools
+net-tools -qqy
 
-sudo apt -t testing install -y libapache2-mod-php7.3 php7.3 php7.3-cli php7.3-mbstring php7.3-dev php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php-redis php-gnupg php-gd
+sudo apt install libapache2-mod-php php php-cli php-mbstring php-dev php-json php-xml php-mysql php7.0-opcache php-readline php-redis php-gnupg php-gd -qqy
 
-sudo apt -t testing install -y \
+sudo apt install \
 mariadb-client \
-mariadb-server
+mariadb-server -qqy
 
-# This is maybe needed. If mysql does not start and you find a solution, please contribute.
-# What did work for me was running mysqld interactively: sudo mysqld
-mkdir -p /var/run/mysqld
-chown mysql /var/run/mysqld
+# Just a quick test if mysql-server restarts without problems
 sudo /etc/init.d/mysql restart
 
-sudo apt -t testing install -y jupyter-notebook
-
 # Start haveged to get more entropy (optional)
-sudo apt install haveged -y
+sudo apt install haveged -qqy
 sudo service haveged start
 
-sudo apt install expect -y
+sudo apt install expect -qqy
 
 # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
 pw="Password1234"
@@ -121,14 +129,13 @@ expect -f - <<-EOF
   send -- "y\r"
   expect eof
 EOF
-sudo apt-get purge -y expect ; sudo apt autoremove -y
+sudo apt purge -qqy expect ; sudo apt autoremove -qqy
 
 # Enable modules, settings, and default of SSL in Apache
 sudo a2dismod status
-sudo a2enmod ssl rewrite
+sudo a2enmod ssl rewrite headers
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
-sudo a2enmod headers
 ```
 
 #### Apply all changes
@@ -136,117 +143,64 @@ sudo a2enmod headers
 sudo systemctl restart apache2
 ```
 
-#### Fix redis-server
-
-For some reason or another, redis-server startup scripts are broken, the below will fix this.
-
-```bash
-fixRedis () {
-  # As of 20190124 redis-server init.d scripts are broken and need to be replaced
-  sudo mv /etc/init.d/redis-server /etc/init.d/redis-server_`date +%Y%m%d`
-
-  echo '#! /bin/sh
-### BEGIN INIT INFO
-# Provides:		redis-server
-# Required-Start:	$syslog
-# Required-Stop:	$syslog
-# Should-Start:		$local_fs
-# Should-Stop:		$local_fs
-# Default-Start:	2 3 4 5
-# Default-Stop:		0 1 6
-# Short-Description:	redis-server - Persistent key-value db
-# Description:		redis-server - Persistent key-value db
-### END INIT INFO
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/usr/bin/redis-server
-DAEMON_ARGS=/etc/redis/redis.conf
-NAME=redis-server
-DESC=redis-server
-PIDFILE=/var/run/redis.pid
-test -x $DAEMON || exit 0
-test -x $DAEMONBOOTSTRAP || exit 0
-set -e
-case "$1" in
-  start)
-	echo -n "Starting $DESC: "
-	touch $PIDFILE
-	chown redis:redis $PIDFILE
-	if start-stop-daemon --start --quiet --umask 007 --pidfile $PIDFILE --chuid redis:redis --exec $DAEMON -- $DAEMON_ARGS
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	;;
-  stop)
-	echo -n "Stopping $DESC: "
-	if start-stop-daemon --stop --retry 10 --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	rm -f $PIDFILE
-	;;
-  restart|force-reload)
-	${0} stop
-	${0} start
-	;;
-  *)
-	echo "Usage: /etc/init.d/$NAME {start|stop|restart|force-reload}" >&2
-	exit 1
-	;;
-esac
-exit 0' | sudo tee /etc/init.d/redis-server
-  sudo chmod 755 /etc/init.d/redis-server
-  sudo /etc/init.d/redis-server start
-}
-```
-
 ### 3/ MISP code
 ------------
 ```bash
 # Download MISP using git in the /var/www/ directory.
 sudo mkdir $PATH_TO_MISP
-sudo chown www-data:www-data $PATH_TO_MISP
+sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP
 cd $PATH_TO_MISP
-sudo -u www-data git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
-sudo -u www-data git submodule update --init --recursive
-
+$SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
+$SUDO_WWW git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
-sudo -u www-data git submodule foreach --recursive git config core.filemode false
+$SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
 # Make git ignore filesystem permission differences
-sudo -u www-data git config core.filemode false
+$SUDO_WWW git config core.filemode false
 
 # Create a python3 virtualenv
-sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
+$SUDO_WWW virtualenv -p ~/opt/python3/bin/python3.7 ${PATH_TO_MISP}/venv
 
 # make pip happy
 sudo mkdir /var/www/.cache/
-sudo chown www-data:www-data /var/www/.cache
+sudo chown $WWW_USER:$WWW_USER /var/www/.cache
 
 cd $PATH_TO_MISP/app/files/scripts
-sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
-sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
-sudo -u www-data git clone https://github.com/MAECProject/python-maec.git
+$SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
+$SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
+$SUDO_WWW git clone https://github.com/MAECProject/python-maec.git
 # install mixbox to accommodate the new STIX dependencies:
-sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
-cd $PATH_TO_MISP/app/files/scripts/python-cybox
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
-cd $PATH_TO_MISP/app/files/scripts/python-stix
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
-cd $PATH_TO_MISP/app/files/scripts/python-maec
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+$SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 cd $PATH_TO_MISP/app/files/scripts/mixbox
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
-# install STIX 2.0 library to support STIX 2.0 export:
-cd $PATH_TO_MISP/cti-python-stix2
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+cd $PATH_TO_MISP/app/files/scripts/python-cybox
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+cd $PATH_TO_MISP/app/files/scripts/python-stix
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+cd $PATH_TO_MISP/app/files/scripts/python-maec
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+# install STIX2.0 library to support STIX 2.0 export:
+cd ${PATH_TO_MISP}/cti-python-stix2
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+
+# install pydeep
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+
+# install lief
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+
+# install zmq needed by mispzmq
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
+
+# install python-magic
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
+
+# install plyara
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
 
 # Install Crypt_GPG and Console_CommandLine
 sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
@@ -261,22 +215,22 @@ sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd $PATH_TO_MISP/app
 # Make composer cache happy
-sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
+sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
 # Update composer.phar
-sudo -H -u www-data php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-sudo -H -u www-data php composer-setup.php
-sudo -H -u www-data php -r "unlink('composer-setup.php');"
-sudo -H -u www-data php composer.phar require kamisama/cake-resque:4.1.2
-sudo -H -u www-data php composer.phar config vendor-dir Vendor
-sudo -H -u www-data php composer.phar install
+# $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+# $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+# $SUDO_WWW php composer-setup.php
+# $SUDO_WWW php -r "unlink('composer-setup.php');"
+$SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
+$SUDO_WWW php composer.phar config vendor-dir Vendor
+$SUDO_WWW php composer.phar install
 
 # Enable CakeResque with php-redis
 sudo phpenmod redis
 sudo phpenmod gnupg
 
 # To use the scheduler worker for scheduled tasks, do the following:
-sudo -u www-data cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
+$SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 ```
 
 
@@ -285,7 +239,7 @@ sudo -u www-data cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app
 
 ```bash
 # Check if the permissions are set correctly using the following commands:
-sudo chown -R www-data:www-data $PATH_TO_MISP
+sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
 sudo chmod -R 750 $PATH_TO_MISP
 sudo chmod -R g+ws $PATH_TO_MISP/app/tmp
 sudo chmod -R g+ws $PATH_TO_MISP/app/files
@@ -318,7 +272,7 @@ sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
 
 #### Import the empty MISP database from MYSQL.sql
 ```bash
-sudo -u www-data cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+$SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 ```
 
 ### 7/ Apache configuration
@@ -362,6 +316,7 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
         <Directory $PATH_TO_MISP/app/webroot>
                 Options -Indexes
                 AllowOverride all
+                Require all granted
                 Order allow,deny
                 allow from all
         </Directory>
@@ -412,10 +367,10 @@ sudo chmod 0640 /etc/logrotate.d/misp
 ---------------------
 ```bash
 # There are 4 sample configuration files in $PATH_TO_MISP/app/Config that need to be copied
-sudo -u www-data cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
-sudo -u www-data cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
-sudo -u www-data cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
-sudo -u www-data cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
+$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
+$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
+$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
+$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
 
 
 echo "<?php
@@ -433,10 +388,10 @@ class DATABASE_CONFIG {
                 'prefix' => '',
                 'encoding' => 'utf8',
         );
-}" | sudo -u www-data tee $PATH_TO_MISP/app/Config/database.php
+}" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
 
 # and make sure the file permissions are still OK
-sudo chown -R www-data:www-data $PATH_TO_MISP/app/Config
+sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config
 sudo chmod -R 750 $PATH_TO_MISP/app/Config
 
 # Generate a GPG encryption key.
@@ -456,14 +411,32 @@ cat >/tmp/gen-key-script <<EOF
     %echo done
 EOF
 
-sudo -u www-data gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
+$SUDO_WWW gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
 # And export the public key to the webroot
-sudo -u www-data sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | sudo -u www-data tee $PATH_TO_MISP/app/webroot/gpg.asc
+$SUDO_WWW sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | $SUDO_WWW tee $PATH_TO_MISP/app/webroot/gpg.asc
 
 # To make the background workers start on boot
 sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+
+echo "[Unit]
+Description=MISP background workers
+After=mariadb.service redis-server.service
+
+[Service]
+Type=forking
+User=$WWW_USER
+Group=$WWW_USER
+ExecStart=$PATH_TO_MISP/app/Console/worker/start.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-workers.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now misp-workers.service
+
 if [ ! -e /etc/rc.local ]
 then
     echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
@@ -474,38 +447,15 @@ fi
 {!generic/MISP_CAKE_init.md!}
 
 ```bash
-# Add the following lines before the last line (exit 0). Make sure that you replace www-data with your apache user:
+# Add the following lines before the last line (exit 0). Make sure that you replace $WWW_USER with your apache user:
 sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
 sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
 sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-sudo sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
-sudo sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
+```
 
-# Start the workers
-sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh
+{!generic/misp-modules-debian.md!}
 
-# some misp-modules dependencies
-sudo apt-get install -y libfuzzy-dev python3-dev python3-pip libpq5 libjpeg-dev tesseract-ocr imagemagick
-
-sudo chmod 2775 /usr/local/src
-sudo chown root:staff /usr/local/src
-cd /usr/local/src/
-git clone https://github.com/MISP/misp-modules.git
-cd misp-modules
-# pip install
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
-sudo apt -t testing install ruby-pygments.rb -y
-sudo gem install asciidoctor-pdf --pre
-
-# install additional dependencies for extended object generation and extraction
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec python-magic pathlib
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
-
-# Start misp-modules
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
-
+```bash
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
@@ -530,46 +480,16 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
     fi
     ```
 
-#### Experimental ssdeep correlations¶
-
-##### installing ssdeep
-```
-cd /usr/local/src
-wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
-tar zxvf ssdeep-2.14.1.tar.gz
-cd ssdeep-2.14.1
-./configure
-make
-sudo make install
-
-#installing ssdeep_php
-sudo pecl install ssdeep
-
-# You should add "extension=ssdeep.so" to mods-available - Check /etc/php for your current version
-echo "extension=ssdeep.so" | sudo tee ${PHP_ETC_BASE}/mods-available/ssdeep.ini
-sudo phpenmod ssdeep
-sudo service apache2 restart
-```
-
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following commands
-```bash
-# ZeroMQ depends on the Python client for Redis
-sudo apt install python3-redis -y
 
-# install pyzmq
-sudo apt install python3-zmq -y
-```
-
-In case you are using a virtualenv make sure pyzmq is installed therein.
 ```bash
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
-
-# Tested but some issues arose
 ```bash
-sudo apt-get -t testing install librdkafka-dev php-dev
+sudo apt install librdkafka-dev php-dev
+sudo pecl channel-update pecl.php.net
 sudo pecl install rdkafka
 echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
 sudo phpenmod rdkafka
@@ -583,5 +503,7 @@ sudo service apache2 restart
 {!generic/ssdeep-debian.md!}
 
 {!generic/mail_to_misp-debian.md!}
+
+{!generic/upgrading.md!}
 
 {!generic/hardening.md!}

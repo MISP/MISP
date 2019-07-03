@@ -1197,7 +1197,7 @@ class AttributesController extends AppController
         }
     }
 
-    public function viewPicture($id, $thumbnail=false, $width=200, $height=200)
+    public function viewPicture($id, $thumbnail=false)
     {
         if (Validation::uuid($id)) {
             $temp = $this->Attribute->find('first', array(
@@ -1221,11 +1221,15 @@ class AttributesController extends AppController
                 'Attribute.id' => $id,
                 'Attribute.type' => 'attachment'
             ),
-            'withAttachments' => true,
             'includeAllTags' => false,
             'includeAttributeUuid' => true,
             'flatten' => true
         );
+
+        if ($this->_isRest()) {
+            $conditions['withAttachments'] = true;
+        }
+
         $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
         if (empty($attribute)) {
             throw new MethodNotAllowedException('Invalid attribute');
@@ -1235,49 +1239,11 @@ class AttributesController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
         } else {
+            $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
+            $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
+            $image_data = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
             $extension = explode('.', $attribute['Attribute']['value']);
             $extension = end($extension);
-            if (extension_loaded('gd')) {
-                $image = ImageCreateFromString(base64_decode($attribute['Attribute']['data']));
-                if (!$thumbnail) {
-                    ob_start ();
-                    switch ($extension) {
-                        case 'gif':
-                            imagegif($image);
-                            break;
-                        case 'jpg':
-                        case 'jpeg':
-                            imagejpeg($image);
-                            break;
-                        case 'png':
-                            imagepng($image);
-                            break;
-                        default:
-                            break;
-                        }
-                        $image_data = $extension != 'gif' ? ob_get_contents() : base64_decode($attribute['Attribute']['data']);
-                        ob_end_clean ();
-                        imagedestroy($image);
-                } else { // thumbnail requested, resample picture with desired dimension
-                    $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 150;
-                    $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 150;
-                    if ($extension == 'gif') {
-                        $image_data = base64_decode($attribute['Attribute']['data']);
-                    } else {
-                        $extension = 'jpg';
-                        $imageTC = ImageCreateTrueColor($width, $height);
-                        ImageCopyResampled($imageTC, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
-                        ob_start ();
-                        imagejpeg ($imageTC);
-                        $image_data = ob_get_contents();
-                        ob_end_clean ();
-                        imagedestroy($image);
-                        imagedestroy($imageTC);
-                    }
-                }
-            } else {
-                $image_data = base64_decode($attribute['Attribute']['data']);
-            }
             $this->response->type(strtolower(h($extension)));
             $this->response->body($image_data);
             $this->autoRender = false;
@@ -1311,7 +1277,7 @@ class AttributesController extends AppController
         }
         if ($this->request->is('ajax')) {
             if ($this->request->is('post')) {
-                if ($this->__delete($id, $hard)) {
+                if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')), 'status'=>200, 'type' => 'json'));
                 } else {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')), 'status'=>200, 'type' => 'json'));
@@ -1325,7 +1291,7 @@ class AttributesController extends AppController
             if (!$this->request->is('post') && !$this->_isRest()) {
                 throw new MethodNotAllowedException();
             }
-            if ($this->__delete($id, $hard)) {
+            if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
                 if ($this->_isRest() || $this->response->type() === 'application/json') {
                     $this->set('message', 'Attribute deleted.');
                     $this->set('_serialize', array('message'));
@@ -1391,77 +1357,6 @@ class AttributesController extends AppController
             } else {
                 throw new NotFoundException(__('Could not restore the attribute'));
             }
-        }
-    }
-
-
-    // unification of the actual delete for the multi-select
-    private function __delete($id, $hard = false)
-    {
-        $this->Attribute->id = $id;
-        if (!$this->Attribute->exists()) {
-            return false;
-        }
-        $result = $this->Attribute->find('first', array(
-            'conditions' => array('Attribute.id' => $id),
-            'fields' => array('Attribute.*'),
-            'contain' => array('Event' => array(
-                'fields' => array('Event.*')
-            )),
-        ));
-        if (empty($result)) {
-            throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
-        }
-
-        // check for permissions
-        if (!$this->_isSiteAdmin()) {
-            if ($result['Event']['locked']) {
-                if ($this->Auth->user('org_id') != $result['Event']['org_id'] || !$this->userRole['perm_sync']) {
-                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
-                }
-            } else {
-                if ($this->Auth->user('org_id') != $result['Event']['orgc_id']) {
-                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
-                }
-            }
-        }
-        $date = new DateTime();
-        if ($hard) {
-            $save = $this->Attribute->delete($id);
-        } else {
-            if (Configure::read('Security.sanitise_attribute_on_delete')) {
-                $result['Attribute']['category'] = 'Other';
-                $result['Attribute']['type'] = 'comment';
-                $result['Attribute']['value'] = 'deleted';
-                $result['Attribute']['comment'] = '';
-                $result['Attribute']['to_ids'] = 0;
-            }
-            $result['Attribute']['deleted'] = 1;
-            $result['Attribute']['timestamp'] = $date->getTimestamp();
-            $save = $this->Attribute->save($result);
-            $object_refs = $this->Attribute->Object->ObjectReference->find('all', array(
-                'conditions' => array(
-                    'ObjectReference.referenced_type' => 0,
-                    'ObjectReference.referenced_id' => $id,
-                ),
-                'recursive' => -1
-            ));
-            foreach ($object_refs as $ref) {
-                $ref['ObjectReference']['deleted'] = 1;
-                $this->Attribute->Object->ObjectReference->save($ref);
-            }
-        }
-        // attachment will be deleted with the beforeDelete() function in the Model
-        if ($save) {
-            // We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
-            $this->loadModel('ShadowAttribute');
-            $this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
-
-            // remove the published flag from the event
-            $this->Attribute->Event->unpublishEvent($result['Event']['id']);
-            return true;
-        } else {
-            return false;
         }
     }
 
@@ -1531,11 +1426,11 @@ class AttributesController extends AppController
         $successes = array();
         foreach ($attributes as $a) {
             if ($hard) {
-                if ($this->__delete($a['Attribute']['id'], true)) {
+                if ($this->Attribute->deleteAttribute($a['Attribute']['id'], $this->Auth->user(), true)) {
                     $successes[] = $a['Attribute']['id'];
                 }
             } else {
-                if ($this->__delete($a['Attribute']['id'], $a['Attribute']['deleted'] == 1 ? true : false)) {
+                if ($this->Attribute->deleteAttribute($a['Attribute']['id'], $this->Auth->user(), $a['Attribute']['deleted'] == 1 ? true : false)) {
                     $successes[] = $a['Attribute']['id'];
                 }
             }
@@ -2038,7 +1933,8 @@ class AttributesController extends AppController
         $paramArray = array(
             'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
             'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
-            'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless'
+            'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
+            'includeWarninglistHits', 'attackGalaxy', 'object_relation'
         );
         $filterData = array(
             'request' => $this->request,
@@ -2067,9 +1963,19 @@ class AttributesController extends AppController
             $returnFormat = 'json';
         }
         $elementCounter = 0;
-        $final = $this->Attribute->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
-        $responseType = $validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        $renderView = '';
+        $final = $this->Attribute->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        if (!empty($renderView) && !empty($final)) {
+            $this->layout = false;
+            $final = json_decode($final, true);
+            foreach ($final as $key => $data) {
+                $this->set($key, $data);
+            }
+            $this->render('/Events/module_views/' . $renderView);
+        } else {
+            $responseType = $this->Attribute->validFormats[$returnFormat][0];
+            return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        }
     }
 
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
@@ -2270,8 +2176,8 @@ class AttributesController extends AppController
     {
         // request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
         // The correct format for both is a "request" root element, as shown by the examples below:
-        // For Json: {"request":{"policy": "walled-garden","garden":"garden.example.com"}}
-        // For XML: <request><policy>walled-garden</policy><garden>garden.example.com</gargen></request>
+        // For Json: {"request":{"policy": "Local-Data","walled_garden":"my.stop.page.net"}}
+        // For XML: <request><policy>Local-Data</policy><walled_garden>my.stop.page.net</walled_garden></request>
         // the response type is used to determine the parsing method (xml/json)
         if ($this->request->is('post')) {
             if ($this->request->input('json_decode', true)) {
@@ -2280,7 +2186,7 @@ class AttributesController extends AppController
                 $data = $this->request->data;
             }
             if (empty($data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type).'));
             }
             $paramArray = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl', 'enforceWarninglist', 'ns_alt');
             foreach ($paramArray as $p) {
@@ -2298,7 +2204,7 @@ class AttributesController extends AppController
                 ${$sF} = false;
             }
         }
-        if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden'))) {
+        if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'Local-Data', 'PASSTHRU', 'TCP-only'))) {
             $policy = false;
         }
         App::uses('RPZExport', 'Export');
@@ -3016,6 +2922,36 @@ class AttributesController extends AppController
                 $resultArray[$type][] = array($type => 'Enrichment service not reachable.');
                 continue;
             }
+            $current_result = array();
+            if (isset($result['results']['Object'])) {
+                if (!empty($result['results']['Object'])) {
+                    $objects = array();
+                    foreach($result['results']['Object'] as $object) {
+                        if (isset($object['Attribute']) && !empty($object['Attribute'])) {
+                            $object_attributes = array();
+                            foreach($object['Attribute'] as $object_attribute) {
+                                array_push($object_attributes, array('object_relation' => $object_attribute['object_relation'], 'value' => $object_attribute['value']));
+                            }
+                            array_push($objects, array('name' => $object['name'], 'Attribute' => $object_attributes));
+                        }
+                    }
+                    if (!empty($objects)) {
+                        $current_result['Object'] = $objects;
+                    }
+                }
+                unset($result['results']['Object']);
+            }
+            if (isset($result['results']['Attribute'])) {
+                if (!empty($result['results']['Attribute'])) {
+                    $attributes = array();
+                    foreach($result['results']['Attribute'] as $attribute) {
+                        array_push($attributes, array('type' => $attribute['type'], 'value' => $attribute['value']));
+                    }
+                    $current_result['Attribute'] = $attributes;
+                }
+                unset($result['results']['Attribute']);
+            }
+            $resultArray[$type] = $current_result;
             if (!empty($result['results'])) {
                 foreach ($result['results'] as $r) {
                     if (is_array($r['values']) && !empty($r['values'])) {

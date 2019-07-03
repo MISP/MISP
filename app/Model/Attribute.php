@@ -388,7 +388,9 @@ class Attribute extends AppModel
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
         'text' => array('txt', 'TextExport', 'txt'),
-        'rpz' => array('rpz', 'RPZExport', 'rpz'),
+        'yara' => array('txt', 'YaraExport', 'yara'),
+        'yara-json' => array('json', 'YaraExport', 'json'),
+        'rpz' => array('txt', 'RPZExport', 'rpz'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'cache' => array('txt', 'CacheExport', 'cache')
     );
@@ -1475,9 +1477,6 @@ class Attribute extends AppModel
                 $value = strtolower($value);
                 str_replace(':', '|', $value);
                 break;
-            case 'float':
-                $value = floatval($value);
-                break;
             case 'hex':
                 $value = strtoupper($value);
                 break;
@@ -1589,7 +1588,7 @@ class Attribute extends AppModel
         }
     }
 
-    public function base64EncodeAttachment($attribute)
+    public function getAttachment($attribute, $path_suffix='')
     {
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {
@@ -1600,21 +1599,20 @@ class Attribute extends AppModel
             // S3 - we have to first get the object then we can encode it
             $s3 = $this->getS3Client();
             // This will return the content of the object
-            $content = $s3->download($attribute['event_id'] . DS . $attribute['id']);
+            $content = $s3->download($attribute['event_id'] . DS . $attribute['id'] . $path_suffix);
         } else {
             // Standard filesystem
-            $filepath = $attachments_dir . DS . $attribute['event_id'] . DS . $attribute['id'];
+            $filepath = $attachments_dir . DS . $attribute['event_id'] . DS . $attribute['id'] . $path_suffix;
             $file = new File($filepath);
             if (!$file->readable()) {
                 return '';
             }
             $content = $file->read();
         }
-
-        return base64_encode($content);
+        return $content;
     }
 
-    public function saveBase64EncodedAttachment($attribute)
+    public function saveAttachment($attribute, $path_suffix='')
     {
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {
@@ -1626,17 +1624,17 @@ class Attribute extends AppModel
             // We don't need your fancy directory structures and
             // PEE AICH PEE meddling
             $s3 = $this->getS3Client();
-            $data = base64_decode($attribute['data']);
-            $key = $attribute['event_id'] . DS . $attribute['id'];
+            $data = $attribute['data'];
+            $key = $attribute['event_id'] . DS . $attribute['id'] . $path_suffix;
             $s3->upload($key, $data);
             return true;
         } else {
             // Plebian filesystem operations
             $rootDir = $attachments_dir . DS . $attribute['event_id'];
             $dir = new Folder($rootDir, true);                      // create directory structure
-            $destpath = $rootDir . DS . $attribute['id'];
+            $destpath = $rootDir . DS . $attribute['id'] . $path_suffix;
             $file = new File($destpath, true);                      // create the file
-            $decodedData = base64_decode($attribute['data']);       // decode
+            $decodedData = $attribute['data'];       // decode
             if ($file->write($decodedData)) {                       // save the data
                 return true;
             } else {
@@ -1644,6 +1642,73 @@ class Attribute extends AppModel
                 return false;
             }
         }
+    }
+
+    public function base64EncodeAttachment($attribute)
+    {
+        return base64_encode($this->getAttachment($attribute));
+    }
+
+    public function saveBase64EncodedAttachment($attribute)
+    {
+        $attribute['data'] = base64_decode($attribute['data']);
+        return $this->saveAttachment($attribute);
+    }
+
+    public function getPictureData($attribute, $thumbnail=false, $width=200, $height=200)
+    {
+        $extension = explode('.', $attribute['Attribute']['value']);
+        $extension = end($extension);
+        if (extension_loaded('gd')) {
+            if (!$thumbnail) {
+                $data = $this->getAttachment($attribute['Attribute']);
+                $image = ImageCreateFromString($data);
+                ob_start ();
+                switch ($extension) {
+                    case 'gif':
+                        // php-gd doesn't support animated gif. Skipping...
+                        break;
+                    case 'jpg':
+                    case 'jpeg':
+                        imagejpeg($image);
+                        break;
+                    case 'png':
+                        imagepng($image);
+                        break;
+                    default:
+                        break;
+                    }
+                    $image_data = $extension != 'gif' ? ob_get_contents() : $data;
+                    ob_end_clean ();
+            } else { // thumbnail requested, resample picture with desired dimension and save result
+                $thumbnail_exists = $this->getAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
+                if ($width == 200 && $height == 200 && $thumbnail_exists !== '') { // check if thumbnail already exists
+                    $image_data = $thumbnail_exists;
+                } else {
+                    $data = $this->getAttachment($attribute['Attribute']);
+                    if ($extension == 'gif') {
+                        $image_data = $data;
+                    } else {
+                        $image = ImageCreateFromString($data);
+                        $extension = 'jpg';
+                        $imageTC = ImageCreateTrueColor($width, $height);
+                        ImageCopyResampled($imageTC, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
+                        ob_start ();
+                        imagejpeg ($imageTC);
+                        $image_data = ob_get_contents();
+                        ob_end_clean ();
+                        imagedestroy($image);
+                        imagedestroy($imageTC);
+                    }
+                    // save thumbnail for later reuse
+                    $attribute['Attribute']['data'] = $image_data;
+                    $this->saveAttachment($attribute['Attribute'], '_thumbnail');
+                }
+            }
+        } else {
+            $image_data = $this->getAttachment($attribute['Attribute']);
+        }
+        return $image_data;
     }
 
     public function __beforeSaveCorrelation($a)
@@ -2150,9 +2215,8 @@ class Attribute extends AppModel
         }
         $tag = ClassRegistry::init('Tag');
         $params['tags'] = $this->dissectArgs($params['tags']);
-        $tagArray = $tag->fetchTagIds($params['tags'][0], $params['tags'][1]);
-        if (!empty($params['tags'][0]) && empty($tagArray[0]) && empty($params['lax_tags'])) {
-            $tagArray[0] = array(-1);
+        foreach (array(0, 1, 2) as $tag_operator) {
+            $tagArray[$tag_operator] = $tag->fetchTagIdsSimple($params['tags'][$tag_operator]);
         }
         $temp = array();
         if (!empty($tagArray[0])) {
@@ -2217,12 +2281,54 @@ class Attribute extends AppModel
                 $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field, 1));
             }
         }
+        $temp = array();
+        if (!empty($tagArray[2])) {
+            if ($tagArray[2][0] === -1) {
+                $conditions[] = array('Event.id' => -1);
+            } else {
+                foreach ($tagArray[2] as $k => $anded_tag) {
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $anded_tag
+                        ),
+                        'fields' => array(
+                            'event_id'
+                        )
+                    );
+                    $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
+                    $temp[$k]['OR'] = array();
+                    $temp[$k]['OR'] = array_merge(
+                        $temp[$k]['OR'],
+                        $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
+                    );
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $anded_tag
+                        ),
+                        'fields' => array(
+                            $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                        )
+                    );
+                    $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                    $temp[$k]['OR'] = array_merge(
+                        $temp[$k]['OR'],
+                        $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
+                    );
+                }
+            }
+        }
+        if (!empty($temp)) {
+            $conditions['AND'][] = array('AND' => $temp);
+        }
         $params['tags'] = array();
         if (!empty($tagArray[0]) && empty($options['pop'])) {
             $params['tags']['OR'] = $tagArray[0];
         }
         if (!empty($tagArray[1])) {
             $params['tags']['NOT'] = $tagArray[1];
+        }
+        if (!empty($tagArray[2]) && empty($options['pop'])) {
+            $params['tags']['AND'] = $tagArray[2];
         }
         if (empty($params['tags'])) {
             unset($params['tags']);
@@ -2535,18 +2641,21 @@ class Attribute extends AppModel
     public function dissectArgs($args)
     {
         if (empty($args)) {
-            return array(0 => array(), 1 => array());
+            return array(0 => array(), 1 => array(), 2 => array());
         }
         if (!is_array($args)) {
             $args = explode('&&', $args);
         }
-        $result = array(0 => array(), 1 => array());
+        $result = array(0 => array(), 1 => array(), 2 => array());
         if (isset($args['OR']) || isset($args['NOT']) || isset($args['AND'])) {
             if (!empty($args['OR'])) {
                 $result[0] = $args['OR'];
             }
             if (!empty($args['NOT'])) {
                 $result[1] = $args['NOT'];
+            }
+            if (!empty($args['AND'])) {
+                $result[2] = $args['AND'];
             }
         } else {
             foreach ($args as $arg) {
@@ -2904,6 +3013,9 @@ class Attribute extends AppModel
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
         }
+        if (!empty($options['includeGalaxy'])) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        }
         if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
@@ -2940,8 +3052,16 @@ class Attribute extends AppModel
         if (!isset($options['enforceWarninglist'])) {
             $options['enforceWarninglist'] = false;
         }
+        if (!isset($options['includeWarninglistHits'])) {
+            $options['includeWarninglistHits'] = false;
+        }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
+        } else {
+            if ($options['deleted'] === "only") {
+                $options['deleted'] = 1;
+            }
+            $params['conditions']['AND']['(Attribute.deleted + 0)'] = $options['deleted'];
         }
         if (isset($options['group'])) {
             $params['group'] = empty($options['group']) ? $options['group'] : false;
@@ -2968,7 +3088,7 @@ class Attribute extends AppModel
             return $results;
         }
 
-        if ($options['enforceWarninglist'] && !isset($this->warninglists)) {
+        if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->warninglists)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
             $this->warninglists = $this->Warninglist->fetchForEventView();
         }
@@ -3027,6 +3147,9 @@ class Attribute extends AppModel
                 if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($this->warninglists, $attribute['Attribute'])) {
                     continue;
                 }
+                if ($options['includeWarninglistHits']) {
+                    $results[$key]['Attribute'] = $this->Warninglist->simpleCheckForWarning($results[$key]['Attribute'], $this->warninglists, true);
+                }
                 if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
                     $results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
                 }
@@ -3040,6 +3163,12 @@ class Attribute extends AppModel
                     }
                 }
                 if (!empty($results[$key])) {
+                    if (!empty($options['includeGalaxy'])) {
+                        $massaged_attribute = $this->Event->massageTags($results[$key], 'Attribute');
+                        $massaged_event = $this->Event->massageTags($results[$key], 'Event');
+                        $massaged_attribute['Galaxy'] = array_merge_recursive($massaged_attribute['Galaxy'], $massaged_event['Galaxy']);
+                        $results[$key] = $massaged_attribute;
+                    }
                     $attributes[] = $results[$key];
                 }
             }
@@ -3068,8 +3197,10 @@ class Attribute extends AppModel
                 $eventTags[$results[$key]['Event']['id']][] = $tag;
             }
         }
-        foreach ($eventTags[$results[$key]['Event']['id']] as $eventTag) {
-            $results[$key]['EventTag'][] = $eventTag['EventTag'];
+        if (!empty($eventTags)) {
+            foreach ($eventTags[$results[$key]['Event']['id']] as $eventTag) {
+                $results[$key]['EventTag'][] = $eventTag['EventTag'];
+            }
         }
         return $results;
     }
@@ -3337,7 +3468,7 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp')
+    public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp', $returnRaw = false)
     {
         if (is_array($timestamp)) {
             $timestamp[0] = intval($this->Event->resolveTimeDelta($timestamp[0]));
@@ -3352,6 +3483,9 @@ class Attribute extends AppModel
         } else {
             $timestamp = intval($this->Event->resolveTimeDelta($timestamp));
             $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+        }
+        if ($returnRaw) {
+            return $timestamp;
         }
         return $conditions;
     }
@@ -3667,7 +3801,6 @@ class Attribute extends AppModel
                 } else {
                     $date = new DateTime();
                     $attribute['timestamp'] = $date->getTimestamp();
-                    ;
                 }
             } else {
                 $this->create();
@@ -3773,6 +3906,72 @@ class Attribute extends AppModel
         return true;
     }
 
+    public function deleteAttribute($id, $user, $hard = false)
+    {
+        $this->id = $id;
+        if (!$this->exists()) {
+            return false;
+        }
+        $result = $this->find('first', array(
+            'conditions' => array('Attribute.id' => $id),
+            'recursive' => -1,
+            'contain' => array('Event')
+        ));
+        if (empty($result)) {
+            throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
+        }
+
+        // check for permissions
+        if (!$user['Role']['perm_site_admin']) {
+            if ($result['Event']['locked']) {
+                if ($user['org_id'] != $result['Event']['org_id'] || !$user['Role']['perm_sync']) {
+                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
+                }
+            } else {
+                if ($user['org_id'] != $result['Event']['orgc_id']) {
+                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
+                }
+            }
+        }
+        $date = new DateTime();
+        if ($hard) {
+            $save = $this->delete($id);
+        } else {
+            if (Configure::read('Security.sanitise_attribute_on_delete')) {
+                $result['Attribute']['category'] = 'Other';
+                $result['Attribute']['type'] = 'comment';
+                $result['Attribute']['value'] = 'deleted';
+                $result['Attribute']['comment'] = '';
+                $result['Attribute']['to_ids'] = 0;
+            }
+            $result['Attribute']['deleted'] = 1;
+            $result['Attribute']['timestamp'] = $date->getTimestamp();
+            $save = $this->save($result);
+            $object_refs = $this->Object->ObjectReference->find('all', array(
+                'conditions' => array(
+                    'ObjectReference.referenced_type' => 0,
+                    'ObjectReference.referenced_id' => $id,
+                ),
+                'recursive' => -1
+            ));
+            foreach ($object_refs as $ref) {
+                $ref['ObjectReference']['deleted'] = 1;
+                $this->Object->ObjectReference->save($ref);
+            }
+        }
+        // attachment will be deleted with the beforeDelete() function in the Model
+        if ($save) {
+            // We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
+            $this->Event->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
+
+            // remove the published flag from the event
+            $this->Event->unpublishEvent($result['Event']['id']);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public function attachValidationWarnings($adata)
     {
         if (!$this->__fTool) {
@@ -3808,6 +4007,7 @@ class Attribute extends AppModel
                     'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_simple_attribute'),
+                    'object_relation' => array('function' => 'set_filter_simple_attribute'),
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
@@ -3821,6 +4021,7 @@ class Attribute extends AppModel
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'from' => array('function' => 'set_filter_timestamp'),
                     'to' => array('function' => 'set_filter_timestamp'),
+                    'date' => array('function' => 'set_filter_date'),
                     'tags' => array('function' => 'set_filter_tags'),
                     'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
@@ -3852,7 +4053,7 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0)
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
@@ -3873,6 +4074,9 @@ class Attribute extends AppModel
                 unset($filters['value']);
             }
         }
+        if (!empty($exportTool->renderView)) {
+            $renderView = $exportTool->renderView;
+        }
         if (isset($filters['searchall'])) {
             if (!empty($filters['value'])) {
                 $filters['wildcard'] = $filters['value'];
@@ -3891,8 +4095,12 @@ class Attribute extends AppModel
                 'flatten' => 1,
                 'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
                 'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
-                'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0
+                'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
+                'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0
         );
+        if (!empty($filters['attackGalaxy'])) {
+            $params['attackGalaxy'] = $filters['attackGalaxy'];
+        }
         if (isset($filters['include_event_uuid'])) {
             $params['includeEventUuid'] = $filters['include_event_uuid'];
         }
@@ -3902,12 +4110,8 @@ class Attribute extends AppModel
         if (isset($filters['page'])) {
             $params['page'] = $filters['page'];
         }
-        if (!empty($filtes['deleted'])) {
-            $params['deleted'] = 1;
-            if ($params['deleted'] === 'only') {
-                $params['conditions']['AND'][] = array('Attribute.deleted' => 1);
-                $params['conditions']['AND'][] = array('Object.deleted' => 1);
-            }
+        if (!empty($filters['deleted'])) {
+            $params['deleted'] = $filters['deleted'];
         }
         if ($paramsOnly) {
             return $params;
@@ -3942,7 +4146,11 @@ class Attribute extends AppModel
         $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
         fwrite($tmpfile, $exportTool->footer($exportToolParams));
         fseek($tmpfile, 0);
-        $final = fread($tmpfile, fstat($tmpfile)['size']);
+        if (fstat($tmpfile)['size']) {
+            $final = fread($tmpfile, fstat($tmpfile)['size']);
+        } else {
+            $final = '';
+        }
         fclose($tmpfile);
         return $final;
     }
