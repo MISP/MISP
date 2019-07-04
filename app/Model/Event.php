@@ -1201,15 +1201,21 @@ class Event extends AppModel
     }
 
     // since we fetch the event and filter on tags after / server, we need to cull all of the non exportable tags
-    private function __removeNonExportableTags($data, $dataType)
+    private function __removeNonExportableTags($data, $dataType, $server)
     {
         if (!empty($data[$dataType . 'Tag'])) {
             foreach ($data[$dataType . 'Tag'] as $k => $tag) {
-                if (!$tag['Tag']['exportable']) {
-                    unset($data[$dataType . 'Tag'][$k]);
-                } else {
+                if (($server['Server']['internal'] == 1) && ($tag['Tag']['internal'] == 1)) { // Internal server, Internal Tag => Export
                     unset($tag['org_id']);
                     $data['Tag'][] = $tag['Tag'];
+                } else if (($server['Server']['internal'] == 0) && ($tag['Tag']['internal'] != 1) && ($tag['Tag']['exportable'] == 1)) { // External Server, not internal tag,  exportable tag => Export
+                    unset($tag['org_id']);
+                    $data['Tag'][] = $tag['Tag'];
+                } else if (($server['Server']['internal'] == 1) && ($tag['Tag']['exportable'] == 1)) { // Internal Server, Exportable tag => Export
+                    unset($tag['org_id']);
+                    $data['Tag'][] = $tag['Tag'];
+                } else { // Drop tag (tag is not exportable) 
+                    unset($data[$dataType . 'Tag'][$k]);
                 }
             }
             unset($data[$dataType . 'Tag']);
@@ -1226,7 +1232,7 @@ class Event extends AppModel
                 if (empty($data['Attribute'][$key])) {
                     unset($data['Attribute'][$key]);
                 } else {
-                    $data['Attribute'][$key] = $this->__removeNonExportableTags($data['Attribute'][$key], 'Attribute');
+                    $data['Attribute'][$key] = $this->__removeNonExportableTags($data['Attribute'][$key], 'Attribute', $server);
                 }
             }
             $data['Attribute'] = array_values($data['Attribute']);
@@ -1254,7 +1260,7 @@ class Event extends AppModel
     private function __updateEventForSync($event, $server)
     {
         $event = $this->__rearrangeEventStructureForSync($event);
-        $event['Event'] = $this->__removeNonExportableTags($event['Event'], 'Event');
+        $event['Event'] = $this->__removeNonExportableTags($event['Event'], 'Event',$server);
         // Add the local server to the list of instances in the SG
         if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
             foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
@@ -1758,7 +1764,7 @@ class Event extends AppModel
                     'fields' => array('Orgc.id', 'Orgc.uuid', 'Orgc.name')
                 ),
                 'EventTag' => array(
-                    'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable'))
+                    'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable', 'Tag.internal'))
                 )
             )
         ));

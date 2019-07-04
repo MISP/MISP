@@ -61,6 +61,7 @@
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo $this->Paginator->sort('exportable', __('Exportable'));?></th>
+            <th><?php echo $this->Paginator->sort('internal', __('Internal'));?></th>
             <th><?php echo $this->Paginator->sort('hide_tag', __('Hidden'));?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo __('Restricted to org');?></th>
@@ -80,6 +81,7 @@ foreach ($list as $k => $item): ?>
     <tr>
         <td class="short"><?php echo h($item['Tag']['id']); ?>&nbsp;</td>
         <td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($item['Tag']['exportable'] ? 'Yes' : 'No'); ?>"></span></td>
+        <td class="short"><span class="<?php echo ($item['Tag']['internal'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($item['Tag']['internal'] ? 'Yes' : 'No'); ?>"></span></td>
         <td class="short"><span class="icon-<?php echo $item['Tag']['hide_tag'] ? 'ok' : 'remove'; ?>" role="img" aria-label="<?php echo $item['Tag']['hide_tag'] ? 'Yes' : 'No'; ?>"></span></td>
         <td><a href="<?php echo $baseurl . "/events/index/searchtag:" . $item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>" title="<?php echo isset($item['Tag']['Taxonomy']['expanded']) ? h($item['Tag']['Taxonomy']['expanded']) : h($item['Tag']['name']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
         <td class="short">

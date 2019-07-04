@@ -84,6 +84,9 @@ class Tag extends AppModel
         if (!isset($this->data['Tag']['exportable'])) {
             $this->data['Tag']['exportable'] = 1;
         }
+        if (!isset($this->data['Tag']['internal'])) {
+            $this->data['Tag']['internal'] = 1;
+        }
         return true;
     }
 
@@ -315,6 +318,7 @@ class Tag extends AppModel
                         'name' => $tag['name'],
                         'colour' => $tag['colour'],
                         'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 1,
+                        'internal' => isset($tag['internal']) ? $tag['internal'] : 1,
                         'org_id' => 0,
                         'user_id' => 0,
                         'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
@@ -375,7 +379,8 @@ class Tag extends AppModel
         $data = array(
             'name' => $name,
             'colour' => $colour,
-            'exportable' => 1
+            'exportable' => 1,
+            'internal' => 0
         );
         return ($this->save($data));
     }

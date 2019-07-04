@@ -26,6 +26,13 @@
     ?>
         <div class="clear"></div>
     <?php
+        echo $this->Form->input('internal', array(
+            'type' => 'checkbox',
+            'label' => __('Internal Tag')
+        ));
+    ?>
+        <div class="clear"></div>
+    <?php
         echo $this->Form->input('hide_tag', array(
             'type' => 'checkbox', 'checked' => false
         ));

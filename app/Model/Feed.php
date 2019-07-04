@@ -719,7 +719,7 @@ class Feed extends AppModel
                 }
             }
             if (!$found) {
-                $feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable')));
+                $feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable', 'Tag.internal')));
                 if (!empty($feedTag)) {
                     $event['Event']['Tag'][] = $feedTag['Tag'];
                 }

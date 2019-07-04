@@ -216,11 +216,11 @@ class RestResponseComponent extends Component
             'add' => array(
                 'description' => "POST a Tag object in JSON format to this API to create a new tag.",
                 'mandatory' => array('name'),
-                'optional' => array('colour', 'exportable', 'hide_tag', 'org_id', 'user_id')
+                'optional' => array('colour', 'exportable', 'internal', 'hide_tag', 'org_id', 'user_id')
             ),
             'edit' => array(
                 'description' => "POST or PUT a Tag object in JSON format to this API to create a edit an existing tag.",
-                'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
+                'optional' => array('name', 'colour', 'exportable', 'internal', 'hide_tag', 'org_id', 'user_id'),
                 'params' => array('tag_id')
             ),
             'removeTag' => array(
@@ -802,6 +802,12 @@ class RestResponseComponent extends Component
             'type' => 'integer',
             'values' => array(1 => 'True', 0 => 'False' ),
             'help' => 'The tag is exported when synchronizing with other instances'
+        ),
+        'internal' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' ),
+            'help' => 'The tag is exported when synchronizing with only internal instances'
         ),
         'extend' => array(
             'input' => 'radio',

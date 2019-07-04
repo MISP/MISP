@@ -1434,6 +1434,7 @@ CREATE TABLE public.tags (
     name character varying(255) NOT NULL,
     colour character varying(7) NOT NULL,
     exportable boolean NOT NULL,
+    internal boolean NOT NULL,
     org_id boolean DEFAULT false NOT NULL,
     user_id bigint DEFAULT '0'::bigint NOT NULL,
     hide_tag boolean DEFAULT false NOT NULL
