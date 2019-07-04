@@ -650,6 +650,7 @@ class ObjectsController extends AppController
                 throw new MethodNotAllowedException('Invalid input.');
             }
         }
+        $seen_changed = false;
         foreach ($this->request->data['Object'] as $changedKey => $changedField) {
             if (!in_array($changedKey, $validFields)) {
                 throw new MethodNotAllowedException('Invalid field.');
@@ -658,6 +659,7 @@ class ObjectsController extends AppController
                 $this->autoRender = false;
                 return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, false, 'nochange');
             }
+            $seen_changed = $changedKey == 'first_seen' || $changedKey == 'last_seen';
             $object['Object'][$changedKey] = $changedField;
             $changed = true;
         }
@@ -666,7 +668,7 @@ class ObjectsController extends AppController
         }
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
-        $this->MispObject->setObjectSeenMetaFromAttribute($object, true);
+        $this->MispObject->setObjectSeenMetaFromAttribute($object, false);
         if ($this->MispObject->save($object)) {
             $event = $this->MispObject->Event->find('first', array(
                 'recursive' => -1,
@@ -676,6 +678,22 @@ class ObjectsController extends AppController
             )));
             $event['Event']['timestamp'] = $date->getTimestamp();
             $event['Event']['published'] = 0;
+            if ($seen_changed) {
+                // Set seen of object at attribute level
+                $attributes = $this->MispObject->find('first', array(
+                    'conditions' => array('id' => $object['Object']['id']),
+                    'contain' => array('Attribute')
+                ))['Attribute'];
+                foreach ($attributes as $k => $attribute) {
+                    if (is_null($attribute['first_seen']) && !is_null($object['Object']['first_seen'])) {
+                        $attributes[$k]['first_seen'] = $object['Object']['first_seen'];
+                    }
+                    if (is_null($attribute['last_seen']) && !is_null($object['Object']['last_seen'])) {
+                        $attributes[$k]['last_seen'] = $object['Object']['last_seen'];
+                    }
+                }
+                $this->MispObject->Attribute->saveAttributes($attributes);
+            }
             $this->MispObject->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
             $this->autoRender = false;
             return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, false, 'Field updated');
