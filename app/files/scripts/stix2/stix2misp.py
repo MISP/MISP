@@ -250,7 +250,7 @@ class StixParser():
         if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
             extension_type, extension_value = list(network_traffic.extensions.items())[0]
             name = network_traffic_extensions[extension_type]
-            attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
+            attributes.extend(self.parse_socket_extension(extension_value))
             mapping = network_traffic_references_mapping['with_extensions']
         else:
             name = 'ip-port'
@@ -431,6 +431,22 @@ class StixParser():
             misp_type, relation = mapping[reference._type]
             attributes.append({'type': misp_type, 'object_relation': relation,
                                'to_ids': False, 'value': reference.value})
+        return attributes
+
+    @staticmethod
+    def parse_socket_extension(extension):
+        attributes = []
+        for element in extension:
+            try:
+                mapping = network_traffic_mapping[element]
+            except KeyError:
+                continue
+            if element in ('is_listening', 'is_blocking'):
+                attribute_value = element.split('_')[1]
+            else:
+                attribute_value = extension[element]
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': attribute_value})
         return attributes
 
     @staticmethod
@@ -803,29 +819,7 @@ class StixFromMISPParser(StixParser):
         return attributes
 
     def observable_socket(self, observable):
-        observable_object = dict(observable['0']) if len(observable) == 1 else self.parse_socket_observable(observable)
-        try:
-            extension = observable_object.pop('extensions')
-            attributes = self.parse_socket_extension(extension['socket-ext'])
-        except KeyError:
-            attributes = []
-        for o_key, o_value in observable_object.items():
-            if o_key in ('src_ref', 'dst_ref'):
-                element_object = observable[o_value]
-                if 'domain-name' in element_object['type']:
-                    attribute_type = 'hostname'
-                    relation = 'hostname-{}'.format(o_key.split('_')[0])
-                else:
-                    attribute_type = relation = "ip-{}".format(o_key.split('_')[0])
-                attributes.append({'type': attribute_type, 'object_relation': relation,
-                                   'value': element_object['value']})
-                continue
-            try:
-                mapping = network_traffic_mapping[o_key]
-            except KeyError:
-                continue
-            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                               'value': o_value})
+        attributes, _ = self.attributes_from_network_traffic(observable)
         return attributes
 
     @staticmethod
@@ -834,22 +828,6 @@ class StixFromMISPParser(StixParser):
             observable_object = observable[key]
             if observable_object['type'] == 'network-traffic':
                 return dict(observable_object)
-
-    @staticmethod
-    def parse_socket_extension(extension):
-        attributes = []
-        for element in extension:
-            try:
-                mapping = network_traffic_mapping[element]
-            except KeyError:
-                continue
-            if element in ('is_listening', 'is_blocking'):
-                attribute_value = element.split('_')[1]
-            else:
-                attribute_value = extension[element]
-            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                               'value': attribute_value})
-        return attributes
 
     @staticmethod
     def pattern_socket(pattern):
