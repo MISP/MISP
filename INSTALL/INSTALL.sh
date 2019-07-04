@@ -232,9 +232,14 @@ setOpt () {
   done
 }
 
+# check if command_exists
+command_exists () {
+  command -v "$@" > /dev/null 2>&1
+}
+
+# TODO: fix os detection mess
 # Try to detect what we are running on
 checkCoreOS () {
-
   # lsb_release can exist on any platform. RedHat package: redhat-lsb
   LSB_RELEASE=$(which lsb_release > /dev/null ; echo $?)
   APT=$(which apt > /dev/null 2>&1; echo -n $?)
@@ -251,22 +256,112 @@ checkCoreOS () {
     REDHAT=1
     RHfla=$(cat /etc/redhat-release | cut -f 1 -d\ | tr '[:upper:]' '[:lower:]')
   fi
-
 }
 
 # Extract debian flavour
 checkFlavour () {
-  if [ -z $(which lsb_release) ]; then
-    checkAptLock
-    sudo apt install lsb-release dialog -y
+  FLAVOUR=""
+  # Every system that we officially support has /etc/os-release
+  if [ -r /etc/os-release ]; then
+    FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
   fi
 
-  FLAVOUR=$(lsb_release -s -i |tr '[:upper:]' '[:lower:]')
-  if [ FLAVOUR == "ubuntu" ]; then
+  case "$FLAVOUR" in
+    ubuntu)
+      if command_exists lsb_release; then
+        dist_version="$(lsb_release --codename | cut -f2)"
+      fi
+      if [ -z "$dist_version" ] && [ -r /etc/lsb-release ]; then
+        dist_version="$(. /etc/lsb-release && echo "$DISTRIB_CODENAME")"
+      fi
+    ;;
+    debian|raspbian)
+      dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
+      case "$dist_version" in
+        10)
+          dist_version="buster"
+        ;;
+        9)
+          dist_version="stretch"
+        ;;
+      esac
+    ;;
+    centos)
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+      echo "$FLAVOUR not supported at the moment"
+      exit 1
+    ;;
+    rhel|ol|sles)
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+      echo "$FLAVOUR not supported at the moment"
+      exit 1
+    ;;
+    *)
+      if command_exists lsb_release; then
+        dist_version="$(lsb_release --release | cut -f2)"
+      fi
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+    ;;
+  esac
+
+  # FIXME: The below want to be refactored
+  if [ "$FLAVOUR" == "ubuntu" ]; then
     RELEASE=$(lsb_release -s -r)
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
   else
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1}${NC}"
+  fi
+}
+
+
+# Check if this is a forked Linux distro
+check_forked () {
+  # Check for lsb_release command existence, it usually exists in forked distros
+  if command_exists lsb_release; then
+    # Check if the `-u` option is supported
+    set +e
+    lsb_release -a -u > /dev/null 2>&1
+    lsb_release_exit_code=$?
+    set -e
+
+    # Check if the command has exited successfully, it means we're in a forked distro
+    if [ "$lsb_release_exit_code" = "0" ]; then
+      # Print info about current distro
+      cat <<-EOF
+      You're using '$FLAVOUR' version '$dist_version'.
+EOF
+      # Get the upstream release info
+      FLAVOUR=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
+      dist_version=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'codename' | cut -d ':' -f 2 | tr -d '[:space:]')
+
+      # Print info about upstream distro
+      cat <<-EOF
+      Upstream release is '$FLAVOUR' version '$dist_version'.
+EOF
+    else
+      if [ -r /etc/debian_version ] && [ "$FLAVOUR" != "ubuntu" ] && [ "$FLAVOUR" != "raspbian" ]; then
+        # We're Debian and don't even know it!
+        FLAVOUR=debian
+        dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
+        case "$dist_version" in
+          10)
+            dist_version="buster"
+          ;;
+          9)
+            dist_version="stretch"
+          ;;
+          8|'Kali Linux 2')
+            dist_version="jessie"
+          ;;
+        esac
+      fi
+    fi
   fi
 }
 
@@ -524,8 +619,10 @@ checkUsrLocalSrc () {
     echo "/usr/local/src does not exist, creating."
     mkdir -p /usr/local/src
     sudo chmod 2775 /usr/local/src
-    # FIXME: This might fail on distros with no staff user
-    sudo chown root:staff /usr/local/src
+    # TODO: Better handling /usr/local/src permissions
+    if [[ "$(cat /etc/group |grep staff > /dev/null 2>&1)" == "0" ]]; then
+      sudo chown root:staff /usr/local/src
+    fi
   fi
 }
 
@@ -1725,6 +1822,11 @@ viper () {
   sudo apt-get install \
     libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2 \
     python3-magic python3-sqlalchemy python3-prettytable libffi-dev libfreetype6-dev libpng-dev -qy
+  if [[ -f "/etc/debian_version" ]]; then
+    if [[ "$(cat /etc/debian_version)" == "9.9" ]]; then
+      sudo apt-get install libpython3.5-dev -qy
+    fi
+  fi
   echo "Cloning Viper"
   $SUDO_USER git clone https://github.com/viper-framework/viper.git
   sudo chown -R $MISP_USER:$MISP_USER viper
@@ -2358,6 +2460,35 @@ fi
 [[ -n $UPGRADE ]] && upgrade
 
 [[ -n $NUKE ]] && nuke && exit
+
+# TODO: Move support map to top
+
+SUPPORT_MAP="
+x86_64-centos-8
+x86_64-rhel-7
+x86_64-rhel-8
+x86_64-fedora-30
+x86_64-debian-stretch
+x86_64-debian-buster
+x86_64-ubuntu-bionic
+armv6l-raspbian-stretch
+armv7l-raspbian-stretch
+armv7l-debian-jessie
+armv7l-debian-stretch
+armv7l-debian-buster
+armv7l-ubuntu-bionic
+"
+
+# Check if we actually support this configuration
+if ! echo "$SUPPORT_MAP" | grep "$(uname -m)-$FLAVOUR-$dist_version" >/dev/null; then
+  cat >&2 <<-'EOF'
+    Either your platform is not easily detectable or is not supported by this
+    installer script.
+    Please visit the following URL for more detailed installation instructions:
+    https://misp.github.io/MISP/
+EOF
+  exit 1
+fi
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
