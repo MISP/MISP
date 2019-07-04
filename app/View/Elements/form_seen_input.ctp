@@ -314,7 +314,13 @@ $(document).ready(function() {
         var sliders_container = "<?php echo '#AttributeForm fieldset'; ?>"
     <?php endif; ?>
 <?php elseif ($this->params->controller === 'shadow_attributes'): ?>
-    var sliders_container = "<?php echo '#ShadowAttributeAddForm fieldset'; ?>"
+    <?php if ($this->params->action === 'add'): ?>
+        var sliders_container = "<?php echo '#ShadowAttributeAddForm fieldset'; ?>"
+    <?php elseif ($this->params->action === 'edit'): ?>
+        var sliders_container = "<?php echo '#ShadowAttributeEditForm fieldset'; ?>"
+    <?php else: ?>
+        var sliders_container = "<?php echo '#ShadowAttributeAddForm fieldset'; ?>"
+    <?php endif; ?>
 <?php else: ?>
     var sliders_container = "<?php echo '#meta-div'; ?>"
 <?php endif; ?>
