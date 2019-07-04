@@ -324,7 +324,7 @@ class StixParser():
 
     @staticmethod
     def fetch_network_traffic_objects_and_references(objects):
-        references = defaultdict(dict)
+        references = {}
         for key, value in objects.items():
             if isinstance(value, (stix2.DomainName, stix2.IPv4Address, stix2.IPv6Address)):
                 references[key] = value
