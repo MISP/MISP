@@ -47,7 +47,7 @@ class RestResponseComponent extends Component
                     Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
                     This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals'),
+                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'first_seen', 'last_seen'),
                 'params' => array()
             )
         ),
@@ -1487,30 +1487,34 @@ class RestResponseComponent extends Component
                                 // add dynamic data and overwrite name collisions
                                 switch($field) {
                                     case "returnFormat":
-                                        $this->__overwriteReturnFormat($scope, $fieldsConstraint[$field]);
+                                        $this->__overwriteReturnFormat($scope, $action, $fieldsConstraint[$field]);
                                         break;
                                     case "type":
-                                        $this->__overwriteType($scope, $fieldsConstraint[$field]);
+                                        $this->__overwriteType($scope, $action, $fieldsConstraint[$field]);
                                         break;
                                     case "category":
-                                        $this->__overwriteCategory($scope, $fieldsConstraint[$field]);
+                                        $this->__overwriteCategory($scope, $action, $fieldsConstraint[$field]);
                                         break;
                                     case "distribution":
-                                        $this->__overwriteDistribution($scope, $fieldsConstraint[$field]);
+                                        $this->__overwriteDistribution($scope, $action, $fieldsConstraint[$field]);
                                         break;
                                     case "tag":
                                     case "tags":
                                     case "EventTag":
-                                        $this->__overwriteTags($scope, $fieldsConstraint[$field]);
+                                        $this->__overwriteTags($scope, $action, $fieldsConstraint[$field]);
                                         break;
                                     case "nationality":
-                                        $this->__overwriteNationality($scope, $fieldsConstraint[$field]);
+                                        $this->__overwriteNationality($scope, $action, $fieldsConstraint[$field]);
                                         break;
                                     case "action":
-                                        $this->__overwriteAction($scope, $fieldsConstraint[$field]);
+                                        $this->__overwriteAction($scope, $action, $fieldsConstraint[$field]);
                                         break;
                                     case "role_id":
-                                        $this->__overwriteRoleId($scope, $fieldsConstraint[$field]);
+                                        $this->__overwriteRoleId($scope, $action, $fieldsConstraint[$field]);
+                                        break;
+                                    case "first_seen":
+                                    case "last_seen":
+                                        $this->__overwriteSeen($scope, $action, $fieldsConstraint[$field]);
                                         break;
                                     default:
                                         break;
@@ -1526,7 +1530,7 @@ class RestResponseComponent extends Component
     }
 
     // Fetch the correct values based on the scope, then overwrite default value
-    private function __overwriteReturnFormat($scope, &$field) {
+    private function __overwriteReturnFormat($scope, $action, &$field) {
         switch($scope) {
             case "Attribute":
                 $field['values'] = array_keys(ClassRegistry::init($scope)->validFormats);
@@ -1536,7 +1540,7 @@ class RestResponseComponent extends Component
                 break;
         }
     }
-    private function __overwriteType($scope, &$field) {
+    private function __overwriteType($scope, $action, &$field) {
         $field['input'] = 'select';
         switch($scope) {
             case "Attribute":
@@ -1554,16 +1558,16 @@ class RestResponseComponent extends Component
         }
     }
 
-    private function __overwriteCategory($scope, &$field) {
+    private function __overwriteCategory($scope, $action, &$field) {
         $field['values'] = array_keys(ClassRegistry::init("Attribute")->categoryDefinitions);
     }
-    private function __overwriteDistribution($scope, &$field) {
+    private function __overwriteDistribution($scope, $action, &$field) {
         $field['values'] = array();
         foreach(ClassRegistry::init("Attribute")->distributionLevels as $d => $text) {
             $field['values'][] = array('label' => $text, 'value' => $d);
         }
     }
-    private function __overwriteTags($scope, &$field) {
+    private function __overwriteTags($scope, $action, &$field) {
         $this->{$scope} = ClassRegistry::init("Tag");
         $tags = $this->{$scope}->find('list', array(
             'recursive' => -1,
@@ -1576,19 +1580,24 @@ class RestResponseComponent extends Component
         }
         $field['values'] = $tags;
     }
-    private function __overwriteNationality($scope, &$field) {
+    private function __overwriteNationality($scope, $action, &$field) {
         $field['values'] = ClassRegistry::init("Organisation")->countries;
     }
-    private function __overwriteAction($scope, &$field) {
+    private function __overwriteAction($scope, $action, &$field) {
         $field['values'] = array_keys(ClassRegistry::init("Log")->actionDefinitions);
     }
-    private function __overwriteRoleId($scope, &$field) {
+    private function __overwriteRoleId($scope, $action, &$field) {
         $this->{$scope} = ClassRegistry::init("Role");
         $roles = $this->{$scope}->find('list', array(
             'recursive' => -1,
             'fields' => array('name')
         ));
         $field['values'] = $roles;
+    }
+    private function __overwriteSeen($scope, $action, &$field) {
+        if ($action == 'restSearch') {
+            $field['help'] = __('Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)');
+        }
     }
 
 }
