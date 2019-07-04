@@ -12,6 +12,9 @@
   <td class="short">
     <?php echo date('Y-m-d', $object['timestamp']); ?>
   </td>
+  <td class="short">
+    <?php echo $this->element('/Servers/View/seen_field', array('object' => $object)); ?>
+  </td>
   <td colspan="<?php echo $fieldCount -2;?>">
     <span class="bold"><?php echo __('Name: ');?></span><?php echo h($object['name']);?>
     <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['uuid']); ?>_collapsible"></span>

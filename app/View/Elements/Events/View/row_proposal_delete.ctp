@@ -50,6 +50,9 @@
   <td class="short context hidden">
     <?php echo h($object['uuid']); ?>
   </td>
+  <td class="short context hidden">
+      <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
+  </td>
   <td style="font-weight:bold;text-align:left;">DELETE</td>
   <?php
     if ($extended):
