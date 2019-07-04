@@ -122,12 +122,12 @@
     <?php
       if ($mayModify && empty($object['deleted'])) {
         echo sprintf(
-          '<a href="%s/objects/edit/%s" title="Edit" aria-label="Edit" class="fa fa-edit icon-white useCursorPointer"></a>',
+          '<a href="%s/objects/edit/%s" title="Edit" aria-label="Edit" class="fa fa-edit useCursorPointer" style="color: white" ></a>',
           $baseurl,
           h($object['id'])
         );
         echo sprintf(
-          '<span class="fa fa-trash icon-white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
+          '<span style="color: white" class="fa fa-trash useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
           (empty($event['Event']['publish_timestamp']) ? __('Permanently delete object') : __('Soft delete object')),
           sprintf(
             'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',
