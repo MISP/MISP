@@ -239,11 +239,17 @@ class MispObject extends AppModel
             $result = $this->id;
             foreach ($object['Attribute'] as $k => $attribute) {
                 $object['Attribute'][$k]['object_id'] = $this->id;
-                if (is_null($object['Attribute'][$k]['first_seen']) && !is_null($object['first_seen'])) {
-                    $object['Attribute'][$k]['first_seen'] = $object['first_seen'];
+                if (
+                    (!array_key_exists('first_seen', $object['Attribute'][$k]) || is_null($object['Attribute'][$k]['first_seen'])) &&
+                    !is_null($object['Object']['first_seen'])
+                ) {
+                    $object['Attribute'][$k]['first_seen'] = $object['Object']['first_seen'];
                 }
-                if (is_null($object['Attribute'][$k]['last_seen']) && !is_null($object['last_seen'])) {
-                    $object['Attribute'][$k]['last_seen'] = $object['last_seen'];
+                if (
+                    (!array_key_exists('last_seen', $object['Attribute'][$k]) || is_null($object['Attribute'][$k]['last_seen'])) &&
+                    !is_null($object['Object']['last_seen'])
+                ) {
+                    $object['Attribute'][$k]['last_seen'] = $object['Object']['last_seen'];
                 }
             }
             $this->Attribute->saveAttributes($object['Attribute']);
@@ -665,12 +671,18 @@ class MispObject extends AppModel
                                     $different = true;
                                 }
                                 // Set seen of object at attribute level
-                                if (is_null($newAttribute['first_seen']) && !is_null($object['first_seen'])) {
-                                    $newAttribute['first_seen'] = $object['first_seen'];
+                                if (
+                                    (!array_key_exists('first_seen', $newAttribute) || is_null($newAttribute['first_seen'])) &&
+                                    !is_null($object['Object']['first_seen'])
+                                ) {
+                                    $newAttribute['first_seen'] = $object['Object']['first_seen'];
                                     $different = true;
                                 }
-                                if (is_null($newAttribute['last_seen']) && !is_null($object['last_seen'])) {
-                                    $newAttribute['last_seen'] = $object['last_seen'];
+                                if (
+                                    (!array_key_exists('last_seen', $newAttribute) || is_null($newAttribute['last_seen'])) &&
+                                    !is_null($object['Object']['last_seen'])
+                                ) {
+                                    $newAttribute['last_seen'] = $object['Object']['last_seen'];
                                     $different = true;
                                 }
                             }
@@ -689,7 +701,9 @@ class MispObject extends AppModel
                                     'timestamp',
                                     'object_id',
                                     'event_id',
-                                    'disable_correlation'
+                                    'disable_correlation',
+                                    'first_seen',
+                                    'last_seen'
                                 ));
                             }
                             unset($object['Attribute'][$origKey]);
