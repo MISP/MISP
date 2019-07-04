@@ -1932,7 +1932,7 @@ class AttributesController extends AppController
         $returnFormat = false, $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false,
         $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false,
         $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false,
-        $threat_level_id = false
+        $threat_level_id = false, $first_seen = false, $last_seen = false
     )
     {
         $paramArray = array(

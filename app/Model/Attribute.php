@@ -3563,6 +3563,28 @@ class Attribute extends AppModel
         return $conditions;
     }
 
+    public function setTimestampSeenConditions($timestamp, $conditions, $scope = 'Event.timestamp', $returnRaw = false)
+    {
+        if (is_array($timestamp)) {
+            $timestamp[0] = intval($this->Event->resolveTimeDelta($timestamp[0])) * 1000000; // seen in stored in micro-seconds in the DB
+            $timestamp[1] = intval($this->Event->resolveTimeDelta($timestamp[1])) * 1000000; // seen in stored in micro-seconds in the DB
+            if ($timestamp[0] > $timestamp[1]) {
+                $temp = $timestamp[0];
+                $timestamp[0] = $timestamp[1];
+                $timestamp[1] = $temp;
+            }
+            $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
+            $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
+        } else {
+            $timestamp = intval($this->Event->resolveTimeDelta($timestamp)) * 1000000; // seen in stored in micro-seconds in the DB
+            $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+        }
+        if ($returnRaw) {
+            return $timestamp;
+        }
+        return $conditions;
+    }
+
     public function setToIDSConditions($to_ids, $conditions)
     {
         if ($to_ids === 'exclude') {
@@ -4087,6 +4109,8 @@ class Attribute extends AppModel
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'timestamp' => array('function' => 'set_filter_timestamp'),
+                    'first_seen' => array('function' => 'set_filter_seen'),
+                    'last_seen' => array('function' => 'set_filter_seen'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
                     'comment' => array('function' => 'set_filter_comment')
                 ),
@@ -4108,6 +4132,8 @@ class Attribute extends AppModel
                 ),
                 'Object' => array(
                     'object_name' => array('function' => 'set_filter_object_name'),
+                    'first_seen' => array('function' => 'set_filter_seen'),
+                    'last_seen' => array('function' => 'set_filter_seen'),
                     'deleted' => array('function' => 'set_filter_deleted')
                 )
             );
