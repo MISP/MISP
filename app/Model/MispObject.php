@@ -715,11 +715,17 @@ class MispObject extends AppModel
                 $newAttribute['event_id'] = $object['Object']['event_id'];
                 $newAttribute['object_id'] = $object['Object']['id'];
                 // Set seen of object at attribute level
-                if (is_null($newAttribute['first_seen']) && !is_null($object['first_seen'])) {
-                    $newAttribute['first_seen'] = $object['first_seen'];
+                if (
+                    (!array_key_exists('first_seen', $newAttribute) || is_null($newAttribute['first_seen'])) &&
+                    !is_null($object['Object']['first_seen'])
+                ) {
+                    $newAttribute['first_seen'] = $object['Object']['first_seen'];
                 }
-                if (is_null($newAttribute['last_seen']) && !is_null($object['last_seen'])) {
-                    $newAttribute['last_seen'] = $object['last_seen'];
+                if (
+                    (!array_key_exists('last_seen', $newAttribute) || is_null($newAttribute['last_seen'])) &&
+                    !is_null($object['Object']['last_seen'])
+                ) {
+                    $newAttribute['last_seen'] = $object['Object']['last_seen'];
                 }
                 if (!isset($newAttribute['timestamp'])) {
                     $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
@@ -742,11 +748,18 @@ class MispObject extends AppModel
                 $newAttribute['event_id'] = $object['Object']['event_id'];
                 $newAttribute['object_id'] = $object['Object']['id'];
                 // Set seen of object at attribute level
-                if (is_null($newAttribute['first_seen']) && !is_null($object['first_seen'])) {
-                    $newAttribute['first_seen'] = $object['first_seen'];
+                if (
+                    (!array_key_exists('first_seen', $newAttribute) || is_null($newAttribute['first_seen'])) &&
+                    !is_null($object['Object']['first_seen'])
+                ) {
+                    $newAttribute['first_seen'] = $object['Object']['first_seen'];
                 }
-                if (is_null($newAttribute['last_seen']) && !is_null($object['last_seen'])) {
-                    $newAttribute['last_seen'] = $object['last_seen'];
+                if (
+                    (!array_key_exists('last_seen', $newAttribute) || is_null($newAttribute['last_seen'])) &&
+                    !is_null($object['Object']['last_seen'])
+                ) {
+                    $newAttribute['last_seen'] = $object['Object']['last_seen'];
+                    $different = true;
                 }
                 if (!isset($newAttribute['timestamp'])) {
                     $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
