@@ -306,7 +306,13 @@ function reflect_change_on_form() {
 $(document).ready(function() {
 
 <?php if ($this->params->controller === 'attributes'): ?>
-    var sliders_container = "<?php echo '#AttributeForm fieldset'; ?>"
+    <?php if ($this->params->action === 'add'): ?>
+        var sliders_container = "<?php echo '#AttributeForm fieldset'; ?>"
+    <?php elseif ($this->params->action === 'search'): ?>
+        var sliders_container = "<?php echo '#AttributeSearchForm fieldset'; ?>"
+    <?php else: ?>
+        var sliders_container = "<?php echo '#AttributeForm fieldset'; ?>"
+    <?php endif; ?>
 <?php elseif ($this->params->controller === 'shadow_attributes'): ?>
     var sliders_container = "<?php echo '#ShadowAttributeAddForm fieldset'; ?>"
 <?php else: ?>

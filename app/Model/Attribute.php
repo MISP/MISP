@@ -3563,7 +3563,7 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function setTimestampSeenConditions($timestamp, $conditions, $scope = 'Event.timestamp', $returnRaw = false)
+    public function setTimestampSeenConditions($timestamp, $conditions, $scope = 'Attribute.first_seen', $returnRaw = false)
     {
         if (is_array($timestamp)) {
             $timestamp[0] = intval($this->Event->resolveTimeDelta($timestamp[0])) * 1000000; // seen in stored in micro-seconds in the DB
@@ -3577,7 +3577,11 @@ class Attribute extends AppModel
             $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
         } else {
             $timestamp = intval($this->Event->resolveTimeDelta($timestamp)) * 1000000; // seen in stored in micro-seconds in the DB
-            $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+            if ($scope == 'Attribute.first_seen') {
+                $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+            } else {
+                $conditions['AND'][] = array($scope . ' <=' => $timestamp);
+            }
         }
         if ($returnRaw) {
             return $timestamp;
@@ -4132,8 +4136,6 @@ class Attribute extends AppModel
                 ),
                 'Object' => array(
                     'object_name' => array('function' => 'set_filter_object_name'),
-                    'first_seen' => array('function' => 'set_filter_seen'),
-                    'last_seen' => array('function' => 'set_filter_seen'),
                     'deleted' => array('function' => 'set_filter_deleted')
                 )
             );

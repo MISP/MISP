@@ -2607,22 +2607,8 @@ class Event extends AppModel
 
     public function set_filter_seen(&$params, $conditions, $options)
     {
-        if (empty($options['scope'])) {
-            $scope = 'Attribute';
-        } else {
-            $scope = $options['scope'];
-        }
-        $filters = array(
-            'first_seen' => array(
-                'Attribute.first_seen'
-            ),
-            'last_seen' => array(
-                'Attribute.last_seen'
-            )
-        );
-        foreach ($filters[$options['filter']] as $f) {
-            $conditions = $this->Attribute->setTimestampSeenConditions($params[$options['filter']], $conditions, $f);
-        }
+        $f = $options['scope'] . '.' . $options['filter'];
+        $conditions = $this->Attribute->setTimestampSeenConditions($params[$options['filter']], $conditions, $f);
         return $conditions;
     }
 

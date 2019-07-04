@@ -33,6 +33,8 @@
                     'label' => __('Alternate Search Result (Events)')
             ));
         ?>
+        <div class="input clear"></div>
+        <?php echo $this->element('form_seen_input'); ?>
     </fieldset>
 <?php
     echo $this->Form->button(__('Search'), array('class' => 'btn btn-primary'));

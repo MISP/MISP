@@ -2396,7 +2396,6 @@ class AppModel extends Model
             $multiplier = $multiplierArray[$lastChar];
             $delta = substr($delta, 0, -1);
         } else if(strtotime($delta) !== false) {
-            debug(strtotime($delta));
             return strtotime($delta);
         } else {
             // invalid filter, make sure we don't return anything
