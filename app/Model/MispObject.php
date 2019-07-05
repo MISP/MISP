@@ -241,13 +241,13 @@ class MispObject extends AppModel
                 $object['Attribute'][$k]['object_id'] = $this->id;
                 if (
                     (!array_key_exists('first_seen', $object['Attribute'][$k]) || is_null($object['Attribute'][$k]['first_seen'])) &&
-                    !is_null($object['Object']['first_seen'])
+                    (!array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
                 ) {
                     $object['Attribute'][$k]['first_seen'] = $object['Object']['first_seen'];
                 }
                 if (
                     (!array_key_exists('last_seen', $object['Attribute'][$k]) || is_null($object['Attribute'][$k]['last_seen'])) &&
-                    !is_null($object['Object']['last_seen'])
+                    (!array_key_exists('last_seen', $object['Object']) &&  !is_null($object['Object']['last_seen']))
                 ) {
                     $object['Attribute'][$k]['last_seen'] = $object['Object']['last_seen'];
                 }
@@ -673,14 +673,14 @@ class MispObject extends AppModel
                                 // Set seen of object at attribute level
                                 if (
                                     (!array_key_exists('first_seen', $newAttribute) || is_null($newAttribute['first_seen'])) &&
-                                    !is_null($object['Object']['first_seen'])
+                                    (!array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
                                 ) {
                                     $newAttribute['first_seen'] = $object['Object']['first_seen'];
                                     $different = true;
                                 }
                                 if (
                                     (!array_key_exists('last_seen', $newAttribute) || is_null($newAttribute['last_seen'])) &&
-                                    !is_null($object['Object']['last_seen'])
+                                    (!array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
                                 ) {
                                     $newAttribute['last_seen'] = $object['Object']['last_seen'];
                                     $different = true;
@@ -717,13 +717,13 @@ class MispObject extends AppModel
                 // Set seen of object at attribute level
                 if (
                     (!array_key_exists('first_seen', $newAttribute) || is_null($newAttribute['first_seen'])) &&
-                    !is_null($object['Object']['first_seen'])
+                    (!array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
                 ) {
                     $newAttribute['first_seen'] = $object['Object']['first_seen'];
                 }
                 if (
                     (!array_key_exists('last_seen', $newAttribute) || is_null($newAttribute['last_seen'])) &&
-                    !is_null($object['Object']['last_seen'])
+                    (!array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
                 ) {
                     $newAttribute['last_seen'] = $object['Object']['last_seen'];
                 }
@@ -750,13 +750,13 @@ class MispObject extends AppModel
                 // Set seen of object at attribute level
                 if (
                     (!array_key_exists('first_seen', $newAttribute) || is_null($newAttribute['first_seen'])) &&
-                    !is_null($object['Object']['first_seen'])
+                    (!array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
                 ) {
                     $newAttribute['first_seen'] = $object['Object']['first_seen'];
                 }
                 if (
                     (!array_key_exists('last_seen', $newAttribute) || is_null($newAttribute['last_seen'])) &&
-                    !is_null($object['Object']['last_seen'])
+                    (!array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
                 ) {
                     $newAttribute['last_seen'] = $object['Object']['last_seen'];
                     $different = true;
