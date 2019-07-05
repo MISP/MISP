@@ -241,13 +241,13 @@ class MispObject extends AppModel
                 $object['Attribute'][$k]['object_id'] = $this->id;
                 if (
                     (!array_key_exists('first_seen', $object['Attribute'][$k]) || is_null($object['Attribute'][$k]['first_seen'])) &&
-                    (!array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
+                    (array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
                 ) {
                     $object['Attribute'][$k]['first_seen'] = $object['Object']['first_seen'];
                 }
                 if (
                     (!array_key_exists('last_seen', $object['Attribute'][$k]) || is_null($object['Attribute'][$k]['last_seen'])) &&
-                    (!array_key_exists('last_seen', $object['Object']) &&  !is_null($object['Object']['last_seen']))
+                    (array_key_exists('last_seen', $object['Object']) &&  !is_null($object['Object']['last_seen']))
                 ) {
                     $object['Attribute'][$k]['last_seen'] = $object['Object']['last_seen'];
                 }
