@@ -863,6 +863,7 @@ class StixFromMISPParser(StixParser):
         attributes = []
         for p in pattern:
             p_type, p_value = p.split(' = ')
+            p_value = p_value[1:-1]
             try:
                 mapping = network_traffic_mapping[p_type]
             except KeyError:
