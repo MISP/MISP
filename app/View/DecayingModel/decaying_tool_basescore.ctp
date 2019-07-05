@@ -1,4 +1,4 @@
-<div class="row" style="padding: 15px;">
+<div class="row" style="padding: 15px; overflow: auto; max-height: 90vh;">
     <div class="span8" style="height: calc(90vh); overflow-y: scroll; border: 1px solid #ddd;">
         <input id="table_taxonomy_search" class="input" style="width: 250px; margin: 0px;" type="text" placeholder="<?php echo _('Search Taxonomy'); ?>"></input>
         <it class="fa fa-times useCursorPointer" title="<?php echo __('Clear search field'); ?>" onclick="$('#table_taxonomy_search').val('').trigger('input');"></it>
@@ -55,40 +55,40 @@
         </div>
         <div>
             <h3><?php echo __('Example') ?><it class="fa fa-sync useCursorPointer" style="margin-left: 5px; font-size: small;" onclick="refreshExamples()"></it></h3>
-            <table id="tableTaxonomy" class="table table-striped table-bordered table-condensed">
+            <table id="tableExamples" class="table table-striped table-bordered table-condensed">
                 <thead>
                     <tr>
                         <th>Attribute</th>
                         <th>Tags</th>
-                        <th>Base score</th>
+                        <th style="min-width: 60px;">Base score</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
+                    <tr onclick="genHelpBaseScoreComputation(event, 0)">
                         <td>
                             Tag your attribute
                         </td>
-                        <td>
+                        <td id="basescore-example-tag-0">
                             <div style="width:100%;display:inline-block;" data-original-title="" title="">
                                 <div id="basescore-example-customtag-container" style="float:left" data-original-title="" title="">
-                                    <button id="basescore-example-score-addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" title="Add tag" onclick="addTagWithValue(this);">+</button>
+                                    <button id="basescore-example-score-addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" title="Add tag" onclick="event.stopPropagation(); addTagWithValue(this);">+</button>
                                 </div>
                             </div>
                         </td>
-                        <td id="basescore-example-score-custom" style="position: relative; text-align: center; vertical-align: middle;">
+                        <td id="basescore-example-score-0" style="position: relative; text-align: center; vertical-align: middle;">
                         </td>
                     </tr>
-                    <tr onclick="genHelpBaseScoreComputation(1)">
+                    <tr onclick="genHelpBaseScoreComputation(event, 1)">
                         <td>Attribute 1</td>
                         <td id="basescore-example-tag-1"><?php echo __('Pick a Taxonomy'); ?></td>
                         <td id="basescore-example-score-1" style="position: relative; text-align: center; vertical-align: middle;"></td>
                     </tr>
-                    <tr onclick="genHelpBaseScoreComputation(2)">
+                    <tr onclick="genHelpBaseScoreComputation(event, 2)">
                         <td>Attribute 2</td>
                         <td id="basescore-example-tag-2"><?php echo __('Pick a Taxonomy'); ?></td>
                         <td id="basescore-example-score-2" style="position: relative; text-align: center; vertical-align: middle;"></td>
                     </tr>
-                    <tr onclick="genHelpBaseScoreComputation(3)">
+                    <tr onclick="genHelpBaseScoreComputation(event, 3)">
                         <td>Attribute 3</td>
                         <td id="basescore-example-tag-3"><?php echo __('Pick a Taxonomy'); ?></td>
                         <td id="basescore-example-score-3" style="position: relative; text-align: center; vertical-align: middle;"></td>
@@ -150,14 +150,42 @@ function addTagWithValue(clicked) {
 }
 
 function addPickedTags(clicked) {
+    var numerical_values = [];
     $select = $('#basescore-example-tag-picker');
+    $previous_tags = $('#basescore-example-customtag-container span.decayingExampleTags');
+    $previous_tags.each(function() {
+        numerical_values.push({name: $(this).text().split(':')[0], value: parseInt($(this).data('numerical_value'))});
+    });
     $select.val().forEach(function(tag_id) {
         var tag = mapping_tag_name_to_tag[tag_id];
-        var tag_html = '<div style="display: inline-block;"><span class="tagFirstHalf" style="background-color: ' + tag.colour + '; color: ' + getTextColour(tag.colour) + ';">' + tag.name + '</span>'
-            + '<span class="tagSecondHalf useCursorPointer" onclick="$(this).add($(this).prev()).remove()">×</span></div>&nbsp;'
+        tag.numerical_value = parseInt(tag.numerical_value);
+        var tag_html = '<div style="display: inline-block;" title="numerical_value=' + tag.numerical_value + '"><span class="tagFirstHalf decayingExampleTags" style="background-color: ' + tag.colour + '; color: ' + getTextColour(tag.colour) + ';" data-numerical_value="' + tag.numerical_value + '">' + tag.name + '</span>'
+            + '<span class="tagSecondHalf useCursorPointer" onclick="removeCustomTag(this);">×</span></div>&nbsp;'
         $('#basescore-example-customtag-container').append(tag_html);
+        numerical_values.push({name: tag.name.split(':')[0], value: tag['numerical_value']});
     });
+    base_score_computation[0] = compute_base_score(numerical_values);
+    var base_score = base_score_computation[0].score.toFixed(1);
+    $('#basescore-example-score-0').empty()
+        .text(base_score)
+        .append('<i class="fas fa-question-circle helptext-in-cell useCursorPointer" onclick="genHelpBaseScoreComputation(event, 0)"></i>');
     $('#basescore-example-score-addTagButton').popover('destroy');
+    $('#basescore-example-customtag-container').find('span.tagFirstHalf').parent().tooltip({placement: 'right'});
+}
+
+function removeCustomTag(clicked) {
+    $(clicked).parent().tooltip('destroy');
+    $(clicked).add($(clicked).prev()).remove();
+    var numerical_values = [];
+    $previous_tags = $('#basescore-example-customtag-container span.decayingExampleTags');
+    $previous_tags.each(function() {
+        numerical_values.push({name: $(this).text().split(':')[0], value: parseInt($(this).data('numerical_value'))});
+    });
+    base_score_computation[0] = compute_base_score(numerical_values);
+    var base_score = base_score_computation[0].score.toFixed(1);
+    $('#basescore-example-score-0').empty()
+        .text(base_score)
+        .append('<i class="fas fa-question-circle helptext-in-cell useCursorPointer" onclick="genHelpBaseScoreComputation(event, 0)"></i>');
 }
 
 function regenerateValidTags() {
@@ -197,10 +225,10 @@ function fetchTaxonomyConfig() {
 }
 
 function getRatioScore(taxonomies_name) {
-    if (taxonomies_name === undefined) {
-        taxonomies_name = Object.keys(fetchTaxonomyConfig());
-    }
     var config = fetchTaxonomyConfig();
+    if (taxonomies_name === undefined) {
+        taxonomies_name = Object.keys(config);
+    }
     var ratioScore = {};
     total_score = taxonomies_name.reduce(function(acc, name) {
         return acc + config[name];
@@ -260,11 +288,21 @@ function computation_step(steps, i) {
     return  (step.ratio * step.tag_value).toFixed(2);
 }
 
-function genHelpBaseScoreComputation(index) {
-    $('#tableTaxonomy > tbody > tr').removeClass('success').css('font-weight', 'inherit');
-    $('#tableTaxonomy > tbody > tr:nth-child(' + (index+1) + ')').addClass('success').css('font-weight', 'bold');
+function genHelpBaseScoreComputation(e, index) {
+    e.preventDefault();
+    $('#tableExamples > tbody > tr').removeClass('success').css('font-weight', 'inherit');
+    $('#tableExamples > tbody > tr:nth-child(' + (index+1) + ')').addClass('success').css('font-weight', 'bold');
     var steps = base_score_computation[index];
-    var $tags = $('#basescore-example-tag-'+index + ' > span');
+    if (steps === undefined) {
+        steps = {
+            score: 0,
+            steps: {
+                computation: [],
+                init: { config: [] }
+            }
+        };
+    }
+    var $tags = $('#basescore-example-tag-'+index + ' span.decayingExampleTags');
     var last_tag_index = $tags.length;
     $tags.push($(''));
     $('#computation_help_container_body').empty();
@@ -308,7 +346,7 @@ function refreshExamples() {
         tags = pickRandomTags();
         tags_html = '';
         tags.forEach(function(tag) {
-            numerical_values.push({name: tag.name.split(':')[0], value: tag['numerical_value']})
+            numerical_values.push({name: tag.name.split(':')[0], value: tag['numerical_value']});
             var text_color = getTextColour(tag.colour);
             tags_html += '<span class="tag decayingExampleTags" style="background-color: ' + tag.colour + ';color:' + text_color + '" '
                 + 'title="numerical_value=' + tag['numerical_value'] + '" '
@@ -321,7 +359,7 @@ function refreshExamples() {
         $('#basescore-example-tag-'+i).empty().append(tags_html);
         $('#basescore-example-score-'+i).empty()
             .text(base_score)
-            .append('<i class="fas fa-question-circle helptext-in-cell useCursorPointer" onclick="genHelpBaseScoreComputation(' + i + ')"></i>');
+            .append('<i class="fas fa-question-circle helptext-in-cell useCursorPointer" onclick="genHelpBaseScoreComputation(event, ' + i + ')"></i>');
         $('span.decayingExampleTags').tooltip();
     }
 }
@@ -336,8 +374,10 @@ function compute_base_score(numerical_values) {
         computation: []
     };
     numerical_values.forEach(function(tag) {
-        base_score += config[tag.name] * tag.value;
-        steps.computation.push({ ratio: config[tag.name], tag_value: tag.value });
+        if (!isNaN(config[tag.name])) {
+            base_score += config[tag.name] * tag.value;
+            steps.computation.push({ ratio: config[tag.name], tag_value: tag.value });
+        }
     });
     return { score: base_score, steps: steps };
 }
