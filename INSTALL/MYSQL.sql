@@ -31,11 +31,9 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `timestamp` int(11) NOT NULL DEFAULT 0,
   `distribution` tinyint(4) NOT NULL DEFAULT 0,
   `sharing_group_id` int(11) NOT NULL,
-  `comment` TEXT COLLATE utf8_unicode_ci,
+  `comment` text COLLATE utf8_bin,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
   `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
-  `first_seen` BIGINT(20) NULL DEFAULT NULL,
-  `last_seen` BIGINT(20) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `object_id` (`object_id`),
@@ -45,10 +43,6 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   INDEX `type` (`type`),
   INDEX `category` (`category`),
   INDEX `sharing_group_id` (`sharing_group_id`),
-  INDEX `comment` (`comment` (767)),
-  INDEX `deleted` (`deleted`),
-  INDEX `first_seen` (`first_seen`),
-  INDEX `last_seen` (`last_seen`),
   UNIQUE INDEX `uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -506,10 +500,8 @@ CREATE TABLE IF NOT EXISTS `objects` (
   `timestamp` int(11) NOT NULL DEFAULT 0,
   `distribution` tinyint(4) NOT NULL DEFAULT 0,
   `sharing_group_id` int(11),
-  `comment` text COLLATE utf8_unicode_ci NOT NULL,
+  `comment` text COLLATE utf8_bin NOT NULL,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
-  `first_seen` BIGINT(20) NULL DEFAULT NULL,
-  `last_seen` BIGINT(20) NULL DEFAULT NULL,
   PRIMARY KEY (id),
   INDEX `name` (`name`),
   INDEX `template_uuid` (`template_uuid`),
@@ -519,10 +511,7 @@ CREATE TABLE IF NOT EXISTS `objects` (
   INDEX `uuid` (`uuid`),
   INDEX `timestamp` (`timestamp`),
   INDEX `distribution` (`distribution`),
-  INDEX `sharing_group_id` (`sharing_group_id`),
-  INDEX `comment` (`comment` (767)),
-  INDEX `first_seen` (`first_seen`),
-  INDEX `last_seen` (`last_seen`)
+  INDEX `sharing_group_id` (`sharing_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -775,14 +764,12 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   `org_id` int(11) NOT NULL,
   `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
   `event_org_id` int(11) NOT NULL,
-  `comment` text COLLATE utf8_unicode_ci NOT NULL,
+  `comment` text COLLATE utf8_bin NOT NULL,
   `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
   `timestamp` int(11) NOT NULL DEFAULT 0,
   `proposal_to_delete` BOOLEAN NOT NULL DEFAULT 0,
   `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
-  `first_seen` BIGINT(20) NULL DEFAULT NULL,
-  `last_seen` BIGINT(20) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `event_uuid` (`event_uuid`),
@@ -792,10 +779,7 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   INDEX `value1` (`value1`(255)),
   INDEX `value2` (`value2`(255)),
   INDEX `type` (`type`),
-  INDEX `category` (`category`),
-  INDEX `comment` (`comment` (767)),
-  INDEX `first_seen` (`first_seen`),
-  INDEX `last_seen` (`last_seen`),
+  INDEX `category` (`category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
