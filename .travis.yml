@@ -53,6 +53,7 @@ install:
     - sudo chmod -R g+ws `pwd`/app/tmp/logs
     - sudo chmod -R g+ws `pwd`/app/files
     - sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
+    - sudo chown -R www-data:www-data `pwd`
     # Resque perms
     - sudo chown -R www-data:www-data `pwd`/app/Plugin/CakeResque/tmp
     - sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
