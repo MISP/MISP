@@ -311,3 +311,7 @@ external_pattern_mapping = {'domain-name': domain_pattern_mapping,
                             'url': {'value':{'type': 'url'}},
                             'x509-certificate': x509_mapping
                             }
+
+connection_protocols = {"IP": "3", "ICMP": "3", "ARP": "3",
+                        "TCP": "4", "UDP": "4",
+                        "HTTP": "7", "HTTPS": "7", "FTP": "7"}
