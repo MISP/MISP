@@ -84,7 +84,7 @@ install:
     - sudo mkdir `pwd`/.gnupg
     # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
     - sudo cp -a /dev/urandom /dev/random
-    - sudo gpg --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
+    - sudo gpg --no-tty --no-permission-warning  --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
     - sudo chown www-data:www-data `pwd`/.gnupg
     - sudo chmod 700 `pwd`/.gnupg
     # Get authkey
