@@ -631,12 +631,13 @@ class StixFromMISPParser(StixParser):
             p_value = p_value[1:-1]
             try:
                 mapping = network_traffic_mapping[p_type]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': p_value})
             except KeyError:
                 if not p_type.startswith('network-traffic:protocols['):
                     continue
-                mapping = {'type': 'text', 'relation': 'layer{}-protocol'.format(connection_protocols[p_value])}
-            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                               'value': p_value})
+                attributes.append({'type': 'text', 'value': p_value,
+                                   'object_relation': 'layer{}-protocol'.format(connection_protocols[p_value])})
         return attributes
 
     def observable_email(self, observable):
