@@ -180,6 +180,9 @@ asn_mapping = {'number': as_number_attribute_mapping,
                'ipv4-addr:value': asn_subnet_attribute_mapping,
                'ipv6-addr:value': asn_subnet_attribute_mapping}
 
+credential_mapping = {'credential': {'type': 'text', 'relation': 'password'},
+                      'user_id': {'type': 'text', 'relation': 'username'}}
+
 domain_ip_mapping = {'domain-name': domain_attribute_mapping,
                      'domain-name:value': domain_attribute_mapping,
                      'ipv4-addr': ip_attribute_mapping,

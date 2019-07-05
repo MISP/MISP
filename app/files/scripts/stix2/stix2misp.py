@@ -468,6 +468,7 @@ class StixFromMISPParser(StixParser):
     def __init__(self):
         super(StixFromMISPParser, self).__init__()
         self.objects_mapping = {'asn': {'observable': self.attributes_from_asn_observable, 'pattern': self.pattern_asn},
+                                'credential': {'observable': self.observable_credential, 'pattern': self.pattern_credential},
                                 'domain-ip': {'observable': self.attributes_from_domain_ip_observable, 'pattern': self.pattern_domain_ip},
                                 'email': {'observable': self.observable_email, 'pattern': self.pattern_email},
                                 'file': {'observable': self.observable_file, 'pattern': self.pattern_file},
@@ -638,6 +639,27 @@ class StixFromMISPParser(StixParser):
                     continue
                 attributes.append({'type': 'text', 'value': p_value,
                                    'object_relation': 'layer{}-protocol'.format(connection_protocols[p_value])})
+        return attributes
+
+    def observable_credential(self, observable):
+        return self.fill_observable_attributes(observable['0'], credential_mapping)
+
+    def pattern_credential(self, pattern):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            p_type = p_type.split(':')[1]
+            p_value = p_value[1:-1]
+            try:
+                mapping = credential_mapping[p_type]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': p_value})
+            except KeyError:
+                if not p_type.startswith('x_misp_'):
+                    continue
+                attribute_type, relation = p_type.strip('x_misp_').split('_')
+                attributes.append({'type': attribute_type, 'object_relation': relation,
+                                   'value': p_value})
         return attributes
 
     def observable_email(self, observable):
