@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for Debian testing "buster" server
+## for Debian 10 "buster"
 
 ### 0/ MISP testing dev install - Status
 ------------------------------------
@@ -7,7 +7,7 @@
 !!! notice
     This is mostly the install [@SteveClement](https://twitter.com/SteveClement)
     uses for testing, qc and random development.
-    Maintained and tested by @SteveClement on 20190405
+    Maintained and tested by @SteveClement on 20190702
 
 !!! warning
     PHP 7.3.0RC4 is not working at the moment with the packaged composer.phar<br />
@@ -31,10 +31,18 @@ PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 
 {!generic/ethX.md!}
 
-#### Make sure your system is up2date
+#### Add $MISP_USER to staff and $WWW_USER
+
+```bash
+sudo adduser $MISP_USER staff
+sudo adduser $MISP_USER $WWW_USER
+```
+
+#### Make sure your system is up2date and curl installed
 ```bash
 sudo apt update
-sudo apt -y dist-upgrade
+sudo apt dist-upgrade -y
+sudo apt install curl -y
 ```
 
 #### install postfix, there will be some questions. (optional)
@@ -67,10 +75,10 @@ jq ntp ntpdate jupyter-notebook imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev -y
 
 # Start haveged to get more entropy (optional)
-sudo apt install haveged -y
+sudo apt install haveged -qqy
 sudo service haveged start
 
-sudo apt install expect -y
+sudo apt install expect -qqy
 
 # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
 pw="Password1234"
@@ -99,7 +107,7 @@ expect -f - <<-EOF
   send -- "y\r"
   expect eof
 EOF
-sudo apt-get purge -y expect ; sudo apt autoremove -y
+sudo apt purge -qqy expect ; sudo apt autoremove -qqy
 
 # Enable modules, settings, and default of SSL in Apache
 sudo a2dismod status
@@ -149,10 +157,28 @@ cd $PATH_TO_MISP/app/files/scripts/python-stix
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+# install STIX2.0 library to support STIX 2.0 export:
+cd ${PATH_TO_MISP}/cti-python-stix2
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+
+# install pydeep
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+
+# install lief
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+
+# install zmq needed by mispzmq
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
+
+# install python-magic
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
+
+# install plyara
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
 
 # Install Crypt_GPG and Console_CommandLine
 sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
@@ -378,8 +404,8 @@ $SUDO_WWW sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_
 sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
 
 echo "[Unit]
-Description=MISP's background workers
-After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
+Description=MISP background workers
+After=mariadb.service redis-server.service
 
 [Service]
 Type=forking
@@ -445,7 +471,8 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
 ```bash
-sudo apt-get install librdkafka-dev php-dev
+sudo apt install librdkafka-dev php-dev
+sudo pecl channel-update pecl.php.net
 sudo pecl install rdkafka
 echo "extension=rdkafka.so" | sudo tee ${PHP_ETC_BASE}/mods-available/rdkafka.ini
 sudo phpenmod rdkafka
