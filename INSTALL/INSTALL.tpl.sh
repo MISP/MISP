@@ -686,7 +686,7 @@ armv7l-ubuntu-bionic
 "
 
 # Check if we actually support this configuration
-if ! echo "$SUPPORT_MAP" | grep "$(uname -m)-$lsb_dist-$dist_version" >/dev/null; then
+if ! echo "$SUPPORT_MAP" | grep "$(uname -m)-$FLAVOUR-$dist_version" >/dev/null; then
   cat >&2 <<-'EOF'
     Either your platform is not easily detectable or is not supported by this
     installer script.

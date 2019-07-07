@@ -1383,8 +1383,8 @@ class DataHandler {
         }
         // search if this field exists in the object
         for (var attr of obj.Attribute) { // for each field
-            var attr_type = attr.type;
-            if (template_req.indexOf(attr_type) != -1) {
+            var attr_rel = attr.object_relation;
+            if (template_req.indexOf(attr_rel) != -1) {
                 label += ": " + attr.value;
                 return label;
             }

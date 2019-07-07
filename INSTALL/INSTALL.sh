@@ -260,7 +260,7 @@ checkCoreOS () {
 
 # Extract debian flavour
 checkFlavour () {
-  lsb_dist=""
+  FLAVOUR=""
   # Every system that we officially support has /etc/os-release
   if [ -r /etc/os-release ]; then
     FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
@@ -290,14 +290,14 @@ checkFlavour () {
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
       fi
-      echo "$lsb_dist not supported at the moment"
+      echo "$FLAVOUR not supported at the moment"
       exit 1
     ;;
     rhel|ol|sles)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
       fi
-      echo "$lsb_dist not supported at the moment"
+      echo "$FLAVOUR not supported at the moment"
       exit 1
     ;;
     *)
@@ -334,20 +334,20 @@ check_forked () {
     if [ "$lsb_release_exit_code" = "0" ]; then
       # Print info about current distro
       cat <<-EOF
-      You're using '$lsb_dist' version '$dist_version'.
+      You're using '$FLAVOUR' version '$dist_version'.
 EOF
       # Get the upstream release info
-      lsb_dist=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
+      FLAVOUR=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
       dist_version=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'codename' | cut -d ':' -f 2 | tr -d '[:space:]')
 
       # Print info about upstream distro
       cat <<-EOF
-      Upstream release is '$lsb_dist' version '$dist_version'.
+      Upstream release is '$FLAVOUR' version '$dist_version'.
 EOF
     else
-      if [ -r /etc/debian_version ] && [ "$lsb_dist" != "ubuntu" ] && [ "$lsb_dist" != "raspbian" ]; then
+      if [ -r /etc/debian_version ] && [ "$FLAVOUR" != "ubuntu" ] && [ "$FLAVOUR" != "raspbian" ]; then
         # We're Debian and don't even know it!
-        lsb_dist=debian
+        FLAVOUR=debian
         dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
         case "$dist_version" in
           10)
@@ -2480,7 +2480,7 @@ armv7l-ubuntu-bionic
 "
 
 # Check if we actually support this configuration
-if ! echo "$SUPPORT_MAP" | grep "$(uname -m)-$lsb_dist-$dist_version" >/dev/null; then
+if ! echo "$SUPPORT_MAP" | grep "$(uname -m)-$FLAVOUR-$dist_version" >/dev/null; then
   cat >&2 <<-'EOF'
     Either your platform is not easily detectable or is not supported by this
     installer script.
