@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for Debian testing "buster" server
+## for Debian 10 "buster"
 
 ### 0/ MISP testing dev install - Status
 ------------------------------------
@@ -18,9 +18,6 @@
 ```bash
 PHP_ETC_BASE=/etc/php/7.3
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-
-sudo adduser $MISP_USER staff
-sudo adduser $MISP_USER $WWW_USER
 ```
 
 ### 1/ Minimal Debian install
@@ -34,10 +31,18 @@ sudo adduser $MISP_USER $WWW_USER
 
 {!generic/ethX.md!}
 
-#### Make sure your system is up2date
+#### Add $MISP_USER to staff and $WWW_USER
+
+```bash
+sudo adduser $MISP_USER staff
+sudo adduser $MISP_USER $WWW_USER
+```
+
+#### Make sure your system is up2date and curl installed
 ```bash
 sudo apt update
 sudo apt dist-upgrade -y
+sudo apt install curl -y
 ```
 
 #### install postfix, there will be some questions. (optional)

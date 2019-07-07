@@ -5,6 +5,10 @@
 ------------------------------------
 
 !!! notice
+    Please use [Debian 10](https://misp.github.io/MISP/xINSTALL.debian10/) as everything works as expected.
+
+
+!!! notice
     Maintained and tested by @SteveClement on 20190702
 
 !!! warning
