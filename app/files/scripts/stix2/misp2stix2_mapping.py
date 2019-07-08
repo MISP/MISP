@@ -307,6 +307,8 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                   'url': {'to_call': 'handle_usual_object_name',
                           'observable': {'0': {'type': 'url'}},
                           'pattern': "url:{0} = '{1}'"},
+                  'user-account': {'to_call': 'handle_usual_object_name',
+                                   'pattern': "user-account:{0} = '{1}'"},
                   'vulnerability': {'to_call': 'add_object_vulnerability'},
                   'x509': {'to_call': 'handle_usual_object_name',
                            'pattern': "x509-certificate:{0} = '{1}' AND "}
@@ -351,6 +353,15 @@ regkeyMapping = {'data-type': 'data_type', 'data': 'data', 'name': 'name',
                  'last-modified': 'modified', 'key': 'key'}
 
 urlMapping = {'url': 'value', 'domain': 'value', 'port': 'dst_port'}
+
+userAccountMapping = {'account-type': 'account_type', 'can_escalate_privs': 'can_escalate_privs',
+                      'created': 'account_created', 'disabled': 'is_disabled', 'display-name': 'display_name',
+                      'expires': 'account_expires', 'first_login': 'account_first_login',
+                      'is_service_account': 'is_service_account', 'last_login': 'account_last_login',
+                      'password': 'credential', 'password_last_changed': 'credential_last_changed',
+                      'privileged': 'is_privileged', 'username': 'account_login', 'user-id': 'user_id'}
+
+unixAccountExtensionMapping = {'group': 'groups', 'group-id': 'gid', 'home_dir': 'home_dir', 'shell': 'shell'}
 
 x509mapping = {'pubkey-info-algorithm': 'subject_public_key_algorithm', 'subject': 'subject',
                'pubkey-info-exponent': 'subject_public_key_exponent', 'issuer': 'issuer',

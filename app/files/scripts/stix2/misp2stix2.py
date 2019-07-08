@@ -198,6 +198,8 @@ class StixBuilder():
             'stix2': {'pattern': self.resolve_stix2_pattern},
             'url': {'observable': self.resolve_url_observable,
                     'pattern': self.resolve_url_pattern},
+            'user-account': {'observable': self.resolve_user_account_observable,
+                             'pattern': self.resolve_user_account_pattern},
             'x509': {'observable': self.resolve_x509_observable,
                      'pattern': self.resolve_x509_pattern}
         }
@@ -1260,6 +1262,52 @@ class StixBuilder():
                 mapping = attribute_type
             pattern.append(objectsMapping[mapping]['pattern'].format(stix_type, attribute['value']))
         return "[{}]".format(" AND ".join(pattern))
+
+    def resolve_user_account_observable(self, attributes, object_id):
+        attributes = self.parse_user_account_attributes(attributes, object_id)
+        observable = {'type': 'user-account'}
+        extension = {}
+        for relation, value in attributes.items():
+            try:
+                observable[userAccountMapping[relation]] = value
+            except KeyError:
+                try:
+                    extension[unixAccountExtensionMapping[relation]] = value
+                except KeyError:
+                    continue
+        if extension:
+            observable['extensions']['unix-account-ext'] = extension
+        return {'0': observable}
+
+    def resolve_user_account_pattern(self, attributes, object_id):
+        mapping = objectsMapping['user-account']['to_call']
+        attributes = self.parse_user_account_attributes(attributes, object_id)
+        pattern = []
+        for relation, value in attributes.items():
+            try:
+                pattern_part = mapping.format(userAccountMapping[relation], value)
+            except KeyError:
+                try:
+                    pattern_part = mapping.format('extensions.unix-account-ext.{}'.format(unixAccountExtensionMapping[relation]), value)
+                except KeyError:
+                    continue
+            pattern.append(pattern_part)
+        return "[{}]".format(' AND '.join(pattern))
+
+    def parse_user_account_attributes(self, attributes, object_id):
+        tmp_attributes = defaultdict(list)
+        for attribute in attributes:
+            self.parse_galaxies(attribute['Galaxy'], object_id)
+            relation = attribute['object_relation']
+            if relation == 'group':
+                tmp_attributes[relation].append(attribute['value'])
+            else:
+                tmp_attributes[relation] = attribute['value']
+        if 'user-id' not in tmp_attributes and 'username' in tmp_attributes:
+            tmp_attributes['user-id'] = tmp_attributes.pop('username')
+        if 'text' in tmp_attributes:
+            tmp_attributes.pop('text')
+        return tmp_attributes
 
     def resolve_x509_observable(self, attributes, object_id):
         observable = {'type': 'x509-certificate'}
