@@ -64,14 +64,13 @@
             echo sprintf(
                 '<div class="large-left-margin">%s %s %s %s</div>',
                 sprintf(
-                    '<span class="bold blue expandable useCursorPointer" data-toggle="popover" data-content="%s">%s %s</span>',
+                    '<span class="bold blue expandable useCursorPointer" data-toggle="popover" data-content="%s">%s</span>',
                     h($popover_data),
                     sprintf(
                         '<span><i class="fas fa-%s"></i> %s</span>',
                         $cluster['local'] ? 'user' : 'globe-americas',
                         h($cluster['value'])
-                    ),
-                    h($cluster['value'])
+                    )
                 ),
                 sprintf(
                     '<a href="%s/galaxy_clusters/view/%s" class="black fas fa-search" title="%s" aria-label="%s"></a>',
@@ -87,7 +86,7 @@
                     __('View all events containing this cluster.'),
                     __('View all events containing this cluster.')
                 ),
-                (!$isSiteAdmin && (!$mayModify || !$isAclTagger)) ? '' : sprintf(
+                (!empty($static_tags_only) || (!$isSiteAdmin && (!$mayModify || !$isAclTagger))) ? '' : sprintf(
                     '%s%s%s',
                     $this->Form->create(
                         false,
