@@ -1280,15 +1280,21 @@ class StixBuilder():
         return {'0': observable}
 
     def resolve_user_account_pattern(self, attributes, object_id):
-        mapping = objectsMapping['user-account']['to_call']
+        mapping = objectsMapping['user-account']['pattern']
+        extension_pattern = "extensions.'unix-account-ext'.{}"
         attributes = self.parse_user_account_attributes(attributes, object_id)
         pattern = []
+        if 'group' in attributes:
+            i = 0
+            for group in attributes.pop('group'):
+                pattern.append(mapping.format(extension_pattern.format('groups[{}]'.format(i)), group))
+                i += 1
         for relation, value in attributes.items():
             try:
                 pattern_part = mapping.format(userAccountMapping[relation], value)
             except KeyError:
                 try:
-                    pattern_part = mapping.format('extensions.unix-account-ext.{}'.format(unixAccountExtensionMapping[relation]), value)
+                    pattern_part = mapping.format(extension_pattern.format(unixAccountExtensionMapping[relation]), value)
                 except KeyError:
                     continue
             pattern.append(pattern_part)
