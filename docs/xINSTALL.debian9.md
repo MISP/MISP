@@ -19,9 +19,11 @@
 ### 1/ Minimal Debian install
 -------------------------
 
-#### Install a minimal Debian 9 "stretch" server system with the software:
+#### Install a minimal Debian 9.9 "stretch" server system with the software:
 - OpenSSH server
 - This guide assumes a user name of 'misp' with sudo working
+
+{!generic/known-issues-debian.md!}
 
 {!generic/globalVariables.md!}
 

@@ -1,17 +1,18 @@
 # INSTALLATION INSTRUCTIONS
 ## for Debian 10 "buster"
 
-### 0/ MISP testing dev install - Status
+### 0/ MISP debian stable install - Status
 ------------------------------------
 
 !!! notice
-    This is mostly the install [@SteveClement](https://twitter.com/SteveClement)
-    uses for testing, qc and random development.
-    Maintained and tested by @SteveClement on 20190702
+    This is mostly the install [@SteveClement](https://twitter.com/SteveClement) uses for testing, qc and random development.
+    Maintained and tested by @SteveClement on 20190707
 
 !!! warning
-    PHP 7.3.0RC4 is not working at the moment with the packaged composer.phar<br />
+    PHP 7.3.4-2 is not working at the moment with the packaged composer.phar<br />
     You need to manually update composer.phar as outlined below.
+
+{!generic/known-issues-debian.md!}
 
 {!generic/globalVariables.md!}
 
