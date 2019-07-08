@@ -153,7 +153,8 @@
                             'tags' => $event['EventTag'],
                             'tagAccess' => false,
                             'required_taxonomies' => false,
-                            'columnised' => true
+                            'columnised' => true,
+                            'static_tags_only' => true
                         )
                     )
                 );
