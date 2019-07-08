@@ -3511,7 +3511,6 @@ class EventsController extends AppController
             'org_id' => $this->Auth->user('org_id'),
             'orgc_id' => $this->Auth->user('org_id'),
             'timestamp' => $ts,
-            'uuid' => CakeText::uuid(),
             'user_id' => $this->Auth->user('id'),
         ));
         $default['Event']['info'] = 'A junk event for load testing';
@@ -3521,6 +3520,7 @@ class EventsController extends AppController
         $default['Event']['distribution'] = '0';
         for ($i = 0; $i < 50; $i++) {
             $data = $default;
+            $data['Event']['uuid'] = CakeText::uuid();
             for ($j = 0; $j < 3000; $j++) {
                 $value = mt_rand();
                 $data['Attribute'][] = array(
@@ -3534,6 +3534,7 @@ class EventsController extends AppController
                         'comment' => '',
                         'uuid' => CakeText::uuid(),
                         'timestamp' => $ts,
+                        'disable_correlation' => 1
                 );
             }
             $this->Event->create();
@@ -5217,40 +5218,8 @@ class EventsController extends AppController
             $event['Event']['orgc_name'] = $org_name['Orgc']['name'];
             if ($attribute[0]['Object']['id']) {
                 $object_id = $attribute[0]['Object']['id'];
-                $initial_object = $this->Event->Object->find('first', array(
-                    'conditions' => array('Object.id' => $object_id,
-                                          'Object.event_id' => $event_id,
-                                          'Object.deleted' => 0),
-                    'recursive' => -1,
-                    'fields' => array('Object.id', 'Object.uuid', 'Object.name')
-                ));
+                $initial_object = $this->Event->fetchInitialObject($event_id, $object_id);
                 if (!empty($initial_object)) {
-                    $initial_attributes = $this->Event->Attribute->find('all', array(
-                        'conditions' => array('Attribute.object_id' => $object_id,
-                                              'Attribute.deleted' => 0),
-                        'recursive' => -1,
-                        'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type',
-                                          'Attribute.object_relation', 'Attribute.value')
-                    ));
-                    if (!empty($initial_attributes)) {
-                        $initial_object['Attribute'] = array();
-                        foreach ($initial_attributes as $initial_attribute) {
-                            array_push($initial_object['Attribute'], $initial_attribute['Attribute']);
-                        }
-                    }
-                    $initial_references = $this->Event->Object->ObjectReference->find('all', array(
-                        'conditions' => array('ObjectReference.object_id' => $object_id,
-                                              'ObjectReference.event_id' => $event_id,
-                                              'ObjectReference.deleted' => 0),
-                        'recursive' => -1,
-                        'fields' => array('ObjectReference.referenced_uuid', 'ObjectReference.relationship_type')
-                    ));
-                    if (!empty($initial_references)) {
-                        $initial_object['ObjectReference'] = array();
-                        foreach ($initial_references as $initial_reference) {
-                            array_push($initial_object['ObjectReference'], $initial_reference['ObjectReference']);
-                        }
-                    }
                     $event['initialObject'] = $initial_object;
                 }
             }

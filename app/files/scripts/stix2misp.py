@@ -29,7 +29,7 @@ from stix.core import STIXPackage
 from collections import defaultdict
 try:
     import stix_edh
-except (ModuleNotFoundError, ImportError):
+except ImportError:
     pass
 
 _MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-3]])

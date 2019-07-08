@@ -5,6 +5,10 @@
 ------------------------------------
 
 !!! notice
+    Please use [Debian 10](https://misp.github.io/MISP/xINSTALL.debian10/) as everything works as expected.
+
+
+!!! notice
     Maintained and tested by @SteveClement on 20190702
 
 !!! warning
@@ -15,9 +19,11 @@
 ### 1/ Minimal Debian install
 -------------------------
 
-#### Install a minimal Debian 9 "stretch" server system with the software:
+#### Install a minimal Debian 9.9 "stretch" server system with the software:
 - OpenSSH server
 - This guide assumes a user name of 'misp' with sudo working
+
+{!generic/known-issues-debian.md!}
 
 {!generic/globalVariables.md!}
 
@@ -56,9 +62,7 @@ sudo postfix reload
 
 #### Install all the dependencies (some might already be installed)
 
-You need to update python3.5 to python3.7 for [PyMISP](https://github.com/MISP/PyMISP) to work properly.
-
-FIXME: The below breaks redis-server and mariadb-server
+You need to use at least Python3.6 for [PyMISP](https://github.com/MISP/PyMISP) to work properly.
 
 ```bash
 # Manual Python3.7.3 install in $HOME

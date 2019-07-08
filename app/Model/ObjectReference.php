@@ -263,7 +263,7 @@ class ObjectReference extends AppModel
         return true;
     }
 
-    public function getReferencedInfo($referencedUuid, $object)
+    public function getReferencedInfo($referencedUuid, $object, $strict = true)
     {
         $referenced_type = 1;
         $target_object = $this->Object->find('first', array(
@@ -284,7 +284,11 @@ class ObjectReference extends AppModel
                 'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
             ));
             if (empty($target_attribute)) {
-                throw new NotFoundException('Invalid target.');
+                if ($strict) {
+                    throw new NotFoundException('Invalid target.');
+                } else {
+                    return array(0, 0, 0);
+                }
             }
             if ($target_attribute['Attribute']['event_id'] != $object['Event']['id']) {
                 throw new NotFoundException('Invalid target. Target has to be within the same event.');
