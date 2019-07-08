@@ -4654,7 +4654,7 @@ class EventsController extends AppController
         App::uses('FileAccessTool', 'Tools');
         $fileAccessTool = new FileAccessTool();
         foreach ($data['files'] as $file) {
-            $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/var/www/MISP/app/tmp';
+            $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : APP_DIR . '/tmp';
             $tmpfile = $fileAccessTool->createTempFile($tmpdir, $prefix = 'MISP_upload');
             $fileAccessTool->writeToFile($tmpfile, base64_decode($file['data']));
             $tmpfile = new File($tmpfile);
