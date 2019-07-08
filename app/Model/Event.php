@@ -1804,7 +1804,7 @@ class Event extends AppModel
             'includeRelatedTags',
             'excludeLocalTags'
         );
-        if (!empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
+        if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
         }
         if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
