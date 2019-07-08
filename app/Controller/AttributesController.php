@@ -3037,7 +3037,9 @@ class AttributesController extends AppController
         if ($id === 'selected') {
             $idList = json_decode($this->request->data['attribute_ids'], true);
         }
+        $local = !empty($this->params['named']['local']);
         if (!$this->request->is('post')) {
+            $this->set('local', $local);
             $this->set('object_id', $id);
             $this->set('scope', 'Attribute');
             $this->layout = false;
@@ -3146,15 +3148,35 @@ class AttributesController extends AppController
                         continue;
                     }
                     $this->Attribute->AttributeTag->create();
-                    if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
-                        $event['Event']['published'] = 0;
-                        $date = new DateTime();
-                        $event['Event']['timestamp'] = $date->getTimestamp();
-                        $result = $this->Attribute->Event->save($event);
-                        $attribute['Attribute']['timestamp'] = $date->getTimestamp();
-                        $this->Attribute->save($attribute);
+                    if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId, 'local' => $local))) {
+                        if (!$local) {
+                            $event['Event']['published'] = 0;
+                            $date = new DateTime();
+                            $event['Event']['timestamp'] = $date->getTimestamp();
+                            $result = $this->Attribute->Event->save($event);
+                            $attribute['Attribute']['timestamp'] = $date->getTimestamp();
+                            $this->Attribute->save($attribute);
+                        }
                         $log = ClassRegistry::init('Log');
-                        $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
+                        $log->createLogEntry(
+                            $this->Auth->user(),
+                            'tag',
+                            'Attribute',
+                            $id,
+                            sprintf(
+                                'Attached%s tag (%s) "%s" to attribute (%s)',
+                                $local ? ' local' : '',
+                                $tag_id,
+                                $tag['Tag']['name'],
+                                $id
+                            ),
+                            sprintf(
+                                'Attribute (%s) tagged as Tag (%s)%s',
+                                $id,
+                                $tag_id,
+                                $local ? ' locally' : ''
+                            )
+                        );
                         $success++;
                     } else {
                         $fails++;
@@ -3233,11 +3255,6 @@ class AttributesController extends AppController
             if (!$this->_isRest()) {
                 $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
             }
-            // org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
-            if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
-            }
-
             $this->Attribute->recursive = -1;
             $attributeTag = $this->Attribute->AttributeTag->find('first', array(
                 'conditions' => array(
@@ -3246,6 +3263,23 @@ class AttributesController extends AppController
                 ),
                 'recursive' => -1,
             ));
+            // org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
+            if (
+                (
+                    (
+                        $this->Auth->user('org_id') !== $event['Event']['orgc_id'] ||
+                        (
+                            $this->Auth->user('org_id') == Configure::read('MISP.host_org_id') &&
+                            !empty($attributeTag['AttributeTag']['local'])
+                        )
+                    ) ||
+                    !$this->userRole['perm_tagger']
+                ) &&
+                !$this->_isSiteAdmin()
+            ) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
+            }
+
             $this->autoRender = false;
             if (empty($attributeTag)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid attribute - tag combination.')), 'status' => 200, 'type' => 'json'));

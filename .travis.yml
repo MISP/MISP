@@ -133,6 +133,7 @@ script:
     - popd
 
 after_failure:
+    - ls -Rl `pwd`/app
     - curl http://misp.local
     - cat /etc/apache2/sites-available/misp.local.conf
     - sudo ls -l /var/log/apache2

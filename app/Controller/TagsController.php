@@ -468,8 +468,11 @@ class TagsController extends AppController
                         'Tag.name !=' => $cluster_names
                 ),
                 'contain' => array('Tag'),
-                'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+                'fields' => array('Tag.id', 'Tag.colour', 'Tag.name', 'EventTag.local'),
         ));
+        foreach ($tags as $k => $tag) {
+            $tags[$k]['local'] = $tag['EventTag']['local'];
+        }
         $this->set('tags', $tags);
         $event = $this->Tag->EventTag->Event->find('first', array(
                 'recursive' => -1,
@@ -499,8 +502,11 @@ class TagsController extends AppController
                 'attribute_id' => $id
             ),
             'contain' => array('Tag'),
-            'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+            'fields' => array('Tag.id', 'Tag.colour', 'Tag.name', 'AttributeTag.local'),
         ));
+        foreach ($attributeTags as $k => $at) {
+            $attributeTags[$k]['local'] = $at['AttributeTag']['local'];
+        }
         $this->loadModel('GalaxyCluster');
         $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
         foreach ($attributeTags as $k => $attributeTag) {
@@ -573,27 +579,28 @@ class TagsController extends AppController
         if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
             throw new NotFoundException('You don\'t have permission to do that.');
         }
+        $localFlag = !empty($this->params['named']['local']) ? '/local:1' : '';
         $items = array();
         $favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
         if ($favourites) {
             $items[] = array(
                 'name' => __('Favourite Tags'),
-                'value' => "/tags/selectTag/" . h($id) . "/favourites/" . h($scope)
+                'value' => "/tags/selectTag/" . h($id) . "/favourites/" . h($scope) . $localFlag
             );
         }
         if ($scope !== 'tag_collection') {
             $items[] = array(
                 'name' => __('Tag Collections'),
-                'value' => "/tags/selectTag/" . h($id) . "/collections/" . h($scope)
+                'value' => "/tags/selectTag/" . h($id) . "/collections/" . h($scope) . $localFlag
             );
         }
         $items[] = array(
             'name' => __('Custom Tags'),
-            'value' => "/tags/selectTag/" . h($id) . "/0/" . h($scope)
+            'value' => "/tags/selectTag/" . h($id) . "/0/" . h($scope) . $localFlag
         );
         $items[] = array(
             'name' => __('All Tags'),
-            'value' => "/tags/selectTag/" . h($id) . "/all/" . h($scope)
+            'value' => "/tags/selectTag/" . h($id) . "/all/" . h($scope) . $localFlag
         );
 
         $this->loadModel('Taxonomy');
@@ -601,7 +608,7 @@ class TagsController extends AppController
         foreach ($options as $k => $option) {
             $items[] = array(
                 'name' => __('Taxonomy Library') . ":" . h($option),
-                'value' => "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope)
+                'value' => "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope . $localFlag)
             );
         }
         $this->set('items', $items);
@@ -746,7 +753,6 @@ class TagsController extends AppController
         } else {
             $onClickForm = 'quickSubmitTagForm';
         }
-
         $items = array();
         foreach ($tags as $k => $tag) {
             $tagName = $tag['name'];
@@ -779,10 +785,12 @@ class TagsController extends AppController
             'multiple' => -1,
             'select_options' => array(
                 'additionalData' => array(
-                    'id' => $id
+                    'id' => $id,
+                    'local' => !empty($this->params['named']['local'])
                 ),
             ),
         ));
+        $this->set('local', !empty($this->params['named']['local']));
         $this->render('ajax/select_tag');
     }
 

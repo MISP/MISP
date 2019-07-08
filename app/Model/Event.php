@@ -1801,8 +1801,12 @@ class Event extends AppModel
             'eventsExtendingUuid',
             'extended',
             'excludeGalaxy',
-            'includeRelatedTags'
+            'includeRelatedTags',
+            'excludeLocalTags'
         );
+        if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
+            $options['excludeLocalTags'] = 1;
+        }
         if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         }
@@ -2042,6 +2046,14 @@ class Event extends AppModel
                  )
             )
         );
+        if (!empty($options['excludeLocalTags'])) {
+            $params['contain']['EventTag']['conditions'] = array(
+                'EventTag.local' => 0
+            );
+            $params['contain']['Attribute']['AttributeTag']['conditions'] = array(
+                'AttributeTag.local' => 0
+            );
+        }
         if ($flatten) {
             unset($params['contain']['Object']);
         }
@@ -2241,14 +2253,14 @@ class Event extends AppModel
         return $results;
     }
 
-    private function __cacheRelatedEventTags($eventTagCache, $relatedAttribute)
+    private function __cacheRelatedEventTags($eventTagCache, $relatedAttribute, $local = 0)
     {
         if (empty($eventTagCache[$relatedAttribute['id']])) {
             $params = array(
                 'contain' => array(
                     'Tag' => array(
                         'fields' => array(
-                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
+                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value', 'Tag.local'
                         )
                     )
                 ),
@@ -2257,6 +2269,9 @@ class Event extends AppModel
                     'EventTag.event_id' => $relatedAttribute['id']
                 )
             );
+            if ($local) {
+                $params['conditions']['EventTag.local'] = 1;
+            }
             $eventTags = $this->EventTag->find('all', $params);
             if (!empty($eventTags)) {
                 foreach ($eventTags as $et) {
@@ -2283,7 +2298,7 @@ class Event extends AppModel
                 }
             }
             foreach ($relatedAttributes as $relatedAttribute) {
-                $eventTagCache = $this->__cacheRelatedEventTags($eventTagCache, $relatedAttribute);
+                $eventTagCache = $this->__cacheRelatedEventTags($eventTagCache, $relatedAttribute, empty($options['excludeLocalTags']) ? 0 : 1);
                 if (!empty($eventTagCache[$relatedAttribute['id']])) {
                     if (!isset($event['Attribute'][$attributePos]['RelatedTags'])) {
                         $event['Attribute'][$attributePos]['RelatedTags'] = array();
@@ -2294,7 +2309,7 @@ class Event extends AppModel
                     'contain' => array(
                         'Tag' => array(
                             'fields' => array(
-                                'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
+                                'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value', 'Tag.local'
                             )
                         )
                     ),
@@ -2303,6 +2318,9 @@ class Event extends AppModel
                         'AttributeTag.attribute_id' => $relatedAttribute['attribute_id']
                     )
                 );
+                if (!empty($options['excludeLocalTags'])) {
+                    $params['conditions']['AttributeTag.local'] = 0;
+                }
                 $attributeTags = $this->Attribute->AttributeTag->find('all', $params);
                 if (!empty($attributeTags)) {
                     foreach ($attributeTags as $at) {
@@ -4019,7 +4037,8 @@ class Event extends AppModel
                     'includeAttachments' => true,
                     'includeAllTags' => true,
                     'deleted' => array(0,1),
-                    'excludeGalaxy' => 1
+                    'excludeGalaxy' => 1,
+                    'excludeLocalTags' => 1
                 ));
                 $event = $this->fetchEvent($elevatedUser, $params);
                 $event = $event[0];
@@ -4361,8 +4380,13 @@ class Event extends AppModel
             $uuidsToCheck[$event['uuid']] = $k;
         }
         $localEvents = $this->find('list', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp')));
+        $localEvents = array();
+        $temp = $this->find('all', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked')));
+        foreach ($temp as $e) {
+            $localEvents[$e['Event']['uuid']] = array('timestamp' => $temp['Event']['timestamp'], 'locked' => $temp['Event']['locked']);
+        }
         foreach ($uuidsToCheck as $uuid => $eventArrayId) {
-            if (isset($localEvents[$uuid]) && $localEvents[$uuid] >= $eventArray[$eventArrayId]['timestamp']) {
+            if (isset($localEvents[$uuid]) && $localEvents[$uuid]['timestamp'] >= $eventArray[$eventArrayId]['timestamp'] || !$localEvents[$uuid]['locked']) {
                 unset($eventArray[$eventArrayId]);
             }
         }
@@ -5924,6 +5948,7 @@ class Event extends AppModel
                         $cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name']);
                         if ($cluster) {
                             $found = false;
+                            $cluster['GalaxyCluster']['local'] = $dataTag['local'];
                             foreach ($data['Galaxy'] as $j => $galaxy) {
                                 if ($galaxy['id'] == $cluster['GalaxyCluster']['Galaxy']['id']) {
                                     $found = true;

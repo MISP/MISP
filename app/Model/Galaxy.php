@@ -199,13 +199,14 @@ class Galaxy extends AppModel
         return true;
     }
 
-    private function __attachClusterToEvent($user, $target_id, $cluster_id) {
-
-    }
-
-    public function attachCluster($user, $target_type, $target_id, $cluster_id)
+    public function attachCluster($user, $target_type, $target_id, $cluster_id, $local = false)
     {
         $connectorModel = Inflector::camelize($target_type) . 'Tag';
+        if ($local == 1 || $local === true) {
+            $local = 1;
+        } else {
+            $local = 0;
+        }
         $cluster = $this->GalaxyCluster->find('first', array('recursive' => -1, 'conditions' => array('id' => $cluster_id), 'fields' => array('tag_name', 'id', 'value')));
         $this->Tag = ClassRegistry::init('Tag');
         if ($target_type === 'event') {
@@ -225,7 +226,7 @@ class Galaxy extends AppModel
             return 'Cluster already attached.';
         }
         $this->Tag->$connectorModel->create();
-        $toSave = array($target_type . '_id' => $target_id, 'tag_id' => $tag_id);
+        $toSave = array($target_type . '_id' => $target_id, 'tag_id' => $tag_id, 'local' => $local);
         if ($target_type === 'attribute') {
             $event = $this->Tag->EventTag->Event->find('first', array(
                 'conditions' => array(

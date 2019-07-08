@@ -604,7 +604,12 @@ function submitForm(type, id, field, context) {
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
-    fetchFormDataAjax("/events/addTag/" + event_id, function(formData) {
+    var localFlag = '';
+    if (undefined != addData['local'] && addData['local']) {
+        localFlag = '/local:1';
+    }
+    url = "/events/addTag/" + event_id + localFlag;
+    fetchFormDataAjax(url, function(formData) {
         $('body').append($('<div id="temp"/>').html(formData));
         $('#temp #EventTag').val(JSON.stringify(selected_tag_ids));
         $.ajax({
@@ -631,14 +636,19 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
                 $('#temp').remove();
             },
             type:"post",
-            url:"/events/addTag/" + event_id
+            url:url
         });
     });
 }
 
 function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     var attribute_id = addData.id;
-    fetchFormDataAjax("/attributes/addTag/" + attribute_id, function(formData) {
+    var localFlag = '';
+    if (undefined != addData['local'] && addData['local']) {
+        localFlag = '/local:1';
+    }
+    url = "/attributes/addTag/" + attribute_id + localFlag;
+    fetchFormDataAjax(url, function(formData) {
         $('body').append($('<div id="temp"/>').html(formData));
         $('#temp #AttributeTag').val(JSON.stringify(selected_tag_ids));
         if (attribute_id == 'selected') {
@@ -670,14 +680,19 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
                 $('#temp').remove();
             },
             type:"post",
-            url:"/attributes/addTag/" + attribute_id
+            url: url
         });
     });
 }
 
 function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     var tag_collection_id = addData.id;
-    fetchFormDataAjax("/tag_collections/addTag/" + tag_collection_id, function(formData) {
+    var localFlag = '';
+    if (undefined != addData['local'] && addData['local']) {
+        localFlag = '/local:1';
+    }
+    url = "/tag_collections/addTag/" + tag_collection_id + localFlag;
+    fetchFormDataAjax(url, function(formData) {
         $('body').append($('<div id="temp"/>').html(formData));
         $('#temp #TagCollectionTag').val(JSON.stringify(selected_tag_ids));
         $.ajax({
@@ -700,7 +715,7 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
                 $('#temp').remove();
             },
             type:"post",
-            url:"/tag_collections/addTag/" + tag_collection_id
+            url: url
         });
     });
 }
@@ -3720,13 +3735,22 @@ $('.galaxy-toggle-button').click(function() {
 function addGalaxyListener(id) {
     var target_type = $(id).data('target-type');
     var target_id = $(id).data('target-id');
-    popoverPopup(id, target_id + '/' + target_type, 'galaxies', 'selectGalaxyNamespace');
+    var local = $(id).data('local');
+    console.log(local);
+    if (local) {
+        local = 1;
+    } else {
+        local = 0;
+    }
+    popoverPopup(id, target_id + '/' + target_type + '/local:' + local, 'galaxies', 'selectGalaxyNamespace');
 }
 
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
-    fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope, function(formData) {
+    var local = additionalData['local'];
+    var url = "/galaxies/attachMultipleClusters/" + target_id + "/" + scope + "/local:" + local;
+    fetchFormDataAjax(url, function(formData) {
         $('body').append($('<div id="temp"/>').html(formData));
         $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
         if (target_id == 'selected') {
@@ -3760,7 +3784,7 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
                 $('#temp').remove();
             },
             type:"post",
-            url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
+            url: url
         });
     });
 }
@@ -4185,7 +4209,7 @@ function checkIfLoggedIn() {
                 window.location.replace(baseurl + "/users/login");
             }
         }).fail(function() {
-                window.location.replace(baseurl + "/users/login"); 
+                window.location.replace(baseurl + "/users/login");
         });
     }
     setTimeout(function() { checkIfLoggedIn(); }, 5000);

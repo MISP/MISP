@@ -156,7 +156,7 @@
     </td>
     <td class="shortish">
       <div class="attributeTagContainer" id="#Attribute_<?php echo h($object['id']);?>_tr .attributeTagContainer">
-        <?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']), 'context' => $context)); ?>
+        <?php echo $this->element('ajaxTags', array('attributeId' => $object['id'], 'tags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']), 'context' => $context, 'scope' => 'attribute')); ?>
       </div>
     </td>
     <?php
