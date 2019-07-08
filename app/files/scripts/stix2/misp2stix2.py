@@ -1276,7 +1276,7 @@ class StixBuilder():
                 except KeyError:
                     continue
         if extension:
-            observable['extensions']['unix-account-ext'] = extension
+            observable['extensions'] = {'unix-account-ext': extension}
         return {'0': observable}
 
     def resolve_user_account_pattern(self, attributes, object_id):
