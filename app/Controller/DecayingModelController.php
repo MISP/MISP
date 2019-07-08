@@ -80,6 +80,8 @@ class DecayingModelController extends AppController
                     $this->redirect(array('action' => 'index'));
                 }
             }
+        } else {
+            $this->set('action', 'add');
         }
     }
 
@@ -122,10 +124,13 @@ class DecayingModelController extends AppController
                     $this->redirect(array('action' => 'index'));
                 }
             }
+        } else {
+            $this->request->data = $decayingModel;
+            $this->set('id', $id);
+            $this->set('decayingModel', $decayingModel);
+            $this->set('action', 'edit');
+            $this->render('add');
         }
-        $this->request->data = $decayingModel;
-        $this->set('id', $id);
-        $this->set('decayingModel', $decayingModel);
     }
 
     public function delete($id) {
