@@ -677,6 +677,9 @@ class EventsController extends AppController
                         $this->paginate['conditions']['AND'][] = $test;
                         $v = $filterString;
                         break;
+                    case 'minimal':
+                        $this->paginate['conditions']['AND'][] = array('NOT' => array('Event.attribute_count' => 0));
+                        break;
                     default:
                         continue 2;
                         break;
@@ -698,6 +701,7 @@ class EventsController extends AppController
             ),
         ));
         $this->loadModel('GalaxyCluster');
+
         // for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
         if ($this->_isRest()) {
             $rules = array();
@@ -3633,7 +3637,9 @@ class EventsController extends AppController
         if (empty($event)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
         }
+        $local = !empty($this->params['named']['local']);
         if (!$this->request->is('post')) {
+            $this->set('local', $local);
             $this->set('object_id', $id);
             $this->set('scope', 'Event');
             $this->layout = false;
@@ -3722,13 +3728,33 @@ class EventsController extends AppController
                     continue;
                 }
                 $this->Event->EventTag->create();
-                if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
-                    $event['Event']['published'] = 0;
-                    $date = new DateTime();
-                    $event['Event']['timestamp'] = $date->getTimestamp();
-                    $this->Event->save($event);
+                if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id, 'local' => $local))) {
+                    if (!$local) {
+                        $event['Event']['published'] = 0;
+                        $date = new DateTime();
+                        $event['Event']['timestamp'] = $date->getTimestamp();
+                        $this->Event->save($event);
+                    }
                     $log = ClassRegistry::init('Log');
-                    $log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
+                    $log->createLogEntry(
+                        $this->Auth->user(),
+                        'tag',
+                        'Event',
+                        $id,
+                        sprintf(
+                            'Attached%s tag (%s) "%s" to event (%s)',
+                            $local ? ' local' : '',
+                            $tag_id,
+                            $tag['Tag']['name'],
+                            $id
+                        ),
+                        sprintf(
+                            'Event (%s) tagged as Tag (%s)%s',
+                            $id,
+                            $tag_id,
+                            $local ? ' locally' : ''
+                        )
+                    );
                     $success = __('Tag(s) added.');
                 } else {
                     $fail = __('Tag could not be added.');
@@ -3782,11 +3808,6 @@ class EventsController extends AppController
             }
             $this->Event->recursive = -1;
             $event = $this->Event->read(array(), $id);
-            // org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-            if ((($this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
-            }
-            $this->Event->insertLock($this->Auth->user(), $id);
             $eventTag = $this->Event->EventTag->find('first', array(
                 'conditions' => array(
                     'event_id' => $id,
@@ -3794,6 +3815,24 @@ class EventsController extends AppController
                 ),
                 'recursive' => -1,
             ));
+
+            // org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
+            if (
+                (
+                    (
+                        $this->Auth->user('org_id') !== $event['Event']['orgc_id'] ||
+                        (
+                            $this->Auth->user('org_id') == Configure::read('MISP.host_org_id') &&
+                            !empty($eventTag['EventTag']['local'])
+                        )
+                    ) ||
+                    !$this->userRole['perm_tagger']
+                ) &&
+                !$this->_isSiteAdmin()
+            ) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+            }
+            $this->Event->insertLock($this->Auth->user(), $id);
             $this->autoRender = false;
             if (empty($eventTag)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')), 'status'=>200, 'type' => 'json'));
@@ -4914,6 +4953,8 @@ class EventsController extends AppController
 
     public function viewGalaxyMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false)
     {
+        $local = !empty($this->params['named']['local']);
+        $this->set('local', $local);
         $this->loadModel('Galaxy');
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
         $matrixData = $this->Galaxy->getMatrix($galaxy_id);

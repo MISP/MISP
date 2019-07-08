@@ -142,23 +142,23 @@
                 endforeach;
             ?>&nbsp;
         </td>
-        <?php if (Configure::read('MISP.tagging')): ?>
-            <td style = "max-width: 200px;width:10px;">
-                <?php foreach ($event['EventTag'] as $tag):
-                    $tagText = "&nbsp;";
-                    if (Configure::read('MISP.full_tags_on_event_index') == 1) $tagText = h($tag['Tag']['name']);
-                    else if (Configure::read('MISP.full_tags_on_event_index') == 2) {
-                        if (strpos($tag['Tag']['name'], '=')) {
-                            $tagText = explode('=', $tag['Tag']['name']);
-                            $tagText = h(trim(end($tagText), "\""));
-                        }
-                        else $tagText = h($tag['Tag']['name']);
-                    }
-                ?>
-                    <a class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></a>
-                <?php endforeach; ?>
-            </td>
-        <?php endif; ?>
+        <?php
+            if (Configure::read('MISP.tagging')) {
+                echo sprintf(
+                    '<td class="shortish">%s</td>',
+                    $this->element(
+                        'ajaxTags',
+                        array(
+                            'event' => $event,
+                            'tags' => $event['EventTag'],
+                            'tagAccess' => false,
+                            'required_taxonomies' => false,
+                            'columnised' => true
+                        )
+                    )
+                );
+            }
+        ?>
         <td style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
             <?php echo $event['Event']['attribute_count']; ?>&nbsp;
         </td>
