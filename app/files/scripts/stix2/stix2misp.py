@@ -326,6 +326,16 @@ class StixParser():
                 network_traffic = value
         return network_traffic, references
 
+    @staticmethod
+    def fill_user_account_observable_attributes(observable):
+        attributes = []
+        for key, value in observable.items():
+            if key in user_account_mapping:
+                attribute = {'to_ids': False, 'value': value}
+                attribute.update(user_account_mapping[key])
+                attributes.append(attribute)
+        return attributes
+
     def handle_object_relationship(self, misp_object, uuid):
         for reference in self.relationship[uuid]:
             target = reference.target_ref.split('--')[1]
@@ -478,6 +488,7 @@ class StixFromMISPParser(StixParser):
                                 'process': {'observable': self.attributes_from_process_observable, 'pattern': self.pattern_process},
                                 'registry-key': {'observable': self.attributes_from_regkey_observable, 'pattern': self.pattern_regkey},
                                 'url': {'observable': self.attributes_from_url_observable, 'pattern': self.pattern_url},
+                                'user-account': {'observable': self.observable_user_account, 'pattern': self.pattern_user_account},
                                 'WindowsPEBinaryFile': {'observable': self.observable_pe, 'pattern': self.pattern_pe},
                                 'x509': {'observable': self.attributes_from_x509_observable, 'pattern': self.pattern_x509}}
         self.object_from_refs = {'course-of-action': self.parse_MISP_course_of_action, 'vulnerability': self.parse_vulnerability,
@@ -881,6 +892,38 @@ class StixFromMISPParser(StixParser):
 
     def pattern_url(self, pattern):
         return self.fill_pattern_attributes(pattern, url_mapping)
+
+    def observable_user_account(self, observable):
+        observable = observable['0']
+        attributes = self.fill_user_account_observable_attributes(observable)
+        if 'extensions' in observable and 'unix-account-ext' in observable['extensions']:
+            extension = observable['extensions']['unix-account-ext']
+            if 'groups' in extension:
+                for group in extension['groups']:
+                    attributes.append({'type': 'text', 'object_relation': 'group',
+                                       'to_ids': False, 'disable_correlation': True,
+                                       'value': group})
+            attributes.extend(self.fill_user_account_observable_attributes(extension))
+        return attributes
+
+    def pattern_user_account(self, pattern):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            p_value = p_value[1:-1]
+            if "extensions.'unix-account-ext'" in p_type:
+                relation = p_type.split('.')[-1]
+                if 'groups' in relation:
+                    attributes.append({'type': 'text', 'object_relation': 'group',
+                                       'disable_correlation': True, 'value': p_value})
+                    continue
+            else:
+                relation = p_type.split(':')[1]
+            if relation in user_account_mapping:
+                attribute = {'value': p_value}
+                attribute.update(user_account_mapping[relation])
+                attributes.append(attribute)
+        return attributes
 
     def pattern_x509(self, pattern):
         return self.fill_pattern_attributes(pattern, x509_mapping)
