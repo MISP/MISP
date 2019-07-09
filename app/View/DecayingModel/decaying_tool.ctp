@@ -84,7 +84,7 @@
 
                     </div>
                 <?php endforeach; ?>
-                <div class="input-append">
+                <div class="input-append" style="margin-bottom: 0px;">
                     <input id="input_base_score_config" class="hidden" value="[]"></input>
                     <button class="btn btn-primary" style="border-radius: 4px 0px 0px 4px;" onclick="decayingTool.toggleBasescoreForm()">
                         <span class="fa fa-tags"> <?php echo __('Adjust base  score'); ?></span>
@@ -92,6 +92,11 @@
                     <span id="summary_base_score_config" class="add-on param-name">
                         <span class="far fa-square"></span>
                     </span>
+                </div>
+                <div style="display: inline-block; margin-left: 10px;">
+                    <button class="btn btn-primary" onclick="decayingTool.toggleSimulation()">
+                        <span class="fa fa-chart-line"> <?php echo __('Toggle simulation panel'); ?></span>
+                    </button>
                 </div>
             </div>
             <div class="span6">

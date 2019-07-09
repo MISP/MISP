@@ -98,9 +98,8 @@
             },
 
             /* BASE SCORE */
-            toggleBasescoreForm: function(model_id) {
+            toggleBasescoreForm: function() {
                 var that = this;
-                model_id = model_id === undefined ? '' : model_id;
                 $.get(baseurl + '/decayingModel/decayingToolBasescore', function(html) {
                     $('#popover_form_large').html('<div class="close-icon useCursorPointer" onClick="$(\'#popover_form_large\').fadeOut();$(\'#gray_out\').fadeOut();"></div>' + html);
                     openPopup('#popover_form_large');
@@ -113,6 +112,16 @@
                     var taxonomy_val = base_score_config[taxonomy_name]*100;
                     $('#body_taxonomies').find('[data-taxonomyname="' + taxonomy_name + '"]').val(taxonomy_val)
                         .first().trigger('change');
+                });
+            },
+
+            /* Simulation */
+            toggleSimulation: function(model_id) {
+                var that = this;
+                $.get(baseurl + '/decayingModel/decayingToolSimulation/' + model_id, function(html) {
+                    $('#popover_form_large').html('<div class="close-icon useCursorPointer" onClick="$(\'#popover_form_large\').fadeOut();$(\'#gray_out\').fadeOut();"></div>' + html);
+                    openPopup('#popover_form_large');
+                    that.syncBasescoreSliders();
                 });
             },
 

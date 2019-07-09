@@ -1104,6 +1104,14 @@ span.success {
     border-radius: 3px;
 }
 
+.panel-container {
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    background-color: #fafafa;
+    padding: 5px;
+    margin: 5px;
+}
+
 .inline-input {
     width:100% !important;
     margin-bottom:0px !important;

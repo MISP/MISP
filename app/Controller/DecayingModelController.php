@@ -13,7 +13,8 @@ class DecayingModelController extends AppController
             )
     );
 
-    public function update($force=false) {
+    public function update($force=false)
+    {
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException(_('You are not authorised to edit it.'));
         }
@@ -33,7 +34,8 @@ class DecayingModelController extends AppController
         }
     }
 
-    public function view($id) {
+    public function view($id)
+    {
         if (!$this->request->is('get')) {
             throw new Exception("This method is not allowed");
         }
@@ -47,7 +49,8 @@ class DecayingModelController extends AppController
         $this->set('decaying_model', $decaying_model);
     }
 
-    public function index() {
+    public function index()
+    {
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
             $conditions['OR'] = array('org_id' => $this->Auth->user('Organisation')['id']);
@@ -60,7 +63,8 @@ class DecayingModelController extends AppController
         $this->set('decayingModel', $this->paginate());
     }
 
-    public function add() {
+    public function add()
+    {
         if ($this->request->is('post')) {
             if (!isset($this->request->data['DecayingModel']['org_id'])) {
                 $this->request->data['DecayingModel']['org_id'] = $this->Auth->user()['org_id'];
@@ -85,7 +89,8 @@ class DecayingModelController extends AppController
         }
     }
 
-    public function edit($id) {
+    public function edit($id)
+    {
         $decayingModel = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id);
         if (!$this->_isSiteAdmin() && !$decModel) {
             throw new NotFoundException(_('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
@@ -143,7 +148,8 @@ class DecayingModelController extends AppController
         }
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         if ($this->request->is('post')) {
             $decayingModel = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id);
             if (!$this->_isSiteAdmin() && !$decModel) {
@@ -160,7 +166,8 @@ class DecayingModelController extends AppController
         }
     }
 
-    public function decayingTool() {
+    public function decayingTool()
+    {
         $parameters = array(
             'Tau' => array('value' => 30, 'step' => 1, 'max' => 365, 'greek' => 'τ', 'unit' => 'days', 'name' => 'Lifetime', 'info' => 'Lifetime of the attribute, or time after which the score will be 0'),
             'Delta' => array('value' => 0.3, 'step' => 0.1, 'max' => 10, 'greek' => 'δ', 'name' => 'Decay speed', 'info' => 'Decay speed at which an indicator will loose score'),
@@ -194,9 +201,15 @@ class DecayingModelController extends AppController
         $this->set('associated_types', $associated_types);
     }
 
-    public function decayingToolBasescore() {
+    public function decayingToolBasescore()
+    {
         $taxonomies = $this->DecayingModel->listTaxonomiesWithNumericalValue();
         $this->set('taxonomies', $taxonomies['taxonomies']);
         $this->set('taxonomies_not_having_numerical_value', $taxonomies['not_having_numerical_value']);
+    }
+
+    public function decayingToolSimulation($model_id)
+    {
+        
     }
 }
