@@ -206,7 +206,7 @@ function regenerateValidTags() {
 }
 
 function applyBaseScoreConfig() {
-    decayingTool.apply_base_score(getRatioScore());
+    decayingTool.applyBaseScore(getRatioScore());
     $('#popover_form_large').fadeOut();
     $('#gray_out').fadeOut();
 }

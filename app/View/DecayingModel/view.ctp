@@ -12,6 +12,9 @@
     );
     $table_data[] = array('key' => __('Name'), 'value' => $decaying_model['DecayingModel']['name']);
     $table_data[] = array('key' => __('Description'), 'value' => $decaying_model['DecayingModel']['description']);
+    if (isset($decaying_model['DecayingModel']['parameters']['base_score_config']) && empty($decaying_model['DecayingModel']['parameters']['base_score_config'])) {
+        $decaying_model['DecayingModel']['parameters']['base_score_config'] = new stdClass(); // force output to be {} instead of []
+    }
     $table_data[] = array('key' => __('Parameters'), 'value' => json_encode($decaying_model['DecayingModel']['parameters']), 'class' => 'json-transform');
     $table_data[] = array('key' => __('Formula'), 'value' => $decaying_model['DecayingModel']['formula']);
     $table_data[] = array('key' => __('Reference(s)'), 'html' => implode('<br/>', (empty($decaying_model['DecayingModel']['ref']) ? array() : $decaying_model['DecayingModel']['ref'])));

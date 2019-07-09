@@ -99,10 +99,20 @@
 
             /* BASE SCORE */
             toggleBasescoreForm: function(model_id) {
+                var that = this;
                 model_id = model_id === undefined ? '' : model_id;
                 $.get(baseurl + '/decayingModel/decayingToolBasescore', function(html) {
                     $('#popover_form_large').html('<div class="close-icon useCursorPointer" onClick="$(\'#popover_form_large\').fadeOut();$(\'#gray_out\').fadeOut();"></div>' + html);
                     openPopup('#popover_form_large');
+                    that.syncBasescoreSliders();
+                });
+            },
+            syncBasescoreSliders: function() {
+                var base_score_config = JSON.parse($('#input_base_score_config').val());
+                Object.keys(base_score_config).forEach(function(taxonomy_name) {
+                    var taxonomy_val = base_score_config[taxonomy_name]*100;
+                    $('#body_taxonomies').find('[data-taxonomyname="' + taxonomy_name + '"]').val(taxonomy_val)
+                        .first().trigger('change');
                 });
             },
 
@@ -307,7 +317,8 @@
                 var parameters = {
                     tau: parseFloat(tr.find('td.DMParameterTau').text()),
                     delta: parseFloat(tr.find('td.DMParameterDelta').text()),
-                    threshold: parseInt(tr.find('td.DMParameterThreshold').text())
+                    threshold: parseInt(tr.find('td.DMParameterThreshold').text()),
+                    base_score_config: JSON.parse(atob(tr.find('td.DMParameterBasescoreConfig').data('basescoreconfig')))
                 };
                 var name = tr.find('td.DMName').text();
                 var desc = tr.find('td.DMDescription').text();
@@ -317,10 +328,11 @@
                 $('#input_Tau').data('multiplier', $('#input_Tau').val()/this.options.TICK_NUM);
                 $('#input_Delta').val(parameters.delta);
                 $('#input_Threshold').val(parameters.threshold);
+                $('#input_base_score_config').val(JSON.stringify(parameters.base_score_config));
                 var $form = $('#saveForm');
                 $form.find('[name="name"]').val(name);
                 $form.find('[name="description"]').val(desc);
-                this.refreshInfoCells(parameters.threshold);
+                this.refreshInfoCells();
                 this.redrawGraph();
                 // highlight attribute types
                 $.getJSON('/decayingModelMapping/viewAssociatedTypes/' + model_id, function(j) {
@@ -347,20 +359,18 @@
                 var type = $clicked.data('save-type');
                 var model_id = false;
                 var data = this.retreiveData();
-                data.parameters = JSON.stringify(data.parameters);
                 if (type == 'edit') {
                     model_id = $clicked.data('model-id');
                     if (!confirm('Confirm overwrite?')) {
                         return;
                     }
                 }
-                console.log(data);
-                return;
                 this.fetchFormAndSubmit($clicked, type, model_id, data);
             },
             fetchFormAndSubmit: function($clicked, type, model_id, formData, baseurl) {
                 var that = this;
-                var url = baseurl === undefined ? "/decayingModel/" : baseurl;
+                baseurl = baseurl === undefined || '' ? "/decayingModel/" : baseurl;
+                var url = baseurl;
                 if (type == "add") {
                     url += type;
                 } else {
@@ -380,6 +390,7 @@
                             $clicked.append(loadingSpan);
                         },
                         success: function(data, textStatus) {
+                            data = JSON.parse(data);
                             showMessage('success', 'Network has been saved');
                             if (baseurl == "/decayingModel/") {
                                 that.refreshRow(data);
@@ -400,13 +411,13 @@
                     });
                 });
             },
-            applyModel: function(clicked) {
+            activate: function(clicked) {
                 var $row = $(clicked).parent().parent();
                 var rowData = this.getDataFromRow($row);
                 var selected_types = this.getSelected();
                 var model_id = rowData.id;
                 var data = { 'attributetypes': selected_types };
-                this.fetchFormAndSubmit($(clicked), 'linkAttributeTypeToModel', model_id, data, "/decayingModelMapping/");
+                // this.fetchFormAndSubmit($(clicked), 'linkAttributeTypeToModel', model_id, data, "/decayingModelMapping/");
                 // TODO: Implement
             },
             getDataFromRow: function($row) {
@@ -418,6 +429,7 @@
                 data.parameters.tau = parseInt($row.find('td.DMParameterTau').text());
                 data.parameters.delta = parseFloat($row.find('td.DMParameterDelta').text());
                 data.parameters.threshold = parseInt($row.find('td.DMParameterThreshold').text());
+                data.parameters.base_score_config = JSON.parse(atob($row.find('td.DMParameterBasescoreConfig').data('basescoreconfig')));
                 return data;
             },
             highlightMatchingRow: function() {
@@ -427,30 +439,36 @@
                 delete data['description'];
                 var $rows = $('#modelTableBody').find('tr');
                 $rows.removeClass('success');
-                $('div.input-prepend > span.param-name').removeClass('success');
+                $('div.input-prepend > span.param-name, #summary_base_score_config').removeClass('success');
                 $rows.each(function(i) {
                     var rowData = that.getDataFromRow($(this));
+                    delete rowData['id'];
                     delete rowData['name'];
                     delete rowData['description'];
+                    // handle parameters.base_score_config
                     if (that.simpleCompareObject(data, rowData)) {
                         $(this).addClass('success');
-                        $('div.input-prepend > span.param-name').addClass('success');
+                        $('div.input-prepend > span.param-name, #summary_base_score_config').addClass('success');
                     }
                 });
             },
             refreshRow: function(data) {
                 var decayingModel = data.data.DecayingModel;
+                var base_score_string = JSON.stringify(decayingModel.parameters.base_score_config);
                 var row = '<tr id="modelId_' + decayingModel.id + '">'
+                    + '<td class="DMId"><a href="/decayingModel/view/' + decayingModel.id + '">' + decayingModel.id + '</a></td>'
                     + '<td class="DMName">' + decayingModel.name + '</td>'
-                    + '<td class="DMName">' + decayingModel.org_id + '</td>'
+                    + '<td class="DMOrg"><a href="/organisations/view/' + decayingModel.org_id + '">' + decayingModel.org_id + '</a></td>'
                     + '<td class="DMDescription">' + decayingModel.description + '</td>'
                     + '<td class="DMParameterTau">' + decayingModel.parameters.tau + '</td>'
                     + '<td class="DMParameterDelta">' + decayingModel.parameters.delta + '</td>'
                     + '<td class="DMParameterThreshold">' + decayingModel.parameters.threshold + '</td>'
-                    + '<td data->'
-                    + '<button class="btn btn-success btn-small" onclick="decayingTool.loadModel(this);"><span class="fa fa-arrow-up"> Load model</span></button>'
-                    + '<button class="btn btn-danger btn-small" style="margin-left: 3px;" data-save-type="edit" data-model-id="' + decayingModel.id + '" onclick="decayingTool.saveModel(this);"><span class="fa fa-paste"> Overwrite model</span></button>'
-                    + '<button class="btn btn-info btn-small" style="margin-left: 3px;" onclick="decayingTool.applyModel(this);"><span class="fa fa-upload"> Apply model</span></button>'
+                    + '<td class="DMParameterBasescoreConfig json-transform" data-basescoreconfig="' + btoa(base_score_string) + '">' + base_score_string + '</td>'
+                    + '<td class="DMNumType">' + (data.data.DecayingModelMapping[decayingModel.id] !== undefined ? data.data.DecayingModelMapping[decayingModel.id].length : 0) + '</td>'
+                    + '<td>'
+                        + '<button class="btn btn-info btn-small" onclick="decayingTool.loadModel(this);"><span class="fa"> Load model</span></button>'
+                        + '<button class="btn btn-danger btn-small" style="margin-left: 3px;" data-save-type="edit" data-model-id="' + decayingModel.id + '" onclick="decayingTool.saveModel(this);"><span class="fa fa-paste"> Overwrite model</span></button>'
+                        + '<button class="btn btn-success btn-small" style="margin-left: 3px;" onclick="decayingTool.activate(this);"><span class="fa fa-upload"> Activate</span></button>'
                     + '</td>'
                     + '</tr>';
 
@@ -460,11 +478,25 @@
                 } else {
                     var $row = $('#modelId_'+decayingModel.id);
                     $row[0].outerHTML = row;
+                    $row = $('#modelId_' + decayingModel.id);
                 }
+                $row.find('.json-transform').each(function(i) {
+                    var text = $(this).text().trim();
+                    var parsedJson = '';
+                    if (text !== '') {
+                        parsedJson = syntaxHighlightJson(text);
+                    }
+                    $(this).html(parsedJson);
+                });
                 this.highlightMatchingRow();
             },
-            apply_base_score: function(taxonomy_config) {
+            applyBaseScore: function(taxonomy_config) {
                 $('#input_base_score_config').val(JSON.stringify(taxonomy_config));
+                if (Object.keys(taxonomy_config).length > 0) {
+                    $('#summary_base_score_config > span').removeClass('fa-square').addClass('fa-check-square');
+                } else {
+                    $('#summary_base_score_config > span').removeClass('fa-check-square').addClass('fa-square');
+                }
             },
 
             /* TYPE TABLE */
@@ -569,6 +601,12 @@
                 var threshold = parseInt($('#input_Threshold').val());
                 $('#infoCellHalved').text(this.daysToText(this.getReverseScore((100-threshold)/2 + threshold)));
                 $('#infoCellExpired').text(this.daysToText(this.getReverseScore(threshold)));
+                var base_score_config = JSON.parse($('#input_base_score_config').val());
+                if (Object.keys(base_score_config).length > 0) {
+                    $('#summary_base_score_config > span').removeClass('fa-square').addClass('fa-check-square');
+                } else {
+                    $('#summary_base_score_config > span').removeClass('fa-check-square').addClass('fa-square');
+                }
                 this.highlightMatchingRow();
             },
             daysToText: function(days) {
@@ -583,13 +621,12 @@
                 return text;
             },
             injectData: function($form, data) {
-                var prefixkey = $form.attr('action').split('/')[1].ucfirst();
-                Object.keys(data).forEach(function(k) {
-                    var v = data[k];
-                    v = Array.isArray(v) ? JSON.stringify(v) : v;
-                    var field = k.ucfirst();
-                    $('#'+prefixkey+field).val(v);
-                });
+                $form.find('#DecayingModelName').val(data.name);
+                $form.find('#DecayingModelDescription').val(data.description);
+                $form.find('#DecayingModelParametersTau').val(data.parameters.tau);
+                $form.find('#DecayingModelParametersDelta').val(data.parameters.delta);
+                $form.find('#DecayingModelParametersThreshold').val(data.parameters.threshold);
+                $form.find('#DecayingModelParametersBaseScoreConfig').val(JSON.stringify(data.parameters.base_score_config));
             },
             simpleCompareObject: function(obj1, obj2) { // recursively compare object equality on their value
                 var flag_same = true;
@@ -714,5 +751,24 @@ $(document).ready(function() {
 
     $('#table_type_search').on('input', function() {
         decayingTool.filterTableType('#table_attribute_type', this.value);
+    });
+
+    $('#summary_base_score_config').tooltip({
+        html: true,
+        placement: 'right',
+        title: function() {
+            var $title = $('<table style="text-align: left;"><thead><tr><th>Taxonomy</th><th>%</th></tr></thead><tbody></tbody></table>').find('tbody');
+            var bs_config = $('#input_base_score_config').val();
+            if (bs_config === '' || bs_config === '[]') {
+                return 'No tuning done yet. Default value: 100';
+            } else {
+                bs_config = JSON.parse(bs_config);
+            }
+            Object.keys(bs_config).forEach(function(k, i) {
+                var value = bs_config[k];
+                $title.append('<tr><td style="padding-right: 5px;">' + k + '</td><td>' + (value * 100).toFixed(1) + '</td></tr>');
+            })
+            return $title.parent()[0].outerHTML;
+        }
     });
 });

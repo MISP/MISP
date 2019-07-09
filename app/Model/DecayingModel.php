@@ -48,7 +48,7 @@ class DecayingModel extends AppModel
         if (!empty($this->data['DecayingModel']['parameters']) && !is_array($this->data['DecayingModel']['parameters'])) {
             $encoded = json_decode($this->data['DecayingModel']['parameters'], true);
             if ($encoded !== null) {
-                return true;
+                return $this->__validateParameters($encoded);
             }
             return false;
         }
@@ -65,6 +65,9 @@ class DecayingModel extends AppModel
         if (isset($this->data['DecayingModel']['parameters']) && is_array($this->data['DecayingModel']['parameters'])) {
             $this->data['DecayingModel']['parameters'] = json_encode($this->data['DecayingModel']['parameters']);
         }
+        if (isset($this->data['DecayingModel']['parameters']['base_score_config']) && is_array($this->data['DecayingModel']['parameters']['base_score_config'])) {
+            $this->data['DecayingModel']['parameters']['base_score_config'] = json_encode($this->data['DecayingModel']['parameters']['base_score_config']);
+        }
         if (isset($this->data['DecayingModel']['attribute_types']) && is_array($this->data['DecayingModel']['attribute_types'])) {
             $this->data['DecayingModel']['attribute_types'] = json_encode($this->data['DecayingModel']['attribute_types']);
         }
@@ -75,6 +78,13 @@ class DecayingModel extends AppModel
             $this->data['DecayingModel']['org_id'] = Configure::read('MISP.host_org_id');
         }
 
+        return true;
+    }
+
+    private function __validateParameters($parameters)
+    {
+        // may be done at some point but we still want to be generic
+        // so enforcing hardcoded tests here may not be the best solution
         return true;
     }
 

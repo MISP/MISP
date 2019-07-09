@@ -100,15 +100,25 @@ class DecayingModelController extends AppController
             } else {
                 if (!isset($this->request->data['DecayingModel']['parameters']['tau'])) {
                     $this->Flash->error(_('Invalid parameter `tau`.'));
-                    return true;
+                    return false;
                 }
                 if (!isset($this->request->data['DecayingModel']['parameters']['delta'])) {
                     $this->Flash->error(_('Invalid parameter `delta`.'));
-                    return true;
+                    return false;
                 }
                 if (!isset($this->request->data['DecayingModel']['parameters']['threshold'])) {
                     $this->Flash->error(_('Invalid parameter `threshold`.'));
-                    return true;
+                    return false;
+                }
+                if (isset($this->request->data['DecayingModel']['parameters']['base_score_config']) && $this->request->data['DecayingModel']['parameters']['base_score_config'] != '') {
+                    $encoded = json_decode($this->data['DecayingModel']['parameters']['base_score_config'], true);
+                    if ($encoded === null) {
+                        $this->Flash->error(_('Invalid parameter `base_score_config`.'));
+                        return false;
+                    }
+                    $this->request->data['DecayingModel']['parameters']['base_score_config'] = $encoded;
+                } else {
+                    $this->request->data['DecayingModel']['parameters']['base_score_config'] = new stdClass();
                 }
             }
             $this->request->data['DecayingModel']['parameters'] = json_encode($this->request->data['DecayingModel']['parameters']);

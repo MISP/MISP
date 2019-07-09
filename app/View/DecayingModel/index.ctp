@@ -39,7 +39,12 @@ foreach ($decayingModel as $item): ?>
         </td>
         <td><a href="<?php echo $baseurl."/decayingModel/view/".$item['DecayingModel']['id']; ?>"><?php echo h($item['DecayingModel']['name']); ?>&nbsp;</a></td>
         <td><?php echo h($item['DecayingModel']['description']); ?>&nbsp;</td>
-        <td data-toggle="json" onclick="document.location.href ='<?php echo $baseurl."/decayingModels/view/".$item['DecayingModel']['id']; ?>'"><?php echo json_encode($item['DecayingModel']['parameters']); ?>&nbsp;</td>
+        <?php
+            if (isset($item['DecayingModel']['parameters']['base_score_config']) && empty($item['DecayingModel']['parameters']['base_score_config'])) {
+                $item['DecayingModel']['parameters']['base_score_config'] = new stdClass(); // force output to be {} instead of []
+            }
+        ?>
+        <td data-toggle="json" ondblclick="document.location.href ='<?php echo $baseurl."/decayingModel/view/".$item['DecayingModel']['id']; ?>'"><?php echo json_encode($item['DecayingModel']['parameters']); ?>&nbsp;</td>
         <td><?php echo h($item['DecayingModel']['version']); ?>&nbsp;</td>
         <?php if ($isAclTemplate): ?>
         <td class="short action-links">

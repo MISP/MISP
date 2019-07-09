@@ -84,10 +84,15 @@
 
                     </div>
                 <?php endforeach; ?>
-                <input id="input_base_score_config" class="hidden"></input>
-                <button class="btn btn-primary" onclick="decayingTool.toggleBasescoreForm()">
-                    <span class="fa fa-tags"> <?php echo __('Adjust base  score'); ?></span>
-                </button>
+                <div class="input-append">
+                    <input id="input_base_score_config" class="hidden" value="[]"></input>
+                    <button class="btn btn-primary" style="border-radius: 4px 0px 0px 4px;" onclick="decayingTool.toggleBasescoreForm()">
+                        <span class="fa fa-tags"> <?php echo __('Adjust base  score'); ?></span>
+                    </button>
+                    <span id="summary_base_score_config" class="add-on param-name">
+                        <span class="far fa-square"></span>
+                    </span>
+                </div>
             </div>
             <div class="span6">
                 <table class="table table-striped table-bordered">
@@ -124,7 +129,7 @@
                             <th rowspan="2">Model Name</th>
                             <th rowspan="2">Org id</th>
                             <th rowspan="2">Description</th>
-                            <th colspan="3">Parameters</th>
+                            <th colspan="4">Parameters</th>
                             <th rowspan="2"># Types</th>
                             <th rowspan="2">Action</th>
                         </tr>
@@ -132,6 +137,7 @@
                             <th>Tau</th>
                             <th>Delta</th>
                             <th>Threshold</th>
+                            <th>Basescore config</th>
                         </tr>
                     </thead>
                     <tbody id="modelTableBody">
@@ -144,11 +150,16 @@
                                 <td class="DMParameterTau"><?php echo h($model['DecayingModel']['parameters']['tau']); ?></td>
                                 <td class="DMParameterDelta"><?php echo h($model['DecayingModel']['parameters']['delta']); ?></td>
                                 <td class="DMParameterThreshold"><?php echo h($model['DecayingModel']['parameters']['threshold']); ?></td>
+                                <td class="DMParameterBasescoreConfig json-transform" data-basescoreconfig="<?php echo base64_encode(json_encode($model['DecayingModel']['parameters']['base_score_config'])); ?>">
+                                    <?php if (isset($model['DecayingModel']['parameters']['base_score_config']) && !empty($model['DecayingModel']['parameters']['base_score_config'])): ?>
+                                        <?php echo h(json_encode($model['DecayingModel']['parameters']['base_score_config'])); ?>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="DMNumType"><?php echo isset($associated_types[$model['DecayingModel']['id']]) ? count($associated_types[$model['DecayingModel']['id']]) : 0; ?></td>
                                 <td>
-                                    <button class="btn btn-success btn-small decayingLoadBtn" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"><?php echo __(' Load model') ?></span></button>
+                                    <button class="btn btn-info btn-small decayingLoadBtn" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"><?php echo __(' Load model') ?></span></button>
                                     <button class="btn btn-danger btn-small" data-save-type="edit" data-model-id="<?php echo h($model['DecayingModel']['id']); ?>" onclick="decayingTool.saveModel(this);"><span class="fa fa-paste"><?php echo __(' Overwrite model') ?></span></button>
-                                    <button class="btn btn-info btn-small" onclick="decayingTool.applyModel(this);" title="<?php echo __(' Apply model to selected attribute type') ?>"><span class="fa fa-upload"><?php echo __(' Apply model') ?></span></button>
+                                    <button class="btn btn-success btn-small" onclick="decayingTool.activate(this);" title="<?php echo __(' Activate the model to selected attribute type') ?>"><span class="fa fa-upload"><?php echo __(' Activate') ?></span></button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -168,4 +179,14 @@
 <?php echo $this->Html->script('DecayingTool'); ?>
 
 <script>
+$(document).ready(function() {
+    $('.json-transform').each(function(i) {
+        var text = $(this).text().trim();
+        var parsedJson = ''
+        if (text !== '') {
+            parsedJson = syntaxHighlightJson(text);
+        }
+        $(this).html(parsedJson);
+    });
+});
 </script>
