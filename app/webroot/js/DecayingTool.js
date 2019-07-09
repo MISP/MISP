@@ -437,7 +437,7 @@
                 var data = this.retreiveData();
                 delete data['name'];
                 delete data['description'];
-                var $rows = $('#modelTableBody').find('tr');
+                var $rows = $('#modelTableBody > tr');
                 $rows.removeClass('success');
                 $('div.input-prepend > span.param-name, #summary_base_score_config').removeClass('success');
                 $rows.each(function(i) {
@@ -484,7 +484,7 @@
                     var text = $(this).text().trim();
                     var parsedJson = '';
                     if (text !== '') {
-                        parsedJson = syntaxHighlightJson(text);
+                        parsedJson = jsonToNestedTable(text, [], ['table', 'table-condensed', 'table-bordered']);
                     }
                     $(this).html(parsedJson);
                 });

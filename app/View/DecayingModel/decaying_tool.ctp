@@ -184,7 +184,7 @@ $(document).ready(function() {
         var text = $(this).text().trim();
         var parsedJson = ''
         if (text !== '') {
-            parsedJson = syntaxHighlightJson(text);
+            parsedJson = jsonToNestedTable(text, [], ['table', 'table-condensed', 'table-bordered']);
         }
         $(this).html(parsedJson);
     });

@@ -48,7 +48,11 @@ class DecayingModel extends AppModel
         if (!empty($this->data['DecayingModel']['parameters']) && !is_array($this->data['DecayingModel']['parameters'])) {
             $encoded = json_decode($this->data['DecayingModel']['parameters'], true);
             if ($encoded !== null) {
-                return $this->__validateParameters($encoded);
+                $validation = $this->__validateParameters($encoded);
+                if ($validation !== false) {
+                    $this->data['DecayingModel']['parameters'] = json_encode($encoded);
+                    return true;
+                }
             }
             return false;
         }
@@ -81,10 +85,20 @@ class DecayingModel extends AppModel
         return true;
     }
 
-    private function __validateParameters($parameters)
+    /*
+    * may be done at some point but we still want to be generic
+    * so enforcing hardcoded tests here may not be the best solution
+    * For now, limit the number of digits for the parameters
+    */
+    private function __validateParameters(&$parameters)
     {
-        // may be done at some point but we still want to be generic
-        // so enforcing hardcoded tests here may not be the best solution
+        foreach ($parameters as $name => $value) {
+            if (is_array($value)) {
+                $this->__validateParameters($parameters[$name]);
+            } else if (is_numeric($value)) {
+                $parameters[$name] = round($value, 4);
+            }
+        }
         return true;
     }
 

@@ -4249,6 +4249,32 @@ function syntaxHighlightJson(json, indent) {
     });
 }
 
+function jsonToNestedTable(json, header, table_classes) {
+    if (typeof json == 'string') {
+        json = JSON.parse(json);
+    }
+    header = header === undefined ? [] : header;
+    table_classes = table_classes === undefined ? [] : table_classes;
+    $table = $('<table></table>');
+    table_classes.forEach(function(classname) {
+    $table.addClass(classname);
+    });
+    if (header.length > 0) {
+        $header = $('<thead><tr></tr></thead>');
+        header.forEach(function(col) {
+            $header.child().append($('<td>' + col + '</td>'));
+        });
+        $table.append($header);
+    }
+    $body = $('<tbody></tbody>');
+    Object.keys(json).forEach(function(k) {
+        var value = json[k];
+        $body.append($('<tr><td>' + k + '</td><td>' + value + '</td></tr>'))
+    });
+    $table.append($body);
+    return $table[0].outerHTML;
+}
+
 function liveFilter() {
     var lookupString = $('#liveFilterField').val();
     if (lookupString == '') {
