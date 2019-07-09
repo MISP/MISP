@@ -53,7 +53,7 @@ class ObjectTemplateElement extends AppModel
         foreach ($temp as $type) {
             $res[$type['ObjectTemplateElement']['type']] = array(
                 'desc' => $type['ObjectTemplateElement']['desc'],
-                'category' => implode(' / ', $type['ObjectTemplateElement']['categories'])
+                'category' => $type['ObjectTemplateElement']['categories']
             );
         }
         return $res;

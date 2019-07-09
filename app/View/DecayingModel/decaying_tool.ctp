@@ -51,7 +51,7 @@
                                     <it class="fa fa-flag fa-pull-right" title="<?php echo __('To IDS flag set'); ?>"></it>
                                 <?php endif; ?>
                             </td>
-                            <td class="useCursorPointer isFilteringField"><?php echo h($info['default_category']); ?></td>
+                            <td class="useCursorPointer isFilteringField"><?php echo is_array($info['default_category']) ? implode('</br>', h($info['default_category'])) : h($info['default_category']); ?></td>
                             <td class="isFilteringField isModelIdField">
                                 <?php if (isset($associated_models[$type])): ?>
                                     <?php foreach ($associated_models[$type] as $id): ?>
