@@ -3746,6 +3746,7 @@ function addGalaxyListener(id) {
 }
 
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
+    cluster_ids = cluster_ids === null ? [] : cluster_ids;
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
     var local = additionalData['local'];
