@@ -136,7 +136,7 @@ class AttributesController extends AppController
         $this->Event->recursive = -1;
         $this->Event->read(null, $eventId);
         if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
-            throw new UnauthorizedException(__('You do not have permission to do that.'));
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         if (!$this->_isRest()) {
             $this->Event->insertLock($this->Auth->user(), $this->Event->data['Event']['id']);
@@ -886,7 +886,7 @@ class AttributesController extends AppController
             } else {
                 $message = __('Invalid attribute.');
                 if ($this->_isRest()) {
-                    throw new MethodNotAllowedException($message);
+                    throw new ForbiddenException($message);
                 } else {
                     $this->Flash->error($message);
                     $this->redirect(array('controller' => 'events', 'action' => 'index'));
