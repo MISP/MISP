@@ -277,6 +277,24 @@ url_mapping = {'url': url_attribute_mapping,
                'network-traffic:dst_port': url_port_attribute_mapping
                }
 
+user_account_mapping = {'account_created': {'type': 'datetime', 'object_relation': 'created', 'disable_correlation': True},
+                        'account_expires': {'type': 'datetime', 'object_relation': 'expires', 'disable_correlation': True},
+                        'account_first_login': {'type': 'datetime', 'object_relation': 'first_login', 'disable_correlation': True},
+                        'account_last_login': {'type': 'datetime', 'object_relation': 'last_login', 'disable_correlation': True},
+                        'account_login': {'type': 'text', 'object_relation': 'username'},
+                        'account_type': {'type': 'text', 'object_relation': 'account-type'},
+                        'can_escalate_privs': {'type': 'boolean', 'object_relation': 'can_escalate_privs', 'disable_correlation': True},
+                        'credential': {'type': 'text', 'object_relation': 'password'},
+                        'credential_last_changed': {'type': 'datetime', 'object_relation': 'password_last_changed', 'disable_correlation': True},
+                        'display_name': {'type': 'text', 'object_relation': 'display-name'},
+                        'gid': {'type': 'text', 'object_relation': 'group-id', 'disable_correlation': True},
+                        'home_dir': {'type': 'text', 'object_relation': 'home_dir', 'disable_correlation': True},
+                        'is_disabled': {'type': 'boolean', 'object_relation': 'disabled', 'disable_correlation': True},
+                        'is_privileged': {'type': 'boolean', 'object_relation': 'privileged', 'disable_correlation': True},
+                        'is_service_account': {'type': 'boolean', 'object_relation': 'is_service_account', 'disable_correlation': True},
+                        'shell': {'type': 'text', 'object_relation': 'shell', 'disable_correlation': True},
+                        'user_id': {'type': 'text', 'object_relation': 'user-id'}}
+
 x509_mapping = {'issuer': issuer_attribute_mapping,
                 'x509-certificate:issuer': issuer_attribute_mapping,
                 'serial_number': serial_number_attribute_mapping,

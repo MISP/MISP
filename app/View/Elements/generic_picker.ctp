@@ -183,6 +183,10 @@ function submitFunction(clicked, callback) {
     } else {
         selected = $select.val();
     }
+    if (selected === null) {
+        showMessage('fail', '<?php echo __('No item picked'); ?>');
+        return;
+    }
 
     var additionalData = $select.data('additionaldata');
     if (additionalData !== undefined) {
