@@ -30,14 +30,14 @@ class DecayingModelController extends AppController
                 // return $this->RestResponse->viewData($message, $this->response->type());
             }
         } else {
-            throw new Exception(_("This method is not allowed"));
+            throw new MethodNotAllowedException(_("This method is not allowed"));
         }
     }
 
     public function view($id)
     {
         if (!$this->request->is('get')) {
-            throw new Exception("This method is not allowed");
+            throw new MethodNotAllowedException("This method is not allowed");
         }
 
         $decaying_model = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id, true);
@@ -65,7 +65,7 @@ class DecayingModelController extends AppController
 
     public function add()
     {
-        if ($this->request->is('post')) {
+        if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['DecayingModel']['org_id'])) {
                 $this->request->data['DecayingModel']['org_id'] = $this->Auth->user()['org_id'];
             }
@@ -210,6 +210,142 @@ class DecayingModelController extends AppController
 
     public function decayingToolSimulation($model_id)
     {
-        
+        $decaying_model = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $model_id);
+        if (!$decaying_model) {
+            throw new NotFoundException(_('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
+        }
+        $this->set('user', $this->Auth->user());
+        $this->set('decaying_model', $decaying_model);
+    }
+
+    public function decayingToolRestSearch($continue = false)
+    {
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $body = $this->request->data['decayingToolRestSearch']['filters'];
+            $decoded_body = json_decode($body, true);
+            if (is_null($decoded_body)) {
+                throw new Exception(_("Error Processing Request, can't parse the body"));
+            }
+            $this->request->data = $decoded_body;
+            $paramArray = array(
+                'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
+                'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
+                'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
+                'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'id'
+            );
+            $filterData = array(
+                'request' => $this->request,
+                'named_params' => $this->params['named'],
+                'paramArray' => $paramArray,
+                'ordered_url_params' => compact($paramArray)
+            );
+            $exception = false;
+            $filters = $this->_harvestParameters($filterData, $exception);
+            if ($filters === false) {
+                return $exception;
+            }
+            if (!isset($filters['includeEventTags'])) {
+                $filters['includeEventTags'] = 1;
+            }
+            if (isset($filters['id'])) { // alows searched by id
+                if (Validation::uuid($filters['id'])) {
+                    $filters['uuid'] = $filters['id'];
+                } else {
+                    $attributes = $this->User->Event->Attribute->fetchAttributesSimple($this->Auth->user(), array(
+                        'conditions' => array('id' => $filters['id'])
+                    ));
+                    if (!empty($attributes)) {
+                        $filters['uuid'] = $attributes[0]['Attribute']['uuid'];
+                    } else {
+                        $filters['uuid'] = '-1'; // force no result
+                    }
+                }
+                unset($filters['id']);
+            }
+            unset($filterData);
+            $this->Session->write('search_attributes_filters', json_encode($filters));
+        } elseif ($continue === 'results') {
+            $filters = $this->Session->read('search_attributes_filters');
+            if (empty($filters)) {
+                $filters = array();
+            } else {
+                $filters = json_decode($filters, true);
+            }
+        }
+        if (isset($filters)) {
+            $params = $this->User->Event->Attribute->restSearch($this->Auth->user(), 'json', $filters, true);
+            if (!isset($params['conditions']['Attribute.deleted'])) {
+                $params['conditions']['Attribute.deleted'] = 0;
+            }
+            $this->paginate = $params;
+            if (empty($this->paginate['limit'])) {
+                $this->paginate['limit'] = 60;
+            }
+            if (empty($this->paginate['page'])) {
+                $this->paginate['page'] = 1;
+            }
+            $this->paginate['recursive'] = -1;
+            $this->paginate['contain'] = array(
+                'Event' => array(
+                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
+                    'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
+                    'Org' => array('fields' => array('Org.id', 'Org.name'))
+                ),
+                'AttributeTag' => array('Tag'),
+                'Object' => array(
+                    'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
+                )
+            );
+            $attributes = $this->paginate($this->User->Event->Attribute);
+
+            // attach sightings and massage tags
+            $sightingsData = array();
+            if (!empty($options['overrideLimit'])) {
+                $overrideLimit = true;
+            } else {
+                $overrideLimit = false;
+            }
+            $this->loadModel('GalaxyCluster');
+            $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+            $this->loadModel('Sighting');
+            $eventTags = array();
+            foreach ($attributes as $k => $attribute) {
+                $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
+                $attributes[$k]['Attribute'] = $this->User->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
+                unset($attributes[$k]['AttributeTag']);
+                foreach ($attributes[$k]['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
+                    if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+                        unset($attributes[$k]['Attribute']['AttributeTag'][$k2]);
+                    }
+                }
+                $sightingsData = array_merge(
+                    $sightingsData,
+                    $this->Sighting->attachToEvent($attribute, $this->Auth->user(), $attributes[$k]['Attribute']['id'], $extraConditions = false)
+                );
+                if (!empty($params['includeEventTags'])) {
+                    $tagConditions = array('EventTag.event_id' => $attribute['Event']['id']);
+                    if (empty($params['includeAllTags'])) {
+                        $tagConditions['Tag.exportable'] = 1;
+                    }
+                    $temp = $this->User->Event->EventTag->find('all', array(
+                        'recursive' => -1,
+                        'contain' => array('Tag'),
+                        'conditions' => $tagConditions
+                    ));
+                    foreach ($temp as $tag) {
+                        $attributes[$k]['Attribute']['EventTag'][] = $tag;
+                    }
+                }
+            }
+            $sightingsData = $this->User->Event->getSightingData(array('Sighting' => $sightingsData));
+            $this->set('sightingsData', $sightingsData);
+            $this->set('attributes', $attributes);
+            $this->set('attrDescriptions', $this->User->Event->Attribute->fieldDescriptions);
+            $this->set('typeDefinitions', $this->User->Event->Attribute->typeDefinitions);
+            $this->set('categoryDefinitions', $this->User->Event->Attribute->categoryDefinitions);
+            $this->set('shortDist', $this->User->Event->Attribute->shortDist);
+        } else {
+            $this->render('decayingToolRestSearchForm');
+        }
     }
 }

@@ -449,13 +449,16 @@
                 var $rows = $('#modelTableBody > tr');
                 $rows.removeClass('success');
                 $('div.input-prepend > span.param-name, #summary_base_score_config').removeClass('success');
+                $('#button-toggle-simulation').prop('disabled', true);
                 $rows.each(function(i) {
                     var rowData = that.getDataFromRow($(this));
+                    var model_id = rowData['id'];
                     delete rowData['id'];
                     delete rowData['name'];
                     delete rowData['description'];
                     // handle parameters.base_score_config
                     if (that.simpleCompareObject(data, rowData)) {
+                        $('#button-toggle-simulation').prop('disabled', false).data('modelid', model_id);
                         $(this).addClass('success');
                         $('div.input-prepend > span.param-name, #summary_base_score_config').addClass('success');
                     }
