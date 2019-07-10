@@ -226,7 +226,7 @@ class OrganisationsController extends AppController
 
     public function admin_delete($id)
     {
-        if (!$this->request->is('post') || $this->request->is('delete')) {
+        if (!$this->request->is('post') && !$this->request->is('delete')) {
             throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
         }
         $this->Organisation->id = $id;

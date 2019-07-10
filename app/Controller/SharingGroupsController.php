@@ -219,7 +219,7 @@ class SharingGroupsController extends AppController
         if (!$this->userRole['perm_sharing_group']) {
             throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
         }
-        if (!$this->request->is('post') || $this->request->is('delete')) {
+        if (!$this->request->is('post') && !$this->request->is('delete')) {
             throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
         }
         if (!$this->SharingGroup->checkIfOwner($this->Auth->user(), $id)) {

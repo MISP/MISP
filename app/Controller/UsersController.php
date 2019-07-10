@@ -934,7 +934,7 @@ class UsersController extends AppController
 
     public function admin_delete($id = null)
     {
-        if (!$this->request->is('post') || $this->request->is('delete')) {
+        if (!$this->request->is('post') && !$this->request->is('delete')) {
             throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
         }
         if (!$this->_isAdmin()) {

@@ -364,7 +364,7 @@ class FeedsController extends AppController
 
     public function delete($feedId)
     {
-        if (!$this->request->is('post') || $this->request->is('delete')) {
+        if (!$this->request->is('post') && !$this->request->is('delete')) {
             throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
         }
         $this->Feed->id = $feedId;
