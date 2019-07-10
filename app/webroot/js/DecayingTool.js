@@ -670,8 +670,8 @@
 
             return this.each(function() {
                 var $this = $(this),
-                    inst = $this.data('decayingTool'),
-                    options = ((typeof options === 'object') ? options : {});
+                    inst = $this.data('decayingTool');
+                options = ((typeof options === 'object') ? options : {});
                 if ((!inst) && (typeof options !== 'string')) {
                     $this.data('decayingTool', new DecayingTool(this, options));
                 } else {

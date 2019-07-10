@@ -46,7 +46,9 @@
                 </div>
             </div>
             <div style="width: 70%; display: flex;">
-                <div class="panel-container" style="flex-grow: 1;"></div>
+                <div class="panel-container" style="flex-grow: 1;">
+                    <div id="chart-decay-simulation" style="width: 100%; height: 100%;"></div>
+                </div>
             </div>
         </div>
         <div style="height: 60%; overflow-y: auto; background-color: #ffffff;" class="panel-container">
@@ -96,4 +98,8 @@ function handle_input_key(e) {
     }
 }
 
+function doSimulation(clicked, attribute_id) {
+    $('#attribute_div tr').removeClass('success');
+    $(clicked).addClass('success');
+}
 </script>

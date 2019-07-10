@@ -5,7 +5,7 @@
     }
     $tr_class = implode(' ', $tr_class);
 ?>
-<tr id = "Attribute_<?php echo h($object['id']); ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
+<tr id = "Attribute_<?php echo h($object['id']); ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0" onclick="doSimulation(this, <?php echo h($object['id']); ?>)">
     <td class="short">
         <?php echo h($object['id']); ?>
     </td>
