@@ -107,6 +107,14 @@ sudo cp /usr/pkg/share/examples/rc.d/apache /etc/rc.d/
 echo apache=yes |sudo tee /etc/rc.conf.d/apache
 ```
 
+#### Install X11R7 post-install
+```bash
+cd /tmp
+wget https://ftp.netbsd.org/pub/NetBSD/NetBSD-8.1/amd64/binary/sets/xbase.tgz
+sudo tar -C / -xzphf xbase.tgz
+rm xbase.tgz
+```
+
 #### If a valid SSL certificate is not already created for the server, create a self-signed certificate:
 
 ```
@@ -456,6 +464,7 @@ sudo -u www bash $PATH_TO_MISP/app/Console/worker/start.sh
 
 #### MISP Modules
 ```
+#/usr/pkgsrc/graphics/opencv2/ (needs X11)
 sudo pkgin install jpeg yara
 cd /usr/local/src/
 git clone https://github.com/MISP/misp-modules.git
@@ -639,8 +648,8 @@ sudo -u www $CAKE Admin setSetting "Session.cookie_timeout" 3600
 
 #### ZeroMQ depends on the Python client for Redis
 ```bash
-doas pkg_add -v py3-zmq zeromq
-sudo -u www $PATH_TO_MISP/bin/pip install pyzmq
+sudo pkgin install zeromq
+sudo -u www HOME=/tmp $PATH_TO_MISP/venv/bin/pip install pyzmq
 ```
 
 #### misp-dashboard 
@@ -746,22 +755,22 @@ Listen 8001
 
 
 ```
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
-doas $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
+sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 ```
 
 {!generic/hardening.md!}
