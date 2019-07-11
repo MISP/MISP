@@ -677,6 +677,9 @@ class EventsController extends AppController
                         $this->paginate['conditions']['AND'][] = $test;
                         $v = $filterString;
                         break;
+                    case 'minimal':
+                        $this->paginate['conditions']['AND'][] = array('NOT' => array('Event.attribute_count' => 0));
+                        break;
                     default:
                         continue 2;
                         break;
@@ -698,6 +701,7 @@ class EventsController extends AppController
             ),
         ));
         $this->loadModel('GalaxyCluster');
+
         // for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
         if ($this->_isRest()) {
             $rules = array();
@@ -3330,7 +3334,8 @@ class EventsController extends AppController
         $paramArray = array(
             'value', 'type', 'category', 'object_relation', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
             'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'returnFormat',
-            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'deleted'
+            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'deleted',
+            'excludeLocalTags'
         );
         $filterData = array(
             'request' => $this->request,
@@ -3634,7 +3639,9 @@ class EventsController extends AppController
         if (empty($event)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
         }
+        $local = !empty($this->params['named']['local']);
         if (!$this->request->is('post')) {
+            $this->set('local', $local);
             $this->set('object_id', $id);
             $this->set('scope', 'Event');
             $this->layout = false;
@@ -3723,13 +3730,33 @@ class EventsController extends AppController
                     continue;
                 }
                 $this->Event->EventTag->create();
-                if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
-                    $event['Event']['published'] = 0;
-                    $date = new DateTime();
-                    $event['Event']['timestamp'] = $date->getTimestamp();
-                    $this->Event->save($event);
+                if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id, 'local' => $local))) {
+                    if (!$local) {
+                        $event['Event']['published'] = 0;
+                        $date = new DateTime();
+                        $event['Event']['timestamp'] = $date->getTimestamp();
+                        $this->Event->save($event);
+                    }
                     $log = ClassRegistry::init('Log');
-                    $log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
+                    $log->createLogEntry(
+                        $this->Auth->user(),
+                        'tag',
+                        'Event',
+                        $id,
+                        sprintf(
+                            'Attached%s tag (%s) "%s" to event (%s)',
+                            $local ? ' local' : '',
+                            $tag_id,
+                            $tag['Tag']['name'],
+                            $id
+                        ),
+                        sprintf(
+                            'Event (%s) tagged as Tag (%s)%s',
+                            $id,
+                            $tag_id,
+                            $local ? ' locally' : ''
+                        )
+                    );
                     $success = __('Tag(s) added.');
                 } else {
                     $fail = __('Tag could not be added.');
@@ -3783,11 +3810,6 @@ class EventsController extends AppController
             }
             $this->Event->recursive = -1;
             $event = $this->Event->read(array(), $id);
-            // org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-            if ((($this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
-            }
-            $this->Event->insertLock($this->Auth->user(), $id);
             $eventTag = $this->Event->EventTag->find('first', array(
                 'conditions' => array(
                     'event_id' => $id,
@@ -3795,6 +3817,24 @@ class EventsController extends AppController
                 ),
                 'recursive' => -1,
             ));
+
+            // org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
+            if (
+                (
+                    (
+                        $this->Auth->user('org_id') !== $event['Event']['orgc_id'] ||
+                        (
+                            $this->Auth->user('org_id') == Configure::read('MISP.host_org_id') &&
+                            !empty($eventTag['EventTag']['local'])
+                        )
+                    ) ||
+                    !$this->userRole['perm_tagger']
+                ) &&
+                !$this->_isSiteAdmin()
+            ) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+            }
+            $this->Event->insertLock($this->Auth->user(), $id);
             $this->autoRender = false;
             if (empty($eventTag)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')), 'status'=>200, 'type' => 'json'));
@@ -4615,7 +4655,7 @@ class EventsController extends AppController
         App::uses('FileAccessTool', 'Tools');
         $fileAccessTool = new FileAccessTool();
         foreach ($data['files'] as $file) {
-            $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/var/www/MISP/app/tmp';
+            $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : APP . 'tmp';
             $tmpfile = $fileAccessTool->createTempFile($tmpdir, $prefix = 'MISP_upload');
             $fileAccessTool->writeToFile($tmpfile, base64_decode($file['data']));
             $tmpfile = new File($tmpfile);
@@ -4941,6 +4981,8 @@ class EventsController extends AppController
 
     public function viewGalaxyMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false)
     {
+        $local = !empty($this->params['named']['local']);
+        $this->set('local', $local);
         $this->loadModel('Galaxy');
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
         $matrixData = $this->Galaxy->getMatrix($galaxy_id);
@@ -5203,40 +5245,8 @@ class EventsController extends AppController
             $event['Event']['orgc_name'] = $org_name['Orgc']['name'];
             if ($attribute[0]['Object']['id']) {
                 $object_id = $attribute[0]['Object']['id'];
-                $initial_object = $this->Event->Object->find('first', array(
-                    'conditions' => array('Object.id' => $object_id,
-                                          'Object.event_id' => $event_id,
-                                          'Object.deleted' => 0),
-                    'recursive' => -1,
-                    'fields' => array('Object.id', 'Object.uuid', 'Object.name')
-                ));
+                $initial_object = $this->Event->fetchInitialObject($event_id, $object_id);
                 if (!empty($initial_object)) {
-                    $initial_attributes = $this->Event->Attribute->find('all', array(
-                        'conditions' => array('Attribute.object_id' => $object_id,
-                                              'Attribute.deleted' => 0),
-                        'recursive' => -1,
-                        'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type',
-                                          'Attribute.object_relation', 'Attribute.value')
-                    ));
-                    if (!empty($initial_attributes)) {
-                        $initial_object['Attribute'] = array();
-                        foreach ($initial_attributes as $initial_attribute) {
-                            array_push($initial_object['Attribute'], $initial_attribute['Attribute']);
-                        }
-                    }
-                    $initial_references = $this->Event->Object->ObjectReference->find('all', array(
-                        'conditions' => array('ObjectReference.object_id' => $object_id,
-                                              'ObjectReference.event_id' => $event_id,
-                                              'ObjectReference.deleted' => 0),
-                        'recursive' => -1,
-                        'fields' => array('ObjectReference.referenced_uuid', 'ObjectReference.relationship_type')
-                    ));
-                    if (!empty($initial_references)) {
-                        $initial_object['ObjectReference'] = array();
-                        foreach ($initial_references as $initial_reference) {
-                            array_push($initial_object['ObjectReference'], $initial_reference['ObjectReference']);
-                        }
-                    }
                     $event['initialObject'] = $initial_object;
                 }
             }

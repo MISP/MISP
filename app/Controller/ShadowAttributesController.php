@@ -1026,7 +1026,10 @@ class ShadowAttributesController extends AppController
         if (!empty($this->request->data)) {
             foreach ($this->request->data as $eventUuid) {
                 $temp = $this->ShadowAttribute->find('all', array(
-                        'conditions' => array('event_uuid' => $eventUuid),
+                        'conditions' => array(
+                            'event_uuid' => $eventUuid,
+                            'timestamp >' => strtotime("-14 day")
+                        ),
                         'recursive' => -1,
                         'contain' => array(
                                 'Org' => array('fields' => array('uuid', 'name')),

@@ -1801,8 +1801,12 @@ class Event extends AppModel
             'eventsExtendingUuid',
             'extended',
             'excludeGalaxy',
-            'includeRelatedTags'
+            'includeRelatedTags',
+            'excludeLocalTags'
         );
+        if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
+            $options['excludeLocalTags'] = 1;
+        }
         if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         }
@@ -2042,6 +2046,14 @@ class Event extends AppModel
                  )
             )
         );
+        if (!empty($options['excludeLocalTags'])) {
+            $params['contain']['EventTag']['conditions'] = array(
+                'EventTag.local' => 0
+            );
+            $params['contain']['Attribute']['AttributeTag']['conditions'] = array(
+                'AttributeTag.local' => 0
+            );
+        }
         if ($flatten) {
             unset($params['contain']['Object']);
         }
@@ -2241,14 +2253,14 @@ class Event extends AppModel
         return $results;
     }
 
-    private function __cacheRelatedEventTags($eventTagCache, $relatedAttribute)
+    private function __cacheRelatedEventTags($eventTagCache, $relatedAttribute, $local = 0)
     {
         if (empty($eventTagCache[$relatedAttribute['id']])) {
             $params = array(
                 'contain' => array(
                     'Tag' => array(
                         'fields' => array(
-                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
+                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value', 'Tag.local'
                         )
                     )
                 ),
@@ -2257,6 +2269,9 @@ class Event extends AppModel
                     'EventTag.event_id' => $relatedAttribute['id']
                 )
             );
+            if ($local) {
+                $params['conditions']['EventTag.local'] = 1;
+            }
             $eventTags = $this->EventTag->find('all', $params);
             if (!empty($eventTags)) {
                 foreach ($eventTags as $et) {
@@ -2283,7 +2298,7 @@ class Event extends AppModel
                 }
             }
             foreach ($relatedAttributes as $relatedAttribute) {
-                $eventTagCache = $this->__cacheRelatedEventTags($eventTagCache, $relatedAttribute);
+                $eventTagCache = $this->__cacheRelatedEventTags($eventTagCache, $relatedAttribute, empty($options['excludeLocalTags']) ? 0 : 1);
                 if (!empty($eventTagCache[$relatedAttribute['id']])) {
                     if (!isset($event['Attribute'][$attributePos]['RelatedTags'])) {
                         $event['Attribute'][$attributePos]['RelatedTags'] = array();
@@ -2294,7 +2309,7 @@ class Event extends AppModel
                     'contain' => array(
                         'Tag' => array(
                             'fields' => array(
-                                'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
+                                'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value', 'Tag.local'
                             )
                         )
                     ),
@@ -2303,6 +2318,9 @@ class Event extends AppModel
                         'AttributeTag.attribute_id' => $relatedAttribute['attribute_id']
                     )
                 );
+                if (!empty($options['excludeLocalTags'])) {
+                    $params['conditions']['AttributeTag.local'] = 0;
+                }
                 $attributeTags = $this->Attribute->AttributeTag->find('all', $params);
                 if (!empty($attributeTags)) {
                     foreach ($attributeTags as $at) {
@@ -4026,7 +4044,8 @@ class Event extends AppModel
                     'includeAttachments' => true,
                     'includeAllTags' => true,
                     'deleted' => array(0,1),
-                    'excludeGalaxy' => 1
+                    'excludeGalaxy' => 1,
+                    'excludeLocalTags' => 1
                 ));
                 $event = $this->fetchEvent($elevatedUser, $params);
                 $event = $event[0];
@@ -4368,8 +4387,12 @@ class Event extends AppModel
             $uuidsToCheck[$event['uuid']] = $k;
         }
         $localEvents = $this->find('list', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp')));
+        $temp = $this->find('all', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked')));
+        foreach ($temp as $e) {
+            $localEvents[$e['Event']['uuid']] = array('timestamp' => $e['Event']['timestamp'], 'locked' => $e['Event']['locked']);
+        }
         foreach ($uuidsToCheck as $uuid => $eventArrayId) {
-            if (isset($localEvents[$uuid]) && $localEvents[$uuid] >= $eventArray[$eventArrayId]['timestamp']) {
+            if (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $eventArray[$eventArrayId]['timestamp'] || !$localEvents[$uuid]['locked'])) {
                 unset($eventArray[$eventArrayId]);
             }
         }
@@ -5186,6 +5209,46 @@ class Event extends AppModel
         return $conditions;
     }
 
+    public function fetchInitialObject($event_id, $object_id)
+    {
+        $initial_object = $this->Object->find('first', array(
+            'conditions' => array('Object.id' => $object_id,
+                                  'Object.event_id' => $event_id,
+                                  'Object.deleted' => 0),
+            'recursive' => -1,
+            'fields' => array('Object.id', 'Object.uuid', 'Object.name')
+        ));
+        if (!empty($initial_object)) {
+            $initial_attributes = $this->Attribute->find('all', array(
+                'conditions' => array('Attribute.object_id' => $object_id,
+                                      'Attribute.deleted' => 0),
+                'recursive' => -1,
+                'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type',
+                                  'Attribute.object_relation', 'Attribute.value')
+            ));
+            if (!empty($initial_attributes)) {
+                $initial_object['Attribute'] = array();
+                foreach ($initial_attributes as $initial_attribute) {
+                    array_push($initial_object['Attribute'], $initial_attribute['Attribute']);
+                }
+            }
+            $initial_references = $this->Object->ObjectReference->find('all', array(
+                'conditions' => array('ObjectReference.object_id' => $object_id,
+                                      'ObjectReference.event_id' => $event_id,
+                                      'ObjectReference.deleted' => 0),
+                'recursive' => -1,
+                'fields' => array('ObjectReference.referenced_uuid', 'ObjectReference.relationship_type')
+            ));
+            if (!empty($initial_references)) {
+                $initial_object['ObjectReference'] = array();
+                foreach ($initial_references as $initial_reference) {
+                    array_push($initial_object['ObjectReference'], $initial_reference['ObjectReference']);
+                }
+            }
+        }
+        return $initial_object;
+    }
+
     public function handleModuleResult($result, $event_id)
     {
         $resultArray = array();
@@ -5813,15 +5876,25 @@ class Event extends AppModel
             throw new MethodNotAllowedException('Invalid event.');
         }
         $attributes_added = 0;
+        $initial_objects = array();
+        $event_id = $event[0]['Event']['id'];
         foreach ($event[0]['Attribute'] as $attribute) {
+            $object_id = $attribute['object_id'];
             foreach ($enabledModules['modules'] as $module) {
                 if (in_array($module['name'], $params['modules'])) {
                     if (in_array($attribute['type'], $module['mispattributes']['input'])) {
-                        $data = array('module' => $module['name'], $attribute['type'] => $attribute['value'], 'event_id' => $attribute['event_id'], 'attribute_uuid' => $attribute['uuid']);
+                        $data = array('module' => $module['name'], 'event_id' => $event_id, 'attribute_uuid' => $attribute['uuid']);
                         if (!empty($module['config'])) {
                             $data['config'] = $module['config'];
                         }
-                        $data['attribute'] = $attribute;
+                        if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] == 'misp_standard') {
+                            $data['attribute'] = $attribute;
+                            if ($object_id != '0' && empty($initial_objects[$object_id])) {
+                                $initial_objects[$object_id] = $this->fetchInitialObject($event_id, $object_id);
+                            }
+                        } else {
+                            $data[$attribute['type']] = $attribute['value'];
+                        }
                         $data = json_encode($data);
                         $result = $this->Module->queryModuleServer('/query', $data, false, 'Enrichment');
                         if (!$result) {
@@ -5831,21 +5904,29 @@ class Event extends AppModel
                         if (!is_array($result)) {
                             throw new Exception($result);
                         }
-                        $attributes = $this->handleModuleResult($result, $attribute['event_id']);
-                        foreach ($attributes as $a) {
-                            $this->Attribute->create();
-                            $a['distribution'] = $attribute['distribution'];
-                            $a['sharing_group_id'] = $attribute['sharing_group_id'];
-                            $comment = 'Attribute #' . $attribute['id'] . ' enriched by ' . $module['name'] . '.';
-                            if (!empty($a['comment'])) {
-                                $a['comment'] .= PHP_EOL . $comment;
-                            } else {
-                                $a['comment'] = $comment;
+                        if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] == 'misp_standard') {
+                            if ($object_id != '0' && !empty($initial_objects[$object_id])) {
+                                $result['initialObject'] = $initial_objects[$object_id];
                             }
-                            $a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
-                            $result = $this->Attribute->save($a);
-                            if ($result) {
-                                $attributes_added++;
+                            $default_comment = $attribute['value'] . ': enriched via the ' . $module['name'] . ' module.';
+                            $attributes_added += $this->processModuleResultsData($params['user'], $result['results'], $event_id, $default_comment, false, false, true);
+                        } else {
+                            $attributes = $this->handleModuleResult($result, $event_id);
+                            foreach ($attributes as $a) {
+                                $this->Attribute->create();
+                                $a['distribution'] = $attribute['distribution'];
+                                $a['sharing_group_id'] = $attribute['sharing_group_id'];
+                                $comment = 'Attribute #' . $attribute['id'] . ' enriched by ' . $module['name'] . '.';
+                                if (!empty($a['comment'])) {
+                                    $a['comment'] .= PHP_EOL . $comment;
+                                } else {
+                                    $a['comment'] = $comment;
+                                }
+                                $a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
+                                $result = $this->Attribute->save($a);
+                                if ($result) {
+                                    $attributes_added++;
+                                }
                             }
                         }
                     }
@@ -5873,6 +5954,7 @@ class Event extends AppModel
                         $cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name']);
                         if ($cluster) {
                             $found = false;
+                            $cluster['GalaxyCluster']['local'] = $dataTag['local'];
                             foreach ($data['Galaxy'] as $j => $galaxy) {
                                 if ($galaxy['id'] == $cluster['GalaxyCluster']['Galaxy']['id']) {
                                     $found = true;
@@ -6072,11 +6154,12 @@ class Event extends AppModel
         return $message;
     }
 
-    public function processModuleResultsData($user, $resolved_data, $id, $default_comment = '', $jobId = false, $adhereToWarninglists = false)
+    public function processModuleResultsData($user, $resolved_data, $id, $default_comment = '', $jobId = false, $adhereToWarninglists = false, $event_level = false)
     {
         if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
             $this->Job->id = $jobId;
+
         }
         $failed_attributes = $failed_objects = $failed_object_attributes = 0;
         $saved_attributes = $saved_objects = $saved_object_attributes = 0;
@@ -6143,8 +6226,10 @@ class Event extends AppModel
             $total_objects = count($resolved_data['Object']);
             $references = array();
             foreach ($resolved_data['Object'] as $o => $object) {
-                $object['meta-category'] = $object['meta_category'];
-                unset($object['meta_category']);
+                if (isset($object['meta_category']) && !isset($object['meta-category'])) {
+                    $object['meta-category'] = $object['meta_category'];
+                    unset($object['meta_category']);
+                }
                 $object['event_id'] = $id;
                 if (isset($object['id']) && $object['id'] == $initial_object_id) {
                     $initial_object = $resolved_data['initialObject'];
@@ -6173,8 +6258,8 @@ class Event extends AppModel
                             if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $initial_object_id, $user)) {
                                 $saved_object_attributes++;
                             } else {
-                              $failed_object_attributes++;
-                              $lastObjectAttributeError = $this->Attribute->validationErrors;
+                                $failed_object_attributes++;
+                                $lastObjectAttributeError = $this->Attribute->validationErrors;
                             }
                         }
                     }
@@ -6270,8 +6355,12 @@ class Event extends AppModel
                 }
                 list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
                         $reference['referenced_uuid'],
-                        array('Event' => array('id' => $id))
+                        array('Event' => array('id' => $id)),
+                        false
                 );
+                if (!$referenced_id && !$referenced_uuid && !$referenced_type) {
+                    continue;
+                }
                 $reference = array(
                     'event_id' => $id,
                     'referenced_id' => $referenced_id,
@@ -6298,6 +6387,9 @@ class Event extends AppModel
             $date = new DateTime();
             $event['Event']['timestamp'] = $date->getTimestamp();
             $this->save($event);
+        }
+        if ($event_level) {
+            return $saved_attributes + $saved_object_attributes;
         }
         $message = '';
         if ($saved_attributes > 0) {
