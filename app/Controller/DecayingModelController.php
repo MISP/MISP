@@ -216,6 +216,8 @@ class DecayingModelController extends AppController
         }
         $this->set('user', $this->Auth->user());
         $this->set('decaying_model', $decaying_model);
+        $allowed_models = $this->DecayingModel->fetchAllowedModels($this->Auth->user());
+        $this->set('all_models', $allowed_models);
     }
 
     public function decayingToolRestSearch($continue = false)
@@ -347,5 +349,26 @@ class DecayingModelController extends AppController
         } else {
             $this->render('decayingToolRestSearchForm');
         }
+    }
+
+    public function decayingToolChartSimulation($model_id, $attribute_id)
+    {
+        // $model = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $model_id);
+        // if ($model === false) {
+        //     throw new NotFoundException(_('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
+        // }
+        // $attribute = $this->User->Event->Attribute->fetchAttributesSimple($this->Auth->user(), array('conditions' => array('id' => $attribute_id)));
+        // if(empty($attribute)) {
+        //     throw new NotFoundException(__('Invalid attribute id.'));
+        // } else {
+        //     $attribute = $attribute[0];
+        // }
+        // $this->render('chart_simulation');
+    }
+
+    public function decayingToolComputeSimulation($model_id, $attribute_id)
+    {
+        return $this->RestResponse->viewData('date,value' . PHP_EOL . '2017-03-12,20' . PHP_EOL . '2018-03-12,10', $this->response->type());
+
     }
 }

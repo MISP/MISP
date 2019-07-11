@@ -10,7 +10,7 @@
         <?php echo h($object['id']); ?>
     </td>
     <td class="short">
-        <a href="<?php echo $baseurl . '/events/view/' . h($object['event_id']) ?>"><?php echo h($object['event_id']); ?></a>
+        <a href="<?php echo $baseurl . '/events/view/' . h($object['event_id']) ?>" target="_blank"><?php echo h($object['event_id']); ?></a>
     </td>
     <td class="short">
         <?php echo date('Y-m-d', $object['timestamp']); ?>
@@ -33,8 +33,8 @@
         </div>
     </td>
     <td id="Attribute_<?php echo h($object['id']); ?>_container" class="showspaces limitedWidth shortish">
-        <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid">
-            <span style="white-space: pre-wrap;"><?php echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => 'blue')) ?></span>
+        <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <span style="white-space: nowrap;" title="<?php echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => 'blue')) ?>"><?php echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => 'blue')) ?></span>
         </div>
     </td>
     <td class="shortish">
