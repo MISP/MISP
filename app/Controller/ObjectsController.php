@@ -617,22 +617,19 @@ class ObjectsController extends AppController
             $this->MispObject->recursive = -1;
             $temp = $this->MispObject->findByUuid($id);
             if ($temp == null) {
-                throw new NotFoundException('Invalid object');
+                throw new NotFoundException(__('Invalid object'));
             }
             $id = $temp['Object']['id'];
         } elseif (!is_numeric($id)) {
             throw new NotFoundException(__('Invalid event id.'));
         }
         if ((!$this->request->is('post') && !$this->request->is('put'))) {
-            throw new MethodNotAllowedException();
+            throw new MethodNotAllowedException(__('This function can only be accessed via POST or PUT'));
         }
-        $this->MispObject->id = $id;
-        if (!$this->MispObject->exists()) {
+        $object = $this->MispObject->find('first', array('contain' => 'Event', 'recursive' => -1));
+        if (empty($object)) {
             return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid object');
         }
-        $this->MispObject->recursive = -1;
-        $this->MispObject->contain('Event');
-        $object = $this->MispObject->read();
         if (!$this->_isSiteAdmin()) {
             if ($this->MispObject->data['Event']['orgc_id'] == $this->Auth->user('org_id')
             && (($this->userRole['perm_modify'] && $this->MispObject->data['Event']['user_id'] != $this->Auth->user('id'))
@@ -695,10 +692,8 @@ class ObjectsController extends AppController
                 $this->MispObject->Attribute->saveAttributes($attributes);
             }
             $this->MispObject->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
-            $this->autoRender = false;
             return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, false, 'Field updated');
         } else {
-            $this->autoRender = false;
             return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $this->MispObject->validationErrors);
         }
     }
@@ -711,10 +706,6 @@ class ObjectsController extends AppController
         }
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
-        }
-        $this->MispObject->id = $id;
-        if (!$this->MispObject->exists()) {
-            throw new NotFoundException(__('Invalid object'));
         }
         $params = array(
                 'conditions' => array('Object.id' => $id),
@@ -749,16 +740,11 @@ class ObjectsController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
         }
-        $this->MispObject->id = $id;
-        if (!$this->MispObject->exists()) {
-            throw new NotFoundException(__('Invalid object'));
-        }
         $fields = array('id', 'distribution', 'event_id');
         $fields[] = $field;
         $params = array(
             'conditions' => array('Object.id' => $id),
             'fields' => $fields,
-            'flatten' => 1,
             'contain' => array(
                 'Event' => array(
                     'fields' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id'),
