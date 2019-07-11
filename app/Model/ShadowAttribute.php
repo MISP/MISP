@@ -37,6 +37,10 @@ class ShadowAttribute extends AppModel
                 'className' => 'Organisation',
                 'foreignKey' => 'event_org_id'
         ),
+        'Attribute' => array(
+            'className' => 'Attribute',
+            'foreignKey' => 'old_id'
+        )
     );
 
     public $displayField = 'value';
@@ -588,6 +592,95 @@ class ShadowAttribute extends AppModel
             $this->Job->saveField('message', 'Job done.');
         }
         return $proposalCount;
+    }
+
+    public function capture($proposal, $user)
+    {
+        $oldsa = $this->findOldProposal($proposal);
+        if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
+            if ($oldsa) {
+                $shadowAttribute->delete($oldsa['id']);
+            }
+            if (isset($proposal['old_id'])) {
+                $oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+                if ($oldAttribute) {
+                    $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+                } else {
+                    $proposal['old_id'] = 0;
+                }
+            }
+            // check if this is a proposal from an old MISP instance
+            if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
+                $proposal['Org'] = $proposal['org'];
+                $proposal['EventOrg'] = $proposal['event_org'];
+            } elseif (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
+                return false;
+            }
+            $proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
+            $proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
+            unset($proposal['Org']);
+            unset($proposal['EventOrg']);
+            $this->create();
+            if (!isset($proposal['deleted']) || !$proposal['deleted']) {
+                if ($this->save($proposal)) {
+                    $this->sendProposalAlertEmail($proposal['event_id']);
+                }
+            }
+        }
+        return true;
+    }
+
+    public function buildConditions($user)
+    {
+        $conditions = array();
+        if (!$user['Role']['perm_site_admin']) {
+            $sgids = $this->Event->cacheSgids($user, true);
+            $attributeDistribution = array(
+                'Attribute.distribution' => array(1,2,3,5)
+            );
+            $objectDistribution = array(
+                '(SELECT distribution FROM objects WHERE objects.id = Attribute.object_id)' => array(1,2,3,5)
+            );
+            if (!empty($sgids) && (!isset($sgids[0]) || $sgids[0] != -1)) {
+                $objectDistribution['(SELECT sharing_group_id FROM objects WHERE objects.id = Attribute.object_id)'] = $sgids;
+                $attributeDistribution['Attribute.sharing_group_id'] = $sgids;
+            }
+            $conditions = array(
+                'AND' => array(
+                    'OR' => array(
+                        'Event.org_id' => $user['org_id'],
+                        'AND' => array(
+                            'OR' => array(
+                                'Event.distribution' => array(1,2,3,5),
+                                'AND '=> array(
+                                    'Event.distribution' => 4,
+                                    'Event.sharing_group_id' => $sgids,
+                                )
+                            )
+                        )
+                    ),
+                    array(
+                        'OR' => array(
+                            'ShadowAttribute.old_id' => '0',
+                            'AND' => array(
+                                array(
+                                    'OR' => array(
+                                        'Attribute.object_id' => '0',
+                                        array(
+                                            'OR' => $objectDistribution
+                                        )
+                                    )
+                                ),
+                                array(
+                                    'OR' => $attributeDistribution
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        }
+        return $conditions;
     }
 
     public function upgradeToProposalCorrelation()

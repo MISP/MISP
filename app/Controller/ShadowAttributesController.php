@@ -913,65 +913,96 @@ class ShadowAttributesController extends AppController
 
     public function index($eventId = false)
     {
+        $conditions = array();
         if (isset($this->request['named']['all'])) {
             $all = $this->request['named']['all'];
         } else {
             $all = false;
         }
-        $conditions = array();
-        if (!$this->_isSiteAdmin()) {
-            if (!$all) {
-                $conditions = array('Event.orgc_id' => $this->Auth->user('org_id'));
-            } else {
-                $conditions['AND'][] = array('ShadowAttribute.event_id' => $this->ShadowAttribute->Event->fetchEventIds($this->Auth->user(), false, false, false, true));
-            }
-        }
         if ($eventId && is_numeric($eventId)) {
             $conditions['ShadowAttribute.event_id'] = $eventId;
         }
-        $conditions['deleted'] = 0;
-        $this->set('all', $all);
-        if ($this->_isRest()) {
-            $temp = $this->ShadowAttribute->find('all', array(
-                    'conditions' => $conditions,
-                    'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp', 'ShadowAttribute.proposal_to_delete'),
-                    'contain' => array(
-                            'Event' => array(
-                                    'fields' => array('id', 'org_id', 'info', 'orgc_id'),
-                                    'Orgc' => array('fields' => array('Orgc.name'))
-                            ),
-                            'Org' => array(
-                                'fields' => array('name'),
-                            )
-                    ),
-                    'recursive' => 1
+        $temp = $this->ShadowAttribute->buildConditions($this->Auth->user());
+        if (!empty($temp)) {
+            $conditions['AND'][] = $temp;
+        }
+        unset($temp);
+        if (empty($all)) {
+            $conditions['AND'][] = array('Event.orgc_id' =>$this->Auth->user('org_id'));
+        }
+        if (!empty($this->request['named']['searchall'])) {
+            $conditions['AND'][] = array('OR' => array(
+                'LOWER(ShadowAttribute.value1) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(ShadowAttribute.value2) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(ShadowAttribute.comment) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(Event.info) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(Org.name) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(Org.uuid) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(ShadowAttribute.uuid) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(Event.uuid) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%'
             ));
-            if (empty($temp)) {
-                throw new MethodNotAllowedException(__('No proposals found or invalid event.'));
-            }
-            $proposals = array();
-            foreach ($temp as $proposal) {
-                $proposal['ShadowAttribute']['org'] = $proposal['Org']['name'];
-                $proposals[] = $proposal['ShadowAttribute'];
-            }
-            $this->set('ShadowAttribute', $proposals);
-            $this->set('_serialize', array('ShadowAttribute'));
-        } else {
-            $this->paginate = array(
-                    'conditions' => $conditions,
-                    'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
-                    'contain' => array(
-                            'Event' => array(
-                                    'fields' => array('id', 'org_id', 'info', 'orgc_id'),
-                                    'Orgc' => array('fields' => array('Orgc.name'))
-                            ),
-                            'Org' => array(
-                                'fields' => array('name'),
-                            )
-                    ),
-                    'recursive' => 1
+        }
+        if (!empty($this->request['named']['timestamp'])) {
+            $conditions['AND'][] = array(
+                'ShadowAttribute.timestamp >=' => $this->request['named']['timestamp']
             );
-            $this->set('shadowAttributes', $this->paginate());
+        }
+        $params = array(
+            'conditions' => $conditions,
+            'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
+            'contain' => array(
+                    'Event' => array(
+                            'fields' => array('id', 'org_id', 'info', 'orgc_id', 'uuid'),
+                            'Orgc' => array('fields' => array('Orgc.name'))
+                    ),
+                    'Org' => array(
+                        'fields' => array('name', 'uuid'),
+                    ),
+                    'Attribute' => array(
+                        'fields' => array('uuid'),
+                        'Object'
+                    ),
+            ),
+            'recursive' => -1
+        );
+        $simpleParams = array('limit', 'page');
+        foreach ($simpleParams as $simpleParam) {
+            if (!empty($this->request['named'][$simpleParam])) {
+                $params[$simpleParam] = $this->request['named'][$simpleParam];
+            }
+        }
+        if (isset($this->request['named']['sort'])) {
+            $params['order'] = 'ShadowAttribute.' . $this->request['named']['sort'];
+            if (!empty($this->request['named']['direction'])) {
+                $direction = trim(strtolower($this->request['named']['direction']));
+                $params['order'] .= ' ' . ($direction === 'asc' ? 'ASC' : 'DESC');
+            } else {
+                $params['order'] .= ' ASC';
+            }
+        }
+        if ($this->_isRest()) {
+            $results = $this->ShadowAttribute->find('all', $params);
+            foreach ($results as $k => $result) {
+                $result['ShadowAttribute']['org_uuid'] = $result['Org']['uuid'];
+                if (!empty($result['ShadowAttribute']['old_id'])) {
+                    $result['ShadowAttribute']['old_uuid'] = $result['Attribute']['uuid'];
+                }
+                $result['ShadowAttribute']['event_uuid'] = $result['Event']['uuid'];
+                $result['ShadowAttribute']['Org'] = $result['Org'];
+                if (isset($result['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($result['ShadowAttribute']['type']) && !empty($result['ShadowAttribute']['data'])) {
+                    $result = $result && $this->ShadowAttribute->saveBase64EncodedAttachment($result['ShadowAttribute']);
+                }
+                $results[$k] = array('ShadowAttribute' => $result['ShadowAttribute']);
+            }
+            return $this->RestResponse->viewData($results, $this->response->type());
+        } else {
+            $this->paginate = $params;
+            $results = $this->paginate();
+            foreach ($results as $k => $result) {
+                unset($results[$k]['Attribute']);
+            }
+            $this->set('shadowAttributes', $results);
+            $this->set('all', $all);
         }
     }
 
