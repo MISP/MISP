@@ -591,7 +591,7 @@ class RestResponseComponent extends Component
             'input' => 'text',
             'type' => 'string',
             'operators' => array('equal'),
-            'help' => 'The authorization key found on the external server'
+            'help' => 'The authorisation key found on the external server'
         ),
         'autoalert' => array(
             'input' => 'radio',
@@ -801,7 +801,13 @@ class RestResponseComponent extends Component
             'input' => 'radio',
             'type' => 'integer',
             'values' => array(1 => 'True', 0 => 'False' ),
-            'help' => 'The tag is exported when synchronizing with other instances'
+            'help' => 'The tag is exported when synchronising with other instances'
+        ),
+        'excludeLocalTags' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' ),
+            'help' => 'Exclude local tags from the export'
         ),
         'extend' => array(
             'input' => 'radio',
@@ -813,7 +819,7 @@ class RestResponseComponent extends Component
             'input' => 'radio',
             'type' => 'integer',
             'values' => array(1 => 'True', 0 => 'False' ),
-            'help' => 'An external authorization is required for this user'
+            'help' => 'An external authorisation is required for this user'
         ),
         'external_auth_key' => array(
             'input' => 'text',
