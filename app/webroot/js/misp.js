@@ -2975,8 +2975,11 @@ function testConnection(id) {
                         compatibility = "Incompatible";
                         compatibility_colour = "red";
                     }
+                } else if (result.mismatch == "proposal") {
+                    compatibility_colour = "orange";
+                    compatibility = "Proposal pull disabled (remote version < v2.4.111)";
                 }
-                if (result.mismatch != false) {
+                if (result.mismatch != false && result.mismatch != "proposal") {
                     if (result.newer == "remote") status_message = "Local instance outdated, update!";
                     else status_message = "Remote outdated, notify admin!"
                     colours.status = 'class="' + issue_colour + '"';

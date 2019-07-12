@@ -2364,6 +2364,7 @@ class Server extends AppModel
         // if we are downloading a single event, don't fetch all proposals
         $conditions = is_numeric($technique) ? array('Event.id' => $technique) : array();
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server);
+        $server['Server']['version'] = $this->getRemoteVersion($id);
         if (!empty($eventIds['error'])) {
             $errors = array(
                 '1' => __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'),
@@ -2416,18 +2417,10 @@ class Server extends AppModel
             }
         }
         if ($jobId) {
+            $job->saveField('progress', 50);
             $job->saveField('message', 'Pulling proposals.');
         }
-        $events = $eventModel->find('list', array(
-                'fields' => array('uuid'),
-                'recursive' => -1,
-                'conditions' => $conditions
-        ));
-        $pulledProposals = array();
-        if (!empty($events)) {
-            $proposals = $eventModel->downloadProposalsFromServer($events, $server);
-            $pulledProposals = $this->__handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user);
-        }
+        $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
         if ($jobId) {
             $job->saveField('progress', 100);
             $job->saveField('message', 'Pull completed.');
@@ -2443,7 +2436,12 @@ class Server extends AppModel
             'action' => 'pull',
             'user_id' => $user['id'],
             'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-            'change' => count($successes) . ' events and ' . array_sum($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+            'change' => sprintf(
+                '%s events and %s proposals pulled or updated. %s events failed or didn\'t need an update.',
+                count($successes),
+                $pulledProposals,
+                count($fails)
+            )
         ));
         return array($successes, $fails, $pulledProposals);
     }
@@ -4051,6 +4049,9 @@ class Server extends AppModel
         if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) {
             $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
         }
+        if (empty($response) && $remoteVersion[2] < 111) {
+            $response = "Sync to Server ('" . $id . "') initiated, but version 2.4.111 is required in order to be able to pull proposals from the remote side.";
+        }
 
         if ($response !== false) {
             $this->Log = ClassRegistry::init('Log');
@@ -4506,6 +4507,7 @@ class Server extends AppModel
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
         $HttpSocket = $syncTool->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
         $response = $HttpSocket->get($server['Server']['url'] . '/servers/getVersion', $data = '', $request);
         if ($response->code == 200) {
             try {
