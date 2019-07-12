@@ -487,6 +487,7 @@ class ShadowAttribute extends AppModel
         $oldsa = $this->find('first', array(
             'conditions' => array(
                 'event_uuid' => $sa['event_uuid'],
+                'uuid' => $sa['uuid'],
                 'value' => $sa['value'],
                 'type' => $sa['type'],
                 'category' => $sa['category'],
@@ -599,7 +600,7 @@ class ShadowAttribute extends AppModel
         if (empty($proposal['event_uuid']) || empty($proposal['Org'])) {
             return false;
         }
-        if (!empty($proposal['id'])) {
+        if (isset($proposal['id'])) {
             unset($proposal['id']);
         }
         $event = $this->Event->find('first', array(
@@ -624,31 +625,34 @@ class ShadowAttribute extends AppModel
         $oldsa = $this->findOldProposal($proposal);
         if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
             if ($oldsa) {
-                $shadowAttribute->delete($oldsa['id']);
+                $this->delete($oldsa['id']);
             }
             if (isset($proposal['old_id'])) {
-                $oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+                $oldAttribute = $this->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
                 if ($oldAttribute) {
                     $proposal['old_id'] = $oldAttribute['Attribute']['id'];
                 } else {
                     $proposal['old_id'] = 0;
                 }
+            } else {
+                $proposal['old_id'] = 0;
             }
-            $proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
+            $proposal['org_id'] = $this->Event->Orgc->captureOrg($proposal['Org'], $user);
             unset($proposal['Org']);
             $this->create();
             if ($this->save($proposal)) {
                 if (!isset($proposal['deleted']) || !$proposal['deleted']) {
                     $this->sendProposalAlertEmail($proposal['event_id']);
                 }
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     public function pullProposals($user, $server, $HttpSocket = null)
     {
-        $version = explode($server['Server']['version']);
+        $version = explode('.', $server['Server']['version']);
         if (
             ($version[0] == 2 && $version[1] == 4 && $version[2] < 111)
         ) {
@@ -660,9 +664,10 @@ class ShadowAttribute extends AppModel
         $i = 1;
         $fetchedCount = 0;
         $chunk_size = 1000;
+        $timestamp = strtotime("-90 day");
         while(true) {
             $uri = sprintf(
-                '%s/shadow_attributes/index/all:1/timestamp:%s/limit:%s/page:%s.json',
+                '%s/shadow_attributes/index/all:1/timestamp:%s/limit:%s/page:%s/deleted[]:0/deleted[]:1.json',
                 $url,
                 $timestamp,
                 $chunk_size,
@@ -670,14 +675,14 @@ class ShadowAttribute extends AppModel
             );
             $i += 1;
             $response = $HttpSocket->get($uri, false, $request);
-            if ($response->isOk()) {
+            if ($response->code == 200) {
                 $data = json_decode($response->body, true);
                 if (empty($data)) {
                     return $fetchedCount;
                 }
                 $returnSize = count($data);
                 foreach ($data as $k => $proposal) {
-                    $result = $this->capture($proposal, $user);
+                    $result = $this->capture($proposal['ShadowAttribute'], $user);
                     if ($result) {
                         $fetchedCount += 1;
                     }

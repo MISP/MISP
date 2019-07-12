@@ -633,7 +633,7 @@ class ServersController extends AppController
             if (!Configure::read('MISP.background_jobs')) {
                 $result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
                 if (is_array($result)) {
-                    $success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled.', count($result[0]), count($result[1]), count($result[2])));
+                    $success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled.', count($result[0]), count($result[1]), $result[2]));
                 } else {
                     $error = $result;
                 }
@@ -1432,6 +1432,9 @@ class ServersController extends AppController
                             $newer = 'local';
                         }
                     }
+                }
+                if (!$mismatch && $version[2] < 111) {
+                    $mismatch = 'proposal';
                 }
                 if (!$perm_sync) {
                     $result['status'] = 7;

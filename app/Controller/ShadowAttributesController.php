@@ -942,10 +942,18 @@ class ShadowAttributesController extends AppController
                 'LOWER(Event.uuid) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%'
             ));
         }
+        if (isset($this->request['named']['deleted'])) {
+            $conditions['AND'][] = array(
+                'ShadowAttribute.deleted' => $this->request['named']['deleted']
+            );
+        }
         if (!empty($this->request['named']['timestamp'])) {
             $conditions['AND'][] = array(
                 'ShadowAttribute.timestamp >=' => $this->request['named']['timestamp']
             );
+        }
+        if (!$this->_isRest() && !isset($this->request['named']['deleted'])) {
+            $conditions['AND'][] = array('ShadowAttribute.deleted' => 0);
         }
         $params = array(
             'conditions' => $conditions,
@@ -1043,52 +1051,10 @@ class ShadowAttributesController extends AppController
         }
     }
 
+    // deprecated function, returns empty array - proposal sync on more modern versions (>=2.4.111) happens via the shadow_attributes/index endpoint
     public function getProposalsByUuidList()
     {
-        if (!$this->_isRest() || !$this->userRole['perm_sync']) {
-            throw new MethodNotAllowedException(__('This feature is only available using the API to Sync users'));
-        }
-        if (!$this->request->is('Post')) {
-            throw new MethodNotAllowedException(__('This feature is only available using POST requests'));
-        }
-        $result = array();
-        if (!empty($this->request->data)) {
-            foreach ($this->request->data as $eventUuid) {
-                $temp = $this->ShadowAttribute->find('all', array(
-                        'conditions' => array(
-                            'event_uuid' => $eventUuid,
-                            'timestamp >' => strtotime("-14 day")
-                        ),
-                        'recursive' => -1,
-                        'contain' => array(
-                                'Org' => array('fields' => array('uuid', 'name')),
-                                'EventOrg' => array('fields' => array('uuid', 'name')),
-                        ),
-                ));
-                if (empty($temp)) {
-                    continue;
-                }
-                foreach ($temp as $key => $t) {
-                    if ($this->ShadowAttribute->typeIsAttachment($t['ShadowAttribute']['type'])) {
-                        $temp[$key]['ShadowAttribute']['data'] = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
-                    }
-                }
-                $result = array_merge($result, $temp);
-            }
-        }
-        if (empty($result)) {
-            $this->response->statusCode(404);
-            $this->set('name', 'No proposals found.');
-            $this->set('message', 'No proposals found');
-            $this->set('errors', 'No proposals found');
-            $this->set('url', '/shadow_attributes/getProposalsByUuidList');
-            $this->set('_serialize', array('name', 'message', 'url', 'errors'));
-            $this->response->send();
-            return false;
-        } else {
-            $this->set('result', $result);
-            $this->render('get_proposals_by_uuid_list');
-        }
+        return $this->RestResponse->viewData(array());
     }
 
     public function fetchEditForm($id, $field = null)
