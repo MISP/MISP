@@ -836,8 +836,8 @@ genRCLOCAL () {
 
 # Run PyMISP tests
 runTests () {
-  sudo sh -c "echo url = ${MISP_BASEURL} > $PATH_TO_MISP/PyMISP/tests/keys.py"
-  sudo sh -c "echo key = ${AUTH_KEY} >> $PATH_TO_MISP/PyMISP/tests/keys.py"
+  echo "url = ${MISP_BASEURL}
+key = ${AUTH_KEY}" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
   sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
