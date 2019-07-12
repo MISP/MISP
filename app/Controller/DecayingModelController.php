@@ -368,7 +368,7 @@ class DecayingModelController extends AppController
 
     public function decayingToolComputeSimulation($model_id, $attribute_id)
     {
-        return $this->RestResponse->viewData('date,value' . PHP_EOL . '2017-03-12,20' . PHP_EOL . '2018-03-12,10', $this->response->type());
+        return $this->RestResponse->viewData('date,value' . PHP_EOL . '2017-03-12,20' . PHP_EOL . '2018-03-12,10', 'csv');
 
     }
 }

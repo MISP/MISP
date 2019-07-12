@@ -53,7 +53,7 @@
             </div>
             <div style="width: 70%; display: flex;">
                 <div class="panel-container" style="flex-grow: 1;">
-                    <div id="chart-decay-simulation-container" style="width: 100%; height: 100%;">
+                    <div id="chart-decay-simulation-container" style="width: 100%; height: 100%; position: relative">
                         <div id="simulation_chart" style="height: 100%;"></div>
                     </div>
                 </div>
@@ -65,25 +65,11 @@
     </div>
 </div>
 <?php echo $this->Html->script('d3'); ?>
+<?php echo $this->Html->script('decayingModelSimulation'); ?>
 <script>
-var svg;
-var chart_width;
-var chart_height;
-var timeFormatter = d3.time.format("%Y-%m-%d").parse;
+var simulation_chart;
 $(document).ready(function() {
-    // set the dimensions and margins of the graph
-    var margin = {top: 10, right: 30, bottom: 30, left: 60};
-    chart_width = $('#simulation_chart').width() - margin.left - margin.right;
-    chart_height = $('#simulation_chart').height() - margin.top - margin.bottom;
-
-    // append the svg object to the body of the page
-    svg = d3.select("#simulation_chart")
-        .append("svg")
-        .attr("width", chart_width + margin.left + margin.right)
-        .attr("height", chart_height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
+    simulation_chart = $('#simulation_chart').decayingSimulation({});
 });
 
 function doRestSearch(clicked, query) {
@@ -126,66 +112,22 @@ function doSimulation(clicked, attribute_id) {
     $('#attribute_div tr').removeClass('success');
     $(clicked).addClass('success');
     var model_id = $('#select_model_to_simulate').val();
-    // $.ajax({
-    //     beforeSend:function() {
-    //         $('#chart-decay-simulation-container').html('<div style="height:100%; display:flex; align-items:center; justify-content:center;"><span class="fa fa-spinner fa-spin" style="font-size: xx-large;"></span></div>');
-    //     },
-    //     success:function (data, textStatus) {
-    //         $('#chart-decay-simulation-container').html(data);
-    //     },
-    //     error:function() {
-    //         showMessage('fail', '<?php echo __('Failed to perform the simulation') ?>');
-    //     },
-    //     type:'get',
-    //     cache: false,
-    //     url: '/decayingModel/decayingToolChartSimulation/' + model_id + '/' + attribute_id,
-    // });
-
-    // d3.csv('/decayingModel/decayingToolComputeSimulation/' + model_id + '/' + attribute_id,
-    d3.csv('https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/3_TwoNumOrdered_comma.csv',
-
-        // When reading the csv, I must format variables:
-        function(d){
-            return { date : timeFormatter(d.date), value : d.value }
+    $.ajax({
+        beforeSend:function() {
+            simulation_chart.toggleLoading(true);
         },
-
-        // Now I can use this dataset:
-        function(data) {
-            // Add X axis --> it is a date format
-            var x = d3.time.scale()
-                .domain(d3.extent(data, function(d) { return d.date; }))
-                .range([ 0, chart_width ]);
-            svg.append("g")
-                .attr('class', 'decayingGraphAxis axis-y')
-                .attr("transform", "translate(0," + chart_height + ")")
-                .call(d3.svg.axis().scale(x).orient('bottom'));
-
-            // Add Y axis
-            var y = d3.scale.linear()
-                .domain([0, d3.max(data, function(d) { return +d.value; })])
-                .range([ chart_height, 0 ]);
-            svg.append("g")
-                .attr('class', 'decayingGraphAxis axis-y')
-                .call(d3.svg.axis().scale(y).orient("left"));
-
-            // Add the line
-            var line = svg.selectAll(".lineAxis")
-                .data([data]);
-            line
-                .enter()
-                .append("path")
-                .attr("class","lineAxis")
-                .attr("fill", "none")
-                .attr("stroke", "steelblue")
-                .attr("stroke-width", 2.5)
-                // .merge(line)
-                .transition()
-                .duration(1000)
-                .attr("d", d3.svg.line()
-                        .x(function(d) { return x(d.date) })
-                        .y(function(d) { return y(d.value) }))
-
-        }
-    );
+        success:function (data, textStatus) {
+            simulation_chart.update(data);
+        },
+        error:function() {
+            showMessage('fail', '<?php echo __('Failed to perform the simulation') ?>');
+        },
+        complete:function() {
+            simulation_chart.toggleLoading(false);
+        },
+        type:'get',
+        cache: false,
+        url: '/decayingModel/decayingToolComputeSimulation/' + model_id + '/' + attribute_id,
+    });
 }
 </script>
