@@ -3918,18 +3918,18 @@ class Attribute extends AppModel
             'contain' => array('Event')
         ));
         if (empty($result)) {
-            throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
+            throw new ForbiddenException(__('Attribute not found or not authorised.'));
         }
 
         // check for permissions
         if (!$user['Role']['perm_site_admin']) {
             if ($result['Event']['locked']) {
                 if ($user['org_id'] != $result['Event']['org_id'] || !$user['Role']['perm_sync']) {
-                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
+                    throw new ForbiddenException(__('Attribute not found or not authorised.'));
                 }
             } else {
                 if ($user['org_id'] != $result['Event']['orgc_id']) {
-                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
+                    throw new ForbiddenException(__('Attribute not found or not authorised.'));
                 }
             }
         }
