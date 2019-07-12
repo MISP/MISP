@@ -109,25 +109,27 @@
     endforeach;
 ?>
 <?php
-    if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
-        echo sprintf(
-            '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="false" role="button" tabindex="0" aria-label="Add new cluster" style="%s">%s</button>',
-            'useCursorPointer btn btn-inverse addGalaxy',
-            h($target_type),
-            h($target_id),
-            'line-height:10px; padding: 2px; margin-right:5px;',
-            '<i class="fas fa-globe-americas"></i> +'
-        );
-    }
-    if ($isSiteAdmin || ($isAclTagger && Configure::read('MISP.host_org_id') == $me['org_id'])) {
-        echo sprintf(
-            '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="true" role="button" tabindex="0" aria-label="Add new cluster" style="%s">%s</button>',
-            'useCursorPointer btn btn-inverse addGalaxy',
-            h($target_type),
-            h($target_id),
-            'line-height:10px; padding: 2px;',
-            '<i class="fas fa-user"></i> +'
-        );
+    if (empty($static_tags_only)) {
+        if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
+            echo sprintf(
+                '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="false" role="button" tabindex="0" aria-label="Add new cluster" style="%s">%s</button>',
+                'useCursorPointer btn btn-inverse addGalaxy',
+                h($target_type),
+                h($target_id),
+                'line-height:10px; padding: 2px; margin-right:5px;',
+                '<i class="fas fa-globe-americas"></i> +'
+            );
+        }
+        if ($isSiteAdmin || ($isAclTagger && Configure::read('MISP.host_org_id') == $me['org_id'])) {
+            echo sprintf(
+                '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="true" role="button" tabindex="0" aria-label="Add new cluster" style="%s">%s</button>',
+                'useCursorPointer btn btn-inverse addGalaxy',
+                h($target_type),
+                h($target_id),
+                'line-height:10px; padding: 2px;',
+                '<i class="fas fa-user"></i> +'
+            );
+        }
     }
 ?>
 
