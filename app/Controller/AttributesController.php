@@ -2907,7 +2907,7 @@ class AttributesController extends AppController
                 $data['config'] = $options;
             }
             if ($format == 'misp_standard') {
-                $data['attribute'] = $attribute[0]['Attribute'];
+                $data['attribute'] = in_array('value', $attribute) ? $attribute : $attribute[0]['Attribute'];
             } else {
                 $data[$attribute[0]['Attribute']['type']] = $attribute[0]['Attribute']['value'];
             }
