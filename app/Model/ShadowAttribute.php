@@ -594,8 +594,33 @@ class ShadowAttribute extends AppModel
         return $proposalCount;
     }
 
+    private function __preCaptureMassage($proposal)
+    {
+        if (empty($proposal['event_uuid']) || empty($proposal['Org'])) {
+            return false;
+        }
+        if (!empty($proposal['id'])) {
+            unset($proposal['id']);
+        }
+        $event = $this->Event->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Event.uuid' => $proposal['event_uuid']),
+            'fields' => array('Event.id', 'Event.uuid', 'Event.org_id')
+        ));
+        if (empty($event)) {
+            return false;
+        }
+        $proposal['event_id'] = $event['Event']['id'];
+        $proposal['event_org_id'] = $event['Event']['org_id'];
+        return $proposal;
+    }
+
     public function capture($proposal, $user)
     {
+        $proposal = $this->__preCaptureMassage($proposal);
+        if ($proposal === false) {
+            return false;
+        }
         $oldsa = $this->findOldProposal($proposal);
         if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
             if ($oldsa) {
@@ -609,25 +634,61 @@ class ShadowAttribute extends AppModel
                     $proposal['old_id'] = 0;
                 }
             }
-            // check if this is a proposal from an old MISP instance
-            if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
-                $proposal['Org'] = $proposal['org'];
-                $proposal['EventOrg'] = $proposal['event_org'];
-            } elseif (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
-                return false;
-            }
             $proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
-            $proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
             unset($proposal['Org']);
-            unset($proposal['EventOrg']);
             $this->create();
-            if (!isset($proposal['deleted']) || !$proposal['deleted']) {
-                if ($this->save($proposal)) {
+            if ($this->save($proposal)) {
+                if (!isset($proposal['deleted']) || !$proposal['deleted']) {
                     $this->sendProposalAlertEmail($proposal['event_id']);
                 }
             }
         }
         return true;
+    }
+
+    public function pullProposals($user, $server, $HttpSocket = null)
+    {
+        $version = explode($server['Server']['version']);
+        if (
+            ($version[0] == 2 && $version[1] == 4 && $version[2] < 111)
+        ) {
+            return 0;
+        }
+        $url = $server['Server']['url'];
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $i = 1;
+        $fetchedCount = 0;
+        $chunk_size = 1000;
+        while(true) {
+            $uri = sprintf(
+                '%s/shadow_attributes/index/all:1/timestamp:%s/limit:%s/page:%s.json',
+                $url,
+                $timestamp,
+                $chunk_size,
+                $i
+            );
+            $i += 1;
+            $response = $HttpSocket->get($uri, false, $request);
+            if ($response->isOk()) {
+                $data = json_decode($response->body, true);
+                if (empty($data)) {
+                    return $fetchedCount;
+                }
+                $returnSize = count($data);
+                foreach ($data as $k => $proposal) {
+                    $result = $this->capture($proposal, $user);
+                    if ($result) {
+                        $fetchedCount += 1;
+                    }
+                }
+                if ($returnSize < $chunk_size) {
+                    return $fetchedCount;
+                }
+            } else {
+                return $fetchedCount;
+            }
+        }
     }
 
     public function buildConditions($user)
