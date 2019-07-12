@@ -10,6 +10,9 @@ MISPvars () {
   MISP_USER='misp'
   MISP_PASSWORD="$(openssl rand -hex 32)"
 
+  # MISP configuration variables
+  PATH_TO_MISP='/var/www/MISP'
+
   # The web server user
   # RHEL/CentOS
   if [[ -f "/etc/redhat-release" ]]; then
@@ -20,13 +23,15 @@ MISPvars () {
   # OpenBSD
   elif [[ "$(uname -s)" == "OpenBSD" ]]; then
     WWW_USER="www"
+    PATH_TO_MISP="/var/www/htdocs/MISP"
+  # NetBSD
+  elif [[ "$(uname -s)" == "NetBSD" ]]; then
+    WWW_USER="www"
+    PATH_TO_MISP="/usr/pkg/share/httpd/htdocs/MISP"
   else
-  # I am feeling lucky
+    # I am feeling lucky
     WWW_USER="www-data"
   fi
-
-  # MISP configuration variables
-  PATH_TO_MISP='/var/www/MISP'
 
   if [ -z "$FQDN" ]; then
     FQDN="misp.local"
