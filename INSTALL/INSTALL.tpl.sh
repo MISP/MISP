@@ -128,7 +128,7 @@ generateInstaller () {
   cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
+  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
     xsnippet . ../../docs/${f}
   done
 
