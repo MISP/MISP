@@ -486,13 +486,13 @@ class ShadowAttribute extends AppModel
     {
         $oldsa = $this->find('first', array(
             'conditions' => array(
-                'event_uuid' => $sa['event_uuid'],
-                'uuid' => $sa['uuid'],
-                'value' => $sa['value'],
-                'type' => $sa['type'],
-                'category' => $sa['category'],
-                'to_ids' => $sa['to_ids'],
-                'comment' => $sa['comment']
+                'ShadowAttribute.event_uuid' => $sa['event_uuid'],
+                'ShadowAttribute.uuid' => $sa['uuid'],
+                'ShadowAttribute.value' => $sa['value'],
+                'ShadowAttribute.type' => $sa['type'],
+                'ShadowAttribute.category' => $sa['category'],
+                'ShadowAttribute.to_ids' => $sa['to_ids'],
+                'ShadowAttribute.comment' => $sa['comment']
             ),
         ));
         if (empty($oldsa)) {
@@ -628,7 +628,7 @@ class ShadowAttribute extends AppModel
                 $this->delete($oldsa['id']);
             }
             if (isset($proposal['old_id'])) {
-                $oldAttribute = $this->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+                $oldAttribute = $this->Attribute->find('first', array('recursive' => -1, 'conditions' => array('Attribute.uuid' => $proposal['uuid'])));
                 if ($oldAttribute) {
                     $proposal['old_id'] = $oldAttribute['Attribute']['id'];
                 } else {
