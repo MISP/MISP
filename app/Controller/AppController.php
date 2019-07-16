@@ -505,7 +505,7 @@ class AppController extends Controller
             echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
         }
         if ($this->isApiAuthed && $this->_isRest()) {
-            session_destroy();
+            $this->Session->destroy();
         }
     }
 
