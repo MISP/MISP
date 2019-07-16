@@ -119,9 +119,13 @@
             toggleSimulation: function(model_id) {
                 var that = this;
                 $.get(baseurl + '/decayingModel/decayingToolSimulation/' + model_id, function(html) {
-                    $('#popover_form_large').html('<div class="close-icon useCursorPointer" onClick="$(\'#popover_form_large\').fadeOut();$(\'#gray_out\').fadeOut();"></div>' + html);
-                    openPopup('#popover_form_large');
-                    that.syncBasescoreSliders();
+                    $('#popover_form_large').html(
+                        '<div class="close-icon useCursorPointer" onClick="$(\'#popover_form_large\').fadeOut();$(\'#gray_out\').fadeOut();"></div>'
+                        + '<a class="close-icon useCursorPointer fa fa-expand" style="right: 20px; background: black; color: white; text-decoration: none; text-align: center;" target="_blank" href="/decayingModel/decayingToolSimulation/' + model_id + '"></a>'
+                        + html);
+                    openPopup('#popover_form_large', undefined, function() {
+                        $('#simulation_chart').decayingSimulation({});
+                    });
                 });
             },
 

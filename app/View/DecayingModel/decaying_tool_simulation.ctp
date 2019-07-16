@@ -29,7 +29,6 @@
     "decayingModel": <?php echo h($decaying_model['DecayingModel']['id']); ?>,
     "to_ids": 1,
     "org": <?php echo h($user['Organisation']['id']);?>,
-    "deleted": 0,
     "tags": <?php echo json_encode($registered_taxonomies); ?>
 
 }</textarea>
@@ -67,9 +66,7 @@
 <?php echo $this->Html->script('d3'); ?>
 <?php echo $this->Html->script('decayingModelSimulation'); ?>
 <script>
-var simulation_chart;
 $(document).ready(function() {
-    simulation_chart = $('#simulation_chart').decayingSimulation({});
 });
 
 function doRestSearch(clicked, query) {
@@ -112,6 +109,10 @@ function doSimulation(clicked, attribute_id) {
     $('#attribute_div tr').removeClass('success');
     $(clicked).addClass('success');
     var model_id = $('#select_model_to_simulate').val();
+    var simulation_chart = $('#simulation_chart').data('DecayingSimulation');
+    if (simulation_chart === undefined) {
+        simulation_chart = $('#simulation_chart').decayingSimulation({});
+    }
     $.ajax({
         beforeSend:function() {
             simulation_chart.toggleLoading(true);

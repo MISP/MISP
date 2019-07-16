@@ -69,7 +69,7 @@
                 this.svg = d3.select(this.container_id)
                     .append("svg")
                     .attr("width", this.width + this.options.margin.left + this.options.margin.right)
-                    .attr("height", this.width + this.options.margin.top + this.options.margin.bottom)
+                    .attr("height", this.height + this.options.margin.top + this.options.margin.bottom)
                     .append("g")
                     .attr("transform", "translate(" + this.options.margin.left + "," + this.options.margin.top + ")");
 

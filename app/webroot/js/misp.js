@@ -1477,7 +1477,7 @@ function templateElementFileCategoryChange(category) {
     }
 }
 
-function openPopup(id, adjust_layout) {
+function openPopup(id, adjust_layout, callback) {
     adjust_layout = adjust_layout === undefined ? true : adjust_layout;
     if (adjust_layout) {
         var window_height = $(window).height();
@@ -1496,7 +1496,11 @@ function openPopup(id, adjust_layout) {
         }
     }
     $("#gray_out").fadeIn();
-    $(id).fadeIn();
+    $(id).fadeIn(400, function() {
+        if (callback !== undefined) {
+            callback();
+        }
+    });
 }
 
 function openPopover(clicked, data, hover, placement, callback) {

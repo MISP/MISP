@@ -95,7 +95,7 @@
                 </div>
                 <div style="display: inline-block; margin-left: 10px;">
                     <button id="button-toggle-simulation" class="btn btn-primary" data-modelid="" onclick="decayingTool.toggleSimulation($(this).data('modelid'))">
-                        <span class="fa fa-chart-line"> <?php echo __('Toggle simulation panel'); ?></span>
+                        <span class="fa fa-chart-line"> <?php echo __('Simulate this model'); ?></span>
                     </button>
                 </div>
             </div>
