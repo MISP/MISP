@@ -7,7 +7,7 @@ from pymisp import PyMISP, MISPEvent
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import re
-from keys import misp_url, misp_key
+from keys import misp_url, misp_key, misp_verifycert
 
 # pip install pymisp python-dateutil
 
@@ -20,7 +20,7 @@ class misphelper(object):
     def __init__(self):
         self.misp = PyMISP(url=misp_url,
                            key=misp_key,
-                           ssl=True,
+                           ssl=misp_verifycert,
                            out_type="json")
         self.taxonomyId = self.searchTaxonomy()
 
