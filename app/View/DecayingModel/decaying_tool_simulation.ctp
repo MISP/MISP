@@ -3,20 +3,20 @@
         <div style="height: 40%; display: flex">
             <div style="width: 30%; display: flex; flex-direction: column;">
                 <div class="panel-container" style="display: flex; flex-direction: column; flex-grow: 1">
-                    <select id="select_model_to_simulate" style="width: 100%;">
+                    <select id="select_model_to_simulate" style="width: 100%;" onchange="refreshSimulation()">
                         <?php foreach ($all_models as $model): ?>
                             <option value="<?php echo h($model['DecayingModel']['id']) ?>" <?php echo $decaying_model['DecayingModel']['id'] == $model['DecayingModel']['id'] ? 'selected' : '' ?>><?php echo h($model['DecayingModel']['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
 
-                    <ul class="nav nav-tabs" style="margin-right: -5px; margin-bottom: 10px;" id="simulation-tabs">
+                    <ul class="nav nav-tabs" style="margin-right: -5px; margin-bottom: 0px;" id="simulation-tabs">
                         <li class="active"><a href="#restsearch" data-toggle="tab">RestSearch</a></li>
                         <li><a href="#specificid" data-toggle="tab">Specific ID</a></li>
                     </ul>
 
-                    <div class="tab-content" style="padding: 5px;">
-                        <div class="tab-pane active" id="restsearch">
-                            <div style="display: flex; flex-direction: column;">
+                    <div class="tab-content" style="padding: 5px; height: 100%;">
+                        <div class="tab-pane active" id="restsearch" style="height: 100%;">
+                            <div style="display: flex; flex-direction: column; height: 100%;">
                                 <h3 style="">Attribute RestSearch<span style="vertical-align: top; font-size: x-small;" class="fa fa-question-circle" title="Enforced fields: returnFormat"></span></h3>
 <?php
     $registered_taxonomies = array_keys($decaying_model['DecayingModel']['parameters']['base_score_config']);
@@ -24,7 +24,7 @@
         $taxonomy_name = $taxonomy_name . ':%' ;
     }
 ?>
-                                <textarea style="margin-bottom: 0px; margin-left: 4px; width: auto;height: unset !important;" rows="12">
+                                <textarea style="margin-bottom: 0px; margin-left: 4px; flex-grow: 3; width: auto;">
 {
     "decayingModel": <?php echo h($decaying_model['DecayingModel']['id']); ?>,
     "to_ids": 1,
@@ -42,7 +42,7 @@
                             <div style="display: flex;">
                                 <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend">
                                     <span class="add-on">ID</span>
-                                    <input class="span3" type="text" placeholder="<?php echo __('Attribute ID or UUID') ?>" onkeypress="handle_input_key(event)">
+                                    <input type="text" placeholder="<?php echo __('Attribute ID or UUID') ?>" onkeypress="handle_input_key(event)" style="width: auto;">
                                 </div>
                                 <span id="performRestSearchButton" class="btn btn-primary" style="width: fit-content; margin-left: 4px;" role="button" onclick="doSpecificSearch(this)"><?php echo __('Simulate'); ?></span>
                             </div>
@@ -54,7 +54,7 @@
             <div style="width: 70%; display: flex;">
                 <div class="panel-container" style="flex-grow: 1;">
                     <div id="chart-decay-simulation-container" style="width: 100%; height: 100%; position: relative">
-                        <div id="simulation_chart" style="height: 100%;"></div>
+                        <div id="simulation_chart" style="height: 100%; overflow: hidden;"></div>
                     </div>
                 </div>
             </div>
@@ -127,7 +127,14 @@ function doSimulation(clicked, attribute_id) {
         },
         type:'get',
         cache: false,
+        dataType: 'json',
         url: '/decayingModel/decayingToolComputeSimulation/' + model_id + '/' + attribute_id,
     });
+}
+
+function refreshSimulation() {
+    var $row = $('#attribute_div tr.success');
+    var attribute_id = $row.find('td:first').text();
+    doSimulation($row, attribute_id);
 }
 </script>

@@ -19,7 +19,7 @@
                 margin: {top: 10, right: 10, bottom: 20, left: 30},
                 animation_duration: 1000,
                 animation_short_duration: 250,
-                time_format: '%Y-%m-%d'
+                time_format: '%Y-%m-%d %H:%M:%S'
             };
             this.options = $.extend(true, {}, default_options, options);
             this._init();
@@ -51,6 +51,7 @@
                 this.width = this.$container.width() - this.options.margin.left - this.options.margin.right;
                 this.height = this.$container.height() - this.options.margin.top - this.options.margin.bottom;
                 this.chart_data = [];
+                this.sightings = [];
                 this._parseDataset();
 
                 this.x = d3.time.scale()
@@ -91,10 +92,14 @@
             },
 
             update: function(data) {
-                var that = this;
-                this.chart_data = data;
+                this.chart_data = data.csv;
+                this.sightings = data.sightings;
                 this._parseDataset();
+                this._draw();
+            },
 
+            _draw: function() {
+                var that = this;
                 this.x.domain(d3.extent(this.chart_data, function(d) { return d.date; }))
                 this.y.domain([0, d3.max(this.chart_data, function(d) { return d.value; })])
 
@@ -122,7 +127,7 @@
                 this.line_guides = this.svg
                     .select('.d3-line-guides-group')
                     .selectAll('.d3-line-guides')
-                    .data(this.chart_data);
+                    .data(this.sightings_data);
                 this.line_guides
                     .enter()
                     .append('line')
@@ -142,7 +147,7 @@
 
                 this.points = this.svg
                     .selectAll('.d3-line-circle')
-                    .data(this.chart_data);
+                    .data(this.sightings_data);
                 this.points
                     .enter()
                     .append('circle')
@@ -186,13 +191,18 @@
                 var that = this;
                 if (typeof this.chart_data === 'string') {
                     this.chart_data = d3.csv.parse(this.chart_data, function(d){
-                        return { date: that.timeFormatter(d.date), value : d.value }
+                        var parsed_date = that.timeFormatter(d.date);
+                        return { timestamp: Math.floor(parsed_date.getTime() / 1000), date: parsed_date, value : parseFloat(d.value) }
                     });
                 } else if (Array.isArray(this.chart_data)){
                     this.chart_data.forEach(function(entry, i) {
                         that.chart_data[i].date = that.timeFormatter(entry.date);
                     })
                 }
+                this.sightings_data = this.sightings.map(function(d) {
+                    var sighting = d.Sighting;
+                    return { timestamp: sighting.rounded_timestamp, date: new Date(sighting.rounded_timestamp*1000), value : 100.0 };
+                });
             }
         }
 

@@ -234,4 +234,105 @@ class DecayingModel extends AppModel
         );
     }
 
+    // compute the current score for the provided atribute with the provided model
+    public function computeCurrentScore($model, $attribute)
+    {
+
+    }
+
+    // compute the score at the given timestamp for the provided atribute with the provided model
+    public function computeScore($model, $attribute, $timestamp, $last_sighting_timestamp)
+    {
+        $t = $timestamp - $last_sighting_timestamp;
+        if ($t < 0) {
+            return 0;
+        }
+        $base_score = 100;
+        $delta = $model['DecayingModel']['parameters']['delta'];
+        $tau = $model['DecayingModel']['parameters']['tau']*24*60*60;
+        $score = $base_score * (1 - pow($t / $tau, 1 / $delta));
+        // debug($timestamp);
+        // debug($last_sighting_timestamp);
+        // debug($tau);
+        // debug($t);
+        // debug($score);
+        return $score < 0 ? 0 : $score;
+    }
+
+    // returns timestamp set to the rounded hour
+    public function round_timestamp_to_hour($time)
+    {
+        $offset = $time % 3600;
+        return $time - $offset;
+    }
+
+    public function getScoreOvertime($user, $model_id, $attribute_id)
+    {
+        $this->Attribute = ClassRegistry::init('Attribute');
+        $attribute = $this->Attribute->fetchAttributesSimple($user, array(
+            'conditions' => array('id' => $attribute_id)
+        ));
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Attribute not found'));
+        } else {
+            $attribute = $attribute[0];
+        }
+        $model = $this->checkAuthorisation($user, $model_id, true);
+        if ($model === false) {
+            throw new NotFoundException(__('Model not found'));
+        }
+        $this->Sighting = ClassRegistry::init('Sighting');
+        $sightings = $this->Sighting->listSightings($user, $attribute_id, 'attribute', false, 0, false);
+        if (empty($sightings)) {
+            $sightings = array(array('Sighting' => array('date_sighting' => $attribute['Attribute']['timestamp']))); // simulate a sighting nonetheless
+        }
+        // get start time
+        $start_time = $attribute['Attribute']['timestamp'];
+        // $start_time = $attribute['Attribute']['first_seen'] < $start_time ? $attribute['Attribute']['first_seen'] : $start_time;
+        $start_time = $sightings[0]['Sighting']['date_sighting'] < $start_time ? $sightings[0]['Sighting']['date_sighting'] : $start_time;
+        $start_time = intval($start_time);
+        $start_time = $this->round_timestamp_to_hour($start_time);
+        // get end time
+        $end_time = $sightings[count($sightings)-1]['Sighting']['date_sighting'] + $model['DecayingModel']['parameters']['tau']*24*60*60;
+        $end_time = $this->round_timestamp_to_hour($end_time);
+
+        // generate time span from oldest timestamp to last decay, resolution is hours
+        $score_overtime = array();
+        $rounded_sightings = array();
+        $sighting_index = 0;
+        for ($t=$start_time; $t < $end_time; $t+=3600) {
+            // fetch closest sighting to the current time
+            $sighting_index = $this->get_closest_sighting($sightings, $t, $sighting_index);
+            $last_sighting = $this->round_timestamp_to_hour($sightings[$sighting_index]['Sighting']['date_sighting']);
+            $sightings[$sighting_index]['Sighting']['rounded_timestamp'] = $last_sighting;
+            $score_overtime[$t] = $this->computeScore($model, $attribute, $t, $last_sighting);
+        }
+        $csv = 'date,value' . PHP_EOL;
+        foreach ($score_overtime as $t => $v) {
+            $csv .= (new DateTime())->setTimestamp($t)->format('Y-m-d H:i:s') . ',' . $v . PHP_EOL;
+        }
+        return array(
+            'csv' => $csv,
+            'sightings' => $sightings
+        );
+    }
+
+    public function get_closest_sighting($sightings, $time, $previous_index)
+    {
+        if (count($sightings) <= $previous_index+1) {
+            return $previous_index;
+        }
+        $max_time = $time + 3600;
+        $next_index = $previous_index+1;
+        $next_sighting = $sightings[$next_index]['Sighting']['date_sighting'];
+        while ($next_sighting <= $max_time) {
+            $next_index++;
+            if ($next_index >= count($sightings)) {
+                break;
+            }
+            $next_sighting = $sightings[$next_index]['Sighting']['date_sighting'];
+        }
+        return $next_index-1;
+    }
+
 }
