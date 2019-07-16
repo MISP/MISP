@@ -77,12 +77,6 @@
                     .tickSize(-this.width)
                     .tickFormat("");
 
-                // this.area_thres = d3.svg.area()
-                //     .interpolate("monotone")
-                //     .x(function(d) { return that.x(d.date); })
-                //     .y0(this.height)
-                //     .y1(function(d) { return that.y(that.model.parameters.threshold); });
-
                 this.value_line = d3.svg.line()
                     .x(function(d) { return that.x(d.date); })
                     .y(function(d) { return that.y(d.value); });
