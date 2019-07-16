@@ -214,6 +214,9 @@ class DecayingModelController extends AppController
         if (!$decaying_model) {
             throw new NotFoundException(_('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
         }
+        if (isset($this->request->params['named']['attribute_id'])) {
+            $this->set('attribute_id', $this->request->params['named']['attribute_id']);
+        }
         $this->set('user', $this->Auth->user());
         $this->set('decaying_model', $decaying_model);
         $allowed_models = $this->DecayingModel->fetchAllowedModels($this->Auth->user());

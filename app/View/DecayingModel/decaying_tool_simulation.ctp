@@ -3,19 +3,22 @@
         <div style="height: 40%; display: flex">
             <div style="width: 30%; display: flex; flex-direction: column;">
                 <div class="panel-container" style="display: flex; flex-direction: column; flex-grow: 1">
-                    <select id="select_model_to_simulate" style="width: 100%;" onchange="refreshSimulation()">
-                        <?php foreach ($all_models as $model): ?>
-                            <option value="<?php echo h($model['DecayingModel']['id']) ?>" <?php echo $decaying_model['DecayingModel']['id'] == $model['DecayingModel']['id'] ? 'selected' : '' ?>><?php echo h($model['DecayingModel']['name']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div style="display: flex;">
+                        <select id="select_model_to_simulate" onchange="$('#select_model_to_simulate_infobox').popover('show'); refreshSimulation()" style="flex-grow: 1;">
+                            <?php foreach ($all_models as $model): ?>
+                                <option value="<?php echo h($model['DecayingModel']['id']) ?>" <?php echo $decaying_model['DecayingModel']['id'] == $model['DecayingModel']['id'] ? 'selected' : '' ?>><?php echo h($model['DecayingModel']['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span id="select_model_to_simulate_infobox" class="btn" style="padding: 4px; height: fit-content; margin-left: 5px;"><span class="fa fa-question-circle"></span></span>
+                    </div>
 
                     <ul class="nav nav-tabs" style="margin-right: -5px; margin-bottom: 0px;" id="simulation-tabs">
-                        <li class="active"><a href="#restsearch" data-toggle="tab">RestSearch</a></li>
-                        <li><a href="#specificid" data-toggle="tab">Specific ID</a></li>
+                        <li class="<?php echo isset($attribute_id) ? '' : 'active'; ?>"><a href="#restsearch" data-toggle="tab">RestSearch</a></li>
+                        <li class="<?php echo !isset($attribute_id) ? '' : 'active'; ?>"><a href="#specificid" data-toggle="tab">Specific ID</a></li>
                     </ul>
 
                     <div class="tab-content" style="padding: 5px; height: 100%;">
-                        <div class="tab-pane active" id="restsearch" style="height: 100%;">
+                        <div class="tab-pane <?php echo isset($attribute_id) ? '' : 'active'; ?>" id="restsearch" style="height: 100%;">
                             <div style="display: flex; flex-direction: column; height: 100%;">
                                 <h3 style="">Attribute RestSearch<span style="vertical-align: top; font-size: x-small;" class="fa fa-question-circle" title="Enforced fields: returnFormat"></span></h3>
 <?php
@@ -36,12 +39,12 @@
                                 <span class="btn btn-primary" style="width: fit-content;" role="button" onclick="doRestSearch(this)"><?php echo __('Search'); ?></span>
                             </div>
                         </div>
-                        <div class="tab-pane" id="specificid">
+                        <div class="tab-pane <?php echo !isset($attribute_id) ? '' : 'active'; ?>" id="specificid">
                             <h3 style="">Unique Attribute</h3>
                             <div style="display: flex;">
                                 <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend">
                                     <span class="add-on">ID</span>
-                                    <input type="text" placeholder="<?php echo __('Attribute ID or UUID') ?>" onkeypress="handle_input_key(event)" style="width: auto;">
+                                    <input type="text" value="<?php echo isset($attribute_id) ? h($attribute_id) : ''; ?>" placeholder="<?php echo __('Attribute ID or UUID') ?>" onkeypress="handle_input_key(event)" style="width: auto;">
                                 </div>
                                 <span id="performRestSearchButton" class="btn btn-primary" style="width: fit-content; margin-left: 4px;" role="button" onclick="doSpecificSearch(this)"><?php echo __('Simulate'); ?></span>
                             </div>
@@ -66,8 +69,25 @@
 <?php echo $this->Html->script('d3'); ?>
 <?php echo $this->Html->script('decayingModelSimulation'); ?>
 <script>
+var model_list = <?php echo json_encode($all_models); ?>;
+var models = {};
 $(document).ready(function() {
+    model_list.forEach(function(m) {
+        models[m.DecayingModel.id] = m.DecayingModel;
+    });
+    $('#select_model_to_simulate_infobox').popover({
+        title: function() {
+            return $('#select_model_to_simulate option:selected').text();
+        },
+        content: function() {
+            return '<div>' + syntaxHighlightJson(models[$('#select_model_to_simulate').val()]) + '</div>';
+        },
+        html: true,
+        placement: 'bottom'
+    });
+    <?php echo isset($attribute_id) ? '$("#performRestSearchButton").click();' : ''; ?>
 });
+
 
 function doRestSearch(clicked, query) {
     var data = query === undefined ? $(clicked).parent().find('textarea').val() : query;
@@ -83,6 +103,10 @@ function doRestSearch(clicked, query) {
             },
             success:function (data, textStatus) {
                 $('#attributeTableContainer').html(data);
+                var $trs = $('#attributeTableContainer tbody > tr');
+                if ($trs.length == 1) {
+                    $trs.click();
+                }
             },
             error:function() {
                 showMessage('fail', '<?php echo __('Failed to perform RestSearch') ?>');
@@ -118,7 +142,7 @@ function doSimulation(clicked, attribute_id) {
             simulation_chart.toggleLoading(true);
         },
         success:function (data, textStatus) {
-            simulation_chart.update(data);
+            simulation_chart.update(data, models[model_id]);
         },
         error:function() {
             showMessage('fail', '<?php echo __('Failed to perform the simulation') ?>');
@@ -136,6 +160,8 @@ function doSimulation(clicked, attribute_id) {
 function refreshSimulation() {
     var $row = $('#attribute_div tr.success');
     var attribute_id = $row.find('td:first').text();
-    doSimulation($row, attribute_id);
+    if (attribute_id !== '') {
+        doSimulation($row, attribute_id);
+    }
 }
 </script>
