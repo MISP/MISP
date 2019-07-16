@@ -69,6 +69,14 @@ pre {
     border-radius: 0px !important;
 }
 
+.position-absolute {
+    position: absolute !important;
+}
+
+.max-width-400 {
+    max-width: 400px !important;
+}
+
 /* MULTI-LEVEL DROPDOWNS FOR BOOTSTRAP */
 .dropdown-menu .sub-menu {
     left: 100%;
