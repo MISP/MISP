@@ -121,7 +121,6 @@ script:
     - popd
     - pipenv run python tests/test.py
     - pipenv run python tests/test_mispevent.py
-    - pipenv run python tests/test_offline.py
     - pipenv run python tests/testlive_comprehensive.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
