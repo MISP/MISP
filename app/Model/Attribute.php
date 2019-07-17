@@ -2928,7 +2928,8 @@ class Attribute extends AppModel
         $params = array(
             'conditions' => $this->buildConditions($user),
             'fields' => array(),
-            'recursive' => -1
+            'recursive' => -1,
+            'contain' => array()
         );
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
@@ -2936,10 +2937,14 @@ class Attribute extends AppModel
         if (isset($options['fields'])) {
             $params['fields'] = $options['fields'];
         }
+        if (isset($options['contain'])) {
+            $params['contain'] = $options['contain'];
+        }
         $results = $this->find('all', array(
             'conditions' => $params['conditions'],
             'recursive' => -1,
             'fields' => $params['fields'],
+            'contain' => $params['contain'],
             'sort' => false
         ));
         return $results;
