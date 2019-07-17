@@ -2478,6 +2478,7 @@ x86_64-fedora-30
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
+x86_64-kali-2019.2
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-debian-jessie
