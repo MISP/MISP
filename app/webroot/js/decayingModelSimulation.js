@@ -112,6 +112,7 @@
             },
 
             update: function(data, model) {
+                this.raw_data = data;
                 this.chart_data = data.csv;
                 this.sightings = data.sightings;
                 this.model = model;
@@ -122,7 +123,7 @@
             _draw: function() {
                 var that = this;
                 this.x.domain(d3.extent(this.chart_data, function(d) { return d.date; }))
-                this.y.domain([0, d3.max(this.chart_data, function(d) { return d.value; })])
+                // this.y.domain([0, d3.max(this.chart_data, function(d) { return d.value; })])
 
                 this.xAxis = this.svg.select('.axis-x')
                     .call(d3.svg.axis().scale(this.x).orient('bottom'));
@@ -283,7 +284,7 @@
 
             _generate_tooltip: function(datum) {
                 var formated_date = d3.time.format("%e %B @ %H:%M")(datum.date);
-                var html = 'Sighting on ' + formated_date;
+                var html = 'Sighting on ' + formated_date + ' by ' + datum.org;
                 return html;
             },
 
@@ -301,7 +302,7 @@
                 }
                 this.sightings_data = this.sightings.map(function(d) {
                     var sighting = d.Sighting;
-                    return { timestamp: sighting.rounded_timestamp, date: new Date(sighting.rounded_timestamp*1000), value : 100.0 };
+                    return { timestamp: sighting.rounded_timestamp, date: new Date(sighting.rounded_timestamp*1000), value : that.raw_data.base_score_config.base_score, org: d.Organisation.name };
                 });
             }
         }
@@ -326,5 +327,106 @@
         };
 
         $.fn.decayingSimulation.constructor = DecayingSimulation;
+    })
+);
+
+
+(function(factory) {
+        "use strict";
+        if (typeof define === 'function' && define.amd) {
+            define(['jquery'], factory);
+        } else if (window.jQuery && !window.jQuery.fn.BasescoreComputationTable) {
+            factory(window.jQuery);
+        }
+    }
+
+    (function($) {
+        'use strict';
+
+        var BasescoreComputationTable = function(container, options, data) {
+            this.container_id = '#' + container.id;
+            this.$container = $(container);
+            this._validateOptions(options);
+            var default_options = {
+            };
+            this.options = $.extend(true, {}, default_options, options);
+            this._init();
+            if (data !== undefined) {
+                this.update(data)
+            }
+        };
+
+        BasescoreComputationTable.prototype = {
+            constructor: BasescoreComputationTable,
+
+            _validateOptions: function(options) {
+
+            },
+            _init: function() {
+                var that = this;
+                this.$loadingContainer = $('<div id="loadingSimulationContainer" style="background: #ffffff9f"><span class="fa fa-spinner fa-spin" style="font-size: xx-large;"></span></div>').css({
+                    position: 'absolute',
+                    left: '0',
+                    right: '0',
+                    top: '0',
+                    bottom: '0',
+                    display: 'flex',
+                    'align-items': 'center',
+                    'justify-content': 'center'
+                }).hide();
+                this.tooltip_container = d3.select('body').append('div')
+                    .classed('tooltip', true)
+                    .style('opacity', 0)
+                    .style('padding', '3px')
+                    .style('background-color', '#000')
+                    .style('color', 'white')
+                    .style('border-radius', '5px')
+                    .style('display', 'none');
+                this.$container.append(this.$loadingContainer);
+            },
+
+            update: function(data, model) {
+            },
+
+            _draw: function() {
+
+            },
+
+            toggleLoading: function(state) {
+                if (state === undefined) {
+                    this.$loadingContainer.toggle();
+                } else if(state) {
+                    this.$loadingContainer.show();
+                } else {
+                    this.$loadingContainer.hide();
+                }
+                this.$container;
+            },
+
+            _parseDataset: function() {
+
+            }
+        }
+
+        $.BasescoreComputationTable = BasescoreComputationTable;
+        $.fn.basescoreComputationTable = function(options) {
+            var pickedArgs = arguments;
+
+            var $elements = this.each(function() {
+                var $this = $(this),
+                    inst = $this.data('BasescoreComputationTable');
+                options = ((typeof options === 'object') ? options : {});
+                if ((!inst) && (typeof options !== 'string')) {
+                    $this.data('BasescoreComputationTable', new BasescoreComputationTable(this, options));
+                } else {
+                    if (typeof options === 'string') {
+                        inst[options].apply(inst, Array.prototype.slice.call(pickerArgs, 1));
+                    }
+                }
+            });
+            return $elements.length == 1 ? $elements.data('BasescoreComputationTable') : $elements;
+        };
+
+        $.fn.basescoreComputationTable.constructor = BasescoreComputationTable;
     })
 );

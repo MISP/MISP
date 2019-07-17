@@ -1,7 +1,7 @@
 <div id="simulationContainer">
     <div style="padding: 15px; height: 90vh; display: flex; flex-direction: column;">
         <div style="height: 40%; display: flex">
-            <div style="width: 30%; display: flex; flex-direction: column;">
+            <div style="width: 20%; display: flex; flex-direction: column;">
                 <div class="panel-container" style="display: flex; flex-direction: column; flex-grow: 1">
                     <div style="display: flex;">
                         <select id="select_model_to_simulate" onchange="$('#select_model_to_simulate_infobox').popover('show'); refreshSimulation()" style="flex-grow: 1;">
@@ -53,9 +53,24 @@
 
                 </div>
             </div>
-            <div style="width: 70%; display: flex;">
-                <div class="panel-container" style="flex-grow: 1;">
-                    <div id="chart-decay-simulation-container" style="width: 100%; height: 100%; position: relative">
+            <div style="width: 80%; display: flex;">
+                <div class="panel-container" style="flex-grow: 1; display: flex;">
+                    <div id="basescore-simulation-container" style="width: 30%; height: 100%;">
+                        <h4><?php echo __('Basescore') ?></h4>
+                        <div style="overflow: auto;">
+                            <?php echo $this->element('DecayingModels/View/basescore_computation_steps'); ?>
+                        </div>
+                        <h4><?php echo __('Current score') ?></h4>
+                        <div style="margin-left: 4px; margin-bottom: 5px;" class="input-prepend">
+                            <span class="add-on" style="width: 100px;"><?php echo __('Last Sighting'); ?></span>
+                            <input id="simulation-sighting" type="text" value="100" class="span2" disabled>
+                        </div>
+                        <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend">
+                            <span class="add-on" style="width: 100px;"><?php echo __('Current score'); ?></span>
+                            <input id="simulation-current-score" type="text" value="100" class="span2" disabled>
+                        </div>
+                    </div>
+                    <div id="chart-decay-simulation-container" style="width: 70%; height: 100%; position: relative">
                         <div id="simulation_chart" style="height: 100%; overflow: hidden;"></div>
                     </div>
                 </div>
@@ -134,21 +149,36 @@ function doSimulation(clicked, attribute_id) {
     $(clicked).addClass('success');
     var model_id = $('#select_model_to_simulate').val();
     var simulation_chart = $('#simulation_chart').data('DecayingSimulation');
+    var simulation_table = $('#basescore-simulation-container #computation_help_container_body ').data('BasescoreComputationTable');
     if (simulation_chart === undefined) {
         simulation_chart = $('#simulation_chart').decayingSimulation({});
+        simulation_table = $('#basescore-simulation-container #computation_help_container_body ').basescoreComputationTable({});
     }
     $.ajax({
         beforeSend:function() {
             simulation_chart.toggleLoading(true);
+            simulation_table.toggleLoading(true);
         },
         success:function (data, textStatus) {
             simulation_chart.update(data, models[model_id]);
+            simulation_table.update(data, models[model_id]);
+            $('#simulation-sighting')
+                .val(
+                    d3.time.format("%c")(new Date(parseInt(data.last_sighting.Sighting.date_sighting)*1000))
+                );
+            $('#simulation-sighting').parent().tooltip({
+                title: 'From ' + data.last_sighting.Organisation.name,
+                placement: 'right'
+            });
+            $('#simulation-current-score')
+            .val(data.current_score.toFixed(0))
         },
         error:function() {
             showMessage('fail', '<?php echo __('Failed to perform the simulation') ?>');
         },
         complete:function() {
             simulation_chart.toggleLoading(false);
+            simulation_table.toggleLoading(false);
         },
         type:'get',
         cache: false,

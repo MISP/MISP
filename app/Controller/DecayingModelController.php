@@ -16,7 +16,7 @@ class DecayingModelController extends AppController
     public function update($force=false)
     {
         if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException(_('You are not authorised to edit it.'));
+            throw new MethodNotAllowedException(__('You are not authorised to edit it.'));
         }
 
         if ($this->request->is('post')) {
@@ -30,7 +30,7 @@ class DecayingModelController extends AppController
                 // return $this->RestResponse->viewData($message, $this->response->type());
             }
         } else {
-            throw new MethodNotAllowedException(_("This method is not allowed"));
+            throw new MethodNotAllowedException(__("This method is not allowed"));
         }
     }
 
@@ -42,7 +42,7 @@ class DecayingModelController extends AppController
 
         $decaying_model = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id, true);
         if (!$this->_isSiteAdmin() && !$decModel) {
-            throw new MethodNotAllowedException(_('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
+            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
         }
         $this->set('mayModify', true);
         $this->set('id', $id);
@@ -71,7 +71,7 @@ class DecayingModelController extends AppController
             }
 
             if (empty($this->request->data['DecayingModel']['name'])) {
-                throw new MethodNotAllowedException(_("The model must have a name"));
+                throw new MethodNotAllowedException(__("The model must have a name"));
             }
 
             if ($this->DecayingModel->save($this->request->data)) {
@@ -80,7 +80,7 @@ class DecayingModelController extends AppController
                     $response = array('data' => $saved, 'action' => 'add');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 } else {
-                    $this->Flash->success(_('The model has been saved.'));
+                    $this->Flash->success(__('The model has been saved.'));
                     $this->redirect(array('action' => 'index'));
                 }
             }
@@ -93,7 +93,7 @@ class DecayingModelController extends AppController
     {
         $decayingModel = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id);
         if (!$this->_isSiteAdmin() && !$decModel) {
-            throw new NotFoundException(_('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
         }
         $this->set('mayModify', true);
 
@@ -104,21 +104,21 @@ class DecayingModelController extends AppController
                 $this->request->data['DecayingModel']['parameters'] = array();
             } else {
                 if (!isset($this->request->data['DecayingModel']['parameters']['tau'])) {
-                    $this->Flash->error(_('Invalid parameter `tau`.'));
+                    $this->Flash->error(__('Invalid parameter `tau`.'));
                     return false;
                 }
                 if (!isset($this->request->data['DecayingModel']['parameters']['delta'])) {
-                    $this->Flash->error(_('Invalid parameter `delta`.'));
+                    $this->Flash->error(__('Invalid parameter `delta`.'));
                     return false;
                 }
                 if (!isset($this->request->data['DecayingModel']['parameters']['threshold'])) {
-                    $this->Flash->error(_('Invalid parameter `threshold`.'));
+                    $this->Flash->error(__('Invalid parameter `threshold`.'));
                     return false;
                 }
                 if (isset($this->request->data['DecayingModel']['parameters']['base_score_config']) && $this->request->data['DecayingModel']['parameters']['base_score_config'] != '') {
                     $encoded = json_decode($this->data['DecayingModel']['parameters']['base_score_config'], true);
                     if ($encoded === null) {
-                        $this->Flash->error(_('Invalid parameter `base_score_config`.'));
+                        $this->Flash->error(__('Invalid parameter `base_score_config`.'));
                         return false;
                     }
                     $this->request->data['DecayingModel']['parameters']['base_score_config'] = $encoded;
@@ -135,7 +135,7 @@ class DecayingModelController extends AppController
                     $response = array('data' => $saved, 'action' => 'edit');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 } else {
-                    $this->Flash->success(_('The model has been saved.'));
+                    $this->Flash->success(__('The model has been saved.'));
                     $this->redirect(array('action' => 'index'));
                 }
             }
@@ -153,14 +153,14 @@ class DecayingModelController extends AppController
         if ($this->request->is('post')) {
             $decayingModel = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id);
             if (!$this->_isSiteAdmin() && !$decModel) {
-                throw new MethodNotAllowedException(_('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
+                throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
             }
 
             if ($this->DecayingModel->delete($id, true)) {
-                $this->Flash->success(_('Decaying Model deleted.'));
+                $this->Flash->success(__('Decaying Model deleted.'));
                 $this->redirect(array('action' => 'index'));
             } else {
-                $this->Flash->error(_('The Decaying Model could not be deleted.'));
+                $this->Flash->error(__('The Decaying Model could not be deleted.'));
                 $this->redirect(array('action' => 'index'));
             }
         }
@@ -212,7 +212,7 @@ class DecayingModelController extends AppController
     {
         $decaying_model = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $model_id);
         if (!$decaying_model) {
-            throw new NotFoundException(_('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
         }
         if (isset($this->request->params['named']['attribute_id'])) {
             $this->set('attribute_id', $this->request->params['named']['attribute_id']);
@@ -229,7 +229,7 @@ class DecayingModelController extends AppController
             $body = $this->request->data['decayingToolRestSearch']['filters'];
             $decoded_body = json_decode($body, true);
             if (is_null($decoded_body)) {
-                throw new Exception(_("Error Processing Request, can't parse the body"));
+                throw new Exception(__("Error Processing Request, can't parse the body"));
             }
             $this->request->data = $decoded_body;
             $paramArray = array(
@@ -356,7 +356,12 @@ class DecayingModelController extends AppController
 
     public function decayingToolComputeSimulation($model_id, $attribute_id)
     {
-        $score_overtime = $this->RestResponse->viewData($this->DecayingModel->getScoreOvertime($this->Auth->user(), $model_id, $attribute_id), $this->response->type());
-        return $score_overtime;
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__("This method is only accessible via AJAX."));
+        }
+
+        // contain score overtime, sightings, and base_score computation
+        $results = $this->DecayingModel->getScoreOvertime($this->Auth->user(), $model_id, $attribute_id);
+        return $this->RestResponse->viewData($results, $this->response->type());
     }
 }
