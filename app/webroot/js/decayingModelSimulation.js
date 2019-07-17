@@ -100,14 +100,6 @@
                     .attr("class", "decayingGraphAxis grid grid-y")
                     .attr("transform", "translate(0," + this.height + ")");
 
-                this.svg.append('rect')
-                    .attr('class', 'decayingGraphAreaThres')
-                    .style('opacity', 0.6)
-                    .attr('x', 0)
-                    .attr('y', this.height)
-                    .attr('width', this.width)
-                    .attr('height', 0);
-
                 this.svg.append('g')
                     .classed('line-group', true);
 
@@ -141,12 +133,6 @@
                     .call(this.xGrid);
                 this.svg.select('.grid-y')
                     .call(this.yGrid);
-
-                this.svg.select('.decayingGraphAreaThres')
-                    .transition()
-                    .duration(this.options.animation_short_duration)
-                    .attr('height', this.height-this.y(this.model.parameters.threshold))
-                    .attr('y', this.y(this.model.parameters.threshold));
 
                 this.line = this.svg.select('.line-group')
                     .selectAll('.line')
@@ -185,6 +171,32 @@
                     .attr('y2', function(d) { return that.y(d.value); });
                 this.line_guides.exit().remove();
 
+                this.svg.append('rect')
+                    .attr('class', 'decayingGraphAreaThres')
+                    .style('opacity', 0.6)
+                    .attr('x', 0)
+                    .attr('y', this.height)
+                    .attr('width', this.width)
+                    .attr('height', 0)
+                    .on('mouseover', function(d) {
+                        d3.select(this).transition()
+                            .duration(that.options.animation_short_duration)
+                            .style('opacity', 0.9)
+                        that.tooltipText(true, this, 'Cutoff threshold: <b>' + that.model.parameters.threshold + '</b>');
+                    })
+                    .on('mouseout', function() {
+                        d3.select(this).transition()
+                            .duration(that.options.animation_short_duration)
+                            .style('opacity', 0.6)
+                        that.tooltipText(false);
+                    });
+                this.svg.select('.decayingGraphAreaThres')
+                    .transition()
+                    .duration(this.options.animation_short_duration)
+                    .attr('height', this.height-this.y(this.model.parameters.threshold))
+                    .attr('y', this.y(this.model.parameters.threshold));
+
+
                 this.points = this.svg
                     .selectAll('.d3-line-circle')
                     .data(this.sightings_data);
@@ -200,13 +212,13 @@
                         d3.select(this).transition()
                             .duration(that.options.animation_short_duration)
                             .attr('r', 7);
-                        that._toggleTooltip(true, this, d);
+                        that.tooltipDate(true, this, d);
                     })
                     .on('mouseout', function() {
                         d3.select(this).transition()
                             .duration(that.options.animation_short_duration)
                             .attr('r', 5);
-                        that._toggleTooltip(false);
+                        that.tooltipDate(false);
                     })
                     .style('opacity', 0)
                     .transition()
@@ -229,21 +241,36 @@
                 this.$container;
             },
 
-            _toggleTooltip(show, d3Point, datum) {
+            tooltipDate: function(show, d3Element, datum) {
+                var that = this;
+                var tooltip = this._toggleTooltip(show, d3Element);
+                if (show) {
+                    tooltip.html(this._generate_tooltip(datum));
+                }
+            },
+
+            tooltipText: function(show, d3Element, html) {
+                var that = this;
+                var tooltip = this._toggleTooltip(show, d3Element);
+                if (show) {
+                    tooltip.html(html);
+                }
+            },
+
+            _toggleTooltip: function(show, d3Element) {
                 var that = this;
                 if (show) {
-                    this.tooltip_container
-                    .style('display', 'block')
-                    .transition()
-                    .duration(that.options.animation_short_duration)
-                    .delay(that.options.animation_short_duration/2)
-                    .style('opacity', '0.7');
-                    var bb_rect = d3.select(d3Point)[0][0].getBoundingClientRect();
+                    var bb_rect = d3.select(d3Element)[0][0].getBoundingClientRect();
                     var cx = bb_rect.left;
                     var cy = bb_rect.top;
-                    that.tooltip_container.html(that._generate_tooltip(datum))
-                    .style('left', (cx + 17) + 'px')
-                    .style('top', (cy - 6) + 'px');
+                    this.tooltip_container
+                        .style('display', 'block')
+                        .style('left', (cx + 17) + 'px')
+                        .style('top', (cy - 6) + 'px')
+                        .transition()
+                        .duration(that.options.animation_short_duration)
+                        .delay(that.options.animation_short_duration/2)
+                        .style('opacity', '0.7');
                 } else {
                     this.tooltip_container.transition()
                         .duration(this.options.animation_short_duration)
@@ -251,6 +278,7 @@
                         .delay(this.options.animation_short_duration)
                         .style('display', 'none');
                 }
+                return this.tooltip_container;
             },
 
             _generate_tooltip: function(datum) {
