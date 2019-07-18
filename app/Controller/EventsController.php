@@ -3329,13 +3329,14 @@ class EventsController extends AppController
         $timestamp = false,
         $published = false,
         $enforceWarninglist = false,
-        $sgReferenceOnly = false
+        $sgReferenceOnly = false,
+        $asDownload = false
     ) {
         $paramArray = array(
             'value', 'type', 'category', 'object_relation', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
             'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'returnFormat',
             'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'deleted',
-            'excludeLocalTags'
+            'excludeLocalTags', 'asDownload'
         );
         $filterData = array(
             'request' => $this->request,
@@ -3365,6 +3366,19 @@ class EventsController extends AppController
         $elementCounter = 0;
         $renderView = false;
         $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+
+        $final_filename = False;
+        if ($filters["asDownload"]) {
+            $eventid = is_array($filters["eventid"]) ? "list" : $filters["eventid"];
+            preg_match('/uuid(?:\":\"|>)?(.{36})/', $final, $matches);
+            $UUIDv4 = '/^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i';
+            if (preg_match($UUIDv4, $matches[1])) {
+                $final_filename = "misp.event." . $eventid . "." . $matches[1] . "." . $returnFormat;
+            } else {
+                $final_filename = "misp.event." . $eventid . "." . $returnFormat;
+            }
+        }
+
         if (!empty($renderView) && !empty($final)) {
             $this->layout = false;
             $final = json_decode($final, true);
@@ -3374,7 +3388,7 @@ class EventsController extends AppController
             $this->render('/Events/module_views/' . $renderView);
         } else {
             $responseType = $this->Event->validFormats[$returnFormat][0];
-            return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+            return $this->RestResponse->viewData($final, $responseType, false, true, $final_filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
         }
 
     }
@@ -4304,21 +4318,21 @@ class EventsController extends AppController
         // #TODO i18n
         $exports = array(
             'xml' => array(
-                    'url' => '/events/restSearch/xml/eventid:' . $id . '.xml',
+                    'url' => '/events/restSearch/xml/eventid:' . $id . '/asDownload:1.xml',
                     'text' => 'MISP XML (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/xml/eventid:' . $id . '/withAttachments:1.xml',
+                    'checkbox_set' => '/events/restSearch/xml/eventid:' . $id . '/asDownload:1/withAttachments:1.xml',
                     'checkbox_default' => true
             ),
             'json' => array(
-                    'url' => '/events/restSearch/json/eventid:' . $id . '.json',
+                    'url' => '/events/restSearch/json/eventid:' . $id . '/asDownload:1.json',
                     'text' => 'MISP JSON (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/json/withAttachments:1/eventid:' . $id . '.json',
+                    'checkbox_set' => '/events/restSearch/json/withAttachments:1/eventid:' . $id . '/asDownload:1.json',
                     'checkbox_default' => true
             ),
             'openIOC' => array(
@@ -4336,36 +4350,36 @@ class EventsController extends AppController
                     'checkbox_set' => '/events/csv/download/' . $id . '/1'
             ),
             'csv_with_context' => array(
-                    'url' => '/events/restSearch/returnFormat:csv/eventid:' . $id,
+                    'url' => '/events/restSearch/returnFormat:csv/asDownload:1/eventid:' . $id,
                     'text' => 'CSV with additional context',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/eventid:' . $id
+                    'checkbox_set' => '/events/restSearch/returnFormat:csv/asDownload:1/to_ids:1||0/published:1||0/eventid:' . $id
             ),
             'stix_xml' => array(
-                    'url' => '/events/restSearch/stix/eventid:' . $id,
+                    'url' => '/events/restSearch/stix/asDownload:1/eventid:' . $id,
                     'text' => 'STIX XML (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1'
+                    'checkbox_set' => '/events/restSearch/stix/asDownload:1/eventid:' . $id . '/withAttachments:1'
             ),
             'stix_json' => array(
-                    'url' => '/events/restSearch/stix/eventid:' . $id . '.json',
+                    'url' => '/events/restSearch/stix/asDownload:1/eventid:' . $id . '.json',
                     'text' => 'STIX JSON (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix/withAttachments:1/eventid:' . $id . '.json'
+                    'checkbox_set' => '/events/restSearch/stix/withAttachments:1/asDownload:1/eventid:' . $id . '.json'
             ),
             'stix2_json' => array(
-                    'url' => '/events/restSearch/stix2/eventid:' . $id,
+                    'url' => '/events/restSearch/stix2/asDownload:1/eventid:' . $id,
                     'text' => 'STIX2 (requires the STIX 2 library)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix2/eventid:' . $id . '/withAttachments:1'
+                    'checkbox_set' => '/events/restSearch/stix2/asDownload:1/eventid:' . $id . '/withAttachments:1'
             ),
             'rpz' => array(
                     'url' => '/attributes/restSearch/returnFormat:rpz/published:1||0/eventid:' . $id,
@@ -4374,13 +4388,13 @@ class EventsController extends AppController
                     'checkbox' => false,
             ),
             'suricata' => array(
-                    'url' => '/events/restSearch/returnFormat:suricata/published:1||0/eventid:' . $id,
+                    'url' => '/events/restSearch/returnFormat:suricata/asDownload:1/published:1||0/eventid:' . $id,
                     'text' => 'Download Suricata rules',
                     'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'snort' => array(
-                    'url' => '/events/restSearch/returnFormat:snort/published:1||0/eventid:' . $id,
+                    'url' => '/events/restSearch/returnFormat:snort/asDownload:1/published:1||0/eventid:' . $id,
                     'text' => 'Download Snort rules',
                     'requiresPublished' => false,
                     'checkbox' => false,
