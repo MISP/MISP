@@ -97,6 +97,8 @@ class DecayingModel extends AppModel
                 $this->__validateParameters($parameters[$name]);
             } else if (is_numeric($value)) {
                 $parameters[$name] = round($value, 4);
+            } else {
+                $parameters[$name] = 0;
             }
         }
         return true;
@@ -286,7 +288,7 @@ class DecayingModel extends AppModel
         $tags = $temp['tags'];
         $overridden_tags = $temp['overridden'];
         $taxonomy_effective_ratios = $this->_getRatioScore($model, $tags);
-        $base_score = isset($model['DecayingModel']['parameters']['base_score_config']['base_score_default_value']) ? $model['DecayingModel']['parameters']['base_score_config']['base_score_default_value'] : 0 ;
+        $base_score = isset($model['DecayingModel']['parameters']['default_base_score']) ? $model['DecayingModel']['parameters']['default_base_score'] : 0 ;
         if (!empty($taxonomy_effective_ratios)) {
             foreach ($tags as $k => $tag) {
                 $taxonomy = explode(':', $tag['Tag']['name'])[0];

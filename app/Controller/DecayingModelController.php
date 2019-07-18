@@ -115,6 +115,10 @@ class DecayingModelController extends AppController
                     $this->Flash->error(__('Invalid parameter `threshold`.'));
                     return false;
                 }
+                if (!isset($this->request->data['DecayingModel']['parameters']['default_base_score'])) {
+                    $this->Flash->error(__('Invalid parameter `default_base_score`.'));
+                    return false;
+                }
                 if (isset($this->request->data['DecayingModel']['parameters']['base_score_config']) && $this->request->data['DecayingModel']['parameters']['base_score_config'] != '') {
                     $encoded = json_decode($this->data['DecayingModel']['parameters']['base_score_config'], true);
                     if ($encoded === null) {

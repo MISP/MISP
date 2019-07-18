@@ -35,12 +35,21 @@
             'div' => 'input clear',
             'value' => isset($this->request->data['DecayingModel']['parameters']['threshold']) ? $this->request->data['DecayingModel']['parameters']['threshold'] : ''
         ));
+        echo $this->Form->input('DecayingModel.parameters.default_base_score', array(
+            'label' => __('Default base_score parameter'),
+            'type' => 'number',
+            'min' => 0,
+            'title' => _('The model default base_score of the indicator'),
+            'class' => 'form-control span6',
+            'div' => 'input clear',
+            'value' => isset($this->request->data['DecayingModel']['parameters']['default_base_score']) ? $this->request->data['DecayingModel']['parameters']['default_base_score'] : ''
+        ));
         echo '<div class="clear"></div>';
         echo '<label for="DecayingModelParametersBaseScoreConfig">' . __('Base Score configuration') . '</label>';
         echo $this->Form->textarea('DecayingModel.parameters.base_score_config', array(
             'class' => 'form-control span6',
             'cols' => '10',
-            'value' => isset($this->request->data['DecayingModel']['parameters']['base_score_config']) ? $this->request->data['DecayingModel']['parameters']['base_score_config'] : ''
+            'value' => isset($this->request->data['DecayingModel']['parameters']['base_score_config']) ? json_encode($this->request->data['DecayingModel']['parameters']['base_score_config']) : ''
         ));
     ?>
         <div class="clear"></div>

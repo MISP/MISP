@@ -1,8 +1,12 @@
-<div class="row" style="padding: 15px; overflow: auto; max-height: 90vh;">
+<div id="basescore_configurator" class="row" style="padding: 15px; overflow: auto; max-height: 90vh;">
     <div class="span8" style="height: calc(90vh); overflow-y: scroll; border: 1px solid #ddd;">
         <input id="table_taxonomy_search" class="input" style="width: 250px; margin: 0px;" type="text" placeholder="<?php echo _('Search Taxonomy'); ?>"></input>
         <it class="fa fa-times useCursorPointer" title="<?php echo __('Clear search field'); ?>" onclick="$('#table_taxonomy_search').val('').trigger('input');"></it>
         <span style="float: right; margin-top: 6px;" class="badge badge-info"><b><?php echo h($taxonomies_not_having_numerical_value); ?></b><?php echo __(' not having numerical value'); ?></span>
+        <div class="input-prepend" style="margin: 4px;">
+            <span class="add-on"><?php echo __('Default basescore') ?></span>
+            <input id="base_score_default_value" type="number" min=0 max=100 class="input-mini" value="0" placeholder="0"></input>
+        </div>
         <table id="tableTaxonomy" class="table table-striped table-bordered table-condensed">
             <thead>
                 <tr>
@@ -187,17 +191,18 @@ function regenerateValidTags() {
 }
 
 function applyBaseScoreConfig() {
-    decayingTool.applyBaseScore(getRatioScore());
+    var base_score_default_value = $('#base_score_default_value').val() >= 0 ? $('#base_score_default_value').val() : 0;
+    decayingTool.applyBaseScore(getRatioScore(), base_score_default_value);
     $('#popover_form_large').fadeOut();
     $('#gray_out').fadeOut();
 }
 
 function fetchTaxonomyConfig() {
     var matching_inputs = $('#body_taxonomies > tr')
-    .find('input[type="number"]')
-    .filter(function() {
-        return parseInt($(this).val()) > 0;
-    });
+        .find('input[type="number"]')
+        .filter(function() {
+            return parseInt($(this).val()) > 0;
+        });
     var taxonomy_config = {};
     matching_inputs.each(function() {
         taxonomy_config[$(this).data('taxonomyname')] = parseInt($(this).val());

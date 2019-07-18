@@ -84,6 +84,7 @@
 
                     </div>
                 <?php endforeach; ?>
+                <input id="input_default_base_score" value=0 class="hidden"></input>
                 <div class="input-append" style="margin-bottom: 0px;">
                     <input id="input_base_score_config" class="hidden" value="[]"></input>
                     <button class="btn btn-primary" style="border-radius: 4px 0px 0px 4px;" onclick="decayingTool.toggleBasescoreForm()">
@@ -134,7 +135,7 @@
                             <th rowspan="2">Model Name</th>
                             <th rowspan="2">Org id</th>
                             <th rowspan="2">Description</th>
-                            <th colspan="4">Parameters</th>
+                            <th colspan="5">Parameters</th>
                             <th rowspan="2"># Types</th>
                             <th rowspan="2">Action</th>
                         </tr>
@@ -142,6 +143,7 @@
                             <th>Tau</th>
                             <th>Delta</th>
                             <th>Threshold</th>
+                            <th>Default basescore</th>
                             <th>Basescore config</th>
                         </tr>
                     </thead>
@@ -155,6 +157,7 @@
                                 <td class="DMParameterTau"><?php echo h($model['DecayingModel']['parameters']['tau']); ?></td>
                                 <td class="DMParameterDelta"><?php echo h($model['DecayingModel']['parameters']['delta']); ?></td>
                                 <td class="DMParameterThreshold"><?php echo h($model['DecayingModel']['parameters']['threshold']); ?></td>
+                                <td class="DMParameterDefaultBasescore"><?php echo h($model['DecayingModel']['parameters']['default_base_score']); ?></td>
                                 <td class="DMParameterBasescoreConfig json-transform" data-basescoreconfig="<?php echo base64_encode(json_encode($model['DecayingModel']['parameters']['base_score_config'])); ?>">
                                     <?php if (isset($model['DecayingModel']['parameters']['base_score_config']) && !empty($model['DecayingModel']['parameters']['base_score_config'])): ?>
                                         <?php echo h(json_encode($model['DecayingModel']['parameters']['base_score_config'])); ?>

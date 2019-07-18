@@ -107,6 +107,8 @@
                 });
             },
             syncBasescoreSliders: function() {
+                var default_base_score = $('#input_default_base_score').val();
+                $('#basescore_configurator #base_score_default_value').val(default_base_score);
                 var base_score_config = JSON.parse($('#input_base_score_config').val());
                 Object.keys(base_score_config).forEach(function(taxonomy_name) {
                     var taxonomy_val = base_score_config[taxonomy_name]*100;
@@ -331,6 +333,7 @@
                     tau: parseFloat(tr.find('td.DMParameterTau').text()),
                     delta: parseFloat(tr.find('td.DMParameterDelta').text()),
                     threshold: parseInt(tr.find('td.DMParameterThreshold').text()),
+                    default_base_score: parseInt(tr.find('td.DMParameterDefaultBasescore').text()),
                     base_score_config: JSON.parse(atob(tr.find('td.DMParameterBasescoreConfig').data('basescoreconfig')))
                 };
                 var name = tr.find('td.DMName').text();
@@ -342,6 +345,7 @@
                 $('#input_Delta').val(parameters.delta);
                 $('#input_Threshold').val(parameters.threshold);
                 $('#input_base_score_config').val(JSON.stringify(parameters.base_score_config));
+                $('#input_default_base_score').val(JSON.stringify(parameters.default_base_score));
                 var $form = $('#saveForm');
                 $form.find('[name="name"]').val(name);
                 $form.find('[name="description"]').val(desc);
@@ -361,6 +365,7 @@
                 params.tau = parseInt($('#input_Tau').val());
                 params.delta = parseFloat($('#input_Delta').val());
                 params.threshold = parseInt($('#input_Threshold').val());
+                params.default_base_score = parseInt($('#input_default_base_score').val());
                 var base_score_config = $('#input_base_score_config').val();
                 base_score_config = base_score_config === '' ? '{}' : base_score_config;
                 params.base_score_config = JSON.parse(base_score_config)
@@ -442,6 +447,7 @@
                 data.parameters.tau = parseInt($row.find('td.DMParameterTau').text());
                 data.parameters.delta = parseFloat($row.find('td.DMParameterDelta').text());
                 data.parameters.threshold = parseInt($row.find('td.DMParameterThreshold').text());
+                data.parameters.default_base_score = parseInt($row.find('td.DMParameterDefaultBasescore').text());
                 data.parameters.base_score_config = JSON.parse(atob($row.find('td.DMParameterBasescoreConfig').data('basescoreconfig')));
                 return data;
             },
@@ -479,6 +485,7 @@
                     + '<td class="DMParameterTau">' + decayingModel.parameters.tau + '</td>'
                     + '<td class="DMParameterDelta">' + decayingModel.parameters.delta + '</td>'
                     + '<td class="DMParameterThreshold">' + decayingModel.parameters.threshold + '</td>'
+                    + '<td class="DMParameterDefaultBasescore">' + decayingModel.parameters.default_base_score + '</td>'
                     + '<td class="DMParameterBasescoreConfig json-transform" data-basescoreconfig="' + btoa(base_score_string) + '">' + base_score_string + '</td>'
                     + '<td class="DMNumType">' + (data.data.DecayingModelMapping[decayingModel.id] !== undefined ? data.data.DecayingModelMapping[decayingModel.id].length : 0) + '</td>'
                     + '<td>'
@@ -499,16 +506,17 @@
                 $row.find('.json-transform').each(function(i) {
                     var text = $(this).text().trim();
                     var parsedJson = '';
-                    if (text !== '') {
+                    if (text !== '' && text !== '[]') {
                         parsedJson = jsonToNestedTable(text, [], ['table', 'table-condensed', 'table-bordered']);
                     }
                     $(this).html(parsedJson);
                 });
                 this.highlightMatchingRow();
             },
-            applyBaseScore: function(taxonomy_config) {
+            applyBaseScore: function(taxonomy_config, base_score_default_value) {
                 $('#input_base_score_config').val(JSON.stringify(taxonomy_config));
-                if (Object.keys(taxonomy_config).length > 0) {
+                $('#input_default_base_score').val(base_score_default_value);
+                if (Object.keys(taxonomy_config).length > 0 || $('#input_default_base_score').val() > 0) {
                     $('#summary_base_score_config > span').removeClass('fa-square').addClass('fa-check-square');
                 } else {
                     $('#summary_base_score_config > span').removeClass('fa-check-square').addClass('fa-square');
@@ -618,7 +626,7 @@
                 $('#infoCellHalved').text(this.daysToText(this.getReverseScore((100-threshold)/2 + threshold)));
                 $('#infoCellExpired').text(this.daysToText(this.getReverseScore(threshold)));
                 var base_score_config = JSON.parse($('#input_base_score_config').val());
-                if (Object.keys(base_score_config).length > 0) {
+                if (Object.keys(base_score_config).length > 0 || $('#input_default_base_score').val() > 0) {
                     $('#summary_base_score_config > span').removeClass('fa-square').addClass('fa-check-square');
                 } else {
                     $('#summary_base_score_config > span').removeClass('fa-check-square').addClass('fa-square');
@@ -642,6 +650,7 @@
                 $form.find('#DecayingModelParametersTau').val(data.parameters.tau);
                 $form.find('#DecayingModelParametersDelta').val(data.parameters.delta);
                 $form.find('#DecayingModelParametersThreshold').val(data.parameters.threshold);
+                $form.find('#DecayingModelParametersDefaultBaseScore').val(data.parameters.default_base_score);
                 $form.find('#DecayingModelParametersBaseScoreConfig').val(JSON.stringify(data.parameters.base_score_config));
             },
             simpleCompareObject: function(obj1, obj2) { // recursively compare object equality on their value
@@ -775,8 +784,11 @@ $(document).ready(function() {
         title: function() {
             var $title = $('<table style="text-align: left;"><thead><tr><th>Taxonomy</th><th>%</th></tr></thead><tbody></tbody></table>').find('tbody');
             var bs_config = $('#input_base_score_config').val();
-            if (bs_config === '' || bs_config === '[]') {
-                return 'No tuning done yet. Default value: 100';
+            var bs_default = $('#input_default_base_score').val();
+            if ((bs_config === '' || bs_config === '[]') && bs_default == 0) {
+                return 'No tuning done yet';
+            } else if (bs_default > 0) {
+                return 'Default base score = ' + bs_default;
             } else {
                 bs_config = JSON.parse(bs_config);
             }
@@ -784,7 +796,11 @@ $(document).ready(function() {
                 var value = bs_config[k];
                 $title.append('<tr><td style="padding-right: 5px;">' + k + '</td><td>' + (value * 100).toFixed(1) + '</td></tr>');
             })
-            return $title.parent()[0].outerHTML;
+            var to_return = $title.parent()[0].outerHTML;
+            if (bs_default) {
+                to_return = '<b>Default base score = ' + bs_default + '</b></br>' + to_return;
+            }
+            return to_return;
         }
     });
 });
