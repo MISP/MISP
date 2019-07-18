@@ -247,11 +247,15 @@ class DecayingModel extends AppModel
         $total_score = 0.0;
         foreach ($tags as $tag) {
             $namespace_predicate = explode(':', $tag['Tag']['name'])[0];
-            $total_score += floatval($taxonomy_base_ratio[$namespace_predicate]);
+            if (isset($taxonomy_base_ratio[$namespace_predicate])) {
+                $total_score += floatval($taxonomy_base_ratio[$namespace_predicate]);
+            }
         }
         foreach ($tags as $i => $tag) {
             $namespace_predicate = explode(':', $tag['Tag']['name'])[0];
-            $ratioScore[$namespace_predicate] = floatval($taxonomy_base_ratio[$namespace_predicate]) / $total_score;
+            if (isset($taxonomy_base_ratio[$namespace_predicate])) {
+                $ratioScore[$namespace_predicate] = floatval($taxonomy_base_ratio[$namespace_predicate]) / $total_score;
+            }
         }
         return $ratioScore;
     }
@@ -292,7 +296,9 @@ class DecayingModel extends AppModel
         if (!empty($taxonomy_effective_ratios)) {
             foreach ($tags as $k => $tag) {
                 $taxonomy = explode(':', $tag['Tag']['name'])[0];
-                $base_score += $taxonomy_effective_ratios[$taxonomy] * $tag['Tag']['numerical_value'];
+                if (isset($taxonomy_effective_ratios[$taxonomy])) {
+                    $base_score += $taxonomy_effective_ratios[$taxonomy] * $tag['Tag']['numerical_value'];
+                }
             }
         }
         return array('base_score' => $base_score, 'overridden' => $overridden_tags, 'tags' => $tags, 'taxonomy_effective_ratios' => $taxonomy_effective_ratios);
