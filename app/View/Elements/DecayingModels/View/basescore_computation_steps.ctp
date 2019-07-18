@@ -7,9 +7,9 @@
                 <th rowspan="2" style="vertical-align: middle;"><?php echo __('Result') ?></th>
             </tr>
             <tr>
-                <th style="padding: 0px; width: 90px;"><?php echo __('Taxonomy ratio') ?></th>
+                <th style="padding: 0px; width: 50px;" title="<?php echo __('Taxonomy ratio') ?>"><?php echo __('Ratio') ?></th>
                 <th></th>
-                <th style="padding: 0px; width: 90px;"><?php echo __('Tag value') ?></th>
+                <th style="padding: 0px; width: 50px;" title="<?php echo __('Tag numerical value') ?>"><?php echo __('Value') ?></th>
             </tr>
         </thead>
         <tbody id="computation_help_container_body">

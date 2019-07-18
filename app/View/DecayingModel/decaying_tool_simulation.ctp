@@ -56,18 +56,17 @@
             <div style="width: 80%; display: flex;">
                 <div class="panel-container" style="flex-grow: 1; display: flex;">
                     <div id="basescore-simulation-container" style="width: 30%; height: 100%;">
-                        <h4><?php echo __('Basescore') ?></h4>
-                        <div style="overflow: auto;">
+                        <h5><?php echo __('Basescore') ?></h5>
+                        <div style="overflow: auto; position: relative;">
                             <?php echo $this->element('DecayingModels/View/basescore_computation_steps'); ?>
                         </div>
-                        <h4><?php echo __('Current score') ?></h4>
-                        <div style="margin-left: 4px; margin-bottom: 5px;" class="input-prepend">
-                            <span class="add-on" style="width: 100px;"><?php echo __('Last Sighting'); ?></span>
-                            <input id="simulation-sighting" type="text" value="100" class="span2" disabled>
+                        <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
+                            <span class="add-on"><?php echo __('Sighting'); ?></span>
+                            <span id="simulation-sighting" class="add-on"></span>
                         </div>
-                        <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend">
-                            <span class="add-on" style="width: 100px;"><?php echo __('Current score'); ?></span>
-                            <input id="simulation-current-score" type="text" value="100" class="span2" disabled>
+                        <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
+                            <span class="add-on"><?php echo __('Current score'); ?></span>
+                            <span id="simulation-current-score" class="add-on"></span>
                         </div>
                     </div>
                     <div id="chart-decay-simulation-container" style="width: 70%; height: 100%; position: relative">
@@ -163,15 +162,17 @@ function doSimulation(clicked, attribute_id) {
             simulation_chart.update(data, models[model_id]);
             simulation_table.update(data, models[model_id]);
             $('#simulation-sighting')
-                .val(
+                .text(
                     d3.time.format("%c")(new Date(parseInt(data.last_sighting.Sighting.date_sighting)*1000))
                 );
             $('#simulation-sighting').parent().tooltip({
                 title: 'From ' + data.last_sighting.Organisation.name,
-                placement: 'right'
             });
             $('#simulation-current-score')
-            .val(data.current_score.toFixed(0))
+                .text(data.current_score.toFixed(1))
+                .removeClass(data.current_score > models[$('#select_model_to_simulate').val()].parameters.threshold ? 'alert-error' : 'alert-success')
+                .addClass(data.current_score > models[$('#select_model_to_simulate').val()].parameters.threshold ? 'alert-success' : 'alert-error');
+
         },
         error:function() {
             showMessage('fail', '<?php echo __('Failed to perform the simulation') ?>');

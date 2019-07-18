@@ -123,7 +123,6 @@
             _draw: function() {
                 var that = this;
                 this.x.domain(d3.extent(this.chart_data, function(d) { return d.date; }))
-                // this.y.domain([0, d3.max(this.chart_data, function(d) { return d.value; })])
 
                 this.xAxis = this.svg.select('.axis-x')
                     .call(d3.svg.axis().scale(this.x).orient('bottom'));
@@ -348,6 +347,7 @@
             this.$container = $(container);
             this._validateOptions(options);
             var default_options = {
+                animation_short_duration: 250,
             };
             this.options = $.extend(true, {}, default_options, options);
             this._init();
@@ -383,13 +383,70 @@
                     .style('border-radius', '5px')
                     .style('display', 'none');
                 this.$container.append(this.$loadingContainer);
+                $('#basescore-simulation-container #pick_notice').remove();
             },
 
             update: function(data, model) {
+                this.base_score_config = data.base_score_config;
+                this.base_score = data.base_score_config.base_score;
+                this.tags = data.base_score_config.tags;
+
+                this._draw();
+            },
+
+            _create_tag_html: function(tag) {
+                if (tag !== false) {
+                    return '<span class="tag" style="background-color:' + tag.Tag.colour + '; color: ' + getTextColour(tag.Tag.colour) + '">' + tag.Tag.name + '</span>';
+                } else {
+                    return '';
+                }
+            },
+
+            _get_computation_step: function(tag) {
+                if (tag === false) {
+                    return ['', '', '', this.base_score.toFixed(2)];
+                }
+                var namespace = tag.Tag.name.split(':')[0];
+
+                var html1 = this.base_score_config.taxonomy_effective_ratios[namespace].toFixed(2);
+                var html2 = '*';
+                var html3 = parseFloat(tag.Tag.numerical_value).toFixed(2);
+                var html4 = (parseFloat(tag.Tag.numerical_value) * this.base_score_config.taxonomy_effective_ratios[namespace]).toFixed(2);
+                return [html1, html2, html3, html4];
             },
 
             _draw: function() {
+                var that = this;
+                $('#basescore-simulation-container #computation_help_container_body').empty();
+                var	tbody = d3.select('#basescore-simulation-container #computation_help_container_body');
 
+                // create a row for each object in the data
+                var rows = tbody.selectAll('tr')
+                    .data(this.tags.concat(false))
+                    .enter()
+                    .append('tr')
+                    .attr('class', function(e, row_i) {
+                        if (that.tags.length == row_i) {
+                            return 'cellHeavyTopBorder bold';
+                        }
+                    });
+
+                // create a cell in each row for each column
+                var cells = rows.selectAll('td')
+                    .data(function (tag, row_i) {
+                        var html_computation = that._get_computation_step(tag);
+                        return [
+                            that._create_tag_html(tag),
+                            html_computation[0], html_computation[1], html_computation[2], html_computation[3]
+                        ]
+                    });
+                cells.enter()
+                    .append('td')
+                    .html(function (e) { return e; })
+                    .style('opacity', 0.0)
+                    .transition()
+                    .duration(this.options.animation_short_duration)
+                    .style('opacity', 1.0);
             },
 
             toggleLoading: function(state) {
