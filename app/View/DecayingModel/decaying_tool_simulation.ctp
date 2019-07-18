@@ -40,7 +40,7 @@
                             </div>
                         </div>
                         <div class="tab-pane <?php echo !isset($attribute_id) ? '' : 'active'; ?>" id="specificid">
-                            <h3 style="">Unique Attribute</h3>
+                            <h3 style=""><?php echo __('Specific Attribute'); ?></h3>
                             <div style="display: flex;">
                                 <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend">
                                     <span class="add-on">ID</span>
@@ -179,7 +179,7 @@ function doSimulation(clicked, attribute_id) {
                 title: 'From ' + data.last_sighting.Organisation.name,
             });
             $('#simulation-current-score')
-                .text(data.current_score.toFixed(1))
+                .text(data.current_score.toFixed(2))
                 .removeClass(data.current_score > models[$('#select_model_to_simulate').val()].parameters.threshold ? 'alert-error' : 'alert-success')
                 .addClass(data.current_score > models[$('#select_model_to_simulate').val()].parameters.threshold ? 'alert-success' : 'alert-error');
 

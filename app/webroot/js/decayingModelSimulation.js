@@ -115,6 +115,7 @@
                 this.raw_data = data;
                 this.chart_data = data.csv;
                 this.sightings = data.sightings;
+                this.current_score = data.current_score;
                 this.model = model;
                 this._parseDataset();
                 this._draw();
@@ -171,6 +172,43 @@
                     .attr('y2', function(d) { return that.y(d.value); });
                 this.line_guides.exit().remove();
 
+                // current time
+                this.line_guide_now = this.svg
+                    .selectAll('.d3-line-now')
+                    .data([new Date()]);
+                this.line_guide_now
+                    .enter()
+                    .append('line')
+                    .attr('class', 'd3-line-now')
+                this.line_guide_now
+                    .attr('x1', function(d) { return that.x(d); })
+                    .attr('y1', function(d) { return that.y(0); })
+                    .attr('x2', function(d) { return that.x(d); })
+                    .attr('y2', function(d) { return that.y(101); })
+                    .style("stroke", "#000")
+                    .attr("stroke-width", 2)
+                    .on('mouseover', function(d) {
+                        that.tooltipText(true, this, d3.time.format("%e %B @ %H:%M")(new Date()));
+                    })
+                    .on('mouseout', function() {
+                        that.tooltipText(false);
+                    });
+                this.line_guide_now.exit().remove();
+                this.carret_line_guide_now = this.svg
+                    .selectAll('.carret-time-now')
+                    .data([new Date()]);
+                this.carret_line_guide_now
+                    .enter()
+                    .append('text')
+                    .attr('class', 'carret-time-now')
+                this.carret_line_guide_now
+                    .attr('x', that.x(new Date())-5.5)
+                    .attr('y', that.y(99))
+                    .attr('font-family', 'FontAwesome')
+                    .attr('font-size', '20px')
+                    .text(function(d) { return '\uf0d7' });
+                this.carret_line_guide_now.exit().remove();
+
                 this.svg.append('rect')
                     .attr('class', 'decayingGraphAreaThres')
                     .style('opacity', 0.6)
@@ -195,7 +233,6 @@
                     .duration(this.options.animation_short_duration)
                     .attr('height', this.height-this.y(this.model.parameters.threshold))
                     .attr('y', this.y(this.model.parameters.threshold));
-
 
                 this.points = this.svg
                     .selectAll('.d3-line-circle')
@@ -227,6 +264,38 @@
                     .ease('linear')
                     .style('opacity', 1);
                 this.points.exit().remove();
+
+                // current score
+                this.current_score_target = this.svg
+                    .selectAll('.current-score-target')
+                    .data([new Date()]);
+                this.current_score_target
+                    .enter()
+                    .append('circle')
+                    .classed('useCursorPointer current-score-target', true);
+                this.current_score_target
+                    .attr('cx', that.x(new Date()))
+                    .attr('cy', that.y(this.current_score))
+                    .attr('fill', 'white')
+                    .attr('stroke', 'black')
+                    .attr('stroke-width', 2)
+                    .attr('r', 6);
+                this.current_score_target = this.svg
+                    .selectAll('.current-score-target-center')
+                    .data([new Date()]);
+                this.current_score_target
+                    .enter()
+                    .append('circle')
+                    .classed('useCursorPointer current-score-target-center', true);
+                this.current_score_target
+                    .attr('cx', that.x(new Date()))
+                    .attr('cy', that.y(this.current_score))
+                    .attr('stroke', 'black')
+                    .attr('r', 2);
+                d3.selectAll('.current-score-target, .current-score-target-center')
+                    .on('click', function(d) {
+                        $('#simulation-current-score').parent().children().effect('highlight');
+                    });
 
             },
 
