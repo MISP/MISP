@@ -2561,7 +2561,7 @@ class Server extends AppModel
         $url = $this->data['Server']['url'];
         $push = $this->checkVersionCompatibility($id, $user);
         if (isset($push['canPush']) && !$push['canPush']) {
-            $push = 'Remote instance is outdated.';
+            $push = 'Remote instance is outdated or no permission to push.';
         }
         if (!is_array($push)) {
             $message = sprintf('Push to server %s failed. Reason: %s', $id, $push);
