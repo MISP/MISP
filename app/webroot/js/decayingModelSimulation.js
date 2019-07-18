@@ -397,8 +397,8 @@
             _create_tag_html: function(tag) {
                 if (tag !== false) {
                     return '<span class="tag" style="background-color:' + tag.Tag.colour + '; color: ' + getTextColour(tag.Tag.colour) + '">' + tag.Tag.name + '</span>';
-                } else {
-                    return '';
+                } else { // last row
+                    return '<span style="border-radius: 4px; border: 1px solid #ccc; background-color: #eeeeee; padding: 4px 5px;">base_score</span>';
                 }
             },
 
@@ -408,10 +408,15 @@
                 }
                 var namespace = tag.Tag.name.split(':')[0];
 
-                var html1 = this.base_score_config.taxonomy_effective_ratios[namespace].toFixed(2);
+                if (this.base_score_config.taxonomy_effective_ratios[namespace] !== undefined) {
+                    var html1 = this.base_score_config.taxonomy_effective_ratios[namespace].toFixed(2);
+                    var html4 = (parseFloat(tag.Tag.numerical_value) * this.base_score_config.taxonomy_effective_ratios[namespace]).toFixed(2);
+                } else {
+                    var html1 = '0';
+                    var html4 = '0';
+                }
                 var html2 = '*';
                 var html3 = parseFloat(tag.Tag.numerical_value).toFixed(2);
-                var html4 = (parseFloat(tag.Tag.numerical_value) * this.base_score_config.taxonomy_effective_ratios[namespace]).toFixed(2);
                 return [html1, html2, html3, html4];
             },
 

@@ -239,6 +239,9 @@ class DecayingModel extends AppModel
     {
         $ratioScore = array();
         $taxonomy_base_ratio = $model['DecayingModel']['parameters']['base_score_config'];
+        if (empty($taxonomy_base_ratio)) {
+            return array();
+        }
         $total_score = 0.0;
         foreach ($tags as $tag) {
             $namespace_predicate = explode(':', $tag['Tag']['name'])[0];
@@ -283,10 +286,12 @@ class DecayingModel extends AppModel
         $tags = $temp['tags'];
         $overridden_tags = $temp['overridden'];
         $taxonomy_effective_ratios = $this->_getRatioScore($model, $tags);
-        $base_score = 0;
-        foreach ($tags as $k => $tag) {
-            $taxonomy = explode(':', $tag['Tag']['name'])[0];
-            $base_score += $taxonomy_effective_ratios[$taxonomy] * $tag['Tag']['numerical_value'];
+        $base_score = isset($model['DecayingModel']['parameters']['base_score_config']['base_score_default_value']) ? $model['DecayingModel']['parameters']['base_score_config']['base_score_default_value'] : 0 ;
+        if (!empty($taxonomy_effective_ratios)) {
+            foreach ($tags as $k => $tag) {
+                $taxonomy = explode(':', $tag['Tag']['name'])[0];
+                $base_score += $taxonomy_effective_ratios[$taxonomy] * $tag['Tag']['numerical_value'];
+            }
         }
         return array('base_score' => $base_score, 'overridden' => $overridden_tags, 'tags' => $tags, 'taxonomy_effective_ratios' => $taxonomy_effective_ratios);
     }
