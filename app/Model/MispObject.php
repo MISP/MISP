@@ -608,7 +608,7 @@ class MispObject extends AppModel
                     'action' => 'add',
                     'user_id' => $user['id'],
                     'title' => 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
-                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($attribute),
+                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
             ));
         }
         return 'fail';
