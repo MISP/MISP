@@ -28,7 +28,9 @@ install:
     - sudo apt-get -y update
     # Travis lacks entropy.
     - sudo apt-get -y install haveged
-    - sudo apt-get -y install python3.6 python3-pip python3.6-dev python3-nose libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php-mysql php-dev php-cli libapache2-mod-php libfuzzy-dev php-mbstring libonig4
+    - sudo apt-get -y install python3.6 python3-pip python3.6-dev python3-nose libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php-mysql php-dev php-cli libapache2-mod-php libfuzzy-dev php-mbstring libonig4 php-json php-xml php-opcache php-readline php-pear php-redis php-gnupg php-gd
+    - sudo phpenmod redis
+    - sudo phpenmod gnupg
     - sudo apt-get -y dist-upgrade
     - wget https://bootstrap.pypa.io/get-pip.py
     - sudo python3.6 get-pip.py
@@ -119,9 +121,9 @@ script:
     - pushd tests
     - git clone https://github.com/viper-framework/viper-test-files.git
     - popd
+    - pipenv run python tests/testlive_comprehensive.py
     - pipenv run python tests/test.py
     - pipenv run python tests/test_mispevent.py
-    - pipenv run python tests/testlive_comprehensive.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
     - pushd PyMISP/examples/events/
