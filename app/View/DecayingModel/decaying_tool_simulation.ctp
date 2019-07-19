@@ -154,6 +154,8 @@ function doSimulation(clicked, attribute_id) {
     var simulation_table = $('#basescore-simulation-container #computation_help_container_body').data('BasescoreComputationTable');
     if (simulation_chart === undefined) {
         simulation_chart = $('#simulation_chart').decayingSimulation({});
+    }
+    if (simulation_table === undefined) {
         simulation_table = $('#basescore-simulation-container #computation_help_container_body').basescoreComputationTable({});
     }
     $.ajax({
@@ -176,7 +178,7 @@ function doSimulation(clicked, attribute_id) {
                     d3.time.format("%c")(new Date(parseInt(data.last_sighting.Sighting.date_sighting)*1000))
                 );
             $('#simulation-sighting').parent().tooltip({
-                title: 'From ' + data.last_sighting.Organisation.name,
+                title: 'From ' + (data.last_sighting.Organisation !== undefined ? data.last_sighting.Organisation.name : '?'),
             });
             $('#simulation-current-score')
                 .text(data.current_score.toFixed(2))

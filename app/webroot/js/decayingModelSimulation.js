@@ -370,7 +370,9 @@
                 }
                 this.sightings_data = this.sightings.map(function(d) {
                     var sighting = d.Sighting;
-                    return { timestamp: sighting.rounded_timestamp, date: new Date(sighting.rounded_timestamp*1000), value : that.raw_data.base_score_config.base_score, org: d.Organisation.name };
+                    var res = { timestamp: sighting.rounded_timestamp, date: new Date(sighting.rounded_timestamp*1000), value : that.raw_data.base_score_config.base_score };
+                    res['org'] = d.Organisation !== undefined ? d.Organisation.name : '?';
+                    return res;
                 });
             }
         }
@@ -459,13 +461,37 @@
                 this.base_score_config = data.base_score_config;
                 this.base_score = data.base_score_config.base_score;
                 this.tags = data.base_score_config.tags;
-
+                this.overriddenTags = data.base_score_config.overridden;
                 this._draw();
             },
 
+            _create_all_tag_html: function(tag) {
+                var that = this;
+                if (tag !== false) {
+                    var html_tag = this._create_tag_html(tag);
+                    var overridden_html = '';
+                    var namespace_predicate = tag.Tag.name.split('=')[0];
+                    this.overriddenTags.forEach(function(entry) {
+                        var cur_namespace_predicate = entry.AttributeTag.Tag.name.split('=')[0];
+                        if (namespace_predicate == cur_namespace_predicate) {
+                            overridden_html += '<div style="filter: grayscale(80%);">' + that._create_tag_html(entry.EventTag) + '</div>';
+                        }
+                    });
+                    if (overridden_html !== '') {
+                        return '<div style="position:relative;" class="useCursorPointer overridden_tags_container">'
+                            + overridden_html
+                            + '<div style="top:-12px;margin-bottom:-12px; left:4px;margin-right:-4px; float: left;  position: relative;">' + html_tag + '</div>'
+                        + '</div>';
+                    } else {
+                        return html_tag;
+                    }
+                } else { // last row
+                    return '<span style="border-radius: 4px; border: 1px solid #ccc; background-color: #eeeeee; padding: 4px 5px;">base_score</span>';
+                }
+            },
             _create_tag_html: function(tag) {
                 if (tag !== false) {
-                    return '<span class="tag" style="background-color:' + tag.Tag.colour + '; color: ' + getTextColour(tag.Tag.colour) + '">' + tag.Tag.name + '</span>';
+                    return '<span class="tag" style="white-space: nowrap; background-color:' + tag.Tag.colour + '; color: ' + getTextColour(tag.Tag.colour) + '">' + tag.Tag.name + '</span>';
                 } else { // last row
                     return '<span style="border-radius: 4px; border: 1px solid #ccc; background-color: #eeeeee; padding: 4px 5px;">base_score</span>';
                 }
@@ -484,7 +510,7 @@
                     var html1 = '0';
                     var html4 = '0';
                 }
-                var html2 = '*';
+                var html2 = '<it class="fa fa-times" style=""></it>';
                 var html3 = parseFloat(tag.Tag.numerical_value).toFixed(2);
                 return [html1, html2, html3, html4];
             },
@@ -510,7 +536,7 @@
                     .data(function (tag, row_i) {
                         var html_computation = that._get_computation_step(tag);
                         return [
-                            that._create_tag_html(tag),
+                            that._create_all_tag_html(tag),
                             html_computation[0], html_computation[1], html_computation[2], html_computation[3]
                         ]
                     });
@@ -518,9 +544,40 @@
                     .append('td')
                     .html(function (e) { return e; })
                     .style('opacity', 0.0)
+                    .style('padding', function(e, col_i) {
+                        if (col_i == 2) {
+                            return '8px 2px 8px 8px';
+                        }
+                        return '';
+                    })
                     .transition()
                     .duration(this.options.animation_short_duration)
-                    .style('opacity', 1.0);
+                    .style('opacity', 1.0)
+                    .each("end", function(td_content, col_i){
+                        var $div = $(td_content);
+                        if (col_i == 0 && $div.hasClass('overridden_tags_container')) {
+                            $('.overridden_tags_container').popover({
+                                title: 'Event tag overridden by Attribute tag',
+                                content: that._generateOverridenExplanationPopoverHTML($div),
+                                html: true,
+                                trigger: 'hover',
+                                placement: 'left',
+                                container: 'body'
+                            });
+                        }
+                    });
+            },
+
+            _generateOverridenExplanationPopoverHTML: function($div) {
+                var $tags = $div.find('.tag');
+                var $tag_event = $tags.eq(0);
+                var $tag_attribute = $tags.eq(1);
+                var html = '<div style="text-align: center;">';
+                    html += '<div>' + $tag_event[0].outerHTML + '</div>'
+                    html += '<div><i class="fa fa-arrow-down"></i></div>'
+                    html += '<div>' + $tag_attribute[0].outerHTML + '</div>'
+                html += '</div>';
+                return html;
             },
 
             toggleLoading: function(state) {
