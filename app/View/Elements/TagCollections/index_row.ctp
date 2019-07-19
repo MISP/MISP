@@ -22,7 +22,7 @@
           <?php
             echo $this->element('galaxyQuickViewMini', array(
               'mayModify' => ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']),
-              'isAclTagger' => true,
+              'isAclTagger' => $me['Role']['perm_tagger'],
               'data' => $item['Galaxy'],
               'target_id' => h($item['TagCollection']['id']),
               'target_type' => 'tag_collection',
