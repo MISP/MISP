@@ -25,7 +25,8 @@
               'isAclTagger' => true,
               'data' => $item['Galaxy'],
               'target_id' => h($item['TagCollection']['id']),
-              'target_type' => 'tag_collection'
+              'target_type' => 'tag_collection',
+              'local_tag_off' => true,
             ));
           ?>
         </td>
