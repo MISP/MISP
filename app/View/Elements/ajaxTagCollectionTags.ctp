@@ -26,7 +26,7 @@
                 $addTagButton = '&nbsp;';
                 if ($full) {
                     $addTagButton = sprintf(
-                        '<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="popoverPopup(this, %s);">+</button>',
+                        '<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 2px;" onClick="popoverPopup(this, %s);"><i class="fas fa-globe-americas"></i> +</button>',
                         sprintf("'%s/tag_collection', 'tags', 'selectTaxonomy'", h($tagCollection['TagCollection']['id']))
                     );
                 }

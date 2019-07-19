@@ -462,11 +462,15 @@ class TagsController extends AppController
         $this->loadModel('GalaxyCluster');
         $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')));
         $this->helpers[] = 'TextColour';
+        $conditions = array(
+                'event_id' => $id,
+                'Tag.name !=' => $cluster_names
+        );
+        if (empty($this->Auth->user()['Role']['perm_sync'])) {
+            $conditions['EventTag.local'] = false;
+        }
         $tags = $this->EventTag->find('all', array(
-                'conditions' => array(
-                        'event_id' => $id,
-                        'Tag.name !=' => $cluster_names
-                ),
+                'conditions' => $conditions,
                 'contain' => array('Tag'),
                 'fields' => array('Tag.id', 'Tag.colour', 'Tag.name', 'EventTag.local'),
         ));
@@ -497,10 +501,12 @@ class TagsController extends AppController
         $this->Tag->AttributeTag->Attribute->read();
         $eventId = $this->Tag->AttributeTag->Attribute->data['Attribute']['event_id'];
 
+        $conditions = array('attribute_id' => $id);
+        if (empty($this->Auth->user()['Role']['perm_sync'])) {
+            $conditions['AttributeTag.local'] = false;
+        }
         $attributeTags = $this->AttributeTag->find('all', array(
-            'conditions' => array(
-                'attribute_id' => $id
-            ),
+            'conditions' => $conditions,
             'contain' => array('Tag'),
             'fields' => array('Tag.id', 'Tag.colour', 'Tag.name', 'AttributeTag.local'),
         ));
