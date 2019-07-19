@@ -1625,5 +1625,33 @@
       "cached_elements": 2531,
       "coverage_by_other_feeds": "11.62%"
     }
+  },
+  {
+    "Feed": {
+      "id": "90",
+      "name": "Panels Tracker",
+      "provider": "Benkow.cc",
+      "url": "http://benkow.cc/export.php",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": false,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "0",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": false,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"3,4\",\"delimiter\":\";\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "headers": "",
+      "caching_enabled": true,
+      "force_to_ids": false,
+      "cache_timestamp": "1563533153"
+    }
   }
 ]
