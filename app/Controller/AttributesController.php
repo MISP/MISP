@@ -3269,7 +3269,7 @@ class AttributesController extends AppController
                     (
                         $this->Auth->user('org_id') !== $event['Event']['orgc_id'] ||
                         (
-                            $this->Auth->user('org_id') == Configure::read('MISP.host_org_id') &&
+                            $this->Auth->user('org_id') != Configure::read('MISP.host_org_id') &&
                             !empty($attributeTag['AttributeTag']['local'])
                         )
                     ) ||
