@@ -35,7 +35,7 @@ install:
     - wget https://bootstrap.pypa.io/get-pip.py
     - sudo python3.6 get-pip.py
     - hash -r
-    - sudo pip3.6 install --upgrade pip setuptools requests
+    - sudo pip3.6 install --upgrade pip setuptools requests pyzmq
     - hash -r
     - sudo pip3.6 install --upgrade -r requirements.txt
     - sudo pip3.6 install pipenv
@@ -93,6 +93,26 @@ install:
     # Get authkey
     - sudo usermod -a -G www-data $USER
     - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateDatabase'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "/usr/bin/python3"'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.timeout" 600'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.cookieTimeout" 3600'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.host_org_id" 1'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.email" "info@admin.test"'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.disable_emailing" true'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_database" 13'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_password" ""'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates "1337"'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true'
+
     - sudo app/Console/cake Live 1
     - sudo chmod 777 ./key.txt
     - sudo chmod -R 777 ./tests
