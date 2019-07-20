@@ -29,8 +29,6 @@ install:
     # Travis lacks entropy.
     - sudo apt-get -y install haveged
     - sudo apt-get -y install python3.6 python3-pip python3.6-dev python3-nose libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php-mysql php-dev php-cli libapache2-mod-php libfuzzy-dev php-mbstring libonig4 php-json php-xml php-opcache php-readline php-pear php-redis php-gnupg php-gd
-    - sudo phpenmod redis
-    - sudo phpenmod gnupg
     - sudo apt-get -y dist-upgrade
     - wget https://bootstrap.pypa.io/get-pip.py
     - sudo python3.6 get-pip.py
@@ -45,8 +43,9 @@ install:
     - sudo -H -u $USER php composer.phar require kamisama/cake-resque:4.1.2
     - sudo -H -u $USER php composer.phar config vendor-dir Vendor
     - sudo -H -u $USER php composer.phar install
+    - sudo phpenmod redis
+    - sudo phpenmod gnupg
     - popd
-    - phpenv config-add travis/myphpconfig.ini
     - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
     # Set perms
     - sudo chown -R $USER:www-data `pwd`
@@ -79,10 +78,10 @@ install:
     - sudo service apache2 restart
     # MISP configuration
     - sudo chmod -R 777 `pwd`/travis
-    - sudo cp travis/bootstrap.php app/Config/bootstrap.php
+    - sudo cp app/Config/bootstrap.default.php app/Config/bootstrap.php
     - sudo cp travis/database.php app/Config/database.php
-    - sudo cp travis/core.php app/Config/core.php
-    - sudo cp travis/config.php app/Config/config.php
+    - sudo cp app/Config/core.default.php app/Config/core.php
+    - sudo cp app/Config/config.default.php app/Config/config.php
     # Ensure the perms
     - sudo chown -R $USER:www-data `pwd`/app/Config
     - sudo chmod -R 750 `pwd`/app/Config
