@@ -46,7 +46,7 @@ install:
     - phpenv config-add travis/myphpconfig.ini
     - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
     # Set perms
-    - sudo chown -R www-data:www-data `pwd`
+    - sudo chown -R $USER:www-data `pwd`
     - sudo chmod -R 755 `pwd`
     - sudo chmod -R g+ws `pwd`/app/tmp
     - sudo chmod -R g+ws `pwd`/app/tmp/cache
@@ -55,9 +55,9 @@ install:
     - sudo chmod -R g+ws `pwd`/app/tmp/logs
     - sudo chmod -R g+ws `pwd`/app/files
     - sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
-    - sudo chown -R www-data:www-data `pwd`
+    - sudo chown -R $USER:www-data `pwd`
     # Resque perms
-    - sudo chown -R www-data:www-data `pwd`/app/Plugin/CakeResque/tmp
+    - sudo chown -R $USER:www-data `pwd`/app/Plugin/CakeResque/tmp
     - sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
     # install MySQL
     - sudo chmod -R 777 `pwd`/INSTALL
@@ -81,15 +81,20 @@ install:
     - sudo cp travis/core.php app/Config/core.php
     - sudo cp travis/config.php app/Config/config.php
     # Ensure the perms
-    - sudo chown -R www-data:www-data `pwd`/app/Config
+    - sudo chown -R $USER:www-data `pwd`/app/Config
     - sudo chmod -R 750 `pwd`/app/Config
     # GPG setup
     - sudo mkdir `pwd`/.gnupg
     # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
     - sudo cp -a /dev/urandom /dev/random
     - sudo gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
-    - sudo chown www-data:www-data `pwd`/.gnupg
+    - sudo chown $USER:www-data `pwd`/.gnupg
     - sudo chmod 700 `pwd`/.gnupg
+    # change perms
+    - sudo chown -R $USER:www-data `pwd`
+    - sudo chmod +x /home/travis/build
+    - sudo chmod +x /home/travis
+    - sudo chmod +x /home
     # Get authkey
     - sudo usermod -a -G www-data $USER
     - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
@@ -112,14 +117,13 @@ install:
     - sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'
     - sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates "1337"'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true'
-
-    - sudo app/Console/cake Live 1
+    - sudo -E su $USER -c 'app/Console/cake Live 1'
     - sudo chmod 777 ./key.txt
     - sudo chmod -R 777 ./tests
-    - sudo chown -R www-data:www-data `pwd`
-    - sudo chmod +x /home/travis/build
-    - sudo chmod +x /home/travis
-    - sudo chmod +x /home
+    # Start workers
+    - sudo chmod +x app/Console/worker/start.sh
+    - app/Console/worker/start.sh &
+    - sleep 10
 
 before_script:
     - curl http://misp.local
