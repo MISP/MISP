@@ -40,8 +40,11 @@ install:
     - sudo pip3.6 install --upgrade -r requirements.txt
     - sudo pip3.6 install pipenv
     - phpenv rehash
+    - sudo mkdir $HOME/.composer ; sudo chown $USER:www-data $HOME/.composer
     - pushd app
-    - composer install
+    - sudo -H -u $USER php composer.phar require kamisama/cake-resque:4.1.2
+    - sudo -H -u $USER php composer.phar config vendor-dir Vendor
+    - sudo -H -u $USER php composer.phar install
     - popd
     - phpenv config-add travis/myphpconfig.ini
     - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
