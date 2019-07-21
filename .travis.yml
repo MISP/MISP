@@ -164,8 +164,7 @@ script:
     - ./curl_tests.sh $AUTH
     - popd
     - pushd PyMISP
-    # FIXME: should be install, but as lief is changing all the time, we have to use update instead: https://github.com/MISP/PyMISP/issues/391
-    - pipenv update -d
+    - pipenv install -d
     - pushd tests
     - git clone https://github.com/viper-framework/viper-test-files.git
     - popd
