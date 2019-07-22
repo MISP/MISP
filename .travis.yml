@@ -28,23 +28,27 @@ install:
     - sudo apt-get -y update
     # Travis lacks entropy.
     - sudo apt-get -y install haveged
-    - sudo apt-get -y install python3.6 python3-pip python3.6-dev python3-nose libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php-mysql php-dev php-cli libapache2-mod-php libfuzzy-dev php-mbstring libonig4
+    - sudo apt-get -y install python3.6 python3-pip python3.6-dev python3-nose libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php-mysql php-dev php-cli libapache2-mod-php libfuzzy-dev php-mbstring libonig4 php-json php-xml php-opcache php-readline php-pear php-redis php-gnupg php-gd
     - sudo apt-get -y dist-upgrade
     - wget https://bootstrap.pypa.io/get-pip.py
     - sudo python3.6 get-pip.py
     - hash -r
-    - sudo pip3.6 install --upgrade pip setuptools requests
+    - sudo pip3.6 install --upgrade pip setuptools requests pyzmq
     - hash -r
     - sudo pip3.6 install --upgrade -r requirements.txt
     - sudo pip3.6 install pipenv
     - phpenv rehash
+    - sudo mkdir $HOME/.composer ; sudo chown $USER:www-data $HOME/.composer
     - pushd app
-    - composer install
+    - sudo -H -u $USER php composer.phar require kamisama/cake-resque:4.1.2
+    - sudo -H -u $USER php composer.phar config vendor-dir Vendor
+    - sudo -H -u $USER php composer.phar install
+    - sudo phpenmod redis
+    - sudo phpenmod gnupg
     - popd
-    - phpenv config-add travis/myphpconfig.ini
     - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
     # Set perms
-    - sudo chown -R www-data:www-data `pwd`
+    - sudo chown -R $USER:www-data `pwd`
     - sudo chmod -R 755 `pwd`
     - sudo chmod -R g+ws `pwd`/app/tmp
     - sudo chmod -R g+ws `pwd`/app/tmp/cache
@@ -53,8 +57,9 @@ install:
     - sudo chmod -R g+ws `pwd`/app/tmp/logs
     - sudo chmod -R g+ws `pwd`/app/files
     - sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
+    - sudo chown -R $USER:www-data `pwd`
     # Resque perms
-    - sudo chown -R www-data:www-data `pwd`/app/Plugin/CakeResque/tmp
+    - sudo chown -R $USER:www-data `pwd`/app/Plugin/CakeResque/tmp
     - sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
     # install MySQL
     - sudo chmod -R 777 `pwd`/INSTALL
@@ -73,30 +78,76 @@ install:
     - sudo service apache2 restart
     # MISP configuration
     - sudo chmod -R 777 `pwd`/travis
-    - sudo cp travis/bootstrap.php app/Config/bootstrap.php
+    - sudo cp app/Config/bootstrap.default.php app/Config/bootstrap.php
     - sudo cp travis/database.php app/Config/database.php
-    - sudo cp travis/core.php app/Config/core.php
-    - sudo cp travis/config.php app/Config/config.php
+    - sudo cp app/Config/core.default.php app/Config/core.php
+    - sudo cp app/Config/config.default.php app/Config/config.php
     # Ensure the perms
-    - sudo chown -R www-data:www-data `pwd`/app/Config
+    - sudo chown -R $USER:www-data `pwd`/app/Config
     - sudo chmod -R 750 `pwd`/app/Config
     # GPG setup
     - sudo mkdir `pwd`/.gnupg
     # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
     - sudo cp -a /dev/urandom /dev/random
-    - sudo gpg --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
-    - sudo chown www-data:www-data `pwd`/.gnupg
+    - sudo gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
+    - sudo chown $USER:www-data `pwd`/.gnupg
     - sudo chmod 700 `pwd`/.gnupg
-    # Get authkey
-    - sudo usermod -a -G www-data $USER
-    - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
-    - sudo app/Console/cake Live 1
-    - sudo chmod 777 ./key.txt
-    - sudo chmod -R 777 ./tests
-    - sudo chown -R www-data:www-data `pwd`
+    # change perms
+    - sudo chown -R $USER:www-data `pwd`
     - sudo chmod +x /home/travis/build
     - sudo chmod +x /home/travis
     - sudo chmod +x /home
+    # Get authkey
+    - sudo usermod -a -G www-data $USER
+    - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateDatabase'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "/usr/bin/python3"'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.timeout" 600'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.cookieTimeout" 3600'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.host_org_id" 1'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.email" "info@admin.test"'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.disable_emailing" true'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_database" 13'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_password" ""'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates "1337"'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true'
+    - sudo -E su $USER -c 'app/Console/cake Live 1'
+    - sudo chmod 777 ./key.txt
+    - sudo chmod -R 777 ./tests
+    # Start workers
+    - sudo chmod +x app/Console/worker/start.sh
+    - app/Console/worker/start.sh &
+    - sleep 10
+    # Dirty install python stuff
+    - pushd cti-python-stix2
+    - sudo pip3 install .
+    - popd
+    - pushd app/files/scripts
+    - sudo -H -u $USER git clone https://github.com/CybOXProject/python-cybox.git
+    - sudo -H -u $USER git clone https://github.com/STIXProject/python-stix.git
+    - sudo -H -u $USER git clone https://github.com/MAECProject/python-maec.git
+    - sudo -H -u $USER git clone https://github.com/CybOXProject/mixbox.git
+    - pushd mixbox
+    - sudo pip3 install .
+    - popd
+    - pushd python-cybox
+    - sudo pip3 install .
+    - popd
+    - pushd python-stix
+    - sudo pip3 install .
+    - popd
+    - pushd python-maec
+    - sudo pip3 install .
+    - popd
+    - popd
 
 before_script:
     - curl http://misp.local
@@ -113,15 +164,13 @@ script:
     - ./curl_tests.sh $AUTH
     - popd
     - pushd PyMISP
-    # FIXME: should be install, but as lief is changing all the time, we have to use update instead: https://github.com/MISP/PyMISP/issues/391
-    - pipenv update -d
+    - pipenv install -d
     - pushd tests
     - git clone https://github.com/viper-framework/viper-test-files.git
     - popd
+    - pipenv run python tests/testlive_comprehensive.py
     - pipenv run python tests/test.py
     - pipenv run python tests/test_mispevent.py
-    - pipenv run python tests/test_offline.py
-    - pipenv run python tests/testlive_comprehensive.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
     - pushd PyMISP/examples/events/
@@ -132,6 +181,7 @@ script:
     - popd
 
 after_failure:
+    - ls -Rl `pwd`/app
     - curl http://misp.local
     - cat /etc/apache2/sites-available/misp.local.conf
     - sudo ls -l /var/log/apache2

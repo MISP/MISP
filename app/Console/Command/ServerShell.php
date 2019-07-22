@@ -46,7 +46,7 @@ class ServerShell extends AppShell
 				'status' => 4
 		));
 		if (is_array($result)) {
-			$message = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled.', count($result[0]), count($result[1]), count($result[2])));
+			$message = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled.', count($result[0]), count($result[1]), $result[2]));
 		} else {
 			$message = sprintf(__('ERROR: %s'), $result);
 		}

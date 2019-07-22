@@ -1215,6 +1215,10 @@ class AppModel extends Model
                     PRIMARY KEY (id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
+            case 36:
+                $sqlArray[] = "ALTER TABLE `event_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2296,7 +2300,6 @@ class AppModel extends Model
             $multiplier = $multiplierArray[$lastChar];
             $delta = substr($delta, 0, -1);
         } else if(strtotime($delta) !== false) {
-            debug(strtotime($delta));
             return strtotime($delta);
         } else {
             // invalid filter, make sure we don't return anything

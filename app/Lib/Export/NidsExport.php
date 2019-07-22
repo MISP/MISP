@@ -647,7 +647,7 @@ class NidsExport
 
     public function checkWhitelist($value)
     {
-		if ($this->checkWhitelist) {
+		if ($this->checkWhitelist && is_array($this->whitelist)) {
 	        foreach ($this->whitelist as $wlitem) {
 	            if (preg_match($wlitem, $value)) {
 	                return true;

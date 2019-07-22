@@ -46,8 +46,8 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome');
 
-    private $__queryVersion = '79';
-    public $pyMispVersion = '2.4.106';
+    private $__queryVersion = '81';
+    public $pyMispVersion = '2.4.111';
     public $phpmin = '7.0';
     public $phprec = '7.2';
     public $isApiAuthed = false;
@@ -505,7 +505,7 @@ class AppController extends Controller
             echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
         }
         if ($this->isApiAuthed && $this->_isRest()) {
-            session_destroy();
+            $this->Session->destroy();
         }
     }
 

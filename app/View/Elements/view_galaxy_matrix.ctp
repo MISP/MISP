@@ -94,7 +94,15 @@ foreach($tabs as $tabName => $column):
 <?php if (isset($eventId)): ?>
 <div class="hidden">
     <?php
-        echo $this->Form->create('Galaxy', array('url' => '/galaxies/attachMultipleClusters/' . (empty($target_id) ? $eventId : $target_id ) . '/' . (empty($target_type) ? 'event' : $target_type), 'style' => 'margin:0px;'));
+        $url = sprintf(
+            '/galaxies/attachMultipleClusters/%s/%s/local:%s',
+            empty($target_id) ? $eventId : $target_id,
+            empty($target_type) ? 'event' : $target_type,
+            empty($local) ? '0' : '1'
+        );
+
+
+        echo $this->Form->create('Galaxy', array('url' => $url, 'style' => 'margin:0px;'));
         echo $this->Form->input('target_ids', array('type' => 'text'));
         echo $this->Form->end();
     ?>

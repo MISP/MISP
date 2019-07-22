@@ -61,22 +61,47 @@
                 $value = sprintf('<span class="black">%s</span>', $value_contents);
                 $popover_data .= sprintf('<span>%s: %s</span><br />', $key, $value);
             }
-    ?>
-            <div style="margin-left:8px;">
-                <span class="bold blue expandable useCursorPointer" data-toggle="popover" data-content="<?php echo h($popover_data); ?>">
-                    <?php echo h($cluster['value']); ?>
-                </span>&nbsp;
-                <a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="fa fa-search" title="<?php echo __('View details about this cluster');?>" aria-label="<?php echo __('View cluster');?>"></a>&nbsp;
-                <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="fa fa-list" title="<?php echo __('View all events containing this cluster.');?>" aria-label="<?php echo __('View all events containing this cluster.');?>"></a>
-                <?php
-                    if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
-                        echo $this->Form->create(false, array('url' => $baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . h($cluster['tag_id']), 'style' => 'display: inline-block; margin: 0px;'));
-                        echo '<span href="#" class="fa fa-trash useCursorPointer" title="' . __('Are you sure you want to detach %s from this %s?', h($cluster['value']), h($target_type)) . '" onclick="popoverConfirm(this)"></span>';
-                        echo $this->Form->end();
-                    }
-                ?>
-            </div>
-<?php
+            echo sprintf(
+                '<div class="large-left-margin">%s %s %s %s</div>',
+                sprintf(
+                    '<span class="bold blue expandable useCursorPointer" data-toggle="popover" data-content="%s">%s</span>',
+                    h($popover_data),
+                    sprintf(
+                        '<span><i class="fas fa-%s"></i> %s</span>',
+                        $cluster['local'] ? 'user' : 'globe-americas',
+                        h($cluster['value'])
+                    )
+                ),
+                sprintf(
+                    '<a href="%s/galaxy_clusters/view/%s" class="black fas fa-search" title="%s" aria-label="%s"></a>',
+                    $baseurl,
+                    h($cluster['id']),
+                    __('View details about this cluster'),
+                    __('View cluster')
+                ),
+                sprintf(
+                    '<a href="%s/events/index/searchtag:%s" class="black fas fa-list" title="%s" aria-label="%s"></a>',
+                    $baseurl,
+                    h($cluster['tag_id']),
+                    __('View all events containing this cluster.'),
+                    __('View all events containing this cluster.')
+                ),
+                (!empty($static_tags_only) || (!$isSiteAdmin && (!$mayModify || !$isAclTagger))) ? '' : sprintf(
+                    '%s%s%s',
+                    $this->Form->create(
+                        false,
+                        array(
+                            'url' => $baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . h($cluster['tag_id']),
+                            'style' => 'display: inline-block; margin: 0px;'
+                        )
+                    ),
+                    sprintf(
+                        '<span href="#" class="fa fa-trash useCursorPointer" title="%s" onclick="popoverConfirm(this)"></span>',
+                        __('Are you sure you want to detach %s from this %s?', h($cluster['value']), h($target_type))
+                    ),
+                    $this->Form->end()
+                )
+            );
         endforeach;
 ?>
     </div>
@@ -84,11 +109,31 @@
     endforeach;
 ?>
 <?php
-    if ($isSiteAdmin || ($mayModify && $isAclTagger)):
-?>
-        <span class="btn btn-inverse noPrint addGalaxy" data-target-type="<?php echo h($target_type);?>" data-target-id="<?php echo h($target_id); ?>" role="button" tabindex="0" aria-label="<?php echo __('Add new cluster');?>" title="<?php echo __('Add new cluster');?>" style="padding: 1px 5px !important;font-size: 12px !important;"><?php echo __('Add');?></span>
-<?php
-    endif;
+    if (empty($static_tags_only)) {
+        if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
+            echo sprintf(
+                '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="false" role="button" tabindex="0" aria-label="' . __('Add new cluster') . '" title="' . __('Add a tag') . '" style="%s">%s</button>',
+                'useCursorPointer btn btn-inverse addGalaxy',
+                h($target_type),
+                h($target_id),
+                'line-height:10px; padding: 2px; margin-right:5px;',
+                '<i class="fas fa-globe-americas"></i> +'
+            );
+        }
+        if (
+            isset($local_tag_off) && !$local_tag_off &&
+            ($isSiteAdmin || ($isAclTagger && Configure::read('MISP.host_org_id') == $me['org_id']))
+        ) {
+            echo sprintf(
+                '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="true" role="button" tabindex="0" aria-label="' . __('Add new local cluster') . '" title="' . __('Add a local tag') . '" style="%s">%s</button>',
+                'useCursorPointer btn btn-inverse addGalaxy',
+                h($target_type),
+                h($target_id),
+                'line-height:10px; padding: 2px;',
+                '<i class="fas fa-user"></i> +'
+            );
+        }
+    }
 ?>
 
 <script type="text/javascript">
