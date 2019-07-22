@@ -1,10 +1,12 @@
-/var/www/MISP/app/tmp/logs/resque-*-error.log {
+/var/www/MISP/app/tmp/logs/*.log {
 	rotate 30
 	dateext
 	missingok
 	notifempty
 	compress
-	weekly
+	hourly
+    size 50M
+    maxsize 500M
 	copytruncate
 }
 
