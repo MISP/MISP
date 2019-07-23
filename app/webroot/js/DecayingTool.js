@@ -122,20 +122,6 @@
                 });
             },
 
-            /* Simulation */
-            toggleSimulation: function(model_id) {
-                var that = this;
-                $.get(baseurl + '/decayingModel/decayingToolSimulation/' + model_id, function(html) {
-                    $('#popover_form_x_large').html(
-                        '<div class="close-icon useCursorPointer" onClick="$(\'#popover_form_large\').fadeOut();$(\'#gray_out\').fadeOut();"></div>'
-                        + '<a class="close-icon useCursorPointer fa fa-expand" style="right: 20px; background: black; color: white; text-decoration: none; text-align: center;" target="_blank" href="/decayingModel/decayingToolSimulation/' + model_id + '"></a>'
-                        + html);
-                    openPopup('#popover_form_x_large', undefined, function() {
-                        $('#simulation_chart').decayingSimulation({});
-                    });
-                });
-            },
-
             /* CANVAS */
             _init: function() {
                 var that = this;
@@ -450,7 +436,7 @@
                 var $rows = $('#table-model-body > tr');
                 $rows.removeClass('success');
                 $('div.input-prepend > span.param-name, #summary_base_score_config').removeClass('success');
-                $('#button-toggle-simulation').prop('disabled', true);
+                $('#button-toggle-simulation').addClass('disabled').attr('href', '/decayingModel/decayingToolSimulation/');
                 $rows.each(function(i) {
                     var model = $.extend({}, d3.select(this).data()[0].DecayingModel);
                     var model_id = model['id'];
@@ -458,7 +444,7 @@
                     delete model['name'];
                     delete model['description'];
                     if (that.simpleCompareObject(data, model)) {
-                        $('#button-toggle-simulation').prop('disabled', false).data('modelid', model['id']);
+                        $('#button-toggle-simulation').removeClass('disabled').attr('href', '/decayingModel/decayingToolSimulation/' + model_id);
                         $(this).addClass('success');
                         $('div.input-prepend > span.param-name, #summary_base_score_config').addClass('success');
                     }

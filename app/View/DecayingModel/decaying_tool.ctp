@@ -95,9 +95,9 @@
                     </span>
                 </div>
                 <div style="display: inline-block; margin-left: 10px;">
-                    <button id="button-toggle-simulation" class="btn btn-primary" data-modelid="" onclick="decayingTool.toggleSimulation($(this).data('modelid'))">
+                    <a id="button-toggle-simulation" target="_blank" class="btn btn-primary" href="" onclick="return !$(this).hasClass('disabled');">
                         <span class="fa fa-chart-line"> <?php echo __('Simulate this model'); ?></span>
-                    </button>
+                    </a>
                 </div>
             </div>
             <div class="span6">
