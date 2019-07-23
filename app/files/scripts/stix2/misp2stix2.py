@@ -167,6 +167,7 @@ class StixBuilder():
             if self.objects_to_parse:
                 self.resolve_objects2parse()
         if self.misp_event.get('Galaxy'):
+            self.load_galaxy_mapping()
             for galaxy in self.misp_event['Galaxy']:
                 self.parse_galaxy(galaxy, self.report_id)
         report = self.eventReport()
@@ -203,6 +204,8 @@ class StixBuilder():
             'x509': {'observable': self.resolve_x509_observable,
                      'pattern': self.resolve_x509_pattern}
         }
+
+    def load_galaxy_mapping(self):
         self.galaxies_mapping = {'branded-vulnerability': ['vulnerability', self.add_vulnerability_from_galaxy]}
         self.galaxies_mapping.update(dict.fromkeys(attack_pattern_galaxies_list, ['attack-pattern', self.add_attack_pattern]))
         self.galaxies_mapping.update(dict.fromkeys(course_of_action_galaxies_list, ['course-of-action', self.add_course_of_action]))
