@@ -396,7 +396,11 @@
                     var $confbox = $("#confirmation_box");
                     $confbox.html(data);
                     var $form = $confbox.find('form');
-                    that.injectData($form, formData);
+                    if (baseurl.includes('decayingModelMapping')) {
+                        that.injectDataAttributeTypes($form, formData);
+                    } else {
+                        that.injectDataModel($form, formData);
+                    }
                     $.ajax({
                         data: $form.serialize(),
                         cache: false,
@@ -405,15 +409,18 @@
                         },
                         success: function(data, textStatus) {
                             data = JSON.parse(data);
-                            showMessage('success', 'Model has been saved');
-                            if (baseurl == "/decayingModel/") {
-                                that.refreshRow(data);
-                            } else if (baseurl == "/decayingModelMapping/") {
+                            if (baseurl.includes('decayingModelMapping')) {
+                                showMessage('success', 'Mapping has been saved');
                                 that.refreshTypeMappingTable(model_id);
+                                var updated_data = that.quickModelDataUpdate(model_id, {'attribute_types': data});
+                                that.refreshRow({ data: updated_data, action: 'edit'});
+                            } else {
+                                showMessage('success', 'Model has been saved');
+                                that.refreshRow(data);
                             }
                         },
                         error: function( jqXhr, textStatus, errorThrown ){
-                            showMessage('fail', 'Could not save network');
+                            showMessage('fail', 'Error while saving');
                             console.log( errorThrown );
                         },
                         complete: function() {
@@ -426,11 +433,13 @@
                 });
             },
             activate: function(clicked) {
-                var model = d3.select($row[0]).data()[0].DecayingModel;
+                var $clicked = $(clicked);
+                var $tr = $clicked.closest('tr');
+                var model = d3.select($tr[0]).data()[0].DecayingModel;
                 var selected_types = this.getSelected();
                 var model_id = model.id;
                 var data = { 'attributetypes': selected_types };
-                // this.fetchFormAndSubmit($(clicked), 'linkAttributeTypeToModel', model_id, data, "/decayingModelMapping/");
+                this.fetchFormAndSubmit($(clicked), 'linkAttributeTypeToModel', model_id, data, "/decayingModelMapping/");
                 // TODO: Implement
             },
             highlightMatchingRow: function() {
@@ -475,6 +484,15 @@
                 });
                 this.highlightMatchingRow();
             },
+            quickModelDataUpdate: function(model_id, dico_override) {
+                var $row = $('#table-model-body > #modelId_' + model_id);
+                var model = $.extend({}, d3.select($row[0]).data()[0]);
+                Object.keys(dico_override).forEach(function(k) {
+                    model.DecayingModel[k] = dico_override[k];
+                });
+                return model;
+            },
+
             applyBaseScore: function(taxonomy_config, base_score_default_value) {
                 $('#input_base_score_config').val(JSON.stringify(taxonomy_config));
                 $('#input_default_base_score').val(base_score_default_value);
@@ -546,13 +564,13 @@
                     var $tr = this.findMatchingAttributeType(obj);
                 }
                 var $all_tr = $('#attributeTypeTableBody').find('tr');
-                $all_tr.find("td > span.isModelIdField > a:contains('" + model_id + "')").remove();
+                $all_tr.find("td.isModelIdField > a:contains('" + model_id + "')").remove();
                 var $a = $('<a href="#" onclick="$(\'#modelId_' + model_id + '\').find(\'.decayingLoadBtn\').click();">' + model_id + '</a>')
-                $tr.find('td > span.isModelIdField').append($a);
+                $tr.find('td.isModelIdField').append($a);
 
             },
             findMatchingAttributeType: function(types) {
-                var $cells = $('#table_attribute_type').find('tbody > tr > td > span.isAttributeTypeField');
+                var $cells = $('#table_attribute_type').find('tbody > tr > td.isAttributeTypeField');
                 var matching = $cells.filter(function() {
                     var value = $(this).text().trim();
                     if (types.includes(value)) {
@@ -606,7 +624,7 @@
                 }
                 return text;
             },
-            injectData: function($form, data) {
+            injectDataModel: function($form, data) {
                 $form.find('#DecayingModelName').val(data.name);
                 $form.find('#DecayingModelDescription').val(data.description);
                 $form.find('#DecayingModelParametersTau').val(data.parameters.tau);
@@ -614,6 +632,9 @@
                 $form.find('#DecayingModelParametersThreshold').val(data.parameters.threshold);
                 $form.find('#DecayingModelParametersDefaultBaseScore').val(data.parameters.default_base_score);
                 $form.find('#DecayingModelParametersBaseScoreConfig').val(JSON.stringify(data.parameters.base_score_config));
+            },
+            injectDataAttributeTypes: function($form, data) {
+                $form.find('#DecayingModelMappingAttributetypes').val(JSON.stringify(data.attributetypes));
             },
             simpleCompareObject: function(obj1, obj2) { // recursively compare object equality on their value
                 var flag_same = true;
@@ -887,7 +908,7 @@ ModelTable.prototype = {
                 'DMParameterBasescoreConfig',
                 {'basescoreconfig': btoa(JSON.stringify(model.DecayingModel.parameters.base_score_config))}
             ),
-            this._gen_td(this.associated_types[model.DecayingModel.id] !== undefined ? this.associated_types[model.DecayingModel.id].length : 0, 'DMNumType'),
+            this._gen_td(model.DecayingModel.attribute_types.length, 'DMNumType'),
             this._gen_td_buttons(model.DecayingModel.id)
         ];
     },

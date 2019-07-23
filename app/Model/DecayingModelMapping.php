@@ -41,6 +41,7 @@ class DecayingModelMapping extends AppModel
             'model_id' => $new_model['model_id']
         ));
 
+        $data = array();
         foreach ($new_model['attribute_types'] as $type) {
             $to_save = array(
                 'attribute_type' => $type,
@@ -52,9 +53,14 @@ class DecayingModelMapping extends AppModel
             $data[] = $to_save;
         }
 
-        $this->saveMany($data, array(
+        $result = $this->saveMany($data, array(
             'atomic' => true
         ));
+        if ($result) {
+            return $new_model['attribute_types'];
+        } else {
+            return array();
+        }
     }
 
     public function getAssociatedTypes($user, $model_id) {

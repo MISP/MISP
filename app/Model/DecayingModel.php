@@ -155,12 +155,17 @@ class DecayingModel extends AppModel
                 return array();
             }
         }
-        $decayingModel = $this->find('all', array(
+        $decayingModels = $this->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1,
+            'contain' => 'DecayingModelMapping',
         ));
+        foreach ($decayingModels as $i => $decayingModel) {
+            $decayingModels[$i]['DecayingModel']['attribute_types'] = Hash::extract($decayingModels[$i]['DecayingModelMapping'], '{n}.attribute_type');
+            unset($decayingModels[$i]['DecayingModelMapping']);
+        }
 
-        return $decayingModel;
+        return $decayingModels;
     }
 
     public function checkAuthorisation($user, $id, $full=true) {
