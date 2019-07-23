@@ -1,4 +1,4 @@
-<div id="computation_help_container" style="margin-bottom: 5px; border: 1px solid #dddddd; border-radius: 4px; text-align: center; background-color: white;">
+<div id="computation_help_container" style="margin-bottom: 5px; border: 1px solid #dddddd; border-radius: 4px; text-align: center; background-color: white; overflow: auto; ">
     <table class="table histogram-legendH4">
         <thead>
             <tr>

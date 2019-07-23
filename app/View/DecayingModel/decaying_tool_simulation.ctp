@@ -55,7 +55,7 @@
             </div>
             <div style="width: 80%; display: flex;">
                 <div class="panel-container" style="flex-grow: 1; display: flex;">
-                    <div id="basescore-simulation-container" style="width: 30%; height: 100%;">
+                    <div id="basescore-simulation-container" style="width: 30%; min-width: 400px; height: 100%; margin-right: 5px;">
                         <h5 style="display: inline-block;"><?php echo __('Base score') ?></h5>
                         <div id="alert-basescore-not-set" class="alert alert-warning" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
                             <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set. But default value sets.') ?>
@@ -63,7 +63,7 @@
                         <div id="alert-basescore-not-set" class="alert alert-error" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
                             <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set') ?>
                         </div>
-                        <div style="overflow: auto; position: relative;">
+                        <div style="position: relative;">
                             <?php echo $this->element('DecayingModels/View/basescore_computation_steps'); ?>
                         </div>
                         <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
@@ -76,7 +76,7 @@
                         </div>
                     </div>
                     <div id="chart-decay-simulation-container" style="width: 70%; height: 100%; position: relative">
-                        <div id="simulation_chart" style="height: 100%; overflow: hidden;"></div>
+                        <div id="simulation_chart" class="svg-container"></div>
                     </div>
                 </div>
             </div>

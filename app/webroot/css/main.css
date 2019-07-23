@@ -2418,6 +2418,7 @@ table tr:hover .down-expand-button {
 
 .decayingGraphAxis.grid path {
     stroke-width: 0;
+}
 
 .fixedRightPanel {
     position: fixed;
@@ -2443,4 +2444,21 @@ table tr:hover .down-expand-button {
 
 .large-left-margin {
     margin-left:8px;
+}
+
+.svg-container {
+    display: inline-block;
+    position: relative;
+    width: 100%;
+    min-width: 700px;
+    height: 100%;
+    padding-bottom: 100%; /* aspect ratio */
+    vertical-align: top;
+    overflow: hidden;
+}
+
+.svg-content-responsive {
+    display: inline-block;
+    position: absolute;
+    left: 0;
 }

@@ -19,10 +19,14 @@
                 margin: {top: 10, right: 10, bottom: 20, left: 30},
                 animation_duration: 1000,
                 animation_short_duration: 250,
+                redraw_timeout: 200,
                 time_format: '%Y-%m-%d %H:%M:%S'
             };
             this.options = $.extend(true, {}, default_options, options);
+            this.chart_data = [];
+            this.sightings = [];
             this._init();
+            this._init_canvas();
             if (data !== undefined) {
                 this.update(data)
             }
@@ -56,11 +60,15 @@
                     .style('display', 'none');
                 this.$container.append(this.$loadingContainer);
                 this.timeFormatter = d3.time.format(this.options.time_format).parse;
-                this.width = this.$container.width() - this.options.margin.left - this.options.margin.right;
-                this.height = this.$container.height() - this.options.margin.top - this.options.margin.bottom;
-                this.chart_data = [];
-                this.sightings = [];
-                this._parseDataset();
+            },
+
+            _init_canvas: function() {
+                var that = this;
+                this.$container.empty();
+                this.svg_width = this.$container.width();
+                this.svg_height = this.$container.height();
+                this.width = this.svg_width - this.options.margin.left - this.options.margin.right;
+                this.height = this.svg_height - this.options.margin.top - this.options.margin.bottom;
 
                 this.x = d3.time.scale()
                     .domain(d3.extent(this.chart_data, function(d) { return d.date; }))
@@ -83,8 +91,9 @@
 
                 this.svg = d3.select(this.container_id)
                     .append("svg")
-                    .attr("width", this.width + this.options.margin.left + this.options.margin.right)
-                    .attr("height", this.height + this.options.margin.top + this.options.margin.bottom)
+                    .classed('svg-content-responsive', true)
+                    .attr("width", this.svg_width)
+                    .attr("height", this.svg_height)
                     .append("g")
                     .attr("transform", "translate(" + this.options.margin.left + "," + this.options.margin.top + ")");
 
@@ -109,6 +118,20 @@
 
                 this.svg.insert('g')
                     .classed('circles', true);
+
+                window.addEventListener("resize", function() {
+                    if (that.resize_timeout !== undefined) {
+                        clearTimeout(that.resize_timeout);
+                    }
+                    console.log(that.options.redraw_timeout);
+                    that.resize_timeout = setTimeout(function() { that.redraw_timeout_handler(that) }, that.options.redraw_timeout);
+                });
+            },
+
+            redraw_timeout_handler: function(inst) {
+                clearTimeout(inst.resize_timeout);
+                inst._init_canvas();
+                inst._draw();
             },
 
             update: function(data, model) {
@@ -590,10 +613,6 @@
                 }
                 this.$container;
             },
-
-            _parseDataset: function() {
-
-            }
         }
 
         $.BasescoreComputationTable = BasescoreComputationTable;
