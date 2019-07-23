@@ -1,12 +1,11 @@
 /var/www/MISP/app/tmp/logs/*.log {
-	rotate 30
-	dateext
-	missingok
-	notifempty
-	compress
-	hourly
+    rotate 30
+    dateext
+    missingok
+    notifempty
+    compress
+    hourly
     size 50M
     maxsize 500M
-	copytruncate
+    copytruncate
 }
-
