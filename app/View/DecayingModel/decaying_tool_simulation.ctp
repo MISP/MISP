@@ -58,6 +58,9 @@
                     <div id="basescore-simulation-container" style="width: 30%; height: 100%;">
                         <h5 style="display: inline-block;"><?php echo __('Base score') ?></h5>
                         <div id="alert-basescore-not-set" class="alert alert-warning" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
+                            <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set. But default value sets.') ?>
+                        </div>
+                        <div id="alert-basescore-not-set" class="alert alert-error" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
                             <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set') ?>
                         </div>
                         <div style="overflow: auto; position: relative;">
@@ -88,6 +91,8 @@
 <script>
 var model_list = <?php echo json_encode($all_models); ?>;
 var models = {};
+$('#alert-basescore-not-set').hide();
+$('#alert-basescore-not-set.alert-error').hide();
 $(document).ready(function() {
     model_list.forEach(function(m) {
         models[m.DecayingModel.id] = m.DecayingModel;
@@ -167,11 +172,19 @@ function doSimulation(clicked, attribute_id) {
             simulation_chart.update(data, models[model_id]);
             simulation_table.update(data, models[model_id]);
             if (Object.keys(data.base_score_config.taxonomy_effective_ratios).length > 0) { // show alert base_score not set
-                $('#alert-basescore-not-set').hide('fade', {}, 250);
-                $('#basescore-simulation-container #computation_help_container_body tr').removeClass('warning');
+                $('#alert-basescore-not-set').hide();
+                $('#alert-basescore-not-set.alert-error').hide();
+                $('#basescore-simulation-container #computation_help_container_body tr').removeClass('warning').removeClass('error');
             } else {
-                $('#alert-basescore-not-set').show('fade', {}, 250);
-                $('#basescore-simulation-container #computation_help_container_body tr').addClass('warning');
+                if (data.base_score_config.default_base_score == 0) { // show alert base_score not set
+                    $('#alert-basescore-not-set.alert-error').show('fade', {}, 250);
+                    $('#alert-basescore-not-set').hide();
+                    $('#basescore-simulation-container #computation_help_container_body tr').removeClass('warning').addClass('error');
+                } else {
+                    $('#alert-basescore-not-set').show('fade', {}, 250);
+                    $('#alert-basescore-not-set.alert-error').hide();
+                    $('#basescore-simulation-container #computation_help_container_body tr').removeClass('error').addClass('warning');
+                }
             }
             $('#simulation-sighting')
                 .text(

@@ -297,7 +297,8 @@ class DecayingModel extends AppModel
         $tags = $temp['tags'];
         $overridden_tags = $temp['overridden'];
         $taxonomy_effective_ratios = $this->_getRatioScore($model, $tags);
-        $base_score = isset($model['DecayingModel']['parameters']['default_base_score']) ? $model['DecayingModel']['parameters']['default_base_score'] : 0 ;
+        $default_base_score = isset($model['DecayingModel']['parameters']['default_base_score']) ? $model['DecayingModel']['parameters']['default_base_score'] : 0 ;
+        $base_score = $default_base_score;
         if (!empty($taxonomy_effective_ratios)) {
             foreach ($tags as $k => $tag) {
                 $taxonomy = explode(':', $tag['Tag']['name'])[0];
@@ -306,7 +307,7 @@ class DecayingModel extends AppModel
                 }
             }
         }
-        return array('base_score' => $base_score, 'overridden' => $overridden_tags, 'tags' => $tags, 'taxonomy_effective_ratios' => $taxonomy_effective_ratios);
+        return array('base_score' => $base_score, 'overridden' => $overridden_tags, 'tags' => $tags, 'taxonomy_effective_ratios' => $taxonomy_effective_ratios, 'default_base_score' => $default_base_score);
     }
 
     // compute the current score for the provided atribute with the provided model
