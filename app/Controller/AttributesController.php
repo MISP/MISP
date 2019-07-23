@@ -3037,7 +3037,7 @@ class AttributesController extends AppController
         if ($id === 'selected') {
             $idList = json_decode($this->request->data['attribute_ids'], true);
         }
-        $local = !empty($this->params['named']['local']);
+        $local = empty($this->params['named']['local']) ? 0 : 1;
         if (!$this->request->is('post')) {
             $this->set('local', $local);
             $this->set('object_id', $id);

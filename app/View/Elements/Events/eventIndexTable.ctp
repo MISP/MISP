@@ -190,7 +190,7 @@
                 <span style=" white-space: nowrap;"><?php echo $post_count?></span>&nbsp;
             </td>
         <?php endif;?>
-        <?php if ('true' == $isSiteAdmin): ?>
+        <?php if ($isSiteAdmin): ?>
             <td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
                 <?php echo h($event['User']['email']); ?>&nbsp;
             </td>

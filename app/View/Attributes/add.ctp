@@ -74,6 +74,7 @@
             <?php
             echo $this->Form->input('to_ids', array(
                         'label' => __('for Intrusion Detection System'),
+                        'type' => 'checkbox'
             ));
             echo $this->Form->input('batch_import', array(
                     'type' => 'checkbox'

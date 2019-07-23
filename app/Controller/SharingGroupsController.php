@@ -72,6 +72,8 @@ class SharingGroupsController extends AppController
                 }
             }
             $this->SharingGroup->create();
+            $sg['active'] = $sg['active'] ? 1: 0;
+            $sg['roaming'] = $sg['roaming'] ? 1: 0;
             $sg['organisation_uuid'] = $this->Auth->user('Organisation')['uuid'];
             $sg['local'] = 1;
             $sg['org_id'] = $this->Auth->user('org_id');

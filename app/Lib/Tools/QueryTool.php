@@ -14,7 +14,7 @@ class QueryTool
     {
         $db = $model->getDataSource();
         $connection = $db->getConnection();
-        $query = $connection->prepare('DELETE FROM ' . $table . ' WHERE ' . $field . ' = :value');
+        $query = $connection->prepare('DELETE FROM "' . $table . '" WHERE "' . $field . '" = :value');
         $query->bindValue(':value', $value, $this->__pdoMap[$db->introspectType($value)]);
         $query->execute();
     }
