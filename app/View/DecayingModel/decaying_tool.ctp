@@ -128,50 +128,9 @@
 
         <div class="row">
             <div class="span12">
-                <table class="table table-striped table-bordered">
-                    <thead>
-                        <tr>
-                            <th rowspan="2">ID</th>
-                            <th rowspan="2">Model Name</th>
-                            <th rowspan="2">Org id</th>
-                            <th rowspan="2">Description</th>
-                            <th colspan="5">Parameters</th>
-                            <th rowspan="2"># Types</th>
-                            <th rowspan="2">Action</th>
-                        </tr>
-                        <tr>
-                            <th>Tau</th>
-                            <th>Delta</th>
-                            <th>Threshold</th>
-                            <th>Default basescore</th>
-                            <th>Basescore config</th>
-                        </tr>
-                    </thead>
-                    <tbody id="modelTableBody">
-                        <?php foreach ($savedModels as $k => $model): ?>
-                            <tr id="modelId_<?php echo h($model['DecayingModel']['id']); ?>">
-                                <td class="DMId"><a href="<?php echo $baseurl; ?>/decayingModel/view/<?php echo h($model['DecayingModel']['id']); ?>"><?php echo h($model['DecayingModel']['id']); ?></a></td>
-                                <td class="DMName"><?php echo h($model['DecayingModel']['name']); ?></td>
-                                <td class="DMOrg"><?php echo $this->OrgImg->getOrgImg(array('name' => $model['DecayingModel']['org_id'], 'size' => 24)); ?> </td>
-                                <td class="DMDescription"><?php echo h($model['DecayingModel']['description']); ?></td>
-                                <td class="DMParameterTau"><?php echo h($model['DecayingModel']['parameters']['tau']); ?></td>
-                                <td class="DMParameterDelta"><?php echo h($model['DecayingModel']['parameters']['delta']); ?></td>
-                                <td class="DMParameterThreshold"><?php echo h($model['DecayingModel']['parameters']['threshold']); ?></td>
-                                <td class="DMParameterDefaultBasescore"><?php echo h($model['DecayingModel']['parameters']['default_base_score']); ?></td>
-                                <td class="DMParameterBasescoreConfig json-transform" data-basescoreconfig="<?php echo base64_encode(json_encode($model['DecayingModel']['parameters']['base_score_config'])); ?>">
-                                    <?php if (isset($model['DecayingModel']['parameters']['base_score_config']) && !empty($model['DecayingModel']['parameters']['base_score_config'])): ?>
-                                        <?php echo h(json_encode($model['DecayingModel']['parameters']['base_score_config'])); ?>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="DMNumType"><?php echo isset($associated_types[$model['DecayingModel']['id']]) ? count($associated_types[$model['DecayingModel']['id']]) : 0; ?></td>
-                                <td>
-                                    <button class="btn btn-info btn-small decayingLoadBtn" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"><?php echo __(' Load model') ?></span></button>
-                                    <button class="btn btn-danger btn-small" data-save-type="edit" data-model-id="<?php echo h($model['DecayingModel']['id']); ?>" onclick="decayingTool.saveModel(this);"><span class="fa fa-paste"><?php echo __(' Overwrite model') ?></span></button>
-                                    <button class="btn btn-success btn-small" onclick="decayingTool.activate(this);" title="<?php echo __(' Activate the model to selected attribute type') ?>"><span class="fa fa-upload"><?php echo __(' Activate') ?></span></button>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
+                <table id="table-model" class="table table-striped table-bordered">
+                    <thead id="table-model-head"></thead>
+                    <tbody id="table-model-body"></tbody>
                 </table>
             </div>
         </div>

@@ -205,6 +205,26 @@ class DecayingModelController extends AppController
         $this->set('associated_types', $associated_types);
     }
 
+    public function getAllDecayingModels()
+    {
+        if ($this->request->is('get') && $this->request->is('ajax')) {
+            $savedDecayingModels = $this->DecayingModel->fetchAllowedModels($this->Auth->user());
+            $associated_models = $this->DecayingModel->DecayingModelMapping->getAssociatedModels($this->Auth->user());
+            $associated_types = array();
+            foreach ($associated_models as $type => $models) {
+                foreach (array_keys($models) as $model_id) {
+                    $associated_types[$model_id][] = $type;
+                }
+            }
+            return $this->RestResponse->viewData(array(
+                'associated_types' => $associated_types,
+                'savedDecayingModels' => $savedDecayingModels
+            ), $this->response->type());
+        } else {
+            throw new MethodNotAllowedException(__("This method is only accessible via AJAX."));
+        }
+    }
+
     public function decayingToolBasescore()
     {
         $taxonomies = $this->DecayingModel->listTaxonomiesWithNumericalValue();
