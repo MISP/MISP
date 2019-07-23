@@ -4,7 +4,7 @@
     missingok
     notifempty
     compress
-    hourly
+    daily
     size 50M
     maxsize 500M
     copytruncate
