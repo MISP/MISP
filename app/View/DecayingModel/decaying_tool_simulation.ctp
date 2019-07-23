@@ -88,6 +88,8 @@
 </div>
 <?php echo $this->Html->script('d3'); ?>
 <?php echo $this->Html->script('decayingModelSimulation'); ?>
+<?php echo $this->Html->css('decayingTool'); ?>
+
 <script>
 var model_list = <?php echo json_encode($all_models); ?>;
 var models = {};

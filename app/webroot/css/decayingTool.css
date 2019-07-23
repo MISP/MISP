@@ -1,0 +1,72 @@
+.svg-container {
+    display: inline-block;
+    position: relative;
+    width: 100%;
+    min-width: 700px;
+    height: 100%;
+    padding-bottom: 100%; /* aspect ratio */
+    vertical-align: top;
+    overflow: hidden;
+}
+
+.svg-content-responsive {
+    display: inline-block;
+    position: absolute;
+    left: 0;
+}
+
+.decayingGraphLine {
+    fill: none;
+    stroke: steelblue;
+    stroke-width: 2px;
+}
+
+.decayingGraphLineThres {
+    fill: none;
+    stroke: firebrick;
+    stroke-width: 2px;
+}
+
+.decayingGraphArea {
+    fill: lightsteelblue;
+}
+
+.decayingGraphAreaThres {
+    fill: firebrick;
+}
+
+.decayingGraphDot{
+    stroke: #ffffff;
+    fill: #da4f49;
+    stroke-width: 2px;
+}
+
+.decayingGraphHandleDot{
+    stroke: #ffffff;
+    fill: steelblue;
+    stroke-width: 2px;
+}
+
+.decayingGraphAxis path {
+    stroke-width: 2px;
+    stroke: #000;
+    fill: none;
+}
+
+.decayingGraphAxis line {
+  stroke: #000;
+}
+
+.decayingGraphAxis text {
+    user-select: none;
+}
+
+.decayingGraphAxis.grid line {
+    stroke: lightgrey;
+    stroke-opacity: 0.7;
+    shape-rendering: crispEdges;
+}
+
+.decayingGraphAxis.grid path {
+    stroke-width: 0;
+}
