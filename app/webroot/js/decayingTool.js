@@ -893,9 +893,9 @@ ModelTable.prototype = {
         var html_button = '<div style="width: max-content">';
         html_button += '<button class="btn btn-info btn-small decayingLoadBtn" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"> Load model</span></button>';
         if (model.DecayingModel.enabled) {
-            html_button += '<button class="btn btn-success btn-small" style="margin-left: 3px;" onclick="decayingTool.enableModel(this);" title="Enable model"><span class="fa fa-power-off"></span></button>'
-        } else {
             html_button += '<button class="btn btn-danger btn-small" style="margin-left: 3px;" onclick="decayingTool.disableModel(this);" title="Disable model"><span class="fa fa-power-off"></span></button>'
+        } else {
+            html_button += '<button class="btn btn-success btn-small" style="margin-left: 3px;" onclick="decayingTool.enableModel(this);" title="Enable model"><span class="fa fa-play"></span></button>'
         }
         html_button += '</div>';
         return html_button;

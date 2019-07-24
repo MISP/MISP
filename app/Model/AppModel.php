@@ -1202,6 +1202,7 @@ class AppModel extends Model
                     `attribute_types` text,
                     `description` text,
                     `org_id` int(11),
+                    `enabled` tinyint(1) NOT NULL DEFAULT 0,
                     `ref` text COLLATE utf8_unicode_ci,
                     `formula` varchar(255) COLLATE utf8_bin NOT NULL,
                     `version` varchar(255) COLLATE utf8_bin NOT NULL
