@@ -455,7 +455,7 @@ class StixParser():
             self.fill_object_attributes_observable(pe_section, pe_section_mapping, section)
             section_uuid = str(uuid.uuid4())
             pe_section.uuid = section_uuid
-            pe.add_reference(section_uuid, 'included-in')
+            pe.add_reference(pe_section.uuid, 'includes')
             self.misp_event.add_object(**pe_section)
         self.misp_event.add_object(**pe)
         return pe_uuid
@@ -613,7 +613,7 @@ class StixFromMISPParser(StixParser):
             attributes = self.objects_mapping[object_type]['observable'](observable)
         if isinstance(attributes, tuple):
             attributes, pe_uuid = attributes
-            misp_object.add_reference(pe_uuid, 'included-in')
+            misp_object.add_reference(pe_uuid, 'includes')
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
         misp_object.to_ids = (labels[2].split('=')[1][1:-1].lower() == 'true')
@@ -854,7 +854,7 @@ class StixFromMISPParser(StixParser):
                                                'value': value, 'to_ids': True})
             section_uuid = str(uuid.uuid4())
             pe_section.uuid = pe_uuid
-            pe.add_reference(section_uuid, 'included-in')
+            pe.add_reference(pe_section.uuid, 'includes')
             self.misp_event.add_object(**pe_section)
         self.misp_event.add_object(**pe)
         return attributes, pe_uuid
@@ -1234,7 +1234,7 @@ class ExternalStixParser(StixParser):
     def handle_pe_case(self, extension, attributes, uuid):
         pe_uuid = self.parse_pe(extension)
         file_object = self.create_misp_object(attributes, 'file', uuid)
-        file_object.add_reference(pe_uuid, 'included-in')
+        file_object.add_reference(pe_uuid, 'includes')
         self.misp_event.add_object(**file_object)
 
     def parse_asn_observable(self, objects, marking, uuid):
