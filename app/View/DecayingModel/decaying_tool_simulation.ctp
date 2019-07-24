@@ -86,9 +86,12 @@
         </div>
     </div>
 </div>
-<?php echo $this->Html->script('d3'); ?>
-<?php echo $this->Html->script('decayingModelSimulation'); ?>
-<?php echo $this->Html->css('decayingTool'); ?>
+<?php
+    echo $this->element('genericElements/assetLoader', array(
+        'css' => array('treemap', 'decayingTool'),
+        'js' => array('d3', 'decayingModelSimulation')
+    ));
+?>
 
 <script>
 var model_list = <?php echo json_encode($all_models); ?>;
@@ -119,7 +122,7 @@ $(document).ready(function() {
             $('#select_model_to_simulate_infobox').popover('hide');
         }
     });
-    
+
     <?php echo isset($attribute_id) ? '$("#performRestSearchButton").click();' : ''; ?>
 });
 

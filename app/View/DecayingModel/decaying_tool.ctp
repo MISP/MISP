@@ -139,10 +139,12 @@
 </div>
 
 <?php echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'decayingModel', 'menuItem' => 'decayingTool')); ?>
-<?php echo $this->Html->script('Chart.min'); ?>
-<?php echo $this->Html->script('d3'); ?>
-<?php echo $this->Html->script('decayingTool'); ?>
-<?php echo $this->Html->css('decayingTool'); ?>
+<?php
+    echo $this->element('genericElements/assetLoader', array(
+        'css' => array('decayingTool'),
+        'js' => array('d3', 'Chart.min', 'decayingTool')
+    ));
+?>
 
 <script>
 $(document).ready(function() {

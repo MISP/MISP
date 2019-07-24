@@ -107,7 +107,7 @@
     background-color: white;
 }
 
-#basescore_configurator #tableExamples tr.basescore-example-score {
+#basescore_configurator #tableExamples td.basescore-example-score {
     position: relative;
     text-align: center;
     vertical-align: middle;

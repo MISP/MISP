@@ -322,10 +322,10 @@
                 var $tr = $clicked.closest('tr');
                 var model = d3.select($tr[0]).data()[0].DecayingModel;
 
-                $('#input_Tau').val(model.parameters.tau);
+                $('#input_Tau, #input_Tau_range').val(model.parameters.tau);
                 $('#input_Tau').data('multiplier', $('#input_Tau').val()/this.options.TICK_NUM);
-                $('#input_Delta').val(model.parameters.delta);
-                $('#input_Threshold').val(model.parameters.threshold);
+                $('#input_Delta, #input_Delta_range').val(model.parameters.delta);
+                $('#input_Threshold, #input_Threshold_range').val(model.parameters.threshold);
                 $('#input_base_score_config').val(JSON.stringify(model.parameters.base_score_config));
                 $('#input_default_base_score').val(model.parameters.default_base_score);
                 var $form = $('#saveForm');

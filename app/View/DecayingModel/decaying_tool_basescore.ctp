@@ -108,9 +108,7 @@
 
 <?php
 echo $this->element('genericElements/assetLoader', array(
-    'css' => array(
-        'treemap',
-    )
+    'css' => array('treemap')
 ));
 ?>
 
