@@ -20,7 +20,6 @@ import sys
 import json
 import os
 import time
-import uuid
 import io
 import re
 import stix2
@@ -442,8 +441,6 @@ class StixParser():
 
     def parse_pe(self, extension):
         pe = MISPObject('pe', misp_objects_path_custom=_MISP_objects_path)
-        pe_uuid = str(uuid.uuid4())
-        pe.uuid = pe_uuid
         self.fill_object_attributes_observable(pe, pe_mapping, extension)
         for section in extension['sections']:
             pe_section = MISPObject('pe-section', misp_objects_path_custom=_MISP_objects_path)
@@ -453,12 +450,10 @@ class StixParser():
                     pe_section.add_attribute(**{'type': h_type, 'object_relation': h_type,
                                                 'value': h_value, 'to_ids': False})
             self.fill_object_attributes_observable(pe_section, pe_section_mapping, section)
-            section_uuid = str(uuid.uuid4())
-            pe_section.uuid = section_uuid
             pe.add_reference(pe_section.uuid, 'includes')
             self.misp_event.add_object(**pe_section)
         self.misp_event.add_object(**pe)
-        return pe_uuid
+        return pe.uuid
 
     @staticmethod
     def parse_remaining_references(references, mapping):
@@ -799,8 +794,6 @@ class StixFromMISPParser(StixParser):
         attributes = []
         sections = defaultdict(dict)
         pe = MISPObject('pe', misp_objects_path_custom=_MISP_objects_path)
-        pe_uuid = str(uuid.uuid4())
-        pe.uuid = pe_uuid
         for p in pattern:
             p_type, p_value = p.split(' = ')
             p_value = p_value[1:-1]
@@ -852,12 +845,10 @@ class StixFromMISPParser(StixParser):
                             attribute_type, relation = stix_type.split("x_misp_")[1][:-1].split("_")
                             attributes.append({'type': attribute_type, 'object_relation': relation,
                                                'value': value, 'to_ids': True})
-            section_uuid = str(uuid.uuid4())
-            pe_section.uuid = pe_uuid
             pe.add_reference(pe_section.uuid, 'includes')
             self.misp_event.add_object(**pe_section)
         self.misp_event.add_object(**pe)
-        return attributes, pe_uuid
+        return attributes, pe.uuid
 
     def pattern_asn(self, pattern):
         return self.fill_pattern_attributes(pattern, asn_mapping)
