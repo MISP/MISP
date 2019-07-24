@@ -1,5 +1,5 @@
-<div id="basescore_configurator" class="row" style="padding: 15px; overflow: auto; max-height: 90vh;">
-    <div class="span8" style="height: calc(90vh); overflow-y: scroll; border: 1px solid #ddd;">
+<div id="basescore_configurator" class="row">
+    <div class="span8" class="taxonomyTableContainer">
         <input id="table_taxonomy_search" class="input" style="width: 250px; margin: 0px;" type="text" placeholder="<?php echo _('Search Taxonomy'); ?>"></input>
         <it class="fa fa-times useCursorPointer" title="<?php echo __('Clear search field'); ?>" onclick="$('#table_taxonomy_search').val('').trigger('input');"></it>
         <span style="float: right; margin-top: 6px;" class="badge badge-info"><b><?php echo h($taxonomies_not_having_numerical_value); ?></b><?php echo __(' not having numerical value'); ?></span>
@@ -28,12 +28,11 @@
                                         <?php foreach ($predicate['TaxonomyEntry'] as $e => $entry): ?>
                                             <li>
                                                 <a style="position: relative; padding: 3px 5px;">
-                                                    <span class="tag"
+                                                    <span class="tagComplete"
                                                     style="margin-right: 35px;background-color: <?php echo $entry['Tag']['colour']; ?>;color:<?php echo $this->TextColour->getTextColour($entry['Tag']['colour']);?>"
                                                     title="<?php echo sprintf('%s: %s', h($entry['expanded']), h($entry['description'])) ?>"><?php echo $entry['Tag']['name']; ?>
                                                     </span>
-                                                    <span class="label label-inverse" style="position: absolute; right: 5px; top: 50%; margin-top: -9px;
-"><?php echo h($entry['numerical_value']) ?></span>
+                                                    <span class="label label-inverse numerical-value-label"><?php echo h($entry['numerical_value']) ?></span>
                                                 </a>
                                             </li>
                                         <?php endforeach; ?>
@@ -43,7 +42,7 @@
                         </td>
                         <td>
                             <input id="slider_<?php echo h($name) ?>" data-taxonomyname="<?php echo h($name) ?>" type="range" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" onchange="sliderChanged(this);" oninput="sliderChanged(this);"></input>
-                            <input type="number" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" style="display: inline-block; margin-left: 5px; margin: 0px; width: 40px;" data-taxonomyname="<?php echo h($name) ?>" onchange="inputChanged(this);" oninput="inputChanged(this);"></input>
+                            <input type="number" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" class="taxonomySlider" data-taxonomyname="<?php echo h($name) ?>" onchange="inputChanged(this);" oninput="inputChanged(this);"></input>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -52,9 +51,9 @@
     </div>
     <div class="span8">
         <div style="margin-bottom: 5px;">
-            <div id="treemapGraphTax" style="border: 1px solid #dddddd; border-radius: 4px; text-align: center;"></div>
+            <div id="treemapGraphTax"></div>
         </div>
-        <div style="margin-bottom: 5px; border: 1px solid #dddddd; border-radius: 4px; text-align: center; background-color: white;">
+        <div class="org-source-confidence-placeholder">
             <?php echo __('Placeholder for `Organisation source confidence`') ?>
         </div>
         <div>
@@ -79,23 +78,23 @@
                                 </div>
                             </div>
                         </td>
-                        <td id="basescore-example-score-0" style="position: relative; text-align: center; vertical-align: middle;">
+                        <td id="basescore-example-score-0" class="basescore-example-score">
                         </td>
                     </tr>
                     <tr onclick="genHelpBaseScoreComputation(event, 1)">
                         <td>Attribute 1</td>
                         <td id="basescore-example-tag-1"><?php echo __('Pick a Taxonomy'); ?></td>
-                        <td id="basescore-example-score-1" style="position: relative; text-align: center; vertical-align: middle;"></td>
+                        <td id="basescore-example-score-1" class="basescore-example-score"></td>
                     </tr>
                     <tr onclick="genHelpBaseScoreComputation(event, 2)">
                         <td>Attribute 2</td>
                         <td id="basescore-example-tag-2"><?php echo __('Pick a Taxonomy'); ?></td>
-                        <td id="basescore-example-score-2" style="position: relative; text-align: center; vertical-align: middle;"></td>
+                        <td id="basescore-example-score-2" class="basescore-example-score"></td>
                     </tr>
                     <tr onclick="genHelpBaseScoreComputation(event, 3)">
                         <td>Attribute 3</td>
                         <td id="basescore-example-tag-3"><?php echo __('Pick a Taxonomy'); ?></td>
-                        <td id="basescore-example-score-3" style="position: relative; text-align: center; vertical-align: middle;"></td>
+                        <td id="basescore-example-score-3" class="basescore-example-score"></td>
                     </tr>
                 </tbody>
             </table>

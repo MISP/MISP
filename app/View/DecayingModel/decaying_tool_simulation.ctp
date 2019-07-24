@@ -1,5 +1,5 @@
 <div id="simulationContainer">
-    <div style="padding: 15px; height: 90vh; display: flex; flex-direction: column;">
+    <div class="simulationSubContainer">
         <div style="height: 40%; display: flex">
             <div style="width: 20%; display: flex; flex-direction: column;">
                 <div class="panel-container" style="display: flex; flex-direction: column; flex-grow: 1">
@@ -9,7 +9,7 @@
                                 <option value="<?php echo h($model['DecayingModel']['id']) ?>" <?php echo $decaying_model['DecayingModel']['id'] == $model['DecayingModel']['id'] ? 'selected' : '' ?>><?php echo h($model['DecayingModel']['name']); ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <span id="select_model_to_simulate_infobox" class="btn" style="padding: 4px; height: fit-content; margin-left: 5px;"><span class="fa fa-question-circle"></span></span>
+                        <span id="select_model_to_simulate_infobox" class="btn"><span class="fa fa-question-circle"></span></span>
                     </div>
 
                     <ul class="nav nav-tabs" style="margin-right: -5px; margin-bottom: 0px;" id="simulation-tabs">
@@ -27,7 +27,7 @@
         $taxonomy_name = $taxonomy_name . ':%' ;
     }
 ?>
-                                <textarea style="margin-bottom: 0px; margin-left: 4px; flex-grow: 3; width: auto;">
+                                <textarea id="restSearchTextarea">
 {
     "decayingModel": <?php echo h($decaying_model['DecayingModel']['id']); ?>,
     "to_ids": 1,
@@ -123,7 +123,7 @@ function doRestSearch(clicked, query) {
         $.ajax({
             data: $formData.find('form').serialize(),
             beforeSend:function() {
-                $('#attributeTableContainer').html('<div style="height:100%; display:flex; align-items:center; justify-content:center;"><span class="fa fa-spinner fa-spin" style="font-size: xx-large;"></span></div>');
+                $('#attributeTableContainer').html('<div class="loading-spinner-container"><span class="fa fa-spinner fa-spin" style="font-size: xx-large;"></span></div>');
             },
             success:function (data, textStatus) {
                 $('#attributeTableContainer').html(data);

@@ -1,18 +1,12 @@
-.svg-container {
-    display: inline-block;
-    position: relative;
-    width: 100%;
-    min-width: 700px;
-    height: 100%;
-    padding-bottom: 100%; /* aspect ratio */
-    vertical-align: top;
-    overflow: hidden;
+/* decaying tool */
+#table_type_search {
+    width: 250px;
+    margin-left: 5px;
 }
 
-.svg-content-responsive {
-    display: inline-block;
-    position: absolute;
-    left: 0;
+.AttributeTypeTableContainer {
+    height: calc(100vh - 175px - 25px);
+    overflow-y: scroll;
 }
 
 .decayingGraphLine {
@@ -69,4 +63,97 @@
 
 .decayingGraphAxis.grid path {
     stroke-width: 0;
+}
+
+
+/* decaying basescore */
+#basescore_configurator {
+    overflow: auto;
+    padding: 15px;
+    max-height: 90vh;
+}
+
+#basescore_configurator > div.taxonomyTableContainer {
+    height: calc(90vh);
+    overflow-y: scroll;
+    border: 1px solid #ddd;
+}
+
+#basescore_configurator #body_taxonomies .taxonomySlider {
+    display: inline-block;
+    margin-left: 5px;
+    margin: 0px;
+    width: 40px;
+}
+
+#basescore_configurator #body_taxonomies span.numerical-value-label {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    margin-top: -9px;
+}
+
+#treemapGraphTax {
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    text-align: center;
+}
+
+#basescore_configurator div.org-source-confidence-placeholder {
+    margin-bottom: 5px;
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    text-align: center;
+    background-color: white;
+}
+
+#basescore_configurator #tableExamples tr.basescore-example-score {
+    position: relative;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* decaying simulation */
+div.simulationSubContainer{
+    padding: 15px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#select_model_to_simulate_infobox {
+    padding: 4px;
+    height: fit-content;
+    margin-left: 5px;
+}
+
+#simulationContainer #restSearchTextarea {
+    margin-bottom: 0px;
+    margin-left: 4px;
+    flex-grow: 3;
+    width: auto;
+}
+
+div.loading-spinner-container {
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.svg-container {
+    display: inline-block;
+    position: relative;
+    width: 100%;
+    min-width: 700px;
+    height: 100%;
+    padding-bottom: 100%; /* aspect ratio */
+    vertical-align: top;
+    overflow: hidden;
+}
+
+.svg-content-responsive {
+    display: inline-block;
+    position: absolute;
+    left: 0;
 }
