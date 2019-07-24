@@ -119,7 +119,7 @@
                 <form id="saveForm" class="form-inline">
                     <input type="text" name="name" class="input" placeholder="Model name" required>
                     <textarea  rows="1" name="description" class="input" placeholder="Description"></textarea>
-                    <span class="btn btn-success" data-save-type="add" onclick="decayingTool.saveModel(this)"><i class="fa fa-save"> Save</i></span>
+                    <span id="save-model-button" class="btn btn-success" data-save-type="add" onclick="decayingTool.saveModel(this)" data-modelid="0" data-isedit="0" data-edittext="<?php echo __("Edit") ?>" data-savetext="<?php echo __("Create") ?>"><i class="fa fa-plus"> <?php echo __("Create") ?></i></span>
                 </form>
             </div>
         </div>

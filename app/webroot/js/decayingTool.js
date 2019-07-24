@@ -320,6 +320,8 @@
                 var that = this;
                 var $clicked = $(clicked);
                 var $tr = $clicked.closest('tr');
+                $('#table-model td > span.DMCheckbox > input').prop('checked', false).prop('disabled', true);
+                $tr.find('td > span.DMCheckbox > input').prop('checked', true).prop('disabled', false).trigger('change');
                 var model = d3.select($tr[0]).data()[0].DecayingModel;
 
                 $('#input_Tau, #input_Tau_range').val(model.parameters.tau);
@@ -356,16 +358,15 @@
             },
             saveModel: function(clicked) {
                 var $clicked = $(clicked);
-                var type = $clicked.data('save-type');
+                var type = 'add';
                 var model_id = false;
                 var data = this.retreiveData();
-                if (type == 'edit') {
-                    model_id = $clicked.data('model-id');
-                    if (!confirm('Confirm overwrite?')) {
-                        return;
-                    }
+                if ($clicked.data('isedit') == 1) {
+                    type = 'edit';
+                    model_id = $clicked.data('modelid');
                 }
                 this.fetchFormAndSubmit($clicked, type, model_id, data);
+                this.registerMapping(model_id);
             },
             fetchFormAndSubmit: function($clicked, type, model_id, formData, baseurl) {
                 var that = this;
@@ -391,7 +392,9 @@
                         data: $form.serialize(),
                         cache: false,
                         beforeSend: function(XMLHttpRequest) {
-                            $clicked.append(loadingSpan);
+                            if ($clicked !== undefined) {
+                                $clicked.append(loadingSpan);
+                            }
                         },
                         success: function(data, textStatus) {
                             data = JSON.parse(data);
@@ -410,7 +413,9 @@
                             console.log( errorThrown );
                         },
                         complete: function() {
-                            $clicked.find('#loadingSpan').remove();
+                            if ($clicked !== undefined) {
+                                $clicked.find('#loadingSpan').remove();
+                            }
                             $form.remove();
                         },
                         type: 'post',
@@ -418,15 +423,10 @@
                     });
                 });
             },
-            activate: function(clicked) {
-                var $clicked = $(clicked);
-                var $tr = $clicked.closest('tr');
-                var model = d3.select($tr[0]).data()[0].DecayingModel;
+            registerMapping: function(model_id) {
                 var selected_types = this.getSelected();
-                var model_id = model.id;
                 var data = { 'attributetypes': selected_types };
-                this.fetchFormAndSubmit($(clicked), 'linkAttributeTypeToModel', model_id, data, "/decayingModelMapping/");
-                // TODO: Implement
+                this.fetchFormAndSubmit(undefined, 'linkAttributeTypeToModel', model_id, data, "/decayingModelMapping/");
             },
             highlightMatchingRow: function() {
                 var that = this;
@@ -437,18 +437,23 @@
                 $rows.removeClass('success');
                 $('div.input-prepend > span.param-name, #summary_base_score_config').removeClass('success');
                 $('#button-toggle-simulation').addClass('disabled').attr('href', '/decayingModel/decayingToolSimulation/');
+                var match_detected = false;
                 $rows.each(function(i) {
                     var model = $.extend({}, d3.select(this).data()[0].DecayingModel);
                     var model_id = model['id'];
                     delete model['id'];
                     delete model['name'];
                     delete model['description'];
-                    if (that.simpleCompareObject(data, model)) {
+                    var current_match = that.simpleCompareObject(data, model);
+                    match_detected =  match_detected || current_match;
+                    if (current_match) {
                         $('#button-toggle-simulation').removeClass('disabled').attr('href', '/decayingModel/decayingToolSimulation/' + model_id);
+                        $('#saveForm #save-model-button').data('modelid', model_id);
                         $(this).addClass('success');
                         $('div.input-prepend > span.param-name, #summary_base_score_config').addClass('success');
                     }
                 });
+                return match_detected;
             },
             refreshRow: function(data) {
                 // search and replace matching row if any
@@ -597,7 +602,20 @@
                 } else {
                     $('#summary_base_score_config > span').removeClass('fa-check-square').addClass('fa-square');
                 }
-                this.highlightMatchingRow();
+                this.highlightMatchingRow()
+            },
+            refreshSaveButton: function() {
+                var $checkbox = $('#table-model td > span.DMCheckbox > input:checked');
+                var save_button = $('#saveForm #save-model-button');
+                var btn_content_html;
+                if ($checkbox.length > 0) {
+                    save_button.data('isedit', 1);
+                    btn_content_html = '<i class="fa fa-edit"> ' + save_button.data('edittext');
+                } else {
+                    save_button.data('isedit', 0).data('modelid', 0);
+                    btn_content_html = '<i class="fa fa-plus"> ' + save_button.data('savetext');
+                }
+                save_button.html(btn_content_html);
             },
             daysToText: function(days) {
                 days = parseFloat(days);
@@ -791,6 +809,7 @@ ModelTable.prototype = {
         this.thead = d3.select('#table-model > #table-model-head');
         this.tbody = d3.select('#table-model > #table-model-body');
         this.table_header = [
+            {name: ''},
             {name: 'ID'},
             {name: 'Model Name'},
             {name: 'Org ID'},
@@ -805,6 +824,7 @@ ModelTable.prototype = {
                 ]
             },
             {name: '# Types'},
+            {name: 'Enabled'},
             {name: 'Action'}
         ];
         this.data = [];
@@ -869,10 +889,16 @@ ModelTable.prototype = {
         td_class = td_class !== undefined ? td_class : '';
         return '<span class="' + td_class + '"><a href="' + url + '">' + text + '</a></span>';
     },
-    _gen_td_buttons: function(id) {
-        return '<button class="btn btn-info btn-small decayingLoadBtn" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"> Load model</span></button>'
-        + '<button class="btn btn-danger btn-small" data-save-type="edit" data-model-id="' + id +' " onclick="decayingTool.saveModel(this);"><span class="fa fa-paste"> Overwrite model</span></button>'
-        + '<button class="btn btn-success btn-small" onclick="decayingTool.activate(this);" title=" Activate the model to selected attribute type"><span class="fa fa-upload"> Activate</span></button>';
+    _gen_td_buttons: function(model) {
+        var html_button = '<div style="width: max-content">';
+        html_button += '<button class="btn btn-info btn-small decayingLoadBtn" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"> Load model</span></button>';
+        if (model.DecayingModel.enabled) {
+            html_button += '<button class="btn btn-success btn-small" style="margin-left: 3px;" onclick="decayingTool.enableModel(this);" title="Enable model"><span class="fa fa-power-off"></span></button>'
+        } else {
+            html_button += '<button class="btn btn-danger btn-small" style="margin-left: 3px;" onclick="decayingTool.disableModel(this);" title="Disable model"><span class="fa fa-power-off"></span></button>'
+        }
+        html_button += '</div>';
+        return html_button;
     },
 
     _get_html_cells: function(model) {
@@ -880,7 +906,9 @@ ModelTable.prototype = {
         if (!Array.isArray(model.DecayingModel.parameters.base_score_config) && typeof model.DecayingModel.parameters.base_score_config === 'object') {
             bs_config_html = jsonToNestedTable(model.DecayingModel.parameters.base_score_config, [], ['table', 'table-condensed', 'table-bordered']);
         }
+        var is_row_selected = $('#saveForm #save-model-button').data('modelid') == model.DecayingModel.id;
         return cells_html = [
+            this._gen_td('<input type="checkbox" onchange="decayingTool.refreshSaveButton() style="margin:0" ' + (is_row_selected ? 'checked' : 'disabled') + '></input>', 'DMCheckbox'),
             this._gen_td_link('/decayingModel/view/'+model.DecayingModel.id, model.DecayingModel.id, 'DMId'),
             this._gen_td(model.DecayingModel.name, 'DMName'),
             this._gen_td_link('/organisations/view/'+model.DecayingModel.org_id, model.DecayingModel.org_id, 'DMOrg'),
@@ -895,7 +923,8 @@ ModelTable.prototype = {
                 {'basescoreconfig': btoa(JSON.stringify(model.DecayingModel.parameters.base_score_config))}
             ),
             this._gen_td(model.DecayingModel.attribute_types.length, 'DMNumType'),
-            this._gen_td_buttons(model.DecayingModel.id)
+            this._gen_td(model.DecayingModel.enabled ? '<i class="fa fa-check"></i>' : '<i class="fa fa-times"></i>', 'DMEnabled'),
+            this._gen_td_buttons(model)
         ];
     },
 
