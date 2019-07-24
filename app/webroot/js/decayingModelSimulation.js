@@ -17,8 +17,8 @@
             var default_options = {
                 tick_num: 300,
                 margin: {top: 10, right: 10, bottom: 20, left: 30},
-                animation_duration: 1000,
-                animation_short_duration: 250,
+                animation_duration: 250,
+                animation_short_duration: 100,
                 redraw_timeout: 200,
                 time_format: '%Y-%m-%d %H:%M:%S'
             };
@@ -170,7 +170,7 @@
                     .attr("stroke-width", 2.5)
                 this.line
                     .transition()
-                    .duration(this.options.animation_short_duration)
+                    .duration(this.options.animation_duration)
                     .attr("d", this.value_line);
                 this.line.exit().remove();
 
@@ -191,7 +191,7 @@
                     .style("stroke-dasharray", "4,2")
                     .style("shape-rendering", "crispEdges")
                     .transition()
-                    .duration(this.options.animation_short_duration)
+                    .duration(this.options.animation_duration)
                     .attr('y2', function(d) { return that.y(d.value); });
                 this.line_guides.exit().remove();
 
@@ -241,19 +241,19 @@
                     .attr('height', 0)
                     .on('mouseover', function(d) {
                         d3.select(this).transition()
-                            .duration(that.options.animation_short_duration)
+                            .duration(that.options.animation_duration)
                             .style('opacity', 0.9)
                         that.tooltipText(true, this, 'Cutoff threshold: <b>' + that.model.parameters.threshold + '</b>');
                     })
                     .on('mouseout', function() {
                         d3.select(this).transition()
-                            .duration(that.options.animation_short_duration)
+                            .duration(that.options.animation_duration)
                             .style('opacity', 0.6)
                         that.tooltipText(false);
                     });
                 this.svg.select('.decayingGraphAreaThres')
                     .transition()
-                    .duration(this.options.animation_short_duration)
+                    .duration(this.options.animation_duration)
                     .attr('height', this.height-this.y(this.model.parameters.threshold))
                     .attr('y', this.y(this.model.parameters.threshold));
 
@@ -270,20 +270,20 @@
                     .attr('r', 5)
                     .on('mouseover', function(d) {
                         d3.select(this).transition()
-                            .duration(that.options.animation_short_duration)
+                            .duration(that.options.animation_duration)
                             .attr('r', 7);
                         that.tooltipDate(true, this, d);
                     })
                     .on('mouseout', function() {
                         d3.select(this).transition()
-                            .duration(that.options.animation_short_duration)
+                            .duration(that.options.animation_duration)
                             .attr('r', 5);
                         that.tooltipDate(false);
                     })
                     .style('opacity', 0)
                     .transition()
-                    .duration(this.options.animation_short_duration)
-                    .delay(this.options.animation_short_duration)
+                    .duration(this.options.animation_duration)
+                    .delay(this.options.animation_duration)
                     .ease('linear')
                     .style('opacity', 1);
                 this.points.exit().remove();
@@ -441,7 +441,7 @@
             this.$container = $(container);
             this._validateOptions(options);
             var default_options = {
-                animation_short_duration: 250,
+                animation_duration: 250,
             };
             this.options = $.extend(true, {}, default_options, options);
             this._init();
@@ -574,7 +574,7 @@
                         return '';
                     })
                     .transition()
-                    .duration(this.options.animation_short_duration)
+                    .duration(this.options.animation_duration)
                     .style('opacity', 1.0)
                     .each("end", function(td_content, col_i){
                         var $div = $(td_content);

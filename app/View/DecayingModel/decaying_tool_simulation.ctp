@@ -4,7 +4,7 @@
             <div style="width: 20%; display: flex; flex-direction: column;">
                 <div class="panel-container" style="display: flex; flex-direction: column; flex-grow: 1">
                     <div style="display: flex;">
-                        <select id="select_model_to_simulate" onchange="$('#select_model_to_simulate_infobox').popover('show'); refreshSimulation()" style="flex-grow: 1;">
+                        <select id="select_model_to_simulate" onchange="modelChangeHandler(this)" style="flex-grow: 1;">
                             <?php foreach ($all_models as $model): ?>
                                 <option value="<?php echo h($model['DecayingModel']['id']) ?>" <?php echo $decaying_model['DecayingModel']['id'] == $model['DecayingModel']['id'] ? 'selected' : '' ?>><?php echo h($model['DecayingModel']['name']); ?></option>
                             <?php endforeach; ?>
@@ -75,7 +75,7 @@
                             <span id="simulation-current-score" class="add-on"></span>
                         </div>
                     </div>
-                    <div id="chart-decay-simulation-container" style="width: 70%; height: 100%; position: relative">
+                    <div id="chart-decay-simulation-container" style="width: 70%; height: 100%; position: relative; overflow: hidden;">
                         <div id="simulation_chart" class="svg-container"></div>
                     </div>
                 </div>
@@ -109,6 +109,17 @@ $(document).ready(function() {
         html: true,
         placement: 'bottom'
     });
+
+    $('body').on('click', function (e) {
+        if (
+            $(e.target).attr('id')  !== 'select_model_to_simulate'
+            && $(e.target).attr('id') !== 'select_model_to_simulate_infobox'
+            && $(e.target).parents('#select_model_to_simulate_infobox').length === 0
+            && $(e.target).parents('.popover.in').length === 0) {
+            $('#select_model_to_simulate_infobox').popover('hide');
+        }
+    });
+    
     <?php echo isset($attribute_id) ? '$("#performRestSearchButton").click();' : ''; ?>
 });
 
@@ -221,5 +232,10 @@ function refreshSimulation() {
     if (attribute_id !== '') {
         doSimulation($row, attribute_id);
     }
+}
+
+function modelChangeHandler(clicked) {
+    $('#select_model_to_simulate_infobox').popover('show');
+    refreshSimulation();
 }
 </script>
