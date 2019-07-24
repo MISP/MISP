@@ -60,9 +60,9 @@ foreach ($decayingModel as $item): ?>
             <?php echo $this->Form->postLink('', array('action' => 'delete', $item['DecayingModel']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete DecayingModel #' . $item['DecayingModel']['id'] . '?'));?>
             <?php
                 if ($item['DecayingModel']['enabled']):
-                    echo $this->Form->postLink('', array('action' => 'disabledModel', $item['DecayingModel']['id']), array('class' => 'fa fa-power-off', 'title' => 'Disable model'), __('Are you sure you want to disable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
+                    echo $this->Form->postLink('', array('action' => 'disable', $item['DecayingModel']['id']), array('class' => 'fa fa-power-off', 'title' => 'Disable model'), __('Are you sure you want to disable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
                 else:
-                    echo $this->Form->postLink('', array('action' => 'enableModel', $item['DecayingModel']['id']), array('class' => 'fa fa-play', 'title' => 'Enable model'), __('Are you sure you want to enable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
+                    echo $this->Form->postLink('', array('action' => 'enable', $item['DecayingModel']['id']), array('class' => 'fa fa-play', 'title' => 'Enable model'), __('Are you sure you want to enable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
                 endif;
             ?>
         </td>

@@ -207,11 +207,68 @@ class DecayingModelController extends AppController
 
             if ($this->DecayingModel->delete($id, true)) {
                 $this->Flash->success(__('Decaying Model deleted.'));
-                $this->redirect(array('action' => 'index'));
             } else {
                 $this->Flash->error(__('The Decaying Model could not be deleted.'));
-                $this->redirect(array('action' => 'index'));
             }
+            $this->redirect(array('action' => 'index'));
+        }
+    }
+
+    public function enable($id)
+    {
+        $decayingModel = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id);
+        if (!$this->_isSiteAdmin() && !$decModel) {
+            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $original_value_enabled = $decayingModel['DecayingModel']['enabled'];
+            $decayingModel['DecayingModel']['enabled'] = 1;
+            if ($this->DecayingModel->save($decayingModel)) {
+                if ($this->request->is('ajax')) {
+                    $response = array('data' => $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id), 'action' => 'edit');
+                    return $this->RestResponse->viewData($response, $this->response->type());
+                }
+                $this->Flash->success(__('Decaying Model enabled.'));
+            } else {
+                if ($this->request->is('ajax')) {
+                    $response = array('data' => $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id), 'action' => 'edit');
+                    return $this->RestResponse->viewData($response, $this->response->type());
+                }
+                $this->Flash->error(__('Error while enabling decaying model'));
+            }
+            $this->redirect(array('action' => 'index'));
+        } else {
+            $this->set('model', $decayingModel['DecayingModel']);
+            $this->render('ajax/enable_form');
+        }
+    }
+
+    public function disable($id)
+    {
+        $decayingModel = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id);
+        if (!$this->_isSiteAdmin() && !$decModel) {
+            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $original_value_enabled = $decayingModel['DecayingModel']['enabled'];
+            $decayingModel['DecayingModel']['enabled'] = 0;
+            if ($this->DecayingModel->save($decayingModel)) {
+                if ($this->request->is('ajax')) {
+                    $response = array('data' => $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id), 'action' => 'edit');
+                    return $this->RestResponse->viewData($response, $this->response->type());
+                }
+                $this->Flash->success(__('Decaying Model disabled.'));
+            } else {
+                if ($this->request->is('ajax')) {
+                    $response = array('data' => $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id), 'action' => 'edit');
+                    return $this->RestResponse->viewData($response, $this->response->type());
+                }
+                $this->Flash->error(__('Error while disabling decaying model'));
+            }
+            $this->redirect(array('action' => 'index'));
+        } else {
+            $this->set('model', $decayingModel['DecayingModel']);
+            $this->render('ajax/disable_form');
         }
     }
 

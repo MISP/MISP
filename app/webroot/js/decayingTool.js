@@ -368,14 +368,20 @@
                 this.fetchFormAndSubmit($clicked, type, model_id, data);
                 this.registerMapping(model_id);
             },
-            fetchFormAndSubmit: function($clicked, type, model_id, formData, baseurl) {
+            enableModel: function(clicked, model_id) {
+                this.fetchFormAndSubmit($(clicked), 'enable', model_id, {});
+            },
+            disableModel: function(clicked, model_id) {
+                this.fetchFormAndSubmit($(clicked), 'disable', model_id, {});
+            },
+            fetchFormAndSubmit: function($clicked, action, model_id, formData, baseurl) {
                 var that = this;
                 baseurl = baseurl === undefined || '' ? "/decayingModel/" : baseurl;
                 var url = baseurl;
-                if (type == "add") {
-                    url += type;
+                if (action == "add") {
+                    url += action;
                 } else {
-                    url += type + "/" + model_id;
+                    url += action + "/" + model_id;
                 }
                 var loadingSpan = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
 
@@ -383,8 +389,11 @@
                     var $confbox = $("#confirmation_box");
                     $confbox.html(data);
                     var $form = $confbox.find('form');
+                    var post_url = $form.attr('action');
                     if (baseurl.includes('decayingModelMapping')) {
                         that.injectDataAttributeTypes($form, formData);
+                    } else if (action.includes('able')) {
+                        // do nothing, form filled already
                     } else {
                         that.injectDataModel($form, formData);
                     }
@@ -419,7 +428,7 @@
                             $form.remove();
                         },
                         type: 'post',
-                        url: url
+                        url: post_url
                     });
                 });
             },
@@ -893,9 +902,9 @@ ModelTable.prototype = {
         var html_button = '<div style="width: max-content">';
         html_button += '<button class="btn btn-info btn-small decayingLoadBtn" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"> Load model</span></button>';
         if (model.DecayingModel.enabled) {
-            html_button += '<button class="btn btn-danger btn-small" style="margin-left: 3px;" onclick="decayingTool.disableModel(this);" title="Disable model"><span class="fa fa-power-off"></span></button>'
+            html_button += '<button class="btn btn-danger btn-small" style="margin-left: 3px;" onclick="decayingTool.disableModel(this, ' + model.DecayingModel.id + ');" title="Disable model"><span class="fa fa-power-off"></span></button>'
         } else {
-            html_button += '<button class="btn btn-success btn-small" style="margin-left: 3px;" onclick="decayingTool.enableModel(this);" title="Enable model"><span class="fa fa-play"></span></button>'
+            html_button += '<button class="btn btn-success btn-small" style="margin-left: 3px;" onclick="decayingTool.enableModel(this, ' + model.DecayingModel.id + ');" title="Enable model"><span class="fa fa-play"></span></button>'
         }
         html_button += '</div>';
         return html_button;
@@ -908,7 +917,7 @@ ModelTable.prototype = {
         }
         var is_row_selected = $('#saveForm #save-model-button').data('modelid') == model.DecayingModel.id;
         return cells_html = [
-            this._gen_td('<input type="checkbox" onchange="decayingTool.refreshSaveButton() style="margin:0" ' + (is_row_selected ? 'checked' : 'disabled') + '></input>', 'DMCheckbox'),
+            this._gen_td('<input type="checkbox" onchange="decayingTool.refreshSaveButton()" style="margin:0" ' + (is_row_selected ? 'checked' : 'disabled') + '></input>', 'DMCheckbox'),
             this._gen_td_link('/decayingModel/view/'+model.DecayingModel.id, model.DecayingModel.id, 'DMId'),
             this._gen_td(model.DecayingModel.name, 'DMName'),
             this._gen_td_link('/organisations/view/'+model.DecayingModel.org_id, model.DecayingModel.org_id, 'DMOrg'),
