@@ -158,8 +158,9 @@ class DecayingModel extends AppModel
         $decayingModels = $this->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1,
-            'contain' => 'DecayingModelMapping',
+            'contain' => 'DecayingModelMapping', // not needed
         ));
+        // #FIXME should be already done
         foreach ($decayingModels as $i => $decayingModel) {
             $decayingModels[$i]['DecayingModel']['attribute_types'] = Hash::extract($decayingModels[$i]['DecayingModelMapping'], '{n}.attribute_type');
             unset($decayingModels[$i]['DecayingModelMapping']);

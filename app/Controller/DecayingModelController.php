@@ -27,10 +27,55 @@ class DecayingModelController extends AppController
             } else {
                 $this->Flash->success($message);
                 $this->redirect(array('controller' => 'decayingModel', 'action' => 'index'));
-                // return $this->RestResponse->viewData($message, $this->response->type());
             }
         } else {
             throw new MethodNotAllowedException(__("This method is not allowed"));
+        }
+    }
+
+    public function export($model_id)
+    {
+        $model = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $model_id, true);
+        if (!$this->_isSiteAdmin() && !$decModel) {
+            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
+        }
+        unset($model['DecayingModel']['id']);
+        unset($model['DecayingModel']['org_id']);
+        unset($model['DecayingModelMapping']);
+        return $this->RestResponse->viewData($model, $this->response->type());
+    }
+
+    public function import()
+    {
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $data = $this->request->data['DecayingModel'];
+            if ($data['submittedjson']['name'] != '' && $data['json'] != '') {
+                throw new MethodNotAllowedException(__('Only one import field can be used'));
+            }
+            if ($data['submittedjson']['size'] > 0) {
+                $filename = basename($data['submittedjson']['name']);
+                $file_content = file_get_contents($data['submittedjson']['tmp_name']);
+                if ((isset($data['submittedjson']['error']) && $data['submittedjson']['error'] == 0) ||
+                    (!empty($data['submittedjson']['tmp_name']) && $data['submittedjson']['tmp_name'] != '')
+                ) {
+                    if (!$file_content) {
+                        throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
+                    }
+                }
+                $text = $file_content;
+            } else {
+                $text = $data['json'];
+            }
+            $json = json_decode($text, true);
+            if ($json === null) {
+                throw new MethodNotAllowedException(__('Error while decoding JSON'));
+            }
+            if ($this->DecayingModel->save($json)) {
+                $this->Flash->success(__('The model has been saved.'));
+            } else {
+                $this->Flash->error(__('Error while saving model.'));
+            }
+            $this->redirect(array('action' => 'index'));
         }
     }
 

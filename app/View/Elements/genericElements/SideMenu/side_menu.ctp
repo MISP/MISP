@@ -900,6 +900,10 @@
                             ));
                         }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/decayingModel/import',
+                            'text' => __('Import Decaying Model')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/decayingModel/add',
                             'text' => __('Add Decaying Model')
                         ));

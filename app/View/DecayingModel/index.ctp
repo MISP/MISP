@@ -50,6 +50,7 @@ foreach ($decayingModel as $item): ?>
         <td class="short action-links">
             <?php echo $this->Html->link('', array('action' => 'view', $item['DecayingModel']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
             <?php echo $this->Html->link('', array('action' => 'edit', $item['DecayingModel']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
+            <?php echo $this->Html->link('', array('action' => 'export', $item['DecayingModel']['id'] . '.json'), array('download' => true, 'class' => 'fa fa-cloud-download-alt', 'title' => __('Download model')));?>
             <?php echo $this->Form->postLink('', array('action' => 'delete', $item['DecayingModel']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete DecayingModel #' . $item['DecayingModel']['id'] . '?'));?>
         </td>
         <?php endif; ?>
