@@ -47,7 +47,7 @@ class RestResponseComponent extends Component
                     Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
                     This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals'),
+                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'decayingModel'),
                 'params' => array()
             )
         ),
@@ -703,6 +703,13 @@ class RestResponseComponent extends Component
                 'autoclose' => true
             ),
         ),
+        'decayingModel' => array(
+            'input' => 'select',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal'),
+            'unique' => true,
+            'help' => 'Specify the decaying model from which the decaying score should be calculated'
+        ),
         'default_role' => array(
             'input' => 'radio',
             'type' => 'integer',
@@ -881,6 +888,12 @@ class RestResponseComponent extends Component
             'type' => 'integer',
             'values' => array(1 => 'True', 0 => 'False' ),
             'help' => 'Include matching attributes in the response'
+        ),
+        'includeDecayScore' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' ),
+            'help' => 'Include all enabled decaying score'
         ),
         'includeEvent' => array(
             'input' => 'radio',
@@ -1486,6 +1499,9 @@ class RestResponseComponent extends Component
                                     case "category":
                                         $this->__overwriteCategory($scope, $fieldsConstraint[$field]);
                                         break;
+                                    case "decayingModel":
+                                        $this->__overwriteDecayingModel($scope, $fieldsConstraint[$field]);
+                                        break;
                                     case "distribution":
                                         $this->__overwriteDistribution($scope, $fieldsConstraint[$field]);
                                         break;
@@ -1552,6 +1568,17 @@ class RestResponseComponent extends Component
         $field['values'] = array();
         foreach(ClassRegistry::init("Attribute")->distributionLevels as $d => $text) {
             $field['values'][] = array('label' => $text, 'value' => $d);
+        }
+    }
+    private function __overwriteDecayingModel($scope, &$field) {
+        $this->{$scope} = ClassRegistry::init("DecayingModel");
+        $models = $this->{$scope}->find('list', array(
+            'recursive' => -1,
+            'fields' => array('name')
+        ));
+        $field['values'] = array();
+        foreach($models as $i => $model_name) {
+            $field['values'][] = array('label' => $model_name, 'value' => $i);
         }
     }
     private function __overwriteTags($scope, &$field) {
