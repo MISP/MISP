@@ -312,7 +312,7 @@ class StixBuilder(object):
             win_exec_file = WinExecutableFile()
             self.fill_file_object(win_exec_file, file_dict)
             for reference in file_object['ObjectReference']:
-                if reference['relationship_type'] == "included-in" and reference['Object']['name'] == "pe":
+                if reference['relationship_type'] in ("includes", "included-in") and reference['Object']['name'] == "pe":
                     pe_uuid = reference['referenced_uuid']
                     break
             pe_object = self.objects_to_parse['pe'][pe_uuid]
@@ -349,7 +349,7 @@ class StixBuilder(object):
                 pe_section_object = self.objects_to_parse['pe-section'][reference['referenced_uuid']]
                 to_ids_section, section_dict = self.create_attributes_dict(pe_section_object['Attribute'])
                 to_ids_list.append(to_ids_section)
-                if reference['relationship_type'] == "included-in":
+                if reference['relationship_type'] in ("includes", "included-in"):
                     pe_sections.append(self.create_pe_section_object(section_dict))
                 elif reference['relationship_type'] == "header-of":
                     entropy = self.create_pe_file_header(section_dict, pe_file_header)
@@ -809,7 +809,7 @@ class StixBuilder(object):
         if misp_object.get('ObjectReference'):
             to_parse = False
             for reference in misp_object['ObjectReference']:
-                if reference['relationship_type'] == 'included-in' and reference['Object']['name'] == "pe":
+                if reference['relationship_type'] in ('includes', 'included-in') and reference['Object']['name'] == "pe":
                     self.objects_to_parse[misp_object['name']][uuid] = misp_object
                     to_parse = True
                     break
