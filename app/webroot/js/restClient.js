@@ -138,9 +138,13 @@ function removeRestClientHistoryItem(id) {
             if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
                 $('#template_description').show();
                 $('#ServerMethod').val('POST');
+                var server_url_changed = $('#ServerUrl').val() != allValidApis[selected_template].url;
                 $('#ServerUrl').val(allValidApis[selected_template].url);
                 $('#ServerUrl').data('urlWithoutParam', selected_template);
-                $('#ServerBody').val(allValidApis[selected_template].body);
+                var body_value = $('#ServerBody').val();
+                if (body_value === '' || server_url_changed) {
+                    $('#ServerBody').val(allValidApis[selected_template].body);
+                }
                 setApiInfoBox(false);
                 updateQueryTool(selected_template, true);
             }
