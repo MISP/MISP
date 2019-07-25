@@ -13,5 +13,11 @@ class DecayingModelDefault extends DecayingModelBase
         $score = $base_score * (1 - pow($elapsed_time / $tau, 1 / $delta));
         return $score < 0 ? 0 : $score;
     }
+
+    public function isDecayed($model, $attribute, $score)
+    {
+        $threshold = $model['DecayingModel']['parameters']['threshold'];
+        return $threshold > $score;
+    }
 }
 ?>

@@ -98,6 +98,7 @@ abstract class DecayingModelBase
 
     // compute the score for the provided attribute according to the elapsed time with the provided model
     abstract public function computeScore($model, $attribute, $base_score, $elapsed_time);
+    abstract public function isDecayed($model, $attribute, $score);
 }
 
 ?>

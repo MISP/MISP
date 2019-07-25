@@ -388,7 +388,8 @@ class DecayingModel extends AppModel
             $model = $this->checkAuthorisation($user, $model_id, false);
             if ($model !== false) {
                 $score = $this->getScore($attribute, $model, $user);
-                $attribute['Attribute']['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score);
+                $decayed = $this->isDecayed($attribute, $model, $score);
+                $attribute['Attribute']['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score, 'decayed' => $decayed);
             } else {
                 throw new NotFoundException(__('Model not found or you are not authorized to view it'));
             }
@@ -400,7 +401,8 @@ class DecayingModel extends AppModel
                     $model = $this->checkAuthorisation($user, $model_id, false);
                     if ($model !== false && $model['DecayingModel']['enabled']) {
                         $score = $this->getScore($attribute, $model, $user);
-                        $attribute['Attribute']['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score);
+                        $decayed = $this->isDecayed($attribute, $model, $score);
+                        $attribute['Attribute']['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score, 'decayed' => $decayed);
                     }
                 }
             }
@@ -421,6 +423,15 @@ class DecayingModel extends AppModel
         }
         $this->Computation = $this->getModelClass($model);
         return $this->Computation->computeCurrentScore($user, $model, $attribute);
+    }
+
+    public function isDecayed($attribute, $model, $score=false, $user=false)
+    {
+        if ($score === false) {
+            $score = $this->getScore($attribute, $model, $user);
+        }
+        $this->Computation = $this->getModelClass($model);
+        return $this->Computation->isDecayed($model, $attribute, $score);
     }
 
 }
