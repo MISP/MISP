@@ -7,6 +7,9 @@
         ));
         echo $this->Form->input('description', array(
         ));
+        echo $this->Form->input('formula', array(
+            'value' => isset($this->request->data['DecayingModel']['formula']) ? $this->request->data['DecayingModel']['formula'] : 'default'
+        ));
         echo $this->Form->input('DecayingModel.parameters.tau', array(
             'label' => __('Tau parameter'),
             'type' => 'number',

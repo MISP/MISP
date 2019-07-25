@@ -27,6 +27,7 @@
                 <a class="black useCursorPointer" title="<?php echo __('Pretty print') ?>"><b style="font-size: larger;" onclick="prettyPrintJson();">{ }</b></a>
 
             </th>
+            <th><?php echo $this->Paginator->sort('formula');?></th>
             <th><?php echo $this->Paginator->sort('version');?></th>
             <th><?php echo $this->Paginator->sort('enabled');?></th>
             <?php if ($isAclTemplate): ?>
@@ -50,6 +51,7 @@ foreach ($decayingModel as $item): ?>
             }
         ?>
         <td data-toggle="json" ondblclick="document.location.href ='<?php echo $baseurl."/decayingModel/view/".$item['DecayingModel']['id']; ?>'"><?php echo json_encode($item['DecayingModel']['parameters']); ?>&nbsp;</td>
+        <td><?php echo h($item['DecayingModel']['formula']); ?>&nbsp;</td>
         <td><?php echo h($item['DecayingModel']['version']); ?>&nbsp;</td>
         <td><i class="fas fa-<?php echo $item['DecayingModel']['enabled'] ? 'check' : 'times';?>"></i></td>
         <?php if ($isAclTemplate): ?>
