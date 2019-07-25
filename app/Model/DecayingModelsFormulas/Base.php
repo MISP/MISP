@@ -36,12 +36,14 @@ abstract class DecayingModelBase
         $tags = array();
         $overridden_tags = array();
         $temp_mapping = array();
-        foreach ($attribute['EventTag'] as $i => $tag) {
-            $tags[] = $tag;
-            $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
-            $temp_mapping[$namespace_predicate] = $i;
+        if (isset($attribute['Attribute']['EventTag'])) {
+            foreach ($attribute['Attribute']['EventTag'] as $i => $tag) {
+                $tags[] = $tag;
+                $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
+                $temp_mapping[$namespace_predicate] = $i;
+            }
         }
-        foreach ($attribute['AttributeTag'] as $tag) {
+        foreach ($attribute['Attribute']['AttributeTag'] as $tag) {
             $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
             if (isset($temp_mapping[$namespace_predicate])) { // need to override event tag
                 $overridden_tags[] = array(
@@ -76,14 +78,19 @@ abstract class DecayingModelBase
     }
 
     // compute the current score for the provided attribute according to the last sighting with the provided model
-    final public function computeCurrentScore($model, $attribute, $base_score = false, $last_sighting_timestamp = false)
+    final public function computeCurrentScore($user, $model, $attribute, $base_score = false, $last_sighting_timestamp = false)
     {
         if ($base_score === false) {
             $base_score = $this->computeBasescore($model, $attribute)['base_score'];
         }
         if ($last_sighting_timestamp === false) {
             $this->Sighting = ClassRegistry::init('Sighting');
-            $last_sighting_timestamp = $this->Sighting->listSightings($user, $attribute_id, 'attribute', false, 0, true)[0]['Sighting']['date_sighting'];
+            $all_sightings = $this->Sighting->listSightings($user, $attribute['Attribute']['id'], 'attribute', false, 0, true);
+            if (!empty($all_sightings)) {
+                $last_sighting_timestamp = $all_sightings[0]['Sighting']['date_sighting'];
+            } else {
+                $last_sighting_timestamp = $attribute['Attribute']['timestamp']; // if no sighting, take the last update time
+            }
         }
         $timestamp = time();
         return $this->computeScore($model, $attribute, $base_score, $timestamp - $last_sighting_timestamp);

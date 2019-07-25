@@ -158,7 +158,11 @@ function doRestSearch(clicked, query) {
 }
 
 function doSpecificSearch(clicked) {
-    doRestSearch(clicked, '{ "id": "' + $(clicked).parent().find('input').val() + '" }');
+    var body = {
+        id: $(clicked).parent().find('input').val(),
+        decayingModel: $('#select_model_to_simulate').val()
+    }
+    doRestSearch(clicked, JSON.stringify(body));
 }
 
 function handle_input_key(e) {

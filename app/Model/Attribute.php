@@ -3062,6 +3062,12 @@ class Attribute extends AppModel
         if (!isset($options['includeWarninglistHits'])) {
             $options['includeWarninglistHits'] = false;
         }
+        if (!isset($options['includeDecayScore'])) {
+            $options['includeDecayScore'] = false;
+        }
+        if (!isset($options['decayingModel'])) {
+            $options['decayingModel'] = false;
+        }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
         } else {
@@ -3168,6 +3174,10 @@ class Attribute extends AppModel
                         $encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
                         $results[$key]['Attribute']['data'] = $encodedFile;
                     }
+                }
+                if ($options['includeDecayScore']) {
+                    $this->DecayingModel = ClassRegistry::init('DecayingModel');
+                    $this->DecayingModel->attachScoresToAttribute($user, $results[$key], $options['decayingModel']);
                 }
                 if (!empty($results[$key])) {
                     if (!empty($options['includeGalaxy'])) {
@@ -4103,7 +4113,8 @@ class Attribute extends AppModel
                 'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
                 'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
                 'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
-                'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0
+                'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
+                'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0
         );
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];
@@ -4119,6 +4130,9 @@ class Attribute extends AppModel
         }
         if (!empty($filters['deleted'])) {
             $params['deleted'] = $filters['deleted'];
+        }
+        if (!empty($filters['decayingModel'])) {
+            $params['decayingModel'] = $filters['decayingModel'];
         }
         if ($paramsOnly) {
             return $params;

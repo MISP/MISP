@@ -30,7 +30,8 @@
             __('Galaxies'),
             $this->Paginator->sort('comment'),
             sprintf('<span title="%s">%s', $attrDescriptions['signature']['desc'], $this->Paginator->sort('IDS')),
-            __('Sightings')
+            __('Sightings'),
+            $this->Paginator->sort('decay_score.score', __('Score')),
         );
         foreach ($headers as $k => &$header) {
             $header = sprintf('<th>%s</th>', $header);

@@ -362,7 +362,7 @@ class DecayingModelController extends AppController
                 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
                 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
                 'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
-                'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'id'
+                'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'id', 'includeDecayScore', 'decayingModel'
             );
             $filterData = array(
                 'request' => $this->request,
@@ -378,6 +378,7 @@ class DecayingModelController extends AppController
             if (!isset($filters['includeEventTags'])) {
                 $filters['includeEventTags'] = 1;
             }
+            $filters['includeDecayScore'] = 1;
             if (isset($filters['id'])) { // alows searched by id
                 if (Validation::uuid($filters['id'])) {
                     $filters['uuid'] = $filters['id'];
@@ -467,6 +468,10 @@ class DecayingModelController extends AppController
                         $attributes[$k]['Attribute']['EventTag'][] = $tag;
                     }
                 }
+                if (empty($filters['decayingModel'])) {
+                    $filters['decayingModel'] = false;
+                }
+                $this->DecayingModel->attachScoresToAttribute($this->Auth->user(), $attributes[$k], $filters['decayingModel']);
             }
             $sightingsData = $this->User->Event->getSightingData(array('Sighting' => $sightingsData));
             $this->set('sightingsData', $sightingsData);

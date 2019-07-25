@@ -14,6 +14,8 @@ class DecayingModel extends AppModel
         )
     );
 
+    private $__registered_model_classes = array();
+
     public function afterFind($results, $primary = false) {
         foreach ($results as $k => $v) {
             if (!empty($v['DecayingModel']['parameters'])) {
@@ -146,7 +148,8 @@ class DecayingModel extends AppModel
         }
     }
 
-    public function fetchAllowedModels($user) {
+    public function fetchAllowedModels($user)
+    {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             if ($user['Role']['perm_decaying']) {
@@ -168,11 +171,17 @@ class DecayingModel extends AppModel
         return $decayingModels;
     }
 
-    public function checkAuthorisation($user, $id, $full=true) {
+    public function checkAuthorisation($user, $id, $full=true)
+    {
         // fetch the bare template
-        $decayingModel = $this->find('first', array(
-            'conditions' => array('id' => $id),
-        ));
+        $conditions = array('id' => $id);
+        $searchOptions = array(
+            'conditions' => $conditions,
+        );
+        if (!$full) {
+            $searchOptions['recursive'] = -1;
+        }
+        $decayingModel = $this->find('first', $searchOptions);
 
         // if not found return false
         if (empty($decayingModel)) {
@@ -258,11 +267,14 @@ class DecayingModel extends AppModel
     {
         $formula_name = $model['DecayingModel']['formula'] === '' ? 'default' : $model['DecayingModel']['formula'];
         $expected_filename = Inflector::humanize($formula_name) . '.php';
-        $model_class = $this->__include_formula_file_and_return_instance($expected_filename);
-        if ($model_class === false) {
-            throw new NotFoundException(sprintf(__('The class for `%s` was not found or not loaded correctly'), $formula_name));
+        if (!isset($this->__registered_model_classes[$formula_name])) {
+            $model_class = $this->__include_formula_file_and_return_instance($expected_filename);
+            if ($model_class === false) {
+                throw new NotFoundException(sprintf(__('The class for `%s` was not found or not loaded correctly'), $formula_name));
+            }
+            $this->__registered_model_classes[$formula_name] = $model_class;
         }
-        return $model_class;
+        return $this->__registered_model_classes[$formula_name];
     }
 
     // returns timestamp set to the rounded hour
@@ -292,8 +304,10 @@ class DecayingModel extends AppModel
             foreach ($temp as $tag) {
                 $tag['EventTag']['Tag'] = $tag['Tag'];
                 unset($tag['Tag']);
-                $attribute['EventTag'][] = $tag['EventTag'];
+                $attribute['Attribute']['EventTag'][] = $tag['EventTag'];
             }
+            $attribute['Attribute']['AttributeTag'] = $attribute['AttributeTag'];
+            unset($attribute['AttributeTag']);
         }
         $model = $this->checkAuthorisation($user, $model_id, true);
         if ($model === false) {
@@ -323,7 +337,7 @@ class DecayingModel extends AppModel
         $sighting_index = 0;
         for ($t=$start_time; $t < $end_time; $t+=3600) {
             // fetch closest sighting to the current time
-            $sighting_index = $this->get_closest_sighting($sightings, $t, $sighting_index);
+            $sighting_index = $this->getClosestSighting($sightings, $t, $sighting_index);
             $last_sighting = $this->round_timestamp_to_hour($sightings[$sighting_index]['Sighting']['date_sighting']);
             $sightings[$sighting_index]['Sighting']['rounded_timestamp'] = $last_sighting;
             $elapsed_time = $t - $last_sighting;
@@ -338,11 +352,11 @@ class DecayingModel extends AppModel
             'sightings' => $sightings,
             'base_score_config' => $base_score_config,
             'last_sighting' => $sightings[count($sightings)-1],
-            'current_score' => $this->Computation->computeCurrentScore($model, $attribute, $base_score, $sightings[count($sightings)-1]['Sighting']['date_sighting'])
+            'current_score' => $this->Computation->computeCurrentScore($user, $model, $attribute, $base_score, $sightings[count($sightings)-1]['Sighting']['date_sighting'])
         );
     }
 
-    public function get_closest_sighting($sightings, $time, $previous_index)
+    public function getClosestSighting($sightings, $time, $previous_index)
     {
         if (count($sightings) <= $previous_index+1) {
             return $previous_index;
@@ -358,6 +372,55 @@ class DecayingModel extends AppModel
             $next_sighting = $sightings[$next_index]['Sighting']['date_sighting'];
         }
         return $next_index-1;
+    }
+
+    public function attachScoresToAttribute($user, &$attribute, $model_id=false)
+    {
+        // try to add a bit of order
+        if (isset($attribute['AttributeTag']) && !isset($attribute['Attribute']['AttributeTag'])) {
+            $attribute['Attribute']['AttributeTag'] = $attribute['AttributeTag'];
+        }
+        if (isset($attribute['EventTag']) && !isset($attribute['Attribute']['EventTag'])) {
+            $attribute['Attribute']['EventTag'] = $attribute['EventTag'];
+        }
+
+        if ($model_id !== false) {
+            $model = $this->checkAuthorisation($user, $model_id, false);
+            if ($model !== false) {
+                $score = $this->getScore($attribute, $model, $user);
+                $attribute['Attribute']['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score);
+            } else {
+                throw new NotFoundException(__('Model not found or you are not authorized to view it'));
+            }
+        } else { // get score for all activated models
+            $associated_model_ids = $this->DecayingModelMapping->getAssociatedModels($user, $attribute['Attribute']['type'], true);
+            $associated_model_ids = array_values($associated_model_ids[$attribute['Attribute']['type']]);
+            if (!empty($associated_model_ids)) {
+                foreach ($associated_model_ids as $model_id) {
+                    $model = $this->checkAuthorisation($user, $model_id, false);
+                    if ($model !== false && $model['DecayingModel']['enabled']) {
+                        $score = $this->getScore($attribute, $model, $user);
+                        $attribute['Attribute']['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score);
+                    }
+                }
+            }
+        }
+    }
+
+    public function getScore($attribute, $model, $user=false)
+    {
+        if (is_numeric($attribute) && $user !== false) {
+            $this->Attribute = ClassRegistry::init('Attribute');
+            $attribute = $this->Attribute->fetchAttributesSimple($user, array(
+                'conditions' => array('id' => $attribute),
+                'contain' => array('AttributeTag' => array('Tag'))
+            ));
+        }
+        if (is_numeric($model) && $user !== false) {
+            $model = $this->checkAuthorisation($user, $model);
+        }
+        $this->Computation = $this->getModelClass($model);
+        return $this->Computation->computeCurrentScore($user, $model, $attribute);
     }
 
 }

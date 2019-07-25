@@ -82,4 +82,9 @@
         }
       ?>
     </td>
+    <td class="short">
+        <div id = "Attribute_<?php echo $object['id']; ?>_score_solid" class="inline-field-solid">
+            <?php echo $this->element('DecayingModels/View/attribute_decay_score', array('scope' => 'object', 'object' => $object)); ?>
+        </div>
+    </td>
 </tr>
