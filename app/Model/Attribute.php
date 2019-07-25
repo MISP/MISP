@@ -3068,8 +3068,8 @@ class Attribute extends AppModel
         if (!isset($options['decayingModel'])) {
             $options['decayingModel'] = false;
         }
-        if (!isset($options['decayed'])) {
-            $options['decayed'] = 1;
+        if (!isset($options['excludeDecayed'])) {
+            $options['excludeDecayed'] = 0;
         } else {
             $options['includeDecayScore'] = true;
         }
@@ -3183,7 +3183,7 @@ class Attribute extends AppModel
                 if ($options['includeDecayScore']) {
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
                     $this->DecayingModel->attachScoresToAttribute($user, $results[$key], $options['decayingModel']);
-                    if (!$options['decayed']) { // filter out decayed attribute
+                    if ($options['excludeDecayed']) { // filter out decayed attribute
                         $decayed_flag = true;
                         foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) {
                             $decayed_flag = $decayed_flag && $decayResult['decayed'];
@@ -4145,8 +4145,8 @@ class Attribute extends AppModel
         if (!empty($filters['deleted'])) {
             $params['deleted'] = $filters['deleted'];
         }
-        if (!empty($filters['decayed'])) {
-            $params['decayed'] = $filters['decayed'];
+        if (!empty($filters['excludeDecayed'])) {
+            $params['excludeDecayed'] = $filters['excludeDecayed'];
             $params['includeDecayScore'] = 1;
         }
         if (!empty($filters['decayingModel'])) {

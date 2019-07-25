@@ -362,7 +362,7 @@ class DecayingModelController extends AppController
                 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
                 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
                 'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
-                'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'id', 'includeDecayScore', 'decayingModel', 'decayed'
+                'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'id', 'includeDecayScore', 'decayingModel', 'excludeDecayed'
             );
             $filterData = array(
                 'request' => $this->request,
@@ -377,6 +377,9 @@ class DecayingModelController extends AppController
             }
             if (!isset($filters['includeEventTags'])) {
                 $filters['includeEventTags'] = 1;
+            }
+            if (!isset($filters['excludeDecayed'])) {
+                $filters['excludeDecayed'] = 0;
             }
             $filters['includeDecayScore'] = 1;
             if (isset($filters['id'])) { // alows searched by id
@@ -472,7 +475,7 @@ class DecayingModelController extends AppController
                     $filters['decayingModel'] = false;
                 }
                 $this->DecayingModel->attachScoresToAttribute($this->Auth->user(), $attributes[$k], $filters['decayingModel']);
-                if (!$filters['decayed']) { // filter out decayed attribute
+                if ($filters['excludeDecayed']) { // filter out decayed attribute
                     $decayed_flag = true;
                     foreach ($attributes[$k]['Attribute']['decay_score'] as $decayResult) {
                         $decayed_flag = $decayed_flag && $decayResult['decayed'];
