@@ -240,110 +240,29 @@ class DecayingModel extends AppModel
         );
     }
 
-    // get effective taxonomy ratio based on taxonomies attached to the attribute
-    private function _getRatioScore($model, $tags)
+    private function __include_formula_file_and_return_instance($filename='default.php')
     {
-        $ratioScore = array();
-        $taxonomy_base_ratio = $model['DecayingModel']['parameters']['base_score_config'];
-        if (empty($taxonomy_base_ratio)) {
-            return array();
-        }
-        $total_score = 0.0;
-        foreach ($tags as $tag) {
-            $namespace_predicate = explode(':', $tag['Tag']['name'])[0];
-            if (isset($taxonomy_base_ratio[$namespace_predicate])) {
-                $total_score += floatval($taxonomy_base_ratio[$namespace_predicate]);
+        $full_path = APP . 'Model/DecayingModelsFormulas/' . $filename;
+        $expected_classname = 'DecayingModel' . str_replace('.php', '', $filename);
+        if (is_file($full_path)) {
+            include $full_path;
+            $model_class = ClassRegistry::init($expected_classname);
+            if ($model_class->checkLoading() == 'BONFIRE LIT') {
+                return $model_class;
             }
         }
-        foreach ($tags as $i => $tag) {
-            $namespace_predicate = explode(':', $tag['Tag']['name'])[0];
-            if (isset($taxonomy_base_ratio[$namespace_predicate])) {
-                $ratioScore[$namespace_predicate] = floatval($taxonomy_base_ratio[$namespace_predicate]) / $total_score;
-            }
-        }
-        return $ratioScore;
+        return false;
     }
 
-    // return attribute tag with event tag matching the namespace+predicate overridden
-    private function getPrioritizedTag($attribute)
+    public function getModelClass($model)
     {
-        $tags = array();
-        $overridden_tags = array();
-        $temp_mapping = array();
-        foreach ($attribute['EventTag'] as $i => $tag) {
-            $tags[] = $tag;
-            $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
-            $temp_mapping[$namespace_predicate] = $i;
+        $formula_name = $model['DecayingModel']['formula'] === '' ? 'default' : $model['DecayingModel']['formula'];
+        $expected_filename = Inflector::humanize($formula_name) . '.php';
+        $model_class = $this->__include_formula_file_and_return_instance($expected_filename);
+        if ($model_class === false) {
+            throw new NotFoundException(sprintf(__('The class for `%s` was not found or not loaded correctly'), $formula_name));
         }
-        foreach ($attribute['AttributeTag'] as $tag) {
-            $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
-            if (isset($temp_mapping[$namespace_predicate])) { // need to override event tag
-                $overridden_tags[] = array(
-                    'EventTag' => $tags[$temp_mapping[$namespace_predicate]],
-                    'AttributeTag' => $tag
-                );
-                $tags[$temp_mapping[$namespace_predicate]] = $tag;
-            } else {
-                $tags[] = $tag;
-            }
-        }
-        return array('tags' => $tags, 'overridden' => $overridden_tags);
-    }
-
-    public function computeBasescore($model, $attribute)
-    {
-        $temp = $this->getPrioritizedTag($attribute);
-        $tags = $temp['tags'];
-        $overridden_tags = $temp['overridden'];
-        $taxonomy_effective_ratios = $this->_getRatioScore($model, $tags);
-        $default_base_score = isset($model['DecayingModel']['parameters']['default_base_score']) ? $model['DecayingModel']['parameters']['default_base_score'] : 0 ;
-        $base_score = $default_base_score;
-        if (!empty($taxonomy_effective_ratios)) {
-            foreach ($tags as $k => $tag) {
-                $taxonomy = explode(':', $tag['Tag']['name'])[0];
-                if (isset($taxonomy_effective_ratios[$taxonomy])) {
-                    $base_score += $taxonomy_effective_ratios[$taxonomy] * $tag['Tag']['numerical_value'];
-                }
-            }
-        }
-        return array('base_score' => $base_score, 'overridden' => $overridden_tags, 'tags' => $tags, 'taxonomy_effective_ratios' => $taxonomy_effective_ratios, 'default_base_score' => $default_base_score);
-    }
-
-    // compute the current score for the provided atribute with the provided model
-    public function computeScore($model, $elapsed_time, $base_score)
-    {
-        if ($elapsed_time < 0) {
-            return 0;
-        }
-        $delta = $model['DecayingModel']['parameters']['delta'];
-        $tau = $model['DecayingModel']['parameters']['tau']*24*60*60;
-        $score = $base_score * (1 - pow($elapsed_time / $tau, 1 / $delta));
-        return $score < 0 ? 0 : $score;
-    }
-
-    public function computeCurrentScore($model, $attribute, $base_score = false, $last_sighting_timestamp = false)
-    {
-        if ($base_score === false) {
-            $base_score = $this->computeBasescore($model, $attribute)['base_score'];
-        }
-        if ($last_sighting_timestamp === false) {
-            $last_sighting_timestamp = $this->Sighting->listSightings($user, $attribute_id, 'attribute', false, 0, true)[0]['Sighting']['date_sighting'];
-        }
-        $timestamp = time();
-        return $this->computeScore($model, $timestamp - $last_sighting_timestamp, $base_score);
-    }
-
-    // compute the score at the given timestamp for the provided atribute with the provided model
-    public function computeScoreForTimestamp($model, $attribute, $timestamp, $last_sighting_timestamp, $base_score)
-    {
-        $t = $timestamp - $last_sighting_timestamp;
-        if ($t < 0) {
-            return 0;
-        }
-        $delta = $model['DecayingModel']['parameters']['delta'];
-        $tau = $model['DecayingModel']['parameters']['tau']*24*60*60;
-        $score = $base_score * (1 - pow($t / $tau, 1 / $delta));
-        return $score < 0 ? 0 : $score;
+        return $model_class;
     }
 
     // returns timestamp set to the rounded hour
@@ -380,6 +299,7 @@ class DecayingModel extends AppModel
         if ($model === false) {
             throw new NotFoundException(__('Model not found'));
         }
+        $this->Computation = $this->getModelClass($model);
         $this->Sighting = ClassRegistry::init('Sighting');
         $sightings = $this->Sighting->listSightings($user, $attribute_id, 'attribute', false, 0, false);
         if (empty($sightings)) {
@@ -394,7 +314,7 @@ class DecayingModel extends AppModel
         // get end time
         $end_time = $sightings[count($sightings)-1]['Sighting']['date_sighting'] + $model['DecayingModel']['parameters']['tau']*24*60*60;
         $end_time = $this->round_timestamp_to_hour($end_time);
-        $base_score_config = $this->computeBasescore($model, $attribute);
+        $base_score_config = $this->Computation->computeBasescore($model, $attribute);
         $base_score = $base_score_config['base_score'];
 
         // generate time span from oldest timestamp to last decay, resolution is hours
@@ -407,7 +327,7 @@ class DecayingModel extends AppModel
             $last_sighting = $this->round_timestamp_to_hour($sightings[$sighting_index]['Sighting']['date_sighting']);
             $sightings[$sighting_index]['Sighting']['rounded_timestamp'] = $last_sighting;
             $elapsed_time = $t - $last_sighting;
-            $score_overtime[$t] = $this->computeScore($model, $elapsed_time, $base_score);
+            $score_overtime[$t] = $this->Computation->computeScore($model, $attribute, $base_score, $elapsed_time);
         }
         $csv = 'date,value' . PHP_EOL;
         foreach ($score_overtime as $t => $v) {
@@ -418,7 +338,7 @@ class DecayingModel extends AppModel
             'sightings' => $sightings,
             'base_score_config' => $base_score_config,
             'last_sighting' => $sightings[count($sightings)-1],
-            'current_score' => $this->computeCurrentScore($model, $attribute, $base_score, $sightings[count($sightings)-1]['Sighting']['date_sighting'])
+            'current_score' => $this->Computation->computeCurrentScore($model, $attribute, $base_score, $sightings[count($sightings)-1]['Sighting']['date_sighting'])
         );
     }
 
