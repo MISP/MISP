@@ -16,7 +16,7 @@
             this._validateOptions(options);
             var default_options = {
                 tick_num: 300,
-                margin: {top: 10, right: 10, bottom: 20, left: 30},
+                margin: {top: 10, right: 10, bottom: 35, left: 35},
                 animation_duration: 250,
                 animation_short_duration: 100,
                 redraw_timeout: 200,
@@ -108,6 +108,23 @@
                 this.svg.append("g")
                     .attr("class", "decayingGraphAxis grid grid-y")
                     .attr("transform", "translate(0," + this.height + ")");
+
+                this.svg.append("text")
+                    .classed('axis-label', true)
+                    .attr("text-anchor", "end")
+                    .attr("x", this.width / 2)
+                    .attr("y", this.height)
+                    .attr("dy", '30px')
+                    .text("Date");
+
+                this.svg.append("text")
+                    .classed('axis-label', true)
+                    .attr("text-anchor", "middle")
+                    .attr("transform", "rotate(-90 0 " + this.height / 2 + ")")
+                    .attr("x", 0)
+                    .attr("dy", '-25px')
+                    .attr("y", this.height / 2)
+                    .text("Score");
 
                 this.svg.append('g')
                     .classed('line-group', true);

@@ -16,7 +16,7 @@
             this._validateOptions(options);
             var default_options = {
                 TICK_NUM: 300,
-                margin: {top: 10, right: 10, bottom: 20, left: 30},
+                margin: {top: 10, right: 10, bottom: 35, left: 45},
             };
             this.options = $.extend(true, {}, default_options, options);
             this._backup = {
@@ -239,6 +239,23 @@
                 this.svg.append("g")
                     .attr("class", "decayingGraphAxis axis-y")
                     .call(this.yAxis);
+
+                this.svg.append("text")
+                    .classed('axis-label', true)
+                    .attr("text-anchor", "end")
+                    .attr("x", this.width / 2)
+                    .attr("y", this.height)
+                    .attr("dy", '30px')
+                    .text("Days");
+
+                this.svg.append("text")
+                    .classed('axis-label', true)
+                    .attr("text-anchor", "middle")
+                    .attr("transform", "rotate(-90 0 " + this.height / 2 + ")")
+                    .attr("x", 0)
+                    .attr("dy", '-30px')
+                    .attr("y", this.height / 2)
+                    .text("Score");
 
                 this.refreshInfoCells();
             },

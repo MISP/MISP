@@ -158,3 +158,8 @@ div.loading-spinner-container {
     position: absolute;
     left: 0;
 }
+
+svg text.axis-label {
+    font: 10px sans-serif;
+    fill: #999;
+}
