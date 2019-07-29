@@ -135,6 +135,8 @@ class Organisation extends AppModel
         foreach ($results as $k => $organisation) {
             if (!empty($organisation['Organisation']['restricted_to_domain'])) {
                 $results[$k]['Organisation']['restricted_to_domain'] = json_decode($organisation['Organisation']['restricted_to_domain'], true);
+            } else {
+                $results[$k]['Organisation']['restricted_to_domain'] = array();
             }
         }
         return $results;
