@@ -1200,7 +1200,9 @@ class UsersController extends AppController
         ));
         $orgs = array(0 => 'All organisations');
         foreach ($org_ids as $v) {
-            $orgs[$v] = $orgs_temp[$v];
+            if (!empty($orgs_temp[$v])) {
+                $orgs[$v] = $orgs_temp[$v];
+            }
         }
         $data = array();
         $max = 1;
