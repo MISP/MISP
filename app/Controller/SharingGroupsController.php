@@ -48,6 +48,7 @@ class SharingGroupsController extends AppController
             'recursive' => -1,
             'fields' => array('id', 'name', 'uuid')
         ));
+
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 $sg = $this->request->data;
@@ -57,6 +58,9 @@ class SharingGroupsController extends AppController
                 $id = $this->SharingGroup->captureSG($this->request->data, $this->Auth->user());
                 if ($id) {
                     $sg = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'simplified', false, $id);
+                    if (!empty($sg)) {
+                        $sg = empty($sg) ? array() : $sg[0];
+                    }
                     return $this->RestResponse->viewData($sg, $this->response->type());
                 } else {
                     return $this->RestResponse->saveFailResponse('SharingGroup', 'add', false, 'Could not save sharing group.', $this->response->type());
