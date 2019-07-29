@@ -848,7 +848,7 @@ class Server extends AppModel
                         ),
                         'block_old_event_alert_age' => array(
                                 'level' => 1,
-                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "Date" field of the event is used. Expected format: integer, in days'),
+                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "timestamp" field of the event is used. Expected format: integer, in days'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testForNumeric',
