@@ -46,7 +46,24 @@
         }
         $aStyle = 'background-color:' . h($tag['Tag']['colour']) . ';color:' . $this->TextColour->getTextColour($tag['Tag']['colour']) . ';';
         $aClass = 'tag nowrap';
-        $aText = h($tag['Tag']['name']);
+        $aText = trim($tag['Tag']['name']);
+        if (!empty($tag_display_style) || is_numeric($tag_display_style)) {
+            if ($tag_display_style == 0) {
+                $separator_pos = strpos($aText, ':');
+                if ($separator_pos !== false) {
+                    $aTextModified = substr($aText, $separator_pos + 1);
+                    $value_pos = strpos($aTextModified, '=');
+                    if ($value_pos !== false) {
+                        $aTextModified = substr($aTextModified, $value_pos + 1);
+                        $aTextModified = trim($aTextModified, '"');
+                    }
+                }
+                $aTextModified = h($aTextModified);
+            } else if ($tag_display_style == 2) {
+                $aTextModified = '&nbsp;';
+            }
+        }
+        $aText = h($aText);
         $span_scope = sprintf(
             '<span class="%s" title="%s" aria-label="%s"><i class="fas fa-%s"></i></span>',
             'black-white tag',
@@ -56,7 +73,7 @@
         );
         if (!empty($tag['Tag']['id'])) {
             $span_tag = sprintf(
-                '<a href="%s" style="%s" class="%s">%s</a>',
+                '<a href="%s" style="%s" class="%s" title="%s">%s</a>',
                 sprintf(
                     '%s%s%s',
                     $baseurl,
@@ -65,7 +82,8 @@
                 ),
                 $aStyle,
                 $aClass,
-                $aText
+                $aText,
+                isset($aTextModified) ? $aTextModified : $aText
             );
         } else {
             $span_tag = sprintf(

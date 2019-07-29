@@ -141,7 +141,8 @@
                             'tagAccess' => false,
                             'required_taxonomies' => false,
                             'columnised' => true,
-                            'static_tags_only' => true
+                            'static_tags_only' => 1,
+                            'tag_display_style' => Configure::read('MISP.full_tags_on_event_index')
                         )
                     )
                 );
