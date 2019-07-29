@@ -406,7 +406,7 @@ class SharingGroupsController extends AppController
         $addOrg = true;
         if (!empty($sg['SharingGroupOrg'])) {
             foreach ($sg['SharingGroupOrg'] as $sgo) {
-                if ($sgo['org_id'] == $org['Organisation']['id']) {
+                if ($sgo['org_id'] == $org['id']) {
                     $addOrg = false;
                 }
             }
@@ -417,7 +417,7 @@ class SharingGroupsController extends AppController
         $this->SharingGroup->SharingGroupOrg->create();
         $sgo = array(
             'SharingGroupOrg' => array(
-                'org_id' => $org['Organisation']['id'],
+                'org_id' => $org['id'],
                 'sharing_group_id' => $sg['SharingGroup']['id'],
                 'extend' => $extend ? 1:0
             )
