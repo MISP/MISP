@@ -47,7 +47,7 @@
         $aStyle = 'background-color:' . h($tag['Tag']['colour']) . ';color:' . $this->TextColour->getTextColour($tag['Tag']['colour']) . ';';
         $aClass = 'tag nowrap';
         $aText = trim($tag['Tag']['name']);
-        if (!empty($tag_display_style) || is_numeric($tag_display_style)) {
+        if (isset($tag_display_style)) {
             if ($tag_display_style == 0) {
                 $separator_pos = strpos($aText, ':');
                 if ($separator_pos !== false) {
