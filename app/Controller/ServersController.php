@@ -613,7 +613,13 @@ class ServersController extends AppController
      */
     public function pull($id = null, $technique='full')
     {
-        $this->Server->id = $id;
+        if (!empty($id)) {
+            $this->Server->id = $id;
+        } else if (!empty($this->request->data['id'])) {
+            $this->Server->id = $this->request->data['id'];
+        } else {
+            throw new NotFoundException(__('Invalid server'));
+        }
         if (!$this->Server->exists()) {
             throw new NotFoundException(__('Invalid server'));
         }
@@ -682,7 +688,16 @@ class ServersController extends AppController
 
     public function push($id = null, $technique=false)
     {
-        $this->Server->id = $id;
+        if (!empty($id)) {
+            $this->Server->id = $id;
+        } else if (!empty($this->request->data['id'])) {
+            $this->Server->id = $this->request->data['id'];
+        } else {
+            throw new NotFoundException(__('Invalid server'));
+        }
+        if (!empty($this->request->data['technique'])) {
+            $technique = $this->request->data['technique'];
+        }
         if (!$this->Server->exists()) {
             throw new NotFoundException(__('Invalid server'));
         }
