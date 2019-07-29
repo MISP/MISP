@@ -586,7 +586,7 @@ class ServersController extends AppController
     public function delete($id = null)
     {
         if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
+            throw new MethodNotAllowedException(__('This endpoint expects POST requests.'));
         }
         $this->Server->id = $id;
         if (!$this->Server->exists()) {
@@ -594,14 +594,31 @@ class ServersController extends AppController
         }
         $s = $this->Server->read(null, $id);
         if (!$this->_isSiteAdmin()) {
-            $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+            $message = __('You don\'t have the privileges to do that.');
+            if ($this->_isRest()) {
+                throw new MethodNotAllowedException($message);
+            } else {
+                $this->Flash->error($message);
+                $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+            }
         }
         if ($this->Server->delete()) {
-            $this->Flash->success(__('Server deleted'));
+            $message = __('Server deleted');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $message, $this->response->type());
+            } else {
+                $this->Flash->success($message);
+                $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+            }
+
+        }
+        $message = __('Server was not deleted');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveFailResponse('Servers', 'delete', $id, $message, $this->response->type());
+        } else {
+            $this->Flash->error($message);
             $this->redirect(array('action' => 'index'));
         }
-        $this->Flash->error(__('Server was not deleted'));
-        $this->redirect(array('action' => 'index'));
     }
 
     /**
