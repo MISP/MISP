@@ -49,6 +49,11 @@ class Server extends AppModel
         'authkey' => array(
             'rule' => array('validateAuthkey')
         ),
+        'name' => array(
+            'rule' => array('notBlank'),
+            'allowEmpty' => false,
+            'required' => true
+        ),
         'org_id' => array(
             'numeric' => array(
                 'rule' => array('valueIsID'),
