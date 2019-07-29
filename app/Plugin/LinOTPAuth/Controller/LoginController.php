@@ -91,6 +91,13 @@ class LoginController extends AppController
             } else {
                 $this->Session->write(self::LINOTP_USER_NAME_KEY, $email);
             }
+        } else {
+            // If there is no post data for the current form clear out the auth related messages
+            if ($this->request->data == array() && $this->Session->read('Message.auth')) {
+                $this->Session->delete('Message.auth');
+            } else if ($this->request->data) {
+                $this->Flash->error("Username or password wrong.");
+            }
         }
     }
 
