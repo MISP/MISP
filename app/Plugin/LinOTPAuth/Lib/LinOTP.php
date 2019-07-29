@@ -75,44 +75,44 @@ class LinOTP {
 
         $response = $this->_post("/validate/check", $data);
 
-        if ($response == false) {
+        if ($response === false) {
             CakeLog::error("LinOTP request for user ${user} failed.");
             return false;
-        } else {
-            if (gettype($response) !== "object") {
-                CakeLog::error("Response from LinOTP is not an JSON dictionary/array. Got an " .gettype($response). ": ".$response);
-                return false;
-            }
-
-            if (!property_exists($response,"result")) {
-                CakeLog::error("Missing 'result' key in LinOTP response.");
-                return false;
-            }
-            $result = $response->result;
-
-            if (!property_exists($result,"status")) {
-                CakeLog::error("Missing 'status' key in result envelope from LinOTP.");
-                return false;
-            }
-            $status = $result->status;
-
-            if (!property_exists($result, "value")) {
-                CakeLog::error("Missing 'value' key in result envelop from LinOTP.");
-                return false;
-            }
-            $value = $result->value;
-
-            $ret = array(
-                "status" => $status,
-                "value" => $value,
-            );
-
-            if (property_exists($response, 'detail')) {
-                $ret['detail'] = $response->detail;
-            }
-
-            return $ret;
         }
+
+        if (gettype($response) !== "object") {
+            CakeLog::error("Response from LinOTP is not an JSON dictionary/array. Got an " .gettype($response). ": ".$response);
+            return false;
+        }
+
+        if (!property_exists($response,"result")) {
+            CakeLog::error("Missing 'result' key in LinOTP response.");
+            return false;
+        }
+        $result = $response->result;
+
+        if (!property_exists($result,"status")) {
+            CakeLog::error("Missing 'status' key in result envelope from LinOTP.");
+            return false;
+        }
+        $status = $result->status;
+
+        if (!property_exists($result, "value")) {
+            CakeLog::error("Missing 'value' key in result envelop from LinOTP.");
+            return false;
+        }
+        $value = $result->value;
+
+        $ret = array(
+            "status" => $status,
+            "value" => $value,
+        );
+
+        if (property_exists($response, 'detail')) {
+            $ret['detail'] = $response->detail;
+        }
+
+        return $ret;
     }
 
     /**
@@ -141,10 +141,18 @@ class LinOTP {
 
         CakeLog::debug( "Sending POST request to ${url}");
         $response = curl_exec($ch);
+        $curl_errno = curl_errno($ch);
+
+        // if the request failed return false
+        if ($curl_errno !== 0) {
+            $curl_error = curl_error($ch);
+            CakeLog::error("curl error: ${curl_error}");
+            return false;
+        }
 
         $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-        $content_length = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
         $status_code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
 
         CakeLog::debug("Response status: ${status_code}");
 
@@ -152,22 +160,12 @@ class LinOTP {
             CakeLog::debug("Status Code out of range: ${status_code}");
         }
 
-        $curl_errno = curl_errno($ch);
-        $curl_error = curl_error($ch);
-        curl_close($ch);
-
-        // if the request failed return false
-        if ($curl_errno !== 0) {
-            CakeLog::error("curl error: ${curl_error}");
-            return false;
+        // if the response content type hints towards JSON try to deserialize it
+        if (strpos($content_type, 'application/json') >= 0) {
+            $json_data = json_decode($response);
+            return $json_data;
         } else {
-            // if the response content type hints towards JSON try to deserialize it
-            if (strpos($content_type, 'application/json') >= 0) {
-                $json_data = json_decode($response);
-                return $json_data;
-            } else {
-                return $response;
-            }
+            return $response;
         }
     }
 }
