@@ -36,7 +36,7 @@
                     ),
                     array(
                         'text' => __('View Proposals'),
-                        'url' => '/shadow_attributes/index'
+                        'url' => '/shadow_attributes/index/all:0'
                     ),
                     array(
                         'text' => __('Events with proposals'),

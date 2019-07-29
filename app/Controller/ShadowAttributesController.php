@@ -917,7 +917,7 @@ class ShadowAttributesController extends AppController
         if (isset($this->request['named']['all'])) {
             $all = $this->request['named']['all'];
         } else {
-            $all = false;
+            $all = 1;
         }
         if ($eventId && is_numeric($eventId)) {
             $conditions['ShadowAttribute.event_id'] = $eventId;
