@@ -4010,7 +4010,8 @@ class EventsController extends AppController
             $attributes[$k] = $attribute;
         }
         // actually save the attribute now
-        $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, '', false, $adhereToWarninglists);
+        $results = array();
+        $attributes = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, '', false, $adhereToWarninglists, true);
         // FIXME $attributes does not contain the onteflyattributes
         $attributes = array_values($attributes);
         return $this->RestResponse->viewData($attributes, $this->response->type());
