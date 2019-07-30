@@ -7,54 +7,54 @@ import datetime
 import re
 import ntpath
 import socket
+from collections import defaultdict
 from copy import deepcopy
-from stix.indicator import Indicator
-from stix.indicator.valid_time import ValidTime
-from stix.ttp import TTP, Behavior
-from stix.ttp.malware_instance import MalwareInstance
-from stix.incident import Incident, Time, ExternalID, AffectedAsset, AttributedThreatActors
-from stix.exploit_target import ExploitTarget, Vulnerability
-from stix.incident.history import History, HistoryItem
-from stix.threat_actor import ThreatActor
-from stix.core import STIXPackage, STIXHeader
-from stix.common import InformationSource, Identity
-from stix.data_marking import Marking, MarkingSpecification
-from stix.extensions.marking.tlp import TLPMarkingStructure
-from stix.common.related import RelatedIndicator, RelatedObservable, RelatedThreatActor, RelatedTTP
-from stix.common.confidence import Confidence
-from stix.common.vocabs import IncidentStatus
-from cybox.utils import Namespace
 from cybox.core import Object, Observable, ObservableComposition, RelatedObject
-from cybox.objects.file_object import File
-from cybox.objects.address_object import Address
-from cybox.objects.port_object import Port
-from cybox.objects.hostname_object import Hostname
-from cybox.objects.uri_object import URI
-from cybox.objects.pipe_object import Pipe
-from cybox.objects.mutex_object import Mutex
-from cybox.objects.artifact_object import Artifact, RawArtifact
-from cybox.objects.email_message_object import EmailMessage, EmailHeader, EmailRecipients, Attachments
-from cybox.objects.domain_name_object import DomainName
-from cybox.objects.win_registry_key_object import RegistryValue, RegistryValues, WinRegistryKey
-from cybox.objects.system_object import System, NetworkInterface, NetworkInterfaceList
-from cybox.objects.http_session_object import HTTPClientRequest, HTTPRequestHeader, HTTPRequestHeaderFields, HTTPRequestLine, HTTPRequestResponse, HTTPSession
-from cybox.objects.as_object import AutonomousSystem
-from cybox.objects.socket_address_object import SocketAddress
-from cybox.objects.network_connection_object import NetworkConnection
-from cybox.objects.network_socket_object import NetworkSocket
-from cybox.objects.process_object import Process
-from cybox.objects.whois_object import WhoisEntry, WhoisRegistrants, WhoisRegistrant, WhoisRegistrar, WhoisNameservers
-from cybox.objects.win_service_object import WinService
-from cybox.objects.win_executable_file_object import WinExecutableFile, PEHeaders, PEFileHeader, PESectionList, PESection, PESectionHeaderStruct, Entropy
-from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
-from cybox.objects.account_object import Account, Authentication, StructuredAuthenticationMechanism
-from cybox.objects.custom_object import Custom
 from cybox.common import Hash, HashList, ByteRun, ByteRuns
 from cybox.common.object_properties import CustomProperties,  Property
-from stix.extensions.test_mechanism.snort_test_mechanism import SnortTestMechanism
+from cybox.objects.account_object import Account, Authentication, StructuredAuthenticationMechanism
+from cybox.objects.address_object import Address
+from cybox.objects.artifact_object import Artifact, RawArtifact
+from cybox.objects.as_object import AutonomousSystem
+from cybox.objects.custom_object import Custom
+from cybox.objects.domain_name_object import DomainName
+from cybox.objects.email_message_object import EmailMessage, EmailHeader, EmailRecipients, Attachments
+from cybox.objects.file_object import File
+from cybox.objects.hostname_object import Hostname
+from cybox.objects.http_session_object import HTTPClientRequest, HTTPRequestHeader, HTTPRequestHeaderFields, HTTPRequestLine, HTTPRequestResponse, HTTPSession
+from cybox.objects.mutex_object import Mutex
+from cybox.objects.network_connection_object import NetworkConnection
+from cybox.objects.network_socket_object import NetworkSocket
+from cybox.objects.pipe_object import Pipe
+from cybox.objects.port_object import Port
+from cybox.objects.process_object import Process
+from cybox.objects.socket_address_object import SocketAddress
+from cybox.objects.system_object import System, NetworkInterface, NetworkInterfaceList
+from cybox.objects.uri_object import URI
+from cybox.objects.whois_object import WhoisEntry, WhoisRegistrants, WhoisRegistrant, WhoisRegistrar, WhoisNameservers
+from cybox.objects.win_executable_file_object import WinExecutableFile, PEHeaders, PEFileHeader, PESectionList, PESection, PESectionHeaderStruct, Entropy
+from cybox.objects.win_registry_key_object import RegistryValue, RegistryValues, WinRegistryKey
+from cybox.objects.win_service_object import WinService
+from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
+from cybox.utils import Namespace
+from stix.common import InformationSource, Identity
+from stix.common.confidence import Confidence
+from stix.common.related import RelatedIndicator, RelatedObservable, RelatedThreatActor, RelatedTTP
+from stix.common.vocabs import IncidentStatus
+from stix.core import STIXPackage, STIXHeader
+from stix.data_marking import Marking, MarkingSpecification
+from stix.exploit_target import ExploitTarget, Vulnerability
 from stix.extensions.identity.ciq_identity_3_0 import CIQIdentity3_0Instance, STIXCIQIdentity3_0, PartyName, ElectronicAddressIdentifier, FreeTextAddress
 from stix.extensions.identity.ciq_identity_3_0 import Address as ciq_Address
-from collections import defaultdict
+from stix.extensions.marking.tlp import TLPMarkingStructure
+from stix.extensions.test_mechanism.snort_test_mechanism import SnortTestMechanism
+from stix.incident import Incident, Time, ExternalID, AffectedAsset, AttributedThreatActors
+from stix.incident.history import History, HistoryItem
+from stix.indicator import Indicator
+from stix.indicator.valid_time import ValidTime
+from stix.threat_actor import ThreatActor
+from stix.ttp import TTP, Behavior
+from stix.ttp.malware_instance import MalwareInstance
 
 try:
     from stix.utils import idgen
