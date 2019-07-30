@@ -67,9 +67,9 @@
         $span_scope = sprintf(
             '<span class="%s" title="%s" aria-label="%s"><i class="fas fa-%s"></i></span>',
             'black-white tag',
-            $tag['local'] ? __('Local tag') : __('Global tag'),
-            $tag['local'] ? __('Local tag') : __('Global tag'),
-            $tag['local'] ? 'user' : 'globe-americas'
+            !empty($tag['local']) ? __('Local tag') : __('Global tag'),
+            !empty($tag['local']) ? __('Local tag') : __('Global tag'),
+            !empty($tag['local']) ? 'user' : 'globe-americas'
         );
         if (!empty($tag['Tag']['id'])) {
             $span_tag = sprintf(
