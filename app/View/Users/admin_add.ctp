@@ -85,7 +85,7 @@
     ?>
         <div class="clear"></div>
     <?php
-        echo $this->Form->input('disabled', array('label' => __('Disable this user account')));
+        echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Disable this user account')));
         echo $this->Form->input('notify', array(
             'label' => __('Send credentials automatically'),
             'type' => 'checkbox',

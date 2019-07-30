@@ -3685,6 +3685,8 @@ class Attribute extends AppModel
         }
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId ? $objectId : 0;
+        $attribute['to_ids'] = $attribute['to_ids'] ? 1 : 0;
+        $attribute['disable_correlation'] = $attribute['disable_correlation'] ? 1 : 0;
         unset($attribute['id']);
         if (isset($attribute['encrypt'])) {
             $result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
