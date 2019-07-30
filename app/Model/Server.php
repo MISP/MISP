@@ -855,6 +855,15 @@ class Server extends AppModel
                                 'type' => 'numeric',
                                 'null' => false,
                         ),
+                        'block_old_event_alert_by_date' => array(
+                                'level' => 1,
+                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control the threshold for the event.date field, indicating how old an event can be for it to be alerted on. The "date" field of the event is used. Expected format: integer, in days'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => false,
+                        ),
                         'tmpdir' => array(
                                 'level' => 1,
                                 'description' => __('Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to /tmp and will be used among others to store certain temporary files extracted from imports during the import process.'),

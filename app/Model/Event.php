@@ -2804,18 +2804,26 @@ class Event extends AppModel
 
     public function sendAlertEmailRouter($id, $user, $oldpublish = null)
     {
-        if (Configure::read('MISP.block_old_event_alert') && !empty(Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age')))) {
+        if (Configure::read('MISP.block_old_event_alert')) {
             $oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
+            $oldest_date = time() - (Configure::read('MISP.block_old_event_alert_by_date') * 86400);
             $event = $this->find('first', array(
                     'conditions' => array('Event.id' => $id),
                     'recursive' => -1,
-                    'fields' => array('Event.timestamp')
+                    'fields' => array('Event.timestamp', 'Event.date')
             ));
             if (empty($event)) {
                 return false;
             }
-            if (intval($event['Event']['timestamp']) < $oldest) {
-                return true;
+            if (!empty(Configure::read('MISP.block_old_event_alert_age')) && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
+                if (intval($event['Event']['timestamp']) < $oldest) {
+                    return true;
+                }
+            }
+            if (!empty(Configure::read('MISP.block_old_event_alert_by_date')) && is_numeric(Configure::read('MISP.block_old_event_alert_by_date'))) {
+                if (strtotime($event['Event']['date']) < $oldest_date) {
+                    return true;
+                }
             }
         }
         if (Configure::read('MISP.block_event_alert') && Configure::read('MISP.block_event_alert_tag') && !empty(Configure::read('MISP.block_event_alert_tag'))) {
