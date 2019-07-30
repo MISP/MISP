@@ -644,6 +644,12 @@ class Attribute extends AppModel
             $passedEvent = $options['parentEvent'];
         }
         parent::afterSave($created, $options);
+        // add attributeTags via the shorthand ID list
+        if (!empty($this->data['Attribute']['tag_ids'])) {
+            foreach ($this->data['Attribute']['tag_ids'] as $tag_id) {
+                $this->AttributeTag->attachTagToAttribute($this->id, $this->data['Attribute']['event_id'], $tag_id);
+            }
+        }
         // update correlation...
         if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
             $this->__beforeSaveCorrelation($this->data['Attribute']);
@@ -770,7 +776,6 @@ class Attribute extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
-
         if (!isset($this->data['Attribute']['type'])) {
             return false;
         }
@@ -787,7 +792,6 @@ class Attribute extends AppModel
         }
         // remove leading and trailing blanks
         $this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
-
         // make some last changes to the inserted value
         $this->data['Attribute']['value'] = $this->modifyBeforeValidation($this->data['Attribute']['type'], $this->data['Attribute']['value']);
 
@@ -3885,7 +3889,7 @@ class Attribute extends AppModel
                     $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
                     if ($tag_id) {
                         // fix the IDs here
-                        $this->AttributeTag->attachTagToAttribute($this->id, $this->id, $tag_id);
+                        $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
                     } else {
                         // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
                         // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
