@@ -3012,7 +3012,21 @@ class Attribute extends AppModel
         }
         if (!empty($options['includeContext'])) {
             $params['contain']['Event'] = array(
-                'fields' => array('id','orgc_id','org_id','date','threat_level_id','info','published','uuid','analysis','timestamp','distribution','publish_timestamp','sharing_group_id','extends_uuid')
+                'fields' => array(
+                    'id','orgc_id','org_id','date','threat_level_id','info','published','uuid','analysis','timestamp','distribution','publish_timestamp','sharing_group_id','extends_uuid'
+                ),
+                'EventTag' => array(
+                    'Tag' => array(
+                        'fields' => array(
+                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
+                        )
+                    )
+                ),
+                'Orgc' => array(
+                    'fields' => array(
+                        'Orgc.id', 'Orgc.uuid', 'Orgc.name'
+                    )
+                )
             );
         }
         if (isset($options['contain'])) {
@@ -3137,6 +3151,13 @@ class Attribute extends AppModel
                     if ($tagCulled) {
                         $results[$k]['AttributeTag'] = array_values($results[$k]['AttributeTag']);
                     }
+                }
+                if (isset($result['Event']['EventTag'])) {
+                    $results[$k]['Event']['Tag'] = array();
+                    foreach ($result['Event']['EventTag'] as $et) {
+                        $results[$k]['Event']['Tag'][] = $et['Tag'];
+                    }
+                    unset($results[$k]['Event']['EventTag']);
                 }
             }
             if (!$loop) {
