@@ -7,6 +7,7 @@ import datetime
 import re
 import ntpath
 import socket
+from misp2stix_mapping import *
 from collections import defaultdict
 from copy import deepcopy
 from cybox.core import Object, Observable, ObservableComposition, RelatedObject
@@ -65,61 +66,6 @@ namespace = ['https://github.com/MISP/MISP', 'MISP']
 
 this_module = sys.modules[__name__]
 
-# mappings
-status_mapping = {'0' : 'New', '1' : 'Open', '2' : 'Closed'}
-threat_level_mapping = {'1' : 'High', '2' : 'Medium', '3' : 'Low', '4' : 'Undefined'}
-TLP_order = {'RED' : 4, 'AMBER' : 3, 'GREEN' : 2, 'WHITE' : 1}
-confidence_mapping = {False : 'None', True : 'High'}
-
-not_implemented_attributes = ('yara', 'snort', 'pattern-in-traffic', 'pattern-in-memory')
-
-non_indicator_attributes = ('text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine',
-                            'target-org', 'target-location', 'target-external', 'vulnerability')
-
-hash_type_attributes = {"single": ("md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256",
-                                   "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "cdhash", "x509-fingerprint-sha1"),
-                        "composite": ("filename|md5", "filename|sha1", "filename|sha224", "filename|sha256",
-                                      "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256",
-                                      "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash",
-                                      "filename|pehash")}
-
-# mapping for the attributes that can go through the simpleobservable script
-misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex",
-                   "named pipe" : "Pipe", "link" : "URI", "network-connection": "NetworkConnection", "windows-service-name": "WinService"}
-cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "URI" : "value", "AutonomousSystem" : "number",
-                        "Pipe" : "name", "Mutex" : "name", "WinService": "name"}
-misp_indicator_type = {"AS" : "", "mutex" : "Host Characteristics", "named pipe" : "Host Characteristics",
-                       "email-attachment": "Malicious E-mail", "url" : "URL Watchlist"}
-misp_indicator_type.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"] + ["attachment"], "File Hash Watchlist"))
-misp_indicator_type.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to",  "email-attachment"], "Malicious E-mail"))
-misp_indicator_type.update(dict.fromkeys(["ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], "IP Watchlist"))
-misp_indicator_type.update(dict.fromkeys(["domain", "domain|ip", "hostname"], "Domain Watchlist"))
-misp_indicator_type.update(dict.fromkeys(["regkey", "regkey|value"], "Host Characteristics"))
-cybox_validation = {"AutonomousSystem": "isInt"}
-
-# mapping Windows Registry Hives and their abbreviations
-# see https://cybox.mitre.org/language/version2.1/xsddocs/objects/Win_Registry_Key_Object_xsd.html#RegistryHiveEnum
-# the dict keys must be UPPER CASE and end with \\
-misp_reghive = {
-    "HKEY_CLASSES_ROOT\\"                : "HKEY_CLASSES_ROOT",
-    "HKCR\\"                             : "HKEY_CLASSES_ROOT",
-    "HKEY_CURRENT_CONFIG\\"              : "HKEY_CURRENT_CONFIG",
-    "HKCC\\"                             : "HKEY_CURRENT_CONFIG",
-    "HKEY_CURRENT_USER\\"                : "HKEY_CURRENT_USER",
-    "HKCU\\"                             : "HKEY_CURRENT_USER",
-    "HKEY_LOCAL_MACHINE\\"               : "HKEY_LOCAL_MACHINE",
-    "HKLM\\"                             : "HKEY_LOCAL_MACHINE",
-    "HKEY_USERS\\"                       : "HKEY_USERS",
-    "HKU\\"                              : "HKEY_USERS",
-    "HKEY_CURRENT_USER_LOCAL_SETTINGS\\" : "HKEY_CURRENT_USER_LOCAL_SETTINGS",
-    "HKCULS\\"                           : "HKEY_CURRENT_USER_LOCAL_SETTINGS",
-    "HKEY_PERFORMANCE_DATA\\"            : "HKEY_PERFORMANCE_DATA",
-    "HKPD\\"                             : "HKEY_PERFORMANCE_DATA",
-    "HKEY_PERFORMANCE_NLSTEXT\\"         : "HKEY_PERFORMANCE_NLSTEXT",
-    "HKPN\\"                             : "HKEY_PERFORMANCE_NLSTEXT",
-    "HKEY_PERFORMANCE_TEXT\\"            : "HKEY_PERFORMANCE_TEXT",
-    "HKPT\\"                             : "HKEY_PERFORMANCE_TEXT",
-}
 
 class StixBuilder(object):
     def __init__(self, args):
@@ -763,34 +709,16 @@ class StixBuilder(object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'], with_uuid=True)
         email_object = EmailMessage()
         email_header = EmailHeader()
-        if 'from' in attributes_dict:
-            email_header.from_ = attributes_dict['from'][0]['value']
-            email_header.from_.condition = "Equals"
-        if 'to' in attributes_dict:
-            to_recipient = EmailRecipients()
-            for to in attributes_dict['to']:
-                to_recipient.append(to['value'])
-            email_header.to = to_recipient
-        if 'cc' in attributes_dict:
-            cc_recipient = EmailRecipients()
-            for cc in attributes_dict['cc']:
-                cc_recipient.append(cc['value'])
-            email_header.cc = cc_recipient
-        if 'reply-to' in attributes_dict:
-            email_header.reply_to = attributes_dict['reply-to'][0]['value']
-            email_header.reply_to.condition = "Equals"
-        if 'subject' in attributes_dict:
-            email_header.subject = attributes_dict['subject'][0]['value']
-            email_header.subject.condition = "Equals"
-        if 'x-mailer' in attributes_dict:
-            email_header.x_mailer = attributes_dict['x-mailer'][0]['value']
-            email_header.x_mailer.condition = "Equals"
-        if 'mime-boundary' in attributes_dict:
-            email_header.boundary = attributes_dict['mime-boundary'][0]['value']
-            email_header.boundary.condition = "Equals"
-        if 'user-agent' in attributes_dict:
-            email_header.user_agent = attributes_dict['user-agent'][0]['value']
-            email_header.user_agent.condition = "Equals"
+        for feature in ('to', 'cc'):
+            if feature in attributes_dict:
+                recipient = EmailRecipients()
+                for value in attributes_dict[feature]:
+                    recipient.append(value['value'])
+                setattr(email_header, feature, recipient)
+        for feature, key in email_object_mapping.items():
+            if feature in attributes_dict:
+                setattr(email_header, key, attributes_dict[feature][0]['value'])
+                setattr(getattr(email_header, key), 'condition', 'Equals')
         if 'attachment' in attributes_dict:
             email_object.attachments = Attachments()
             for attachment in attributes_dict['attachment']:
@@ -859,12 +787,8 @@ class StixBuilder(object):
             network_connection_object.source_socket_address = self.create_socket_address_object('src', **src_args)
         if dst_args:
             network_connection_object.destination_socket_address = self.create_socket_address_object('dst', **dst_args)
-        if 'layer3-protocol' in attributes_dict:
-            network_connection_object.layer3_protocol = attributes_dict['layer3-protocol']
-        if 'layer4-protocol' in attributes_dict:
-            network_connection_object.layer4_protocol = attributes_dict['layer4-protocol']
-        if 'layer7-protocol' in attributes_dict:
-            network_connection_object.layer7_protocol = attributes_dict['layer7-protocol']
+        for feature in ('layer3-protocol', 'layer4-protocol', 'layer7-protocol'):
+            setattr(network_connection_object, feature.replace('-', '_'), attributes_dict[feature])
         uuid = misp_object['uuid']
         network_connection_object.parent.id_ = "{}:NetworkConnectionObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(network_connection_object)
@@ -906,16 +830,9 @@ class StixBuilder(object):
         attributes = misp_object['Attribute']
         to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes)
         process_object = Process()
-        if 'creation-time' in attributes_dict:
-            process_object.creation_time = attributes_dict['creation-time'][0]
-        if 'start-time' in attributes_dict:
-            process_object.start_time = attributes_dict['start-time'][0]
-        if 'name' in attributes_dict:
-            process_object.name = attributes_dict['name'][0]
-        if 'pid' in attributes_dict:
-            process_object.pid = attributes_dict['pid'][0]
-        if 'parent-pid' in attributes_dict:
-            process_object.parent_pid = attributes_dict['parent-pid'][0]
+        for feature in process_object_keys:
+            if feature in attributes_dict:
+                setattr(process_object, feature.replace('-', '_'), attributes_dict[feature][0])
         if 'child-pid' in attributes_dict:
             # child-pid = attributes['child-pid']
             for child in attributes['child-pid']:
@@ -948,18 +865,11 @@ class StixBuilder(object):
         if 'last-modified' in attributes_dict:
             reg_object.modified_time = attributes_dict['last-modified']
             reg_object.modified_time.condition = "Equals"
-        if 'name' in attributes_dict:
-            reg_value_object.name = attributes_dict['name']
-            reg_value_object.name.condition = "Equals"
-            registry_values = True
-        if 'data' in attributes_dict:
-            reg_value_object.data = attributes_dict['data'].strip()
-            reg_value_object.data.condition = "Equals"
-            registry_values = True
-        if 'data-type' in attributes_dict:
-            reg_value_object.datatype = attributes_dict['data-type']
-            reg_value_object.datatype.condition = "Equals"
-            registry_values = True
+        for feature, key in regkey_object_mapping.items():
+            if feature in attributes_dict:
+                setattr(reg_value_object, key, attributes_dict[feature].strip())
+                setattr(getattr(reg_value_object, key), 'condition', 'Equals')
+                registry_values = True
         if registry_values:
             reg_object.values = RegistryValues(reg_value_object)
         uuid = misp_object['uuid']
@@ -988,19 +898,17 @@ class StixBuilder(object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
         whois_object = WhoisEntry()
         for attribute in attributes_dict:
-            if attribute and "registrant-" in attribute:
+            if "registrant-" in attribute:
                 whois_object.registrants = self.fill_whois_registrants(attributes_dict)
                 break
         if  'registrar' in attributes_dict:
             whois_registrar = WhoisRegistrar()
             whois_registrar.name = attributes_dict['registrar'][0]
             whois_object.registrar_info = whois_registrar
-        if 'creation-date' in attributes_dict:
-            whois_object.creation_date = attributes_dict['creation-date'][0]
-        if 'modification-date' in attributes_dict:
-            whois_object.updated_date = attributes_dict['modification-date'][0]
-        if 'expiration-date' in attributes_dict:
-            whois_object.expiration_date = attributes_dict['expiration-date'][0]
+        for feature, key in whois_object_mapping.items():
+            if feature in attributes_dict:
+                setattr(whois_object, key, attributes_dict[feature][0])
+                setattr(getattr(whois_object, key), 'condition', 'Equals')
         if 'nameserver' in attributes_dict:
             whois_nameservers = WhoisNameservers()
             for nameserver in attributes_dict['nameserver']:
@@ -1027,14 +935,10 @@ class StixBuilder(object):
     def fill_whois_registrants(attributes):
         registrants = WhoisRegistrants()
         registrant = WhoisRegistrant()
-        if 'registrant-name' in attributes:
-            registrant.name = attributes['registrant-name'][0]
-        if 'registrant-phone' in attributes:
-            registrant.phone_number = attributes['registrant-phone'][0]
-        if 'registrant-email' in attributes:
-            registrant.email_address = attributes['registrant-email'][0]
-        if 'registrant-org' in attributes:
-            registrant.organization = attributes['registrant-org'][0]
+        for feature, key in whois_registrant_mapping.items():
+            if feature in attributes:
+                setattr(registrant, key, attributes[feature][0])
+                setattr(getattr(registrant, key), 'condition', 'Equals')
         registrants.append(registrant)
         return registrants
 
@@ -1048,12 +952,11 @@ class StixBuilder(object):
             signature = attributes_dict.pop('signature')
             x509_object.certificate_signature = self.fill_x509_signature(signature)
         if 'contents' in attributes_dict or 'validity' in attributes_dict or 'rsa_pubkey' in attributes_dict or 'subject_pubkey' in attributes_dict:
-            x509_cert = X509Cert()
             try:
                 contents = attributes_dict.pop('contents')
-                self.fill_x509_contents(x509_cert, contents)
+                x509_cert = self.fill_x509_contents(contents)
             except Exception:
-                pass
+                x509_cert = X509Cert()
             try:
                 validity = attributes_dict.pop('validity')
                 x509_cert.validity = self.fill_x509_validity(validity)
@@ -1069,15 +972,12 @@ class StixBuilder(object):
         return to_ids, observable
 
     @staticmethod
-    def fill_x509_contents(x509_cert, contents):
-        if 'version' in contents:
-            x509_cert.version = contents['version']
-        if 'serial-number' in contents:
-            x509_cert.serial_number = contents['serial-number']
-        if 'issuer' in contents:
-            x509_cert.issuer = contents['issuer']
-        if 'subject' in contents:
-            x509_cert.subject = contents['subject']
+    def fill_x509_contents(contents):
+        x509_cert = X509Cert()
+        for feature in x509_object_keys:
+            if feature in contents:
+                setattr(x509_cert, feature.replace('-', '_'), contents[feature])
+        return x509_cert
 
     @staticmethod
     def fill_x509_pubkey(**attributes):
@@ -1343,18 +1243,7 @@ class StixBuilder(object):
         attributes_dict = defaultdict(dict)
         for attribute in attributes:
             relation = attribute['object_relation']
-            if relation in ('version', 'serial-number', 'issuer', 'subject'):
-                attributes_dict['contents'][relation] = attribute['value']
-            elif relation in ('validity-not-before', 'validity-not-after'):
-                attributes_dict['validity'][relation] = attribute['value']
-            elif relation in ('pubkey-info-exponent', 'pubkey-info-modulus'):
-                attributes_dict['rsa_pubkey'][relation] = attribute['value']
-            elif relation in ('x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256'):
-                attributes_dict['signature'][relation] = attribute['value']
-            elif relation in ('raw-base64', 'pem'):
-                attributes_dict['raw_certificate'][relation] = attribute['value']
-            elif relation == 'pubkey-info-algorithm':
-                attributes_dict['subject_pubkey'][relation] = attribute['value']
+            attributes_dict[x509_creation_mapping[relation]][relation] = attribute['value']
         return to_ids, attributes_dict
 
     def create_custom_observable(self, name, attributes, uuid):
@@ -1543,15 +1432,10 @@ class StixBuilder(object):
             #     custom_property = CustomProp
             #     filename.custom_properties.append()
             self.resolve_filename(file_object, attributes_dict.pop('filename'))
-        if 'path' in attributes_dict:
-            file_object.full_path = attributes_dict.pop('path')
-            file_object.full_path.condition = "Equals"
-        if 'size-in-bytes' in attributes_dict:
-            file_object.size_in_bytes = attributes_dict.pop('size-in-bytes')
-            file_object.size_in_bytes.condition = "Equals"
-        if 'entropy' in attributes_dict:
-            file_object.peak_entropy = attributes_dict.pop('entropy')
-            file_object.peak_entropy.condition = "Equals"
+        for feature, key in file_object_mapping.items():
+            if feature in attributes_dict:
+                setattr(file_object, key, attributes_dict.pop(feature))
+                setattr(getattr(file_object, key), 'condition', 'Equals')
         for key, value in attributes_dict.items():
             if key in hash_type_attributes['single']:
                 file_object.add_hash(Hash(hash_value=value, exact=True))
