@@ -60,6 +60,11 @@ email_object_mapping = {'from': 'from_', 'reply-to': 'reply_to', 'subject': 'sub
 file_object_mapping = {'path': 'full_path', 'size-in-bytes': 'size_in_bytes', 'entropy': 'peak_entropy'}
 process_object_keys = ('creation-time', 'start-time', 'name', 'pid', 'parent-pid')
 regkey_object_mapping = {'name': 'name', 'data': 'data', 'data-type': 'datatype'}
+user_account_id_mapping = {'unix': 'user_id', 'windows-domain': 'security_id', 'windows-local': 'security_id'}
+user_account_object_mapping = {'username': 'username', 'display-name': 'full_name',
+                               'disabled': 'disabled', 'created': 'creation_date',
+                               'last_login': 'last_login', 'home_dir': 'home_directory',
+                               'shell': 'script_path'}
 whois_object_mapping = {'creation-date': 'creation_date', 'modification-date': 'updated_date',
                         'expiration-date': 'expiration_date'}
 whois_registrant_mapping = {'registrant-name': 'name', 'registrant-phone': 'phone_number',

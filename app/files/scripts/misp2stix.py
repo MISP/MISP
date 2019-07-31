@@ -31,11 +31,14 @@ from cybox.objects.port_object import Port
 from cybox.objects.process_object import Process
 from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.system_object import System, NetworkInterface, NetworkInterfaceList
+from cybox.objects.unix_user_account_object import UnixUserAccount
 from cybox.objects.uri_object import URI
+from cybox.objects.user_account_object import UserAccount
 from cybox.objects.whois_object import WhoisEntry, WhoisRegistrants, WhoisRegistrant, WhoisRegistrar, WhoisNameservers
 from cybox.objects.win_executable_file_object import WinExecutableFile, PEHeaders, PEFileHeader, PESectionList, PESection, PESectionHeaderStruct, Entropy
 from cybox.objects.win_registry_key_object import RegistryValue, RegistryValues, WinRegistryKey
 from cybox.objects.win_service_object import WinService
+from cybox.objects.win_user_object import WinUser
 from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
 from cybox.utils import Namespace
 from stix.common import InformationSource, Identity
@@ -109,6 +112,7 @@ class StixBuilder(object):
                                 "process": self.parse_process_object,
                                 "registry-key": self.parse_regkey_object,
                                 "url": self.parse_url_object,
+                                "user-account": self.parse_user_account_object,
                                 "whois": self.parse_whois,
                                 "x509": self.parse_x509_object
                                 }
@@ -894,6 +898,24 @@ class StixBuilder(object):
             return to_ids, observables[0]
         return to_ids, self.create_observable_composition(observables, misp_object['uuid'], "url")
 
+    def parse_user_account_object(self, misp_object):
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
+        user_account, account_type = self.create_user_account_object(attributes_dict)
+        if 'password' in attributes_dict:
+            authentication = Authentication()
+            authentication.authentication_data = attributes_dict['password'][0]
+            authentication.authentication_data.condition = 'Equals'
+            user_account.authentication = authentication
+        for feature, key in user_account_object_mapping.items():
+            if feature in attributes_dict:
+                setattr(user_account, key, attributes_dict[feature][0])
+                setattr(getattr(user_account, key), 'condition', 'Equals')
+        uuid = misp_object['uuid']
+        user_account.parent.id_ = "{}:{}Object-{}".format(self.namespace_prefix, account_type, uuid)
+        observable = Observable(user_account)
+        observable.id_ = "{}:{}-{}".format(self.namespace_prefix, account_type, uuid)
+        return to_ids, observable
+
     def parse_whois(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
         whois_object = WhoisEntry()
@@ -1425,6 +1447,27 @@ class StixBuilder(object):
         port_object.port_value = port
         port_object.port_value.condition = "Equals"
         return port_object
+
+    @staticmethod
+    def create_user_account_object(attributes_dict):
+        account_type = attributes_dict['account-type'][0] if 'account-type' in attributes_dict else ''
+        if account_type in ('unix', 'windows-domain', 'windows-local'):
+            user_account_object = UnixUserAccount() if account_type == 'unix' else WinUser()
+            if 'user-id' in attributes_dict:
+                try:
+                    key = user_account_id_mapping[account_type]
+                    setattr(user_account_object, key, attributes_dict['user-id'][0])
+                    setattr(getattr(user_account_object, key), 'condition', 'Equals')
+                except ValueError:
+                    pass
+            if 'group-id' in attributes_dict:
+                key = 'group{}id'
+                try:
+                    setattr(user_account_object, key.format('_'), attributes_dict[key.format('-')])
+                except ValueError:
+                    pass
+            return user_account_object, user_account_object._XSI_NS.strip('Obj')
+        return UserAccount(), 'UserAccount'
 
     def fill_file_object(self, file_object, attributes_dict):
         if 'filename' in attributes_dict:
