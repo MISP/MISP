@@ -57,8 +57,8 @@
                         $aTextModified = substr($aTextModified, $value_pos + 1);
                         $aTextModified = trim($aTextModified, '"');
                     }
+                    $aTextModified = h($aTextModified);
                 }
-                $aTextModified = h($aTextModified);
             } else if ($tag_display_style == 2) {
                 $aTextModified = '&nbsp;';
             }
