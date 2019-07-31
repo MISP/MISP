@@ -68,7 +68,7 @@
                 'class' => 'live_filter_target'
             ),
             'error' => array(
-                'html' => isset($setting['error']) ? h($setting['errorMessage']) : ''
+                'html' => isset($setting['errorMessage']) ? h($setting['errorMessage']) : ''
             )
         );
         $columns = '';

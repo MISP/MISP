@@ -94,6 +94,9 @@ class Log extends AppModel
 
     public function beforeSave($options = array())
     {
+        if (!empty(Configure::read('MISP.log_skip_db_logs_completely'))) {
+            return false;
+        }
         if (Configure::read('MISP.log_client_ip') && isset($_SERVER['REMOTE_ADDR'])) {
             $this->data['Log']['ip'] = $_SERVER['REMOTE_ADDR'];
         }

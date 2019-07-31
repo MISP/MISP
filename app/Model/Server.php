@@ -728,6 +728,15 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                        'log_skip_db_logs_completely' => array(
+                            'level' => 0,
+                            'description' => __('This functionality allows you to completely disable any logs from being saved in your SQL backend. This is HIGHLY advised against, you lose all the functionalities provided by the audit log subsystem along with the event history (as these are built based on the logs on the fly). Only enable this if you understand and accept the associated risks.'),
+                            'value' => false,
+                            'errorMessage' => __('Logging has now been disabled - your audit logs will not capture failed authentication attempts, your event history logs are not being populated and no system maintenance messages are being logged.'),
+                            'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'log_paranoid' => array(
                                 'level' => 0,
                                 'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
@@ -2971,7 +2980,7 @@ class Server extends AppModel
     {
         if (isset($setting)) {
             if (!empty($leafValue['test'])) {
-                $result = $this->{$leafValue['test']}($setting);
+                $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
                 if ($result !== true) {
                     $leafValue['error'] = 1;
                     if ($result !== false) {
@@ -3260,20 +3269,26 @@ class Server extends AppModel
         return true;
     }
 
-    public function testBool($value)
+    public function testBool($value, $errorMessage = false)
     {
         if ($value !== true && $value !== false) {
+            if ($errorMessage) {
+                return $errorMessage;
+            }
             return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
         }
         return true;
     }
 
-    public function testBoolFalse($value)
+    public function testBoolFalse($value, $errorMessage = false)
     {
-        if (!$this->testBool($value)) {
-            return $this->testBool($value);
+        if (!$this->testBool($value, $errorMessage)) {
+            return $this->testBool($value, $errorMessage);
         }
         if ($value !== false) {
+            if ($errorMessage) {
+                return $errorMessage;
+            }
             return 'It is highly recommended that this setting is disabled. Make sure you understand the impact of having this setting turned on.';
         } else {
             return true;
