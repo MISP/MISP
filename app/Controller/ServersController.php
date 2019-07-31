@@ -1764,7 +1764,7 @@ class ServersController extends AppController
         }
         $params['timeout'] = 300;
         App::uses('HttpSocket', 'Network/Http');
-        $HttpSocket = new HttpSocket($params);
+        $HttpSocket = new HttpSocket();
         $view_data = array();
         $temp_headers = explode("\n", $request['header']);
         $request['header'] = array(
@@ -1789,7 +1789,8 @@ class ServersController extends AppController
             if ($python !== false) {
                 $python = $this->__generatePythonScript($request, $url);
             }
-            $response = $HttpSocket->get($url, false, array('header' => $request['header']));
+            $params['header'] = $request['header'];
+            $response = $HttpSocket->get($url, false, $params);
         } elseif (
             !empty($request['method']) &&
             $request['method'] === 'POST' &&
@@ -1801,7 +1802,8 @@ class ServersController extends AppController
             if ($python !== false) {
                 $python = $this->__generatePythonScript($request, $url);
             }
-            $response = $HttpSocket->post($url, $request['body'], array('header' => $request['header']));
+            $params['header'] = $request['header'];
+            $response = $HttpSocket->post($url, $request['body'], $params);
         } else {
             return false;
         }
