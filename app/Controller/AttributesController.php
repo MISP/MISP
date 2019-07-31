@@ -257,6 +257,14 @@ class AttributesController extends AppController
                     if (!empty($attribute['encrypt'])) {
                         $attribute = $this->Attribute->onDemandEncrypt($attribute);
                     }
+                    if (!empty($attribute['Tag'])) {
+                        foreach ($attribute['Tag'] as $tag) {
+                            $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $this->Auth->user());
+                            if ($tag_id) {
+                                $attribute['tag_ids'][] = $tag_id;
+                            }
+                        }
+                    }
                     $attributes[$k] = $attribute;
                     $this->Attribute->set($attribute);
                     $result = $this->Attribute->validates();
@@ -275,12 +283,18 @@ class AttributesController extends AppController
                 $this->Event->unpublishEvent($eventId);
             }
             $atomic = Configure::read('MISP.deadlock_avoidance') ? false : true;
+            // skipping validation here, already done above
             $result = $this->Attribute->saveMany($attributes, array('atomic' => $atomic));
             if ($this->_isRest()) {
                 if (!empty($successes)) {
                     $attributes = $this->Attribute->find('all', array(
                         'recursive' => -1,
-                        'conditions' => array('Attribute.id' => $this->Attribute->inserted_ids)
+                        'conditions' => array('Attribute.id' => $this->Attribute->inserted_ids),
+                        'contain' => array(
+                            'AttributeTag' => array(
+                                'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'))
+                            )
+                        )
                     ));
                     if (count($attributes) == 1) {
                         $attributes = $attributes[0];
@@ -3037,7 +3051,7 @@ class AttributesController extends AppController
         if ($id === 'selected') {
             $idList = json_decode($this->request->data['attribute_ids'], true);
         }
-        $local = !empty($this->params['named']['local']);
+        $local = empty($this->params['named']['local']) ? 0 : 1;
         if (!$this->request->is('post')) {
             $this->set('local', $local);
             $this->set('object_id', $id);

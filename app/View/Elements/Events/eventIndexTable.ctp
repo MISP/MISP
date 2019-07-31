@@ -141,7 +141,8 @@
                             'tagAccess' => false,
                             'required_taxonomies' => false,
                             'columnised' => true,
-                            'static_tags_only' => true
+                            'static_tags_only' => 1,
+                            'tag_display_style' => Configure::check('MISP.full_tags_on_event_index') ? Configure::read('MISP.full_tags_on_event_index') : 2
                         )
                     )
                 );
@@ -190,7 +191,7 @@
                 <span style=" white-space: nowrap;"><?php echo $post_count?></span>&nbsp;
             </td>
         <?php endif;?>
-        <?php if ('true' == $isSiteAdmin): ?>
+        <?php if ($isSiteAdmin): ?>
             <td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
                 <?php echo h($event['User']['email']); ?>&nbsp;
             </td>

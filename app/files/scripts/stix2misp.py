@@ -604,7 +604,7 @@ class StixParser():
         if properties.sections:
             for section in properties.sections:
                 section_uuid = self.parse_pe_section(section)
-                misp_object.add_reference(section_uuid, 'included-in')
+                misp_object.add_reference(section_uuid, 'includes')
         self.misp_event.add_object(**misp_object)
         return {"pe_uuid": misp_object.uuid}
 
@@ -687,7 +687,7 @@ class StixParser():
             # if some complementary data is a dictionary containing an uuid,
             # it means we are using it to add an object reference
             if "pe_uuid" in compl_data:
-                misp_object.add_reference(compl_data['pe_uuid'], 'included-in')
+                misp_object.add_reference(compl_data['pe_uuid'], 'includes')
             if "process_uuid" in compl_data:
                 for uuid in compl_data["process_uuid"]:
                     misp_object.add_reference(uuid, 'connected-to')

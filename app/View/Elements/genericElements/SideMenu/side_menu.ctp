@@ -294,7 +294,7 @@
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'viewProposals',
-                        'url' => '/shadow_attributes/index',
+                        'url' => '/shadow_attributes/index/all:0',
                         'text' => __('View Proposals')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(

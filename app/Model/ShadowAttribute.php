@@ -348,6 +348,10 @@ class ShadowAttribute extends AppModel
             $this->data['ShadowAttribute']['uuid'] = CakeText::uuid();
         }
 
+        if (!empty($this->data['ShadowAttribute']['type']) && empty($this->data['ShadowAttribute']['category'])) {
+            $this->data['ShadowAttribute']['category'] = $this->Event->Attribute->typeDefinitions[$this->data['ShadowAttribute']['type']]['default_category'];
+        }
+
         // always return true, otherwise the object cannot be saved
         return true;
     }

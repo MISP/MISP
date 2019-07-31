@@ -644,6 +644,12 @@ class Attribute extends AppModel
             $passedEvent = $options['parentEvent'];
         }
         parent::afterSave($created, $options);
+        // add attributeTags via the shorthand ID list
+        if (!empty($this->data['Attribute']['tag_ids'])) {
+            foreach ($this->data['Attribute']['tag_ids'] as $tag_id) {
+                $this->AttributeTag->attachTagToAttribute($this->id, $this->data['Attribute']['event_id'], $tag_id);
+            }
+        }
         // update correlation...
         if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
             $this->__beforeSaveCorrelation($this->data['Attribute']);
@@ -770,7 +776,6 @@ class Attribute extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
-
         if (!isset($this->data['Attribute']['type'])) {
             return false;
         }
@@ -787,7 +792,6 @@ class Attribute extends AppModel
         }
         // remove leading and trailing blanks
         $this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
-
         // make some last changes to the inserted value
         $this->data['Attribute']['value'] = $this->modifyBeforeValidation($this->data['Attribute']['type'], $this->data['Attribute']['value']);
 
@@ -3006,6 +3010,25 @@ class Attribute extends AppModel
         if (empty($options['includeAllTags'])) {
             $params['contain']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
+        if (!empty($options['includeContext'])) {
+            $params['contain']['Event'] = array(
+                'fields' => array(
+                    'id','orgc_id','org_id','date','threat_level_id','info','published','uuid','analysis','timestamp','distribution','publish_timestamp','sharing_group_id','extends_uuid'
+                ),
+                'EventTag' => array(
+                    'Tag' => array(
+                        'fields' => array(
+                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
+                        )
+                    )
+                ),
+                'Orgc' => array(
+                    'fields' => array(
+                        'Orgc.id', 'Orgc.uuid', 'Orgc.name'
+                    )
+                )
+            );
+        }
         if (isset($options['contain'])) {
             $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
         }
@@ -3128,6 +3151,13 @@ class Attribute extends AppModel
                     if ($tagCulled) {
                         $results[$k]['AttributeTag'] = array_values($results[$k]['AttributeTag']);
                     }
+                }
+                if (isset($result['Event']['EventTag'])) {
+                    $results[$k]['Event']['Tag'] = array();
+                    foreach ($result['Event']['EventTag'] as $et) {
+                        $results[$k]['Event']['Tag'][] = $et['Tag'];
+                    }
+                    unset($results[$k]['Event']['EventTag']);
                 }
             }
             if (!$loop) {
@@ -3685,6 +3715,8 @@ class Attribute extends AppModel
         }
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId ? $objectId : 0;
+        $attribute['to_ids'] = $attribute['to_ids'] ? 1 : 0;
+        $attribute['disable_correlation'] = $attribute['disable_correlation'] ? 1 : 0;
         unset($attribute['id']);
         if (isset($attribute['encrypt'])) {
             $result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
@@ -3883,7 +3915,7 @@ class Attribute extends AppModel
                     $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
                     if ($tag_id) {
                         // fix the IDs here
-                        $this->AttributeTag->attachTagToAttribute($this->id, $this->id, $tag_id);
+                        $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
                     } else {
                         // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
                         // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
@@ -4098,7 +4130,8 @@ class Attribute extends AppModel
                 'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
                 'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
                 'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
-                'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0
+                'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
+                'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
         );
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];

@@ -239,7 +239,7 @@ class StixBuilder():
         name = misp_object['name']
         if  name == 'file' and misp_object.get('ObjectReference'):
             for reference in misp_object['ObjectReference']:
-                if reference['relationship_type'] == 'included-in' and reference['Object']['name'] == "pe":
+                if reference['relationship_type'] in ('includes',  'included-in') and reference['Object']['name'] == "pe":
                     self.objects_to_parse[name][misp_object['uuid']] = to_ids, misp_object
                     return
         try:
@@ -262,7 +262,7 @@ class StixBuilder():
             file_id = "file--{}".format(file_object['uuid'])
             to_ids_list = [to_ids_file]
             for reference in file_object['ObjectReference']:
-                if reference['relationship_type'] == "included-in" and reference['Object']['name'] == "pe":
+                if reference['relationship_type'] in ("includes", "included-in") and reference['Object']['name'] == "pe":
                     pe_uuid = reference['referenced_uuid']
                     break
             to_ids_pe, pe_object = self.objects_to_parse['pe'][pe_uuid]

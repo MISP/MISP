@@ -2804,18 +2804,26 @@ class Event extends AppModel
 
     public function sendAlertEmailRouter($id, $user, $oldpublish = null)
     {
-        if (Configure::read('MISP.block_old_event_alert') && !empty(Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age')))) {
+        if (Configure::read('MISP.block_old_event_alert')) {
             $oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
+            $oldest_date = time() - (Configure::read('MISP.block_old_event_alert_by_date') * 86400);
             $event = $this->find('first', array(
                     'conditions' => array('Event.id' => $id),
                     'recursive' => -1,
-                    'fields' => array('Event.timestamp')
+                    'fields' => array('Event.timestamp', 'Event.date')
             ));
             if (empty($event)) {
                 return false;
             }
-            if (intval($event['Event']['timestamp']) < $oldest) {
-                return true;
+            if (!empty(Configure::read('MISP.block_old_event_alert_age')) && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
+                if (intval($event['Event']['timestamp']) < $oldest) {
+                    return true;
+                }
+            }
+            if (!empty(Configure::read('MISP.block_old_event_alert_by_date')) && is_numeric(Configure::read('MISP.block_old_event_alert_by_date'))) {
+                if (strtotime($event['Event']['date']) < $oldest_date) {
+                    return true;
+                }
             }
         }
         if (Configure::read('MISP.block_event_alert') && Configure::read('MISP.block_event_alert_tag') && !empty(Configure::read('MISP.block_event_alert_tag'))) {
@@ -5998,13 +6006,14 @@ class Event extends AppModel
         return false;
     }
 
-    public function processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false, $jobId = false)
+    public function processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false, $jobId = false, $returnRawResults = false)
     {
         $event = $this->find('first', array(
             'conditions' => array('id' => $id),
             'recursive' => -1,
             'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
         ));
+        $results = array();
         if (!$user['Role']['perm_site_admin'] && !empty($event) && $event['Event']['orgc_id'] != $user['org_id']) {
             $objectType = 'ShadowAttribute';
         } elseif ($user['Role']['perm_site_admin'] && isset($force) && $force) {
@@ -6072,7 +6081,7 @@ class Event extends AppModel
                     // adhere to the warninglist
                     if ($adhereToWarninglists) {
                         if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute)) {
-                            if ($adhereToWarninglists == 'soft') {
+                            if ($adhereToWarninglists === 'soft') {
                                 $attribute['to_ids'] = 0;
                             } else {
                                 // just ignore the attribute
@@ -6080,15 +6089,16 @@ class Event extends AppModel
                             }
                         }
                     }
-                    $AttributSave = $this->$objectType->save($attribute);
-                    if ($AttributSave) {
+                    $saved_attribute = $this->$objectType->save($attribute);
+                    if ($saved_attribute) {
+                        $results[] = $saved_attribute;
                         // If Tags, attach each tags to attribute
                         if (!empty($attribute['tags'])) {
                             foreach (explode(",", $attribute['tags']) as $tagName) {
                                 $this->Tag = ClassRegistry::init('Tag');
                                 $TagId = $this->Tag->captureTag(array('name' => $tagName), array('Role' => $user['Role']));
                                 $this->AttributeTag = ClassRegistry::init('AttributeTag');
-                                if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'], $id, $TagId)) {
+                                if (!$this->AttributeTag->attachTagToAttribute($saved_attribute['Attribute']['id'], $id, $TagId)) {
                                     throw new MethodNotAllowedException(__('Could not add tags.'));
                                 }
                             }
@@ -6127,7 +6137,7 @@ class Event extends AppModel
                 }
             }
         }
-        $messageScopeSaved = $this-> __apply_inflector($saved, $messageScope);
+        $messageScopeSaved = $this->__apply_inflector($saved, $messageScope);
         if ($failed > 0) {
             if ($failed == 1) {
                 $messageScopeFailed = Inflector::singularize($messageScope);
@@ -6143,6 +6153,9 @@ class Event extends AppModel
                 $this->Job->saveField('message', 'Processing complete. ' . $message);
                 $this->Job->saveField('progress', 100);
             }
+        }
+        if (!empty($returnRawResults)) {
+            return $results;
         }
         return $message;
     }
@@ -6493,7 +6506,7 @@ class Event extends AppModel
         return $attribute_save;
     }
 
-    public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false)
+    public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false, $returnRawResults = false)
     {
         if (Configure::read('MISP.background_jobs')) {
             list($job, $randomFileName, $tempFile) = $this->__initiateProcessJob($user, $id);
@@ -6509,7 +6522,7 @@ class Event extends AppModel
 
             $writeResult = $tempFile->write(json_encode($tempData));
             if (!$writeResult) {
-                return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
+                return ($this->processFreeTextData($user, $attributes, $id, $default_comment, $force, $adhereToWarninglists, false, $returnRawResults));
             }
             $tempFile->close();
             $process_id = CakeResque::enqueue(
@@ -6521,7 +6534,7 @@ class Event extends AppModel
             $job->saveField('process_id', $process_id);
             return 'Freetext ingestion queued for background processing. Attributes will be added to the event as they are being processed.';
         } else {
-            return $this->processFreeTextData($user, $resolved_data, $id, $default_comment);
+            return $this->processFreeTextData($user, $attributes, $id, $default_comment, $force, $adhereToWarninglists, false, $returnRawResults);
         }
     }
 

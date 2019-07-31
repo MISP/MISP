@@ -2183,7 +2183,10 @@ eventGraph.update_scope();
 dataHandler.fetch_data_and_update(true, function() {
     var $select = $('#network-typeahead');
     dataHandler.get_typeaheadData_search().forEach(function(element) {
-        $select.append('<option value="' + element + '">' + element + '</option>');
+        var $option = $('<option></option>');
+        $option.text(element);
+        $option.attr('value', $option.text());
+        $select.append($option);
     });
     $('#network-typeahead').chosen(chosen_options).on('change', function(evt, params) {
         var value = params.selected;

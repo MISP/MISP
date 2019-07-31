@@ -43,7 +43,7 @@
                 )
             )
         );
-        echo $this->Form->create('Server');
+        echo $this->Form->create('Server', array('novalidate' => true));
     ?>
     <fieldset>
         <?php

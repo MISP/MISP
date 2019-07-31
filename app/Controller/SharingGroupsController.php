@@ -48,6 +48,7 @@ class SharingGroupsController extends AppController
             'recursive' => -1,
             'fields' => array('id', 'name', 'uuid')
         ));
+
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 $sg = $this->request->data;
@@ -57,6 +58,9 @@ class SharingGroupsController extends AppController
                 $id = $this->SharingGroup->captureSG($this->request->data, $this->Auth->user());
                 if ($id) {
                     $sg = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'simplified', false, $id);
+                    if (!empty($sg)) {
+                        $sg = empty($sg) ? array() : $sg[0];
+                    }
                     return $this->RestResponse->viewData($sg, $this->response->type());
                 } else {
                     return $this->RestResponse->saveFailResponse('SharingGroup', 'add', false, 'Could not save sharing group.', $this->response->type());
@@ -72,6 +76,8 @@ class SharingGroupsController extends AppController
                 }
             }
             $this->SharingGroup->create();
+            $sg['active'] = $sg['active'] ? 1: 0;
+            $sg['roaming'] = $sg['roaming'] ? 1: 0;
             $sg['organisation_uuid'] = $this->Auth->user('Organisation')['uuid'];
             $sg['local'] = 1;
             $sg['org_id'] = $this->Auth->user('org_id');
@@ -406,7 +412,7 @@ class SharingGroupsController extends AppController
         $addOrg = true;
         if (!empty($sg['SharingGroupOrg'])) {
             foreach ($sg['SharingGroupOrg'] as $sgo) {
-                if ($sgo['org_id'] == $org['Organisation']['id']) {
+                if ($sgo['org_id'] == $org['id']) {
                     $addOrg = false;
                 }
             }
@@ -417,7 +423,7 @@ class SharingGroupsController extends AppController
         $this->SharingGroup->SharingGroupOrg->create();
         $sgo = array(
             'SharingGroupOrg' => array(
-                'org_id' => $org['Organisation']['id'],
+                'org_id' => $org['id'],
                 'sharing_group_id' => $sg['SharingGroup']['id'],
                 'extend' => $extend ? 1:0
             )
