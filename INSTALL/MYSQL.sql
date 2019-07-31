@@ -613,7 +613,7 @@ CREATE TABLE IF NOT EXISTS `object_template_elements` (
 -- Table structure for table `organisations`
 --
 
-CREATE TABLE `organisations` (
+CREATE TABLE IF NOT EXISTS `organisations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8_bin NOT NULL,
   `date_created` datetime NOT NULL,
