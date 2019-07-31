@@ -41,7 +41,9 @@ from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
 cybox_to_misp_object = {"Account": "credential", "AutonomousSystem": "asn",
                         "EmailMessage": "email", "NetworkConnection": "network-connection",
                         "NetworkSocket": "network-socket", "Process": "process",
-                        "x509Certificate": "x509", "Whois": "whois"}
+                        "UnixUserAccount": "user-account", "UserAccount": "user-account",
+                        "WindowsUserAccount": "user-account", "x509Certificate": "x509",
+                        "Whois": "whois"}
 
 threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
 
@@ -110,12 +112,15 @@ class StixParser():
             'ProcessObjectType': self.handle_process,
             'SocketAddressObjectType': self.handle_socket_address,
             'SystemObjectType': self.handle_system,
+            'UnixUserAccountObjectType': self.handle_unix_user,
             'URIObjectType': self.handle_domain_or_url,
+            'UserAccountObjectType': self.handle_user,
             "WhoisObjectType": self.handle_whois,
             "WindowsFileObjectType": self.handle_file,
             'WindowsRegistryKeyObjectType': self.handle_regkey,
             "WindowsExecutableFileObjectType": self.handle_pe,
             "WindowsServiceObjectType": self.handle_windows_service,
+            'WindowsUserAccountObjectType': self.handle_windows_user,
             "X509CertificateObjectType": self.handle_x509
         }
 
@@ -490,6 +495,21 @@ class StixParser():
         if properties.network_interface_list:
             return "mac-address", str(properties.network_interface_list[0].mac), ""
 
+    # Parse a user account object
+    def handle_user(self, properties):
+        attributes = self.fill_user_account_object(properties)
+        return 'user-account', self.return_attributes, ''
+
+    # Parse a UNIX user account object
+    def handle_unix_user(self, properties):
+        attributes = []
+        if properties.user_id:
+            attributes.append(['text', properties.user_id.value, 'user-id'])
+        if properties.group_id:
+            attributes.append(['text', properties.group_id.value, 'group-id'])
+        attributes.extend(self.fill_user_account_object(properties))
+        return 'user-account', self.return_attributes(attributes), ''
+
     # Parse a whois object:
     # Return type & attributes of a whois object if we have the required fields
     # Otherwise create attributes and return type & value of the last attribute to avoid crashing the parent function
@@ -533,6 +553,12 @@ class StixParser():
     def handle_windows_service(properties):
         if properties.name:
             return "windows-service-name", properties.name.value, ""
+
+    # Parse a windows user account object
+    def handle_windows_user(self, properties):
+        attributes = ['text', properties.security_id.value, 'user-id'] if properties.security_id else []
+        attributes.extend(self.fill_user_account_object(properties))
+        return 'user-account', self.return_attributes(attributes), ''
 
     def handle_x509(self, properties):
         attributes = self.handle_x509_certificate(properties.certificate) if properties.certificate else []
@@ -739,6 +765,15 @@ class StixParser():
             return "-".join(object_id.split("-")[-5:])
         except Exception:
             return str(uuid.uuid4())
+
+    @staticmethod
+    def fill_user_account_object(properties):
+        attributes = []
+        for feature, mapping in stix2misp_mapping._user_account_object_mapping.items():
+            if getattr(properties, feature):
+                attribute_type, relation = mapping
+                attributes.append([attribute_type, getattr(properties, feature).value, relation])
+        return attributes
 
     # Return the attributes that will be added in a MISP object as a list of dictionaries
     @staticmethod
