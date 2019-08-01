@@ -530,6 +530,14 @@ class Server extends AppModel
                                 'test' => 'testForEmpty',
                                 'type' => 'string',
                         ),
+                        'cweurl' => array(
+                                'level' => 1,
+                                'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
+                                'value' => '',
+                                'errorMessage' => '',
+                                'test' => 'testForEmpty',
+                                'type' => 'string',
+                        ),
                         'disablerestalert' => array(
                                 'level' => 1,
                                 'description' => __('This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull. Quick recap: True = Emails are NOT sent, False = Emails are sent on events published via sync / REST.'),
