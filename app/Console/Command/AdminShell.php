@@ -499,4 +499,11 @@ class AdminShell extends AppShell
             echo __('DB was never successfully updated or we are on a fresh install') . PHP_EOL;
         }
     }
+
+    public function cleanCaches()
+    {
+        echo 'Cleaning caches...' . PHP_EOL;
+        $this->Server->cleanCacheFiles();
+        echo '...caches lost in time, like tears in rain.' . PHP_EOL;
+    }
 }
