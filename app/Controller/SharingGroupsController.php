@@ -442,7 +442,7 @@ class SharingGroupsController extends AppController
         $removeOrg = false;
         if (!empty($sg['SharingGroupOrg'])) {
             foreach ($sg['SharingGroupOrg'] as $sgo) {
-                if ($sgo['org_id'] == $org['Organisation']['id']) {
+                if ($sgo['org_id'] == $org['id']) {
                     $removeOrg = $sgo['id'];
                     break;
                 }
