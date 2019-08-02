@@ -429,14 +429,10 @@ class Warninglist extends AppModel
 
     private function __evalCIDR($value, $listValues, $function)
     {
-        $found = false;
         foreach ($listValues as $lv) {
             if ($this->$function($value, $lv)) {
-                $found = true;
+                return true;
             }
-        }
-        if ($found) {
-            return true;
         }
         return false;
     }
