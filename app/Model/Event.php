@@ -2260,7 +2260,7 @@ class Event extends AppModel
                 'contain' => array(
                     'Tag' => array(
                         'fields' => array(
-                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value', 'Tag.local'
+                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
                         )
                     )
                 ),
@@ -2309,7 +2309,7 @@ class Event extends AppModel
                     'contain' => array(
                         'Tag' => array(
                             'fields' => array(
-                                'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value', 'Tag.local'
+                                'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
                             )
                         )
                     ),
