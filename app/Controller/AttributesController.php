@@ -3122,9 +3122,11 @@ class AttributesController extends AppController
                 if (empty($attribute)) {
                     throw new NotFoundException(__('Invalid attribute'));
                 }
-                if (!$this->_isSiteAdmin() && $attribute['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
-                    $fails++;
-                    continue;
+                if ((!$this->userRole['perm_sync'] && !$this->_isSiteAdmin()) && $attribute['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+                    if (Configure::read('MISP.host_org_id') != $this->Auth->user('org_id') || !$local) {
+                        $fails++;
+                        continue;
+                    }
                 }
                 $eventId = $attribute['Attribute']['event_id'];
                 $event = $this->Attribute->Event->find('first', array(
