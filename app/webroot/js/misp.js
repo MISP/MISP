@@ -2501,6 +2501,9 @@ function moduleResultsSubmit(id) {
             if ($(this).has('.ObjectID').length) {
                 temp['id'] = $(this).find('.ObjectID').text();
             }
+            if ($(this).has('.ObjectDescription').length) {
+                temp['description'] = $(this).find('.ObjectDescription').text();
+            }
             if ($(this).has('.TemplateVersion').length) {
                 temp['template_version'] = $(this).find('.TemplateVersion').text();
             }
