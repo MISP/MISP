@@ -6191,6 +6191,9 @@ class Event extends AppModel
                 if (empty($attribute['comment'])) {
                     $attribute['comment'] = $default_comment;
                 }
+                if (!empty($attribute['data']) && !empty($attribute['encrypt'])) {
+                    $attribute = $this->Attribute->onDemandEncrypt($attribute);
+                }
                 $attribute['event_id'] = $id;
                 if ($this->Attribute->save($attribute)) {
                     $saved_attributes++;
@@ -6489,6 +6492,9 @@ class Event extends AppModel
         $attribute['event_id'] = $event_id;
         if (empty($attribute['comment'])) {
             $attribute['comment'] = $default_comment;
+        }
+        if (!empty($attribute['data']) && !empty($attribute['encrypt'])) {
+            $attribute = $this->Attribute->onDemandEncrypt($attribute);
         }
         $this->Attribute->create();
         $attribute_save = $this->Attribute->save($attribute);

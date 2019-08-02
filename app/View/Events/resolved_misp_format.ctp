@@ -189,9 +189,16 @@
               <span class="AttributeType"><?php echo h($attribute['type']); ?></span>
             </td>
             <td class="AttributeValue limitedWidth"><?php echo h($attribute['value']); ?></td>
-            <?php if (in_array($attribute['type'], $typesWithData) && !empty($attribute['data'])) {?>
-              <input class='AttributeData' type='hidden' value="<?php echo h($attribute['data']); ?>"/>
-            <?php } ?>
+            <?php
+                if (in_array($attribute['type'], $typesWithData)) {
+                    if (!empty($attribute['data'])) {
+                        echo "<input class='AttributeData' type='hidden' value='" . h($attribute['data']) . "'/>";
+                    }
+                    if (!empty($attribute['encrypt'])) {
+                        echo "<input class='AttributeEncrypt' type='hidden' value='" . h($attribute['encrypt']) . "'/>";
+                    }
+                }
+            ?>
             <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
             <td style="max-width:150px;width:10px;">
               <?php if (!empty($attribute['Tag'])) { ?>
@@ -288,9 +295,16 @@
                 }
           ?>
           <td class="AttributeValue limitedWidth"><?php echo h($attribute['value']); ?></td>
-          <?php if (in_array($attribute['type'], $typesWithData) && !empty($attribute['data'])) {?>
-            <input class='AttributeData' type='hidden' value="<?php echo $attribute['data']; ?>"/>
-          <?php } ?>
+          <?php
+                if (in_array($attribute['type'], $typesWithData)) {
+                    if (!empty($attribute['data'])) {
+                        echo "<input class='AttributeData' type='hidden' value='" . h($attribute['data']) . "'/>";
+                    }
+                    if (!empty($attribute['encrypt'])) {
+                        echo "<input class='AttributeEncrypt' type='hidden' value='" . h($attribute['encrypt']) . "'/>";
+                    }
+                }
+          ?>
           <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
           <td style="max-width:150px;width:10px;">
             <?php if (!empty($attribute['Tag'])) { ?>
