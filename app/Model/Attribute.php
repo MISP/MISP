@@ -1530,7 +1530,7 @@ class Attribute extends AppModel
         return $this->data['Event']['org_id'] === $org;
     }
 
-    public function getRelatedAttributes($attribute, $fields=array())
+    public function getRelatedAttributes($attribute, $fields=array(), $includeEventData = false)
     {
         // LATER getRelatedAttributes($attribute) this might become a performance bottleneck
 
@@ -1574,14 +1574,36 @@ class Attribute extends AppModel
         if (empty($fields)) {
             $fields = array('Attribute.*');
         }
+        $params = array(
+            'conditions' => $conditions,
+            'fields' => $fields,
+            'recursive' => 0,
+            'group' => array('Attribute.event_id'),
+            'order' => 'Attribute.event_id DESC'
+        );
+        if (!empty($includeEventData)) {
+            $params['contain'] = array(
+                'Event' => array(
+                    'fields' => array(
+                        'Event.id', 'Event.uuid', 'Event.threat_level_id', 'Event.analysis', 'Event.info', 'Event.extends_uuid', 'Event.distribution', 'Event.sharing_group_id', 'Event.published', 'Event.date', 'Event.orgc_id', 'Event.org_id'
+                    )
+                )
+            );
+        }
         $similarEvents = $this->find(
             'all',
-            array('conditions' => $conditions,
-                                                'fields' => $fields,
-                                                'recursive' => 0,
-                                                'group' => array('Attribute.event_id'),
-                                                'order' => 'Attribute.event_id DESC', )
+            $params
         );
+        if (!empty($includeEventData)) {
+            foreach ($similarEvents as $k => $similarEvent) {
+                $similarEvents[$k] = array_merge(
+                    $similarEvent['Attribute'],
+                    array(
+                        'Event' => $similarEvent['Event']
+                    )
+                );
+            }
+        }
         return $similarEvents;
     }
 
@@ -2977,7 +2999,13 @@ class Attribute extends AppModel
                 'Event' => array(
                     'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
                 ),
-                'AttributeTag' => array('Tag' => array()),
+                'AttributeTag' => array(
+                    'Tag' => array(
+                        'fields' => array(
+                            'id', 'name', 'colour', 'numerical_value'
+                        )
+                    )
+                ),
                 'Object' => array(
                     'fields' => array('id', 'distribution', 'sharing_group_id')
                 )
@@ -3167,6 +3195,15 @@ class Attribute extends AppModel
                         $results[$k]['Event']['Tag'][] = $et['Tag'];
                     }
                     unset($results[$k]['Event']['EventTag']);
+                }
+                if (!empty($options['includeSightings'])) {
+                    $temp = $result['Attribute'];
+                    $temp['Event'] = $result['Event'];
+                    $results[$k]['Attribute']['Sighting'] = $this->Sighting->attachToEvent($temp, $user, $temp['id']);
+                }
+                if (!empty($options['includeCorrelations'])) {
+                    $attributeFields = array('id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'to_ids', 'comment');
+                    $results[$k]['Attribute']['RelatedAttribute'] = ($this->getRelatedAttributes($results[$k]['Attribute'], $attributeFields, true));
                 }
             }
             if (!$loop) {
@@ -4141,6 +4178,8 @@ class Attribute extends AppModel
                 'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
                 'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
                 'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
+                'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
+                'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0
         );
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];
