@@ -525,7 +525,7 @@ class Server extends AppModel
                         'cveurl' => array(
                                 'level' => 1,
                                 'description' => __('Turn Vulnerability type attributes into links linking to the provided CVE lookup'),
-                                'value' => '',
+                                'value' => 'http://cve.circl.lu/cve/',
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
                                 'type' => 'string',
@@ -533,7 +533,7 @@ class Server extends AppModel
                         'cweurl' => array(
                                 'level' => 1,
                                 'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
-                                'value' => '',
+                                'value' => 'http://cve.circl.lu/cwe/',
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
                                 'type' => 'string',

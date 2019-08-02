@@ -33,10 +33,10 @@
         $object['value'] = implode($separator, $value_pieces);
         echo ($object['value']);
     } else if ('vulnerability' == $object['type']) {
-        $cveUrl = (is_null(Configure::read('MISP.cveurl'))) ? "http://www.google.com/search?q=" : Configure::read('MISP.cveurl');
+        $cveUrl = (is_null(Configure::read('MISP.cveurl'))) ? "http://cve.circl.lu/cve/" : Configure::read('MISP.cveurl');
         echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank', 'class' => $linkClass));
     } else if ('weakness' == $object['type']) {
-        $cweUrl = (is_null(Configure::read('MISP.cweurl'))) ? "http://www.google.com/search?q=" : Configure::read('MISP.cweurl');
+        $cweUrl = (is_null(Configure::read('MISP.cweurl'))) ? "http://cve.circl.lu/cwe/" : Configure::read('MISP.cweurl');
         echo $this->Html->link($sigDisplay, $cweUrl . explode("-", $sigDisplay)[1], array('target' => '_blank', 'class' => $linkClass));
     } else if ('link' == $object['type'] && (substr($object['value'], 0, 7) === 'http://' || substr($object['value'], 0, 8) === 'https://')) {
         echo $this->Html->link($sigDisplay, $sigDisplay, array('class' => $linkClass));
