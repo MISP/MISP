@@ -363,8 +363,9 @@
                 'type' => 'root',
                 'url' => '/users/dashboard',
                 'html' => sprintf(
-                    '<span class="white" title="%s">%s&nbsp;&nbsp;&nbsp;%s</span>',
+                    '<span class="white" title="%s">%s%s&nbsp;&nbsp;&nbsp;%s</span>',
                     h($me['email']),
+                    $this->UserName->prepend($me['email']),
                     h($loggedInUserName),
                     sprintf(
                         '<i class="fa fa-envelope %s"></i>',
