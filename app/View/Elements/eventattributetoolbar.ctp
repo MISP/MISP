@@ -176,6 +176,15 @@
                         'onClick' => 'toggleContextFields'
                     ),
                     array(
+                        'id' => 'show_related_tags',
+                        'title' => __('Show related tags'),
+                        'fa-icon' => 'project-diagram',
+                        'text' => __('Related Tags'),
+                        'active' => $includeRelatedTags,
+                        'onClick' => 'toggleBoolFilter',
+                        'onClickParams' => array($urlHere, 'includeRelatedTags')
+                    ),
+                    array(
                         'id' => 'advanced_filtering',
                         'title' => __('Advanced filtering tool'),
                         'fa-icon' => 'filter',
