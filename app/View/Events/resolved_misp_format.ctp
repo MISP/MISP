@@ -109,6 +109,17 @@
               <span class="bold"><?php echo __('Name: ');?></span><span class="ObjectName"><?php echo h($object['name']); ?></span>
               <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $o; ?>_collapsible"></span><br />
               <div id="Object_<?php echo $o; ?>_collapsible" class="collapse">
+                <?php
+                    if (!empty($object['description'])) {
+                        echo '<span class="bold">Description: </span><span class="ObjectDescription">' . h($object['description']) . '</span><br/>';
+                    }
+                    if (!empty($object['template_uuid'])) {
+                        echo '<span class="bold">Template UUID: </span><span class="TemplateUUID">' . h($object['template_uuid']) . '</span><br/>';
+                    }
+                    if (!empty($object['template_version'])) {
+                        echo '<span class="bold">Template version: </span><span class="TemplateVersion">' . h($object['template_version']) . '</span><br/>';
+                    }
+                ?>
                 <span class="bold"><?php echo __('UUID: ');?></span><span class="ObjectUUID"><?php echo h($object['uuid']); ?></span><br />
                 <span class="bold"><?php echo __('Meta Category: ');?></span><span class="ObjectMetaCategory"><?php echo h($object['meta-category']); ?></span>
               </div>
