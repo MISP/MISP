@@ -3666,8 +3666,15 @@ class EventsController extends AppController
                 $tag_id = $this->request->data['tag'];
             }
             if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-                if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+                if (
+                    !$this->userRole['perm_tagger'] ||
+                    (
+                        $this->Auth->user('org_id') !== $event['Event']['orgc_id']
+                    )
+                ) {
+                    if (Configure::read('MISP.host_org_id') != $this->Auth->user('org_id') || !$local) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+                    }
                 }
             }
             $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
