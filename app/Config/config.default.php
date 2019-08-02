@@ -25,6 +25,7 @@ $config = array(
 			'email'                          => 'email@address.com',
 			'contact'                        => 'email@address.com',
 			'cveurl'                         => 'http://cve.circl.lu/cve/',
+			'cweurl'                         => 'http://cve.circl.lu/cwe/',
 			'disablerestalert'               => false,
 			'default_event_distribution'     => '1',
 			'default_attribute_distribution' => 'event',
