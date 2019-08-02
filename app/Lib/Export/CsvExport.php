@@ -220,6 +220,9 @@ class CsvExport
 			$options['flatten'] = 1;
 		}
         $headers = implode(',', $headers) . PHP_EOL;
+        if (!empty($options['filters']['headerless'])) {
+            return '';
+        }
         return $headers;
     }
 
