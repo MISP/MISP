@@ -24,8 +24,11 @@
     $final_value = h($object['value']);
     echo substr_replace(h($object['value']), $separator, $separator_pos, strlen($separator));
   } else if ('vulnerability' == $object['type']) {
-    $cveUrl = (is_null(Configure::read('MISP.cveurl'))) ? "http://www.google.com/search?q=" : Configure::read('MISP.cveurl');
+    $cveUrl = (is_null(Configure::read('MISP.cveurl'))) ? "http://cve.circl.lu/cve/" : Configure::read('MISP.cveurl');
     echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank', 'class' => $linkClass));
+  } else if ('weakness' == $object['type']) {
+    $cweUrl = (is_null(Configure::read('MISP.cweurl'))) ? "http://cve.circl.lu/cwe/" : Configure::read('MISP.cweurl');
+    echo $this->Html->link($sigDisplay, $cweUrl . explode("-", $sigDisplay)[1], array('target' => '_blank', 'class' => $linkClass));
   } else if ('link' == $object['type']) {
     echo $this->Html->link($sigDisplay, $sigDisplay, array('class' => $linkClass));
   } else if ('cortex' == $object['type']) {

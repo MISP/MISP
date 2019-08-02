@@ -1205,7 +1205,7 @@ class Event extends AppModel
     {
         if (!empty($data[$dataType . 'Tag'])) {
             foreach ($data[$dataType . 'Tag'] as $k => $tag) {
-                if (!$tag['Tag']['exportable']) {
+                if (!$tag['Tag']['exportable'] || !empty($tag['local'])) {
                     unset($data[$dataType . 'Tag'][$k]);
                 } else {
                     unset($tag['org_id']);
@@ -2260,7 +2260,7 @@ class Event extends AppModel
                 'contain' => array(
                     'Tag' => array(
                         'fields' => array(
-                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value', 'Tag.local'
+                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
                         )
                     )
                 ),
@@ -2309,7 +2309,7 @@ class Event extends AppModel
                     'contain' => array(
                         'Tag' => array(
                             'fields' => array(
-                                'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value', 'Tag.local'
+                                'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
                             )
                         )
                     ),
@@ -4045,8 +4045,7 @@ class Event extends AppModel
                     'includeAttachments' => true,
                     'includeAllTags' => true,
                     'deleted' => array(0,1),
-                    'excludeGalaxy' => 1,
-                    'excludeLocalTags' => 1
+                    'excludeGalaxy' => 1
                 ));
                 $event = $this->fetchEvent($elevatedUser, $params);
                 $event = $event[0];

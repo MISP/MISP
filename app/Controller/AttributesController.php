@@ -58,24 +58,25 @@ class AttributesController extends AppController
     public function index()
     {
         $this->Attribute->recursive = -1;
-        if (!$this->_isRest()) {
-            $this->paginate['recursive'] = -1;
-            $this->paginate['contain'] = array(
-                'Event' => array(
-                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
-                    'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
-                    'Org' => array('fields' => array('Org.id', 'Org.name'))
-                ),
-                'AttributeTag' => array('Tag'),
-                'Object' => array(
-                    'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-                )
-            );
-            $this->Attribute->contain(array('AttributeTag' => array('Tag')));
-        }
+        $this->paginate['recursive'] = -1;
+        $this->paginate['contain'] = array(
+            'Event' => array(
+                'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
+                'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
+                'Org' => array('fields' => array('Org.id', 'Org.name'))
+            ),
+            'AttributeTag' => array('Tag'),
+            'Object' => array(
+                'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
+            )
+        );
+        $this->Attribute->contain(array('AttributeTag' => array('Tag')));
         $this->set('isSearch', 0);
         $attributes = $this->paginate();
         if ($this->_isRest()) {
+            foreach ($attributes as $k => $attribute) {
+                $attributes[$k] = $attribute['Attribute'];
+            }
             return $this->RestResponse->viewData($attributes, $this->response->type());
         }
         $org_ids = array();
@@ -1948,7 +1949,7 @@ class AttributesController extends AppController
             'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
             'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
             'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
-            'includeWarninglistHits', 'attackGalaxy', 'object_relation'
+            'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'includeSightings', 'includeCorrelations'
         );
         $filterData = array(
             'request' => $this->request,

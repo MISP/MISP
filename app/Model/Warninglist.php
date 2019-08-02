@@ -429,14 +429,10 @@ class Warninglist extends AppModel
 
     private function __evalCIDR($value, $listValues, $function)
     {
-        $found = false;
         foreach ($listValues as $lv) {
             if ($this->$function($value, $lv)) {
-                $found = true;
+                return true;
             }
-        }
-        if ($found) {
-            return true;
         }
         return false;
     }
@@ -452,29 +448,24 @@ class Warninglist extends AppModel
         return ($ip & $mask) == $subnet;
     }
 
-    // using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
+    // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
     private function __ipv6InCidr($ip, $cidr)
-    {
-        $ip = inet_pton($ip);
-        $binaryip = $this->__inet_to_bits($ip);
-        list($net, $maskbits) = explode('/', $cidr);
-        $net = inet_pton($net);
-        $binarynet = $this->__inet_to_bits($net);
-        $ip_net_bits = substr($binaryip, 0, $maskbits);
-        $net_bits = substr($binarynet, 0, $maskbits);
-        return ($ip_net_bits === $net_bits);
-    }
-
-    // converts inet_pton output to string with bits
-    private function __inet_to_bits($inet)
-    {
-        $unpacked = unpack('A16', $inet);
-        $unpacked = str_split($unpacked[1]);
-        $binaryip = '';
-        foreach ($unpacked as $char) {
-            $binaryip .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
+    {     
+        list($address, $netmask) = explode('/', $cidr);
+        
+        $bytesAddr = unpack('n*', inet_pton($address));
+        $bytesTest = unpack('n*', inet_pton($ip));
+        
+        for ($i = 1, $ceil = ceil($netmask / 16); $i <= $ceil; ++$i) {
+            $left = $netmask - 16 * ($i - 1);
+            $left = ($left <= 16) ? $left : 16;
+            $mask = ~(0xffff >> $left) & 0xffff;
+            if (($bytesAddr[$i] & $mask) != ($bytesTest[$i] & $mask)) {
+                return false;
+            }
         }
-        return $binaryip;
+        
+        return true;
     }
 
     private function __evalString($listValues, $value)

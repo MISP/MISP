@@ -49,11 +49,14 @@ _regkey_value_mapping = {'data': ('text', 'data'), 'datatype': ('text', 'data-ty
 _socket_mapping = {'ip_address': ('ip-{}', 'address_value', 'ip-{}'),
                     'port': ('port', 'port_value', '{}-port'),
                     'hostname': ('hostname', 'hostname_value', 'hostname-{}')}
+_user_account_object_mapping = {'username': ('text', 'username'), 'full_name': ('text', 'display-name'),
+                                'disabled': ('boolean', 'disabled'), 'creation_date': ('datetime', 'created'),
+                                'last_login': ('datetime', 'last_login'), 'home_directory': ('text', 'home_dir'),
+                                'script_path': ('text', 'shell')}
 _whois_registrant_mapping = {'email_address': ('whois-registrant-email', 'address_value.value', 'registrant-email'),
                               'name': ('whois-registrant-name', 'value', 'registrant-name'),
                               'phone_number': ('whois-registrant-phone', 'value', 'registrant-phone'),
                               'organization': ('whois-registrant-org', 'value', 'registrant-org')}
-
 _whois_mapping = {'registrar_info': ('whois-registrar', 'value', 'whois-registrar'),
                    'ip_address': ('ip-src', 'address_value.value', 'ip-address'),
                    'domain_name': ('domain', 'value.value', 'domain')}

@@ -44,7 +44,7 @@ class AppController extends Controller
 
     public $debugMode = false;
 
-    public $helpers = array('Utility', 'OrgImg', 'FontAwesome');
+    public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '81';
     public $pyMispVersion = '2.4.111';
@@ -170,10 +170,11 @@ class AppController extends Controller
             $this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
         }
         $versionArray = $this->{$this->modelClass}->checkMISPVersion();
+        if (!empty($this->params['named']['disable_background_processing'])) {
+            Configure::write('MISP.background_jobs', 0);
+        }
         $this->mispVersion = implode('.', array_values($versionArray));
-
         $this->Security->blackHoleCallback = 'blackHole';
-
         // Let us access $baseurl from all views
         $baseurl = Configure::read('MISP.baseurl');
         if (substr($baseurl, -1) == '/') {
@@ -202,6 +203,7 @@ class AppController extends Controller
         if ($this->_isRest()) {
             $this->Security->unlockedActions = array($this->action);
         }
+
         if (!$userLoggedIn) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
@@ -377,7 +379,6 @@ class AppController extends Controller
                 $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $baseurl . '/servers/advancedUpdate/', 'urlName' => 'Advanced Update'), 'clear' => 1));
             }
         }
-
         if ($this->Session->check(AuthComponent::$sessionKey)) {
             if ($this->action !== 'checkIfLoggedIn' || $this->request->params['controller'] !== 'users') {
                 $this->User->id = $this->Auth->user('id');

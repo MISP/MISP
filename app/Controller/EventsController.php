@@ -3349,7 +3349,7 @@ class EventsController extends AppController
             'value', 'type', 'category', 'object_relation', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
             'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'returnFormat',
             'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'deleted',
-            'excludeLocalTags'
+            'excludeLocalTags', 'date'
         );
         $filterData = array(
             'request' => $this->request,
@@ -4024,8 +4024,10 @@ class EventsController extends AppController
             $attributes[$k] = $attribute;
         }
         // actually save the attribute now
-        $results = array();
-        $attributes = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, '', false, $adhereToWarninglists, true);
+        $temp = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, '', false, $adhereToWarninglists, empty(Configure::read('MISP.background_jobs')));
+        if (empty(Configure::read('MISP.background_jobs'))) {
+            $attributes = $temp;
+        }
         // FIXME $attributes does not contain the onteflyattributes
         $attributes = array_values($attributes);
         return $this->RestResponse->viewData($attributes, $this->response->type());
