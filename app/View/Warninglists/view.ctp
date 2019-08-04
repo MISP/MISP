@@ -13,10 +13,10 @@
         array('key' => __('Type'), 'value' => $data['type']),
         array('key' => __('Accepted attribute types'), 'value' => $text),
         array(
-            'key' => __('Accepted attribute types'),
+            'key' => __('Enabled'),
             'boolean' => $data['enabled'],
             'html' => sprintf(
-                '(<a href="%s/warninglists/enableWarninglist/%s%s" title="%s">%s</a>)',
+                ' (<a href="%s/warninglists/enableWarninglist/%s%s" title="%s">%s</a>)',
                 $baseurl,
                 h($warninglist['Warninglist']['id']),
                 $data['enabled'] ? '' : '/1',
