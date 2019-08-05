@@ -454,7 +454,7 @@ class MispObject extends AppModel
     public function attributeCleanup($attributes)
     {
         if (empty($attributes['Attribute'])) {
-            return 'No attribute data found';
+            return $attributes;
         }
         foreach ($attributes['Attribute'] as $k => $attribute) {
             if (isset($attribute['save']) && $attribute['save'] == 0) {
@@ -521,58 +521,60 @@ class MispObject extends AppModel
         $object['Object']['timestamp'] = $date->getTimestamp();
         $this->save($object);
         $checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment', 'disable_correlation');
-        foreach ($objectToSave['Attribute'] as $newKey => $newAttribute) {
-            foreach ($object['Attribute'] as $origKey => $originalAttribute) {
-                if (!empty($newAttribute['uuid'])) {
-                    if ($newAttribute['uuid'] == $originalAttribute['uuid']) {
-                        $different = false;
-                        foreach ($checkFields as $f) {
-                            if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
-                                $newAttribute[$f] = 0;
+        if (!empty($objectToSave['Attribute'])) {
+            foreach ($objectToSave['Attribute'] as $newKey => $newAttribute) {
+                foreach ($object['Attribute'] as $origKey => $originalAttribute) {
+                    if (!empty($newAttribute['uuid'])) {
+                        if ($newAttribute['uuid'] == $originalAttribute['uuid']) {
+                            $different = false;
+                            foreach ($checkFields as $f) {
+                                if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
+                                    $newAttribute[$f] = 0;
+                                }
+                                if ($newAttribute[$f] != $originalAttribute[$f]) {
+                                    $different = true;
+                                }
                             }
-                            if ($newAttribute[$f] != $originalAttribute[$f]) {
-                                $different = true;
+                            if ($different) {
+                                $newAttribute['id'] = $originalAttribute['id'];
+                                $newAttribute['event_id'] = $object['Object']['event_id'];
+                                $newAttribute['object_id'] = $object['Object']['id'];
+                                $newAttribute['timestamp'] = $date->getTimestamp();
+                                $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array(
+                                    'category',
+                                    'value',
+                                    'to_ids',
+                                    'distribution',
+                                    'sharing_group_id',
+                                    'comment',
+                                    'timestamp',
+                                    'object_id',
+                                    'event_id',
+                                    'disable_correlation'
+                                ));
                             }
+                            unset($object['Attribute'][$origKey]);
+                            continue 2;
                         }
-                        if ($different) {
-                            $newAttribute['id'] = $originalAttribute['id'];
-                            $newAttribute['event_id'] = $object['Object']['event_id'];
-                            $newAttribute['object_id'] = $object['Object']['id'];
-                            $newAttribute['timestamp'] = $date->getTimestamp();
-                            $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array(
-                                'category',
-                                'value',
-                                'to_ids',
-                                'distribution',
-                                'sharing_group_id',
-                                'comment',
-                                'timestamp',
-                                'object_id',
-                                'event_id',
-                                'disable_correlation'
-                            ));
-                        }
-                        unset($object['Attribute'][$origKey]);
-                        continue 2;
                     }
                 }
-            }
-            $this->Event->Attribute->create();
-            $newAttribute['event_id'] = $object['Object']['event_id'];
-            $newAttribute['object_id'] = $object['Object']['id'];
-            if (!isset($newAttribute['timestamp'])) {
-                $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-                if ($newAttribute['distribution'] == 'event') {
-                    $newAttribute['distribution'] = 5;
+                $this->Event->Attribute->create();
+                $newAttribute['event_id'] = $object['Object']['event_id'];
+                $newAttribute['object_id'] = $object['Object']['id'];
+                if (!isset($newAttribute['timestamp'])) {
+                    $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+                    if ($newAttribute['distribution'] == 'event') {
+                        $newAttribute['distribution'] = 5;
+                    }
                 }
+                $this->Event->Attribute->save($newAttribute);
+                $attributeArrays['add'][] = $newAttribute;
+                unset($objectToSave['Attribute'][$newKey]);
             }
-            $this->Event->Attribute->save($newAttribute);
-            $attributeArrays['add'][] = $newAttribute;
-            unset($objectToSave['Attribute'][$newKey]);
-        }
-        foreach ($object['Attribute'] as $origKey => $originalAttribute) {
-            $originalAttribute['deleted'] = 1;
-            $this->Event->Attribute->save($originalAttribute);
+            foreach ($object['Attribute'] as $origKey => $originalAttribute) {
+                $originalAttribute['deleted'] = 1;
+                $this->Event->Attribute->save($originalAttribute);
+            }
         }
         return $this->id;
     }

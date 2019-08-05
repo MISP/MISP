@@ -47,8 +47,11 @@
         $aStyle = 'background-color:' . h($tag['Tag']['colour']) . ';color:' . $this->TextColour->getTextColour($tag['Tag']['colour']) . ';';
         $aClass = 'tag nowrap';
         $aText = trim($tag['Tag']['name']);
+        $aTextModified = null;
         if (isset($tag_display_style)) {
-            if ($tag_display_style == 0) {
+            if (!isset($tag_display_style) || $tag_display_style == 1) {
+                // default behaviour, do nothing for now
+            } else if ($tag_display_style == 2) {
                 $separator_pos = strpos($aText, ':');
                 if ($separator_pos !== false) {
                     $aTextModified = substr($aText, $separator_pos + 1);
@@ -59,7 +62,7 @@
                     }
                     $aTextModified = h($aTextModified);
                 }
-            } else if ($tag_display_style == 2) {
+            } else if ($tag_display_style === 0 || $tag_display_style === '0') {
                 $aTextModified = '&nbsp;';
             }
         }
