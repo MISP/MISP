@@ -397,6 +397,19 @@ class StixBuilder():
         attack_pattern = AttackPattern(**a_p_args)
         self.append_object(attack_pattern, a_p_id)
 
+    def add_attack_pattern_object(self, misp_object, _):
+        a_p_id = 'attack-pattern--{}'.format(misp_object['uuid'])
+        attributes_dict = {attribute['object_relation']: attribute['value'] for attribute in misp_object['Attribute']}
+        a_p_args = {'id': a_p_id, 'type': 'attack-pattern', 'created_by_ref': self.identity_id}
+        for relation, key in attackPatternObjectMapping.items():
+            if relation in attributes_dict:
+                a_p_args[key] = attributes_dict[relation]
+        if 'id' in attributes_dict:
+            capec_id = "CAPEC-{}".format(attributes_dict['id'])
+            a_p_args['external_references'] = [{'source_name': 'capec', 'external_id': capec_id}]
+        attack_pattern = AttackPattern(**a_p_args)
+        self.append_object(attack_pattern, a_p_id)
+
     def add_course_of_action(self, misp_object):
         coa_args, coa_id = self.generate_galaxy_args(misp_object, False, False, 'course-of-action')
         self.add_coa_stix_object(coa_args, coa_id)
