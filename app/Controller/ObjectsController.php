@@ -525,11 +525,12 @@ class ObjectsController extends AppController
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
             }
-            if (!isset($this->request->data['Object'])) {
-                $this->request->data = array('Object' => $this->request->data);
-            }
             if (isset($this->request->data['Object']['data'])) {
                 $this->request->data = json_decode($this->request->data['Object']['data'], true);
+            }
+            if (isset($this->request->data['Object'])) {
+                $this->request->data = array_merge($this->request->data, $this->request->data['Object']);
+                unset($this->request->data['Object']);
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
             $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave);
