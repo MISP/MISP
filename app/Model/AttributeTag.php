@@ -264,16 +264,18 @@ class AttributeTag extends AppModel
             }
         }
         foreach ($event['Object'] as $i => $object) {
-            foreach ($object['Attribute'] as $j => $object_attribute) {
-                if ($to_extract == 'tags' || $to_extract == 'both') {
-                    foreach ($object_attribute['AttributeTag'] as $tag) {
-                        $attribute_tags_name['tags'][] = $tag['Tag']['name'];
+            if (!empty($object['Attribute'])) {
+                foreach ($object['Attribute'] as $j => $object_attribute) {
+                    if ($to_extract == 'tags' || $to_extract == 'both') {
+                        foreach ($object_attribute['AttributeTag'] as $tag) {
+                            $attribute_tags_name['tags'][] = $tag['Tag']['name'];
+                        }
                     }
-                }
-                if ($to_extract == 'clusters' || $to_extract == 'both') {
-                    foreach ($object_attribute['Galaxy'] as $galaxy) {
-                        foreach ($galaxy['GalaxyCluster'] as $cluster) {
-                            $attribute_tags_name['clusters'][] = $cluster['tag_name'];
+                    if ($to_extract == 'clusters' || $to_extract == 'both') {
+                        foreach ($object_attribute['Galaxy'] as $galaxy) {
+                            foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                                $attribute_tags_name['clusters'][] = $cluster['tag_name'];
+                            }
                         }
                     }
                 }
