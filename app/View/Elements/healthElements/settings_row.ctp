@@ -9,7 +9,7 @@
         );
         if ($setting['type'] == 'boolean') $setting['value'] = ($setting['value'] === true ? 'true' : 'false');
         if (isset($setting['options'])) {
-            $setting['value'] = $setting['options'][$setting['value']];
+            $setting['value'] = empty($setting['options'][$setting['value']]) ? null : $setting['options'][$setting['value']];
         }
         if (!empty($setting['redacted'])) {
             $setting['value'] = '*****';
