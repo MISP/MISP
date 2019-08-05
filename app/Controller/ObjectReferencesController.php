@@ -71,6 +71,7 @@ class ObjectReferencesController extends AppController
                 'referenced_type' => $referenced_type,
                 'uuid' => CakeText::uuid()
             );
+            $object_uuid = $object['Object']['uuid'];
             $this->ObjectReference->create();
             $result = $this->ObjectReference->save(array('ObjectReference' => $data));
             if ($result) {
@@ -80,7 +81,7 @@ class ObjectReferencesController extends AppController
                         'recursive' => -1,
                         'conditions' => array('ObjectReference.id' => $this->ObjectReference->id)
                     ));
-                    $object['ObjectReference']['object_uuid'] = $object['Object']['uuid'];
+                    $object['ObjectReference']['object_uuid'] = $object_uuid;
                     return $this->RestResponse->viewData($object, $this->response->type());
                 } elseif ($this->request->is('ajax')) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Object reference added.')),'status'=>200, 'type' => 'json'));
