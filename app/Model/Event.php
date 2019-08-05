@@ -4120,6 +4120,9 @@ class Event extends AppModel
         $this->id = $id;
         $this->recursive = 0;
         $event = $this->read(null, $id);
+        if (empty($event)) {
+            return false;
+        }
         if ($jobId) {
             $this->Behaviors->unload('SysLogLogable.SysLogLogable');
         } else {
@@ -6012,6 +6015,9 @@ class Event extends AppModel
             'recursive' => -1,
             'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
         ));
+        if (empty($event)) {
+            return false;
+        }
         $results = array();
         if (!$user['Role']['perm_site_admin'] && !empty($event) && $event['Event']['orgc_id'] != $user['org_id']) {
             $objectType = 'ShadowAttribute';
