@@ -397,10 +397,11 @@ class StixBuilder():
         attack_pattern = AttackPattern(**a_p_args)
         self.append_object(attack_pattern, a_p_id)
 
-    def add_attack_pattern_object(self, misp_object, _):
+    def add_attack_pattern_object(self, misp_object, to_ids):
         a_p_id = 'attack-pattern--{}'.format(misp_object['uuid'])
         attributes_dict = {attribute['object_relation']: attribute['value'] for attribute in misp_object['Attribute']}
         a_p_args = {'id': a_p_id, 'type': 'attack-pattern', 'created_by_ref': self.identity_id}
+        a_p_args['labels'] = self.create_object_labels(misp_object['name'], misp_object['meta-category'], to_ids)
         for relation, key in attackPatternObjectMapping.items():
             if relation in attributes_dict:
                 a_p_args[key] = attributes_dict[relation]
