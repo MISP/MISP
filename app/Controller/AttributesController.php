@@ -58,24 +58,25 @@ class AttributesController extends AppController
     public function index()
     {
         $this->Attribute->recursive = -1;
-        if (!$this->_isRest()) {
-            $this->paginate['recursive'] = -1;
-            $this->paginate['contain'] = array(
-                'Event' => array(
-                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
-                    'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
-                    'Org' => array('fields' => array('Org.id', 'Org.name'))
-                ),
-                'AttributeTag' => array('Tag'),
-                'Object' => array(
-                    'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-                )
-            );
-            $this->Attribute->contain(array('AttributeTag' => array('Tag')));
-        }
+        $this->paginate['recursive'] = -1;
+        $this->paginate['contain'] = array(
+            'Event' => array(
+                'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
+                'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
+                'Org' => array('fields' => array('Org.id', 'Org.name'))
+            ),
+            'AttributeTag' => array('Tag'),
+            'Object' => array(
+                'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
+            )
+        );
+        $this->Attribute->contain(array('AttributeTag' => array('Tag')));
         $this->set('isSearch', 0);
         $attributes = $this->paginate();
         if ($this->_isRest()) {
+            foreach ($attributes as $k => $attribute) {
+                $attributes[$k] = $attribute['Attribute'];
+            }
             return $this->RestResponse->viewData($attributes, $this->response->type());
         }
         $org_ids = array();
@@ -136,7 +137,7 @@ class AttributesController extends AppController
         $this->Event->recursive = -1;
         $this->Event->read(null, $eventId);
         if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
-            throw new UnauthorizedException(__('You do not have permission to do that.'));
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         if (!$this->_isRest()) {
             $this->Event->insertLock($this->Auth->user(), $this->Event->data['Event']['id']);
@@ -257,6 +258,14 @@ class AttributesController extends AppController
                     if (!empty($attribute['encrypt'])) {
                         $attribute = $this->Attribute->onDemandEncrypt($attribute);
                     }
+                    if (!empty($attribute['Tag'])) {
+                        foreach ($attribute['Tag'] as $tag) {
+                            $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $this->Auth->user());
+                            if ($tag_id) {
+                                $attribute['tag_ids'][] = $tag_id;
+                            }
+                        }
+                    }
                     $attributes[$k] = $attribute;
                     $this->Attribute->set($attribute);
                     $result = $this->Attribute->validates();
@@ -275,12 +284,18 @@ class AttributesController extends AppController
                 $this->Event->unpublishEvent($eventId);
             }
             $atomic = Configure::read('MISP.deadlock_avoidance') ? false : true;
+            // skipping validation here, already done above
             $result = $this->Attribute->saveMany($attributes, array('atomic' => $atomic));
             if ($this->_isRest()) {
                 if (!empty($successes)) {
                     $attributes = $this->Attribute->find('all', array(
                         'recursive' => -1,
-                        'conditions' => array('Attribute.id' => $this->Attribute->inserted_ids)
+                        'conditions' => array('Attribute.id' => $this->Attribute->inserted_ids),
+                        'contain' => array(
+                            'AttributeTag' => array(
+                                'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'))
+                            )
+                        )
                     ));
                     if (count($attributes) == 1) {
                         $attributes = $attributes[0];
@@ -886,7 +901,7 @@ class AttributesController extends AppController
             } else {
                 $message = __('Invalid attribute.');
                 if ($this->_isRest()) {
-                    throw new MethodNotAllowedException($message);
+                    throw new ForbiddenException($message);
                 } else {
                     $this->Flash->error($message);
                     $this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -978,7 +993,7 @@ class AttributesController extends AppController
                     $saved_attribute = $this->Attribute->find('first', array(
                             'conditions' => array('id' => $this->Attribute->id),
                             'recursive' => -1,
-                            'fields' => array('id', 'type', 'to_ids', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value', 'disable_correlation'),
+                            'fields' => $this->Attribute->defaultFields
                     ));
                     $response = array('response' => array('Attribute' => $saved_attribute['Attribute']));
                     $this->set('response', $response);
@@ -1277,7 +1292,7 @@ class AttributesController extends AppController
         }
         if ($this->request->is('ajax')) {
             if ($this->request->is('post')) {
-                if ($this->__delete($id, $hard)) {
+                if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')), 'status'=>200, 'type' => 'json'));
                 } else {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')), 'status'=>200, 'type' => 'json'));
@@ -1291,7 +1306,7 @@ class AttributesController extends AppController
             if (!$this->request->is('post') && !$this->_isRest()) {
                 throw new MethodNotAllowedException();
             }
-            if ($this->__delete($id, $hard)) {
+            if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
                 if ($this->_isRest() || $this->response->type() === 'application/json') {
                     $this->set('message', 'Attribute deleted.');
                     $this->set('_serialize', array('message'));
@@ -1357,77 +1372,6 @@ class AttributesController extends AppController
             } else {
                 throw new NotFoundException(__('Could not restore the attribute'));
             }
-        }
-    }
-
-
-    // unification of the actual delete for the multi-select
-    private function __delete($id, $hard = false)
-    {
-        $this->Attribute->id = $id;
-        if (!$this->Attribute->exists()) {
-            return false;
-        }
-        $result = $this->Attribute->find('first', array(
-            'conditions' => array('Attribute.id' => $id),
-            'fields' => array('Attribute.*'),
-            'contain' => array('Event' => array(
-                'fields' => array('Event.*')
-            )),
-        ));
-        if (empty($result)) {
-            throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
-        }
-
-        // check for permissions
-        if (!$this->_isSiteAdmin()) {
-            if ($result['Event']['locked']) {
-                if ($this->Auth->user('org_id') != $result['Event']['org_id'] || !$this->userRole['perm_sync']) {
-                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
-                }
-            } else {
-                if ($this->Auth->user('org_id') != $result['Event']['orgc_id']) {
-                    throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
-                }
-            }
-        }
-        $date = new DateTime();
-        if ($hard) {
-            $save = $this->Attribute->delete($id);
-        } else {
-            if (Configure::read('Security.sanitise_attribute_on_delete')) {
-                $result['Attribute']['category'] = 'Other';
-                $result['Attribute']['type'] = 'comment';
-                $result['Attribute']['value'] = 'deleted';
-                $result['Attribute']['comment'] = '';
-                $result['Attribute']['to_ids'] = 0;
-            }
-            $result['Attribute']['deleted'] = 1;
-            $result['Attribute']['timestamp'] = $date->getTimestamp();
-            $save = $this->Attribute->save($result);
-            $object_refs = $this->Attribute->Object->ObjectReference->find('all', array(
-                'conditions' => array(
-                    'ObjectReference.referenced_type' => 0,
-                    'ObjectReference.referenced_id' => $id,
-                ),
-                'recursive' => -1
-            ));
-            foreach ($object_refs as $ref) {
-                $ref['ObjectReference']['deleted'] = 1;
-                $this->Attribute->Object->ObjectReference->save($ref);
-            }
-        }
-        // attachment will be deleted with the beforeDelete() function in the Model
-        if ($save) {
-            // We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
-            $this->loadModel('ShadowAttribute');
-            $this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
-
-            // remove the published flag from the event
-            $this->Attribute->Event->unpublishEvent($result['Event']['id']);
-            return true;
-        } else {
-            return false;
         }
     }
 
@@ -1497,11 +1441,11 @@ class AttributesController extends AppController
         $successes = array();
         foreach ($attributes as $a) {
             if ($hard) {
-                if ($this->__delete($a['Attribute']['id'], true)) {
+                if ($this->Attribute->deleteAttribute($a['Attribute']['id'], $this->Auth->user(), true)) {
                     $successes[] = $a['Attribute']['id'];
                 }
             } else {
-                if ($this->__delete($a['Attribute']['id'], $a['Attribute']['deleted'] == 1 ? true : false)) {
+                if ($this->Attribute->deleteAttribute($a['Attribute']['id'], $this->Auth->user(), $a['Attribute']['deleted'] == 1 ? true : false)) {
                     $successes[] = $a['Attribute']['id'];
                 }
             }
@@ -2005,7 +1949,7 @@ class AttributesController extends AppController
             'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
             'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
             'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
-            'includeWarninglistHits', 'attackGalaxy'
+            'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'includeSightings', 'includeCorrelations'
         );
         $filterData = array(
             'request' => $this->request,
@@ -2978,7 +2922,7 @@ class AttributesController extends AppController
                 $data['config'] = $options;
             }
             if ($format == 'misp_standard') {
-                $data['attribute'] = $attribute[0]['Attribute'];
+                $data['attribute'] = in_array('value', $attribute) ? $attribute : $attribute[0]['Attribute'];
             } else {
                 $data[$attribute[0]['Attribute']['type']] = $attribute[0]['Attribute']['value'];
             }
@@ -2993,6 +2937,36 @@ class AttributesController extends AppController
                 $resultArray[$type][] = array($type => 'Enrichment service not reachable.');
                 continue;
             }
+            $current_result = array();
+            if (isset($result['results']['Object'])) {
+                if (!empty($result['results']['Object'])) {
+                    $objects = array();
+                    foreach($result['results']['Object'] as $object) {
+                        if (isset($object['Attribute']) && !empty($object['Attribute'])) {
+                            $object_attributes = array();
+                            foreach($object['Attribute'] as $object_attribute) {
+                                array_push($object_attributes, array('object_relation' => $object_attribute['object_relation'], 'value' => $object_attribute['value']));
+                            }
+                            array_push($objects, array('name' => $object['name'], 'Attribute' => $object_attributes));
+                        }
+                    }
+                    if (!empty($objects)) {
+                        $current_result['Object'] = $objects;
+                    }
+                }
+                unset($result['results']['Object']);
+            }
+            if (isset($result['results']['Attribute'])) {
+                if (!empty($result['results']['Attribute'])) {
+                    $attributes = array();
+                    foreach($result['results']['Attribute'] as $attribute) {
+                        array_push($attributes, array('type' => $attribute['type'], 'value' => $attribute['value']));
+                    }
+                    $current_result['Attribute'] = $attributes;
+                }
+                unset($result['results']['Attribute']);
+            }
+            $resultArray[$type] = $current_result;
             if (!empty($result['results'])) {
                 foreach ($result['results'] as $r) {
                     if (is_array($r['values']) && !empty($r['values'])) {
@@ -3078,7 +3052,9 @@ class AttributesController extends AppController
         if ($id === 'selected') {
             $idList = json_decode($this->request->data['attribute_ids'], true);
         }
+        $local = empty($this->params['named']['local']) ? 0 : 1;
         if (!$this->request->is('post')) {
+            $this->set('local', $local);
             $this->set('object_id', $id);
             $this->set('scope', 'Attribute');
             $this->layout = false;
@@ -3146,9 +3122,11 @@ class AttributesController extends AppController
                 if (empty($attribute)) {
                     throw new NotFoundException(__('Invalid attribute'));
                 }
-                if (!$this->_isSiteAdmin() && $attribute['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
-                    $fails++;
-                    continue;
+                if ((!$this->userRole['perm_sync'] && !$this->_isSiteAdmin()) && $attribute['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+                    if (Configure::read('MISP.host_org_id') != $this->Auth->user('org_id') || !$local) {
+                        $fails++;
+                        continue;
+                    }
                 }
                 $eventId = $attribute['Attribute']['event_id'];
                 $event = $this->Attribute->Event->find('first', array(
@@ -3187,15 +3165,35 @@ class AttributesController extends AppController
                         continue;
                     }
                     $this->Attribute->AttributeTag->create();
-                    if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
-                        $event['Event']['published'] = 0;
-                        $date = new DateTime();
-                        $event['Event']['timestamp'] = $date->getTimestamp();
-                        $result = $this->Attribute->Event->save($event);
-                        $attribute['Attribute']['timestamp'] = $date->getTimestamp();
-                        $this->Attribute->save($attribute);
+                    if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId, 'local' => $local))) {
+                        if (!$local) {
+                            $event['Event']['published'] = 0;
+                            $date = new DateTime();
+                            $event['Event']['timestamp'] = $date->getTimestamp();
+                            $result = $this->Attribute->Event->save($event);
+                            $attribute['Attribute']['timestamp'] = $date->getTimestamp();
+                            $this->Attribute->save($attribute);
+                        }
                         $log = ClassRegistry::init('Log');
-                        $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
+                        $log->createLogEntry(
+                            $this->Auth->user(),
+                            'tag',
+                            'Attribute',
+                            $id,
+                            sprintf(
+                                'Attached%s tag (%s) "%s" to attribute (%s)',
+                                $local ? ' local' : '',
+                                $tag_id,
+                                $tag['Tag']['name'],
+                                $id
+                            ),
+                            sprintf(
+                                'Attribute (%s) tagged as Tag (%s)%s',
+                                $id,
+                                $tag_id,
+                                $local ? ' locally' : ''
+                            )
+                        );
                         $success++;
                     } else {
                         $fails++;
@@ -3274,11 +3272,6 @@ class AttributesController extends AppController
             if (!$this->_isRest()) {
                 $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
             }
-            // org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
-            if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
-            }
-
             $this->Attribute->recursive = -1;
             $attributeTag = $this->Attribute->AttributeTag->find('first', array(
                 'conditions' => array(
@@ -3287,6 +3280,23 @@ class AttributesController extends AppController
                 ),
                 'recursive' => -1,
             ));
+            // org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
+            if (
+                (
+                    (
+                        $this->Auth->user('org_id') !== $event['Event']['orgc_id'] ||
+                        (
+                            $this->Auth->user('org_id') != Configure::read('MISP.host_org_id') &&
+                            !empty($attributeTag['AttributeTag']['local'])
+                        )
+                    ) ||
+                    !$this->userRole['perm_tagger']
+                ) &&
+                !$this->_isSiteAdmin()
+            ) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
+            }
+
             $this->autoRender = false;
             if (empty($attributeTag)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid attribute - tag combination.')), 'status' => 200, 'type' => 'json'));

@@ -154,7 +154,7 @@ class EventTag extends AppModel
         }
         return $tags;
     }
-    
+
     public function countForTag($tag_id, $user)
     {
         return $this->find('count', array(
@@ -163,39 +163,96 @@ class EventTag extends AppModel
         ));
     }
 
-    public function getTagScores($eventId=0, $allowedTags=array())
+    public function getTagScores($eventId=0, $allowedTags=array(), $propagateToAttribute=false)
     {
-        // get score of galaxy
-        $db = $this->getDataSource();
-        $statementArray = array(
-            'fields' => array('event_tag.tag_id as id', 'count(event_tag.tag_id) as value'),
-            'table' => $db->fullTableName($this),
-            'alias' => 'event_tag',
-            'group' => 'tag_id'
-        );
-        if ($eventId != 0) {
-            $statementArray['conditions'] = array('event_id' => $eventId);
+        if ($propagateToAttribute) {
+            $eventTagScores = $this->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('Tag.id !=' => null),
+                'contain' => array(
+                    'Event',
+                    'Tag' => array(
+                        'conditions' => array('name' => $allowedTags)
+                    )
+                ),
+                'fields' => array('Tag.name', 'Event.attribute_count')
+            ));
+        } else {
+            $conditions = array('Tag.id !=' => null);
+            if ($eventId != 0) {
+                $conditions['event_id'] = $eventId;
+            }
+            $eventTagScores = $this->find('all', array(
+                'recursive' => -1,
+                'conditions' => $conditions,
+                'contain' => array(
+                    'Tag' => array(
+                        'conditions' => array('name' => $allowedTags)
+                    )
+                ),
+                'group' => array('tag_id', 'Tag.name', 'Tag.id'),
+                'fields' => array('Tag.name', 'EventTag.tag_id', 'count(EventTag.tag_id) as score')
+            ));
         }
-        // tag along with its occurence in the event
-        $subQuery = $db->buildStatement(
-            $statementArray,
-            $this
-        );
-        $subQueryExpression = $db->expression($subQuery)->value;
-        // get related galaxies
-        $attributeTagScores = $this->query("SELECT name, value FROM (" . $subQueryExpression . ") AS score, tags WHERE tags.id=score.id;");
 
         // arrange data
         $scores = array();
         $maxScore = 0;
-        foreach ($attributeTagScores as $item) {
-            $score = $item['score']['value'];
-            $name = $item['tags']['name'];
+        foreach ($eventTagScores as $item) {
+            $score = isset($item['Event']) ? $item['Event']['attribute_count'] : $item[0]['score'];
+            $name = $item['Tag']['name'];
             if (in_array($name, $allowedTags)) {
                 $maxScore = $score > $maxScore ? $score : $maxScore;
-                $scores[$name] = $score;
+                if (!isset($scores[$name])) {
+                    $scores[$name] = 0;
+                }
+                $scores[$name] += $score;
             }
         }
         return array('scores' => $scores, 'maxScore' => $maxScore);
+    }
+
+    // Fetch all tags contained in an event (both event and attributes) ignoring the occurence. No ACL
+    public function getTagScoresUniform($eventId=0, $allowedTags=array())
+    {
+        $conditions = array('Tag.id !=' => null);
+        if ($eventId != 0) {
+            $conditions['event_id'] = $eventId;
+        }
+        $event_tag_scores = $this->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'contain' => array(
+                'Tag' => array(
+                    'conditions' => array('name' => $allowedTags)
+                )
+            ),
+            'fields' => array('Tag.name', 'EventTag.event_id')
+        ));
+        $attribute_tag_scores = $this->Event->Attribute->AttributeTag->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'contain' => array(
+                'Tag' => array(
+                    'conditions' => array('name' => $allowedTags)
+                )
+            ),
+            'fields' => array('Tag.name', 'AttributeTag.event_id')
+        ));
+
+        $score_aggregation = array();
+        foreach ($event_tag_scores as $event_tag_score) {
+            $score_aggregation[$event_tag_score['Tag']['name']][$event_tag_score['EventTag']['event_id']] = 1;
+        }
+        foreach ($attribute_tag_scores as $attribute_tag_score) {
+            $score_aggregation[$attribute_tag_score['Tag']['name']][$attribute_tag_score['AttributeTag']['event_id']] = 1;
+        }
+        $scores = array('scores' => array(), 'maxScore' => 0);
+        foreach ($score_aggregation as $name => $array_ids) {
+            $event_count = count($array_ids);
+            $scores['scores'][$name] = $event_count;
+            $scores['maxScore'] = $event_count > $scores['maxScore'] ? $event_count : $scores['maxScore'];
+        }
+        return $scores;
     }
 }

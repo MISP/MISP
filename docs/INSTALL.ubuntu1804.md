@@ -46,7 +46,16 @@ aptUpgrade () {
   debug "Upgrading system"
   checkAptLock
   sudo apt-get update
-  sudo apt-get upgrade -qy
+
+  # If we run in non-interactive mode, make sure we do not stop all of a sudden
+  if [[ "${PACKER}" == "1" || "${UNATTENDED}" == "1" ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    export DEBIAN_PRIORITY=critical
+    sudo -E apt-get -qy -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" upgrade
+    sudo -E apt-get -qy autoclean
+  else
+    sudo apt-get upgrade -qy
+  fi
 }
 # <snippet-end 0_apt-upgrade.sh>
 ```
@@ -80,7 +89,7 @@ Once the system is installed you can perform the following steps.
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 -qy
+  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 moreutils -qy
 
   # Install MariaDB (a MySQL fork/alternative)
   sudo apt-get install mariadb-client mariadb-server -qy
@@ -106,7 +115,7 @@ installDepsPhp72 () {
   libapache2-mod-php \
   php php-cli \
   php-dev \
-  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring \
   php-pear \
   php-redis php-gnupg \
   php-gd
@@ -172,6 +181,9 @@ installCore () {
 
   # install lief
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+
+  # install zmq needed by mispzmq
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
@@ -281,7 +293,7 @@ EOF
 
   sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE DATABASE ${DBNAME};"
   sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
-  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT USAGE ON *.* to ${DBNAME}@localhost;"
+  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT USAGE ON *.* to ${DBUSER_MISP}@localhost;"
   sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
   sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "FLUSH PRIVILEGES;"
   # Import the empty MISP database from MYSQL.sql

@@ -10,3 +10,4 @@ curl -H "Authorization: $AUTH"  -X GET http://misp.local/events/csv/download/1/i
 cat 1.csv
 cut -d, -f2 --complement event.csv | sort > compare.csv
 diff compare.csv 1.csv
+curl -i -H "Accept: application/json" -H "content-type: application/json" -H "Authorization: $AUTH" -X POST http://misp.local/events/delete/1

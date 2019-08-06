@@ -19,7 +19,7 @@ class UsersController extends AppController
             ),
             'contain' => array(
                 'Organisation' => array('id', 'name'),
-                'Role' => array('id', 'name', 'perm_auth')
+                'Role' => array('id', 'name', 'perm_auth', 'perm_site_admin')
             )
     );
 
@@ -350,11 +350,16 @@ class UsersController extends AppController
                     ),
                     'contain' => array(
                             'Organisation' => array('id', 'name'),
-                            'Role' => array('id', 'name', 'perm_auth')
+                            'Role' => array('id', 'name', 'perm_auth', 'perm_site_admin')
                     )
             ));
             foreach ($users as $key => $value) {
-                unset($users['User']['password']);
+                if (empty($this->Auth->user('Role')['perm_site_admin'])) {
+                    if ($value['Role']['perm_site_admin']) {
+                        $users[$key]['User']['authkey'] = __('Redacted');
+                    }
+                }
+                unset($users[$key]['User']['password']);
             }
             return $this->RestResponse->viewData($users, $this->response->type());
         } else {
@@ -366,7 +371,13 @@ class UsersController extends AppController
             } else {
                 $conditions['User.org_id'] = $this->Auth->user('org_id');
                 $this->paginate['conditions']['AND'][] = $conditions;
-                $this->set('users', $this->paginate());
+                $users = $this->paginate();
+                foreach ($users as $key => $value) {
+                    if ($value['Role']['perm_site_admin']) {
+                        $users[$key]['User']['authkey'] = __('Redacted');
+                    }
+                }
+                $this->set('users', $users);
             }
             if ($this->request->is('ajax')) {
                 $this->autoRender = false;
@@ -462,6 +473,9 @@ class UsersController extends AppController
             $user['User']['fingerprint'] = !empty($pgpDetails[4]) ? $pgpDetails[4] : 'N/A';
         }
         $user['User']['orgAdmins'] = $this->User->getOrgAdminsForOrg($user['User']['org_id'], $user['User']['id']);
+        if (empty($this->Auth->user('Role')['perm_site_admin']) && !(empty($user['Role']['perm_site_admin']))) {
+            $user['User']['authkey'] = __('Redacted');
+        }
         $this->set('user', $user);
         if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $user['User']['org_id'])) {
             throw new MethodNotAllowedException();
@@ -694,9 +708,10 @@ class UsersController extends AppController
         $params = array();
         $allowedRole = '';
         $userToEdit = $this->User->find('first', array(
-                'conditions' => array('id' => $id),
+                'conditions' => array('User.id' => $id),
                 'recursive' => -1,
-                'fields' => array('id', 'role_id', 'email', 'org_id'),
+                'fields' => array('User.id', 'User.role_id', 'User.email', 'User.org_id', 'Role.perm_site_admin'),
+                'contain' => array('Role')
         ));
         if (!$this->_isSiteAdmin()) {
             // Org admins should be able to select the role that is already assigned to an org user when editing them.
@@ -706,8 +721,8 @@ class UsersController extends AppController
             // MISP automatically chooses the first available option for the user as the selected setting (usually user)
             // Org admin is downgraded to a user
             // Now we make an exception for the already assigned role, both in the form and the actual edit.
-            if ($userToEdit['User']['org_id'] != $this->Auth->user('org_id')) {
-                throw new Exception('Invalid user');
+            if ($userToEdit['User']['org_id'] != $this->Auth->user('org_id') || !empty($userToEdit['Role']['perm_site_admin'])) {
+                throw new NotFoundException(__('Invalid user'));
             }
             $allowedRole = $userToEdit['User']['role_id'];
             $params = array('conditions' => array(
@@ -919,8 +934,8 @@ class UsersController extends AppController
 
     public function admin_delete($id = null)
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
+        if (!$this->request->is('post') && !$this->request->is('delete')) {
+            throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
         }
         if (!$this->_isAdmin()) {
             throw new Exception('Administrators only.');
@@ -1185,7 +1200,9 @@ class UsersController extends AppController
         ));
         $orgs = array(0 => 'All organisations');
         foreach ($org_ids as $v) {
-            $orgs[$v] = $orgs_temp[$v];
+            if (!empty($orgs_temp[$v])) {
+                $orgs[$v] = $orgs_temp[$v];
+            }
         }
         $data = array();
         $max = 1;
@@ -1906,94 +1923,149 @@ class UsersController extends AppController
         } else {
             $galaxy_id = $mitre_galaxy_id;
         }
-        $matrixData = $this->Galaxy->getMatrix($galaxy_id);
-
-        $tabs = $matrixData['tabs'];
-        $matrixTags = $matrixData['matrixTags'];
-        $killChainOrders = $matrixData['killChain'];
-        $instanceUUID = $matrixData['instance-uuid'];
-
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores(0, $matrixTags);
-        $scoresDataEvent = $this->Event->EventTag->getTagScores(0, $matrixTags);
-        $scoresData = array();
-        foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
-            $scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+        $organisations = $this->User->Organisation->find('all', array(
+                'recursive' => -1,
+        ));
+        array_unshift($organisations, array('Organisation' => array('id' => 0, 'name' => 'All')));
+        $this->set('organisations', $organisations);
+        $picked_organisation = 0;
+        if (isset($params['organisation']) && $params['organisation'] != 0) {
+            $org = $this->User->Organisation->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('id' => $params['organisation']),
+            ));
+            if (!empty($org)) {
+                $picked_organisation = $org;
+                $this->set('picked_organisation', $picked_organisation);
+            } else {
+                $this->set('picked_organisation', array('Organisation' => array('id' => '')));
+            }
+        } else {
+            $this->set('picked_organisation', array('Organisation' => array('id' => '')));
         }
-        $maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
-        $scores = $scoresData;
-        // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
-        if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
-            $mergedScore = array();
-            foreach ($scoresData as $tag => $v) {
-                $predicateValue = explode(':', $tag, 2)[1];
-                $predicateValue = explode('=', $predicateValue, 2);
-                $predicate = $predicateValue[0];
-                $clusterValue = $predicateValue[1];
-                $mappedTag = '';
-                $mappingWithoutExternalId = array();
-                if ($predicate == 'mitre-attack-pattern') {
-                    $mappedTag = $tag;
-                    $name = explode(" ", $tag);
-                    $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
-                    $mappingWithoutExternalId[$name] = $tag;
-                } else {
-                    $name = explode(" ", $clusterValue);
-                    $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
-                    if (isset($mappingWithoutExternalId[$name])) {
-                        $mappedTag = $mappingWithoutExternalId[$name];
+
+        $rest_response_empty = true;
+        $ignore_score = false;
+        if (
+            isset($params['dateFrom'])
+            || isset($params['dateTo'])
+            || isset($params['organisation']) && $params['organisation'] != 0
+        ) { // use restSearch
+            $ignore_score = true;
+            $filters = array();
+            if (isset($params['dateFrom'])) {
+                $filters['from'] = $params['dateFrom'];
+                $this->set('dateFrom', $params['dateFrom']);
+            }
+            if (isset($params['dateTo'])) {
+                $filters['to'] = $params['dateTo'];
+                $this->set('dateTo', $params['dateTo']);
+            }
+            if (isset($params['organisation'])) {
+                $filters['org'] = $params['organisation'];
+            }
+            $elementCounter = 0;
+            $renderView = '';
+            $final = $this->Event->restSearch($this->Auth->user(), 'attack', $filters, false, false, $elementCounter, $renderView);
+
+            $final = json_decode($final, true);
+            if (!empty($final)) {
+                $rest_response_empty = false;
+                foreach ($final as $key => $data) {
+                    $this->set($key, $data);
+                }
+            }
+        }
+
+        // No need for restSearch or result is empty
+        if ($rest_response_empty) {
+            $matrixData = $this->Galaxy->getMatrix($galaxy_id);
+            $tabs = $matrixData['tabs'];
+            $matrixTags = $matrixData['matrixTags'];
+            $killChainOrders = $matrixData['killChain'];
+            $instanceUUID = $matrixData['instance-uuid'];
+            if ($ignore_score) {
+                $scores_uniform = array('scores' => array(), 'maxScore' => 0);
+            } else {
+                $scores_uniform = $this->Event->EventTag->getTagScoresUniform(0, $matrixTags);
+            }
+            $scores = $scores_uniform['scores'];
+            $maxScore = $scores_uniform['maxScore'];
+            // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
+            if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
+                $mergedScore = array();
+                foreach ($scores as $tag => $v) {
+                    $predicateValue = explode(':', $tag, 2)[1];
+                    $predicateValue = explode('=', $predicateValue, 2);
+                    $predicate = $predicateValue[0];
+                    $clusterValue = $predicateValue[1];
+                    $mappedTag = '';
+                    $mappingWithoutExternalId = array();
+                    if ($predicate == 'mitre-attack-pattern') {
+                        $mappedTag = $tag;
+                        $name = explode(" ", $tag);
+                        $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                        $mappingWithoutExternalId[$name] = $tag;
                     } else {
-                        $adjustedTagName = $this->Galaxy->GalaxyCluster->find('list', array(
-                            'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name'),
-                            'conditions' => array('GalaxyCluster.tag_name LIKE' => 'misp-galaxy:mitre-attack-pattern=' . $name . '% T%'),
-                            'fields' => array('GalaxyCluster.tag_name')
-                        ));
-                        $adjustedTagName = array_values($adjustedTagName)[0];
-                        $mappingWithoutExternalId[$name] = $adjustedTagName;
-                        $mappedTag = $mappingWithoutExternalId[$name];
+                        $name = explode(" ", $clusterValue);
+                        $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                        if (isset($mappingWithoutExternalId[$name])) {
+                            $mappedTag = $mappingWithoutExternalId[$name];
+                        } else {
+                            $adjustedTagName = $this->Galaxy->GalaxyCluster->find('list', array(
+                                'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name'),
+                                'conditions' => array('GalaxyCluster.tag_name LIKE' => 'misp-galaxy:mitre-attack-pattern=' . $name . '% T%'),
+                                'fields' => array('GalaxyCluster.tag_name')
+                            ));
+                            if (!empty($adjustedTagName)) {
+                                $adjustedTagName = array_values($adjustedTagName)[0];
+                                $mappingWithoutExternalId[$name] = $adjustedTagName;
+                                $mappedTag = $mappingWithoutExternalId[$name];
+                            }
+                        }
+                    }
+                    if (isset($mergedScore[$mappedTag])) {
+                        $mergedScore[$mappedTag] += $v;
+                    } else {
+                        $mergedScore[$mappedTag] = $v;
                     }
                 }
+                $scores = $mergedScore;
+                $maxScore = !empty($mergedScore) ? max(array_values($mergedScore)) : 0;
+            }
+            // end FIXME
 
-                if (isset($mergedScore[$mappedTag])) {
-                    $mergedScore[$mappedTag] += $v;
-                } else {
-                    $mergedScore[$mappedTag] = $v;
+            $this->Galaxy->sortMatrixByScore($tabs, $scores);
+            if ($this->_isRest()) {
+                $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
+                return $this->RestResponse->viewData($json, $this->response->type());
+            } else {
+                App::uses('ColourGradientTool', 'Tools');
+                $gradientTool = new ColourGradientTool();
+                $colours = $gradientTool->createGradientFromValues($scores);
+
+                $this->set('target_type', 'attribute');
+                $this->set('columnOrders', $killChainOrders);
+                $this->set('tabs', $tabs);
+                $this->set('scores', $scores);
+                $this->set('maxScore', $maxScore);
+                if (!empty($colours)) {
+                    $this->set('colours', $colours['mapping']);
+                    $this->set('interpolation', $colours['interpolation']);
                 }
+                $this->set('pickingMode', false);
+                if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
+                    $this->set('defaultTabName', "mitre-attack");
+                    $this->set('removeTrailling', 2);
+                }
+
+                $this->set('galaxyName', $matrixData['galaxy']['name']);
+                $this->set('galaxyId', $matrixData['galaxy']['id']);
+                $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
+                $this->set('matrixGalaxies', $matrixGalaxies);
             }
-            $scores = $mergedScore;
-            $maxScore = max(array_values($mergedScore));
         }
-        // end FIXME
-
-        if ($this->_isRest()) {
-            $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
-            return $this->RestResponse->viewData($json, $this->response->type());
-        } else {
-            App::uses('ColourGradientTool', 'Tools');
-            $gradientTool = new ColourGradientTool();
-            $colours = $gradientTool->createGradientFromValues($scores);
-
-            $this->set('target_type', 'attribute');
-            $this->set('columnOrders', $killChainOrders);
-            $this->set('tabs', $tabs);
-            $this->set('scores', $scores);
-            $this->set('maxScore', $maxScore);
-            if (!empty($colours)) {
-                $this->set('colours', $colours['mapping']);
-                $this->set('interpolation', $colours['interpolation']);
-            }
-            $this->set('pickingMode', false);
-            if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
-                $this->set('defaultTabName', "mitre-attack");
-                $this->set('removeTrailling', 2);
-            }
-
-            $this->set('galaxyName', $matrixData['galaxy']['name']);
-            $this->set('galaxyId', $matrixData['galaxy']['id']);
-            $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
-            $this->set('matrixGalaxies', $matrixGalaxies);
-
-            $this->render('statistics_galaxymatrix');
-        }
+        $this->render('statistics_galaxymatrix');
     }
 
     public function verifyGPG($full = false)

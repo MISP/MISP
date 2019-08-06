@@ -20,11 +20,9 @@ import sys
 import json
 import os
 import time
-import uuid
 import io
 import re
 import stix2
-from base64 import b64encode
 from stix2misp_mapping import *
 from collections import defaultdict
 
@@ -230,20 +228,30 @@ class StixParser():
                     continue
         return attributes
 
-    def attributes_from_ip_port_observable(self, objects):
-        ordered_objects = defaultdict(dict)
-        for key, value in objects.items():
-            if isinstance(value, (stix2.IPv4Address, stix2.IPv6Address, stix2.NetworkTraffic)):
-                ordered_objects[value._type.split('-')[1]][key] = value
-            else:
-                attributes = self.fill_observable_attributes(value, network_traffic_mapping)
-        for traffic in ordered_objects['traffic'].values():
-            if hasattr(traffic, 'dst_ref'):
-                mapping = ip_attribute_mapping
-                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                   'to_ids': False, 'value': ordered_objects['addr'][traffic.dst_ref].value})
-            attributes.extend(self.fill_observable_attributes(traffic, network_traffic_mapping))
-        return attributes
+    def attributes_from_network_traffic(self, objects, name=None):
+        network_traffic, references = self.fetch_network_traffic_objects_and_references(objects)
+        attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
+        if name is not None:
+            mapping = network_socket_types
+            for protocol in network_traffic.protocols:
+                try:
+                    layer = connection_protocols[protocol]
+                    attributes.append({'type': 'text', 'value': protocol, 'to_ids': False,
+                                       'object_relation': 'layer{}-protocol'.format(layer)})
+                except KeyError:
+                    continue
+        elif hasattr(network_traffic, 'extensions') and network_traffic.extensions:
+            extension_type, extension_value = list(network_traffic.extensions.items())[0]
+            name = network_traffic_extensions[extension_type]
+            attributes.extend(self.parse_socket_extension(extension_value))
+            mapping = network_traffic_references_mapping['with_extensions']
+        else:
+            name = 'ip-port'
+            mapping = network_traffic_references_mapping['without_extensions']
+        attributes.extend(self.parse_network_traffic_references(references, network_traffic, mapping))
+        if references:
+            attributes.extend(self.parse_remaining_references(references, mapping))
+        return attributes, name
 
     def attributes_from_process_observable(self, objects):
         main_process = None
@@ -291,6 +299,38 @@ class StixParser():
                                    'value': value.dst_port, 'to_ids': False})
         return attributes
 
+    def attributes_from_user_account_observable(self, observable):
+        observable = observable['0']
+        attributes = self.fill_user_account_observable_attributes(observable)
+        if 'extensions' in observable and 'unix-account-ext' in observable['extensions']:
+            extension = observable['extensions']['unix-account-ext']
+            if 'groups' in extension:
+                for group in extension['groups']:
+                    attributes.append({'type': 'text', 'object_relation': 'group',
+                                       'to_ids': False, 'disable_correlation': True,
+                                       'value': group})
+        attributes.extend(self.fill_user_account_observable_attributes(extension))
+        return attributes
+
+    def attributes_from_user_account_pattern(self, pattern):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            p_value = p_value[1:-1]
+            if "extensions.'unix-account-ext'" in p_type:
+                relation = p_type.split('.')[-1]
+                if 'groups' in relation:
+                    attributes.append({'type': 'text', 'object_relation': 'group',
+                                       'disable_correlation': True, 'value': p_value})
+                    continue
+            else:
+                relation = p_type.split(':')[1]
+            if relation in user_account_mapping:
+                attribute = {'value': p_value}
+                attribute.update(user_account_mapping[relation])
+                attributes.append(attribute)
+        return attributes
+
     def attributes_from_x509_observable(self, objects):
         _object = objects['0']
         attributes = self.fill_observable_attributes(_object.hashes, x509_mapping) if (hasattr(_object, 'hashes') and _object.hashes) else []
@@ -308,21 +348,24 @@ class StixParser():
         return file, data
 
     @staticmethod
-    def fetch_network_traffic_objects(objects):
-        network_traffics = []
-        for value in objects.values():
-            if isinstance(value, stix2.NetworkTraffic):
-                return value
-
-    @staticmethod
     def fetch_network_traffic_objects_and_references(objects):
-        references = defaultdict(dict)
+        references = {}
         for key, value in objects.items():
             if isinstance(value, (stix2.DomainName, stix2.IPv4Address, stix2.IPv6Address)):
                 references[key] = value
             elif isinstance(value, stix2.NetworkTraffic):
                 network_traffic = value
         return network_traffic, references
+
+    @staticmethod
+    def fill_user_account_observable_attributes(observable):
+        attributes = []
+        for key, value in observable.items():
+            if key in user_account_mapping:
+                attribute = {'to_ids': False, 'value': value}
+                attribute.update(user_account_mapping[key])
+                attributes.append(attribute)
+        return attributes
 
     def handle_object_relationship(self, misp_object, uuid):
         for reference in self.relationship[uuid]:
@@ -377,21 +420,27 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     @staticmethod
-    def parse_network_traffic_references(objects, network_traffic, mapping, attr='get'):
+    def __parse_network_traffic_reference(ref_object, ref, mapping):
+        origin = ref.split('_')[0]
+        misp_type, relation = mapping[ref_object._type]
+        return {'type': misp_type.format(origin), 'object_relation': relation.format(origin),
+                'to_ids': False, 'value': ref_object.value}
+
+    def parse_network_traffic_references(self, objects, network_traffic, mapping):
         attributes= []
         for ref in ('src_ref', 'dst_ref'):
             if hasattr(network_traffic, ref):
-                ref_object = getattr(objects, attr)(getattr(network_traffic, ref))
-                origin = ref.split('_')[0]
-                misp_type, relation = mapping[ref_object._type]
-                attributes.append({'type': misp_type.format(origin), 'object_relation': relation.format(origin),
-                                   'to_ids': False, 'value': ref_object.value})
+                ref_object = objects.pop(getattr(network_traffic, ref))
+                attributes.append(self.__parse_network_traffic_reference(ref_object, ref, mapping))
+        for refs in ('src_refs', 'dst_refs'):
+            if hasattr(network_traffic, refs):
+                for ref in getattr(network_traffic, refs):
+                    ref_object = objects.pop(ref)
+                    attributes.append(self.__parse_network_traffic_reference(ref_object, refs, mapping))
         return attributes
 
     def parse_pe(self, extension):
         pe = MISPObject('pe', misp_objects_path_custom=_MISP_objects_path)
-        pe_uuid = str(uuid.uuid4())
-        pe.uuid = pe_uuid
         self.fill_object_attributes_observable(pe, pe_mapping, extension)
         for section in extension['sections']:
             pe_section = MISPObject('pe-section', misp_objects_path_custom=_MISP_objects_path)
@@ -401,12 +450,10 @@ class StixParser():
                     pe_section.add_attribute(**{'type': h_type, 'object_relation': h_type,
                                                 'value': h_value, 'to_ids': False})
             self.fill_object_attributes_observable(pe_section, pe_section_mapping, section)
-            section_uuid = str(uuid.uuid4())
-            pe_section.uuid = section_uuid
-            pe.add_reference(section_uuid, 'included-in')
+            pe.add_reference(pe_section.uuid, 'includes')
             self.misp_event.add_object(**pe_section)
         self.misp_event.add_object(**pe)
-        return pe_uuid
+        return pe.uuid
 
     @staticmethod
     def parse_remaining_references(references, mapping):
@@ -415,6 +462,22 @@ class StixParser():
             misp_type, relation = mapping[reference._type]
             attributes.append({'type': misp_type, 'object_relation': relation,
                                'to_ids': False, 'value': reference.value})
+        return attributes
+
+    @staticmethod
+    def parse_socket_extension(extension):
+        attributes = []
+        for element in extension:
+            try:
+                mapping = network_traffic_mapping[element]
+            except KeyError:
+                continue
+            if element in ('is_listening', 'is_blocking'):
+                attribute_value = element.split('_')[1]
+            else:
+                attribute_value = extension[element]
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': attribute_value})
         return attributes
 
     @staticmethod
@@ -442,14 +505,18 @@ class StixFromMISPParser(StixParser):
     def __init__(self):
         super(StixFromMISPParser, self).__init__()
         self.objects_mapping = {'asn': {'observable': self.attributes_from_asn_observable, 'pattern': self.pattern_asn},
+                                'credential': {'observable': self.observable_credential, 'pattern': self.pattern_credential},
                                 'domain-ip': {'observable': self.attributes_from_domain_ip_observable, 'pattern': self.pattern_domain_ip},
                                 'email': {'observable': self.observable_email, 'pattern': self.pattern_email},
                                 'file': {'observable': self.observable_file, 'pattern': self.pattern_file},
-                                'ip-port': {'observable': self.attributes_from_ip_port_observable, 'pattern': self.pattern_ip_port},
+                                'ip-port': {'observable': self.observable_ip_port, 'pattern': self.pattern_ip_port},
+                                'network-connection': {'observable': self.observable_connection, 'pattern': self.pattern_connection},
                                 'network-socket': {'observable': self.observable_socket, 'pattern': self.pattern_socket},
                                 'process': {'observable': self.attributes_from_process_observable, 'pattern': self.pattern_process},
                                 'registry-key': {'observable': self.attributes_from_regkey_observable, 'pattern': self.pattern_regkey},
                                 'url': {'observable': self.attributes_from_url_observable, 'pattern': self.pattern_url},
+                                'user-account': {'observable': self.attributes_from_user_account_observable,
+                                                 'pattern': self.attributes_from_user_account_pattern},
                                 'WindowsPEBinaryFile': {'observable': self.observable_pe, 'pattern': self.pattern_pe},
                                 'x509': {'observable': self.attributes_from_x509_observable, 'pattern': self.pattern_x509}}
         self.object_from_refs = {'course-of-action': self.parse_MISP_course_of_action, 'vulnerability': self.parse_vulnerability,
@@ -541,7 +608,7 @@ class StixFromMISPParser(StixParser):
             attributes = self.objects_mapping[object_type]['observable'](observable)
         if isinstance(attributes, tuple):
             attributes, pe_uuid = attributes
-            misp_object.add_reference(pe_uuid, 'included-in')
+            misp_object.add_reference(pe_uuid, 'includes')
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
         misp_object.to_ids = (labels[2].split('=')[1][1:-1].lower() == 'true')
@@ -592,6 +659,47 @@ class StixFromMISPParser(StixParser):
             self.parse_usual_object(o, labels)
         else:
             self.misp_event['Galaxy'].append(self.parse_galaxy(o, labels))
+
+    def observable_connection(self, observable):
+        attributes, _ = self.attributes_from_network_traffic(observable, 'network-connection')
+        return attributes
+
+    def pattern_connection(self, pattern):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            p_value = p_value[1:-1]
+            try:
+                mapping = network_traffic_mapping[p_type]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': p_value})
+            except KeyError:
+                if not p_type.startswith('network-traffic:protocols['):
+                    continue
+                attributes.append({'type': 'text', 'value': p_value,
+                                   'object_relation': 'layer{}-protocol'.format(connection_protocols[p_value])})
+        return attributes
+
+    def observable_credential(self, observable):
+        return self.fill_observable_attributes(observable['0'], credential_mapping)
+
+    def pattern_credential(self, pattern):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            p_type = p_type.split(':')[1]
+            p_value = p_value[1:-1]
+            try:
+                mapping = credential_mapping[p_type]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': p_value})
+            except KeyError:
+                if not p_type.startswith('x_misp_'):
+                    continue
+                attribute_type, relation = p_type.strip('x_misp_').split('_')
+                attributes.append({'type': attribute_type, 'object_relation': relation,
+                                   'value': p_value})
+        return attributes
 
     def observable_email(self, observable):
         to_ids = False
@@ -686,8 +794,6 @@ class StixFromMISPParser(StixParser):
         attributes = []
         sections = defaultdict(dict)
         pe = MISPObject('pe', misp_objects_path_custom=_MISP_objects_path)
-        pe_uuid = str(uuid.uuid4())
-        pe.uuid = pe_uuid
         for p in pattern:
             p_type, p_value = p.split(' = ')
             p_value = p_value[1:-1]
@@ -739,18 +845,20 @@ class StixFromMISPParser(StixParser):
                             attribute_type, relation = stix_type.split("x_misp_")[1][:-1].split("_")
                             attributes.append({'type': attribute_type, 'object_relation': relation,
                                                'value': value, 'to_ids': True})
-            section_uuid = str(uuid.uuid4())
-            pe_section.uuid = pe_uuid
-            pe.add_reference(section_uuid, 'included-in')
+            pe.add_reference(pe_section.uuid, 'includes')
             self.misp_event.add_object(**pe_section)
         self.misp_event.add_object(**pe)
-        return attributes, pe_uuid
+        return attributes, pe.uuid
 
     def pattern_asn(self, pattern):
         return self.fill_pattern_attributes(pattern, asn_mapping)
 
     def pattern_domain_ip(self, pattern):
         return self.fill_pattern_attributes(pattern, domain_ip_mapping)
+
+    def observable_ip_port(self, observable):
+        attributes, _ = self.attributes_from_network_traffic(observable)
+        return attributes
 
     def pattern_ip_port(self, pattern):
         return self.fill_pattern_attributes(pattern, network_traffic_mapping)
@@ -787,52 +895,7 @@ class StixFromMISPParser(StixParser):
         return attributes
 
     def observable_socket(self, observable):
-        observable_object = dict(observable['0']) if len(observable) == 1 else self.parse_socket_observable(observable)
-        try:
-            extension = observable_object.pop('extensions')
-            attributes = self.parse_socket_extension(extension['socket-ext'])
-        except KeyError:
-            attributes = []
-        for o_key, o_value in observable_object.items():
-            if o_key in ('src_ref', 'dst_ref'):
-                element_object = observable[o_value]
-                if 'domain-name' in element_object['type']:
-                    attribute_type = 'hostname'
-                    relation = 'hostname-{}'.format(o_key.split('_')[0])
-                else:
-                    attribute_type = relation = "ip-{}".format(o_key.split('_')[0])
-                attributes.append({'type': attribute_type, 'object_relation': relation,
-                                   'value': element_object['value']})
-                continue
-            try:
-                mapping = network_traffic_mapping[o_key]
-            except KeyError:
-                continue
-            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                               'value': o_value})
-        return attributes
-
-    @staticmethod
-    def parse_socket_observable(observable):
-        for key in observable:
-            observable_object = observable[key]
-            if observable_object['type'] == 'network-traffic':
-                return dict(observable_object)
-
-    @staticmethod
-    def parse_socket_extension(extension):
-        attributes = []
-        for element in extension:
-            try:
-                mapping = network_traffic_mapping[element]
-            except KeyError:
-                continue
-            if element in ('is_listening', 'is_blocking'):
-                attribute_value = element.split('_')[1]
-            else:
-                attribute_value = extension[element]
-            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                               'value': attribute_value})
+        attributes, _ = self.attributes_from_network_traffic(observable)
         return attributes
 
     @staticmethod
@@ -840,6 +903,7 @@ class StixFromMISPParser(StixParser):
         attributes = []
         for p in pattern:
             p_type, p_value = p.split(' = ')
+            p_value = p_value[1:-1]
             try:
                 mapping = network_traffic_mapping[p_type]
             except KeyError:
@@ -965,7 +1029,7 @@ class ExternalStixParser(StixParser):
                                    ('domain-name', 'ipv6-addr'): self.parse_domain_ip_observable,
                                    ('domain-name', 'ipv4-addr', 'network-traffic'): self.parse_ip_port_or_network_socket_observable,
                                    ('domain-name', 'ipv6-addr', 'network-traffic'): self.parse_ip_port_or_network_socket_observable,
-                                   ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): self.parse_ip_port_observable,
+                                   ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): self.parse_ip_port_or_network_socket_observable,
                                    ('domain-name', 'network-traffic'): self.parse_network_socket_observable,
                                    ('domain-name', 'network-traffic', 'url'): self.parse_url_object_observable,
                                    ('email-addr', 'email-message'): self.parse_email_observable,
@@ -981,8 +1045,10 @@ class ExternalStixParser(StixParser):
                                    ('process',): self.parse_process_observable,
                                    ('x509-certificate',): self.parse_x509_observable,
                                    ('url',): self.parse_url_observable,
+                                   ('user-account',): self.parse_user_account_observable,
                                    ('windows-registry-key',): self.parse_regkey_observable}
-        self.pattern_mapping = {('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
+        self.pattern_mapping = {('domain-name',): self.parse_domain_ip_port_pattern,
+                                ('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('domain-name', 'ipv6-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('file',): self.parse_file_pattern,
                                 ('ipv4-addr',): self.parse_ip_address_pattern,
@@ -990,7 +1056,9 @@ class ExternalStixParser(StixParser):
                                 ('network-traffic',): self.parse_network_traffic_pattern,
                                 ('process',): self.parse_process_pattern,
                                 ('url',): self.parse_url_pattern,
-                                ('windows-registry-key',): self.parse_regkey_pattern}
+                                ('user-account',): self.parse_user_account_pattern,
+                                ('windows-registry-key',): self.parse_regkey_pattern,
+                                ('x509-certificate',): self.parse_x509_pattern}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
 
     def handler(self):
@@ -1157,7 +1225,7 @@ class ExternalStixParser(StixParser):
     def handle_pe_case(self, extension, attributes, uuid):
         pe_uuid = self.parse_pe(extension)
         file_object = self.create_misp_object(attributes, 'file', uuid)
-        file_object.add_reference(pe_uuid, 'included-in')
+        file_object.add_reference(pe_uuid, 'includes')
         self.misp_event.add_object(**file_object)
 
     def parse_asn_observable(self, objects, marking, uuid):
@@ -1212,37 +1280,11 @@ class ExternalStixParser(StixParser):
         self.add_attributes_from_pattern('ip-dst', pattern, marking, uuid)
 
     def parse_ip_network_traffic_observable(self, objects, marking, uuid):
-        network_traffic = self.fetch_network_traffic_objects(objects)
-        attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
-        if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
-            extension_type, extension_value = list(network_traffic.extensions.items())[0]
-            name = network_traffic_extensions[extension_type]
-            attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
-            mapping = network_traffic_references_mapping['with_extensions']
-        else:
-            name = 'ip-port'
-            mapping = network_traffic_references_mapping['without_extensions']
-        attributes.extend(self.parse_network_traffic_references(objects, network_traffic, mapping))
+        attributes, name = self.attributes_from_network_traffic(objects)
         self.handle_import_case(attributes, name, marking, uuid)
 
-    def parse_ip_port_observable(self, objects, marking, uuid):
-        attributes = self.attributes_from_ip_port_observable(objects)
-        self.handle_import_case(attributes, 'ip-port', marking, uuid)
-
     def parse_ip_port_or_network_socket_observable(self, objects, marking, uuid):
-        network_traffic, references = self.fetch_network_traffic_objects_and_references(objects)
-        attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
-        if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
-            extension_type, extension_value = list(network_traffic.extensions.items())[0]
-            name = network_traffic_extensions[extension_type]
-            attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
-            mapping = network_traffic_references_mapping['with_extensions']
-        else:
-            name = 'ip-port'
-            mapping = network_traffic_references_mapping['without_extensions']
-        attributes.extend(self.parse_network_traffic_references(references, network_traffic, mapping, attr='pop'))
-        if references:
-            attributes.extend(self.parse_remaining_references(references, mapping))
+        attributes, name = self.attributes_from_network_traffic(objects)
         self.handle_import_case(attributes, name, marking, uuid)
 
     def parse_mac_address_observable(self, objects, marking, uuid):
@@ -1252,19 +1294,7 @@ class ExternalStixParser(StixParser):
         self.add_attributes_from_observable(objects, 'mutex', 'name', marking, uuid)
 
     def parse_network_socket_observable(self, objects, marking, uuid):
-        network_traffic, references = self.fetch_network_traffic_objects_and_references(objects)
-        attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
-        if  hasattr(network_traffic, 'extensions') and network_traffic.extensions:
-            extension_type, extension_value = list(network_traffic.extensions.items())[0]
-            name = network_traffic_extensions[extension_type]
-            attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
-            mapping = network_traffic_references_mapping['with_extensions']
-        else:
-            name = 'ip-port'
-            mapping = network_traffic_references_mapping['without_extensions']
-        attributes.extend(self.parse_network_traffic_references(objects, network_traffic, mapping, attr='pop'))
-        if references:
-            attributes.extend(self.parse_remaining_references(references, mapping))
+        attributes, name = self.attributes_from_network_traffic(objects)
         self.handle_import_case(attributes, name, marking, uuid)
 
     def parse_network_traffic_pattern(self, pattern, marking=None, uuid=None):
@@ -1279,7 +1309,7 @@ class ExternalStixParser(StixParser):
     def parse_process_pattern(self, pattern, marking=None, uuid=None):
         pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
         attributes = self.fill_pattern_attributes(pattern_types, pattern_values, process_mapping)
-        self.object_case_import(attributes, 'process', marking, uuid)
+        self.handle_import_case(attributes, 'process', marking, uuid)
 
     def parse_regkey_observable(self, objects, marking, uuid):
         _object = objects['0']
@@ -1301,8 +1331,23 @@ class ExternalStixParser(StixParser):
         attributes = self.attributes_from_url_observable(objects)
         self.handle_import_case(attributes, 'url', marking, uuid)
 
+    def parse_user_account_observable(self, observable, marking, uuid):
+        attributes = self.attributes_from_user_account_observable(observable)
+        name = self.__define_user_account_name(attributes)
+        self.handle_import_case(attributes, name, marking, uuid)
+
+    def parse_user_account_pattern(self, pattern, marking, uuid):
+        attributes = self.attributes_from_user_account_pattern(pattern)
+        name = self.__define_user_account_name(attributes)
+        self.handle_import_case(attributes, name, marking, uuid)
+
     def parse_x509_observable(self, objects, marking, uuid):
         attributes = self.attributes_from_x509_observable(objects)
+        self.handle_import_case(attributes, 'x509', marking, uuid)
+
+    def parse_x509_pattern(self, pattern, marking=None, uuid=None):
+        pattern_types, attribute_types = self.get_types_and_values_from_pattern(pattern)
+        attributes = self.fill_pattern_attributes(pattern_types, attribute_types, x509_mapping)
         self.handle_import_case(attributes, 'x509', marking, uuid)
 
     ################################################################################
@@ -1317,6 +1362,14 @@ class ExternalStixParser(StixParser):
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
         return misp_object
+
+    @staticmethod
+    def __define_user_account_name(attributes):
+        if len(attributes) == 2:
+            relations = (attribute['type'] for attribute in attributes)
+            if 'user_id' in relations and 'credential' in relations:
+                return 'credential'
+        return 'user-account'
 
     @staticmethod
     def fill_observable_attributes(stix_object, object_mapping):
@@ -1352,7 +1405,10 @@ class ExternalStixParser(StixParser):
         types = []
         values = []
         for p in pattern:
-            type_, value = p.split('=')
+            try:
+                type_, value = p.split('=')
+            except ValueError:
+                type_, value = p.split(' = ')
             types.append(type_.strip())
             values.append(value.strip().strip('\''))
         return types, values
@@ -1411,7 +1467,7 @@ def main(args):
                 object_type = 'galaxy'
             elif object_type == 'marking-definition':
                 parsed_object = {'object': parsed_object, 'used': False}
-                object_type = object_type
+                # object_type = object_type
             stix_event[object_type][uuid] = parsed_object
     if not stix_event:
         print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))

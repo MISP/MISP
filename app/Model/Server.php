@@ -49,6 +49,11 @@ class Server extends AppModel
         'authkey' => array(
             'rule' => array('validateAuthkey')
         ),
+        'name' => array(
+            'rule' => array('notBlank'),
+            'allowEmpty' => false,
+            'required' => true
+        ),
         'org_id' => array(
             'numeric' => array(
                 'rule' => array('valueIsID'),
@@ -192,6 +197,15 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'null' => true
                         ),
+                        'server_settings_skip_backup_rotate' => array(
+                            'level' => 1,
+                            'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'python_bin' => array(
                                 'level' => 1,
                                 'description' => __('It is highly recommended to install all the python dependencies in a virtualenv. The recommended location is: %s/venv', ROOT),
@@ -201,6 +215,7 @@ class Server extends AppModel
                                 'test' => 'testForBinExec',
                                 'beforeHook' => 'beforeHookBinExec',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'disable_auto_logout' => array(
                                 'level' => 1,
@@ -456,6 +471,7 @@ class Server extends AppModel
                                 'null' => false,
                                 'test' => 'testForWritableDir',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'cached_attachments' => array(
                                 'level' => 1,
@@ -509,7 +525,15 @@ class Server extends AppModel
                         'cveurl' => array(
                                 'level' => 1,
                                 'description' => __('Turn Vulnerability type attributes into links linking to the provided CVE lookup'),
-                                'value' => '',
+                                'value' => 'http://cve.circl.lu/cve/',
+                                'errorMessage' => '',
+                                'test' => 'testForEmpty',
+                                'type' => 'string',
+                        ),
+                        'cweurl' => array(
+                                'level' => 1,
+                                'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
+                                'value' => 'http://cve.circl.lu/cwe/',
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
                                 'type' => 'string',
@@ -712,6 +736,15 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                        'log_skip_db_logs_completely' => array(
+                            'level' => 0,
+                            'description' => __('This functionality allows you to completely disable any logs from being saved in your SQL backend. This is HIGHLY advised against, you lose all the functionalities provided by the audit log subsystem along with the event history (as these are built based on the logs on the fly). Only enable this if you understand and accept the associated risks.'),
+                            'value' => false,
+                            'errorMessage' => __('Logging has now been disabled - your audit logs will not capture failed authentication attempts, your event history logs are not being populated and no system maintenance messages are being logged.'),
+                            'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'log_paranoid' => array(
                                 'level' => 0,
                                 'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
@@ -812,6 +845,15 @@ class Server extends AppModel
                                 'type' => 'string',
                                 'null' => false,
                         ),
+                        'org_alert_threshold' => array(
+                                'level' => 1,
+                                'description' => __('Set a value to limit the number of email alerts that events can generate per creator organisation (for example, if an organisation pushes out 2000 events in one shot, only alert on the first 20).'),
+                                'value' => 0,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => true,
+                        ),
                         'block_old_event_alert' => array(
                                 'level' => 1,
                                 'description' => __('Enable this setting to start blocking alert e-mails for old events. The exact timing of what constitutes an old event is defined by MISP.block_old_event_alert_age.'),
@@ -823,7 +865,16 @@ class Server extends AppModel
                         ),
                         'block_old_event_alert_age' => array(
                                 'level' => 1,
-                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "Date" field of the event is used. Expected format: integer, in days'),
+                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "timestamp" field of the event is used. Expected format: integer, in days'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => false,
+                        ),
+                        'block_old_event_alert_by_date' => array(
+                                'level' => 1,
+                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control the threshold for the event.date field, indicating how old an event can be for it to be alerted on. The "date" field of the event is used. Expected format: integer, in days'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testForNumeric',
@@ -838,6 +889,7 @@ class Server extends AppModel
                                 'test' => 'testForPath',
                                 'type' => 'string',
                                 'null' => true,
+                                'cli_only' => 1
                         ),
                         'custom_css' => array(
                                 'level' => 2,
@@ -961,6 +1013,7 @@ class Server extends AppModel
                                 'errorMessage' => '',
                                 'test' => 'testForGPGBinary',
                                 'type' => 'string',
+                                'cli_only' => 1
                         ),
                         'onlyencrypted' => array(
                                 'level' => 0,
@@ -2193,6 +2246,31 @@ class Server extends AppModel
         return $event;
     }
 
+    private function __checkIfEventSaveAble($event) {
+        if (!empty($event['Event']['Attribute'])) {
+            foreach ($event['Event']['Attribute'] as $attribute) {
+                if (empty($attribute['deleted'])) {
+                    return true;
+                }
+            }
+        }
+        if (!empty($event['Event']['Object'])) {
+            foreach ($event['Event']['Object'] as $object) {
+                if (!empty($object['deleted'])) {
+                    continue;
+                }
+                if (!empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $attribute) {
+                        if (empty($attribute['deleted'])) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId)
     {
         // check if the event already exist (using the uuid)
@@ -2234,7 +2312,11 @@ class Server extends AppModel
                 return false;
             }
             $event = $this->__updatePulledEventBeforeInsert($event, $server, $user);
-            $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+            if (!$this->__checkIfEventSaveAble($event)) {
+                $fails[$eventId] = __('Empty event detected.');
+            } else {
+                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+            }
         } else {
             // error
             $fails[$eventId] = __('failed downloading the event');
@@ -2313,6 +2395,7 @@ class Server extends AppModel
         // if we are downloading a single event, don't fetch all proposals
         $conditions = is_numeric($technique) ? array('Event.id' => $technique) : array();
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server);
+        $server['Server']['version'] = $this->getRemoteVersion($id);
         if (!empty($eventIds['error'])) {
             $errors = array(
                 '1' => __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'),
@@ -2365,18 +2448,10 @@ class Server extends AppModel
             }
         }
         if ($jobId) {
+            $job->saveField('progress', 50);
             $job->saveField('message', 'Pulling proposals.');
         }
-        $events = $eventModel->find('list', array(
-                'fields' => array('uuid'),
-                'recursive' => -1,
-                'conditions' => $conditions
-        ));
-        $pulledProposals = array();
-        if (!empty($events)) {
-            $proposals = $eventModel->downloadProposalsFromServer($events, $server);
-            $pulledProposals = $this->__handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user);
-        }
+        $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
         if ($jobId) {
             $job->saveField('progress', 100);
             $job->saveField('message', 'Pull completed.');
@@ -2392,7 +2467,12 @@ class Server extends AppModel
             'action' => 'pull',
             'user_id' => $user['id'],
             'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-            'change' => count($successes) . ' events and ' . array_sum($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+            'change' => sprintf(
+                '%s events and %s proposals pulled or updated. %s events failed or didn\'t need an update.',
+                count($successes),
+                $pulledProposals,
+                count($fails)
+            )
         ));
         return array($successes, $fails, $pulledProposals);
     }
@@ -2512,7 +2592,7 @@ class Server extends AppModel
         $url = $this->data['Server']['url'];
         $push = $this->checkVersionCompatibility($id, $user);
         if (isset($push['canPush']) && !$push['canPush']) {
-            $push = 'Remote instance is outdated.';
+            $push = 'Remote instance is outdated or no permission to push.';
         }
         if (!is_array($push)) {
             $message = sprintf('Push to server %s failed. Reason: %s', $id, $push);
@@ -2611,7 +2691,7 @@ class Server extends AppModel
                         'event_uuid' => $eventUuid,
                         'includeAttachments' => true,
                         'includeAllTags' => true,
-                        'deleted' => true,
+                        'deleted' => array(0,1),
                         'excludeGalaxy' => 1
                     ));
                     $event = $this->Event->fetchEvent($user, $params);
@@ -2908,7 +2988,7 @@ class Server extends AppModel
     {
         if (isset($setting)) {
             if (!empty($leafValue['test'])) {
-                $result = $this->{$leafValue['test']}($setting);
+                $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
                 if ($result !== true) {
                     $leafValue['error'] = 1;
                     if ($result !== false) {
@@ -3038,6 +3118,9 @@ class Server extends AppModel
 
     public function testForBinExec($value)
     {
+        if (substr($value, 0, 7) === "phar://") {
+            return 'Phar protocol not allowed.';
+        }
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($value === '') {
             return true;
@@ -3056,6 +3139,9 @@ class Server extends AppModel
 
     public function testForWritableDir($value)
     {
+        if (substr($value, 0, 7) === "phar://") {
+            return 'Phar protocol not allowed.';
+        }
         if (!is_dir($value)) {
             return 'Not a valid directory.';
         }
@@ -3191,20 +3277,26 @@ class Server extends AppModel
         return true;
     }
 
-    public function testBool($value)
+    public function testBool($value, $errorMessage = false)
     {
         if ($value !== true && $value !== false) {
+            if ($errorMessage) {
+                return $errorMessage;
+            }
             return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
         }
         return true;
     }
 
-    public function testBoolFalse($value)
+    public function testBoolFalse($value, $errorMessage = false)
     {
-        if (!$this->testBool($value)) {
-            return $this->testBool($value);
+        if (!$this->testBool($value, $errorMessage)) {
+            return $this->testBool($value, $errorMessage);
         }
         if ($value !== false) {
+            if ($errorMessage) {
+                return $errorMessage;
+            }
             return 'It is highly recommended that this setting is disabled. Make sure you understand the impact of having this setting turned on.';
         } else {
             return true;
@@ -3686,26 +3778,30 @@ class Server extends AppModel
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
-        $randomFilename = $this->generateRandomFileName();
-        // To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
-        file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
-        rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
-        $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
-        // if the saved config file is empty, restore the backup.
-        if (strlen($config_saved) < 20) {
-            copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
-            ));
-            return false;
+        if (empty(Configure::read('MISP.server_settings_skip_backup_rotate'))) {
+            $randomFilename = $this->generateRandomFileName();
+            // To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
+            file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
+            rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
+            $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
+            // if the saved config file is empty, restore the backup.
+            if (strlen($config_saved) < 20) {
+                copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $this->Log->save(array(
+                        'org' => 'SYSTEM',
+                        'model' => 'Server',
+                        'model_id' => $id,
+                        'email' => 'SYSTEM',
+                        'action' => 'error',
+                        'user_id' => 0,
+                        'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
+                ));
+                return false;
+            }
+        } else {
+            file_put_contents(APP . 'Config' . DS . 'config.php', $settingsString);
         }
         return true;
     }
@@ -3989,6 +4085,9 @@ class Server extends AppModel
         }
         if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) {
             $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
+        }
+        if (empty($response) && $remoteVersion[2] < 111) {
+            $response = "Sync to Server ('" . $id . "') initiated, but version 2.4.111 is required in order to be able to pull proposals from the remote side.";
         }
 
         if ($response !== false) {
@@ -4445,6 +4544,7 @@ class Server extends AppModel
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
         $HttpSocket = $syncTool->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
         $response = $HttpSocket->get($server['Server']['url'] . '/servers/getVersion', $data = '', $request);
         if ($response->code == 200) {
             try {
@@ -4468,7 +4568,7 @@ class Server extends AppModel
      * 2: no route to host
      * 3: empty result set
      */
-    public function previewIndex($id, $user, $passedArgs)
+    public function previewIndex($id, $user, $passedArgs, &$total_count = 0)
     {
         $server = $this->find('first', array(
             'conditions' => array('Server.id' => $id),
@@ -4478,7 +4578,7 @@ class Server extends AppModel
         }
         $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
-        $validArgs = array_merge(array('sort', 'direction'), $this->validEventIndexFilters);
+        $validArgs = array_merge(array('sort', 'direction', 'page', 'limit'), $this->validEventIndexFilters);
         $urlParams = '';
         foreach ($validArgs as $v) {
             if (isset($passedArgs[$v])) {
@@ -4487,6 +4587,10 @@ class Server extends AppModel
         }
         $uri = $server['Server']['url'] . '/events/index' . $urlParams;
         $response = $HttpSocket->get($uri, $data = '', $request);
+        if (!empty($response->headers['X-Result-Count'])) {
+            $temp = $response->headers['X-Result-Count'];
+            $total_count = $temp;
+        }
         if ($response->code == 200) {
             try {
                 $events = json_decode($response->body, true);
@@ -4592,7 +4696,6 @@ class Server extends AppModel
             }
             $validServers[] = $server;
         }
-
         return $validServers;
     }
 
@@ -4682,7 +4785,11 @@ class Server extends AppModel
             $submodule_name=end($submodule_name);
             $submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
             exec(sprintf('cd %s; git rev-parse HEAD', $path), $submodule_current_commit_id);
-            $submodule_current_commit_id = $submodule_current_commit_id[0];
+            if (!empty($submodule_current_commit_id[0])) {
+                $submodule_current_commit_id = $submodule_current_commit_id[0];
+            } else {
+                $submodule_current_commit_id = null;
+            }
             $status = array(
                 'moduleName' => $submodule_name,
                 'current' => $submodule_current_commit_id,

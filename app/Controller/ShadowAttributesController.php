@@ -693,6 +693,9 @@ class ShadowAttributesController extends AppController
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
             }
+            if (!isset($this->request->data['ShadowAttribute'])) {
+                $this->request->data['ShadowAttribute'] = $this->request->data;
+            }
             // rearrange the request in case someone didn't RTFM
             $invalidNames = array('Attribute', 'Proposal');
             foreach ($invalidNames as $iN) {
@@ -913,65 +916,104 @@ class ShadowAttributesController extends AppController
 
     public function index($eventId = false)
     {
+        $conditions = array();
         if (isset($this->request['named']['all'])) {
             $all = $this->request['named']['all'];
         } else {
-            $all = false;
-        }
-        $conditions = array();
-        if (!$this->_isSiteAdmin()) {
-            if (!$all) {
-                $conditions = array('Event.orgc_id' => $this->Auth->user('org_id'));
-            } else {
-                $conditions['AND'][] = array('ShadowAttribute.event_id' => $this->ShadowAttribute->Event->fetchEventIds($this->Auth->user(), false, false, false, true));
-            }
+            $all = 1;
         }
         if ($eventId && is_numeric($eventId)) {
             $conditions['ShadowAttribute.event_id'] = $eventId;
         }
-        $conditions['deleted'] = 0;
-        $this->set('all', $all);
-        if ($this->_isRest()) {
-            $temp = $this->ShadowAttribute->find('all', array(
-                    'conditions' => $conditions,
-                    'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp', 'ShadowAttribute.proposal_to_delete'),
-                    'contain' => array(
-                            'Event' => array(
-                                    'fields' => array('id', 'org_id', 'info', 'orgc_id'),
-                                    'Orgc' => array('fields' => array('Orgc.name'))
-                            ),
-                            'Org' => array(
-                                'fields' => array('name'),
-                            )
-                    ),
-                    'recursive' => 1
+        $temp = $this->ShadowAttribute->buildConditions($this->Auth->user());
+        if (!empty($temp)) {
+            $conditions['AND'][] = $temp;
+        }
+        unset($temp);
+        if (empty($all)) {
+            $conditions['AND'][] = array('Event.orgc_id' =>$this->Auth->user('org_id'));
+        }
+        if (!empty($this->request['named']['searchall'])) {
+            $conditions['AND'][] = array('OR' => array(
+                'LOWER(ShadowAttribute.value1) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(ShadowAttribute.value2) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(ShadowAttribute.comment) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(Event.info) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(Org.name) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(Org.uuid) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(ShadowAttribute.uuid) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
+                'LOWER(Event.uuid) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%'
             ));
-            if (empty($temp)) {
-                throw new MethodNotAllowedException(__('No proposals found or invalid event.'));
-            }
-            $proposals = array();
-            foreach ($temp as $proposal) {
-                $proposal['ShadowAttribute']['org'] = $proposal['Org']['name'];
-                $proposals[] = $proposal['ShadowAttribute'];
-            }
-            $this->set('ShadowAttribute', $proposals);
-            $this->set('_serialize', array('ShadowAttribute'));
-        } else {
-            $this->paginate = array(
-                    'conditions' => $conditions,
-                    'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
-                    'contain' => array(
-                            'Event' => array(
-                                    'fields' => array('id', 'org_id', 'info', 'orgc_id'),
-                                    'Orgc' => array('fields' => array('Orgc.name'))
-                            ),
-                            'Org' => array(
-                                'fields' => array('name'),
-                            )
-                    ),
-                    'recursive' => 1
+        }
+        if (isset($this->request['named']['deleted'])) {
+            $conditions['AND'][] = array(
+                'ShadowAttribute.deleted' => $this->request['named']['deleted']
             );
-            $this->set('shadowAttributes', $this->paginate());
+        }
+        if (!empty($this->request['named']['timestamp'])) {
+            $conditions['AND'][] = array(
+                'ShadowAttribute.timestamp >=' => $this->request['named']['timestamp']
+            );
+        }
+        if (!$this->_isRest() && !isset($this->request['named']['deleted'])) {
+            $conditions['AND'][] = array('ShadowAttribute.deleted' => 0);
+        }
+        $params = array(
+            'conditions' => $conditions,
+            'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
+            'contain' => array(
+                    'Event' => array(
+                            'fields' => array('id', 'org_id', 'info', 'orgc_id', 'uuid'),
+                            'Orgc' => array('fields' => array('Orgc.name'))
+                    ),
+                    'Org' => array(
+                        'fields' => array('name', 'uuid'),
+                    ),
+                    'Attribute' => array(
+                        'fields' => array('uuid'),
+                        'Object'
+                    ),
+            ),
+            'recursive' => -1
+        );
+        $simpleParams = array('limit', 'page');
+        foreach ($simpleParams as $simpleParam) {
+            if (!empty($this->request['named'][$simpleParam])) {
+                $params[$simpleParam] = $this->request['named'][$simpleParam];
+            }
+        }
+        if (isset($this->request['named']['sort'])) {
+            $params['order'] = 'ShadowAttribute.' . $this->request['named']['sort'];
+            if (!empty($this->request['named']['direction'])) {
+                $direction = trim(strtolower($this->request['named']['direction']));
+                $params['order'] .= ' ' . ($direction === 'asc' ? 'ASC' : 'DESC');
+            } else {
+                $params['order'] .= ' ASC';
+            }
+        }
+        if ($this->_isRest()) {
+            $results = $this->ShadowAttribute->find('all', $params);
+            foreach ($results as $k => $result) {
+                $result['ShadowAttribute']['org_uuid'] = $result['Org']['uuid'];
+                if (!empty($result['ShadowAttribute']['old_id'])) {
+                    $result['ShadowAttribute']['old_uuid'] = $result['Attribute']['uuid'];
+                }
+                $result['ShadowAttribute']['event_uuid'] = $result['Event']['uuid'];
+                $result['ShadowAttribute']['Org'] = $result['Org'];
+                if (isset($result['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($result['ShadowAttribute']['type']) && !empty($result['ShadowAttribute']['data'])) {
+                    $result = $result && $this->ShadowAttribute->saveBase64EncodedAttachment($result['ShadowAttribute']);
+                }
+                $results[$k] = array('ShadowAttribute' => $result['ShadowAttribute']);
+            }
+            return $this->RestResponse->viewData($results, $this->response->type());
+        } else {
+            $this->paginate = $params;
+            $results = $this->paginate();
+            foreach ($results as $k => $result) {
+                unset($results[$k]['Attribute']);
+            }
+            $this->set('shadowAttributes', $results);
+            $this->set('all', $all);
         }
     }
 
@@ -1012,49 +1054,10 @@ class ShadowAttributesController extends AppController
         }
     }
 
+    // deprecated function, returns empty array - proposal sync on more modern versions (>=2.4.111) happens via the shadow_attributes/index endpoint
     public function getProposalsByUuidList()
     {
-        if (!$this->_isRest() || !$this->userRole['perm_sync']) {
-            throw new MethodNotAllowedException(__('This feature is only available using the API to Sync users'));
-        }
-        if (!$this->request->is('Post')) {
-            throw new MethodNotAllowedException(__('This feature is only available using POST requests'));
-        }
-        $result = array();
-        if (!empty($this->request->data)) {
-            foreach ($this->request->data as $eventUuid) {
-                $temp = $this->ShadowAttribute->find('all', array(
-                        'conditions' => array('event_uuid' => $eventUuid),
-                        'recursive' => -1,
-                        'contain' => array(
-                                'Org' => array('fields' => array('uuid', 'name')),
-                                'EventOrg' => array('fields' => array('uuid', 'name')),
-                        ),
-                ));
-                if (empty($temp)) {
-                    continue;
-                }
-                foreach ($temp as $key => $t) {
-                    if ($this->ShadowAttribute->typeIsAttachment($t['ShadowAttribute']['type'])) {
-                        $temp[$key]['ShadowAttribute']['data'] = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
-                    }
-                }
-                $result = array_merge($result, $temp);
-            }
-        }
-        if (empty($result)) {
-            $this->response->statusCode(404);
-            $this->set('name', 'No proposals found.');
-            $this->set('message', 'No proposals found');
-            $this->set('errors', 'No proposals found');
-            $this->set('url', '/shadow_attributes/getProposalsByUuidList');
-            $this->set('_serialize', array('name', 'message', 'url', 'errors'));
-            $this->response->send();
-            return false;
-        } else {
-            $this->set('result', $result);
-            $this->render('get_proposals_by_uuid_list');
-        }
+        return $this->RestResponse->viewData(array());
     }
 
     public function fetchEditForm($id, $field = null)

@@ -1,6 +1,4 @@
 (function () {
-	var minWidth = 1400;
-	var savedTopOffset;
 	var clusterNameToIdMapping = new Map();
 	var typeaheadDataMatrixSearch;
 	var pickedGalaxies = [];
@@ -13,13 +11,6 @@
 
 		$('#attack-matrix-tabscontroller span').off('click.tab').on('click.tab', function (e) {
 			$(this).tab('show');
-			var jfilter = '.info_container_eventgraph_network';
-			var colNum = $(jfilter+' .matrix-table > thead > tr > th :visible').length;
-			$('#attackmatrix_div').css('min-width', 100*colNum);
-			jfilter = '.ajax_popover_form';
-			var colNum = $(jfilter+' .matrix-table > thead > tr > th :visible').length;
-			$('#popover_form_large').css('min-width', 100*colNum);
-			adapt_position_from_viewport(100*colNum);
 		});
 
 		// form
@@ -31,7 +22,7 @@
 
 		$('.ajax_popover_form .btn-matrix-submit').click(function() {
 			makeTagging(pickedGalaxies);
-			cancelPopoverForm('#popover_form_large');
+			cancelPopoverForm('#popover_matrix');
 		});
 		var scoredCells = $('.ajax_popover_form .heatCell').filter(function() {
 			return $(this).attr('data-score') > 0;
@@ -177,24 +168,8 @@
 		$(jfilter + ' #matrix-heatmap-legend-caret-value').text(score);
 	}
 
-	function adapt_position_from_viewport(minOverwrite) {
-		minOverwrite = minOverwrite !== undefined ? minOverwrite : minWidth;
-		minOverwrite = minWidth > minOverwrite ? minWidth : minOverwrite;
-		if($(window).width()*0.5+700 <= minOverwrite) {
-			var topOff = $('#popover_form_large').offset().top;
-			savedTopOffset =  topOff >= $(document).scrollTop() ? topOff - $(document).scrollTop() : topOff;
-			$('#popover_form_large').css({
-				position: 'absolute',
-				left: '10px',
-				top: savedTopOffset+$(document).scrollTop()+'px'
-			});
-		} else {
-			$('#popover_form_large').css({
-				position: 'absolute',
-				left: '',
-				top: savedTopOffset
-			});
-		}
+	function adapt_position_from_viewport() {
+        $('#popover_matrix').css('top', document.documentElement.scrollTop + 120 + 'px');
 	}
 
 	function matrixContextualMenu(cell, x, y, tagName, tagId, func_name) {

@@ -37,6 +37,13 @@ pre {
     font-size: 11px;
 
 }
+
+.ellipsis-overflow {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
 .nav-list {
     padding-right: 5px;
 }
@@ -60,6 +67,14 @@ pre {
     -webkit-border-radius: 0px !important;
     -moz-border-radius: 0px !important;
     border-radius: 0px !important;
+}
+
+.position-absolute {
+    position: absolute !important;
+}
+
+.max-width-400 {
+    max-width: 400px !important;
 }
 
 /* MULTI-LEVEL DROPDOWNS FOR BOOTSTRAP */
@@ -720,16 +735,47 @@ a.proposal_link_red:hover {
     color:red;
 }
 
+.tag-container {
+     filter: drop-shadow(-1px 3px 2px rgba(50, 50, 0, 0.5));
+}
+
 .tag {
     display: inline-block;
     padding: 2px 4px;
     font-size: 12px;
     font-weight: bold;
     line-height: 14px;
-    -webkit-border-radius: 3px;
-    -moz-border-radius: 3px;
-    border-radius: 3px;
-    box-shadow: 3px 3px 3px #888888;
+}
+
+.tag:first-child {
+    -webkit-border-top-left-radius: 3px;
+    -moz-border-top-left-radius: 3px;
+    border-top-left-radius: 3px;
+    -webkit-border-bottom-left-radius: 3px;
+    -moz-border-bottom-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+
+.tag:last-child {
+    -webkit-border-top-right-radius: 3px;
+    -moz-border-top-right-radius: 3px;
+    border-top-right-radius: 3px;
+    -webkit-border-bottom-right-radius: 3px;
+    -moz-border-bottom-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    margin-right:2px;
+}
+
+.tag-list-container {
+    padding:1px;
+    display: inline-block;
+    margin-right:2px;
+    word-wrap:break-word;
+}
+
+.black-white {
+    background-color:black;
+    color:white;
 }
 
 .tagFirstHalf {
@@ -844,6 +890,14 @@ a.proposal_link_red:hover {
 .ajax_popover_form_large {
     width: 1400px;
     left: calc(50% - 700px);
+}
+
+.ajax_popover_matrix {
+    width: 96vw;
+    min-width: 1400px;
+    left: 2vw;
+    max-height: 80vh;
+    position: absolute;
 }
 
 .popover_box {
@@ -1073,6 +1127,15 @@ li .generic-picker-item-element-check {
     display:none;
     margin-left:10px;
     width:665px;
+}
+
+.correlation-container {
+    max-height: 500px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    padding: 5px;
+    border: 1px solid #dddddd;
+    border-radius: 3px;
 }
 
 .inline-input {
@@ -2146,7 +2209,7 @@ table tr:hover .down-expand-button {
 }
 
 .nowrap {
-    word-wrap:nowrap;
+    white-space:nowrap;
 }
 
 .strikethrough {
@@ -2282,4 +2345,17 @@ table tr:hover .down-expand-button {
     border: 1px solid #0088cc;
     border-radius: 6px;
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+.galaxy_data {
+    margin-left:15px;
+    display:none;
+}
+
+.collapse-status {
+    font-size: 16px;
+}
+
+.large-left-margin {
+    margin-left:8px;
 }

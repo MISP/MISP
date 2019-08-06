@@ -128,7 +128,7 @@ generateInstaller () {
   cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
+  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
     xsnippet . ../../docs/${f}
   done
 
@@ -465,6 +465,12 @@ installMISPonKali () {
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
 
+  # install plyara
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara 2> /dev/null > /dev/null
+
+  # install zmq needed by mispzmq
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq 2> /dev/null > /dev/null
+
   # Install Crypt_GPG and Console_CommandLine
   debug "Installing pear Console_CommandLine"
   pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
@@ -507,7 +513,7 @@ installMISPonKali () {
       expect eof" | expect -f -
 
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBNAME@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBUSER_MISP@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
 
@@ -661,9 +667,39 @@ fi
 
 [[ -n $NUKE ]] && nuke && exit
 
+# TODO: Move support map to top
+
+SUPPORT_MAP="
+x86_64-centos-8
+x86_64-rhel-7
+x86_64-rhel-8
+x86_64-fedora-30
+x86_64-debian-stretch
+x86_64-debian-buster
+x86_64-ubuntu-bionic
+x86_64-kali-2019.2
+armv6l-raspbian-stretch
+armv7l-raspbian-stretch
+armv7l-debian-jessie
+armv7l-debian-stretch
+armv7l-debian-buster
+armv7l-ubuntu-bionic
+"
+
+# Check if we actually support this configuration
+if ! echo "$SUPPORT_MAP" | grep "$(uname -m)-$FLAVOUR-$dist_version" >/dev/null; then
+  cat >&2 <<-'EOF'
+    Either your platform is not easily detectable or is not supported by this
+    installer script.
+    Please visit the following URL for more detailed installation instructions:
+    https://misp.github.io/MISP/
+EOF
+  exit 1
+fi
+
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
-  RELEASE=$(lsb_release -s -r| tr [A-Z] [a-z])
+  RELEASE=$(lsb_release -s -r| tr '[:upper:]' '[:lower:]')
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
@@ -689,7 +725,7 @@ fi
 
 # If Debian is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "debian" ]; then
-  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [ "${CODE}" == "buster" ]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
@@ -711,7 +747,7 @@ fi
 
 # If Tsurugi is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "tsurugi" ]; then
-  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [ "${CODE}" == "bamboo" ]; then
     echo "Install on Tsurugi Lab partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"

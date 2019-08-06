@@ -111,45 +111,58 @@ class AttributeTag extends AppModel
         ));
     }
 
-    public function getTagScores($eventId=0, $allowedTags=array())
+    // Fetch all tags attached to attribute belonging to supplied event. No ACL if user not provided
+    public function getTagScores($user=false, $eventId=0, $allowedTags=array())
     {
-        // get score of galaxy
-        $db = $this->getDataSource();
-        $statementArray = array(
-            'fields' => array('attr_tag.tag_id as id', 'count(attr_tag.tag_id) as value'),
-            'table' => $db->fullTableName($this),
-            'alias' => 'attr_tag',
-            'group' => 'tag_id'
-        );
-        if ($eventId != 0) {
-            $statementArray['conditions'] = array('event_id' => $eventId);
-        }
-        // tag along with its occurence in the event
-        $subQuery = $db->buildStatement(
-            $statementArray,
-            $this
-        );
-        $subQueryExpression = $db->expression($subQuery)->value;
-        // get related galaxies
-        $attributeTagScores = $this->query("SELECT name, value FROM (" . $subQueryExpression . ") AS score, tags WHERE tags.id=score.id;");
-
-        // arrange data
-        $scores = array();
-        $maxScore = 0;
-        foreach ($attributeTagScores as $item) {
-            $score = $item['score']['value'];
-            $name = $item['tags']['name'];
-            if (in_array($name, $allowedTags)) {
-                $maxScore = $score > $maxScore ? $score : $maxScore;
-                $scores[$name] = $score;
+        if ($user === false) {
+            $conditions = array('Tag.id !=' => null);
+            if ($eventId != 0) {
+                $conditions['event_id'] = $eventId;
+            }
+            $attribute_tag_scores = $this->find('all', array(
+                'recursive' => -1,
+                'conditions' => $conditions,
+                'contain' => array(
+                    'Tag' => array(
+                        'conditions' => array('name' => $allowedTags)
+                    )
+                ),
+                'fields' => array('Tag.name', 'AttributeTag.event_id')
+            ));
+            $scores = array('scores' => array(), 'maxScore' => 0);
+            foreach ($attribute_tag_scores as $attribute_tag_score) {
+                $tag_name = $attribute_tag_score['Tag']['name'];
+                if (!isset($scores['scores'][$tag_name])) {
+                    $scores['scores'][$tag_name] = 0;
+                }
+                $scores['scores'][$tag_name]++;
+                $scores['maxScore'] = $scores['scores'][$tag_name] > $scores['maxScore'] ? $scores['scores'][$tag_name] : $scores['maxScore'];
+            }
+        } else {
+            $allowed_tag_lookup_table = array_flip($allowedTags);
+            $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array(
+                'Attribute.event_id' => $eventId
+            )));
+            $scores = array('scores' => array(), 'maxScore' => 0);
+            foreach ($attributes as $attribute) {
+                foreach ($attribute['AttributeTag'] as $tag) {
+                    $tag_name = $tag['Tag']['name'];
+                    if (isset($allowed_tag_lookup_table[$tag_name])) {
+                        if (!isset($scores['scores'][$tag_name])) {
+                            $scores['scores'][$tag_name] = 0;
+                        }
+                        $scores['scores'][$tag_name]++;
+                        $scores['maxScore'] = $scores['scores'][$tag_name] > $scores['maxScore'] ? $scores['scores'][$tag_name] : $scores['maxScore'];
+                    }
+                }
             }
         }
-        return array('scores' => $scores, 'maxScore' => $maxScore);
+        return $scores;
     }
 
 
     // find all tags that belong to a list of attributes (contained in the same event)
-    public function getAttributesTags($user, $requestedEventId, $attributeIds=false) {
+    public function getAttributesTags($user, $requestedEventId, $attributeIds=false, $includeGalaxies=false) {
         $conditions = array('Attribute.event_id' => $requestedEventId);
         if (is_array($attributeIds) && $attributeIds !== false) {
             $conditions['Attribute.id'] = $attributeIds;
@@ -169,12 +182,11 @@ class AttributeTag extends AppModel
                 'recursive' => -1,
                 'fields' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id'),
         ));
-
         $allTags = array();
         foreach ($attributes as $attribute) {
             $attributeTags = $attribute['AttributeTag'];
             foreach ($attributeTags as $k => $attributeTag) {
-                if (!isset($cluster_names[$attributeTag['Tag']['name']])) {
+                if ($includeGalaxies || !isset($cluster_names[$attributeTag['Tag']['name']])) {
                     $allTags[$attributeTag['Tag']['id']] = $attributeTag['Tag'];
                 }
             }
@@ -252,16 +264,18 @@ class AttributeTag extends AppModel
             }
         }
         foreach ($event['Object'] as $i => $object) {
-            foreach ($object['Attribute'] as $j => $object_attribute) {
-                if ($to_extract == 'tags' || $to_extract == 'both') {
-                    foreach ($object_attribute['AttributeTag'] as $tag) {
-                        $attribute_tags_name['tags'][] = $tag['Tag']['name'];
+            if (!empty($object['Attribute'])) {
+                foreach ($object['Attribute'] as $j => $object_attribute) {
+                    if ($to_extract == 'tags' || $to_extract == 'both') {
+                        foreach ($object_attribute['AttributeTag'] as $tag) {
+                            $attribute_tags_name['tags'][] = $tag['Tag']['name'];
+                        }
                     }
-                }
-                if ($to_extract == 'clusters' || $to_extract == 'both') {
-                    foreach ($object_attribute['Galaxy'] as $galaxy) {
-                        foreach ($galaxy['GalaxyCluster'] as $cluster) {
-                            $attribute_tags_name['clusters'][] = $cluster['tag_name'];
+                    if ($to_extract == 'clusters' || $to_extract == 'both') {
+                        foreach ($object_attribute['Galaxy'] as $galaxy) {
+                            foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                                $attribute_tags_name['clusters'][] = $cluster['tag_name'];
+                            }
                         }
                     }
                 }

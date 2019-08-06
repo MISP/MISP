@@ -174,11 +174,11 @@ endforeach; ?>
             runIndexFilter(this);
         });
         $('#quickFilterButton').click(function() {
-            runIndexQuickFilter();
+            runIndexQuickFilter('/scope:<?php echo h($scope); ?>');
         });
         $('#quickFilterField').on('keypress', function (e) {
             if(e.which === 13) {
-                runIndexQuickFilter();
+                runIndexQuickFilter('/scope:<?php echo h($scope); ?>');
             }
         });
     });

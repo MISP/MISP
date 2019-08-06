@@ -112,6 +112,7 @@ class GalaxiesController extends AppController
     public function selectGalaxy($target_id, $target_type='event', $namespace='misp')
     {
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
+        $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
         $conditions = $namespace == '0' ? array() : array('namespace' => $namespace);
         $galaxies = $this->Galaxy->find('all', array(
             'recursive' => -1,
@@ -122,13 +123,13 @@ class GalaxiesController extends AppController
         $items = array();
         $items[] = array(
             'name' => __('All clusters'),
-            'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'
+            'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'. '/local:' . $local
         );
         foreach ($galaxies as $galaxy) {
             if (!isset($galaxy['Galaxy']['kill_chain_order'])) {
                 $items[] = array(
                     'name' => h($galaxy['Galaxy']['name']),
-                    'value' => "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'],
+                    'value' => "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local,
                     'template' => array(
                         'preIcon' => 'fa-' . $galaxy['Galaxy']['icon'],
                         'name' => $galaxy['Galaxy']['name'],
@@ -138,7 +139,13 @@ class GalaxiesController extends AppController
             } else { // should use matrix instead
                 $param = array(
                     'name' => $galaxy['Galaxy']['name'],
-                    'functionName' => "getMatrixPopup('" . $target_type . "', '" . $target_id . "', " . $galaxy['Galaxy']['id'] . ")",
+                    'functionName' => sprintf(
+                        "getMatrixPopup('%s', '%s', '%s/local:%s')",
+                        $target_type,
+                        $target_id,
+                        $galaxy['Galaxy']['id'],
+                        $local
+                    ),
                     'isPill' => true,
                     'isMatrix' => true
                 );
@@ -161,16 +168,16 @@ class GalaxiesController extends AppController
             'group' => array('namespace'),
             'order' => array('namespace asc')
         ));
-
+        $local = !empty($this->params['named']['local']) ? '1' : '0';
         $items = array();
         $items[] = array(
             'name' => __('All namespaces'),
-            'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0'
+            'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/local:' . $local
         );
         foreach ($namespaces as $namespace) {
             $items[] = array(
                 'name' => $namespace,
-                'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace
+                'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/local:' . $local
             );
         }
 
@@ -187,6 +194,7 @@ class GalaxiesController extends AppController
         if ($selectGalaxy) {
             $conditions = array('GalaxyCluster.galaxy_id' => $selectGalaxy);
         }
+        $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
         $data = $this->Galaxy->GalaxyCluster->find('all', array(
                 'conditions' => $conditions,
                 'fields' => array('value', 'description', 'source', 'type', 'id'),
@@ -264,6 +272,7 @@ class GalaxiesController extends AppController
                     'additionalData' => array(
                         'target_id' => $target_id,
                         'target_type' => $target_type,
+                        'local' => $local
                     )
                 ),
             ));
@@ -280,6 +289,8 @@ class GalaxiesController extends AppController
 
     public function attachMultipleClusters($target_id, $target_type = 'event')
     {
+        $local = !empty($this->params['named']['local']);
+        $this->set('local', $local);
         if ($this->request->is('post')) {
             if ($target_id === 'selected') {
                 $target_id_list = json_decode($this->request->data['Galaxy']['attribute_ids']);
@@ -287,13 +298,13 @@ class GalaxiesController extends AppController
                 $target_id_list = array($target_id);
             }
             $cluster_ids = $this->request->data['Galaxy']['target_ids'];
-            if (!empty($cluster_ids)) {
+            if (strlen($cluster_ids) > 0) {
                 $cluster_ids = json_decode($cluster_ids, true);
-                if ($cluster_ids === null) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'error' => __('Failed to parse request.'))), 'status'=>200, 'type' => 'json'));
+                if ($cluster_ids === null || empty($cluster_ids)) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Failed to parse request or no clusters picked.'))), 'status'=>200, 'type' => 'json'));
                 }
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'error' => __('No clusters picked.'))), 'status'=>200, 'type' => 'json'));
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Failed to parse request.'))), 'status'=>200, 'type' => 'json'));
             }
             $result = "";
             if (!is_array($cluster_ids)) { // in case we only want to attach 1
@@ -301,7 +312,7 @@ class GalaxiesController extends AppController
             }
             foreach ($cluster_ids as $cluster_id) {
                 foreach ($target_id_list as $target_id) {
-                    $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
+                    $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id, $local);
                 }
             }
             if ($this->request->is('ajax')) {

@@ -142,7 +142,7 @@ class GalaxyCluster extends AppModel
     */
     public function getCluster($name)
     {
-        $conditions = array('GalaxyCluster.tag_name ' => $name);
+        $conditions = array('LOWER(GalaxyCluster.tag_name)' => strtolower($name));
         if (is_numeric($name)) {
             $conditions = array('GalaxyCluster.id' => $name);
         }
@@ -173,7 +173,7 @@ class GalaxyCluster extends AppModel
                 'first',
                 array(
                     'conditions' => array(
-                            'Tag.name' => $cluster['GalaxyCluster']['tag_name']
+                        'LOWER(Tag.name)' => strtolower($cluster['GalaxyCluster']['tag_name'])
                     ),
                     'recursive' => -1,
                     'fields' => array('Tag.id')
@@ -196,6 +196,7 @@ class GalaxyCluster extends AppModel
                     $cluster = $this->getCluster($eventTag['Tag']['name']);
                     if ($cluster) {
                         $cluster['GalaxyCluster']['tag_id'] = $eventTag['Tag']['id'];
+                        $cluster['GalaxyCluster']['local'] = $eventTag['local'];
                         $events[$k]['GalaxyCluster'][] = $cluster['GalaxyCluster'];
                         if ($replace) {
                             unset($events[$k]['EventTag'][$k2]);

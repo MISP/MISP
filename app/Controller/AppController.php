@@ -44,12 +44,13 @@ class AppController extends Controller
 
     public $debugMode = false;
 
-    public $helpers = array('Utility', 'OrgImg', 'FontAwesome');
+    public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '70';
-    public $pyMispVersion = '2.4.106';
+    private $__queryVersion = '82';
+    public $pyMispVersion = '2.4.112';
     public $phpmin = '7.0';
     public $phprec = '7.2';
+    public $isApiAuthed = false;
 
     public $baseurl = '';
     public $sql_dump = false;
@@ -163,10 +164,11 @@ class AppController extends Controller
             $this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
         }
         $versionArray = $this->{$this->modelClass}->checkMISPVersion();
+        if (!empty($this->params['named']['disable_background_processing'])) {
+            Configure::write('MISP.background_jobs', 0);
+        }
         $this->mispVersion = implode('.', array_values($versionArray));
-
         $this->Security->blackHoleCallback = 'blackHole';
-
         $this->_setupBaseurl();
 
         // send users away that are using ancient versions of IE
@@ -183,6 +185,7 @@ class AppController extends Controller
         if ($this->_isRest()) {
             $this->Security->unlockedActions = array($this->action);
         }
+
         if (!$userLoggedIn) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
@@ -233,6 +236,7 @@ class AppController extends Controller
                             }
                             $this->Session->renew();
                             $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+                            $this->isApiAuthed = true;
                         } else {
                             // User not authenticated correctly
                             // reset the session information
@@ -357,7 +361,6 @@ class AppController extends Controller
                 $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $baseurl . '/servers/advancedUpdate/', 'urlName' => 'Advanced Update'), 'clear' => 1));
             }
         }
-
         if ($this->Session->check(AuthComponent::$sessionKey)) {
             if ($this->action !== 'checkIfLoggedIn' || $this->request->params['controller'] !== 'users') {
                 $this->User->id = $this->Auth->user('id');
@@ -478,6 +481,9 @@ class AppController extends Controller
             $this->Log = ClassRegistry::init('Log');
             echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
         }
+        if ($this->isApiAuthed && $this->_isRest()) {
+            $this->Session->destroy();
+        }
     }
 
     public function queryACL($debugType='findMissingFunctionNames', $content = false)
@@ -540,7 +546,7 @@ class AppController extends Controller
 
     private function __convertEmailToName($email)
     {
-        $name = explode('@', $email);
+        $name = explode('@', (string)$email);
         $name = explode('.', $name[0]);
         foreach ($name as $key => $value) {
             $name[$key] = ucfirst($value);
@@ -683,7 +689,7 @@ class AppController extends Controller
             foreach ($options['paramArray'] as $p) {
                 if (
                     isset($options['ordered_url_params'][$p]) &&
-                    (!in_array(strtolower($options['ordered_url_params'][$p]), array('null', '0', false, 'false', null)))
+                    (!in_array(strtolower((string)$options['ordered_url_params'][$p]), array('null', '0', false, 'false', null)))
                 ) {
                     $data[$p] = $options['ordered_url_params'][$p];
                     $data[$p] = str_replace(';', ':', $data[$p]);

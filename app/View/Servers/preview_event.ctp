@@ -102,11 +102,12 @@
                 if (isset($relatedEvent['Event'][0])) $relatedEvent['Event'] = $relatedEvent['Event'][0];
             ?>
             <li class="<?php echo $i > $display_threshold ? 'correlation-expanded-area' : ''; ?>" style="<?php echo $i > $display_threshold ? 'display: none;' : ''; ?>">
-            <div title="<?php echo h($relatedEvent['Event']['info']); ?>">
-            <a href = "<?php echo '/servers/previewEvent/' . $server['Server']['id'] . '/' . $relatedEvent['Event']['id']; ?>">
-                <?php echo h($relatedEvent['Event']['date']) . ' (' . h($relatedEvent['Event']['id']) . ')'; ?>
-            </a>
-            </div></li>
+                <?php echo $this->element('/Events/View/related_event', array(
+                    'related' => $relatedEvent['Event'],
+                    'relatedEventCorrelationCount' => array(),
+                    'href_url' => $baseurl . '/servers/previewEvent/' . $server['Server']['id']
+                )); ?>
+            </li>
             <?php if ($i == $display_threshold+1 && $total > $display_threshold): ?>
                 <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - $i);?></div>
             <?php endif; ?>

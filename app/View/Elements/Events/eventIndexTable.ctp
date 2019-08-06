@@ -107,58 +107,47 @@
         </td>
         <td class="shortish">
             <?php
-                $clusterList = array();
-                $galaxyList = array();
-                $galaxy_id = 0;
-                if (isset($event['GalaxyCluster'])):
-                    foreach ($event['GalaxyCluster'] as $cluster):
-                        $galaxy_id = $cluster['Galaxy']['id'];
-                        if (!isset($galaxyList[$cluster['Galaxy']['id']])) {
-                            $galaxyList[$cluster['Galaxy']['id']] = $cluster['Galaxy']['name'];
+                $galaxies = array();
+                if (!empty($event['GalaxyCluster'])) {
+                    foreach ($event['GalaxyCluster'] as $gk => $galaxy_cluster) {
+                        $galaxy_id = $galaxy_cluster['Galaxy']['id'];
+                        if (!isset($galaxies[$galaxy_id])) {
+                            $galaxies[$galaxy_id] = $galaxy_cluster['Galaxy'];
                         }
-                        $clusterList[$cluster['Galaxy']['id']][] = array('value' => $cluster['value'], 'id' => $cluster['id'], 'tag_id' => $cluster['tag_id']);
-                    endforeach;
-                endif;
-                $first = true;
-                foreach ($clusterList as $galaxy_id => $clusters):
-                    if (!$first) {
-                        echo '<br />';
-                    } else {
-                        $first = false;
+                        $galaxy_id = $galaxy_cluster['Galaxy']['id'];
+                        unset($galaxy_cluster['Galaxy']);
+                        $galaxies[$galaxy_id]['GalaxyCluster'][] = $galaxy_cluster;
                     }
-                ?>
-                    <span class="blue bold"><a href="<?php echo $baseurl; ?>/galaxies/view/<?php echo h($galaxy_id); ?>"><?php echo h($galaxyList[$galaxy_id]); ?></a>:</span>
-                <?php
-                    foreach ($clusters as $cluster):
-                    ?>
-                        <br />
-                        <span class="blue">
-                            &nbsp;
-                            <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>"><?php echo h($cluster['value']); ?></a>
-                            <a aria-label="<?php echo __('View cluster');?>" href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>"><i class="black fa fa-search"></i></a>
-                        </span>
-                    <?php
-                    endforeach;
-                endforeach;
-            ?>&nbsp;
+                    echo $this->element('galaxyQuickViewMini', array(
+                      'mayModify' => false,
+                      'isAclTagger' => false,
+                      'data' => $galaxies,
+                      'target_id' => $event['Event']['id'],
+                      'target_type' => 'event',
+                      'static_tags_only' => 1
+                    ));
+                }
+            ?>
         </td>
-        <?php if (Configure::read('MISP.tagging')): ?>
-            <td style = "max-width: 200px;width:10px;">
-                <?php foreach ($event['EventTag'] as $tag):
-                    $tagText = "&nbsp;";
-                    if (Configure::read('MISP.full_tags_on_event_index') == 1) $tagText = h($tag['Tag']['name']);
-                    else if (Configure::read('MISP.full_tags_on_event_index') == 2) {
-                        if (strpos($tag['Tag']['name'], '=')) {
-                            $tagText = explode('=', $tag['Tag']['name']);
-                            $tagText = h(trim(end($tagText), "\""));
-                        }
-                        else $tagText = h($tag['Tag']['name']);
-                    }
-                ?>
-                    <a class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></a>
-                <?php endforeach; ?>
-            </td>
-        <?php endif; ?>
+        <?php
+            if (Configure::read('MISP.tagging')) {
+                echo sprintf(
+                    '<td class="shortish">%s</td>',
+                    $this->element(
+                        'ajaxTags',
+                        array(
+                            'event' => $event,
+                            'tags' => $event['EventTag'],
+                            'tagAccess' => false,
+                            'required_taxonomies' => false,
+                            'columnised' => true,
+                            'static_tags_only' => 1,
+                            'tag_display_style' => Configure::check('MISP.full_tags_on_event_index') ? Configure::read('MISP.full_tags_on_event_index') : 1
+                        )
+                    )
+                );
+            }
+        ?>
         <td style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
             <?php echo $event['Event']['attribute_count']; ?>&nbsp;
         </td>
@@ -202,7 +191,7 @@
                 <span style=" white-space: nowrap;"><?php echo $post_count?></span>&nbsp;
             </td>
         <?php endif;?>
-        <?php if ('true' == $isSiteAdmin): ?>
+        <?php if ($isSiteAdmin): ?>
             <td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
                 <?php echo h($event['User']['email']); ?>&nbsp;
             </td>

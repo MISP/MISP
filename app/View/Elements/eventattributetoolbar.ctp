@@ -80,6 +80,15 @@
                         'onClickParams' => array('this', 'selected/attribute', 'galaxies', 'selectGalaxyNamespace')
                     ),
                     array(
+                        'id' => 'group-into-object-button',
+                        'title' => __('Group selected Attributes into an Object'),
+                        'class' => 'mass-select hidden',
+                        'fa-icon' => 'object-group',
+                        'fa-source' => 'fa',
+                        'onClick' => 'proposeObjectsFromSelectedAttributes',
+                        'onClickParams' => array('this', $event['Event']['id'])
+                    ),
+                    array(
                         'id' => 'multi-delete-button',
                         'title' => __('Delete selected Attributes'),
                         'class' => 'mass-select hidden',
@@ -165,6 +174,15 @@
                         'fa-icon' => 'info-circle',
                         'text' => __('Context'),
                         'onClick' => 'toggleContextFields'
+                    ),
+                    array(
+                        'id' => 'show_related_tags',
+                        'title' => __('Show related tags'),
+                        'fa-icon' => 'project-diagram',
+                        'text' => __('Related Tags'),
+                        'active' => $includeRelatedTags,
+                        'onClick' => 'toggleBoolFilter',
+                        'onClickParams' => array($urlHere, 'includeRelatedTags')
                     ),
                     array(
                         'id' => 'advanced_filtering',

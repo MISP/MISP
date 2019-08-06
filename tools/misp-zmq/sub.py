@@ -11,7 +11,6 @@
 import argparse
 import sys
 import zmq
-import json
 import time
 import pprint
 

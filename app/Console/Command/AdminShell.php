@@ -305,7 +305,7 @@ class AdminShell extends AppShell
                 'conditions' => array('setting' => 'db_version')
             ));
             if (!empty($db_version)) {
-                $db_version['value'] = trim($this->args[0]);
+                $db_version['AdminSetting']['value'] = trim($this->args[0]);
                 $this->AdminSetting->save($db_version);
                 echo 'Database version set. MISP will replay all of the upgrade scripts since the selected version on the next user login.' . PHP_EOL;
             } else {
@@ -498,5 +498,12 @@ class AdminShell extends AppShell
         } else {
             echo __('DB was never successfully updated or we are on a fresh install') . PHP_EOL;
         }
+    }
+
+    public function cleanCaches()
+    {
+        echo 'Cleaning caches...' . PHP_EOL;
+        $this->Server->cleanCacheFiles();
+        echo '...caches lost in time, like tears in rain.' . PHP_EOL;
     }
 }

@@ -27,6 +27,10 @@ from mixbox.namespaces import NamespaceNotFoundError
 from operator import attrgetter
 from stix.core import STIXPackage
 from collections import defaultdict
+try:
+    import stix_edh
+except ImportError:
+    pass
 
 _MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-3]])
 _PyMISP_dir = '{_MISP_dir}/PyMISP'.format(_MISP_dir=_MISP_dir)
@@ -37,7 +41,9 @@ from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
 cybox_to_misp_object = {"Account": "credential", "AutonomousSystem": "asn",
                         "EmailMessage": "email", "NetworkConnection": "network-connection",
                         "NetworkSocket": "network-socket", "Process": "process",
-                        "x509Certificate": "x509", "Whois": "whois"}
+                        "UnixUserAccount": "user-account", "UserAccount": "user-account",
+                        "WindowsUserAccount": "user-account", "x509Certificate": "x509",
+                        "Whois": "whois"}
 
 threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
 
@@ -106,12 +112,15 @@ class StixParser():
             'ProcessObjectType': self.handle_process,
             'SocketAddressObjectType': self.handle_socket_address,
             'SystemObjectType': self.handle_system,
+            'UnixUserAccountObjectType': self.handle_unix_user,
             'URIObjectType': self.handle_domain_or_url,
+            'UserAccountObjectType': self.handle_user,
             "WhoisObjectType": self.handle_whois,
             "WindowsFileObjectType": self.handle_file,
             'WindowsRegistryKeyObjectType': self.handle_regkey,
             "WindowsExecutableFileObjectType": self.handle_pe,
             "WindowsServiceObjectType": self.handle_windows_service,
+            'WindowsUserAccountObjectType': self.handle_windows_user,
             "X509CertificateObjectType": self.handle_x509
         }
 
@@ -206,11 +215,13 @@ class StixParser():
     # Return type & value of an ip address attribute
     @staticmethod
     def handle_address(properties):
-        if properties.is_source:
-            ip_type = "ip-src"
+        if properties.category == 'e-mail':
+            attribute_type = 'email-src'
+            relation = 'from'
         else:
-            ip_type = "ip-dst"
-        return ip_type, properties.address_value.value, "ip"
+            attribute_type = "ip-src" if properties.is_source else "ip-dst"
+            relation = 'ip'
+        return attribute_type, properties.address_value.value, relation
 
     def handle_as(self, properties):
         attributes = self.fetch_attributes_with_partial_key_parsing(properties, stix2misp_mapping._as_mapping)
@@ -484,6 +495,21 @@ class StixParser():
         if properties.network_interface_list:
             return "mac-address", str(properties.network_interface_list[0].mac), ""
 
+    # Parse a user account object
+    def handle_user(self, properties):
+        attributes = self.fill_user_account_object(properties)
+        return 'user-account', self.return_attributes, ''
+
+    # Parse a UNIX user account object
+    def handle_unix_user(self, properties):
+        attributes = []
+        if properties.user_id:
+            attributes.append(['text', properties.user_id.value, 'user-id'])
+        if properties.group_id:
+            attributes.append(['text', properties.group_id.value, 'group-id'])
+        attributes.extend(self.fill_user_account_object(properties))
+        return 'user-account', self.return_attributes(attributes), ''
+
     # Parse a whois object:
     # Return type & attributes of a whois object if we have the required fields
     # Otherwise create attributes and return type & value of the last attribute to avoid crashing the parent function
@@ -527,6 +553,12 @@ class StixParser():
     def handle_windows_service(properties):
         if properties.name:
             return "windows-service-name", properties.name.value, ""
+
+    # Parse a windows user account object
+    def handle_windows_user(self, properties):
+        attributes = ['text', properties.security_id.value, 'user-id'] if properties.security_id else []
+        attributes.extend(self.fill_user_account_object(properties))
+        return 'user-account', self.return_attributes(attributes), ''
 
     def handle_x509(self, properties):
         attributes = self.handle_x509_certificate(properties.certificate) if properties.certificate else []
@@ -598,7 +630,7 @@ class StixParser():
         if properties.sections:
             for section in properties.sections:
                 section_uuid = self.parse_pe_section(section)
-                misp_object.add_reference(section_uuid, 'included-in')
+                misp_object.add_reference(section_uuid, 'includes')
         self.misp_event.add_object(**misp_object)
         return {"pe_uuid": misp_object.uuid}
 
@@ -681,7 +713,7 @@ class StixParser():
             # if some complementary data is a dictionary containing an uuid,
             # it means we are using it to add an object reference
             if "pe_uuid" in compl_data:
-                misp_object.add_reference(compl_data['pe_uuid'], 'included-in')
+                misp_object.add_reference(compl_data['pe_uuid'], 'includes')
             if "process_uuid" in compl_data:
                 for uuid in compl_data["process_uuid"]:
                     misp_object.add_reference(uuid, 'connected-to')
@@ -733,6 +765,15 @@ class StixParser():
             return "-".join(object_id.split("-")[-5:])
         except Exception:
             return str(uuid.uuid4())
+
+    @staticmethod
+    def fill_user_account_object(properties):
+        attributes = []
+        for feature, mapping in stix2misp_mapping._user_account_object_mapping.items():
+            if getattr(properties, feature):
+                attribute_type, relation = mapping
+                attributes.append([attribute_type, getattr(properties, feature).value, relation])
+        return attributes
 
     # Return the attributes that will be added in a MISP object as a list of dictionaries
     @staticmethod
@@ -832,7 +873,7 @@ class StixFromMISPParser(StixParser):
     def parse_misp_attribute_observable(self, observable):
         if observable.item:
             misp_attribute = {'to_ids': False, 'category': str(observable.relationship),
-                              'uuid': self.fetch_uuid(observable.item.object_.id_)}
+                              'uuid': self.fetch_uuid(observable.item.id_)}
             self.parse_misp_attribute(observable.item, misp_attribute)
 
     def parse_misp_attribute(self, observable, misp_attribute, to_ids=False):
@@ -1099,12 +1140,14 @@ class ExternalStixParser(StixParser):
                             self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True, object_uuid=uuid)
                 except AttributeError:
                     self.parse_description(indicator)
+            elif hasattr(observable, 'observable_composition') and observable.observable_composition:
+                self.parse_external_observable(observable.observable_composition.observables, to_ids=True)
         if hasattr(indicator, 'related_indicators') and indicator.related_indicators:
             for related_indicator in indicator.related_indicators:
                 self.parse_external_single_indicator(related_indicator.item)
 
     # Parse observables of an external STIX document
-    def parse_external_observable(self, observables):
+    def parse_external_observable(self, observables, to_ids=False):
         for observable in observables:
             title = observable.title
             observable_object = observable.object_
@@ -1122,7 +1165,7 @@ class ExternalStixParser(StixParser):
                 object_uuid = self.fetch_uuid(observable_object.id_)
                 if isinstance(attribute_value, (str, int)):
                     # if the returned value is a simple value, we build an attribute
-                    attribute = {'to_ids': False, 'uuid': object_uuid}
+                    attribute = {'to_ids': to_ids, 'uuid': object_uuid}
                     if hasattr(observable, 'handling') and observable.handling:
                         attribute['Tag'] = []
                         for handling in observable.handling:
@@ -1207,7 +1250,9 @@ def _update_namespaces():
     # can add additional ones whenever it is needed
     ADDITIONAL_NAMESPACES = [
         Namespace('http://us-cert.gov/ciscp', 'CISCP',
-                  'http://www.us-cert.gov/sites/default/files/STIX_Namespace/ciscp_vocab_v1.1.1.xsd')
+                  'http://www.us-cert.gov/sites/default/files/STIX_Namespace/ciscp_vocab_v1.1.1.xsd'),
+        Namespace('http://taxii.mitre.org/messages/taxii_xml_binding-1.1', 'TAXII',
+                  'http://docs.oasis-open.org/cti/taxii/v1.1.1/cs01/schemas/TAXII-XMLMessageBinding-Schema.xsd')
     ]
     for namespace in ADDITIONAL_NAMESPACES:
         register_namespace(namespace)
@@ -1222,13 +1267,16 @@ def generate_event(filename, tries=0):
             sys.exit()
         _update_namespaces()
         return generate_event(filename, 1)
+    except NotImplementedError:
+        print('ERROR - Missing python library: stix_edh', file=sys.stderr)
     except Exception:
         try:
             import maec
             print(2)
         except ImportError:
+            print('ERROR - Missing python library: maec', file=sys.stderr)
             print(3)
-        sys.exit(0)
+    sys.exit(0)
 
 def main(args):
     filename = '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
