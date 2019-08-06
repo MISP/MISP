@@ -3758,7 +3758,7 @@ class Attribute extends AppModel
 
     // gets an attribute, saves it
     // handles encryption, attaching to event/object, logging of issues, tag capturing
-    public function captureAttribute($attribute, $eventId, $user, $objectId = false, $log = false, $parentEvent = false)
+    public function captureAttribute($attribute, $eventId, $user, $objectId = false, $log = false, $parentEvent = false, &$validationErrors = false, $params = array())
     {
         if ($log == false) {
             $log = ClassRegistry::init('Log');
@@ -3768,6 +3768,31 @@ class Attribute extends AppModel
         $attribute['to_ids'] = $attribute['to_ids'] ? 1 : 0;
         $attribute['disable_correlation'] = $attribute['disable_correlation'] ? 1 : 0;
         unset($attribute['id']);
+        if (isset($attribute['base64'])) {
+            $attribute['data'] = $attribute['base64'];
+        }
+        if (!empty($attribute['enforceWarninglist']) || !empty($params['enforceWarninglist'])) {
+            $this->Warninglist = ClassRegistry::init('Warninglist');
+            if (empty($this->warninglists)) {
+                $this->warninglists = $this->Warninglist->fetchForEventView();
+            }
+            if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attributes[$k])) {
+                $this->validationErrors['warninglist'] = 'Attribute could not be saved as it trips over a warninglist and enforceWarninglist is enforced.';
+                $validationErrors = $this->validationErrors['warninglist'];
+                $log->create();
+                $log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Attribute',
+                        'model_id' => 0,
+                        'email' => $user['email'],
+                        'action' => 'add',
+                        'user_id' => $user['id'],
+                        'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
+                        'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
+                ));
+                return $attribute;
+            }
+        }
         if (isset($attribute['encrypt'])) {
             $result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
             $attribute['data'] = $result['data'];
