@@ -1193,9 +1193,6 @@ class StixBuilder(object):
         return information_source
 
     def set_tlp(self, tags):
-        marking_specification = MarkingSpecification()
-        marking_specification.controlled_structure = "../../../descendant-or-self::node()"
-        tlp = TLPMarkingStructure()
         attr_colors = self.fetch_colors(tags.get('attributes')) if 'attributes' in tags else []
         if attr_colors:
             color = self.set_color(attr_colors)
@@ -1204,7 +1201,10 @@ class StixBuilder(object):
             if not event_colors:
                 return None
             color = self.set_color(event_colors)
+        tlp = TLPMarkingStructure()
         tlp.color = color
+        marking_specification = MarkingSpecification()
+        marking_specification.controlled_structure = "../../../descendant-or-self::node()"
         marking_specification.marking_structures.append(tlp)
         handling = Marking()
         handling.add_marking(marking_specification)
