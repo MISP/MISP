@@ -180,117 +180,28 @@ class AttributesController extends AppController
             }
             $uuids = array();
             $this->Warninglist = ClassRegistry::init('Warninglist');
-            $warnings = array();
-            foreach ($attributes as $k => $attribute) {
-                if (isset($attribute['id'])) {
-                    unset($attribute['id']);
-                }
-                $attributes[$k]['event_id'] = $eventId;
-                if (isset($attribute['uuid'])) {
-                    $uuids[$k] = $attribute['uuid'];
-                    if (!isset($attribute['timestamp'])) {
-                        $attributes[$k]['timestamp'] = $date->getTimestamp();
-                    }
-                    if (isset($attribute['base64'])) {
-                        $attributes[$k]['data'] = $attribute['base64'];
-                    }
-                }
-                if (isset($attribute['type']) && !isset($attribute['category'])) {
-                    $attributes[$k]['category'] = $this->Attribute->typeDefinitions[$attribute['type']]['default_category'];
-                }
-                if (!isset($attribute['to_ids'])) {
-                    $attributes[$k]['to_ids'] = $this->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
-                }
-                if (!empty($attributes[$k]['enforceWarninglist']) || !empty($this->params['named']['enforceWarninglist'])) {
-                    if (empty($warninglists)) {
-                        $warninglists = $this->Warninglist->fetchForEventView();
-                    }
-                    if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attributes[$k])) {
-                        $attributes[$k]['blocked'] = true;
-                    }
-                }
-            }
             $fails = array();
             $successes = 0;
             $attributeCount = count($attributes);
-            if (!empty($uuids)) {
-                $existingAttributes = $this->Attribute->find('list', array(
-                    'recursive' => -1,
-                    'fields' => array('Attribute.uuid'),
-                    'conditions' => array('Attribute.uuid' => array_values($uuids))
-                ));
-                if (!empty($existingAttributes)) {
-                    foreach ($uuids as $k => $uuid) {
-                        if (in_array($uuid, $existingAttributes)) {
-                            unset($attributes[$k]);
-                            $fails["attribute_$k"] = array('uuid' => array('An attribute with this uuid already exists.'));
-                            unset($uuids[$k]);
-                        }
-                    }
-                }
-            }
-            // deduplication
-            $duplicates = 0;
+            $inserted_ids = array();
             foreach ($attributes as $k => $attribute) {
-                foreach ($attributes as $k2 => $attribute2) {
-                    if ($k == $k2) {
-                        continue;
-                    }
-                    if (
-                        (
-                            !empty($attribute['uuid']) &&
-                            !empty($attribute2['uuid']) &&
-                            $attribute['uuid'] == $attribute2['uuid']
-                        ) || (
-                            $attribute['value'] == $attribute2['value'] &&
-                            $attribute['type'] == $attribute2['type'] &&
-                            $attribute['category'] == $attribute2['category']
-                        )
-                    ) {
-                        $duplicates++;
-                        unset($attributes[$k]);
-                        break;
-                    }
-                }
-            }
-            foreach ($attributes as $k => $attribute) {
-                if (empty($attribute['blocked'])) {
-                    if (!empty($attribute['encrypt'])) {
-                        $attribute = $this->Attribute->onDemandEncrypt($attribute);
-                    }
-                    if (!empty($attribute['Tag'])) {
-                        foreach ($attribute['Tag'] as $tag) {
-                            $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $this->Auth->user());
-                            if ($tag_id) {
-                                $attribute['tag_ids'][] = $tag_id;
-                            }
-                        }
-                    }
-                    $attributes[$k] = $attribute;
-                    $this->Attribute->set($attribute);
-                    $result = $this->Attribute->validates();
-                    if (!$result) {
-                        $fails["attribute_$k"] = $this->Attribute->validationErrors;
-                        unset($attributes[$k]);
-                    } else {
-                        $successes++;
-                    }
+                $validationErrors = array();
+                $this->Attribute->captureAttribute($attribute, $eventId, $this->Auth->user(), false, false, false, $validationErrors, $this->params['named']);
+                if (empty($validationErrors)) {
+                    $inserted_ids[] = $this->Attribute->id;
+                    $successes +=1;
                 } else {
-                    $fails["attribute_$k"] = 'Attribute blocked due to warninglist';
-                    unset($attributes[$k]);
+                    $fails["attribute_" . $k] = $validationErrors;
                 }
             }
             if (!empty($successes)) {
                 $this->Event->unpublishEvent($eventId);
             }
-            $atomic = Configure::read('MISP.deadlock_avoidance') ? false : true;
-            // skipping validation here, already done above
-            $result = $this->Attribute->saveMany($attributes, array('atomic' => $atomic));
             if ($this->_isRest()) {
                 if (!empty($successes)) {
                     $attributes = $this->Attribute->find('all', array(
                         'recursive' => -1,
-                        'conditions' => array('Attribute.id' => $this->Attribute->inserted_ids),
+                        'conditions' => array('Attribute.id' => $inserted_ids),
                         'contain' => array(
                             'AttributeTag' => array(
                                 'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'))
@@ -299,6 +210,19 @@ class AttributesController extends AppController
                     ));
                     if (count($attributes) == 1) {
                         $attributes = $attributes[0];
+                    } else {
+                        $result = array('Attribute' => array());
+                        foreach ($attributes as $attribute) {
+                            $temp = $attribute['Attribute'];
+                            if (!empty($attribute['AttributeTag'])) {
+                                foreach ($attribute['AttributeTag'] as $at) {
+                                    $temp['Tag'][] = $at['Tag'];
+                                }
+                            }
+                            $result['Attribute'][] = $temp;
+                        }
+                        $attributes = $result;
+                        unset($result);
                     }
                     return $this->RestResponse->viewData($attributes, $this->response->type(), $fails);
                 } else {
@@ -324,11 +248,8 @@ class AttributesController extends AppController
                         $message = sprintf('Attributes saved, however, %s attributes could not be saved. Click %s for more info', count($fails), '$flashErrorMessage');
                     } else {
                         if (!empty($fails["attribute_0"])) {
-                            foreach ($fails["attribute_0"] as $k => $v) {
-                                $failed = 1;
-                                $message = $k . ': ' . $v[0];
-                                break;
-                            }
+                            $failed = 1;
+                            $message = '0: ' . $v[0];
                         } else {
                             $failed = 1;
                             $message = 'Attribute could not be saved.';
