@@ -210,6 +210,19 @@ class AttributesController extends AppController
                     ));
                     if (count($attributes) == 1) {
                         $attributes = $attributes[0];
+                    } else {
+                        $result = array('Attribute' => array());
+                        foreach ($attributes as $attribute) {
+                            $temp = $attribute['Attribute'];
+                            if (!empty($attribute['AttributeTag'])) {
+                                foreach ($attribute['AttributeTag'] as $at) {
+                                    $temp['Tag'][] = $at['Tag'];
+                                }
+                            }
+                            $result['Attribute'][] = $temp;
+                        }
+                        $attributes = $result;
+                        unset($result);
                     }
                     return $this->RestResponse->viewData($attributes, $this->response->type(), $fails);
                 } else {
@@ -235,11 +248,8 @@ class AttributesController extends AppController
                         $message = sprintf('Attributes saved, however, %s attributes could not be saved. Click %s for more info', count($fails), '$flashErrorMessage');
                     } else {
                         if (!empty($fails["attribute_0"])) {
-                            foreach ($fails["attribute_0"] as $k => $v) {
-                                $failed = 1;
-                                $message = $k . ': ' . $v[0];
-                                break;
-                            }
+                            $failed = 1;
+                            $message = '0: ' . $v[0];
                         } else {
                             $failed = 1;
                             $message = 'Attribute could not be saved.';

@@ -3840,6 +3840,9 @@ class Attribute extends AppModel
                 }
             }
             if (isset($attribute['Tag'])) {
+                if (!empty($attribute['Tag']['name'])) {
+                    $attribute['Tag'] = array($attribute['Tag']);
+                }
                 foreach ($attribute['Tag'] as $tag) {
                     $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
                     if ($tag_id) {
