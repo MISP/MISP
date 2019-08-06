@@ -188,9 +188,9 @@ class AttributesController extends AppController
                 $validationErrors = array();
                 $this->Attribute->captureAttribute($attribute, $eventId, $this->Auth->user(), false, false, false, $validationErrors, $this->params['named']);
                 if (empty($validationErrors)) {
+                    $inserted_ids[] = $this->Attribute->id;
                     $successes +=1;
                 } else {
-                    $inserted_ids[] = $this->Attribute->id;
                     $fails["attribute_" . $k] = $validationErrors;
                 }
             }

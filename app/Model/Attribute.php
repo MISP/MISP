@@ -3765,8 +3765,11 @@ class Attribute extends AppModel
         }
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId ? $objectId : 0;
+        if (!isset($attribute['to_ids'])) {
+            $attribute['to_ids'] = $this->typeDefinitions[$attribute['type']]['to_ids'];
+        }
         $attribute['to_ids'] = $attribute['to_ids'] ? 1 : 0;
-        $attribute['disable_correlation'] = $attribute['disable_correlation'] ? 1 : 0;
+        $attribute['disable_correlation'] = empty($attribute['disable_correlation']) ? 0 : 1;
         unset($attribute['id']);
         if (isset($attribute['base64'])) {
             $attribute['data'] = $attribute['base64'];
