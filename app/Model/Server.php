@@ -3290,7 +3290,7 @@ class Server extends AppModel
 
     public function testBoolFalse($value, $errorMessage = false)
     {
-        if (!$this->testBool($value, $errorMessage)) {
+        if ($this->testBool($value, $errorMessage) !== true) {
             return $this->testBool($value, $errorMessage);
         }
         if ($value !== false) {
