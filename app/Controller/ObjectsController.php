@@ -528,8 +528,9 @@ class ObjectsController extends AppController
             if (isset($this->request->data['Object']['data'])) {
                 $this->request->data = json_decode($this->request->data['Object']['data'], true);
             }
-            if (!isset($this->request->data['Attribute'])) {
-                $this->request->data = array('Attribute' => $this->request->data);
+            if (isset($this->request->data['Object'])) {
+                $this->request->data = array_merge($this->request->data, $this->request->data['Object']);
+                unset($this->request->data['Object']);
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
             $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave);
@@ -542,7 +543,11 @@ class ObjectsController extends AppController
                         $objectToSave = $this->MispObject->find('first', array(
                             'recursive' => -1,
                             'conditions' => array('Object.id' => $id),
-                            'contain' => array('Attribute')
+                            'contain' => array(
+                                'Attribute' => array(
+                                    'fields' => $this->MispObject->Attribute->defaultFields
+                                )
+                            )
                         ));
                         if (!empty($objectToSave)) {
                             $objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];

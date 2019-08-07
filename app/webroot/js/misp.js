@@ -2501,6 +2501,9 @@ function moduleResultsSubmit(id) {
             if ($(this).has('.ObjectID').length) {
                 temp['id'] = $(this).find('.ObjectID').text();
             }
+            if ($(this).has('.ObjectDescription').length) {
+                temp['description'] = $(this).find('.ObjectDescription').text();
+            }
             if ($(this).has('.TemplateVersion').length) {
                 temp['template_version'] = $(this).find('.TemplateVersion').text();
             }
@@ -2545,8 +2548,13 @@ function moduleResultsSubmit(id) {
                         });
                         attribute['Tag'] = tags;
                     }
-                    if (typesWithData.indexOf(attribute_type) != -1 && $(this).find('.AttributeData').length) {
-                        attribute['data'] = $(this).find('.AttributeData').val();
+                    if (typesWithData.indexOf(attribute_type) != -1) {
+                        if ($(this).find('.AttributeData').length) {
+                            attribute['data'] = $(this).find('.AttributeData').val();
+                        }
+                        if ($(this).find('.AttributeEncrypt').length) {
+                            attribute['encrypt'] = $(this).find('.AttributeEncrypt').val();
+                        }
                     }
                     object_attributes.push(attribute);
                 });
@@ -2592,8 +2600,13 @@ function moduleResultsSubmit(id) {
                 });
                 temp['Tag'] = tags;
             }
-            if (typesWithData.indexOf(type_value) != -1 && $(this).find('.AttributeData').length) {
-                temp['data'] = $(this).find('.AttributeData').val();
+            if (typesWithData.indexOf(type_value) != -1) {
+                if ($(this).find('.AttributeData').length) {
+                    temp['data'] = $(this).find('.AttributeData').val();
+                }
+                if ($(this).find('.AttributeEncrypt').length) {
+                    temp['encrypt'] = $(this).find('.AttributeEncrypt').val();
+                }
             }
             attributes.push(temp);
         });

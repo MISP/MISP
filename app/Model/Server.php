@@ -4568,7 +4568,7 @@ class Server extends AppModel
      * 2: no route to host
      * 3: empty result set
      */
-    public function previewIndex($id, $user, $passedArgs)
+    public function previewIndex($id, $user, $passedArgs, &$total_count = 0)
     {
         $server = $this->find('first', array(
             'conditions' => array('Server.id' => $id),
@@ -4578,7 +4578,7 @@ class Server extends AppModel
         }
         $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
-        $validArgs = array_merge(array('sort', 'direction'), $this->validEventIndexFilters);
+        $validArgs = array_merge(array('sort', 'direction', 'page', 'limit'), $this->validEventIndexFilters);
         $urlParams = '';
         foreach ($validArgs as $v) {
             if (isset($passedArgs[$v])) {
@@ -4587,6 +4587,10 @@ class Server extends AppModel
         }
         $uri = $server['Server']['url'] . '/events/index' . $urlParams;
         $response = $HttpSocket->get($uri, $data = '', $request);
+        if (!empty($response->headers['X-Result-Count'])) {
+            $temp = $response->headers['X-Result-Count'];
+            $total_count = $temp;
+        }
         if ($response->code == 200) {
             try {
                 $events = json_decode($response->body, true);
@@ -4692,7 +4696,6 @@ class Server extends AppModel
             }
             $validServers[] = $server;
         }
-
         return $validServers;
     }
 
