@@ -1257,6 +1257,9 @@ class ServersController extends AppController
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'Invalid input. Expected: {"value": "new_setting"}', $this->response->type());
                 }
             }
+            if (!empty($this->request->data['Server']['force'])) {
+                $forceSave = $this->request->data['Server']['force'];
+            }
             if (trim($this->request->data['Server']['value']) === '*****') {
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'No change.', $this->response->type());
