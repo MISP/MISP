@@ -1241,6 +1241,15 @@ class Server extends AppModel
                             'test' => 'testForEmpty',
                             'type' => 'string',
                             'null' => true
+                        ),
+                        'sync_audit' => array(
+                            'level' => 1,
+                            'description' => __('Enable this setting to create verbose logs of synced event data for debugging reasons. Logs are saved in your MISP directory\'s app/files/scripts/tmp/ directory.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
                         )
                 ),
                 'SecureAuth' => array(

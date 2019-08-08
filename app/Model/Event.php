@@ -1179,6 +1179,16 @@ class Event extends AppModel
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
         $data = json_encode($event);
+        if (!empty(Configure::read('Security.sync_audit'))) {
+            $pushLogEntry = sprintf(
+                "==============================================================\n\n[%s] Pushing Event #%d to Server #%d:\n\n%s\n\n",
+                date("Y-m-d H:i:s"),
+                $event['Event']['id'],
+                $server['Server']['id'],
+                $data
+            );
+            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
+        }
         $response = $HttpSocket->post($uri, $data, $request);
         return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
     }
