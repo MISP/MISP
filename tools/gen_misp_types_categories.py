@@ -95,16 +95,20 @@ for folder in folders:
 # - read the JSON in python
 with open('../app/Model/Attribute.php', 'r') as f:
     attribute_php_file = f.read()
-re_match = re.search(r'\$categoryDefinitions\s?=\s?([^;]+);', attribute_php_file)
-php_code = re_match.group(1)
-category_definitions_binary = subprocess.run(['php', '-r', 'echo json_encode({});'.format(php_code)], stdout=subprocess.PIPE).stdout
+re_match = re.search(r'\$this->categoryDefinitions\s?=\s?([^;]+);', attribute_php_file)
+php_code_template = '''
+function __($s) {{ return $s; }}
+echo json_encode({});
+'''
+php_code = php_code_template.format(re_match.group(1))
+category_definitions_binary = subprocess.run(['php', '-r', php_code], stdout=subprocess.PIPE).stdout
 category_definitions = json.loads(category_definitions_binary.decode('utf-8'))
 categories = list(category_definitions.keys())
 categories.sort()
 
-re_match = re.search(r'\$typeDefinitions\s?=\s?([^;]+);', attribute_php_file)
-php_code = re_match.group(1)
-type_definitions_binary = subprocess.run(['php', '-r', 'echo json_encode({});'.format(php_code)], stdout=subprocess.PIPE).stdout
+re_match = re.search(r'\$this->typeDefinitions\s?=\s?([^;]+);', attribute_php_file)
+php_code = php_code_template.format(re_match.group(1))
+type_definitions_binary = subprocess.run(['php', '-r', php_code], stdout=subprocess.PIPE).stdout
 type_definitions = json.loads(type_definitions_binary.decode('utf-8'))
 types = list(type_definitions.keys())
 types.sort()
@@ -186,7 +190,7 @@ print("Updating MISP RFC - ../../misp-rfc/misp-core-format/raw.md")
 misp_rfc = []
 rfc_list = []
 for category in categories:
-    rfc_list.append('\n**{}**\n'.format(category))
+    rfc_list.append('\n{}\n'.format(category))
     rfc_list.append(':   ')
     rfc_list.append(', '.join(category_definitions[category]['types']))
     rfc_list.append('\n')
@@ -230,8 +234,26 @@ with open('../../PyMISP/pymisp/data/describeTypes.json', 'w') as f:
     f.write('\n')
 
 
+# misp-objects
+##############
+print("Updating misp-objects - ../../misp-objects/schema_objects.json")
+with open('../../misp-objects/schema_objects.json') as f:
+    schema_objects = json.load(f)
+
+schema_objects['defs']['attribute']['properties']['misp-attribute']['enum'] = types
+schema_objects['defs']['attribute']['properties']['categories']['items']['enum'] = categories
+
+with open('../../misp-objects/schema_objects.json', 'w') as f:
+    json.dump(schema_objects, f, sort_keys=True, indent=2)
+    f.write('\n')
+
+# print(types)
+# print(categories)
+
+
 print("\nPlease initiate the git commit and push for each repository!")
 print("- misp-book")
 print("- misp-website")
 print("- misp-rfc")
 print("- PyMISP")
+print("- misp-objects")
