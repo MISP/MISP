@@ -6244,6 +6244,9 @@ class Event extends AppModel
                     $object['meta-category'] = $object['meta_category'];
                     unset($object['meta_category']);
                 }
+                if (empty($object['comment'])) {
+                    $object['comment'] = $default_comment;
+                }
                 $object['event_id'] = $id;
                 if (isset($object['id']) && $object['id'] == $initial_object_id) {
                     $initial_object = $resolved_data['initialObject'];

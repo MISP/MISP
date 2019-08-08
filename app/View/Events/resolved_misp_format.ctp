@@ -167,7 +167,9 @@
                 }
               ?>
             </td>
-            <td class="ObjectComment shortish"><?php echo (!empty($object['comment']) ? h($object['comment']) : ''); ?></td>
+            <td class="short">
+              <input type="text" class="ObjectComment" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (!empty($object['comment'])) echo 'value="' . h($object['comment']) . '"';?>/>
+            </td>
             <td style="width:60px;text-align:center;">
               <select class="ObjectDistribution" style="padding:0px;height:20px;margin-bottom:0px;">
                 <?php
