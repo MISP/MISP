@@ -47,7 +47,8 @@ from stix.common.related import RelatedIndicator, RelatedObservable, RelatedThre
 from stix.common.vocabs import IncidentStatus
 from stix.core import STIXPackage, STIXHeader
 from stix.data_marking import Marking, MarkingSpecification
-from stix.exploit_target import ExploitTarget, Vulnerability
+from stix.exploit_target import ExploitTarget, Vulnerability, Weakness
+from stix.exploit_target.vulnerability import CVSSVector
 from stix.extensions.identity.ciq_identity_3_0 import CIQIdentity3_0Instance, STIXCIQIdentity3_0, PartyName, ElectronicAddressIdentifier, FreeTextAddress
 from stix.extensions.identity.ciq_identity_3_0 import Address as ciq_Address
 from stix.extensions.marking.tlp import TLPMarkingStructure
@@ -58,6 +59,7 @@ from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
 from stix.threat_actor import ThreatActor
 from stix.ttp import TTP, Behavior
+from stix.ttp.attack_pattern import AttackPattern
 from stix.ttp.malware_instance import MalwareInstance
 
 try:
@@ -99,6 +101,9 @@ class StixBuilder(object):
         self.simple_type_to_method.update(dict.fromkeys(["email-attachment"], self.generate_email_attachment_observable))
         self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], self.resolve_malware_sample))
         ## MAPPING FOR OBJECTS
+        self.ttp_names = {'attack-pattern': self.parse_attack_pattern,
+                          'vulnerability': self.parse_vulnerability,
+                          'weakness': self.parse_weakness}
         self.objects_mapping = {"asn": self.parse_asn_object,
                                 "credential": self.parse_credential_object,
                                 "domain-ip": self.parse_domain_ip_object,
@@ -156,6 +161,8 @@ class StixBuilder(object):
         stix_package.add_incident(self.incident)
         for ttp in self.ttps:
             stix_package.add_ttp(ttp)
+        for ttp in self.ttps_from_objects:
+            stix_package.add_ttp(ttp)
         if self.header_comment and len(self.header_comment) == 1:
             stix_header.description = self.header_comment[0]
         stix_package.stix_header = stix_header
@@ -194,6 +201,7 @@ class StixBuilder(object):
         self.orgc_name = self.misp_event['Orgc'].get('name')
         self.incident.reporter = self.set_rep()
         self.ttps = []
+        self.ttps_from_objects = []
         self.resolve_attributes()
         self.resolve_objects()
         self.add_related_indicators()
@@ -231,20 +239,23 @@ class StixBuilder(object):
             name = misp_object['name']
             if name == 'original-imported-file':
                 continue
-            category = misp_object.get('meta-category')
-            try:
-                to_ids, observable = self.objects_mapping[name](misp_object)
-            except KeyError:
-                to_ids, observable = self.create_custom_observable(name, misp_object['Attribute'], misp_object['uuid'])
-            except TypeError:
-                continue
-            if to_ids:
-                indicator = self.create_indicator(misp_object, observable)
-                related_indicator = RelatedIndicator(indicator, relationship=category)
-                self.incident.related_indicators.append(related_indicator)
+            if name in self.ttp_names:
+                self.ttp_names[name](misp_object)
             else:
-                related_observable = RelatedObservable(observable, relationship=category)
-                self.incident.related_observables.append(related_observable)
+                category = misp_object.get('meta-category')
+                try:
+                    to_ids, observable = self.objects_mapping[name](misp_object)
+                except KeyError:
+                    to_ids, observable = self.create_custom_observable(name, misp_object['Attribute'], misp_object['uuid'])
+                except TypeError:
+                    continue
+                if to_ids:
+                    indicator = self.create_indicator(misp_object, observable)
+                    related_indicator = RelatedIndicator(indicator, relationship=category)
+                    self.incident.related_indicators.append(related_indicator)
+                else:
+                    related_observable = RelatedObservable(observable, relationship=category)
+                    self.incident.related_observables.append(related_observable)
         if self.objects_to_parse:
             self.resolve_objects2parse()
 
@@ -621,6 +632,19 @@ class StixBuilder(object):
         observable.id_ = "{}:AutonomousSystem-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
+    def parse_attack_pattern(self, misp_object):
+        ttp = self.create_ttp_from_object(misp_object)
+        attack_pattern = AttackPattern()
+        attack_pattern.id_ = "{}:AttackPattern-{}".format(self.namespace_prefix, misp_object['uuid'])
+        attributes_dict = self.create_ttp_attributes_dict(misp_object['Attribute'])
+        for relation, feature in attack_pattern_object_mapping.items():
+            if relation in attributes_dict:
+                setattr(attack_pattern, feature, attributes_dict[relation])
+        behavior = Behavior()
+        behavior.add_attack_pattern(attack_pattern)
+        ttp.behavior = behavior
+        self.incident.add_leveraged_ttps(self.append_ttp_from_object(misp_object['meta-category'], ttp))
+
     def parse_credential_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
         account = Account()
@@ -908,6 +932,39 @@ class StixBuilder(object):
         observable = Observable(user_account)
         observable.id_ = "{}:{}-{}".format(self.namespace_prefix, account_type, uuid)
         return to_ids, observable
+
+    def parse_vulnerability(self, misp_object):
+        ttp = self.create_ttp_from_object(misp_object)
+        vulnerability = Vulnerability()
+        attributes_dict = self.create_ttp_attributes_dict_multiple(misp_object['Attribute'])
+        for relation, feature in vulnerability_object_mapping.items():
+            if relation in attributes_dict:
+                setattr(vulnerability, feature, attributes_dict[relation][0])
+        if 'cvss-score' in attributes_dict:
+            cvss = CVSSVector()
+            cvss.overall_score = attributes_dict['cvss-score'][0]
+            vulnerability.cvss_score = cvss
+        if 'references' in attributes_dict:
+            for reference in attributes_dict['references']:
+                vulnerability.add_reference(reference)
+        ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
+        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, misp_object['uuid'])
+        ET.add_vulnerability(vulnerability)
+        ttp.add_exploit_target(ET)
+        self.incident.leveraged_ttps.append(self.append_ttp_from_object(misp_object['meta-category'], ttp))
+
+    def parse_weakness(self, misp_object):
+        ttp = self.create_ttp_from_object(misp_object)
+        weakness = Weakness()
+        attributes_dict = self.create_ttp_attributes_dict(misp_object['Attribute'])
+        for relation, feature in weakness_object_mapping.items():
+            if relation in attributes_dict:
+                setattr(weakness, feature, attributes_dict[relation])
+        ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
+        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, misp_object['uuid'])
+        ET.add_weakness(weakness)
+        ttp.add_exploit_target(ET)
+        self.incident.leveraged_ttps.append(self.append_ttp_from_object(misp_object['meta-category'], ttp))
 
     def parse_whois(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
@@ -1209,37 +1266,63 @@ class StixBuilder(object):
         related_ttp = RelatedTTP(rttp, relationship=category)
         return related_ttp
 
-    def create_ttp(self, attribute, tags):
+    def append_ttp_from_object(self, category, ttp):
+        self.ttps_from_objects.append(ttp)
+        rttp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
+        related_ttp = RelatedTTP(rttp, relationship=category)
+        return related_ttp
+
+    def create_ttp(self, attribute):
         ttp = TTP(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
-        ttp.id_ = "{}:ttp-{}".format(self.orgname, attribute['uuid'])
-        handling = self.set_tlp(self.merge_tags(tags, attribute))
+        ttp.id_ = "{}:TTP-{}".format(self.orgname, attribute['uuid'])
+        tags = tuple(tag['name'] for tag in attribute['Tag']) if attribute.get('Tag') else []
+        handling = self.set_tlp(tags)
         if handling is not None:
             ttp.handling = handling
         ttp.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute['value'], attribute['id'])
+        return ttp
+
+    def create_ttp_from_object(self, misp_object):
+        ttp = TTP(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
+        ttp.id_ = "{}:TTP-{}".format(self.orgname, misp_object['uuid'])
+        tags = self.merge_tags(misp_object['Attribute'])
+        handling = self.set_tlp(tags)
+        if handling is not None:
+            ttp.handling = handling
+        ttp.title = "{}: {} (MISP Object #{})".format(misp_object['meta-category'], misp_object['name'], misp_object['id'])
         return ttp
 
     def create_attributes_dict(self, attributes, with_uuid=False):
         to_ids = self.fetch_ids_flags(attributes)
         if with_uuid:
             return to_ids, {attribute['object_relation']: {'value': attribute['value'], 'uuid': attribute['uuid']} for attribute in attributes}
-        return to_ids, {attribute['object_relation']: attribute['value'] for attribute in attributes}
+        return to_ids, self.create_ttp_attributes_dict(attributes)
 
     def create_attributes_dict_multiple(self, attributes, with_uuid=False):
         to_ids = self.fetch_ids_flags(attributes)
-        attributes_dict = defaultdict(list)
         if with_uuid:
+            attributes_dict = defaultdict(list)
             for attribute in attributes:
                 attribute_dict = {'value': attribute['value'], 'uuid': attribute['uuid']}
                 attributes_dict[attribute['object_relation']].append(attribute_dict)
-        else:
-            for attribute in attributes:
-                attributes_dict[attribute['object_relation']].append(attribute['value'])
-        return to_ids, attributes_dict
+            return to_ids, attributes_dict
+        return to_ids, self.create_ttp_attributes_dict_multiple(attributes)
 
     def create_file_attributes_dict(self, attributes):
         to_ids = self.fetch_ids_flags(attributes)
         attributes_dict = {attribute['object_relation']: {field: attribute[field] for field in ('value', 'uuid', 'data')} if 'data' in attribute and attribute['data'] else attribute['value'] for attribute in attributes}
         return to_ids, attributes_dict
+
+    @staticmethod
+    def create_ttp_attributes_dict(attributes):
+        return {attribute['object_relation']: attribute['value'] for attribute in attributes}
+
+    @staticmethod
+    def create_ttp_attributes_dict_multiple(attributes):
+        attributes_dict = defaultdict(list)
+        for attribute in attributes:
+            attributes_dict[attribute['object_relation']].append(attribute['value'])
+        return attributes_dict
 
     def create_x509_attributes_dict(self, attributes):
         to_ids = self.fetch_ids_flags(attributes)
