@@ -114,8 +114,7 @@ class StixBuilder(object):
                                 "url": self.parse_url_object,
                                 "user-account": self.parse_user_account_object,
                                 "whois": self.parse_whois,
-                                "x509": self.parse_x509_object
-                                }
+                                "x509": self.parse_x509_object}
 
     def loadEvent(self):
         pathname = os.path.dirname(self.args[0])
@@ -173,21 +172,17 @@ class StixBuilder(object):
         if threat_level_name:
             threat_level_s = "Event Threat Level: {}".format(threat_level_name)
             self.add_journal_entry(threat_level_s)
-        Tags = {}
-        if 'Tag' in self.misp_event:
-            event_tags = self.misp_event['Tag']
-            Tags['event'] = event_tags
-            labels = []
-            for tag in event_tags:
-                labels.append(tag['name'])
-            if 'misp:tool="misp2stix"' not in labels:
+        tags = tuple(tag['name'] for tag in self.misp_event['Tag']) if 'Tag' in self.misp_event else []
+        self.handling = None
+        if tags:
+            if 'misp:tool="misp2stix"' not in tags:
                 self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
-            for label in labels:
-                tag_name = "MISP Tag: {}".format(label)
+            for tag in tags:
+                tag_name = "MISP Tag: {}".format(tag)
                 self.add_journal_entry(tag_name)
-            handling = self.set_tlp(Tags)
-            if handling is not None:
-                self.incident.handling = handling
+            self.handling = self.set_tlp(tags)
+            if self.handling is not None:
+                self.incident.handling = self.handling
         else:
             self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
         external_id = ExternalID(value=str(self.misp_event['id']), source="MISP Event")
@@ -199,8 +194,8 @@ class StixBuilder(object):
         self.orgc_name = self.misp_event['Orgc'].get('name')
         self.incident.reporter = self.set_rep()
         self.ttps = []
-        self.resolve_attributes(Tags)
-        self.resolve_objects(Tags)
+        self.resolve_attributes()
+        self.resolve_objects()
         self.add_related_indicators()
         if self.history.history_items:
             self.incident.history = self.history
@@ -216,22 +211,22 @@ class StixBuilder(object):
         incident.time = incident_time
         self.incident = incident
 
-    def resolve_attributes(self, tags):
+    def resolve_attributes(self):
         for attribute in self.misp_event['Attribute']:
             attribute_type = attribute['type']
             if attribute_type in not_implemented_attributes:
                 if attribute_type == "snort":
-                    self.generate_TM(attribute, tags)
+                    self.generate_TM(attribute)
                 else:
                     journal_entry = "!Not implemented attribute category/type combination caught! attribute[{}][{}]: {}".format(attribute['category'],
                     attribute_type, attribute['value'])
                     self.add_journal_entry(journal_entry)
             elif attribute_type in non_indicator_attributes:
-                self.handle_non_indicator_attribute(attribute, tags)
+                self.handle_non_indicator_attribute(attribute)
             else:
-                self.handle_attribute(attribute, tags)
+                self.handle_attribute(attribute)
 
-    def resolve_objects(self, tags):
+    def resolve_objects(self):
         for misp_object in self.misp_event['Object']:
             name = misp_object['name']
             if name == 'original-imported-file':
@@ -244,17 +239,16 @@ class StixBuilder(object):
             except TypeError:
                 continue
             if to_ids:
-                indicator = self.create_indicator(misp_object, observable, tags)
+                indicator = self.create_indicator(misp_object, observable)
                 related_indicator = RelatedIndicator(indicator, relationship=category)
                 self.incident.related_indicators.append(related_indicator)
             else:
                 related_observable = RelatedObservable(observable, relationship=category)
                 self.incident.related_observables.append(related_observable)
         if self.objects_to_parse:
-            self.resolve_objects2parse(tags)
+            self.resolve_objects2parse()
 
-
-    def resolve_objects2parse(self, tags):
+    def resolve_objects2parse(self):
         for uuid, file_object in self.objects_to_parse['file'].items():
             category = file_object.get('meta-category')
             to_ids_file, file_dict = self.create_attributes_dict(file_object['Attribute'])
@@ -283,7 +277,7 @@ class StixBuilder(object):
             observable.id_ = "{}:WinExecutableFile-{}".format(self.namespace_prefix, uuid)
             to_ids = True if True in to_ids_list else False
             if to_ids:
-                indicator = self.create_indicator(file_object, observable, tags)
+                indicator = self.create_indicator(file_object, observable)
                 related_indicator = RelatedIndicator(indicator, relationship=category)
                 self.incident.related_indicators.append(related_indicator)
             else:
@@ -309,14 +303,12 @@ class StixBuilder(object):
         pe_headers.file_header = pe_file_header
         return pe_headers, pe_sections
 
-    def create_indicator(self, misp_object, observable, tags):
-        tlp_tags = deepcopy(tags)
+    def create_indicator(self, misp_object, observable):
         indicator = Indicator(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
         indicator.id_ = "{}:MISPObject-{}".format(self.orgname, misp_object['uuid'])
         indicator.producer = self.set_prod(self.orgc_name)
-        for attribute in misp_object['Attribute']:
-            tlp_tags = self.merge_tags(tlp_tags, attribute)
-        handling = self.set_tlp(tlp_tags)
+        tags = self.merge_tags(misp_object['Attribute'])
+        handling = self.set_tlp(tuple(tags))
         if handling is not None:
             indicator.handling = handling
         title = "{} (MISP Object #{})".format(misp_object['name'], misp_object['id'])
@@ -333,11 +325,11 @@ class StixBuilder(object):
                 ittp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
                 rindicator.item.add_indicated_ttp(ittp)
 
-    def handle_attribute(self, attribute, tags):
+    def handle_attribute(self, attribute):
         observable = self.generate_observable(attribute)
         if observable:
             if attribute['to_ids']:
-                indicator = self.generate_indicator(attribute, tags)
+                indicator = self.generate_indicator(attribute)
                 indicator.add_indicator_type("Malware Artifacts")
                 try:
                     indicator.add_indicator_type(misp_indicator_type[attribute['type']])
@@ -351,15 +343,15 @@ class StixBuilder(object):
                 related_observable = RelatedObservable(observable, relationship=attribute['category'])
                 self.incident.related_observables.append(related_observable)
 
-    def handle_non_indicator_attribute(self, attribute, tags):
+    def handle_non_indicator_attribute(self, attribute):
         attribute_type = attribute['type']
         if attribute_type == "vulnerability":
-            ttp = self.generate_vulnerability(attribute, tags)
+            ttp = self.generate_vulnerability(attribute)
             self.incident.leveraged_ttps.append(self.append_ttp(attribute['category'], ttp))
         elif attribute_type == "link":
             self.add_reference(attribute['value'])
         elif attribute_type in ('comment', 'text', 'other'):
-            self.handle_undefined_attribute(attribute, tags)
+            self.handle_undefined_attribute(attribute)
         elif attribute_type == "target-machine":
             aa = AffectedAsset()
             description = attribute['value']
@@ -371,12 +363,12 @@ class StixBuilder(object):
             self.incident.add_victim(self.resolve_identity_attribute(attribute))
 
     # "Undefifned" because of the type of value we can not know in advance for this type of attribute
-    def handle_undefined_attribute(self, attribute, tags):
+    def handle_undefined_attribute(self, attribute):
         attribute_category = attribute['category']
         if 'comment' in attribute and attribute['comment'] == 'Imported from STIX header description':
             self.header_comment.append(attribute['value'])
         elif attribute_category == "Payload type":
-            ttp = self.generate_ttp(attribute, tags)
+            ttp = self.generate_ttp(attribute)
             self.incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
         elif attribute_category == "Attribution":
             ta = self.generate_threat_actor(attribute)
@@ -458,13 +450,14 @@ class StixBuilder(object):
         file_object._fields[field_type]._inner[0].type_ = Hash.TYPE_SSDEEP
         file_object._fields[field_type]._inner[0].type_.condition = "Equals"
 
-    def generate_indicator(self, attribute, tags):
+    def generate_indicator(self, attribute):
         indicator = Indicator(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
         indicator.id_ = "{}:indicator-{}".format(self.orgname, attribute['uuid'])
         indicator.producer = self.set_prod(self.orgc_name)
         if attribute.get('comment'):
             indicator.description = attribute['comment']
-        handling = self.set_tlp(self.merge_tags(tags, attribute))
+        tags = tuple(tag['name'] for tag in attribute['Tag']) if attribute.get('Tag') else []
+        handling = self.set_tlp(tags)
         if handling is not None:
             indicator.handling = handling
         indicator.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute['value'], attribute['id'])
@@ -575,20 +568,20 @@ class StixBuilder(object):
         ta.description = description
         return ta
 
-    def generate_TM(self, attribute, tags):
+    def generate_TM(self, attribute):
         if attribute['to_ids']:
             tm = SnortTestMechanism()
             value = attribute['value'].encode('utf-8')
             tm.rule = value
-            indicator = self.generate_indicator(attribute, tags)
+            indicator = self.generate_indicator(attribute)
             indicator.add_indicator_type("Malware Artifacts")
             indicator.add_valid_time_position(ValidTime())
             indicator.add_test_mechanism(tm)
             related_indicator = RelatedIndicator(indicator, relationship=attribute['category'])
             self.incident.related_indicators.append(related_indicator)
 
-    def generate_ttp(self, attribute, tags):
-        ttp = self.create_ttp(attribute, tags)
+    def generate_ttp(self, attribute):
+        ttp = self.create_ttp(attribute)
         malware = MalwareInstance()
         malware.add_name(attribute['value'])
         ttp.behavior = Behavior()
@@ -597,8 +590,8 @@ class StixBuilder(object):
             ttp.description = attribute['comment']
         return ttp
 
-    def generate_vulnerability(self, attribute, tags):
-        ttp = self.create_ttp(attribute, tags)
+    def generate_vulnerability(self, attribute):
+        ttp = self.create_ttp(attribute)
         vulnerability = Vulnerability()
         vulnerability.cve_id = attribute['value']
         ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
@@ -973,19 +966,12 @@ class StixBuilder(object):
         if 'signature' in attributes_dict:
             signature = attributes_dict.pop('signature')
             x509_object.certificate_signature = self.fill_x509_signature(signature)
-        if 'contents' in attributes_dict or 'validity' in attributes_dict or 'rsa_pubkey' in attributes_dict or 'subject_pubkey' in attributes_dict:
-            try:
-                contents = attributes_dict.pop('contents')
-                x509_cert = self.fill_x509_contents(contents)
-            except Exception:
-                x509_cert = X509Cert()
-            try:
-                validity = attributes_dict.pop('validity')
-                x509_cert.validity = self.fill_x509_validity(validity)
-            except Exception:
-                pass
-            if attributes_dict:
-                x509_cert.subject_public_key = self.fill_x509_pubkey(**attributes_dict)
+        x509_cert = self.fill_x509_contents(attributes_dict.pop('contents')) if 'contents' in attributes_dict else X509Cert()
+        if 'validity' in attributes_dict:
+            x509_cert.validity = self.fill_x509_validity(attributes_dict.pop('validity'))
+        if attributes_dict:
+            x509_cert.subject_public_key = self.fill_x509_pubkey(attributes_dict)
+        if x509_cert.to_dict():
             x509_object.certificate = x509_cert
         uuid = misp_object['uuid']
         x509_object.parent.id_ = "{}:x509CertificateObject-{}".format(self.namespace_prefix, uuid)
@@ -1002,7 +988,7 @@ class StixBuilder(object):
         return x509_cert
 
     @staticmethod
-    def fill_x509_pubkey(**attributes):
+    def fill_x509_pubkey(attributes):
         pubkey = SubjectPublicKey()
         if 'subject_pubkey' in attributes:
             pubkey.public_key_algorithm = attributes['subject_pubkey']['pubkey-info-algorithm']
@@ -1193,18 +1179,13 @@ class StixBuilder(object):
         return information_source
 
     def set_tlp(self, tags):
+        colors = self.fetch_colors(tags)
+        if not colors:
+            return self.handling
+        tlp = TLPMarkingStructure()
+        tlp.color = self.set_color(colors)
         marking_specification = MarkingSpecification()
         marking_specification.controlled_structure = "../../../descendant-or-self::node()"
-        tlp = TLPMarkingStructure()
-        attr_colors = self.fetch_colors(tags.get('attributes')) if 'attributes' in tags else []
-        if attr_colors:
-            color = self.set_color(attr_colors)
-        else:
-            event_colors = self.fetch_colors(tags.get('event')) if 'event' in tags else []
-            if not event_colors:
-                return None
-            color = self.set_color(event_colors)
-        tlp.color = color
         marking_specification.marking_structures.append(tlp)
         handling = Marking()
         handling.add_marking(marking_specification)
@@ -1487,8 +1468,8 @@ class StixBuilder(object):
     def fetch_colors(tags):
         colors = []
         for tag in tags:
-            if tag['name'].startswith("tlp:") and tag['name'].count(':') == 1:
-                colors.append(tag['name'][4:].upper())
+            if tag.startswith("tlp:") and tag.count(':') == 1:
+                colors.append(tag[4:].upper())
         return colors
 
     @staticmethod
@@ -1503,15 +1484,12 @@ class StixBuilder(object):
         return datetime.datetime.utcfromtimestamp(int(timestamp))
 
     @staticmethod
-    def merge_tags(tags, attribute):
-        result = deepcopy(tags)
-        if attribute.get('Tag'):
-            if 'attributes' in tags:
-                for tag in attribute['Tag']:
-                    result['attributes'].append(tag)
-            else:
-                result['attributes'] = attribute['Tag']
-        return result
+    def merge_tags(attributes):
+        tags = set()
+        for attribute in attributes:
+            if attribute.get('Tag'):
+                tags.update([tag['name'] for tag in attribute['Tag']])
+        return tuple(tags)
 
     @staticmethod
     def parse_src_dst_args(attributes_dict):
