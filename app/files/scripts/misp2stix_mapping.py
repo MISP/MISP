@@ -76,4 +76,4 @@ x509_creation_mapping = {'version': 'contents', 'serial-number': 'contents', 'is
                          'pem': 'raw_certificate', 'x509-fingerprint-md5': 'signature',
                          'x509-fingerprint-sha1': 'signature', 'x509-fingerprint-sha256': 'signature',
                          'pubkey-info-algorithm': 'subject_pubkey'}
-x509_objects_keys = ('version', 'serial-number', 'issuer', 'subject')
+x509_object_keys = ('version', 'serial-number', 'issuer', 'subject')
