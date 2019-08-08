@@ -114,8 +114,7 @@ class StixBuilder(object):
                                 "url": self.parse_url_object,
                                 "user-account": self.parse_user_account_object,
                                 "whois": self.parse_whois,
-                                "x509": self.parse_x509_object
-                                }
+                                "x509": self.parse_x509_object}
 
     def loadEvent(self):
         pathname = os.path.dirname(self.args[0])
@@ -967,19 +966,12 @@ class StixBuilder(object):
         if 'signature' in attributes_dict:
             signature = attributes_dict.pop('signature')
             x509_object.certificate_signature = self.fill_x509_signature(signature)
-        if 'contents' in attributes_dict or 'validity' in attributes_dict or 'rsa_pubkey' in attributes_dict or 'subject_pubkey' in attributes_dict:
-            try:
-                contents = attributes_dict.pop('contents')
-                x509_cert = self.fill_x509_contents(contents)
-            except Exception:
-                x509_cert = X509Cert()
-            try:
-                validity = attributes_dict.pop('validity')
-                x509_cert.validity = self.fill_x509_validity(validity)
-            except Exception:
-                pass
-            if attributes_dict:
-                x509_cert.subject_public_key = self.fill_x509_pubkey(**attributes_dict)
+        x509_cert = self.fill_x509_contents(attributes_dict.pop('contents')) if 'contents' in attributes_dict else X509Cert()
+        if 'validity' in attributes_dict:
+            x509_cert.validity = self.fill_x509_validity(attributes_dict.pop('validity'))
+        if attributes_dict:
+            x509_cert.subject_public_key = self.fill_x509_pubkey(attributes_dict)
+        if x509_cert.to_dict():
             x509_object.certificate = x509_cert
         uuid = misp_object['uuid']
         x509_object.parent.id_ = "{}:x509CertificateObject-{}".format(self.namespace_prefix, uuid)
@@ -996,7 +988,7 @@ class StixBuilder(object):
         return x509_cert
 
     @staticmethod
-    def fill_x509_pubkey(**attributes):
+    def fill_x509_pubkey(attributes):
         pubkey = SubjectPublicKey()
         if 'subject_pubkey' in attributes:
             pubkey.public_key_algorithm = attributes['subject_pubkey']['pubkey-info-algorithm']
