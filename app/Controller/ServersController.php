@@ -1322,6 +1322,9 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
         $this->Server->restartWorkers($this->Auth->user());
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'restartWorkers', false, $this->response->type(), __('Restarting workers.'));
+        }
         $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
     }
 

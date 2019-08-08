@@ -1179,6 +1179,16 @@ class Event extends AppModel
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
         $data = json_encode($event);
+        if (!empty(Configure::read('Security.sync_audit'))) {
+            $pushLogEntry = sprintf(
+                "==============================================================\n\n[%s] Pushing Event #%d to Server #%d:\n\n%s\n\n",
+                date("Y-m-d H:i:s"),
+                $event['Event']['id'],
+                $server['Server']['id'],
+                $data
+            );
+            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
+        }
         $response = $HttpSocket->post($uri, $data, $request);
         return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
     }
@@ -4389,7 +4399,7 @@ class Event extends AppModel
         foreach ($eventArray as $k => &$event) {
             $uuidsToCheck[$event['uuid']] = $k;
         }
-        $localEvents = $this->find('list', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp')));
+        $localEvents = array();
         $temp = $this->find('all', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked')));
         foreach ($temp as $e) {
             $localEvents[$e['Event']['uuid']] = array('timestamp' => $e['Event']['timestamp'], 'locked' => $e['Event']['locked']);
