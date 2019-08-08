@@ -209,7 +209,7 @@ class StixBuilder(object):
             self.incident.history = self.history
 
     def create_incident(self, org):
-        incident_id = "{}:incident-{}".format(org, self.misp_event['uuid'])
+        incident_id = "{}:Incident-{}".format(org, self.misp_event['uuid'])
         incident = Incident(id_=incident_id, title=self.misp_event['info'])
         timestamp = self.get_datetime_from_timestamp(self.misp_event['publish_timestamp'])
         incident.timestamp = timestamp
@@ -501,7 +501,7 @@ class StixBuilder(object):
         observable_object = Object(observable_property)
         observable_object.id_ = "{}:{}-{}".format(self.namespace_prefix, observable_property.__class__.__name__, attribute_uuid)
         observable = Observable(observable_object)
-        observable.id_ = "{}:observable-{}".format(self.namespace_prefix, attribute_uuid)
+        observable.id_ = "{}:Observable-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
     def generate_port_observable(self, attribute):
@@ -571,7 +571,7 @@ class StixBuilder(object):
     def generate_threat_actor(self, attribute):
         attribute_value = attribute['value']
         ta = ThreatActor(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
-        ta.id_ = "{}:threatactor-{}".format(self.orgname, attribute['uuid'])
+        ta.id_ = "{}:ThreatActor-{}".format(self.orgname, attribute['uuid'])
         ta.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute_value, attribute['id'])
         description = attribute_value
         if attribute.get('comment'):
@@ -606,7 +606,7 @@ class StixBuilder(object):
         vulnerability = Vulnerability()
         vulnerability.cve_id = attribute['value']
         ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
-        ET.id_ = "{}:et-{}".format(self.orgname, attribute['uuid'])
+        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, attribute['uuid'])
         if attribute.get('comment') and attribute['comment'] != "Imported via the freetext import.":
             ET.title = attribute['comment']
         else:
