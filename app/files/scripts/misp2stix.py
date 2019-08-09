@@ -415,14 +415,7 @@ class StixBuilder(object):
             ttp = self.generate_ttp(attribute)
             self.incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
         elif attribute_category == "Attribution":
-            ta = self.generate_threat_actor(attribute)
-            rta = RelatedThreatActor(ta, relationship="Attribution")
-            if self.incident.attributed_threat_actors:
-                self.incident.attributed_threat_actors.append(rta)
-            else:
-                ata = AttributedThreatActors()
-                ata.append(rta)
-                self.incident.attributed_threat_actors = ata
+            self.galaxies['threat_actor'].append(self.generate_threat_actor(attribute))
         else:
             entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute['type'], attribute['value'])
             self.add_journal_entry(entry_line)
