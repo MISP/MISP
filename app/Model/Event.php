@@ -1253,7 +1253,7 @@ class Event extends AppModel
                 if (empty($data['Object'][$key])) {
                     unset($data['Object'][$key]);
                 } else {
-                    $data['Object'][$key]['Attribute'] = $this->__prepareAttributesForSync($data['Object'][$key]['Attribute'], $server);
+                    $data['Object'][$key] = $this->__prepareAttributesForSync($data['Object'][$key], $server);
                 }
             }
             $data['Object'] = array_values($data['Object']);
