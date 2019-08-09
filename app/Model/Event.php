@@ -3374,6 +3374,22 @@ class Event extends AppModel
                 return 'Blocked by blacklist';
             }
         }
+        if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published'])) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $validationErrors['Event'] = 'Received a published event that was empty. Event add process blocked.';
+            $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'Event',
+                    'model_id' => 0,
+                    'email' => $user['email'],
+                    'action' => 'add',
+                    'user_id' => $user['id'],
+                    'title' => $validationErrors['Event'],
+                    'change' => ''
+            ));
+            return json_encode($validationErrors);
+        }
         $this->create();
         // force check userid and orgname to be from yourself
         $data['Event']['user_id'] = $user['id'];
