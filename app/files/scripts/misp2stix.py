@@ -368,8 +368,7 @@ class StixBuilder(object):
     def handle_non_indicator_attribute(self, attribute):
         attribute_type = attribute['type']
         if attribute_type == "vulnerability":
-            ttp = self.generate_vulnerability(attribute)
-            self.incident.leveraged_ttps.append(self.append_ttp(attribute['category'], ttp))
+            self.generate_vulnerability(attribute)
         elif attribute_type == "link":
             self.add_reference(attribute['value'])
         elif attribute_type in ('comment', 'text', 'other'):
@@ -623,8 +622,8 @@ class StixBuilder(object):
         else:
             ET.title = "Vulnerability {}".format(attribute['value'])
         ET.add_vulnerability(vulnerability)
-        ttp.exploit_targets.append(ET)
-        return ttp
+        ttp.add_exploit_target(ET)
+        self.ttps_from_objects[attribute['uuid']] = (ttp, attribute['category'])
 
     def parse_asn_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
