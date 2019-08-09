@@ -3473,39 +3473,39 @@ class Event extends AppModel
             return json_encode($validationErrors);
         }
         $fieldList = array(
-                'Event' => array(
-                    'org_id',
-                    'orgc_id',
-                    'date',
-                    'threat_level_id',
-                    'analysis',
-                    'info',
-                    'user_id',
-                    'published',
-                    'uuid',
-                    'timestamp',
-                    'distribution',
-                    'sharing_group_id',
-                    'locked',
-                    'disable_correlation',
-                    'extends_uuid'
-                ),
-                'Attribute' => $this->Attribute->captureFields,
-                'Object' => array(
-                    'name',
-                    'meta-category',
-                    'description',
-                    'template_uuid',
-                    'template_version',
-                    'event_id',
-                    'uuid',
-                    'timestamp',
-                    'distribution',
-                    'sharing_group_id',
-                    'comment',
-                    'deleted'
-                ),
-                'ObjectRelation' => array()
+            'Event' => array(
+                'org_id',
+                'orgc_id',
+                'date',
+                'threat_level_id',
+                'analysis',
+                'info',
+                'user_id',
+                'published',
+                'uuid',
+                'timestamp',
+                'distribution',
+                'sharing_group_id',
+                'locked',
+                'disable_correlation',
+                'extends_uuid'
+            ),
+            'Attribute' => $this->Attribute->captureFields,
+            'Object' => array(
+                'name',
+                'meta-category',
+                'description',
+                'template_uuid',
+                'template_version',
+                'event_id',
+                'uuid',
+                'timestamp',
+                'distribution',
+                'sharing_group_id',
+                'comment',
+                'deleted'
+            ),
+            'ObjectRelation' => array()
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
         $this->Log = ClassRegistry::init('Log');
