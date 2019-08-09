@@ -104,6 +104,21 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        if (!empty(Configure::read('MISP.uuid'))) {
+            Configure::write('Session.cookie', 'MISP-' . Configure::read('MISP.uuid'));
+        }
+        if (!empty(Configure::read('Session.cookieTimeout')) || !empty(Configure::read('Session.timeout'))) {
+            $session = Configure::read('Session');
+            if (!empty($session['cookieTimeout'])) {
+                $value = 60 * intval($session['cookieTimeout']);
+            } else if (!empty($session['timeout'])) {
+                $value = 60 * intval($session['timeout']);
+            } else {
+                $value = 3600;
+            }
+            $session['ini']['session.gc_maxlifetime'] = $value;
+            Configure::write('Session', $session);
+        }
         if (Configure::read('Security.allow_cors')) {
             // Add CORS headers
             $this->response->cors($this->request,
