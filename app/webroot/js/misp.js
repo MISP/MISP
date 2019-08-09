@@ -2493,7 +2493,8 @@ function moduleResultsSubmit(id) {
                 name: $(this).find('.ObjectName').text(),
                 meta_category: $(this).find('.ObjectMetaCategory').text(),
                 distribution: $(this).find('.ObjectDistribution').val(),
-                sharing_group_id: $(this).find('.ObjectSharingGroup').val()
+                sharing_group_id: $(this).find('.ObjectSharingGroup').val(),
+                comment: $(this).find('.ObjectComment').val()
             }
             if (temp['distribution'] != '4') {
                 temp['sharing_group_id'] = '0';
