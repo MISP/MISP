@@ -645,12 +645,12 @@ class StixBuilder(object):
     def parse_attack_pattern(self, misp_object):
         ttp = self.create_ttp_from_object(misp_object)
         attack_pattern = AttackPattern()
-        attack_pattern.id_ = "{}:AttackPattern-{}".format(self.namespace_prefix, misp_object['uuid'])
+        uuid = misp_object['uuid']
+        attack_pattern.id_ = "{}:AttackPattern-{}".format(self.namespace_prefix, uuid)
         attributes_dict = self.create_ttp_attributes_dict(misp_object['Attribute'])
         for relation, feature in attack_pattern_object_mapping.items():
             if relation in attributes_dict:
                 setattr(attack_pattern, feature, attributes_dict[relation])
-        uuid = misp_object['uuid']
         if misp_object.get('ObjectReference'):
             references = ((reference['referenced_uuid'], reference['relationship_type']) for reference in misp_object['ObjectReference'])
             self.ttp_references[uuid] = references
@@ -966,7 +966,7 @@ class StixBuilder(object):
             references = ((reference['referenced_uuid'], reference['relationship_type']) for reference in misp_object['ObjectReference'])
             self.ttp_references[uuid] = references
         ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
-        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, misp_object['uuid'])
+        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, uuid)
         ET.add_vulnerability(vulnerability)
         ttp.add_exploit_target(ET)
         self.ttps_from_objects[uuid] = (ttp, misp_object['meta-category'])
@@ -983,7 +983,7 @@ class StixBuilder(object):
             references = ((reference['referenced_uuid'], reference['relationship_type']) for reference in misp_object['ObjectReference'])
             self.ttp_references[uuid] = references
         ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
-        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, misp_object['uuid'])
+        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, uuid)
         ET.add_weakness(weakness)
         ttp.add_exploit_target(ET)
         self.ttps_from_objects[uuid] = (ttp, misp_object['meta-category'])
