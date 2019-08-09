@@ -161,7 +161,9 @@ class StixBuilder(object):
         stix_package.add_incident(self.incident)
         for ttp in self.ttps:
             stix_package.add_ttp(ttp)
-        for ttp in self.ttps_from_objects:
+        for uuid, ttp in self.ttps_from_objects.items():
+            ttp, category = ttp
+            self.parse_ttp_references(uuid, category, ttp)
             stix_package.add_ttp(ttp)
         if self.header_comment and len(self.header_comment) == 1:
             stix_header.description = self.header_comment[0]
@@ -201,7 +203,8 @@ class StixBuilder(object):
         self.orgc_name = self.misp_event['Orgc'].get('name')
         self.incident.reporter = self.set_rep()
         self.ttps = []
-        self.ttps_from_objects = []
+        self.ttps_from_objects = {}
+        self.ttp_references = {}
         self.resolve_attributes()
         self.resolve_objects()
         self.add_related_indicators()
@@ -313,6 +316,14 @@ class StixBuilder(object):
                         pe_headers.entropy.value = entropy
         pe_headers.file_header = pe_file_header
         return pe_headers, pe_sections
+
+    def parse_ttp_references(self, uuid, category, ttp):
+        if uuid in self.ttp_references:
+            for referenced_uuid, relationship in self.ttp_references[uuid]:
+                if referenced_uuid in self.ttps_from_objects:
+                    referenced_ttp, _ = self.ttps_from_objects[referenced_uuid]
+                    ttp.add_related_ttp(self.append_ttp_from_object(relationship, referenced_ttp))
+        self.incident.add_leveraged_ttps(self.append_ttp_from_object(category, ttp))
 
     def create_indicator(self, misp_object, observable):
         indicator = Indicator(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
@@ -640,10 +651,14 @@ class StixBuilder(object):
         for relation, feature in attack_pattern_object_mapping.items():
             if relation in attributes_dict:
                 setattr(attack_pattern, feature, attributes_dict[relation])
+        uuid = misp_object['uuid']
+        if misp_object.get('ObjectReference'):
+            references = ((reference['referenced_uuid'], reference['relationship_type']) for reference in misp_object['ObjectReference'])
+            self.ttp_references[uuid] = references
         behavior = Behavior()
         behavior.add_attack_pattern(attack_pattern)
         ttp.behavior = behavior
-        self.incident.add_leveraged_ttps(self.append_ttp_from_object(misp_object['meta-category'], ttp))
+        self.ttps_from_objects[uuid] = (ttp, misp_object['meta-category'])
 
     def parse_credential_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
@@ -947,11 +962,15 @@ class StixBuilder(object):
         if 'references' in attributes_dict:
             for reference in attributes_dict['references']:
                 vulnerability.add_reference(reference)
+        uuid = misp_object['uuid']
+        if misp_object.get('ObjectReference'):
+            references = ((reference['referenced_uuid'], reference['relationship_type']) for reference in misp_object['ObjectReference'])
+            self.ttp_references[uuid] = references
         ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
         ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, misp_object['uuid'])
         ET.add_vulnerability(vulnerability)
         ttp.add_exploit_target(ET)
-        self.incident.leveraged_ttps.append(self.append_ttp_from_object(misp_object['meta-category'], ttp))
+        self.ttps_from_objects[uuid] = (ttp, misp_object['meta-category'])
 
     def parse_weakness(self, misp_object):
         ttp = self.create_ttp_from_object(misp_object)
@@ -960,11 +979,15 @@ class StixBuilder(object):
         for relation, feature in weakness_object_mapping.items():
             if relation in attributes_dict:
                 setattr(weakness, feature, attributes_dict[relation])
+        uuid = misp_object['uuid']
+        if misp_object.get('ObjectReference'):
+            references = ((reference['referenced_uuid'], reference['relationship_type']) for reference in misp_object['ObjectReference'])
+            self.ttp_references[uuid] = references
         ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
         ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, misp_object['uuid'])
         ET.add_weakness(weakness)
         ttp.add_exploit_target(ET)
-        self.incident.leveraged_ttps.append(self.append_ttp_from_object(misp_object['meta-category'], ttp))
+        self.ttps_from_objects[uuid] = (ttp, misp_object['meta-category'])
 
     def parse_whois(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
@@ -1267,7 +1290,6 @@ class StixBuilder(object):
         return related_ttp
 
     def append_ttp_from_object(self, category, ttp):
-        self.ttps_from_objects.append(ttp)
         rttp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
         related_ttp = RelatedTTP(rttp, relationship=category)
         return related_ttp
