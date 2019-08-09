@@ -174,6 +174,7 @@ foreach($tabs as $tabName => $column):
                                 $td .= ' data-target-id="'.h($target_id).'"';
                             }
                             $td .= ' title="' . h($externalId) . (strlen($shortDescription) > 0 ? ': &#10;' . h($shortDescription) : '') . '"';
+			    $td .= ' tabindex="0" aria-label="' . h($externalId) . '"';
                             $td .= '>' . h($name);
 
                         } else { // empty cell
