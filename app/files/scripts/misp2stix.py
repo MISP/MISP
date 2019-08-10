@@ -177,8 +177,7 @@ class StixBuilder(object):
         for ttp in self.ttps:
             stix_package.add_ttp(ttp)
         for uuid, ttp in self.ttps_from_objects.items():
-            ttp, category = ttp
-            self.parse_ttp_references(uuid, category, ttp)
+            self.parse_ttp_references(uuid, ttp)
             stix_package.add_ttp(ttp)
         if self.header_comment and len(self.header_comment) == 1:
             stix_header.description = self.header_comment[0]
@@ -340,13 +339,12 @@ class StixBuilder(object):
         pe_headers.file_header = pe_file_header
         return pe_headers, pe_sections
 
-    def parse_ttp_references(self, uuid, category, ttp):
+    def parse_ttp_references(self, uuid, ttp):
         if uuid in self.ttp_references:
             for referenced_uuid, relationship in self.ttp_references[uuid]:
                 if referenced_uuid in self.ttps_from_objects:
-                    referenced_ttp, _ = self.ttps_from_objects[referenced_uuid]
+                    referenced_ttp = self.ttps_from_objects[referenced_uuid]
                     ttp.add_related_ttp(self.append_ttp_from_object(relationship, referenced_ttp))
-        self.incident.add_leveraged_ttps(self.append_ttp_from_object(category, ttp))
 
     def create_indicator(self, misp_object, observable):
         indicator = Indicator(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
@@ -639,7 +637,7 @@ class StixBuilder(object):
             ET.title = "Vulnerability {}".format(attribute['value'])
         ET.add_vulnerability(vulnerability)
         ttp.add_exploit_target(ET)
-        self.ttps_from_objects[attribute['uuid']] = (ttp, attribute['category'])
+        self.ttps_from_objects[attribute['uuid']] = ttp
 
     def parse_asn_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
@@ -673,7 +671,7 @@ class StixBuilder(object):
         behavior = Behavior()
         behavior.add_attack_pattern(attack_pattern)
         ttp.behavior = behavior
-        self.ttps_from_objects[uuid] = (ttp, misp_object['meta-category'])
+        self.ttps_from_objects[uuid] = ttp
 
     def parse_attack_pattern_galaxy(self, galaxy):
         galaxy_name = galaxy['name']
@@ -691,7 +689,7 @@ class StixBuilder(object):
             behavior = Behavior()
             behavior.add_attack_pattern(attack_pattern)
             ttp.behavior = behavior
-            self.ttps.append(ttp)
+            self.incident.add_leveraged_ttps(self.append_ttp(galaxy_name, ttp))
 
     def parse_credential_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
@@ -874,7 +872,7 @@ class StixBuilder(object):
             behavior = Behavior()
             behavior.add_malware_instance(malware)
             ttp.behavior = behavior
-            self.ttps.append(ttp)
+            self.incident.add_leveraged_ttps(self.append_ttp(galaxy_name, ttp))
 
     def parse_network_connection_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
@@ -1009,7 +1007,7 @@ class StixBuilder(object):
             resource = Resource()
             resource.tools = tools
             ttp.resources = resource
-            self.ttps.append(ttp)
+            self.incident.add_leveraged_ttps(self.append_ttp(galaxy_name, ttp))
 
     def parse_url_object(self, misp_object):
         observables = []
@@ -1067,7 +1065,7 @@ class StixBuilder(object):
         ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, uuid)
         ET.add_vulnerability(vulnerability)
         ttp.add_exploit_target(ET)
-        self.ttps_from_objects[uuid] = (ttp, misp_object['meta-category'])
+        self.ttps_from_objects[uuid] = ttp
 
     def parse_weakness(self, misp_object):
         ttp = self.create_ttp_from_object(misp_object)
@@ -1084,7 +1082,7 @@ class StixBuilder(object):
         ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, uuid)
         ET.add_weakness(weakness)
         ttp.add_exploit_target(ET)
-        self.ttps_from_objects[uuid] = (ttp, misp_object['meta-category'])
+        self.ttps_from_objects[uuid] = ttp
 
     def parse_whois(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
