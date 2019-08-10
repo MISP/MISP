@@ -223,7 +223,6 @@ class StixBuilder(object):
         self.resolve_galaxies()
         self.resolve_attributes()
         self.resolve_objects()
-        self.add_related_indicators()
         if self.history.history_items:
             self.incident.history = self.history
 
