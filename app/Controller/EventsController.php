@@ -2327,6 +2327,15 @@ class EventsController extends AppController
 
     public function delete($id = null)
     {
+        if (Validation::uuid($id)) {
+            $temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $id)));
+            if (empty($temp)) {
+                throw new NotFoundException(__('Invalid event'));
+            }
+            $id = $temp['Event']['id'];
+        } elseif (!is_numeric($id)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
         if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
             if (isset($this->request->data['id'])) {
                 $this->request->data['Event'] = $this->request->data;
