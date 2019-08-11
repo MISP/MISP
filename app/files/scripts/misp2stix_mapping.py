@@ -30,6 +30,22 @@ misp_indicator_type.update(dict.fromkeys(["domain", "domain|ip", "hostname"], "D
 misp_indicator_type.update(dict.fromkeys(["regkey", "regkey|value"], "Host Characteristics"))
 cybox_validation = {"AutonomousSystem": "isInt"}
 
+galaxy_types_mapping = dict.fromkeys(['mitre-attack-pattern', 'mitre-enterprise-attack-attack-pattern',
+                                      'mitre-mobile-attack-attack-pattern', 'mitre-pre-attack-attack-pattern'],
+                                     'parse_attack_pattern_galaxy')
+galaxy_types_mapping.update(dict.fromkeys(['mitre-course-of-action',
+                                           'mitre-entreprise-attack-course-of-action',
+                                           'mitre-mobile-attack-course-of-action'],
+                                          'parse_course_of_action_galaxy'))
+galaxy_types_mapping.update(dict.fromkeys(['android', 'banker', 'stealer', 'backdoor', 'ransomware', 'mitre-malware',
+                                           'mitre-enterprise-attack-malware', 'mitre-mobile-attack-malware'],
+                                          'parse_malware_galaxy'))
+galaxy_types_mapping.update(dict.fromkeys(['threat-actor', 'microsoft-activity-group'],
+                                          'parse_threat_actor_galaxy'))
+galaxy_types_mapping.update(dict.fromkeys(['botnet', 'rat', 'exploit-kit', 'tds', 'tool', 'mitre-tool',
+                                           'mitre-enterprise-attack-tool', 'mitre-mobile-attack-tool'],
+                                          'parse_tool_galaxy'))
+
 # mapping Windows Registry Hives and their abbreviations
 # see https://cybox.mitre.org/language/version2.1/xsddocs/objects/Win_Registry_Key_Object_xsd.html#RegistryHiveEnum
 # the dict keys must be UPPER CASE and end with \\
