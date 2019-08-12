@@ -36,14 +36,14 @@ abstract class DecayingModelBase
         $tags = array();
         $overridden_tags = array();
         $temp_mapping = array();
-        if (isset($attribute['Attribute']['EventTag'])) {
-            foreach ($attribute['Attribute']['EventTag'] as $i => $tag) {
+        if (isset($attribute['EventTag'])) {
+            foreach ($attribute['EventTag'] as $i => $tag) {
                 $tags[] = $tag;
                 $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
                 $temp_mapping[$namespace_predicate] = $i;
             }
         }
-        foreach ($attribute['Attribute']['AttributeTag'] as $tag) {
+        foreach ($attribute['AttributeTag'] as $tag) {
             $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
             if (isset($temp_mapping[$namespace_predicate])) { // need to override event tag
                 $overridden_tags[] = array(
@@ -85,11 +85,11 @@ abstract class DecayingModelBase
         }
         if ($last_sighting_timestamp === false) {
             $this->Sighting = ClassRegistry::init('Sighting');
-            $all_sightings = $this->Sighting->listSightings($user, $attribute['Attribute']['id'], 'attribute', false, 0, true);
+            $all_sightings = $this->Sighting->listSightings($user, $attribute['id'], 'attribute', false, 0, true);
             if (!empty($all_sightings)) {
                 $last_sighting_timestamp = $all_sightings[0]['Sighting']['date_sighting'];
             } else {
-                $last_sighting_timestamp = $attribute['Attribute']['timestamp']; // if no sighting, take the last update time
+                $last_sighting_timestamp = $attribute['timestamp']; // if no sighting, take the last update time
             }
         }
         $timestamp = time();

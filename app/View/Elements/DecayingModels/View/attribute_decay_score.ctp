@@ -7,5 +7,7 @@
                 <span id="simulation-current-score" class="add-on <?php echo $class_score ?>"><?php echo round($dc['score'], 2) ?></span>
             </div>
         <?php endforeach; ?>
+    <?php else: ?>
+        &nbsp;
     <?php endif; ?>
 </div>

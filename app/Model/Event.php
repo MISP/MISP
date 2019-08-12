@@ -1802,13 +1802,17 @@ class Event extends AppModel
             'extended',
             'excludeGalaxy',
             'includeRelatedTags',
-            'excludeLocalTags'
+            'excludeLocalTags',
+            'includeDecayScore'
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
         }
         if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        }
+        if (isset($options['includeDecayScore']) && $options['includeDecayScore']) {
+            $this->DecayingModel = ClassRegistry::init('DecayingModel');
         }
         foreach ($possibleOptions as &$opt) {
             if (!isset($options[$opt])) {
@@ -2153,6 +2157,9 @@ class Event extends AppModel
                             $event['Attribute'][$key]['data'] = $encodedFile;
                         }
                     }
+                    if (isset($options['includeDecayScore']) && $options['includeDecayScore']) {
+                        $this->DecayingModel->attachScoresToAttribute($user, $event['Attribute'][$key]);
+                    }
                     // unset empty attribute tags that got added because the tag wasn't exportable
                     if (!empty($attribute['AttributeTag'])) {
                         foreach ($attribute['AttributeTag'] as $atk => $attributeTag) {
@@ -2204,6 +2211,9 @@ class Event extends AppModel
                         foreach ($event['Object'][$objectKey]['Attribute'] as $akey => $adata) {
                             if ($adata['category'] === 'Financial fraud') {
                                 $event['Object'][$objectKey]['Attribute'][$akey] = $this->Attribute->attachValidationWarnings($adata);
+                            }
+                            if (isset($options['includeDecayScore']) && $options['includeDecayScore']) {
+                                $this->DecayingModel->attachScoresToAttribute($user, event['Object'][$objectKey]['Attribute'][$akey]);
                             }
                         }
                     }

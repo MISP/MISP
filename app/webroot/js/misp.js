@@ -3310,8 +3310,12 @@ function toggleBoolFilter(url, param) {
         }
     });
 
-    if (res[param] !== undefined) { // allow toggle for `deleted`.
-        res[param] = res[param] == '0' ? '2' : '0';
+    if (res[param] !== undefined) {
+        if (param == 'includeDecayScore') {
+            res[param] = res[param] == '0' ? '1' : '0';
+        } else {
+            res[param] = res[param] == '0' ? '2' : '0'; // allow toggle for `deleted`
+        }
     } else {
         res[param] = '0';
     }

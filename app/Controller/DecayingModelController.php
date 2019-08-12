@@ -474,7 +474,7 @@ class DecayingModelController extends AppController
                 if (empty($filters['decayingModel'])) {
                     $filters['decayingModel'] = false;
                 }
-                $this->DecayingModel->attachScoresToAttribute($this->Auth->user(), $attributes[$k], $filters['decayingModel']);
+                $this->DecayingModel->attachScoresToAttribute($this->Auth->user(), $attributes[$k]['Attribute'], $filters['decayingModel']);
                 if ($filters['excludeDecayed']) { // filter out decayed attribute
                     $decayed_flag = true;
                     foreach ($attributes[$k]['Attribute']['decay_score'] as $decayResult) {

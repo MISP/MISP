@@ -328,7 +328,7 @@ class DecayingModel extends AppModel
         // get end time
         $end_time = $sightings[count($sightings)-1]['Sighting']['date_sighting'] + $model['DecayingModel']['parameters']['tau']*24*60*60;
         $end_time = $this->round_timestamp_to_hour($end_time);
-        $base_score_config = $this->Computation->computeBasescore($model, $attribute);
+        $base_score_config = $this->Computation->computeBasescore($model, $attribute['Attribute']);
         $base_score = $base_score_config['base_score'];
 
         // generate time span from oldest timestamp to last decay, resolution is hours
@@ -376,33 +376,25 @@ class DecayingModel extends AppModel
 
     public function attachScoresToAttribute($user, &$attribute, $model_id=false)
     {
-        // try to add a bit of order
-        if (isset($attribute['AttributeTag']) && !isset($attribute['Attribute']['AttributeTag'])) {
-            $attribute['Attribute']['AttributeTag'] = $attribute['AttributeTag'];
-        }
-        if (isset($attribute['EventTag']) && !isset($attribute['Attribute']['EventTag'])) {
-            $attribute['Attribute']['EventTag'] = $attribute['EventTag'];
-        }
-
         if ($model_id !== false) {
             $model = $this->checkAuthorisation($user, $model_id, false);
             if ($model !== false) {
                 $score = $this->getScore($attribute, $model, $user);
                 $decayed = $this->isDecayed($attribute, $model, $score);
-                $attribute['Attribute']['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score, 'decayed' => $decayed);
+                $attribute['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score, 'decayed' => $decayed);
             } else {
                 throw new NotFoundException(__('Model not found or you are not authorized to view it'));
             }
         } else { // get score for all activated models
-            $associated_model_ids = $this->DecayingModelMapping->getAssociatedModels($user, $attribute['Attribute']['type'], true);
-            $associated_model_ids = array_values($associated_model_ids[$attribute['Attribute']['type']]);
+            $associated_model_ids = $this->DecayingModelMapping->getAssociatedModels($user, $attribute['type'], true);
+            $associated_model_ids = array_values($associated_model_ids[$attribute['type']]);
             if (!empty($associated_model_ids)) {
                 foreach ($associated_model_ids as $model_id) {
                     $model = $this->checkAuthorisation($user, $model_id, false);
                     if ($model !== false && $model['DecayingModel']['enabled']) {
                         $score = $this->getScore($attribute, $model, $user);
                         $decayed = $this->isDecayed($attribute, $model, $score);
-                        $attribute['Attribute']['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score, 'decayed' => $decayed);
+                        $attribute['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score, 'decayed' => $decayed);
                     }
                 }
             }
