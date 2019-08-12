@@ -104,6 +104,7 @@ class StixBuilder(object):
         self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], self.resolve_malware_sample))
         ## MAPPING FOR OBJECTS
         self.ttp_names = {'attack-pattern': self.parse_attack_pattern,
+                          'course-of-action': self.parse_course_of_action,
                           'vulnerability': self.parse_vulnerability,
                           'weakness': self.parse_weakness}
         self.objects_mapping = {"asn": self.parse_asn_object,
@@ -749,6 +750,18 @@ class StixBuilder(object):
             auth.authentication_data = password
             authentication_list.append(auth)
         return authentication_list
+
+    def parse_course_of_action(self, misp_object):
+        attributes_dict = self.create_ttp_attributes_dict(misp_object['Attribute'])
+        course_of_action = CourseOfAction()
+        uuid = misp_object['uuid']
+        course_of_action.id_ = "{}:CourseOfAction-{}".format(self.namespace_prefix, uuid)
+        if 'name' in attributes_dict:
+            course_of_action.title = attributes_dict['name']
+        for feature in course_of_action_object_keys:
+            if feature in attributes_dict:
+                setattr(course_of_action, feature, attributes_dict[feature])
+        self.galaxies['course_of_action'].append(course_of_action)
 
     def parse_course_of_action_galaxy(self, galaxy):
         galaxy_name = galaxy['name']
