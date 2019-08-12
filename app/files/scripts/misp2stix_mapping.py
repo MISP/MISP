@@ -72,6 +72,7 @@ misp_reghive = {
 
 
 attack_pattern_object_mapping = {'id': 'capec_id', 'name': 'title', 'summary': 'description'}
+course_of_action_object_keys = ('type', 'description', 'objective', 'stage', 'cost', 'impact', 'efficacy')
 email_object_mapping = {'from': 'from_', 'reply-to': 'reply_to', 'subject': 'subject',
                         'x-mailer': 'x_mailer', 'mime-boundary': 'boundary', 'user-agent': 'user_agent'}
 file_object_mapping = {'path': 'full_path', 'size-in-bytes': 'size_in_bytes', 'entropy': 'peak_entropy'}

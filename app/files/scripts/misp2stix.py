@@ -104,8 +104,12 @@ class StixBuilder(object):
         self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], self.resolve_malware_sample))
         ## MAPPING FOR OBJECTS
         self.ttp_names = {'attack-pattern': self.parse_attack_pattern,
+                          'course-of-action': self.parse_course_of_action,
                           'vulnerability': self.parse_vulnerability,
                           'weakness': self.parse_weakness}
+        self.types_mapping = {CourseOfAction: 'add_course_of_action',
+                              ThreatActor: 'add_threat_actor',
+                              TTP: 'add_ttp'}
         self.objects_mapping = {"asn": self.parse_asn_object,
                                 "credential": self.parse_credential_object,
                                 "domain-ip": self.parse_domain_ip_object,
@@ -178,7 +182,7 @@ class StixBuilder(object):
             stix_package.add_ttp(ttp)
         for uuid, ttp in self.ttps_from_objects.items():
             self.parse_ttp_references(uuid, ttp)
-            stix_package.add_ttp(ttp)
+            getattr(stix_package, self.types_mapping[type(ttp)])(ttp)
         if self.header_comment and len(self.header_comment) == 1:
             stix_header.description = self.header_comment[0]
         stix_package.stix_header = stix_header
@@ -341,7 +345,7 @@ class StixBuilder(object):
     def parse_ttp_references(self, uuid, ttp):
         if uuid in self.ttp_references:
             for referenced_uuid, relationship in self.ttp_references[uuid]:
-                if referenced_uuid in self.ttps_from_objects:
+                if referenced_uuid in self.ttps_from_objects and isinstance(self.ttps_from_objects[referenced_uuid], TTP):
                     referenced_ttp = self.ttps_from_objects[referenced_uuid]
                     ttp.add_related_ttp(self.append_ttp_from_object(relationship, referenced_ttp))
 
@@ -412,7 +416,7 @@ class StixBuilder(object):
             ttp = self.generate_ttp(attribute)
             self.incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
         elif attribute_category == "Attribution":
-            self.galaxies['threat_actor'].append(self.generate_threat_actor(attribute))
+            self.ttps_from_objects[attribute['uuid']] = self.generate_threat_actor(attribute)
         else:
             entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute['type'], attribute['value'])
             self.add_journal_entry(entry_line)
@@ -629,14 +633,15 @@ class StixBuilder(object):
         vulnerability = Vulnerability()
         vulnerability.cve_id = attribute['value']
         ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
-        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, attribute['uuid'])
+        uuid = attribute['uuid']
+        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, uuid)
         if attribute.get('comment') and attribute['comment'] != "Imported via the freetext import.":
             ET.title = attribute['comment']
         else:
             ET.title = "Vulnerability {}".format(attribute['value'])
         ET.add_vulnerability(vulnerability)
         ttp.add_exploit_target(ET)
-        self.ttps_from_objects[attribute['uuid']] = ttp
+        self.ttps_from_objects[uuid] = ttp
 
     def parse_asn_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
@@ -749,6 +754,18 @@ class StixBuilder(object):
             auth.authentication_data = password
             authentication_list.append(auth)
         return authentication_list
+
+    def parse_course_of_action(self, misp_object):
+        attributes_dict = self.create_ttp_attributes_dict(misp_object['Attribute'])
+        course_of_action = CourseOfAction()
+        uuid = misp_object['uuid']
+        course_of_action.id_ = "{}:CourseOfAction-{}".format(self.namespace_prefix, uuid)
+        if 'name' in attributes_dict:
+            course_of_action.title = attributes_dict['name']
+        for feature in course_of_action_object_keys:
+            if feature in attributes_dict:
+                setattr(course_of_action, feature, attributes_dict[feature])
+        self.ttps_from_objects[uuid] = course_of_action
 
     def parse_course_of_action_galaxy(self, galaxy):
         galaxy_name = galaxy['name']
