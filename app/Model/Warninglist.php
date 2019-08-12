@@ -387,7 +387,7 @@ class Warninglist extends AppModel
 
     private function __checkValue($listValues, $value, $type, $listType, $returnVerboseValue = false)
     {
-        if (strpos($type, '|') || $type = 'malware-sample') {
+        if ($type === 'malware-sample' || strpos($type, '|') !== false) {
             $value = explode('|', $value);
         } else {
             $value = array($value);
@@ -411,9 +411,8 @@ class Warninglist extends AppModel
             if (!empty($result)) {
                 if ($returnVerboseValue) {
                     return $value[$component];
-                } else {
                 }
-                    return ($component + 1);
+                return ($component + 1);
             }
         }
         return false;
