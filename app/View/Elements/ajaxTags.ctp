@@ -46,17 +46,37 @@
         }
         $aStyle = 'background-color:' . h($tag['Tag']['colour']) . ';color:' . $this->TextColour->getTextColour($tag['Tag']['colour']) . ';';
         $aClass = 'tag nowrap';
-        $aText = h($tag['Tag']['name']);
+        $aText = trim($tag['Tag']['name']);
+        $aTextModified = null;
+        if (isset($tag_display_style)) {
+            if (!isset($tag_display_style) || $tag_display_style == 1) {
+                // default behaviour, do nothing for now
+            } else if ($tag_display_style == 2) {
+                $separator_pos = strpos($aText, ':');
+                if ($separator_pos !== false) {
+                    $aTextModified = substr($aText, $separator_pos + 1);
+                    $value_pos = strpos($aTextModified, '=');
+                    if ($value_pos !== false) {
+                        $aTextModified = substr($aTextModified, $value_pos + 1);
+                        $aTextModified = trim($aTextModified, '"');
+                    }
+                    $aTextModified = h($aTextModified);
+                }
+            } else if ($tag_display_style === 0 || $tag_display_style === '0') {
+                $aTextModified = '&nbsp;';
+            }
+        }
+        $aText = h($aText);
         $span_scope = sprintf(
             '<span class="%s" title="%s" aria-label="%s"><i class="fas fa-%s"></i></span>',
             'black-white tag',
-            $tag['local'] ? __('Local tag') : __('Global tag'),
-            $tag['local'] ? __('Local tag') : __('Global tag'),
-            $tag['local'] ? 'user' : 'globe-americas'
+            !empty($tag['local']) ? __('Local tag') : __('Global tag'),
+            !empty($tag['local']) ? __('Local tag') : __('Global tag'),
+            !empty($tag['local']) ? 'user' : 'globe-americas'
         );
         if (!empty($tag['Tag']['id'])) {
             $span_tag = sprintf(
-                '<a href="%s" style="%s" class="%s">%s</a>',
+                '<a href="%s" style="%s" class="%s" title="%s">%s</a>',
                 sprintf(
                     '%s%s%s',
                     $baseurl,
@@ -65,7 +85,8 @@
                 ),
                 $aStyle,
                 $aClass,
-                $aText
+                $aText,
+                isset($aTextModified) ? $aTextModified : $aText
             );
         } else {
             $span_tag = sprintf(

@@ -109,6 +109,17 @@
               <span class="bold"><?php echo __('Name: ');?></span><span class="ObjectName"><?php echo h($object['name']); ?></span>
               <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $o; ?>_collapsible"></span><br />
               <div id="Object_<?php echo $o; ?>_collapsible" class="collapse">
+                <?php
+                    if (!empty($object['description'])) {
+                        echo '<span class="bold">Description: </span><span class="ObjectDescription">' . h($object['description']) . '</span><br/>';
+                    }
+                    if (!empty($object['template_uuid'])) {
+                        echo '<span class="bold">Template UUID: </span><span class="TemplateUUID">' . h($object['template_uuid']) . '</span><br/>';
+                    }
+                    if (!empty($object['template_version'])) {
+                        echo '<span class="bold">Template version: </span><span class="TemplateVersion">' . h($object['template_version']) . '</span><br/>';
+                    }
+                ?>
                 <span class="bold"><?php echo __('UUID: ');?></span><span class="ObjectUUID"><?php echo h($object['uuid']); ?></span><br />
                 <span class="bold"><?php echo __('Meta Category: ');?></span><span class="ObjectMetaCategory"><?php echo h($object['meta-category']); ?></span>
               </div>
@@ -156,7 +167,9 @@
                 }
               ?>
             </td>
-            <td class="ObjectComment shortish"><?php echo (!empty($object['comment']) ? h($object['comment']) : ''); ?></td>
+            <td class="short">
+              <input type="text" class="ObjectComment" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (!empty($object['comment'])) echo 'value="' . h($object['comment']) . '"';?>/>
+            </td>
             <td style="width:60px;text-align:center;">
               <select class="ObjectDistribution" style="padding:0px;height:20px;margin-bottom:0px;">
                 <?php
@@ -189,9 +202,16 @@
               <span class="AttributeType"><?php echo h($attribute['type']); ?></span>
             </td>
             <td class="AttributeValue limitedWidth"><?php echo h($attribute['value']); ?></td>
-            <?php if (in_array($attribute['type'], $typesWithData) && !empty($attribute['data'])) {?>
-              <input class='AttributeData' type='hidden' value="<?php echo h($attribute['data']); ?>"/>
-            <?php } ?>
+            <?php
+                if (in_array($attribute['type'], $typesWithData)) {
+                    if (!empty($attribute['data'])) {
+                        echo "<input class='AttributeData' type='hidden' value='" . h($attribute['data']) . "'/>";
+                    }
+                    if (!empty($attribute['encrypt'])) {
+                        echo "<input class='AttributeEncrypt' type='hidden' value='" . h($attribute['encrypt']) . "'/>";
+                    }
+                }
+            ?>
             <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
             <td style="max-width:150px;width:10px;">
               <?php if (!empty($attribute['Tag'])) { ?>
@@ -288,9 +308,16 @@
                 }
           ?>
           <td class="AttributeValue limitedWidth"><?php echo h($attribute['value']); ?></td>
-          <?php if (in_array($attribute['type'], $typesWithData) && !empty($attribute['data'])) {?>
-            <input class='AttributeData' type='hidden' value="<?php echo $attribute['data']; ?>"/>
-          <?php } ?>
+          <?php
+                if (in_array($attribute['type'], $typesWithData)) {
+                    if (!empty($attribute['data'])) {
+                        echo "<input class='AttributeData' type='hidden' value='" . h($attribute['data']) . "'/>";
+                    }
+                    if (!empty($attribute['encrypt'])) {
+                        echo "<input class='AttributeEncrypt' type='hidden' value='" . h($attribute['encrypt']) . "'/>";
+                    }
+                }
+          ?>
           <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
           <td style="max-width:150px;width:10px;">
             <?php if (!empty($attribute['Tag'])) { ?>

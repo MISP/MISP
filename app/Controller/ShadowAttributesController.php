@@ -693,6 +693,9 @@ class ShadowAttributesController extends AppController
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
             }
+            if (!isset($this->request->data['ShadowAttribute'])) {
+                $this->request->data['ShadowAttribute'] = $this->request->data;
+            }
             // rearrange the request in case someone didn't RTFM
             $invalidNames = array('Attribute', 'Proposal');
             foreach ($invalidNames as $iN) {
@@ -917,7 +920,7 @@ class ShadowAttributesController extends AppController
         if (isset($this->request['named']['all'])) {
             $all = $this->request['named']['all'];
         } else {
-            $all = false;
+            $all = 1;
         }
         if ($eventId && is_numeric($eventId)) {
             $conditions['ShadowAttribute.event_id'] = $eventId;

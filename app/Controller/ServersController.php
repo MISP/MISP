@@ -110,16 +110,28 @@ class ServersController extends AppController
             $combinedArgs['sort'] = 'timestamp';
             $combinedArgs['direction'] = 'desc';
         }
-        $events = $this->Server->previewIndex($id, $this->Auth->user(), $combinedArgs);
+        if (empty($combinedArgs['page'])) {
+            $combinedArgs['page'] = 1;
+        }
+        if (empty($combinedArgs['limit'])) {
+            $combinedArgs['limit'] = 60;
+        }
+        $total_count = 0;
+        $events = $this->Server->previewIndex($id, $this->Auth->user(), $combinedArgs, $total_count);
         $this->loadModel('Event');
         $threat_levels = $this->Event->ThreatLevel->find('all');
         $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
+        if (!empty($total_count)) {
+            $params['pageCount'] = ceil($total_count / $params['limit']);
+        }
         $this->params->params['paging'] = array($this->modelClass => $params);
         if (is_array($events)) {
-            $customPagination->truncateByPagination($events, $params);
+            if (count($events) > 60) {
+                $customPagination->truncateByPagination($events, $params);
+            }
         } else ($events = array());
         $this->set('events', $events);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
@@ -586,7 +598,7 @@ class ServersController extends AppController
     public function delete($id = null)
     {
         if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
+            throw new MethodNotAllowedException(__('This endpoint expects POST requests.'));
         }
         $this->Server->id = $id;
         if (!$this->Server->exists()) {
@@ -594,14 +606,31 @@ class ServersController extends AppController
         }
         $s = $this->Server->read(null, $id);
         if (!$this->_isSiteAdmin()) {
-            $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+            $message = __('You don\'t have the privileges to do that.');
+            if ($this->_isRest()) {
+                throw new MethodNotAllowedException($message);
+            } else {
+                $this->Flash->error($message);
+                $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+            }
         }
         if ($this->Server->delete()) {
-            $this->Flash->success(__('Server deleted'));
+            $message = __('Server deleted');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $message, $this->response->type());
+            } else {
+                $this->Flash->success($message);
+                $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+            }
+
+        }
+        $message = __('Server was not deleted');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveFailResponse('Servers', 'delete', $id, $message, $this->response->type());
+        } else {
+            $this->Flash->error($message);
             $this->redirect(array('action' => 'index'));
         }
-        $this->Flash->error(__('Server was not deleted'));
-        $this->redirect(array('action' => 'index'));
     }
 
     /**
@@ -613,7 +642,13 @@ class ServersController extends AppController
      */
     public function pull($id = null, $technique='full')
     {
-        $this->Server->id = $id;
+        if (!empty($id)) {
+            $this->Server->id = $id;
+        } else if (!empty($this->request->data['id'])) {
+            $this->Server->id = $this->request->data['id'];
+        } else {
+            throw new NotFoundException(__('Invalid server'));
+        }
         if (!$this->Server->exists()) {
             throw new NotFoundException(__('Invalid server'));
         }
@@ -682,7 +717,16 @@ class ServersController extends AppController
 
     public function push($id = null, $technique=false)
     {
-        $this->Server->id = $id;
+        if (!empty($id)) {
+            $this->Server->id = $id;
+        } else if (!empty($this->request->data['id'])) {
+            $this->Server->id = $this->request->data['id'];
+        } else {
+            throw new NotFoundException(__('Invalid server'));
+        }
+        if (!empty($this->request->data['technique'])) {
+            $technique = $this->request->data['technique'];
+        }
         if (!$this->Server->exists()) {
             throw new NotFoundException(__('Invalid server'));
         }
@@ -1225,6 +1269,9 @@ class ServersController extends AppController
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'Invalid input. Expected: {"value": "new_setting"}', $this->response->type());
                 }
             }
+            if (!empty($this->request->data['Server']['force'])) {
+                $forceSave = $this->request->data['Server']['force'];
+            }
             if (trim($this->request->data['Server']['value']) === '*****') {
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'No change.', $this->response->type());
@@ -1275,6 +1322,9 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
         $this->Server->restartWorkers($this->Auth->user());
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'restartWorkers', false, $this->response->type(), __('Restarting workers.'));
+        }
         $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
     }
 
@@ -1728,6 +1778,7 @@ class ServersController extends AppController
         if (!empty($request['skip_ssl_validation'])) {
             $params['ssl_verify_peer'] = false;
             $params['ssl_verify_host'] = false;
+            $params['ssl_verify_peer_name'] = false;
             $params['ssl_allow_self_signed'] = true;
         }
         $params['timeout'] = 300;
@@ -1942,14 +1993,27 @@ misp.direct_call(relative_path, body)
                 $baseurl = Router::url('/', true);
             }
         }
+        $host_org_id = Configure::read('MISP.host_org_id');
+        if (empty($host_org_id)) {
+            throw new MethodNotAllowedException(__('Cannot create sync config - no host org ID configured for the instance.'));
+        }
+        $this->loadModel('Organisation');
+        $host_org = $this->Organisation->find('first', array(
+            'conditions' => array('Organisation.id' => $host_org_id),
+            'recursive' => -1,
+            'fields' => array('name', 'uuid')
+        ));
+        if (empty($host_org)) {
+            throw new MethodNotAllowedException(__('Configured host org not found. Please make sure that the setting is current on the instance.'));
+        }
         $server = array(
             'Server' => array(
                 'url' => $baseurl,
                 'uuid' => Configure::read('MISP.uuid'),
                 'authkey' => $this->Auth->user('authkey'),
                 'Organisation' => array(
-                    'name' => $this->Auth->user('Organisation')['name'],
-                    'uuid' => $this->Auth->user('Organisation')['uuid']
+                    'name' => $host_org['Organisation']['name'],
+                    'uuid' => $host_org['Organisation']['uuid'],
                 )
             )
         );

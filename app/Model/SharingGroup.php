@@ -270,7 +270,10 @@ class SharingGroup extends AppModel
                     if (isset($server['Server'][0])) {
                         $server['Server'] = $server['Server'][0];
                     }
-                    if ($server['Server']['url'] == Configure::read('MISP.baseurl')) {
+                    if (
+                        $server['Server']['url'] == Configure::read('MISP.baseurl') ||
+                        (!empty(Configure::read('MISP.external_baseurl')) && Configure::read('MISP.external_baseurl') === $server['Server']['url'])
+                    ) {
                         $serverCheck = true;
                         if ($user['Role']['perm_sync'] && $server['all_orgs']) {
                             $orgCheck = true;

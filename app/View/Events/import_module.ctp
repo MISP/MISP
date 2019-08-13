@@ -15,10 +15,17 @@
                     if (isset($configTypes[$config['type']]['field'])) {
                         $settings['type'] = $configTypes[$config['type']]['field'];
                     }
-                    if ($settings['type'] == 'select') {
-                        if (isset($config['options'])) {
-                            $settings['options'] = $config['options'];
-                        }
+                    switch($settings['type']) {
+                        case 'select':
+                            if (isset($config['options'])) {
+                                $settings['options'] = $config['options'];
+                            }
+                            break;
+                        case 'checkbox':
+                            if (isset($config['checked'])) {
+                                $settings['checked'] = $config['checked'];
+                            }
+                            break;
                     }
                     ?>
                     <span class="bold">

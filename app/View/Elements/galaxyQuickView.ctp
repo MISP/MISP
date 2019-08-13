@@ -128,7 +128,7 @@
         );
     }
     if (
-        isset($local_tag_off) && !$local_tag_off &&
+        (!isset($local_tag_off) || !$local_tag_off) &&
         ($isSiteAdmin || ($isAclTagger && Configure::read('MISP.host_org_id') == $me['org_id']))
     ) {
         echo sprintf(

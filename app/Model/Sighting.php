@@ -479,7 +479,7 @@ class Sighting extends AppModel
     public function listSightings($user, $id, $context, $org_id = false, $sightings_type = false, $order_desc = true)
     {
         $this->Event = ClassRegistry::init('Event');
-        $id = $this->explodeIdList($id);
+        $id = is_array($id) ? $id : $this->explodeIdList($id);
         if ($context === 'attribute') {
             $object = $this->Event->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
         } else {

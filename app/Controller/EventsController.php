@@ -292,40 +292,9 @@ class EventsController extends AppController
         return $result;
     }
 
-    public function index()
+    private function __setIndexFilterConditions($passedArgs, $urlparams)
     {
-        // list the events
         $passedArgsArray = array();
-        $urlparams = "";
-        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
-        $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
-        $passedArgs = $this->passedArgs;
-        if (isset($this->request->data)) {
-            if (isset($this->request->data['request'])) {
-                $this->request->data = $this->request->data['request'];
-            }
-            foreach ($this->request->data as $k => $v) {
-                if (substr($k, 0, 6) === 'search' && in_array(strtolower(substr($k, 6)), $overrideAbleParams)) {
-                    unset($this->request->data[$k]);
-                    $this->request->data[strtolower(substr($k, 6))] = $v;
-                } else if (in_array(strtolower($k), $overrideAbleParams)) {
-                    unset($this->request->data[$k]);
-                    $this->request->data[strtolower($k)] = $v;
-                }
-            }
-            foreach ($overrideAbleParams as $oap) {
-                if (isset($this->request->data[$oap])) {
-                    $passedArgs['search' . $oap] = $this->request->data[$oap];
-                }
-            }
-            foreach ($paginationParams as $paginationParam) {
-                if (isset($this->request->data[$paginationParam])) {
-                    $passedArgs[$paginationParam] = $this->request->data[$paginationParam];
-                }
-            }
-        }
-        $this->set('passedArgs', json_encode($passedArgs));
-        // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
         foreach ($passedArgs as $k => $v) {
             if (substr($k, 0, 6) === 'search') {
                 if (!is_array($v)) {
@@ -688,6 +657,43 @@ class EventsController extends AppController
                 $passedArgsArray[$searchTerm] = $v;
             }
         }
+        return $passedArgsArray;
+    }
+
+    public function index()
+    {
+        // list the events
+        $urlparams = "";
+        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
+        $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
+        $passedArgs = $this->passedArgs;
+        if (isset($this->request->data)) {
+            if (isset($this->request->data['request'])) {
+                $this->request->data = $this->request->data['request'];
+            }
+            foreach ($this->request->data as $k => $v) {
+                if (substr($k, 0, 6) === 'search' && in_array(strtolower(substr($k, 6)), $overrideAbleParams)) {
+                    unset($this->request->data[$k]);
+                    $this->request->data[strtolower(substr($k, 6))] = $v;
+                } else if (in_array(strtolower($k), $overrideAbleParams)) {
+                    unset($this->request->data[$k]);
+                    $this->request->data[strtolower($k)] = $v;
+                }
+            }
+            foreach ($overrideAbleParams as $oap) {
+                if (isset($this->request->data[$oap])) {
+                    $passedArgs['search' . $oap] = $this->request->data[$oap];
+                }
+            }
+            foreach ($paginationParams as $paginationParam) {
+                if (isset($this->request->data[$paginationParam])) {
+                    $passedArgs[$paginationParam] = $this->request->data[$paginationParam];
+                }
+            }
+        }
+        $this->set('passedArgs', json_encode($passedArgs));
+        // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
+        $passedArgsArray = $this->__setIndexFilterConditions($passedArgs, $urlparams);
         if (!$this->_isRest()) {
             $this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email', 'EventTag'));
         } else {
@@ -732,6 +738,14 @@ class EventsController extends AppController
                     $rules[$paginationRule] = $passedArgs[$paginationRule];
                 }
             }
+            $counting_rules = $rules;
+            if (!empty($counting_rules['limit'])) {
+                unset($counting_rules['limit']);
+            }
+            if (!empty($counting_rules['page'])) {
+                unset($counting_rules['page']);
+            }
+            $absolute_total = $this->Event->find('count', $counting_rules);
             if (empty($rules['limit'])) {
                 $events = array();
                 $i = 1;
@@ -819,12 +833,12 @@ class EventsController extends AppController
                 if ($this->response->type() === 'application/xml') {
                     $events = array('Event' => $events);
                 }
-                return $this->RestResponse->viewData($events, $this->response->type());
+                return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
             } else {
                 foreach ($events as $key => $event) {
                     $events[$key] = $event['Event'];
                 }
-                return $this->RestResponse->viewData($events, $this->response->type());
+                return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
             }
         } else {
             $events = $this->paginate();
@@ -2324,6 +2338,15 @@ class EventsController extends AppController
 
     public function delete($id = null)
     {
+        if (Validation::uuid($id)) {
+            $temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $id)));
+            if (empty($temp)) {
+                throw new NotFoundException(__('Invalid event'));
+            }
+            $id = $temp['Event']['id'];
+        } elseif (!is_numeric($id)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
         if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
             if (isset($this->request->data['id'])) {
                 $this->request->data['Event'] = $this->request->data;
@@ -3346,7 +3369,7 @@ class EventsController extends AppController
             'value', 'type', 'category', 'object_relation', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
             'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'returnFormat',
             'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'deleted',
-            'excludeLocalTags'
+            'excludeLocalTags', 'date'
         );
         $filterData = array(
             'request' => $this->request,
@@ -3663,8 +3686,15 @@ class EventsController extends AppController
                 $tag_id = $this->request->data['tag'];
             }
             if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-                if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+                if (
+                    !$this->userRole['perm_tagger'] ||
+                    (
+                        $this->Auth->user('org_id') !== $event['Event']['orgc_id']
+                    )
+                ) {
+                    if (Configure::read('MISP.host_org_id') != $this->Auth->user('org_id') || !$local) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+                    }
                 }
             }
             $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
@@ -4021,7 +4051,10 @@ class EventsController extends AppController
             $attributes[$k] = $attribute;
         }
         // actually save the attribute now
-        $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, '', false, $adhereToWarninglists);
+        $temp = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, '', false, $adhereToWarninglists, empty(Configure::read('MISP.background_jobs')));
+        if (empty(Configure::read('MISP.background_jobs'))) {
+            $attributes = $temp;
+        }
         // FIXME $attributes does not contain the onteflyattributes
         $attributes = array_values($attributes);
         return $this->RestResponse->viewData($attributes, $this->response->type());

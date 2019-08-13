@@ -310,9 +310,15 @@ class SightingsController extends AppController
         return $this->RestResponse->viewData($sightings, $responseType, false, true);
     }
 
-    public function listSightings($id, $context = 'attribute', $org_id = false)
+    public function listSightings($id = false, $context = 'attribute', $org_id = false)
     {
         $rawId = $id;
+        $parameters = array('id', 'context', 'org_id');
+        foreach ($parameters as $parameter) {
+            if ($this->request->is('post') && isset($this->request->data[$parameter])) {
+                ${$parameter} = $this->request->data[$parameter];
+            }
+        }
         $sightings = $this->Sighting->listSightings($this->Auth->user(), $id, $context, $org_id);
         $this->set('org_id', $org_id);
         $this->set('rawId', $rawId);

@@ -36,7 +36,7 @@
                     ),
                     array(
                         'text' => __('View Proposals'),
-                        'url' => '/shadow_attributes/index'
+                        'url' => '/shadow_attributes/index/all:0'
                     ),
                     array(
                         'text' => __('Events with proposals'),
@@ -371,8 +371,9 @@
                 'type' => 'root',
                 'url' => '/users/dashboard',
                 'html' => sprintf(
-                    '<span class="white" title="%s">%s&nbsp;&nbsp;&nbsp;%s</span>',
+                    '<span class="white" title="%s">%s%s&nbsp;&nbsp;&nbsp;%s</span>',
                     h($me['email']),
+                    $this->UserName->prepend($me['email']),
                     h($loggedInUserName),
                     sprintf(
                         '<i class="fa fa-envelope %s"></i>',

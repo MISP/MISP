@@ -49,6 +49,11 @@ class Server extends AppModel
         'authkey' => array(
             'rule' => array('validateAuthkey')
         ),
+        'name' => array(
+            'rule' => array('notBlank'),
+            'allowEmpty' => false,
+            'required' => true
+        ),
         'org_id' => array(
             'numeric' => array(
                 'rule' => array('valueIsID'),
@@ -520,7 +525,15 @@ class Server extends AppModel
                         'cveurl' => array(
                                 'level' => 1,
                                 'description' => __('Turn Vulnerability type attributes into links linking to the provided CVE lookup'),
-                                'value' => '',
+                                'value' => 'http://cve.circl.lu/cve/',
+                                'errorMessage' => '',
+                                'test' => 'testForEmpty',
+                                'type' => 'string',
+                        ),
+                        'cweurl' => array(
+                                'level' => 1,
+                                'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
+                                'value' => 'http://cve.circl.lu/cwe/',
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
                                 'type' => 'string',
@@ -723,6 +736,15 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                        'log_skip_db_logs_completely' => array(
+                            'level' => 0,
+                            'description' => __('This functionality allows you to completely disable any logs from being saved in your SQL backend. This is HIGHLY advised against, you lose all the functionalities provided by the audit log subsystem along with the event history (as these are built based on the logs on the fly). Only enable this if you understand and accept the associated risks.'),
+                            'value' => false,
+                            'errorMessage' => __('Logging has now been disabled - your audit logs will not capture failed authentication attempts, your event history logs are not being populated and no system maintenance messages are being logged.'),
+                            'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'log_paranoid' => array(
                                 'level' => 0,
                                 'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
@@ -843,7 +865,16 @@ class Server extends AppModel
                         ),
                         'block_old_event_alert_age' => array(
                                 'level' => 1,
-                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "Date" field of the event is used. Expected format: integer, in days'),
+                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "timestamp" field of the event is used. Expected format: integer, in days'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => false,
+                        ),
+                        'block_old_event_alert_by_date' => array(
+                                'level' => 1,
+                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control the threshold for the event.date field, indicating how old an event can be for it to be alerted on. The "date" field of the event is used. Expected format: integer, in days'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testForNumeric',
@@ -1210,6 +1241,15 @@ class Server extends AppModel
                             'test' => 'testForEmpty',
                             'type' => 'string',
                             'null' => true
+                        ),
+                        'sync_audit' => array(
+                            'level' => 1,
+                            'description' => __('Enable this setting to create verbose logs of synced event data for debugging reasons. Logs are saved in your MISP directory\'s app/files/scripts/tmp/ directory.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
                         )
                 ),
                 'SecureAuth' => array(
@@ -1271,7 +1311,7 @@ class Server extends AppModel
                                 'description' => __('The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout.'),
                                 'value' => '',
                                 'errorMessage' => '',
-                                'test' => 'testForNumeric',
+                                'test' => 'testForCookieTimeout',
                                 'type' => 'numeric'
                         )
                 ),
@@ -2957,7 +2997,7 @@ class Server extends AppModel
     {
         if (isset($setting)) {
             if (!empty($leafValue['test'])) {
-                $result = $this->{$leafValue['test']}($setting);
+                $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
                 if ($result !== true) {
                     $leafValue['error'] = 1;
                     if ($result !== false) {
@@ -2992,7 +3032,7 @@ class Server extends AppModel
     {
         $languages = $this->loadAvailableLanguages();
         if (!isset($languages[$value])) {
-            return 'Invalid language.';
+            return __('Invalid language.');
         }
         return true;
     }
@@ -3013,7 +3053,7 @@ class Server extends AppModel
     {
         $tag_collections = $this->loadTagCollections();
         if (!isset($tag_collections[intval($value)])) {
-            return 'Invalid tag_collection.';
+            return __('Invalid tag_collection.');
         }
         return true;
     }
@@ -3021,7 +3061,19 @@ class Server extends AppModel
     public function testForNumeric($value)
     {
         if (!is_numeric($value)) {
-            return 'This setting has to be a number.';
+            return __('This setting has to be a number.');
+        }
+        return true;
+    }
+
+    public function testForCookieTimeout($value)
+    {
+        $numeric = $this->testForNumeric($value);
+        if ($numeric !== true) {
+            return $numeric;
+        }
+        if ($value < Configure::read('Session.timeout') && $value !== 0) {
+            return __('The cookie timeout is currently lower than the session timeout. This will invalidate the cookie before the session expires.');
         }
         return true;
     }
@@ -3246,20 +3298,26 @@ class Server extends AppModel
         return true;
     }
 
-    public function testBool($value)
+    public function testBool($value, $errorMessage = false)
     {
         if ($value !== true && $value !== false) {
+            if ($errorMessage) {
+                return $errorMessage;
+            }
             return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
         }
         return true;
     }
 
-    public function testBoolFalse($value)
+    public function testBoolFalse($value, $errorMessage = false)
     {
-        if (!$this->testBool($value)) {
-            return $this->testBool($value);
+        if ($this->testBool($value, $errorMessage) !== true) {
+            return $this->testBool($value, $errorMessage);
         }
         if ($value !== false) {
+            if ($errorMessage) {
+                return $errorMessage;
+            }
             return 'It is highly recommended that this setting is disabled. Make sure you understand the impact of having this setting turned on.';
         } else {
             return true;
@@ -3728,7 +3786,7 @@ class Server extends AppModel
         }
         $settingsToSave = array(
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
-            'Security', 'Session.defaults', 'Session.timeout', 'Session.cookie_timeout',
+            'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
             'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'
         );
@@ -4531,7 +4589,7 @@ class Server extends AppModel
      * 2: no route to host
      * 3: empty result set
      */
-    public function previewIndex($id, $user, $passedArgs)
+    public function previewIndex($id, $user, $passedArgs, &$total_count = 0)
     {
         $server = $this->find('first', array(
             'conditions' => array('Server.id' => $id),
@@ -4541,7 +4599,7 @@ class Server extends AppModel
         }
         $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
-        $validArgs = array_merge(array('sort', 'direction'), $this->validEventIndexFilters);
+        $validArgs = array_merge(array('sort', 'direction', 'page', 'limit'), $this->validEventIndexFilters);
         $urlParams = '';
         foreach ($validArgs as $v) {
             if (isset($passedArgs[$v])) {
@@ -4550,6 +4608,10 @@ class Server extends AppModel
         }
         $uri = $server['Server']['url'] . '/events/index' . $urlParams;
         $response = $HttpSocket->get($uri, $data = '', $request);
+        if (!empty($response->headers['X-Result-Count'])) {
+            $temp = $response->headers['X-Result-Count'];
+            $total_count = $temp;
+        }
         if ($response->code == 200) {
             try {
                 $events = json_decode($response->body, true);
@@ -4655,7 +4717,6 @@ class Server extends AppModel
             }
             $validServers[] = $server;
         }
-
         return $validServers;
     }
 

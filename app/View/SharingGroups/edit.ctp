@@ -155,7 +155,7 @@
                     servers.push({
                         id: '<?php echo h($s['server_id']);?>',
                         name: 'Local instance',
-                        url: '<?php echo h(Configure::read('MISP.baseurl'));?>',
+                        url: '<?php echo empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl');?>',
                         all_orgs: '<?php echo h($s['all_orgs']); ?>',
                         removable:0,
                     });
