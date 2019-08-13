@@ -122,7 +122,7 @@ class SharingGroupsController extends AppController
             return $this->RestResponse->describe('SharingGroup', 'add', false, $this->response->type());
         }
         $this->set('orgs', $orgs);
-        $this->set('localInstance', Configure::read('MISP.baseurl'));
+        $this->set('localInstance', empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'));
         // We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
         $this->set('user', $this->Auth->user());
     }
@@ -215,7 +215,7 @@ class SharingGroupsController extends AppController
         $this->set('sharingGroup', $sharingGroup);
         $this->set('id', $id);
         $this->set('orgs', $orgs);
-        $this->set('localInstance', Configure::read('MISP.baseurl'));
+        $this->set('localInstance', empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'));
         // We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
         $this->set('user', $this->Auth->user());
     }
@@ -316,7 +316,11 @@ class SharingGroupsController extends AppController
         if (isset($sg['SharingGroupServer'])) {
             foreach ($sg['SharingGroupServer'] as $key => $sgs) {
                 if ($sgs['server_id'] == 0) {
-                    $sg['SharingGroupServer'][$key]['Server'] = array('id' => "0", 'name' => 'Local instance', 'url' => Configure::read('MISP.baseurl'));
+                    $sg['SharingGroupServer'][$key]['Server'] = array(
+                        'id' => "0",
+                        'name' => 'Local instance',
+                        'url' => empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl')
+                    );
                 }
             }
         }
