@@ -3,9 +3,6 @@ include_once 'Base.php';
 
 class Polynomial extends DecayingModelBase
 {
-
-    public const EXTENDS_FORMULA = 'Polynomial';
-
     public function computeScore($model, $attribute, $base_score, $elapsed_time)
     {
         if ($elapsed_time < 0) {

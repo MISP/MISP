@@ -1,8 +1,6 @@
 <?php
 abstract class DecayingModelBase
 {
-    public const EXTENDS_FORMULA = '';
- 
     public function checkLoading()
     {
         return 'BONFIRE LIT';

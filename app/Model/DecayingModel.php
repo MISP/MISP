@@ -277,7 +277,7 @@ class DecayingModel extends AppModel
             if ($model_class === false) {
                 continue;
             }
-            $available_formulas[get_class($model_class)] = $model_class::EXTENDS_FORMULA;
+            $available_formulas[get_class($model_class)] = get_parent_class($model_class) == 'Polynomial' || get_class($model_class) == 'Polynomial' ? 'Polynomial' : get_class($model_class);
         }
         return $available_formulas;
     }
@@ -360,7 +360,7 @@ class DecayingModel extends AppModel
             $last_sighting = $this->round_timestamp_to_hour($sightings[$sighting_index]['Sighting']['date_sighting']);
             $sightings[$sighting_index]['Sighting']['rounded_timestamp'] = $last_sighting;
             $elapsed_time = $t - $last_sighting;
-            $score_overtime[$t] = $this->Computation->computeScore($model, $attribute, $base_score, $elapsed_time);
+            $score_overtime[$t] = $this->Computation->computeScore($model, $attribute['Attribute'], $base_score, $elapsed_time);
         }
         $csv = 'date,value' . PHP_EOL;
         foreach ($score_overtime as $t => $v) {
@@ -371,7 +371,7 @@ class DecayingModel extends AppModel
             'sightings' => $sightings,
             'base_score_config' => $base_score_config,
             'last_sighting' => $sightings[count($sightings)-1],
-            'current_score' => $this->Computation->computeCurrentScore($user, $model, $attribute, $base_score, $sightings[count($sightings)-1]['Sighting']['date_sighting'])
+            'current_score' => $this->Computation->computeCurrentScore($user, $model, $attribute['Attribute'], $base_score, $sightings[count($sightings)-1]['Sighting']['date_sighting'])
         );
     }
 
