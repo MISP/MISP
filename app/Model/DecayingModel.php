@@ -249,7 +249,7 @@ class DecayingModel extends AppModel
         );
     }
 
-    private function __include_formula_file_and_return_instance($filename='default.php')
+    private function __include_formula_file_and_return_instance($filename='polynomial.php')
     {
         $full_path = APP . 'Model/DecayingModelsFormulas/' . $filename;
         $expected_classname = 'DecayingModel' . str_replace('.php', '', $filename);
@@ -265,7 +265,7 @@ class DecayingModel extends AppModel
 
     public function getModelClass($model)
     {
-        $formula_name = $model['DecayingModel']['formula'] === '' ? 'default' : $model['DecayingModel']['formula'];
+        $formula_name = $model['DecayingModel']['formula'] === '' ? 'polynomial' : $model['DecayingModel']['formula'];
         $expected_filename = Inflector::humanize($formula_name) . '.php';
         if (!isset($this->__registered_model_classes[$formula_name])) {
             $model_class = $this->__include_formula_file_and_return_instance($expected_filename);

@@ -1,7 +1,7 @@
 <?php
 include_once 'Base.php';
 
-class DecayingModelDefault extends DecayingModelBase
+class DecayingModelPolynomial extends DecayingModelBase
 {
     public function computeScore($model, $attribute, $base_score, $elapsed_time)
     {
