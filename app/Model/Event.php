@@ -1111,6 +1111,8 @@ class Event extends AppModel
                 if (!$found) {
                     return 403;
                 }
+            } else if (empty($event['SharingGroup']['roaming'])) {
+                return 403;
             }
         }
         $serverModel = ClassRegistry::init('Server');

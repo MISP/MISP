@@ -51,12 +51,20 @@ class SharingGroupsController extends AppController
 
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
-                $sg = $this->request->data;
                 if (isset($this->request->data['SharingGroup'])) {
                     $this->request->data = $this->request->data['SharingGroup'];
                 }
+                $sg = $this->request->data;
                 $id = $this->SharingGroup->captureSG($this->request->data, $this->Auth->user());
                 if ($id) {
+                    if (empty($sg['roaming']) && empty($sg['SharingGroupServer'])) {
+                       $this->SharingGroup->SharingGroupServer->create();
+                       $this->SharingGroup->SharingGroupServer->save(array(
+                               'sharing_group_id' => $this->SharingGroup->id,
+                               'server_id' => 0,
+                               'all_orgs' => 0
+                       ));
+                   }
                     $sg = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'simplified', false, $id);
                     if (!empty($sg)) {
                         $sg = empty($sg) ? array() : $sg[0];
@@ -93,7 +101,7 @@ class SharingGroupsController extends AppController
                         ));
                     }
                 }
-                if (!$sg['roaming'] && !empty($sg['Server'])) {
+                if (empty($sg['roaming']) && !empty($sg['Server'])) {
                     foreach ($sg['Server'] as $server) {
                         $this->SharingGroup->SharingGroupServer->create();
                         $this->SharingGroup->SharingGroupServer->save(array(
