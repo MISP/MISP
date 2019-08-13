@@ -43,16 +43,18 @@ abstract class DecayingModelBase
                 $temp_mapping[$namespace_predicate] = $i;
             }
         }
-        foreach ($attribute['AttributeTag'] as $tag) {
-            $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
-            if (isset($temp_mapping[$namespace_predicate])) { // need to override event tag
-                $overridden_tags[] = array(
-                    'EventTag' => $tags[$temp_mapping[$namespace_predicate]],
-                    'AttributeTag' => $tag
-                );
-                $tags[$temp_mapping[$namespace_predicate]] = $tag;
-            } else {
-                $tags[] = $tag;
+        if (isset($attribute['AttributeTag'])) {
+            foreach ($attribute['AttributeTag'] as $tag) {
+                $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
+                if (isset($temp_mapping[$namespace_predicate])) { // need to override event tag
+                    $overridden_tags[] = array(
+                        'EventTag' => $tags[$temp_mapping[$namespace_predicate]],
+                        'AttributeTag' => $tag
+                    );
+                    $tags[$temp_mapping[$namespace_predicate]] = $tag;
+                } else {
+                    $tags[] = $tag;
+                }
             }
         }
         return array('tags' => $tags, 'overridden' => $overridden_tags);

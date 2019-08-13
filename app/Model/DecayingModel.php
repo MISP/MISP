@@ -254,7 +254,7 @@ class DecayingModel extends AppModel
     private function __include_formula_file_and_return_instance($filename='Polynomial.php')
     {
         $filename_no_extension = str_replace('.php', '', $filename);
-        $filename = preg_replace('/[^a-zA-Z0-9_]+/', '-', $filename_no_extension) . '.php'; // sanitization
+        $filename = preg_replace('/[^a-zA-Z0-9_]+/', '-', $filename_no_extension) . '.php'; // sanitization & TO BE REVIEWED
         $full_path = APP . 'Model/DecayingModelsFormulas/' . $filename;
         $expected_classname = $filename_no_extension;
         if (is_file($full_path)) {

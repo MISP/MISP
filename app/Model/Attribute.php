@@ -3182,7 +3182,7 @@ class Attribute extends AppModel
                 }
                 if ($options['includeDecayScore']) {
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
-                    $this->DecayingModel->attachScoresToAttribute($user, $results[$key], $options['decayingModel']);
+                    $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel']);
                     if ($options['excludeDecayed']) { // filter out decayed attribute
                         $decayed_flag = true;
                         foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) {
