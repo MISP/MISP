@@ -255,6 +255,7 @@ class Event extends AppModel
         'info' => array(
             'valueNotEmpty' => array(
                 'rule' => array('valueNotEmpty'),
+                'required' => true
             ),
         ),
         'user_id' => array(
