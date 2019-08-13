@@ -666,6 +666,7 @@
             injectDataModel: function($form, data) {
                 $form.find('#DecayingModelName').val(data.name);
                 $form.find('#DecayingModelDescription').val(data.description);
+                $form.find('#DecayingModelFormula').val(data.formula);
                 $form.find('#DecayingModelParametersTau').val(data.parameters.tau);
                 $form.find('#DecayingModelParametersDelta').val(data.parameters.delta);
                 $form.find('#DecayingModelParametersThreshold').val(data.parameters.threshold);
