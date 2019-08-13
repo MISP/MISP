@@ -64,54 +64,66 @@
         </div>
     </div>
     <div class="span12">
-        <div class="span10" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
-            <div id="decayGraph" style="width: 100%;"></div>
-        </div>
-        <div class="row">
-            <div class="span6" style="margin-bottom: 20px;">
-                <?php foreach ($parameters as $param => $config): ?>
-                    <div class="input-prepend input-append">
-                        <span class="add-on param-name" data-toggle="tooltip" data-placement="left" style="min-width: 100px;" title="<?php echo isset($config['info']) ? h($config['info']) : ''?>">
-                            <?php echo h($config['name']) . (isset($config['greek']) ? ' <strong>'.h($config['greek']).'</strong>' : ''); ?>
-                        </span>
-                        <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="refreshGraph(this);" ></input>
-                        <span class="add-on"><input id="input_<?php echo h($param); ?>_range" type="range" min=0 <?php echo isset($config['max']) ? 'max=' . $config['max'] : '' ?> step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="$('#input_<?php echo h($param); ?>').val(this.value).trigger('input');"></input></span>
-                        <?php if (isset($config['unit'])): ?>
-                            <span class="add-on"><?php echo h($config['unit']); ?></span>
-                        <?php endif; ?>
-
-                    </div>
+        <div>
+            <select id="formulaSelectPicker">
+                <?php foreach ($available_formulas as $formula_name => $extends_smthg): ?>
+                    <option value="<?php echo h($formula_name); ?>" data-extends="<?php echo h($extends_smthg); ?>"><?php echo h($formula_name); ?></option>
                 <?php endforeach; ?>
-                <input id="input_default_base_score" value=0 class="hidden"></input>
-                <div class="input-append" style="margin-bottom: 0px;">
-                    <input id="input_base_score_config" class="hidden" value="[]"></input>
-                    <button class="btn btn-primary" style="border-radius: 4px 0px 0px 4px;" onclick="decayingTool.toggleBasescoreForm()">
-                        <span class="fa fa-tags"> <?php echo __('Adjust base  score'); ?></span>
-                    </button>
-                    <span id="summary_base_score_config" class="add-on param-name">
-                        <span class="far fa-square"></span>
-                    </span>
+            </select>
+        </div>
+        <div id="containerFormulaPolynomialSetting">
+            <div class="span10" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
+                <div id="decayGraph" style="width: 100%;"></div>
+            </div>
+            <div class="row">
+                <div class="span6" style="margin-bottom: 20px;">
+                    <?php foreach ($parameters as $param => $config): ?>
+                        <div class="input-prepend input-append">
+                            <span class="add-on param-name" data-toggle="tooltip" data-placement="left" style="min-width: 100px;" title="<?php echo isset($config['info']) ? h($config['info']) : ''?>">
+                                <?php echo h($config['name']) . (isset($config['greek']) ? ' <strong>'.h($config['greek']).'</strong>' : ''); ?>
+                            </span>
+                            <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="refreshGraph(this);" ></input>
+                            <span class="add-on"><input id="input_<?php echo h($param); ?>_range" type="range" min=0 <?php echo isset($config['max']) ? 'max=' . $config['max'] : '' ?> step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="$('#input_<?php echo h($param); ?>').val(this.value).trigger('input');"></input></span>
+                            <?php if (isset($config['unit'])): ?>
+                                <span class="add-on"><?php echo h($config['unit']); ?></span>
+                            <?php endif; ?>
+
+                        </div>
+                    <?php endforeach; ?>
+                    <input id="input_default_base_score" value=0 class="hidden"></input>
+                    <div class="input-append" style="margin-bottom: 0px;">
+                        <input id="input_base_score_config" class="hidden" value="[]"></input>
+                        <button class="btn btn-primary" style="border-radius: 4px 0px 0px 4px;" onclick="decayingTool.toggleBasescoreForm()">
+                            <span class="fa fa-tags"> <?php echo __('Adjust base  score'); ?></span>
+                        </button>
+                        <span id="summary_base_score_config" class="add-on param-name">
+                            <span class="far fa-square"></span>
+                        </span>
+                    </div>
+                    <div style="display: inline-block; margin-left: 10px;">
+                        <a id="button-toggle-simulation" target="_blank" class="btn btn-primary" href="" onclick="return !$(this).hasClass('disabled');">
+                            <span class="fa fa-chart-line"> <?php echo __('Simulate this model'); ?></span>
+                        </a>
+                    </div>
                 </div>
-                <div style="display: inline-block; margin-left: 10px;">
-                    <a id="button-toggle-simulation" target="_blank" class="btn btn-primary" href="" onclick="return !$(this).hasClass('disabled');">
-                        <span class="fa fa-chart-line"> <?php echo __('Simulate this model'); ?></span>
-                    </a>
+                <div class="span6">
+                    <table class="table table-striped table-bordered">
+                        <tbody>
+                            <tr>
+                                <td>Expire after (lifetime)</td>
+                                <td id="infoCellExpired"></td>
+                            </tr>
+                            <tr>
+                                <td>Score halved after (Half-life)</td>
+                                <td id="infoCellHalved"></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            <div class="span6">
-                <table class="table table-striped table-bordered">
-                    <tbody>
-                        <tr>
-                            <td>Expire after (lifetime)</td>
-                            <td id="infoCellExpired"></td>
-                        </tr>
-                        <tr>
-                            <td>Score halved after (Half-life)</td>
-                            <td id="infoCellHalved"></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        </div>
+        <div  id="containerFormulaOtherSetting" class="hidden">
+            <textarea id="textarea_other_settings_formulas" style="width: 430px;" rows="5" placeholder="<?php echo(__('Model\'s Settings')); ?>"></textarea>
         </div>
 
         <div class="row">
@@ -156,5 +168,23 @@ $(document).ready(function() {
         }
         $(this).html(parsedJson);
     });
+
+    $('#formulaSelectPicker').change(function() {
+        toggleContainer();
+    })
+
 });
+function toggleContainer() {
+    var $option = $('#formulaSelectPicker').find('option:selected');
+    if ($option.data('extends') == 'Polynomial') {
+        $('#containerFormulaPolynomialSetting').show();
+    } else {
+        $('#containerFormulaPolynomialSetting').hide();
+    }
+    if ($('#formulaSelectPicker').val() == 'Polynomial') {
+        $('#containerFormulaOtherSetting').hide();
+    } else {
+        $('#containerFormulaOtherSetting').show();
+    }
+}
 </script>

@@ -1,7 +1,7 @@
 <?php
 include_once 'Base.php';
 
-class Polynomial extends DecayingModelBase
+class PolynomialExtended extends DecayingModelBase
 {
 
     public const EXTENDS_FORMULA = 'Polynomial';

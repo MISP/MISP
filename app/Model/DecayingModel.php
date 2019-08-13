@@ -99,6 +99,8 @@ class DecayingModel extends AppModel
                 $this->__validateParameters($parameters[$name]);
             } else if (is_numeric($value)) {
                 $parameters[$name] = round($value, 4);
+            } else if (!empty($value)) {
+                $parameters[$name] = $value;
             } else {
                 $parameters[$name] = 0;
             }
@@ -249,18 +251,35 @@ class DecayingModel extends AppModel
         );
     }
 
-    private function __include_formula_file_and_return_instance($filename='polynomial.php')
+    private function __include_formula_file_and_return_instance($filename='Polynomial.php')
     {
+        $filename_no_extension = str_replace('.php', '', $filename);
+        $filename = preg_replace('/[^a-zA-Z0-9_]+/', '-', $filename_no_extension) . '.php'; // sanitization
         $full_path = APP . 'Model/DecayingModelsFormulas/' . $filename;
-        $expected_classname = 'DecayingModel' . str_replace('.php', '', $filename);
+        $expected_classname = $filename_no_extension;
         if (is_file($full_path)) {
             include $full_path;
             $model_class = ClassRegistry::init($expected_classname);
-            if ($model_class->checkLoading() == 'BONFIRE LIT') {
+            if ($model_class->checkLoading() === 'BONFIRE LIT') {
                 return $model_class;
             }
         }
         return false;
+    }
+
+    public function listAvailableFormulas()
+    {
+        $path = APP . 'Model/DecayingModelsFormulas/';
+        $formula_files = array_diff(scandir($path), array('..', '.', 'Base.php'));
+        $available_formulas = array();
+        foreach ($formula_files as $formula_file) {
+            $model_class = $this->__include_formula_file_and_return_instance($formula_file);
+            if ($model_class === false) {
+                continue;
+            }
+            $available_formulas[get_class($model_class)] = $model_class::EXTENDS_FORMULA;
+        }
+        return $available_formulas;
     }
 
     public function getModelClass($model)

@@ -345,11 +345,16 @@
                 $('#input_Tau').data('multiplier', $('#input_Tau').val()/this.options.TICK_NUM);
                 $('#input_Delta, #input_Delta_range').val(model.parameters.delta);
                 $('#input_Threshold, #input_Threshold_range').val(model.parameters.threshold);
-                $('#input_base_score_config').val(JSON.stringify(model.parameters.base_score_config));
+                var base_score_config = model.parameters.base_score_config === undefined ? {} : model.parameters.base_score_config;
+                $('#input_base_score_config').val(JSON.stringify(base_score_config));
+                var model_settings = model.parameters.settings === undefined ? {} : model.parameters.settings;
+                $('#textarea_other_settings_formulas').val(JSON.stringify(model_settings));
                 $('#input_default_base_score').val(model.parameters.default_base_score);
+                $('#formulaSelectPicker').val(model.formula);
                 var $form = $('#saveForm');
                 $form.find('[name="name"]').val(model.name);
                 $form.find('[name="description"]').val(model.description);
+                toggleContainer();
                 this.refreshInfoCells();
                 this.redrawGraph();
                 // highlight attribute types
@@ -362,6 +367,7 @@
                 var data = {};
                 data.name = $form.find('[name="name"]').val();
                 data.description = $form.find('[name="description"]').val();
+                data.formula = $('#formulaSelectPicker').val();
                 var params = {};
                 params.tau = parseInt($('#input_Tau').val());
                 params.delta = parseFloat($('#input_Delta').val());
@@ -370,6 +376,9 @@
                 var base_score_config = $('#input_base_score_config').val();
                 base_score_config = base_score_config === '' ? '{}' : base_score_config;
                 params.base_score_config = JSON.parse(base_score_config)
+                var model_settings = $('#textarea_other_settings_formulas').val();
+                model_settings = model_settings === '' ? '{}' : model_settings;
+                params.settings = JSON.parse(model_settings)
                 data.parameters = params;
                 return data;
             },
@@ -409,7 +418,7 @@
                     var post_url = $form.attr('action');
                     if (baseurl.includes('decayingModelMapping')) {
                         that.injectDataAttributeTypes($form, formData);
-                    } else if (action.includes('able')) {
+                    } else if (action.includes('able')) { // if enable/disable model
                         // do nothing, form filled already
                     } else {
                         that.injectDataModel($form, formData);
@@ -840,13 +849,15 @@ ModelTable.prototype = {
             {name: 'Model Name'},
             {name: 'Org ID'},
             {name: 'Description'},
+            {name: 'Formula'},
             {name: 'Parameters',
                 children: [
                     {name: 'Tau'},
                     {name: 'Delta'},
                     {name: 'Threshold'},
                     {name: 'Default basescore'},
-                    {name: 'Basescore config'}
+                    {name: 'Basescore config'},
+                    {name: 'Settings'}
                 ]
             },
             {name: '# Types'},
@@ -909,11 +920,11 @@ ModelTable.prototype = {
                 attr += 'data-'+ k + '=\"' + v + '\" ';
             });
         }
-        return '<span class="' + td_class + '" ' + attr + '>' + text + '</span>';
+        return '<span class="' + td_class + '" ' + attr + '>' + (text !== undefined ? text : '') + '</span>';
     },
     _gen_td_link: function(url, text, td_class) {
         td_class = td_class !== undefined ? td_class : '';
-        return '<span class="' + td_class + '"><a href="' + url + '">' + text + '</a></span>';
+        return '<span class="' + td_class + '"><a href="' + url + '">' + (text !== undefined ? text : '') + '</a></span>';
     },
     _gen_td_buttons: function(model) {
         var html_button = '<div style="width: max-content">';
@@ -932,6 +943,10 @@ ModelTable.prototype = {
         if (!Array.isArray(model.DecayingModel.parameters.base_score_config) && typeof model.DecayingModel.parameters.base_score_config === 'object') {
             bs_config_html = jsonToNestedTable(model.DecayingModel.parameters.base_score_config, [], ['table', 'table-condensed', 'table-bordered']);
         }
+        var settings_html = '';
+        if (!Array.isArray(model.DecayingModel.parameters.settings) && typeof model.DecayingModel.parameters.settings === 'object') {
+            settings_html = jsonToNestedTable(model.DecayingModel.parameters.settings, [], ['table', 'table-condensed', 'table-bordered']);
+        }
         var is_row_selected = $('#saveForm #save-model-button').data('modelid') == model.DecayingModel.id;
         return cells_html = [
             this._gen_td('<input type="checkbox" onchange="decayingTool.refreshSaveButton()" style="margin:0" ' + (is_row_selected ? 'checked' : 'disabled') + '></input>', 'DMCheckbox'),
@@ -939,6 +954,7 @@ ModelTable.prototype = {
             this._gen_td(model.DecayingModel.name, 'DMName'),
             this._gen_td_link('/organisations/view/'+model.DecayingModel.org_id, model.DecayingModel.org_id, 'DMOrg'),
             this._gen_td(model.DecayingModel.description, 'DMNDescription'),
+            this._gen_td(model.DecayingModel.formula, 'DMFormula'),
             this._gen_td(model.DecayingModel.parameters.tau, 'DMParameterTau'),
             this._gen_td(model.DecayingModel.parameters.delta, 'DMParameterDelta'),
             this._gen_td(model.DecayingModel.parameters.threshold, 'DMParameterThreshold'),
@@ -947,6 +963,11 @@ ModelTable.prototype = {
                 bs_config_html,
                 'DMParameterBasescoreConfig',
                 {'basescoreconfig': btoa(JSON.stringify(model.DecayingModel.parameters.base_score_config))}
+            ),
+            this._gen_td(
+                settings_html,
+                'DMSettings',
+                {'basescoreconfig': btoa(JSON.stringify(model.DecayingModel.parameters.settings))}
             ),
             this._gen_td(model.DecayingModel.attribute_types.length, 'DMNumType'),
             this._gen_td(model.DecayingModel.enabled ? '<i class="fa fa-check"></i>' : '<i class="fa fa-times"></i>', 'DMEnabled'),

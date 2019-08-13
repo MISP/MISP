@@ -8,8 +8,9 @@
         echo $this->Form->input('description', array(
         ));
         echo $this->Form->input('formula', array(
-            'value' => isset($this->request->data['DecayingModel']['formula']) ? $this->request->data['DecayingModel']['formula'] : 'default'
+            'value' => isset($this->request->data['DecayingModel']['formula']) ? $this->request->data['DecayingModel']['formula'] : 'polynomial'
         ));
+        echo '<div id="ContainerPolynomialSetting">';
         echo $this->Form->input('DecayingModel.parameters.tau', array(
             'label' => __('Tau parameter'),
             'type' => 'number',
@@ -54,6 +55,16 @@
             'cols' => '10',
             'value' => isset($this->request->data['DecayingModel']['parameters']['base_score_config']) ? json_encode($this->request->data['DecayingModel']['parameters']['base_score_config']) : ''
         ));
+        echo '</div>';
+        echo '<div id="ContainerOtherSetting">';
+            echo '<div class="clear"></div>';
+            echo '<label for="DecayingModelOtherSettings">' . __('Model Settings') . '</label>';
+            echo $this->Form->textarea('DecayingModel.parameters.settings', array(
+                'class' => 'form-control span6',
+                'cols' => '10',
+                'value' => isset($this->request->data['DecayingModel']['parameters']['settings']) ? json_encode($this->request->data['DecayingModel']['parameters']['settings']) : ''
+            ));
+        echo '</div>';
     ?>
         <div class="clear"></div>
     </fieldset>
@@ -65,3 +76,18 @@
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'decayingModel', 'menuItem' => 'add'));
 ?>
+<script>
+    toggleOtherSetting();
+    $(document).ready(function() {
+        $('#DecayingModelFormula').on('input', function() {
+            toggleOtherSetting();
+        })
+    });
+    function toggleOtherSetting() {
+        if ($('#DecayingModelFormula').val() === 'Polynomial') {
+            $('#ContainerOtherSetting').hide();
+        } else {
+            $('#ContainerOtherSetting').show();
+        }
+    }
+</script>
