@@ -882,10 +882,6 @@
                     break;
 
                 case 'decayingModel':
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/decayingModel/index',
-                        'text' => __('List Decaying Models')
-                    ));
                     if ($isSiteAdmin) {
                         if (($menuItem === 'view' || $menuItem === 'index')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
@@ -903,6 +899,7 @@
                             'url' => '/decayingModel/import',
                             'text' => __('Import Decaying Model')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/decayingModel/add',
                             'text' => __('Add Decaying Model')
@@ -911,7 +908,12 @@
                             'url' => '/decayingModel/decayingTool',
                             'text' => __('Decaying Tool')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/decayingModel/index',
+                        'text' => __('List Decaying Models')
+                    ));
                     if (($menuItem === 'view' || $menuItem === 'edit')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
