@@ -795,6 +795,7 @@ class StixFromMISPParser(StixParser):
         for item in event.related_packages.related_package:
             package = item.item
             self.event = package.incidents[0]
+            self.parse_related_galaxies()
             self.fetch_timestamp_and_date()
             self.fetch_event_info()
             if self.event.related_indicators:
@@ -1004,6 +1005,17 @@ class StixFromMISPParser(StixParser):
             if exploit_target.item:
                 for vulnerability in exploit_target.item.vulnerabilities:
                     self.misp_event.add_attribute(**{'type': 'vulnerability', 'value': vulnerability.cve_id})
+
+    def parse_related_galaxies(self):
+        self.galaxies_references = []
+        for feature in ('coa_taken', 'coa_requested'):
+            coas = getattr(self.event, feature)
+            if coas:
+                self.galaxies_references.extend([coa.course_of_action.idref for coa in coas])
+        if self.event.attributed_threat_actors:
+            self.galaxies_references.extend([ta.item.idref for ta in self.event.attributed_threat_actors.threat_actor])
+        if self.event.leveraged_ttps.ttp:
+            self.galaxies_references.extend([ttp.item.idref for ttp in self.event.leveraged_ttps.ttp])
 
     def fetch_event_info(self):
         info = self.get_event_info()
