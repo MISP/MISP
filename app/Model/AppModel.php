@@ -248,9 +248,9 @@ class AppModel extends Model
 
         $liveOff = false;
         $exitOnError = false;
-        if (isset($advanced_updates_description[$command])) {
-            $liveOff = isset($advanced_updates_description[$command]['liveOff']) ? $advanced_updates_description[$command]['liveOff'] : $liveOff;
-            $exitOnError = isset($advanced_updates_description[$command]['exitOnError']) ? $advanced_updates_description[$command]['exitOnError'] : $exitOnError;
+        if (isset($this->advanced_updates_description[$command])) {
+            $liveOff = isset($this->advanced_updates_description[$command]['liveOff']) ? $this->advanced_updates_description[$command]['liveOff'] : $liveOff;
+            $exitOnError = isset($this->advanced_updates_description[$command]['exitOnError']) ? $this->advanced_updates_description[$command]['exitOnError'] : $exitOnError;
         }
 
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
@@ -1276,7 +1276,11 @@ class AppModel extends Model
                     ));
                     $this->__setUpdateResMessages($i, __('Issues executing the SQL query for ') . $command . __('. The returned error is: ') . PHP_EOL . $error_message);
                     $error_duplicate_column = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';
-                    if (substr($error_message, 0, strlen($error_duplicate_column)) !== $error_duplicate_column) {
+                    $error_duplicate_index = 'SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name';
+                    if (
+                        substr($error_message, 0, strlen($error_duplicate_column)) !== $error_duplicate_column &&
+                        substr($error_message, 0, strlen($error_duplicate_index)) !== $error_duplicate_index
+                    ) {
                         $this->__setUpdateError($i);
                         $error_count++;
                         if ($exitOnError) {
