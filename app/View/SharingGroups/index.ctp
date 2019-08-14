@@ -40,6 +40,7 @@
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
+            <th><?php echo __('uuid');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo $this->Paginator->sort('Creator');?></th>
             <th><?php echo __('Description');?></th>
@@ -51,6 +52,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
 ?>
     <tr>
         <td class="short"><?php echo h($sharingGroup['SharingGroup']['id']); ?></td>
+        <td class="short"><?php echo h($sharingGroup['SharingGroup']['uuid']); ?></td>
         <td class="short"><?php echo h($sharingGroup['SharingGroup']['name']); ?></td>
         <td class="short"><a href="/organisations/view/<?php echo h($sharingGroup['Organisation']['id']);?>"><?php echo h($sharingGroup['Organisation']['name']); ?></a></td>
         <td><?php echo h($sharingGroup['SharingGroup']['description']); ?></td>
