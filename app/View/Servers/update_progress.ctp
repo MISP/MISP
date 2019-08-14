@@ -53,14 +53,14 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
                             $rowIcon =  '<i id="icon-' . $i . '" class="fa"></i>';
                             if ($rowDone) {
                                 $rowClass =  'class="alert alert-success"';
-                                $rowIcon =  '<i id="icon-' . $i . '" class="fa fa-check-circle-o"></i>';
+                                $rowIcon =  '<i id="icon-' . $i . '" class="fa fa-check-circle"></i>';
                             }
                             if ($rowCurrent && !$rowFail) {
                                 $rowClass =  'class="alert alert-info"';
                                 $rowIcon =  '<i id="icon-' . $i . '" class="fa fa-cogs"></i>';
                             } else if ($rowFail) {
                                 $rowClass =  'class="alert alert-danger"';
-                                $rowIcon =  '<i id="icon-' . $i . '" class="fa fa-times-circle-o"></i>';
+                                $rowIcon =  '<i id="icon-' . $i . '" class="fa fa-times-circle"></i>';
                             }
 
                             if (isset($updateProgress['time']['started'][$i])) {
