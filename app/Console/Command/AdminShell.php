@@ -318,44 +318,19 @@ class AdminShell extends AppShell
         $whoami = exec('whoami');
         if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
-            $this->Server->runUpdates(true);
+            $this->Server->runUpdates(true, false);
+            if (!empty($this->args[0])) {
+                $processId = $this->args[0];
+                $job = $this->Job->read(null, $processId);
+                $job['Job']['progress'] = 100;
+                $job['Job']['message'] = 'Update done';
+                $this->Job->save($job);
+            }
             echo 'All updates completed.' . PHP_EOL;
         } else {
             die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
         }
     }
-
-    public function updateApp() {
-        $whoami = exec('whoami');
-        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
-            $command = $this->args[0];
-            if (!empty($this->args[1])) {
-                $processId = $this->args[1];
-                $job = $this->Job->read(null, $processId);
-            } else { // create worker
-                $this->Job->create();
-                $job_data = array(
-                    'worker' => 'prio',
-                    'job_type' => 'update_app',
-                    'job_input' => 'command: ' . $command,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => '',
-                    'org' => '',
-                    'message' => 'Updating.',
-                );
-                $this->Job->save($job_data);
-                $job = $this->Job->read(null, $this->Job->id);
-            }
-            $result = $this->Server->updateDatabase($command, false);
-            $job['Job']['progress'] = 100;
-            $job['Job']['message'] = 'Update done';
-            $this->Job->save($job);
-        } else {
-            die('This OS user is not allowed to run this command.' . PHP_EOL . 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
-        }
-    }
-
 
     public function getAuthkey() {
         if (empty($this->args[0])) {
