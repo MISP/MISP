@@ -785,7 +785,12 @@ class ObjectsController extends AppController
     public function view($id)
     {
         if ($this->_isRest()) {
-            $objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
+            if (Validation::uuid($id)) {
+                $conditions = array('Object.uuid' => $id);
+            } else {
+                $conditions = array('Object.id' => $id);
+            }
+            $objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => $conditions));
             if (!empty($objects)) {
                 $object = $objects[0];
                 if (!empty($object['Event'])) {
@@ -796,6 +801,7 @@ class ObjectsController extends AppController
                 }
                 return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
             }
+            throw new NotFoundException(__('Invalid object.'));
         }
     }
 
