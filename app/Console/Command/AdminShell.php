@@ -314,7 +314,7 @@ class AdminShell extends AppShell
         }
     }
 
-    public function updateDatabase() {
+    public function runUpdates() {
         $whoami = exec('whoami');
         if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;

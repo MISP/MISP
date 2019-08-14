@@ -1521,7 +1521,7 @@ class AppModel extends Model
                     $job->create();
                     $data = array(
                         'worker' => 'prio',
-                        'job_type' => 'update_database',
+                        'job_type' => 'run_updates',
                         'job_input' => 'command: ' . implode(',', $updates),
                         'status' => 0,
                         'retries' => 0,
@@ -1534,7 +1534,7 @@ class AppModel extends Model
                     $process_id = CakeResque::enqueue(
                             'prio',
                             'AdminShell',
-                            array('updateDatabase', $jobId),
+                            array('runUpdates', $jobId),
                             true
                     );
                     $job->saveField('process_id', $process_id);
