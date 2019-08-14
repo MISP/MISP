@@ -602,7 +602,7 @@ class ObjectsController extends AppController
 
     public function delete($id, $hard = false)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
+        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
         if (!$this->userRole['perm_modify']) {
             throw new MethodNotAllowedException(__('You don\'t have permissions to delete objects.'));
         }
