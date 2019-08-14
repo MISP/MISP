@@ -1007,15 +1007,16 @@ class StixFromMISPParser(StixParser):
                     self.misp_event.add_attribute(**{'type': 'vulnerability', 'value': vulnerability.cve_id})
 
     def parse_related_galaxies(self):
-        self.galaxies_references = []
+        galaxies_references = []
         for feature in ('coa_taken', 'coa_requested'):
             coas = getattr(self.event, feature)
             if coas:
-                self.galaxies_references.extend([coa.course_of_action.idref for coa in coas])
+                galaxies_references.extend([coa.course_of_action.idref for coa in coas])
         if self.event.attributed_threat_actors:
-            self.galaxies_references.extend([ta.item.idref for ta in self.event.attributed_threat_actors.threat_actor])
+            galaxies_references.extend([ta.item.idref for ta in self.event.attributed_threat_actors.threat_actor])
         if self.event.leveraged_ttps.ttp:
-            self.galaxies_references.extend([ttp.item.idref for ttp in self.event.leveraged_ttps.ttp])
+            galaxies_references.extend([ttp.item.idref for ttp in self.event.leveraged_ttps.ttp])
+        self.galaxies_references = tuple('-'.join((r for r in ref.split('-')[-5:])) for ref in galaxies_references)
 
     def fetch_event_info(self):
         info = self.get_event_info()
