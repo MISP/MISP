@@ -228,6 +228,7 @@ class AppModel extends Model
     // SQL scripts for updates
     public function updateDatabase($command)
     {
+        $this->Log = ClassRegistry::init('Log');
         // Exit if updates are locked
         if ($this->isUpdateLocked()) {
             $this->Log->create();
@@ -256,7 +257,6 @@ class AppModel extends Model
         $dataSource = $dataSourceConfig['datasource'];
         $sqlArray = array();
         $indexArray = array();
-        $this->Log = ClassRegistry::init('Log');
         $clean = true;
         switch ($command) {
             case 'extendServerOrganizationLength':
