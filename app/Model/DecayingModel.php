@@ -253,6 +253,7 @@ class DecayingModel extends AppModel
 
     private function __include_formula_file_and_return_instance($filename='Polynomial.php')
     {
+        // FIXME: fetch everything, check if it exists, use the value from the list
         $filename_no_extension = str_replace('.php', '', $filename);
         $filename = preg_replace('/[^a-zA-Z0-9_]+/', '-', $filename_no_extension) . '.php'; // sanitization & TO BE REVIEWED
         $full_path = APP . 'Model/DecayingModelsFormulas/' . $filename;
@@ -269,6 +270,7 @@ class DecayingModel extends AppModel
 
     public function listAvailableFormulas()
     {
+        // FIXME: Use cakephp function
         $path = APP . 'Model/DecayingModelsFormulas/';
         $formula_files = array_diff(scandir($path), array('..', '.', 'Base.php'));
         $available_formulas = array();
