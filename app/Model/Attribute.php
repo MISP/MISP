@@ -4240,10 +4240,6 @@ class Attribute extends AppModel
         if ($paramsOnly) {
             return $params;
         }
-        if (!isset($this->validFormats[$returnFormat])) {
-            // this is where the new code path for the export modules will go
-            throw new MethodNotFoundException('Invalid export format.');
-        }
         if (method_exists($exportTool, 'modify_params')) {
             $params = $exportTool->modify_params($user, $params);
         }
