@@ -137,7 +137,7 @@ class AttributesController extends AppController
         $this->Event->recursive = -1;
         $this->Event->read(null, $eventId);
         if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
-            throw new ForbiddenException(__('You do not have permission to do that.'));
+            throw new ForbiddenException(__('You don\'t have permission to do that.'));
         }
         if (!$this->_isRest()) {
             $this->Event->insertLock($this->Auth->user(), $this->Event->data['Event']['id']);
