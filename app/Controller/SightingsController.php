@@ -338,6 +338,8 @@ class SightingsController extends AppController
             'Sighting.' . $context . '_id' => $id
         );
         if ($org_id) {
+            $this->loadModel('Organisation');
+            $org_id = $this->Toolbox->findIdByUuid($this->Organisation, $org_id);
             $conditions[] = array('Sighting.org_id' => $org_id);
         }
         $sightings = $this->Sighting->find('all', array(
