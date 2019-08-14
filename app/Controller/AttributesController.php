@@ -110,7 +110,6 @@ class AttributesController extends AppController
 
     public function add($eventId = false)
     {
-        throw new MethodNotAllowedException(__('You do not have permission to do that.'));
         if ($this->request->is('get') && $this->_isRest()) {
             return $this->RestResponse->describe('Attributes', 'add', false, $this->response->type());
         }
@@ -118,7 +117,7 @@ class AttributesController extends AppController
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
         if (!$this->userRole['perm_add']) {
-            throw new MethodNotAllowedException(__('You don\'t have permissions to create attributes'));
+            throw new MethodNotAllowedException(__('You do not have permissions to create attributes'));
         }
         $this->loadModel('Event');
         if (Validation::uuid($eventId)) {
