@@ -502,6 +502,20 @@ class Sighting extends AppModel
         }
 
         if (isset($filters['org_id'])) {
+            $this->Organisation = ClassRegistry::init('Organisation');
+            if (!is_array($filters['org_id'])) {
+                $filters['org_id'] = array($filters['org_id']);
+            }
+            foreach ($filters['org_id'] as $k => $org_id) {
+                if (Validation::uuid($org_id)) {
+                    $org = $this->Organisation->find('first', array('conditions' => array('Organisation.uuid' => $org_id), 'recursive' => -1, 'fields' => array('Organisation.id')));
+                    if (empty($org)) {
+                        $filters['org_id'][$k] = -1;
+                    } else {
+                        $filters['org_id'][$k] = $org['Organisation']['id'];
+                    }
+                }
+            }
             $conditions['Sighting.org_id'] = $filters['org_id'];
         }
 
