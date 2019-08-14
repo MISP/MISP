@@ -818,12 +818,20 @@ class AttributesController extends AppController
             throw new MethodNotAllowedException('Invalid attribute');
         }
         $this->Attribute->data = $attribute[0];
+        $event = $this->Attribute->Event->find('first', array(
+            'conditions' =>
+                array(
+                    'Event.id' => $attribute[0]['Attribute']['event_id']
+                ),
+            'recursive' => -1,
+            'fields' => array('Event.id', 'Event.user_id')
+        ));
         if ($this->Attribute->data['Attribute']['deleted']) {
             throw new NotFoundException(__('Invalid attribute'));
         }
         if (!$this->_isSiteAdmin()) {
             if ($this->Attribute->data['Event']['orgc_id'] == $this->Auth->user('org_id')
-                && (($this->userRole['perm_modify'] && $this->Attribute->data['Event']['user_id'] != $this->Auth->user('id'))
+                && (($this->userRole['perm_modify'] && $event['Event']['user_id'] != $this->Auth->user('id'))
                     || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
