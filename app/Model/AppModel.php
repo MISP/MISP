@@ -106,14 +106,15 @@ class AppModel extends Model
     // this could become useful in the future
     public function updateMISP($command)
     {
+        $db_update_success = false;
         switch ($command) {
             case '2.4.20':
-                $this->updateDatabase($command);
+                $db_update_success = $this->updateDatabase($command);
                 $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
                 $this->ShadowAttribute->upgradeToProposalCorrelation();
                 break;
             case '2.4.25':
-                $this->updateDatabase($command);
+                $db_update_success = $this->updateDatabase($command);
                 $newFeeds = array(
                     array('provider' => 'CIRCL', 'name' => 'CIRCL OSINT Feed', 'url' => 'https://www.circl.lu/doc/misp/feed-osint', 'enabled' => 0),
                 );
@@ -126,22 +127,22 @@ class AppModel extends Model
                 $this->__addNewFeeds($newFeeds);
                 break;
             case '2.4.49':
-                $this->updateDatabase($command);
+                $db_update_success = $this->updateDatabase($command);
                 $this->SharingGroup = ClassRegistry::init('SharingGroup');
                 $this->SharingGroup->correctSyncedSharingGroups();
                 $this->SharingGroup->updateRoaming();
                 break;
             case '2.4.55':
-                $this->updateDatabase('addSightings');
+                $db_update_success = $this->updateDatabase('addSightings');
                 break;
             case '2.4.66':
-                $this->updateDatabase('2.4.66');
+                $db_update_success = $this->updateDatabase('2.4.66');
                 $this->cleanCacheFiles();
                 $this->Sighting = Classregistry::init('Sighting');
                 $this->Sighting->addUuids();
                 break;
             case '2.4.67':
-                $this->updateDatabase('2.4.67');
+                $db_update_success = $this->updateDatabase('2.4.67');
                 $this->Sighting = Classregistry::init('Sighting');
                 $this->Sighting->addUuids();
                 $this->Sighting->deleteAll(array('NOT' => array('Sighting.type' => array(0, 1, 2))));
@@ -159,15 +160,15 @@ class AppModel extends Model
                         $this->OrgBlacklist->save($value);
                     }
                 }
-                $this->updateDatabase($command);
+                $db_update_success = $this->updateDatabase($command);
                 break;
             case '2.4.86':
                 $this->MispObject = Classregistry::init('MispObject');
                 $this->MispObject->removeOrphanedObjects();
-                $this->updateDatabase($command);
+                $db_update_success = $this->updateDatabase($command);
                 break;
             case 5:
-                $this->updateDatabase($command);
+                $db_update_success = $this->updateDatabase($command);
                 $this->Feed = Classregistry::init('Feed');
                 $this->Feed->setEnableFeedCachingDefaults();
                 break;
@@ -176,7 +177,7 @@ class AppModel extends Model
                 $this->Server->restartWorkers();
                 break;
             case 10:
-                $this->updateDatabase($command);
+                $db_update_success = $this->updateDatabase($command);
                 $this->Role = Classregistry::init('Role');
                 $this->Role->setPublishZmq();
                 break;
@@ -190,9 +191,10 @@ class AppModel extends Model
                 $this->__fixServerPullPushRules();
                 break;
             default:
-                $this->updateDatabase($command);
+                $db_update_success = $this->updateDatabase($command);
                 break;
         }
+        return $db_update_success;
     }
 
     private function __addNewFeeds($feeds)
@@ -228,6 +230,17 @@ class AppModel extends Model
     {
         // Exit if updates are locked
         if ($this->isUpdateLocked()) {
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => 0,
+                    'email' => 'SYSTEM',
+                    'action' => 'update_database',
+                    'user_id' => 0,
+                    'title' => __('Issues executing the SQL query for ') . $command,
+                    'change' => __('Database updates are locked')
+            ));
             return false;
         }
         $this->__resetUpdateProgress();
@@ -1274,6 +1287,7 @@ class AppModel extends Model
                     ));
                     $this->__setUpdateResMessages($i, __('Successfuly executed the SQL query for ') . $command);
                 } catch (Exception $e) {
+                    $error_message = $e->getMessage();
                     $this->Log->create();
                     $this->Log->save(array(
                         'org' => 'SYSTEM',
@@ -1283,14 +1297,17 @@ class AppModel extends Model
                         'action' => 'update_database',
                         'user_id' => 0,
                         'title' => __('Issues executing the SQL query for ') . $command,
-                        'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $e->getMessage()
+                        'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $error_message
                     ));
-                    $this->__setUpdateResMessages($i, __('Issues executing the SQL query for ') . $command . __('. The returned error is: ') . PHP_EOL . $e->getMessage());
-                    $this->__setUpdateError($i);
-                    $error_count++;
-                    if ($exitOnError) {
-                        $flag_stop = true;
-                        break;
+                    $this->__setUpdateResMessages($i, __('Issues executing the SQL query for ') . $command . __('. The returned error is: ') . PHP_EOL . $error_message);
+                    $error_duplicate_column = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';
+                    if (substr($error_message, 0, strlen($error_duplicate_column)) !== $error_duplicate_column) {
+                        $this->__setUpdateError($i);
+                        $error_count++;
+                        if ($exitOnError) {
+                            $flag_stop = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -1323,6 +1340,20 @@ class AppModel extends Model
             $this->__postUpdate($command);
         }
         $this->__changeLockState(false);
+        if ($flag_stop && $error_count > 0) {
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => 0,
+                    'email' => 'SYSTEM',
+                    'action' => 'update_database',
+                    'user_id' => 0,
+                    'title' => __('Issues executing the SQL query for ') . $command,
+                    'change' => __('Database updates stopped as some errors occured and the stop flag is enabled.')
+            ));
+            return false;
+        }
         return true;
     }
 
@@ -1513,12 +1544,14 @@ class AppModel extends Model
                     if ($verbose) {
                         echo str_pad('Executing ' . $update, 30, '.');
                     }
-                    $this->updateMISP($update);
+                    $db_update_success = $this->updateMISP($update);
                     if ($temp) {
                         $requiresLogout = true;
                     }
-                    $db_version['AdminSetting']['value'] = $update;
-                    $this->AdminSetting->save($db_version);
+                    if ($db_update_success) {
+                        $db_version['AdminSetting']['value'] = $update;
+                        $this->AdminSetting->save($db_version);
+                    }
                     if ($verbose) {
                         echo "\033[32mDone\033[0m" . PHP_EOL;
                     }
