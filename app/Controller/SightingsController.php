@@ -228,11 +228,8 @@ class SightingsController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This action can only be accessed via a post request.');
         }
-        if (Validation::uuid($id)) {
-            $conditions = array('Sighting.uuid' => $id);
-        } else {
-            $conditions = array('Sighting.id' => $id);
-        }
+        $id = $this->Toolbox->findIdByUuid($this->Sighting, $id);
+        $conditions = array('Sighting.id' => $id);
         $sighting = $this->Sighting->find('first', array('conditions' => $conditions, 'recursive' => -1));
         if (empty($sighting)) {
             throw new NotFoundException('Invalid sighting.');

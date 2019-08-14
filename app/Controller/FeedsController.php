@@ -266,6 +266,7 @@ class FeedsController extends AppController
 
     public function edit($feedId)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Feed, $id);
         $this->Feed->id = $feedId;
         if (!$this->Feed->exists()) {
             throw new NotFoundException(__('Invalid feed.'));

@@ -90,7 +90,8 @@ class AppController extends Controller
             'Security',
             'ACL',
             'RestResponse',
-            'Flash'
+            'Flash',
+            'Toolbox'
             //,'DebugKit.Toolbar'
     );
 
