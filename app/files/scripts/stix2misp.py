@@ -258,7 +258,7 @@ class StixParser():
         if relation:
             if len(relation) == '2':
                 domain = relation[0][1]
-                ip = relattion[1][1]
+                ip = relation[1][1]
                 attributes = [["text", domain, "rrname"], ["text", ip, "rdata"]]
                 rrtype = "AAAA" if ":" in ip else "A"
                 attributes.append(["text", rrtype, "rrtype"])
@@ -498,7 +498,7 @@ class StixParser():
     # Parse a user account object
     def handle_user(self, properties):
         attributes = self.fill_user_account_object(properties)
-        return 'user-account', self.return_attributes, ''
+        return 'user-account', self.return_attributes(attributes), ''
 
     # Parse a UNIX user account object
     def handle_unix_user(self, properties):
@@ -587,7 +587,7 @@ class StixParser():
             subject_pubkey = certificate.subject_public_key
             if subject_pubkey.rsa_public_key:
                 rsa_pubkey = subject_pubkey.rsa_public_key
-                for prop in stix2misp_mapping._x509__x509_pubkey_types:
+                for prop in stix2misp_mapping._x509_pubkey_types:
                     if getattr(rsa_pubkey, prop):
                         attributes.append(['text', attrgetter('{}.value'.format(prop))(rsa_pubkey), 'pubkey-info-{}'.format(prop)])
             if subject_pubkey.public_key_algorithm:
