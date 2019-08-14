@@ -110,6 +110,7 @@ class AttributesController extends AppController
 
     public function add($eventId = false)
     {
+        throw new MethodNotAllowedException(__('You do not have permission to do that.'));
         if ($this->request->is('get') && $this->_isRest()) {
             return $this->RestResponse->describe('Attributes', 'add', false, $this->response->type());
         }
@@ -137,7 +138,7 @@ class AttributesController extends AppController
         $this->Event->recursive = -1;
         $this->Event->read(null, $eventId);
         if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
-            throw new ForbiddenException(__('You don\'t have permission to do that.'));
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         if (!$this->_isRest()) {
             $this->Event->insertLock($this->Auth->user(), $this->Event->data['Event']['id']);
@@ -835,7 +836,7 @@ class AttributesController extends AppController
                     || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                $message = __('You don\'t have permission to do that.');
+                $message = __('You do not have permission to do that.');
                 if ($this->_isRest()) {
                     throw new ForbiddenException($message);
                 } else {
@@ -1064,7 +1065,7 @@ class AttributesController extends AppController
             || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'You don\'t have permission to do that')), 'status'=>200, 'type' => 'json'));
+                return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'You do not have permission to do that')), 'status'=>200, 'type' => 'json'));
             }
         }
         if (!$this->_isRest()) {
@@ -2433,7 +2434,7 @@ class AttributesController extends AppController
                     || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                throw new ForbiddenException(__('You don\'t have permission to do that'));
+                throw new ForbiddenException(__('You do not have permission to do that'));
             }
         }
         $this->layout = 'ajax';
@@ -3077,7 +3078,7 @@ class AttributesController extends AppController
                 ));
                 if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
                     if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You do not have permission to do that.')), 'status' => 200, 'type' => 'json'));
                     }
                 }
                 if (!$this->_isRest()) {
@@ -3236,7 +3237,7 @@ class AttributesController extends AppController
                 ) &&
                 !$this->_isSiteAdmin()
             ) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You do not have permission to do that.')), 'status' => 200, 'type' => 'json'));
             }
 
             $this->autoRender = false;
@@ -3274,7 +3275,7 @@ class AttributesController extends AppController
             throw new NotFoundException(__('Invalid Attribute.'));
         }
         if (!$this->Auth->user('Role')['perm_modify']) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
+            throw new MethodNotAllowedException(__('You do not have permission to do that.'));
         }
         $conditions = array('Attribute.id' => $id);
         if (!$this->_isSiteAdmin()) {
@@ -3289,7 +3290,7 @@ class AttributesController extends AppController
             throw new NotFoundException(__('Invalid Attribute.'));
         }
         if (!$this->Auth->user('Role')['perm_modify_org'] && $this->Auth->user('id') != $attribute['Event']['user_id']) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
+            throw new MethodNotAllowedException(__('You do not have permission to do that.'));
         }
         if (!$this->_isRest()) {
             $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Event']['id']);
