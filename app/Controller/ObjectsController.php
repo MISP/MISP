@@ -605,16 +605,20 @@ class ObjectsController extends AppController
         if (!$this->userRole['perm_modify']) {
             throw new MethodNotAllowedException(__('You don\'t have permissions to delete objects.'));
         }
-        $lookupField = 'id';
         if (Validation::uuid($id)) {
-            $lookupField = 'uuid';
+            $this->MispObject->recursive = -1;
+            $temp = $this->MispObject->findByUuid($id);
+            if ($temp == null) {
+                throw new NotFoundException('Invalid object.');
+            }
+            $id = $temp['Object']['id'];
         } elseif (!is_numeric($id)) {
             throw new NotFoundException(__('Invalid object.'));
         }
         $object = $this->MispObject->find('first', array(
             'recursive' => -1,
             'fields' => array('Object.id', 'Object.event_id', 'Event.id', 'Event.uuid', 'Event.orgc_id'),
-            'conditions' => array('Object.' . $lookupField => $id),
+            'conditions' => array('Object.id' => $id),
             'contain' => array(
                 'Event'
             )
