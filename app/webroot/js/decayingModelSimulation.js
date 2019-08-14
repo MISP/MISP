@@ -140,7 +140,6 @@
                     if (that.resize_timeout !== undefined) {
                         clearTimeout(that.resize_timeout);
                     }
-                    console.log(that.options.redraw_timeout);
                     that.resize_timeout = setTimeout(function() { that.redraw_timeout_handler(that) }, that.options.redraw_timeout);
                 });
             },

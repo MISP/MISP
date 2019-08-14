@@ -131,6 +131,13 @@ $(document).ready(function() {
 
 function doRestSearch(clicked, query) {
     var data = query === undefined ? $(clicked).parent().find('textarea').val() : query;
+    var json;
+    try {
+        json = JSON.parse(data);
+    } catch (SyntaxError) {
+        showMessage('fail', 'Invalid JSON syntax');
+        return;
+    }
     fetchFormDataAjax('/decayingModel/decayingToolRestSearch/', function(formData) {
         var $formData = $(formData);
         url = $formData.find('form').attr('action');
@@ -146,6 +153,10 @@ function doRestSearch(clicked, query) {
                 var $trs = $('#attributeTableContainer tbody > tr');
                 if ($trs.length == 1) {
                     $trs.click();
+                }
+                // pass potential model overrides
+                if (json.modelOverrides !== undefined) {
+                    $trs.data('modelOverride', JSON.stringify(json.modelOverrides));
                 }
             },
             error:function() {
@@ -185,14 +196,19 @@ function doSimulation(clicked, attribute_id) {
     if (simulation_table === undefined) {
         simulation_table = $('#basescore-simulation-container #computation_help_container_body').basescoreComputationTable({});
     }
+    var url = '/decayingModel/decayingToolComputeSimulation/' + model_id + '/' + attribute_id;
+    var model_override = $(clicked).data('modelOverride');
+    if (model_override !== undefined) {
+        url += '/modelOverride:' + model_override;
+    }
     $.ajax({
         beforeSend:function() {
             simulation_chart.toggleLoading(true);
             simulation_table.toggleLoading(true);
         },
         success:function (data, textStatus) {
-            simulation_chart.update(data, models[model_id]);
-            simulation_table.update(data, models[model_id]);
+            simulation_chart.update(data, data.Model);
+            simulation_table.update(data, data.Model);
             if (Object.keys(data.base_score_config.taxonomy_effective_ratios).length > 0) { // show alert base_score not set
                 $('#alert-basescore-not-set').hide();
                 $('#alert-basescore-not-set.alert-error').hide();
@@ -231,7 +247,7 @@ function doSimulation(clicked, attribute_id) {
         type:'get',
         cache: false,
         dataType: 'json',
-        url: '/decayingModel/decayingToolComputeSimulation/' + model_id + '/' + attribute_id,
+        url: url,
     });
 }
 

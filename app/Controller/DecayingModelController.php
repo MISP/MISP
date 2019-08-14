@@ -387,7 +387,7 @@ class DecayingModelController extends AppController
                 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
                 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
                 'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
-                'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'id', 'includeDecayScore', 'decayingModel', 'excludeDecayed'
+                'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'id', 'includeDecayScore', 'decayingModel', 'excludeDecayed', 'modelOverrides'
             );
             $filterData = array(
                 'request' => $this->request,
@@ -499,7 +499,8 @@ class DecayingModelController extends AppController
                 if (empty($filters['decayingModel'])) {
                     $filters['decayingModel'] = false;
                 }
-                $this->DecayingModel->attachScoresToAttribute($this->Auth->user(), $attributes[$k]['Attribute'], $filters['decayingModel']);
+                $model_overrides = isset($filters['modelOverrides']) ? $filters['modelOverrides'] : array();
+                $this->DecayingModel->attachScoresToAttribute($this->Auth->user(), $attributes[$k]['Attribute'], $filters['decayingModel'], $model_overrides);
                 if ($filters['excludeDecayed']) { // filter out decayed attribute
                     $decayed_flag = true;
                     foreach ($attributes[$k]['Attribute']['decay_score'] as $decayResult) {
@@ -527,9 +528,16 @@ class DecayingModelController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__("This method is only accessible via AJAX."));
         }
-
+        $model_overrides = array();
+        if (isset($this->params['named']['modelOverride'])) {
+            $model_overrides = $this->params['named']['modelOverride'];
+            $model_overrides = json_decode($model_overrides, true);
+            if ($model_overrides === null) {
+                $model_overrides = array();
+            }
+        }
         // contain score overtime, sightings, and base_score computation
-        $results = $this->DecayingModel->getScoreOvertime($this->Auth->user(), $model_id, $attribute_id);
+        $results = $this->DecayingModel->getScoreOvertime($this->Auth->user(), $model_id, $attribute_id, $model_overrides);
         return $this->RestResponse->viewData($results, $this->response->type());
     }
 }

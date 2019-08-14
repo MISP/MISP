@@ -3268,7 +3268,7 @@ class Attribute extends AppModel
                 }
                 if ($options['includeDecayScore']) {
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
-                    $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel']);
+                    $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides']);
                     if ($options['excludeDecayed']) { // filter out decayed attribute
                         $decayed_flag = true;
                         foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) {
@@ -4273,6 +4273,9 @@ class Attribute extends AppModel
         }
         if (!empty($filters['decayingModel'])) {
             $params['decayingModel'] = $filters['decayingModel'];
+        }
+        if (!empty($filters['modelOverrides'])) {
+            $params['modelOverrides'] = $filters['modelOverrides'];
         }
         if ($paramsOnly) {
             return $params;
