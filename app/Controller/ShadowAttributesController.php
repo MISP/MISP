@@ -925,6 +925,15 @@ class ShadowAttributesController extends AppController
         if ($eventId && is_numeric($eventId)) {
             $conditions['ShadowAttribute.event_id'] = $eventId;
         }
+        if (Validation::uuid($eventId)) {
+            $temp = $this->ShadowAttribute->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $eventId)));
+            if (empty($temp)) {
+                $id = -1;
+            } else {
+                $id = $temp['Event']['id'];
+            }
+            $conditions['ShadowAttribute.event_id'] = $id;
+        }
         $temp = $this->ShadowAttribute->buildConditions($this->Auth->user());
         if (!empty($temp)) {
             $conditions['AND'][] = $temp;
