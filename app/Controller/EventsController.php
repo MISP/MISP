@@ -4003,6 +4003,7 @@ class EventsController extends AppController
 
     public function __pushFreetext($attributes, $id, $distribution = false, $sg = false, $adhereToWarninglists = false)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         if ($distribution === false) {
             if (Configure::read('MISP.default_attribute_distribution') != null) {
                 if (Configure::read('MISP.default_attribute_distribution') == 'event') {
