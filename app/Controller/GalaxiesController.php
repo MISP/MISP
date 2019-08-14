@@ -49,17 +49,22 @@ class GalaxiesController extends AppController
 
     public function view($id)
     {
-        if (!is_numeric($id)) {
+        if (!is_numeric($id) && !Validation::uuid($id)) {
             throw new NotFoundException('Invalid galaxy.');
         }
         if (isset($this->params['named']['searchall']) && strlen($this->params['named']['searchall']) > 0) {
             $this->set('passedArgsArray', array('all' => $this->params['named']['searchall']));
         }
+        if (Validation::uuid($id)) {
+            $conditions = array('Galaxy.uuid' => $id);
+        } else {
+            $conditions = array('Galaxy.id' => $id);
+        }
         if ($this->_isRest()) {
             $galaxy = $this->Galaxy->find('first', array(
                     'contain' => array('GalaxyCluster' => array('GalaxyElement'/*, 'GalaxyReference'*/)),
                     'recursive' => -1,
-                    'conditions' => array('Galaxy.id' => $id)
+                    'conditions' => $conditions
             ));
             if (empty($galaxy)) {
                 throw new NotFoundException('Galaxy not found.');
@@ -68,7 +73,7 @@ class GalaxiesController extends AppController
         } else {
             $galaxy = $this->Galaxy->find('first', array(
                     'recursive' => -1,
-                    'conditions' => array('Galaxy.id' => $id)
+                    'conditions' => $conditions
             ));
             if (empty($galaxy)) {
                 throw new NotFoundException('Galaxy not found.');
