@@ -775,7 +775,7 @@ class ObjectsController extends AppController
 
     public function view($id)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
+        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
         if ($this->_isRest()) {
             $objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
             if (!empty($objects)) {
