@@ -8,22 +8,22 @@ class ToolboxComponent extends Component
         }
         if (Validation::uuid($id)) {
             $data = $model->find('first', array(
-                'conditions' => array($model->name . '.uuid' => $id),
+                'conditions' => array($model->alias . '.uuid' => $id),
                 'recursive' => -1,
-                'fields' => array($model->name . '.id')
+                'fields' => array($model->alias . '.id')
             ));
-            return $data[$model->name]['id'];
+            return $data[$model->alias]['id'];
         } else {
             if (!is_numeric($id)) {
-                throw new NotFoundException(__('Invalid %s.', $model->name));
+                throw new NotFoundException(__('Invalid %s.', $model->alias));
             }
             $data = $model->find('first', array(
-                'conditions' => array($model->name . '.id' => $id),
+                'conditions' => array($model->alias . '.id' => $id),
                 'recursive' => -1,
-                'fields' => array($model->name . '.id')
+                'fields' => array($model->alias . '.id')
             ));
             if (empty($data)) {
-                throw new NotFoundException(__('Invalid %s.', $model->name));
+                throw new NotFoundException(__('Invalid %s.', $model->alias));
             } else {
                 return $id;
             }
