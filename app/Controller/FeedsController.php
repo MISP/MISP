@@ -266,7 +266,6 @@ class FeedsController extends AppController
 
     public function edit($feedId)
     {
-        $feedId = $this->Toolbox->findIdByUuid($this->Feed, $feedId);
         $this->Feed->id = $feedId;
         if (!$this->Feed->exists()) {
             throw new NotFoundException(__('Invalid feed.'));
@@ -870,9 +869,6 @@ class FeedsController extends AppController
 
     public function cacheFeeds($scope = 'freetext')
     {
-        if (Validation::uuid($scope)) {
-            $scope = $this->Toolbox->findIdByUuid($this->Feed, $scope);
-        }
         if (Configure::read('MISP.background_jobs')) {
             $this->loadModel('Job');
             $this->Job->create();
