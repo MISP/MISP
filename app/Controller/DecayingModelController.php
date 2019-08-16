@@ -329,7 +329,7 @@ class DecayingModelController extends AppController
         });
         $types = array_merge($types, $objectTypes);
         ksort($types);
-        $savedDecayingModels = $this->DecayingModel->fetchAllowedModels($this->Auth->user());
+        $savedDecayingModels = $this->DecayingModel->fetchAllAllowedModels($this->Auth->user());
         $available_formulas = $this->DecayingModel->listAvailableFormulas();
 
         $this->set('available_formulas', $available_formulas);
@@ -350,7 +350,7 @@ class DecayingModelController extends AppController
     public function getAllDecayingModels()
     {
         if ($this->request->is('get') && $this->request->is('ajax')) {
-            $savedDecayingModels = $this->DecayingModel->fetchAllowedModels($this->Auth->user());
+            $savedDecayingModels = $this->DecayingModel->fetchAllAllowedModels($this->Auth->user());
             $associated_models = $this->DecayingModel->DecayingModelMapping->getAssociatedModels($this->Auth->user());
             $associated_types = array();
             foreach ($associated_models as $type => $models) {
@@ -385,7 +385,7 @@ class DecayingModelController extends AppController
         }
         $this->set('user', $this->Auth->user());
         $this->set('decaying_model', $decaying_model);
-        $allowed_models = $this->DecayingModel->fetchAllowedModels($this->Auth->user());
+        $allowed_models = $this->DecayingModel->fetchAllAllowedModels($this->Auth->user());
         $this->set('all_models', $allowed_models);
     }
 

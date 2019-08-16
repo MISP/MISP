@@ -166,7 +166,7 @@ class DecayingModel extends AppModel
         return !is_null($decaying_model['DecayingModel']['uuid']);
     }
 
-    public function fetchAllowedModels($user, $full=true)
+    public function fetchAllAllowedModels($user, $full=true)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
@@ -189,10 +189,24 @@ class DecayingModel extends AppModel
         return $decayingModels;
     }
 
+    public function fetchModels($user, $ids, $full=true, $conditions=array())
+    {
+        $models = array();
+        foreach ($ids as $id) {
+            try {
+                $model = $this->fetchModel($user, $id, $full, $conditions);
+                $models[] = $model;
+            } catch (MethodNotAllowedException $e) {
+                // Just don't add the model to the result
+            }
+        }
+        return $models;
+    }
+
     // Method that fetches decayingModel
     // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
     // - full attach Attribute types associated to the requested model
-    public function fetchModel($user, $id, $full=true, $conditions = array())
+    public function fetchModel($user, $id, $full=true, $conditions=array())
     {
         $conditions['id'] = $id;
         $searchOptions = array(
@@ -434,31 +448,26 @@ class DecayingModel extends AppModel
 
     public function attachScoresToAttribute($user, &$attribute, $model_id=false, $model_overrides=array())
     {
-        if ($model_id !== false) {
-            $model = $this->fetchModel($user, $model_id, false);
-            if ($model !== false) {
-                if (!empty($model_overrides)) {
-                    $this->overrideModelParameters($model, $model_overrides);
-                }
-                $score = $this->getScore($attribute, $model, $user);
-                $decayed = $this->isDecayed($attribute, $model, $score);
-                $attribute['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score, 'decayed' => $decayed);
-            } else {
-                throw new NotFoundException(__('Model not found or you are not authorized to view it'));
-            }
-        } else { // get score for all activated models
+        $models = array();
+        if ($model_id === false) { // fetch all allowed and associated models
             $associated_model_ids = $this->DecayingModelMapping->getAssociatedModels($user, $attribute['type'], true);
             $associated_model_ids = array_values($associated_model_ids[$attribute['type']]);
             if (!empty($associated_model_ids)) {
-                foreach ($associated_model_ids as $model_id) {
-                    $model = $this->fetchModel($user, $model_id, false);
-                    if ($model !== false && $model['DecayingModel']['enabled']) {
-                        $score = $this->getScore($attribute, $model, $user);
-                        $decayed = $this->isDecayed($attribute, $model, $score);
-                        $attribute['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score, 'decayed' => $decayed);
-                    }
-                }
+                $models = $this->fetchModels($user, $associated_model_ids, false, array('enabled' => true));
             }
+        } elseif (is_array($model_id)) {
+            $models = $this->fetchModels($user, $model_id, false, array('enabled' => true));
+        } else {
+            $models[] = $this->fetchModel($user, $model_id, false, array('enabled' => true));
+        }
+
+        foreach ($models as $i => $model) {
+            if (!empty($model_overrides)) {
+                $this->overrideModelParameters($model, $model_overrides);
+            }
+            $score = $this->getScore($attribute, $model, $user);
+            $decayed = $this->isDecayed($attribute, $model, $score);
+            $attribute['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score, 'decayed' => $decayed);
         }
     }
 
