@@ -1,6 +1,8 @@
 <?php
 
 App::uses('AppModel', 'Model');
+App::uses('Folder', 'Utility');
+App::uses('File', 'Utility');
 
 class DecayingModel extends AppModel
 {
@@ -266,26 +268,34 @@ class DecayingModel extends AppModel
 
     private function __include_formula_file_and_return_instance($filename='Polynomial.php')
     {
-        // FIXME: fetch everything, check if it exists, use the value from the list
-        $filename_no_extension = str_replace('.php', '', $filename);
-        $filename = preg_replace('/[^a-zA-Z0-9_]+/', '-', $filename_no_extension) . '.php'; // sanitization & TO BE REVIEWED
-        $full_path = APP . 'Model/DecayingModelsFormulas/' . $filename;
-        $expected_classname = $filename_no_extension;
-        if (is_file($full_path)) {
-            include_once $full_path;
-            $model_class = ClassRegistry::init($expected_classname);
-            if ($model_class->checkLoading() === 'BONFIRE LIT') {
-                return $model_class;
+        $formula_files = $this->__listPHPFormulaFiles(); // redundant in some cases but better be safe than sorry
+        $index = array_search($filename, $formula_files);
+        if ($index !== false) {
+            $filename_no_extension = str_replace('.php', '', $formula_files[$index]);
+            $expected_classname = $filename_no_extension;
+            $full_path = APP . 'Model/DecayingModelsFormulas/' . $formula_files[$index];
+            if (is_file($full_path)) {
+                include_once $full_path;
+                $model_class = ClassRegistry::init($expected_classname);
+                if ($model_class->checkLoading() === 'BONFIRE LIT') {
+                    return $model_class;
+                }
             }
         }
         return false;
     }
 
+    private function __listPHPFormulaFiles()
+    {
+        $dir = new Folder(APP . 'Model/DecayingModelsFormulas');
+        $files = $dir->find('.*\.php', true);
+        $files = array_diff($files, array('..', '.', 'Base.php'));
+        return $files;
+    }
+
     public function listAvailableFormulas()
     {
-        // FIXME: Use cakephp function
-        $path = APP . 'Model/DecayingModelsFormulas/';
-        $formula_files = array_diff(scandir($path), array('..', '.', 'Base.php'));
+        $formula_files = $this->__listPHPFormulaFiles();
         $available_formulas = array();
         foreach ($formula_files as $formula_file) {
             $model_class = $this->__include_formula_file_and_return_instance($formula_file);
