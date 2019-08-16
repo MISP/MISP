@@ -385,6 +385,7 @@
                 return data;
             },
             saveModel: function(clicked) {
+                var that = this;
                 var $clicked = $(clicked);
                 var type = 'add';
                 var model_id = false;
@@ -393,8 +394,9 @@
                     type = 'edit';
                     model_id = $clicked.data('modelid');
                 }
-                this.fetchFormAndSubmit($clicked, type, model_id, data);
-                this.registerMapping(model_id);
+                this.fetchFormAndSubmit($clicked, type, model_id, data, undefined, function(data) {
+                    that.registerMapping(data.data.DecayingModel.id);
+                });
             },
             enableModel: function(clicked, model_id) {
                 this.fetchFormAndSubmit($(clicked), 'enable', model_id, {});
@@ -402,7 +404,7 @@
             disableModel: function(clicked, model_id) {
                 this.fetchFormAndSubmit($(clicked), 'disable', model_id, {});
             },
-            fetchFormAndSubmit: function($clicked, action, model_id, formData, baseurl) {
+            fetchFormAndSubmit: function($clicked, action, model_id, formData, baseurl, callback) {
                 var that = this;
                 baseurl = baseurl === undefined || '' ? "/decayingModel/" : baseurl;
                 var url = baseurl;
@@ -440,9 +442,15 @@
                                 that.refreshTypeMappingTable(model_id);
                                 var updated_data = that.quickModelDataUpdate(model_id, {'attribute_types': data});
                                 that.refreshRow({ data: updated_data, action: 'edit'});
+                                if (callback !== undefined) {
+                                    callback();
+                                }
                             } else {
                                 showMessage('success', 'Model has been saved');
                                 that.refreshRow(data);
+                                if (callback !== undefined) {
+                                    callback(data);
+                                }
                             }
                         },
                         error: function( jqXhr, textStatus, errorThrown ){
@@ -503,7 +511,7 @@
                         }
                     });
                 } else {
-                    models.push(data.data.DecayingModel);
+                    models.push({DecayingModel: data.data.DecayingModel});
                 }
                 types[data.data.DecayingModel.id] = data.data.DecayingModelMapping;
                 this.model_table.update({
