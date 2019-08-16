@@ -183,10 +183,12 @@ class DecayingModel extends AppModel
         return $decayingModels;
     }
 
-    public function checkAuthorisation($user, $id, $full=true)
+    // Method that fetches decayingModel
+    // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
+    // - full attach Attribute types associated to the requested model
+    public function fetchModel($user, $id, $full=true, $conditions = array())
     {
-        // fetch the bare template
-        $conditions = array('id' => $id);
+        $conditions['id'] = $id;
         $searchOptions = array(
             'conditions' => $conditions,
         );
@@ -199,20 +201,18 @@ class DecayingModel extends AppModel
         if (empty($decayingModel)) {
             throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
         }
+        if (
+            !$user['Role']['perm_site_admin'] &&  // if the user is a site admin, return the model without question
+            $user['Organisation']['id'] != $decayingModel['DecayingModel']['org_id'] &&
+            !$decayingModel['DecayingModel']['all_orgs']
+        ) {
+            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
+        }
 
         if ($full) {
             $decayingModel['DecayingModel']['attribute_types'] = $this->DecayingModelMapping->getAssociatedTypes($user, $decayingModel['DecayingModel']['id']);
         }
-
-        //if the user is a site admin, return the model without question
-        if ($user['Role']['perm_site_admin']) {
-            return $decayingModel;
-        }
-
-        if ($user['Organisation']['id'] == $decayingModel['DecayingModel']['org_id'] && $user['Role']['perm_decaying']  || true) {
-            return $decayingModel;
-        }
-        return false;
+        return $decayingModel;
     }
 
     // filter out taxonomies and entries not having a numerical value
@@ -269,7 +269,7 @@ class DecayingModel extends AppModel
         $full_path = APP . 'Model/DecayingModelsFormulas/' . $filename;
         $expected_classname = $filename_no_extension;
         if (is_file($full_path)) {
-            include $full_path;
+            include_once $full_path;
             $model_class = ClassRegistry::init($expected_classname);
             if ($model_class->checkLoading() === 'BONFIRE LIT') {
                 return $model_class;
@@ -340,7 +340,7 @@ class DecayingModel extends AppModel
             $attribute['Attribute']['AttributeTag'] = $attribute['AttributeTag'];
             unset($attribute['AttributeTag']);
         }
-        $model = $this->checkAuthorisation($user, $model_id, true);
+        $model = $this->fetchModel($user, $model_id, true);
         if ($model === false) {
             throw new NotFoundException(__('Model not found'));
         }
@@ -422,7 +422,7 @@ class DecayingModel extends AppModel
     public function attachScoresToAttribute($user, &$attribute, $model_id=false, $model_overrides=array())
     {
         if ($model_id !== false) {
-            $model = $this->checkAuthorisation($user, $model_id, false);
+            $model = $this->fetchModel($user, $model_id, false);
             if ($model !== false) {
                 if (!empty($model_overrides)) {
                     $this->overrideModelParameters($model, $model_overrides);
@@ -438,7 +438,7 @@ class DecayingModel extends AppModel
             $associated_model_ids = array_values($associated_model_ids[$attribute['type']]);
             if (!empty($associated_model_ids)) {
                 foreach ($associated_model_ids as $model_id) {
-                    $model = $this->checkAuthorisation($user, $model_id, false);
+                    $model = $this->fetchModel($user, $model_id, false);
                     if ($model !== false && $model['DecayingModel']['enabled']) {
                         $score = $this->getScore($attribute, $model, $user);
                         $decayed = $this->isDecayed($attribute, $model, $score);
@@ -459,7 +459,7 @@ class DecayingModel extends AppModel
             ));
         }
         if (is_numeric($model) && $user !== false) {
-            $model = $this->checkAuthorisation($user, $model);
+            $model = $this->fetchModel($user, $model);
         }
         $this->Computation = $this->getModelClass($model);
         return $this->Computation->computeCurrentScore($user, $model, $attribute);
