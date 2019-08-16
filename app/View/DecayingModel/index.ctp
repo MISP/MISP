@@ -43,7 +43,12 @@ foreach ($decayingModel as $item): ?>
             ?>
             &nbsp;
         </td>
-        <td><a href="<?php echo $baseurl."/decayingModel/view/".$item['DecayingModel']['id']; ?>"><?php echo h($item['DecayingModel']['name']); ?>&nbsp;</a></td>
+        <td>
+            <a href="<?php echo $baseurl."/decayingModel/view/".$item['DecayingModel']['id']; ?>"><?php echo h($item['DecayingModel']['name']); ?>&nbsp;</a>
+            <?php if (!is_null($item['DecayingModel']['uuid'])): ?>
+                <img src="<?php echo $baseurl;?>/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="<?php echo __('Default Model from MISP Project'); ?>" />
+            <?php endif; ?>
+        </td>
         <td><?php echo h($item['DecayingModel']['description']); ?>&nbsp;</td>
         <?php
             if (isset($item['DecayingModel']['parameters']['base_score_config']) && empty($item['DecayingModel']['parameters']['base_score_config'])) {
