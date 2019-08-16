@@ -10,7 +10,14 @@
             h($decaying_model['DecayingModel']['org_id'])
         )
     );
-    $table_data[] = array('key' => __('Name'), 'value' => $decaying_model['DecayingModel']['name']);
+    $table_data[] = array(
+        'key' => __('Name'),
+        'html' => sprintf(
+            '%s %s',
+            h($decaying_model['DecayingModel']['name']),
+            !is_null($decaying_model['DecayingModel']['uuid']) ? '<img src="' . $baseurl . '/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="' . __('Default Model from MISP Project') . '" />' : ''
+        )
+    );
     $table_data[] = array('key' => __('Description'), 'value' => $decaying_model['DecayingModel']['description']);
     if (isset($decaying_model['DecayingModel']['parameters']['base_score_config']) && empty($decaying_model['DecayingModel']['parameters']['base_score_config'])) {
         $decaying_model['DecayingModel']['parameters']['base_score_config'] = new stdClass(); // force output to be {} instead of []
