@@ -160,24 +160,24 @@ class DecayingModel extends AppModel
         return !is_null($decaying_model['DecayingModel']['uuid']);
     }
 
-    public function fetchAllowedModels($user)
+    public function fetchAllowedModels($user, $full=true)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            if ($user['Role']['perm_decaying'] || true) {
-                $conditions['org_id'] = $user['Organisation']['id'];
-            } else {
-                return array();
-            }
+            $conditions['OR'] = array(
+                'org_id' => $user['Organisation']['id'],
+                'all_orgs' => 1
+            );
         }
         $decayingModels = $this->find('all', array(
             'conditions' => $conditions,
-            'recursive' => -1,
-            'contain' => 'DecayingModelMapping',
+            'include' => $full ? 'DecayingModelMapping' :''
         ));
-        foreach ($decayingModels as $i => $decayingModel) {
-            $decayingModels[$i]['DecayingModel']['attribute_types'] = $decayingModels[$i]['DecayingModel']['attribute_types'] + Hash::extract($decayingModels[$i]['DecayingModelMapping'], '{n}.attribute_type');
-            unset($decayingModels[$i]['DecayingModelMapping']);
+        if ($full) {
+            foreach ($decayingModels as $i => $decayingModel) { // includes both model default mapping and user mappings
+                $decayingModels[$i]['DecayingModel']['attribute_types'] = $decayingModels[$i]['DecayingModel']['attribute_types'] + Hash::extract($decayingModels[$i]['DecayingModelMapping'], '{n}.attribute_type');
+                unset($decayingModels[$i]['DecayingModelMapping']);
+            }
         }
 
         return $decayingModels;
