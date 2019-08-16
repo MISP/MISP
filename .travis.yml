@@ -84,7 +84,7 @@ install:
     - sudo cp app/Config/config.default.php app/Config/config.php
     # Ensure the perms
     - sudo chown -R $USER:www-data `pwd`/app/Config
-    - sudo chmod -R 750 `pwd`/app/Config
+    - sudo chmod -R 770 `pwd`/app/Config
     # GPG setup
     - sudo mkdir `pwd`/.gnupg
     # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
