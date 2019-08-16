@@ -353,8 +353,10 @@ class Feed extends AppModel
             $hashTable = array();
             $hitIds = array();
             $this->Event = ClassRegistry::init('Event');
+            $compositeTypes = $this->Event->Attribute->getCompositeTypes();
+
             foreach ($objects as $k => $object) {
-                if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
+                if (in_array($object['type'], $compositeTypes)) {
                     $value = explode('|', $object['value']);
                     $hashTable[$k] = md5($value[0]);
                 } else {
@@ -407,7 +409,7 @@ class Feed extends AppModel
                                     if ($source[$scope]['id'] == $currentFeed['id']) {
                                         $eventUuidHitPosition[$i] = $k;
                                         $i++;
-                                        if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
+                                        if (in_array($object['type'], $compositeTypes)) {
                                             $value = explode('|', $object['value']);
                                             $redis->smembers('misp:' . strtolower($scope) . '_cache:event_uuid_lookup:' . md5($value[0]));
                                         } else {
