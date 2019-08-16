@@ -190,10 +190,9 @@ class Warninglist extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            $redis->del('misp:warninglist_entries_cache:');
-            foreach ($warninglistEntries as $entry) {
-                $redis->sAdd('misp:warninglist_entries_cache:' . $id, $entry);
-            }
+            $key = 'misp:warninglist_entries_cache:' . $id;
+            $redis->del($key);
+            $redis->sAddArray($key, $warninglistEntries);
             return true;
         }
         return false;
