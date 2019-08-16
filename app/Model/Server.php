@@ -1162,6 +1162,7 @@ class Server extends AppModel
                                 'test' => 'testSalt',
                                 'type' => 'string',
                                 'editable' => false,
+                                'redacted' => true
                         ),
                         'syslog' => array(
                             'level' => 0,
@@ -1241,6 +1242,15 @@ class Server extends AppModel
                             'test' => 'testForEmpty',
                             'type' => 'string',
                             'null' => true
+                        ),
+                        'sync_audit' => array(
+                            'level' => 1,
+                            'description' => __('Enable this setting to create verbose logs of synced event data for debugging reasons. Logs are saved in your MISP directory\'s app/files/scripts/tmp/ directory.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
                         )
                 ),
                 'SecureAuth' => array(
@@ -1302,7 +1312,7 @@ class Server extends AppModel
                                 'description' => __('The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout.'),
                                 'value' => '',
                                 'errorMessage' => '',
-                                'test' => 'testForNumeric',
+                                'test' => 'testForCookieTimeout',
                                 'type' => 'numeric'
                         )
                 ),
@@ -3023,7 +3033,7 @@ class Server extends AppModel
     {
         $languages = $this->loadAvailableLanguages();
         if (!isset($languages[$value])) {
-            return 'Invalid language.';
+            return __('Invalid language.');
         }
         return true;
     }
@@ -3044,7 +3054,7 @@ class Server extends AppModel
     {
         $tag_collections = $this->loadTagCollections();
         if (!isset($tag_collections[intval($value)])) {
-            return 'Invalid tag_collection.';
+            return __('Invalid tag_collection.');
         }
         return true;
     }
@@ -3052,7 +3062,19 @@ class Server extends AppModel
     public function testForNumeric($value)
     {
         if (!is_numeric($value)) {
-            return 'This setting has to be a number.';
+            return __('This setting has to be a number.');
+        }
+        return true;
+    }
+
+    public function testForCookieTimeout($value)
+    {
+        $numeric = $this->testForNumeric($value);
+        if ($numeric !== true) {
+            return $numeric;
+        }
+        if ($value < Configure::read('Session.timeout') && $value !== 0) {
+            return __('The cookie timeout is currently lower than the session timeout. This will invalidate the cookie before the session expires.');
         }
         return true;
     }
@@ -3765,7 +3787,7 @@ class Server extends AppModel
         }
         $settingsToSave = array(
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
-            'Security', 'Session.defaults', 'Session.timeout', 'Session.cookie_timeout',
+            'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
             'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'
         );

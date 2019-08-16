@@ -1215,6 +1215,18 @@ class ServersController extends AppController
         $this->render('ajax/submoduleStatus');
     }
 
+    public function getSetting($setting_name)
+    {
+        $setting = $this->Server->getSettingData($setting_name);
+        if (!empty($setting["redacted"])) {
+            throw new MethodNotAllowedException(__('This setting is redacted.'));
+        }
+        if (Configure::check($setting_name)) {
+            $setting['value'] = Configure::read($setting_name);
+        }
+        return $this->RestResponse->viewData($setting);
+    }
+
     public function serverSettingsEdit($setting_name, $id = false, $forceSave = false)
     {
         if (!$this->_isSiteAdmin()) {
@@ -1993,14 +2005,27 @@ misp.direct_call(relative_path, body)
                 $baseurl = Router::url('/', true);
             }
         }
+        $host_org_id = Configure::read('MISP.host_org_id');
+        if (empty($host_org_id)) {
+            throw new MethodNotAllowedException(__('Cannot create sync config - no host org ID configured for the instance.'));
+        }
+        $this->loadModel('Organisation');
+        $host_org = $this->Organisation->find('first', array(
+            'conditions' => array('Organisation.id' => $host_org_id),
+            'recursive' => -1,
+            'fields' => array('name', 'uuid')
+        ));
+        if (empty($host_org)) {
+            throw new MethodNotAllowedException(__('Configured host org not found. Please make sure that the setting is current on the instance.'));
+        }
         $server = array(
             'Server' => array(
                 'url' => $baseurl,
                 'uuid' => Configure::read('MISP.uuid'),
                 'authkey' => $this->Auth->user('authkey'),
                 'Organisation' => array(
-                    'name' => $this->Auth->user('Organisation')['name'],
-                    'uuid' => $this->Auth->user('Organisation')['uuid']
+                    'name' => $host_org['Organisation']['name'],
+                    'uuid' => $host_org['Organisation']['uuid'],
                 )
             )
         );

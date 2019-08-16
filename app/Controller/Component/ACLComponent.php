@@ -341,6 +341,7 @@ class ACLComponent extends Component
                     'getGit' => array(),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
+                    'getSetting' => array(),
                     'getSubmodulesStatus' => array('perm_site_admin'),
                     'getSubmoduleQuickUpdateForm' => array('perm_site_admin'),
                     'getWorkers' => array(),

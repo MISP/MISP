@@ -41,13 +41,15 @@ from cybox.objects.win_service_object import WinService
 from cybox.objects.win_user_object import WinUser
 from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
 from cybox.utils import Namespace
-from stix.common import InformationSource, Identity
+from stix.coa import CourseOfAction
+from stix.common import InformationSource, Identity, ToolInformation
 from stix.common.confidence import Confidence
 from stix.common.related import RelatedIndicator, RelatedObservable, RelatedThreatActor, RelatedTTP
 from stix.common.vocabs import IncidentStatus
 from stix.core import STIXPackage, STIXHeader
 from stix.data_marking import Marking, MarkingSpecification
-from stix.exploit_target import ExploitTarget, Vulnerability
+from stix.exploit_target import ExploitTarget, Vulnerability, Weakness
+from stix.exploit_target.vulnerability import CVSSVector
 from stix.extensions.identity.ciq_identity_3_0 import CIQIdentity3_0Instance, STIXCIQIdentity3_0, PartyName, ElectronicAddressIdentifier, FreeTextAddress
 from stix.extensions.identity.ciq_identity_3_0 import Address as ciq_Address
 from stix.extensions.marking.tlp import TLPMarkingStructure
@@ -58,7 +60,9 @@ from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
 from stix.threat_actor import ThreatActor
 from stix.ttp import TTP, Behavior
+from stix.ttp.attack_pattern import AttackPattern
 from stix.ttp.malware_instance import MalwareInstance
+from stix.ttp.resource import Resource, Tools
 
 try:
     from stix.utils import idgen
@@ -99,6 +103,13 @@ class StixBuilder(object):
         self.simple_type_to_method.update(dict.fromkeys(["email-attachment"], self.generate_email_attachment_observable))
         self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], self.resolve_malware_sample))
         ## MAPPING FOR OBJECTS
+        self.ttp_names = {'attack-pattern': self.parse_attack_pattern,
+                          'course-of-action': self.parse_course_of_action,
+                          'vulnerability': self.parse_vulnerability,
+                          'weakness': self.parse_weakness}
+        self.types_mapping = {CourseOfAction: 'add_course_of_action',
+                              ThreatActor: 'add_threat_actor',
+                              TTP: 'add_ttp'}
         self.objects_mapping = {"asn": self.parse_asn_object,
                                 "credential": self.parse_credential_object,
                                 "domain-ip": self.parse_domain_ip_object,
@@ -153,9 +164,25 @@ class StixBuilder(object):
         stix_header.package_intents = "Threat Report"
         self.create_incident(self.orgname)
         self.generate_stix_objects()
+        if self.galaxies.get('course_of_action'):
+            for course_of_action in self.galaxies['course_of_action']:
+                stix_package.add_course_of_action(course_of_action)
+                rcoa = CourseOfAction(idref=course_of_action.id_, timestamp=course_of_action.timestamp)
+                self.incident.add_coa_taken(rcoa)
+        if self.galaxies.get('threat_actor'):
+            ata = AttributedThreatActors()
+            for threat_actor in self.galaxies['threat_actor']:
+                stix_package.add_threat_actor(threat_actor)
+                rta = ThreatActor(idref=threat_actor.id_, timestamp=threat_actor.timestamp)
+                related_ta = RelatedThreatActor(rta, relationship='ThreatActor')
+                ata.append(related_ta)
+            self.incident.attributed_threat_actors = ata
         stix_package.add_incident(self.incident)
         for ttp in self.ttps:
             stix_package.add_ttp(ttp)
+        for uuid, ttp in self.ttps_from_objects.items():
+            self.parse_ttp_references(uuid, ttp)
+            getattr(stix_package, self.types_mapping[type(ttp)])(ttp)
         if self.header_comment and len(self.header_comment) == 1:
             stix_header.description = self.header_comment[0]
         stix_package.stix_header = stix_header
@@ -193,15 +220,18 @@ class StixBuilder(object):
         self.incident.information_source = self.set_src()
         self.orgc_name = self.misp_event['Orgc'].get('name')
         self.incident.reporter = self.set_rep()
+        self.galaxies = defaultdict(list)
         self.ttps = []
+        self.ttps_from_objects = {}
+        self.ttp_references = {}
+        self.resolve_galaxies()
         self.resolve_attributes()
         self.resolve_objects()
-        self.add_related_indicators()
         if self.history.history_items:
             self.incident.history = self.history
 
     def create_incident(self, org):
-        incident_id = "{}:incident-{}".format(org, self.misp_event['uuid'])
+        incident_id = "{}:Incident-{}".format(org, self.misp_event['uuid'])
         incident = Incident(id_=incident_id, title=self.misp_event['info'])
         timestamp = self.get_datetime_from_timestamp(self.misp_event['publish_timestamp'])
         incident.timestamp = timestamp
@@ -210,6 +240,12 @@ class StixBuilder(object):
         incident_time.incident_reported = timestamp
         incident.time = incident_time
         self.incident = incident
+
+    def resolve_galaxies(self):
+        for galaxy in self.misp_event.get('Galaxy', []):
+            galaxy_type = galaxy['type']
+            if galaxy_type in galaxy_types_mapping:
+                getattr(self, galaxy_types_mapping[galaxy_type])(galaxy)
 
     def resolve_attributes(self):
         for attribute in self.misp_event['Attribute']:
@@ -231,20 +267,23 @@ class StixBuilder(object):
             name = misp_object['name']
             if name == 'original-imported-file':
                 continue
-            category = misp_object.get('meta-category')
-            try:
-                to_ids, observable = self.objects_mapping[name](misp_object)
-            except KeyError:
-                to_ids, observable = self.create_custom_observable(name, misp_object['Attribute'], misp_object['uuid'])
-            except TypeError:
-                continue
-            if to_ids:
-                indicator = self.create_indicator(misp_object, observable)
-                related_indicator = RelatedIndicator(indicator, relationship=category)
-                self.incident.related_indicators.append(related_indicator)
+            if name in self.ttp_names:
+                self.ttp_names[name](misp_object)
             else:
-                related_observable = RelatedObservable(observable, relationship=category)
-                self.incident.related_observables.append(related_observable)
+                category = misp_object.get('meta-category')
+                try:
+                    to_ids, observable = self.objects_mapping[name](misp_object)
+                except KeyError:
+                    to_ids, observable = self.create_custom_observable(name, misp_object['Attribute'], misp_object['uuid'])
+                except TypeError:
+                    continue
+                if to_ids:
+                    indicator = self.create_indicator(misp_object, observable)
+                    related_indicator = RelatedIndicator(indicator, relationship=category)
+                    self.incident.related_indicators.append(related_indicator)
+                else:
+                    related_observable = RelatedObservable(observable, relationship=category)
+                    self.incident.related_observables.append(related_observable)
         if self.objects_to_parse:
             self.resolve_objects2parse()
 
@@ -303,6 +342,13 @@ class StixBuilder(object):
         pe_headers.file_header = pe_file_header
         return pe_headers, pe_sections
 
+    def parse_ttp_references(self, uuid, ttp):
+        if uuid in self.ttp_references:
+            for referenced_uuid, relationship in self.ttp_references[uuid]:
+                if referenced_uuid in self.ttps_from_objects and isinstance(self.ttps_from_objects[referenced_uuid], TTP):
+                    referenced_ttp = self.ttps_from_objects[referenced_uuid]
+                    ttp.add_related_ttp(self.append_ttp_from_object(relationship, referenced_ttp))
+
     def create_indicator(self, misp_object, observable):
         indicator = Indicator(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
         indicator.id_ = "{}:MISPObject-{}".format(self.orgname, misp_object['uuid'])
@@ -346,8 +392,7 @@ class StixBuilder(object):
     def handle_non_indicator_attribute(self, attribute):
         attribute_type = attribute['type']
         if attribute_type == "vulnerability":
-            ttp = self.generate_vulnerability(attribute)
-            self.incident.leveraged_ttps.append(self.append_ttp(attribute['category'], ttp))
+            self.generate_vulnerability(attribute)
         elif attribute_type == "link":
             self.add_reference(attribute['value'])
         elif attribute_type in ('comment', 'text', 'other'):
@@ -371,14 +416,7 @@ class StixBuilder(object):
             ttp = self.generate_ttp(attribute)
             self.incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
         elif attribute_category == "Attribution":
-            ta = self.generate_threat_actor(attribute)
-            rta = RelatedThreatActor(ta, relationship="Attribution")
-            if self.incident.attributed_threat_actors:
-                self.incident.attributed_threat_actors.append(rta)
-            else:
-                ata = AttributedThreatActors()
-                ata.append(rta)
-                self.incident.attributed_threat_actors = ata
+            self.ttps_from_objects[attribute['uuid']] = self.generate_threat_actor(attribute)
         else:
             entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute['type'], attribute['value'])
             self.add_journal_entry(entry_line)
@@ -490,7 +528,7 @@ class StixBuilder(object):
         observable_object = Object(observable_property)
         observable_object.id_ = "{}:{}-{}".format(self.namespace_prefix, observable_property.__class__.__name__, attribute_uuid)
         observable = Observable(observable_object)
-        observable.id_ = "{}:observable-{}".format(self.namespace_prefix, attribute_uuid)
+        observable.id_ = "{}:Observable-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
     def generate_port_observable(self, attribute):
@@ -560,7 +598,7 @@ class StixBuilder(object):
     def generate_threat_actor(self, attribute):
         attribute_value = attribute['value']
         ta = ThreatActor(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
-        ta.id_ = "{}:threatactor-{}".format(self.orgname, attribute['uuid'])
+        ta.id_ = "{}:ThreatActor-{}".format(self.orgname, attribute['uuid'])
         ta.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute_value, attribute['id'])
         description = attribute_value
         if attribute.get('comment'):
@@ -595,14 +633,15 @@ class StixBuilder(object):
         vulnerability = Vulnerability()
         vulnerability.cve_id = attribute['value']
         ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
-        ET.id_ = "{}:et-{}".format(self.orgname, attribute['uuid'])
+        uuid = attribute['uuid']
+        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, uuid)
         if attribute.get('comment') and attribute['comment'] != "Imported via the freetext import.":
             ET.title = attribute['comment']
         else:
             ET.title = "Vulnerability {}".format(attribute['value'])
         ET.add_vulnerability(vulnerability)
-        ttp.exploit_targets.append(ET)
-        return ttp
+        ttp.add_exploit_target(ET)
+        self.ttps_from_objects[uuid] = ttp
 
     def parse_asn_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
@@ -620,6 +659,41 @@ class StixBuilder(object):
         observable = Observable(auto_sys)
         observable.id_ = "{}:AutonomousSystem-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
+
+    def parse_attack_pattern(self, misp_object):
+        ttp = self.create_ttp_from_object(misp_object)
+        attack_pattern = AttackPattern()
+        uuid = misp_object['uuid']
+        attack_pattern.id_ = "{}:AttackPattern-{}".format(self.namespace_prefix, uuid)
+        attributes_dict = self.create_ttp_attributes_dict(misp_object['Attribute'])
+        for relation, feature in attack_pattern_object_mapping.items():
+            if relation in attributes_dict:
+                setattr(attack_pattern, feature, attributes_dict[relation])
+        if misp_object.get('ObjectReference'):
+            references = ((reference['referenced_uuid'], reference['relationship_type']) for reference in misp_object['ObjectReference'])
+            self.ttp_references[uuid] = references
+        behavior = Behavior()
+        behavior.add_attack_pattern(attack_pattern)
+        ttp.behavior = behavior
+        self.ttps_from_objects[uuid] = ttp
+
+    def parse_attack_pattern_galaxy(self, galaxy):
+        galaxy_name = galaxy['name']
+        for cluster in galaxy['GalaxyCluster']:
+            uuid = cluster['collection_uuid']
+            ttp = self.create_ttp_from_galaxy(uuid, galaxy_name, cluster['id'], cluster['type'])
+            attack_pattern = AttackPattern()
+            attack_pattern.id_ = "{}:AttackPattern-{}".format(self.namespace_prefix, uuid)
+            attack_pattern.title = cluster['value']
+            attack_pattern.description = cluster['description']
+            if cluster['meta'].get('external_id'):
+                external_id = cluster['meta']['external_id'][0]
+                if external_id.startswith('CAPEC'):
+                    attack_pattern.capec_id = external_id.split('-')[1]
+            behavior = Behavior()
+            behavior.add_attack_pattern(attack_pattern)
+            ttp.behavior = behavior
+            self.incident.add_leveraged_ttps(self.append_ttp(galaxy_name, ttp))
 
     def parse_credential_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
@@ -680,6 +754,28 @@ class StixBuilder(object):
             auth.authentication_data = password
             authentication_list.append(auth)
         return authentication_list
+
+    def parse_course_of_action(self, misp_object):
+        attributes_dict = self.create_ttp_attributes_dict(misp_object['Attribute'])
+        course_of_action = CourseOfAction()
+        uuid = misp_object['uuid']
+        course_of_action.id_ = "{}:CourseOfAction-{}".format(self.namespace_prefix, uuid)
+        if 'name' in attributes_dict:
+            course_of_action.title = attributes_dict['name']
+        for feature in course_of_action_object_keys:
+            if feature in attributes_dict:
+                setattr(course_of_action, feature, attributes_dict[feature])
+        self.ttps_from_objects[uuid] = course_of_action
+
+    def parse_course_of_action_galaxy(self, galaxy):
+        galaxy_name = galaxy['name']
+        for cluster in galaxy['GalaxyCluster']:
+            uuid = cluster['collection_uuid']
+            course_of_action = CourseOfAction()
+            course_of_action.id_ = "{}:CourseOfAction-{}".format(self.namespace_prefix, uuid)
+            course_of_action.title = cluster['value']
+            course_of_action.description = cluster['description']
+            self.galaxies['course_of_action'].append(course_of_action)
 
     @staticmethod
     def parse_credential_types(credential_types):
@@ -775,6 +871,24 @@ class StixBuilder(object):
         if len(composition) == 1:
             return to_ids, composition[0]
         return to_ids, self.create_observable_composition(composition, misp_object['uuid'], "ip-port")
+
+    def parse_malware_galaxy(self, galaxy):
+        galaxy_name = galaxy['name']
+        for cluster in galaxy['GalaxyCluster']:
+            uuid = cluster['collection_uuid']
+            ttp = self.create_ttp_from_galaxy(uuid, galaxy_name, cluster['id'], cluster['type'])
+            malware = MalwareInstance()
+            malware.id_ = "{}:MalwareInstance-{}".format(self.namespace_prefix, uuid)
+            malware.title = cluster['value']
+            if cluster.get('description'):
+                malware.description = cluster['description']
+            if cluster['meta'].get('synonyms'):
+                for synonym in cluster['meta']['synonyms']:
+                    malware.add_name(synonym)
+            behavior = Behavior()
+            behavior.add_malware_instance(malware)
+            ttp.behavior = behavior
+            self.incident.add_leveraged_ttps(self.append_ttp(galaxy_name, ttp))
 
     def parse_network_connection_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
@@ -875,6 +989,42 @@ class StixBuilder(object):
         observable.id_ = "{}:WinRegistryKey-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
+    def parse_threat_actor_galaxy(self, galaxy):
+        galaxy_name = galaxy['name']
+        for cluster in galaxy['GalaxyCluster']:
+            uuid = cluster['collection_uuid']
+            threat_actor = ThreatActor()
+            threat_actor.id_ = "{}:ThreatActor-{}".format(self.namespace_prefix, uuid)
+            threat_actor.title = cluster['value']
+            if cluster.get('description'):
+                threat_actor.description = cluster['description']
+            meta = cluster['meta']
+            if meta.get('cfr-type-of-incident'):
+                intended_effect = meta['cfr-type-of-incident']
+                if isinstance(intended_effect, list):
+                    for effect in intended_effect:
+                        threat_actor.add_intended_effect(effect)
+                else:
+                    threat_actor.add_intended_effect(meta['cfr-type-of-incident'])
+            self.galaxies['threat_actor'].append(threat_actor)
+
+    def parse_tool_galaxy(self, galaxy):
+        galaxy_name = galaxy['name']
+        for cluster in galaxy['GalaxyCluster']:
+            uuid = cluster['collection_uuid']
+            ttp = self.create_ttp_from_galaxy(uuid, galaxy_name, cluster['id'], cluster['type'])
+            tool = ToolInformation()
+            tool.id_ = "{}:ToolInformation-{}".format(self.namespace_prefix, uuid)
+            tool.name = cluster['value']
+            if cluster.get('description'):
+                tool.description = cluster['description']
+            tools = Tools()
+            tools.tool = tool
+            resource = Resource()
+            resource.tools = tools
+            ttp.resources = resource
+            self.incident.add_leveraged_ttps(self.append_ttp(galaxy_name, ttp))
+
     def parse_url_object(self, misp_object):
         observables = []
         to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'], with_uuid=True)
@@ -908,6 +1058,47 @@ class StixBuilder(object):
         observable = Observable(user_account)
         observable.id_ = "{}:{}-{}".format(self.namespace_prefix, account_type, uuid)
         return to_ids, observable
+
+    def parse_vulnerability(self, misp_object):
+        ttp = self.create_ttp_from_object(misp_object)
+        vulnerability = Vulnerability()
+        attributes_dict = self.create_ttp_attributes_dict_multiple(misp_object['Attribute'])
+        for relation, feature in vulnerability_object_mapping.items():
+            if relation in attributes_dict:
+                setattr(vulnerability, feature, attributes_dict[relation][0])
+        if 'cvss-score' in attributes_dict:
+            cvss = CVSSVector()
+            cvss.overall_score = attributes_dict['cvss-score'][0]
+            vulnerability.cvss_score = cvss
+        if 'references' in attributes_dict:
+            for reference in attributes_dict['references']:
+                vulnerability.add_reference(reference)
+        uuid = misp_object['uuid']
+        if misp_object.get('ObjectReference'):
+            references = ((reference['referenced_uuid'], reference['relationship_type']) for reference in misp_object['ObjectReference'])
+            self.ttp_references[uuid] = references
+        ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
+        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, uuid)
+        ET.add_vulnerability(vulnerability)
+        ttp.add_exploit_target(ET)
+        self.ttps_from_objects[uuid] = ttp
+
+    def parse_weakness(self, misp_object):
+        ttp = self.create_ttp_from_object(misp_object)
+        weakness = Weakness()
+        attributes_dict = self.create_ttp_attributes_dict(misp_object['Attribute'])
+        for relation, feature in weakness_object_mapping.items():
+            if relation in attributes_dict:
+                setattr(weakness, feature, attributes_dict[relation])
+        uuid = misp_object['uuid']
+        if misp_object.get('ObjectReference'):
+            references = ((reference['referenced_uuid'], reference['relationship_type']) for reference in misp_object['ObjectReference'])
+            self.ttp_references[uuid] = references
+        ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
+        ET.id_ = "{}:ExploitTarget-{}".format(self.orgname, uuid)
+        ET.add_weakness(weakness)
+        ttp.add_exploit_target(ET)
+        self.ttps_from_objects[uuid] = ttp
 
     def parse_whois(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
@@ -1209,37 +1400,68 @@ class StixBuilder(object):
         related_ttp = RelatedTTP(rttp, relationship=category)
         return related_ttp
 
-    def create_ttp(self, attribute, tags):
+    def append_ttp_from_object(self, category, ttp):
+        rttp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
+        related_ttp = RelatedTTP(rttp, relationship=category)
+        return related_ttp
+
+    def create_ttp(self, attribute):
         ttp = TTP(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
-        ttp.id_ = "{}:ttp-{}".format(self.orgname, attribute['uuid'])
-        handling = self.set_tlp(self.merge_tags(tags, attribute))
+        ttp.id_ = "{}:TTP-{}".format(self.orgname, attribute['uuid'])
+        tags = tuple(tag['name'] for tag in attribute['Tag']) if attribute.get('Tag') else []
+        handling = self.set_tlp(tags)
         if handling is not None:
             ttp.handling = handling
         ttp.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute['value'], attribute['id'])
+        return ttp
+
+    def create_ttp_from_galaxy(self, uuid, galaxy_name, cluster_id, cluster_type):
+        ttp = TTP()
+        ttp.id_ = "{}:TTP-{}".format(self.namespace_prefix, uuid)
+        ttp.title = "{}: {} (MISP GalaxyCluster #{})".format(galaxy_name, cluster_type, cluster_id)
+        return ttp
+
+    def create_ttp_from_object(self, misp_object):
+        ttp = TTP(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
+        ttp.id_ = "{}:TTP-{}".format(self.orgname, misp_object['uuid'])
+        tags = self.merge_tags(misp_object['Attribute'])
+        handling = self.set_tlp(tags)
+        if handling is not None:
+            ttp.handling = handling
+        ttp.title = "{}: {} (MISP Object #{})".format(misp_object['meta-category'], misp_object['name'], misp_object['id'])
         return ttp
 
     def create_attributes_dict(self, attributes, with_uuid=False):
         to_ids = self.fetch_ids_flags(attributes)
         if with_uuid:
             return to_ids, {attribute['object_relation']: {'value': attribute['value'], 'uuid': attribute['uuid']} for attribute in attributes}
-        return to_ids, {attribute['object_relation']: attribute['value'] for attribute in attributes}
+        return to_ids, self.create_ttp_attributes_dict(attributes)
 
     def create_attributes_dict_multiple(self, attributes, with_uuid=False):
         to_ids = self.fetch_ids_flags(attributes)
-        attributes_dict = defaultdict(list)
         if with_uuid:
+            attributes_dict = defaultdict(list)
             for attribute in attributes:
                 attribute_dict = {'value': attribute['value'], 'uuid': attribute['uuid']}
                 attributes_dict[attribute['object_relation']].append(attribute_dict)
-        else:
-            for attribute in attributes:
-                attributes_dict[attribute['object_relation']].append(attribute['value'])
-        return to_ids, attributes_dict
+            return to_ids, attributes_dict
+        return to_ids, self.create_ttp_attributes_dict_multiple(attributes)
 
     def create_file_attributes_dict(self, attributes):
         to_ids = self.fetch_ids_flags(attributes)
         attributes_dict = {attribute['object_relation']: {field: attribute[field] for field in ('value', 'uuid', 'data')} if 'data' in attribute and attribute['data'] else attribute['value'] for attribute in attributes}
         return to_ids, attributes_dict
+
+    @staticmethod
+    def create_ttp_attributes_dict(attributes):
+        return {attribute['object_relation']: attribute['value'] for attribute in attributes}
+
+    @staticmethod
+    def create_ttp_attributes_dict_multiple(attributes):
+        attributes_dict = defaultdict(list)
+        for attribute in attributes:
+            attributes_dict[attribute['object_relation']].append(attribute['value'])
+        return attributes_dict
 
     def create_x509_attributes_dict(self, attributes):
         to_ids = self.fetch_ids_flags(attributes)

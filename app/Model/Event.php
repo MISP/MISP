@@ -255,6 +255,7 @@ class Event extends AppModel
         'info' => array(
             'valueNotEmpty' => array(
                 'rule' => array('valueNotEmpty'),
+                'required' => true
             ),
         ),
         'user_id' => array(
@@ -1111,6 +1112,8 @@ class Event extends AppModel
                 if (!$found) {
                     return 403;
                 }
+            } else if (empty($event['SharingGroup']['roaming'])) {
+                return 403;
             }
         }
         $serverModel = ClassRegistry::init('Server');
@@ -1179,6 +1182,16 @@ class Event extends AppModel
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
         $data = json_encode($event);
+        if (!empty(Configure::read('Security.sync_audit'))) {
+            $pushLogEntry = sprintf(
+                "==============================================================\n\n[%s] Pushing Event #%d to Server #%d:\n\n%s\n\n",
+                date("Y-m-d H:i:s"),
+                $event['Event']['id'],
+                $server['Server']['id'],
+                $data
+            );
+            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
+        }
         $response = $HttpSocket->post($uri, $data, $request);
         return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
     }
@@ -1243,7 +1256,7 @@ class Event extends AppModel
                 if (empty($data['Object'][$key])) {
                     unset($data['Object'][$key]);
                 } else {
-                    $data['Object'][$key]['Attribute'] = $this->__prepareAttributesForSync($data['Object'][$key]['Attribute'], $server);
+                    $data['Object'][$key] = $this->__prepareAttributesForSync($data['Object'][$key], $server);
                 }
             }
             $data['Object'] = array_values($data['Object']);
@@ -3364,6 +3377,22 @@ class Event extends AppModel
                 return 'Blocked by blacklist';
             }
         }
+        if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published'])) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $validationErrors['Event'] = 'Received a published event that was empty. Event add process blocked.';
+            $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'Event',
+                    'model_id' => 0,
+                    'email' => $user['email'],
+                    'action' => 'add',
+                    'user_id' => $user['id'],
+                    'title' => $validationErrors['Event'],
+                    'change' => ''
+            ));
+            return json_encode($validationErrors);
+        }
         $this->create();
         // force check userid and orgname to be from yourself
         $data['Event']['user_id'] = $user['id'];
@@ -3463,39 +3492,39 @@ class Event extends AppModel
             return json_encode($validationErrors);
         }
         $fieldList = array(
-                'Event' => array(
-                    'org_id',
-                    'orgc_id',
-                    'date',
-                    'threat_level_id',
-                    'analysis',
-                    'info',
-                    'user_id',
-                    'published',
-                    'uuid',
-                    'timestamp',
-                    'distribution',
-                    'sharing_group_id',
-                    'locked',
-                    'disable_correlation',
-                    'extends_uuid'
-                ),
-                'Attribute' => $this->Attribute->captureFields,
-                'Object' => array(
-                    'name',
-                    'meta-category',
-                    'description',
-                    'template_uuid',
-                    'template_version',
-                    'event_id',
-                    'uuid',
-                    'timestamp',
-                    'distribution',
-                    'sharing_group_id',
-                    'comment',
-                    'deleted'
-                ),
-                'ObjectRelation' => array()
+            'Event' => array(
+                'org_id',
+                'orgc_id',
+                'date',
+                'threat_level_id',
+                'analysis',
+                'info',
+                'user_id',
+                'published',
+                'uuid',
+                'timestamp',
+                'distribution',
+                'sharing_group_id',
+                'locked',
+                'disable_correlation',
+                'extends_uuid'
+            ),
+            'Attribute' => $this->Attribute->captureFields,
+            'Object' => array(
+                'name',
+                'meta-category',
+                'description',
+                'template_uuid',
+                'template_version',
+                'event_id',
+                'uuid',
+                'timestamp',
+                'distribution',
+                'sharing_group_id',
+                'comment',
+                'deleted'
+            ),
+            'ObjectRelation' => array()
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
         $this->Log = ClassRegistry::init('Log');
@@ -4389,7 +4418,7 @@ class Event extends AppModel
         foreach ($eventArray as $k => &$event) {
             $uuidsToCheck[$event['uuid']] = $k;
         }
-        $localEvents = $this->find('list', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp')));
+        $localEvents = array();
         $temp = $this->find('all', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked')));
         foreach ($temp as $e) {
             $localEvents[$e['Event']['uuid']] = array('timestamp' => $e['Event']['timestamp'], 'locked' => $e['Event']['locked']);
@@ -6243,6 +6272,9 @@ class Event extends AppModel
                 if (isset($object['meta_category']) && !isset($object['meta-category'])) {
                     $object['meta-category'] = $object['meta_category'];
                     unset($object['meta_category']);
+                }
+                if (empty($object['comment'])) {
+                    $object['comment'] = $default_comment;
                 }
                 $object['event_id'] = $id;
                 if (isset($object['id']) && $object['id'] == $initial_object_id) {

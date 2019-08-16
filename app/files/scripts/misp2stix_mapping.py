@@ -30,6 +30,22 @@ misp_indicator_type.update(dict.fromkeys(["domain", "domain|ip", "hostname"], "D
 misp_indicator_type.update(dict.fromkeys(["regkey", "regkey|value"], "Host Characteristics"))
 cybox_validation = {"AutonomousSystem": "isInt"}
 
+galaxy_types_mapping = dict.fromkeys(['mitre-attack-pattern', 'mitre-enterprise-attack-attack-pattern',
+                                      'mitre-mobile-attack-attack-pattern', 'mitre-pre-attack-attack-pattern'],
+                                     'parse_attack_pattern_galaxy')
+galaxy_types_mapping.update(dict.fromkeys(['mitre-course-of-action',
+                                           'mitre-entreprise-attack-course-of-action',
+                                           'mitre-mobile-attack-course-of-action'],
+                                          'parse_course_of_action_galaxy'))
+galaxy_types_mapping.update(dict.fromkeys(['android', 'banker', 'stealer', 'backdoor', 'ransomware', 'mitre-malware',
+                                           'mitre-enterprise-attack-malware', 'mitre-mobile-attack-malware'],
+                                          'parse_malware_galaxy'))
+galaxy_types_mapping.update(dict.fromkeys(['threat-actor', 'microsoft-activity-group'],
+                                          'parse_threat_actor_galaxy'))
+galaxy_types_mapping.update(dict.fromkeys(['botnet', 'rat', 'exploit-kit', 'tds', 'tool', 'mitre-tool',
+                                           'mitre-enterprise-attack-tool', 'mitre-mobile-attack-tool'],
+                                          'parse_tool_galaxy'))
+
 # mapping Windows Registry Hives and their abbreviations
 # see https://cybox.mitre.org/language/version2.1/xsddocs/objects/Win_Registry_Key_Object_xsd.html#RegistryHiveEnum
 # the dict keys must be UPPER CASE and end with \\
@@ -55,6 +71,8 @@ misp_reghive = {
 }
 
 
+attack_pattern_object_mapping = {'id': 'capec_id', 'name': 'title', 'summary': 'description'}
+course_of_action_object_keys = ('type', 'description', 'objective', 'stage', 'cost', 'impact', 'efficacy')
 email_object_mapping = {'from': 'from_', 'reply-to': 'reply_to', 'subject': 'subject',
                         'x-mailer': 'x_mailer', 'mime-boundary': 'boundary', 'user-agent': 'user_agent'}
 file_object_mapping = {'path': 'full_path', 'size-in-bytes': 'size_in_bytes', 'entropy': 'peak_entropy'}
@@ -65,6 +83,8 @@ user_account_object_mapping = {'username': 'username', 'display-name': 'full_nam
                                'disabled': 'disabled', 'created': 'creation_date',
                                'last_login': 'last_login', 'home_dir': 'home_directory',
                                'shell': 'script_path'}
+vulnerability_object_mapping = {'id': 'cve_id', 'summary': 'description', 'published': 'published_datetime'}
+weakness_object_mapping = {'id': 'cwe_id', 'description': 'description'}
 whois_object_mapping = {'creation-date': 'creation_date', 'modification-date': 'updated_date',
                         'expiration-date': 'expiration_date'}
 whois_registrant_mapping = {'registrant-name': 'name', 'registrant-phone': 'phone_number',
