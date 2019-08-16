@@ -24,11 +24,12 @@
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo $this->Paginator->sort('description');?></th>
             <th>
-                <?php echo $this->Paginator->sort('parameters');?>
-                <a class="black useCursorPointer" title="<?php echo __('Pretty print') ?>"><b style="font-size: larger;" onclick="prettyPrintJson();">{ }</b></a>
+                <?php echo __('Parameters'); ?>
+                <a class="useCursorPointer" title="<?php echo __('Pretty print') ?>"><b style="font-size: larger;" onclick="prettyPrintJson();">{ }</b></a>
 
             </th>
             <th><?php echo $this->Paginator->sort('formula');?></th>
+            <th><?php echo __('# Assigned Types') ?></th>
             <th><?php echo $this->Paginator->sort('version');?></th>
             <th><?php echo $this->Paginator->sort('enabled');?></th>
             <?php if ($isAclTemplate): ?>
@@ -59,6 +60,7 @@ foreach ($decayingModel as $item): ?>
         ?>
         <td data-toggle="json" ondblclick="document.location.href ='<?php echo $baseurl."/decayingModel/view/".$item['DecayingModel']['id']; ?>'"><?php echo json_encode($item['DecayingModel']['parameters']); ?>&nbsp;</td>
         <td><?php echo h($item['DecayingModel']['formula']); ?>&nbsp;</td>
+        <td><?php echo count($item['DecayingModel']['attribute_types']); ?>&nbsp;</td>
         <td><?php echo h($item['DecayingModel']['version']); ?>&nbsp;</td>
         <td><i class="fas fa-<?php echo $item['DecayingModel']['enabled'] ? 'check' : 'times';?>"></i></td>
         <?php if ($isAclTemplate): ?>
@@ -66,7 +68,11 @@ foreach ($decayingModel as $item): ?>
             <?php echo $this->Html->link('', array('action' => 'view', $item['DecayingModel']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
             <?php echo $this->Html->link('', array('action' => 'edit', $item['DecayingModel']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
             <?php echo $this->Html->link('', array('action' => 'export', $item['DecayingModel']['id'] . '.json'), array('download' => true, 'class' => 'fa fa-cloud-download-alt', 'title' => __('Download model')));?>
-            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['DecayingModel']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete DecayingModel #' . $item['DecayingModel']['id'] . '?'));?>
+            <?php
+                if (!$item['DecayingModel']['isDefault']) {
+                    echo $this->Form->postLink('', array('action' => 'delete', $item['DecayingModel']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete DecayingModel #' . $item['DecayingModel']['id'] . '?'));
+                }
+            ?>
             <?php
                 if ($item['DecayingModel']['enabled']):
                     echo $this->Form->postLink('', array('action' => 'disable', $item['DecayingModel']['id']), array('class' => 'fa fa-pause', 'title' => 'Disable model'), __('Are you sure you want to disable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
