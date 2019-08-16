@@ -20,6 +20,7 @@
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo $this->Paginator->sort('org');?></th>
+            <th><?php echo $this->Paginator->sort('all_orgs');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo $this->Paginator->sort('description');?></th>
             <th>
@@ -43,6 +44,7 @@ foreach ($decayingModel as $item): ?>
             ?>
             &nbsp;
         </td>
+        <td><i class="fas fa-<?php echo $item['DecayingModel']['all_orgs'] ? 'check' : 'times';?>"></i></td>
         <td>
             <a href="<?php echo $baseurl."/decayingModel/view/".$item['DecayingModel']['id']; ?>"><?php echo h($item['DecayingModel']['name']); ?>&nbsp;</a>
             <?php if (!is_null($item['DecayingModel']['uuid'])): ?>

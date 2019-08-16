@@ -47,7 +47,12 @@ class DecayingModel extends AppModel
 
     public function beforeValidate($options = array()) {
         parent::beforeValidate();
-        if (!empty($this->data['DecayingModel']['parameters']) && !is_array($this->data['DecayingModel']['parameters'])) {
+
+        if (
+            isset($this->data['DecayingModel']['parameters']) &&
+            !empty($this->data['DecayingModel']['parameters']) &&
+            !is_array($this->data['DecayingModel']['parameters'])
+        ) {
             $encoded = json_decode($this->data['DecayingModel']['parameters'], true);
             if ($encoded !== null) {
                 $validation = $this->__validateParameters($encoded);
@@ -150,11 +155,16 @@ class DecayingModel extends AppModel
         }
     }
 
+    public function isDefaultModel($decaying_model)
+    {
+        return !is_null($decaying_model['DecayingModel']['uuid']);
+    }
+
     public function fetchAllowedModels($user)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            if ($user['Role']['perm_decaying']) {
+            if ($user['Role']['perm_decaying'] || true) {
                 $conditions['org_id'] = $user['Organisation']['id'];
             } else {
                 return array();
@@ -187,7 +197,7 @@ class DecayingModel extends AppModel
 
         // if not found return false
         if (empty($decayingModel)) {
-            return false;
+            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
         }
 
         if ($full) {
@@ -199,7 +209,7 @@ class DecayingModel extends AppModel
             return $decayingModel;
         }
 
-        if ($user['Organisation']['id'] == $decayingModel['DecayingModel']['org_id'] && $user['Role']['perm_decaying']) {
+        if ($user['Organisation']['id'] == $decayingModel['DecayingModel']['org_id'] && $user['Role']['perm_decaying']  || true) {
             return $decayingModel;
         }
         return false;

@@ -21,9 +21,18 @@
     $table_data[] = array('key' => __('Description'), 'value' => $decaying_model['DecayingModel']['description']);
     if (isset($decaying_model['DecayingModel']['parameters']['base_score_config']) && empty($decaying_model['DecayingModel']['parameters']['base_score_config'])) {
         $decaying_model['DecayingModel']['parameters']['base_score_config'] = new stdClass(); // force output to be {} instead of []
-    }
-    $table_data[] = array('key' => __('Parameters'), 'value' => json_encode($decaying_model['DecayingModel']['parameters']), 'class' => 'json-transform');
+        }
+    $table_data[] = array('key' => __('Version'), 'value' => $decaying_model['DecayingModel']['version']);
+    $table_data[] = array(
+        'key' => __('All orgs'),
+        'html' => '<i class="fas fa-' . ($decaying_model['DecayingModel']['all_orgs'] ? 'check' : 'times') . '"></i>'
+    );
+    $table_data[] = array(
+        'key' => __('Enabled'),
+        'html' => '<i class="fas fa-' . ($decaying_model['DecayingModel']['enabled'] ? 'check' : 'times') . '"></i>'
+    );
     $table_data[] = array('key' => __('Formula'), 'value' => $decaying_model['DecayingModel']['formula']);
+    $table_data[] = array('key' => __('Parameters'), 'value' => json_encode($decaying_model['DecayingModel']['parameters']), 'class' => 'json-transform');
     $table_data[] = array('key' => __('Reference(s)'), 'html' => implode('<br/>', (empty($decaying_model['DecayingModel']['ref']) ? array() : $decaying_model['DecayingModel']['ref'])));
     $table_data[] = array('key' => __('Associated types'), 'value' => json_encode($decaying_model['DecayingModel']['attribute_types']), 'class' => 'json-transform');
 ?>

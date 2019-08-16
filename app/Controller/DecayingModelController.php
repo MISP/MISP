@@ -141,67 +141,72 @@ class DecayingModelController extends AppController
             throw new NotFoundException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
         }
         $this->set('mayModify', true);
+        $restrictedEdition = $this->DecayingModel->isDefaultModel($decayingModel);
 
         if ($this->request->is('post') || $this->request->is('put')) {
+
             $this->request->data['DecayingModel']['id'] = $id;
-            
-            if (!isset($this->request->data['DecayingModel']['formula'])) {
-                $this->request->data['DecayingModel']['formula'] = 'polynomial';
-            }
+            $fieldList = array('enabled', 'all_orgs');
+            if (!$restrictedEdition) {
+                $fieldList += array('name', 'description', 'parameters', 'formula');
 
-            if ($this->request->data['DecayingModel']['formula'] == 'polynomial') {
-                if (isset($this->request->data['DecayingModel']['parameters']['settings'])) {
-                    $this->request->data['DecayingModel']['parameters']['settings'] = array();
+                if (!isset($this->request->data['DecayingModel']['formula'])) {
+                    $this->request->data['DecayingModel']['formula'] = 'polynomial';
                 }
-            } else if (
-                isset($this->request->data['DecayingModel']['parameters']['settings']) &&
-                $this->request->data['DecayingModel']['parameters']['settings'] == ''
-            ) {
-                $this->request->data['DecayingModel']['parameters']['settings'] = '{}';
-            }
 
-            if (!isset($this->request->data['DecayingModel']['parameters'])) {
-                $this->request->data['DecayingModel']['parameters'] = array();
-            } else {
-                if (isset($this->request->data['DecayingModel']['parameters']['settings'])) {
-                    $settings = json_decode($this->request->data['DecayingModel']['parameters']['settings'], true);
-                    if ($settings === null) {
-                        $this->Flash->error(__('Invalid JSON `Settings`.'));
+                if ($this->request->data['DecayingModel']['formula'] == 'polynomial') {
+                    if (isset($this->request->data['DecayingModel']['parameters']['settings'])) {
+                        $this->request->data['DecayingModel']['parameters']['settings'] = array();
+                    }
+                } else if (
+                    isset($this->request->data['DecayingModel']['parameters']['settings']) &&
+                    $this->request->data['DecayingModel']['parameters']['settings'] == ''
+                ) {
+                    $this->request->data['DecayingModel']['parameters']['settings'] = '{}';
+                }
+
+                if (isset($this->request->data['DecayingModel']['parameters'])) {
+                    if (isset($this->request->data['DecayingModel']['parameters']['settings'])) {
+                        $settings = json_decode($this->request->data['DecayingModel']['parameters']['settings'], true);
+                        if ($settings === null) {
+                            $this->Flash->error(__('Invalid JSON `Settings`.'));
+                            return false;
+                        }
+                        $this->request->data['DecayingModel']['parameters']['settings'] = $settings;
+                    }
+                    if (!isset($this->request->data['DecayingModel']['parameters']['tau'])) {
+                        $this->Flash->error(__('Invalid parameter `tau`.'));
                         return false;
                     }
-                    $this->request->data['DecayingModel']['parameters']['settings'] = $settings;
-                }
-                if (!isset($this->request->data['DecayingModel']['parameters']['tau'])) {
-                    $this->Flash->error(__('Invalid parameter `tau`.'));
-                    return false;
-                }
-                if (!isset($this->request->data['DecayingModel']['parameters']['delta'])) {
-                    $this->Flash->error(__('Invalid parameter `delta`.'));
-                    return false;
-                }
-                if (!isset($this->request->data['DecayingModel']['parameters']['threshold'])) {
-                    $this->Flash->error(__('Invalid parameter `threshold`.'));
-                    return false;
-                }
-                if (!isset($this->request->data['DecayingModel']['parameters']['default_base_score'])) {
-                    $this->Flash->error(__('Invalid parameter `default_base_score`.'));
-                    return false;
-                }
-                if (isset($this->request->data['DecayingModel']['parameters']['base_score_config']) && $this->request->data['DecayingModel']['parameters']['base_score_config'] != '') {
-                    $encoded = json_decode($this->data['DecayingModel']['parameters']['base_score_config'], true);
-                    if ($encoded === null) {
-                        $this->Flash->error(__('Invalid parameter `base_score_config`.'));
+                    if (!isset($this->request->data['DecayingModel']['parameters']['delta'])) {
+                        $this->Flash->error(__('Invalid parameter `delta`.'));
                         return false;
                     }
-                    $this->request->data['DecayingModel']['parameters']['base_score_config'] = $encoded;
-                } else {
-                    $this->request->data['DecayingModel']['parameters']['base_score_config'] = new stdClass();
+                    if (!isset($this->request->data['DecayingModel']['parameters']['threshold'])) {
+                        $this->Flash->error(__('Invalid parameter `threshold`.'));
+                        return false;
+                    }
+                    if (!isset($this->request->data['DecayingModel']['parameters']['default_base_score'])) {
+                        $this->Flash->error(__('Invalid parameter `default_base_score`.'));
+                        return false;
+                    }
+                    if (isset($this->request->data['DecayingModel']['parameters']['base_score_config']) && $this->request->data['DecayingModel']['parameters']['base_score_config'] != '') {
+                        $encoded = json_decode($this->data['DecayingModel']['parameters']['base_score_config'], true);
+                        if ($encoded === null) {
+                            $this->Flash->error(__('Invalid parameter `base_score_config`.'));
+                            return false;
+                        }
+                        $this->request->data['DecayingModel']['parameters']['base_score_config'] = $encoded;
+                    } else {
+                        $this->request->data['DecayingModel']['parameters']['base_score_config'] = new stdClass();
+                    }
                 }
+
+                $this->request->data['DecayingModel']['parameters'] = json_encode($this->request->data['DecayingModel']['parameters']);
             }
 
-            $this->request->data['DecayingModel']['parameters'] = json_encode($this->request->data['DecayingModel']['parameters']);
-            $fieldList = array('name', 'description', 'parameters', 'formula');
-            if ($this->DecayingModel->save($this->request->data, true, $fieldList)) {
+            $save_result = $this->DecayingModel->save($this->request->data, true, $fieldList);
+            if ($save_result) {
                 if ($this->request->is('ajax')) {
                     $saved = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $this->DecayingModel->id);
                     $response = array('data' => $saved, 'action' => 'edit');
@@ -210,11 +215,21 @@ class DecayingModelController extends AppController
                     $this->Flash->success(__('The model has been saved.'));
                     $this->redirect(array('action' => 'index'));
                 }
+            } else {
+                if ($this->request->is('ajax')) {
+                    $saved = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $this->DecayingModel->id);
+                    $response = array('data' => $saved, 'action' => 'edit', 'saved' => false);
+                    return $this->RestResponse->viewData($response, $this->response->type());
+                } else {
+                    $this->Flash->error(__('The model could not be saved. Please try again.' . $this->here));
+                    $this->redirect($this->here);
+                }
             }
         } else {
             $this->request->data = $decayingModel;
             $this->set('id', $id);
             $this->set('decayingModel', $decayingModel);
+            $this->set('restrictEdition', $restrictedEdition);
             $this->set('action', 'edit');
             $this->render('add');
         }
