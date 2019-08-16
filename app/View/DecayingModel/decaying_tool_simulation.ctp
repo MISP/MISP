@@ -31,11 +31,13 @@
 {
     "includeDecayScore": 1,
     "excludeDecayed": 0,
-    "decayingModel": <?php echo h($decaying_model['DecayingModel']['id']); ?>,
+    "decayingModel": [<?php echo h($decaying_model['DecayingModel']['id']); ?>],
     "to_ids": 1,
     "org": <?php echo h($user['Organisation']['id']);?>,
-    "tags": <?php echo json_encode($registered_taxonomies); ?>
-
+    "tags": <?php echo json_encode($registered_taxonomies); ?>,
+    "modelOverrides": {
+        
+    }
 }</textarea>
                                 </br>
                                 <span class="btn btn-primary" style="width: fit-content;" role="button" onclick="doRestSearch(this)"><?php echo __('Search'); ?></span>

@@ -17,6 +17,7 @@ class DecayingModel extends AppModel
     );
 
     private $__registered_model_classes = array();
+    public $allowed_overrides = array('threshold' => 1, 'tau', 'delta');
 
     public function afterFind($results, $primary = false) {
         foreach ($results as $k => $v) {
@@ -438,9 +439,8 @@ class DecayingModel extends AppModel
 
     public function overrideModelParameters(&$model, $model_overrides)
     {
-        $allowed_overrides = array('threshold' => 1);
         foreach ($model_overrides as $parameter => $value) {
-            if (isset($allowed_overrides[$parameter])) {
+            if (isset($this->allowed_overrides[$parameter])) {
                 $model['DecayingModel']['parameters'][$parameter] = $value;
             }
         }
