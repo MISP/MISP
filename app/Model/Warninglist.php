@@ -257,6 +257,38 @@ class Warninglist extends AppModel
         return $entries;
     }
 
+    /**
+     * Filter out invalid IPv4 or IPv4 CIDR and append maximum netmaks if no netmask is given.
+     * @param array $inputValues
+     * @return array
+     */
+    private function filterCidrList($inputValues)
+    {
+        $outputValues = [];
+        foreach ($inputValues as $v) {
+            $parts = explode('/', $v, 2);
+            if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $maximumNetmask = 32;
+            } else if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                $maximumNetmask = 128;
+            } else {
+                // IP address part of CIDR is invalid
+                continue;
+            }
+
+            if (!isset($parts[1])) {
+                // If CIDR doesnt contains '/', we will consider CIDR as /32 for IPv4 or /128 for IPv6
+                $v = "$v/$maximumNetmask";
+            } else if ($parts[1] > $maximumNetmask || $parts[1] < 0) {
+                // Netmask part of CIDR is invalid
+                continue;
+            }
+
+            $outputValues[] = $v;
+        }
+        return $outputValues;
+    }
+
     public function fetchForEventView()
     {
         $warninglists = $this->getWarninglists(array('enabled' => 1));
@@ -266,15 +298,21 @@ class Warninglist extends AppModel
         foreach ($warninglists as $k => &$t) {
             $t['values'] = $this->getWarninglistEntries($t['Warninglist']['id']);
             $t['values'] = array_values($t['values']);
-            if ($t['Warninglist']['type'] == 'hostname') {
-                foreach ($t['values'] as $vk => $v) {
-                    $t['values'][$vk] = rtrim($v, '.');
+
+            if ($t['Warninglist']['type'] === 'hostname') {
+                $values = [];
+                foreach ($t['values'] as $v) {
+                    $v = rtrim($v, '.');
+                    $values[$v] = $v;
                 }
-            }
-            if ($t['Warninglist']['type'] == 'string' || $t['Warninglist']['type'] == 'hostname') {
+                $t['values'] = $values;
+            } else if ($t['Warninglist']['type'] === 'string') {
                 $t['values'] = array_combine($t['values'], $t['values']);
+            } else if ($t['Warninglist']['type'] === 'cidr') {
+                $t['values'] = $this->filterCidrList($t['values']);
             }
-            foreach ($t['WarninglistType'] as &$wt) {
+
+            foreach ($t['WarninglistType'] as $wt) {
                 $t['types'][] = $wt['type'];
             }
             unset($warninglists[$k]['WarninglistType']);
@@ -410,10 +448,9 @@ class Warninglist extends AppModel
         $ipv6cidrlist = array();
         // separate the CIDR list into IPv4 and IPv6
         foreach ($listValues as $lv) {
-            $base = substr($lv, 0, strpos($lv, '/'));
-            if (filter_var($base, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            if (strpos($lv, '.') !== false) { // IPv4 CIDR must contain dot
                 $ipv4cidrlist[] = $lv;
-            } elseif (filter_var($base, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            } else {
                 $ipv6cidrlist[] = $lv;
             }
         }
