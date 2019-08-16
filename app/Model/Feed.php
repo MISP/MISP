@@ -349,27 +349,19 @@ class Feed extends AppModel
                 $sources = $this->Server->find('all', $params);
             }
 
-            $counter = 0;
-            $hashTable = array();
-            $sourceList = array();
             $pipe = $redis->multi(Redis::PIPELINE);
-            $objectsWithFeedHits = array();
             $hashTable = array();
             $hitIds = array();
             $this->Event = ClassRegistry::init('Event');
-            $objectKeys = array();
             foreach ($objects as $k => $object) {
                 if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
                     $value = explode('|', $object['value']);
                     $hashTable[$k] = md5($value[0]);
-                    $objectKeys[] = $k;
                 } else {
                     $hashTable[$k] = md5($object['value']);
                 }
                 $redis->sismember('misp:' . strtolower($scope) . '_cache:combined', $hashTable[$k]);
-                $objectKeys[] = $k;
             }
-            $results = array();
             $results = $pipe->exec();
             if (!$overrideLimit && count($objects) > 10000) {
                 foreach ($results as $k => $result) {
