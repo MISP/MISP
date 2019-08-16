@@ -680,6 +680,7 @@
                 $form.find('#DecayingModelParametersThreshold').val(data.parameters.threshold);
                 $form.find('#DecayingModelParametersDefaultBaseScore').val(data.parameters.default_base_score);
                 $form.find('#DecayingModelParametersBaseScoreConfig').val(JSON.stringify(data.parameters.base_score_config));
+                $form.find('#DecayingModelParametersSettings').val(JSON.stringify(data.parameters.settings));
             },
             injectDataAttributeTypes: function($form, data) {
                 $form.find('#DecayingModelMappingAttributetypes').val(JSON.stringify(data.attributetypes));

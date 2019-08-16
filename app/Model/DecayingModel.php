@@ -80,6 +80,9 @@ class DecayingModel extends AppModel
         if (isset($this->data['DecayingModel']['parameters']['base_score_config']) && is_array($this->data['DecayingModel']['parameters']['base_score_config'])) {
             $this->data['DecayingModel']['parameters']['base_score_config'] = json_encode($this->data['DecayingModel']['parameters']['base_score_config']);
         }
+        if (isset($this->data['DecayingModel']['parameters']['settings']) && is_array($this->data['DecayingModel']['parameters']['settings'])) {
+            $this->data['DecayingModel']['parameters']['settings'] = json_encode($this->data['DecayingModel']['parameters']['settings']);
+        }
         if (isset($this->data['DecayingModel']['attribute_types']) && is_array($this->data['DecayingModel']['attribute_types'])) {
             $this->data['DecayingModel']['attribute_types'] = json_encode($this->data['DecayingModel']['attribute_types']);
         }
@@ -204,8 +207,7 @@ class DecayingModel extends AppModel
         }
         if (
             !$user['Role']['perm_site_admin'] &&  // if the user is a site admin, return the model without question
-            $user['Organisation']['id'] != $decayingModel['DecayingModel']['org_id'] &&
-            !$decayingModel['DecayingModel']['all_orgs']
+            !($user['Organisation']['id'] == $decayingModel['DecayingModel']['org_id'] || $decayingModel['DecayingModel']['all_orgs'])
         ) {
             throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
         }

@@ -156,7 +156,7 @@ class DecayingModelController extends AppController
 
                 if ($this->request->data['DecayingModel']['formula'] == 'polynomial') {
                     if (isset($this->request->data['DecayingModel']['parameters']['settings'])) {
-                        $this->request->data['DecayingModel']['parameters']['settings'] = array();
+                        $this->request->data['DecayingModel']['parameters']['settings'] = '{}';
                     }
                 } else if (
                     isset($this->request->data['DecayingModel']['parameters']['settings']) &&
