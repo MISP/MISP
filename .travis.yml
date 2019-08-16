@@ -63,6 +63,7 @@ install:
     - sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
     # install MySQL
     - sudo chmod -R 777 `pwd`/INSTALL
+    - mysql -u root -e "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES';"
     - mysql -u root -e 'create database misp;'
     - mysql -u root -e "grant usage on *.* to misp@localhost identified by 'blah'";
     - mysql -u root -e "grant all privileges on misp.* to misp@localhost;"
