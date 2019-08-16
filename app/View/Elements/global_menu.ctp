@@ -284,13 +284,17 @@
                         'type' => 'separator',
                     ),
                     array(
-                        'text' => __('Decaying Rules'),
+                        'text' => __('Decaying Models Tool'),
                         'url' => '/decayingModel/decayingTool',
-                        'requirement' => ($isSiteAdmin || $hostOrgUser)
+                        'requirement' => $isAdmin
+                    ),
+                    array(
+                        'text' => __('Decaying Models'),
+                        'url' => '/decayingModel/index',
                     ),
                     array(
                         'type' => 'separator',
-                        'requirement' => $isSiteAdmin
+                        'requirement' => $isAdmin
                     ),
                     array(
                         'text' => __('Server Settings & Maintenance'),
