@@ -7,7 +7,8 @@
             echo '<div class="alert alert-warning">' . __('You are editing a Default Model, only restricted edition is allowed.') . '</div>';
             echo $this->Form->input('all_orgs', array(
                 'label' => __('Can other organization use this model'),
-                'type' => 'checkbox'
+                'type' => 'checkbox',
+                'checked' => isset($this->request->data['DecayingModel']['all_orgs']) ? $this->request->data['DecayingModel']['all_orgs'] : true
             ));
             echo $this->Form->input('enabled', array(
                 'type' => 'checkbox'
@@ -23,7 +24,8 @@
             ));
             echo $this->Form->input('all_orgs', array(
                 'label' => __('Can other organization use this model'),
-                'type' => 'checkbox'
+                'type' => 'checkbox',
+                'checked' => isset($this->request->data['DecayingModel']['all_orgs']) ? $this->request->data['DecayingModel']['all_orgs'] : true
             ));
             echo $this->Form->input('enabled', array(
                 'type' => 'checkbox'
