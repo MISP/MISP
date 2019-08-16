@@ -1206,7 +1206,7 @@ class AppModel extends Model
                     `all_orgs` tinyint(1) NOT NULL DEFAULT 1,
                     `ref` text COLLATE utf8_unicode_ci,
                     `formula` varchar(255) COLLATE utf8_bin NOT NULL,
-                    `version` varchar(255) COLLATE utf8_bin NOT NULL
+                    `version` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT ''
                     PRIMARY KEY (id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS decaying_model_mappings (

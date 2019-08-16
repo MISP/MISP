@@ -3,7 +3,8 @@
     <fieldset>
         <legend><?php echo Inflector::humanize($action) . __(' Decaying Model');?></legend>
     <?php
-        if ($restrictEdition) {
+        if (isset($restrictEdition) && $restrictEdition) {
+            echo '<div class="alert alert-warning">' . __('You are editing a Default Model, only restricted edition is allowed.') . '</div>';
             echo $this->Form->input('all_orgs', array(
                 'label' => __('Can other organization use this model'),
                 'type' => 'checkbox'
