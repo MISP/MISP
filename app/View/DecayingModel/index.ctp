@@ -47,7 +47,7 @@ foreach ($decayingModel as $item): ?>
         <td><i class="fas fa-<?php echo $item['DecayingModel']['all_orgs'] ? 'check' : 'times';?>"></i></td>
         <td>
             <a href="<?php echo $baseurl."/decayingModel/view/".$item['DecayingModel']['id']; ?>"><?php echo h($item['DecayingModel']['name']); ?>&nbsp;</a>
-            <?php if (!is_null($item['DecayingModel']['uuid'])): ?>
+            <?php if ($item['DecayingModel']['isDefault']): ?>
                 <img src="<?php echo $baseurl;?>/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="<?php echo __('Default Model from MISP Project'); ?>" />
             <?php endif; ?>
         </td>

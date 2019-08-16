@@ -337,9 +337,11 @@
                 var that = this;
                 var $clicked = $(clicked);
                 var $tr = $clicked.closest('tr');
-                $('#table-model td > span.DMCheckbox > input').prop('checked', false).prop('disabled', true);
-                $tr.find('td > span.DMCheckbox > input').prop('checked', true).prop('disabled', false).trigger('change');
                 var model = d3.select($tr[0]).data()[0].DecayingModel;
+                $('#table-model td > span.DMCheckbox > input').prop('checked', false).prop('disabled', true).trigger('change');
+                if (!model.isDefault) {
+                    $tr.find('td > span.DMCheckbox > input').prop('checked', true).prop('disabled', false).trigger('change');
+                }
 
                 $('#input_Tau, #input_Tau_range').val(model.parameters.tau);
                 $('#input_Tau').data('multiplier', $('#input_Tau').val()/this.options.TICK_NUM);
@@ -643,9 +645,15 @@
                 var $checkbox = $('#table-model td > span.DMCheckbox > input:checked');
                 var save_button = $('#saveForm #save-model-button');
                 var btn_content_html;
+                var selected_model = d3.select($checkbox.closest('tr')[0]).data()[0];
                 if ($checkbox.length > 0) {
-                    save_button.data('isedit', 1);
-                    btn_content_html = '<i class="fa fa-edit"> ' + save_button.data('edittext');
+                    if (selected_model.DecayingModel.isDefault) {
+                        save_button.data('isedit', 0).data('modelid', 0);
+                        btn_content_html = '<i class="fa fa-plus"> ' + save_button.data('savetext');
+                    } else {
+                        save_button.data('isedit', 1);
+                        btn_content_html = '<i class="fa fa-edit"> ' + save_button.data('edittext');
+                    }
                 } else {
                     save_button.data('isedit', 0).data('modelid', 0);
                     btn_content_html = '<i class="fa fa-plus"> ' + save_button.data('savetext');
@@ -684,10 +692,15 @@
                     var v1 = obj1[k];
                     var v2 = obj2[k];
 
-                    if (v1 instanceof Object && v2 instanceof Object) {
+                    if (
+                        (v1 instanceof Object && v2 instanceof Object) &&
+                        (!Array.isArray(v1) && !Array.isArray(v2))
+                    ) {
                         flag_same = this.simpleCompareObject(v1, v2);
                     } else if ( (v1 instanceof Object) && !(v2 instanceof Object) || (!(v1 instanceof Object) && (v2 instanceof Object))) {
                         return false;
+                    } else if (Array.isArray(v1) && Array.isArray(v2)) {
+                        flag_same = this.simpleCompareObject(v1, v2);
                     } else if (v1 !== v2) {
                         return false;
                     }
@@ -871,8 +884,19 @@ ModelTable.prototype = {
 
     update: function(data) {
         this.associated_types = data.associated_types;
-        this.savedDecayingModels = data.savedDecayingModels;
+        this.savedDecayingModels = this.massage_data(data.savedDecayingModels);
         this._draw();
+    },
+
+    massage_data: function(data) {
+        var massaged_data = $.extend([], data);
+        
+        data.forEach(function(model, i) {
+            if (model.DecayingModel.parameters.settings === undefined) {
+                massaged_data[i].DecayingModel.parameters.settings = {};
+            }
+        });
+        return massaged_data;
     },
 
     get_depth: function(header, current_depth, max_depth) {
@@ -952,7 +976,10 @@ ModelTable.prototype = {
         return cells_html = [
             this._gen_td('<input type="checkbox" onchange="decayingTool.refreshSaveButton()" style="margin:0" ' + (is_row_selected ? 'checked' : 'disabled') + '></input>', 'DMCheckbox'),
             this._gen_td_link('/decayingModel/view/'+model.DecayingModel.id, model.DecayingModel.id, 'DMId'),
-            this._gen_td(model.DecayingModel.name, 'DMName'),
+            this._gen_td(
+                model.DecayingModel.name + (model.DecayingModel.isDefault ? '<img src="/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="Default Model from MISP Project" />' : '') ,
+                'DMName'
+            ),
             this._gen_td_link('/organisations/view/'+model.DecayingModel.org_id, model.DecayingModel.org_id, 'DMOrg'),
             this._gen_td(model.DecayingModel.description, 'DMNDescription'),
             this._gen_td(model.DecayingModel.formula, 'DMFormula'),

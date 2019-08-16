@@ -18,6 +18,7 @@ class DecayingModel extends AppModel
 
     public function afterFind($results, $primary = false) {
         foreach ($results as $k => $v) {
+            $results[$k]['DecayingModel']['isDefault'] = $this->isDefaultModel($v);
             if (!empty($v['DecayingModel']['parameters'])) {
                 $decoded = json_decode($v['DecayingModel']['parameters'], true);
                 if ($decoded === null) {
@@ -173,8 +174,8 @@ class DecayingModel extends AppModel
             'conditions' => $conditions,
             'include' => $full ? 'DecayingModelMapping' :''
         ));
-        if ($full) {
-            foreach ($decayingModels as $i => $decayingModel) { // includes both model default mapping and user mappings
+        foreach ($decayingModels as $i => $decayingModel) { // includes both model default mapping and user mappings
+            if ($full) {
                 $decayingModels[$i]['DecayingModel']['attribute_types'] = $decayingModels[$i]['DecayingModel']['attribute_types'] + Hash::extract($decayingModels[$i]['DecayingModelMapping'], '{n}.attribute_type');
                 unset($decayingModels[$i]['DecayingModelMapping']);
             }

@@ -4303,11 +4303,14 @@ function jsonToNestedTable(json, header, table_classes) {
     if (typeof json == 'string') {
         json = JSON.parse(json);
     }
+    if (Object.keys(json).length == 0) {
+        return '';
+    }
     header = header === undefined ? [] : header;
     table_classes = table_classes === undefined ? [] : table_classes;
     $table = $('<table></table>');
     table_classes.forEach(function(classname) {
-    $table.addClass(classname);
+        $table.addClass(classname);
     });
     if (header.length > 0) {
         $header = $('<thead><tr></tr></thead>');
