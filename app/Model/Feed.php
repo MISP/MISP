@@ -328,30 +328,9 @@ class Feed extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            if ($scope === 'Feed') {
-                $params = array(
-                    'recursive' => -1,
-                    'fields' => array('id', 'name', 'url', 'provider', 'source_format')
-                );
-                if (!$user['Role']['perm_site_admin']) {
-                    $params['conditions'] = array('Feed.lookup_visible' => 1);
-                }
-                $sources = $this->find('all', $params);
-            } else {
-                $params = array(
-                    'recursive' => -1,
-                    'fields' => array('id', 'name', 'url', 'caching_enabled')
-                );
-                if (!$user['Role']['perm_site_admin']) {
-                    $params['conditions'] = array('Server.caching_enabled' => 1);
-                }
-                $this->Server = ClassRegistry::init('Server');
-                $sources = $this->Server->find('all', $params);
-            }
-
             $pipe = $redis->multi(Redis::PIPELINE);
             $hashTable = array();
-            $hitIds = array();
+
             $this->Event = ClassRegistry::init('Event');
             $compositeTypes = $this->Event->Attribute->getCompositeTypes();
 
@@ -377,6 +356,28 @@ class Feed extends AppModel
                     }
                 }
             } else {
+                if ($scope === 'Feed') {
+                    $params = array(
+                        'recursive' => -1,
+                        'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+                    );
+                    if (!$user['Role']['perm_site_admin']) {
+                        $params['conditions'] = array('Feed.lookup_visible' => 1);
+                    }
+                    $sources = $this->find('all', $params);
+                } else {
+                    $params = array(
+                        'recursive' => -1,
+                        'fields' => array('id', 'name', 'url', 'caching_enabled')
+                    );
+                    if (!$user['Role']['perm_site_admin']) {
+                        $params['conditions'] = array('Server.caching_enabled' => 1);
+                    }
+                    $this->Server = ClassRegistry::init('Server');
+                    $sources = $this->Server->find('all', $params);
+                }
+
+                $hitIds = array();
                 foreach ($results as $k => $result) {
                     if ($result && empty($objects[$k]['disable_correlation'])) {
                         $hitIds[] = $k;
@@ -384,7 +385,7 @@ class Feed extends AppModel
                 }
                 foreach ($sources as $k3 => $source) {
                     $pipe = $redis->multi(Redis::PIPELINE);
-                    foreach ($hitIds as $k2 => $k) {
+                    foreach ($hitIds as $k) {
                         $redis->sismember('misp:' . strtolower($scope) . '_cache:' . $source[$scope]['id'], $hashTable[$k]);
                     }
                     $sourceHits = $pipe->exec();
