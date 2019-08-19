@@ -85,7 +85,7 @@
                 <th class="actions"><?php echo __('Actions');?></th>
             <?php endif; ?>
     </tr><?php
-foreach ($decayingModel as $item): ?>
+foreach ($decayingModels as $item): ?>
     <tr>
         <td class="short"><a href="<?php echo $baseurl."/decayingModel/view/".$item['DecayingModel']['id']; ?>"><?php echo h($item['DecayingModel']['id']); ?>&nbsp;</a></td>
         <td class="short">

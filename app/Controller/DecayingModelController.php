@@ -141,7 +141,7 @@ class DecayingModelController extends AppController
         }
         $passedArgsArray = $this->__setIndexFilterConditions($this->passedArgs);
         $this->set('passedArgsArray', $passedArgsArray);
-        $this->set('decayingModel', $this->paginate());
+        $this->set('decayingModels', $this->paginate());
     }
 
     public function add()

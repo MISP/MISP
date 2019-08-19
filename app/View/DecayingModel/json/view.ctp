@@ -1,2 +1,2 @@
 <?php
-echo (json_encode($decayingModel));
+echo (json_encode($decaying_model));
