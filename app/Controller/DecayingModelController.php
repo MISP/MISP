@@ -36,9 +36,6 @@ class DecayingModelController extends AppController
     public function export($model_id)
     {
         $model = $this->DecayingModel->fetchModel($this->Auth->user(), $model_id, true);
-        if (!$this->_isSiteAdmin() && !$decModel) {
-            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
-        }
         unset($model['DecayingModel']['id']);
         unset($model['DecayingModel']['org_id']);
         unset($model['DecayingModelMapping']);
@@ -86,9 +83,6 @@ class DecayingModelController extends AppController
         }
 
         $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true);
-        if (!$this->_isSiteAdmin() && !$decModel) {
-            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
-        }
         $this->set('mayModify', true);
         $this->set('id', $id);
         $this->set('decaying_model', $decaying_model);
@@ -132,7 +126,10 @@ class DecayingModelController extends AppController
     {
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
-            $conditions['OR'] = array('org_id' => $this->Auth->user('Organisation')['id']);
+            $conditions['OR'] = array(
+                'org_id' => $this->Auth->user('Organisation')['id'],
+                'all_orgs' => 1
+            );
         }
         if (!$this->_isSiteAdmin()) {
             $this->paginate = Set::merge($this->paginate, array(
@@ -173,9 +170,6 @@ class DecayingModelController extends AppController
     public function edit($id)
     {
         $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
-        if (!$this->_isSiteAdmin() && !$decModel) {
-            throw new NotFoundException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
-        }
         $this->set('mayModify', true);
         $restrictedEdition = $this->DecayingModel->isDefaultModel($decayingModel);
 
@@ -275,9 +269,6 @@ class DecayingModelController extends AppController
     {
         if ($this->request->is('post')) {
             $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
-            if (!$this->_isSiteAdmin() && !$decModel) {
-                throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
-            }
 
             if ($this->DecayingModel->delete($id, true)) {
                 $this->Flash->success(__('Decaying Model deleted.'));
@@ -291,9 +282,6 @@ class DecayingModelController extends AppController
     public function enable($id)
     {
         $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
-        if (!$this->_isSiteAdmin() && !$decModel) {
-            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
-        }
         if ($this->request->is('post') || $this->request->is('put')) {
             $original_value_enabled = $decayingModel['DecayingModel']['enabled'];
             $decayingModel['DecayingModel']['enabled'] = 1;
@@ -320,9 +308,6 @@ class DecayingModelController extends AppController
     public function disable($id)
     {
         $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
-        if (!$this->_isSiteAdmin() && !$decModel) {
-            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
-        }
         if ($this->request->is('post') || $this->request->is('put')) {
             $original_value_enabled = $decayingModel['DecayingModel']['enabled'];
             $decayingModel['DecayingModel']['enabled'] = 0;
@@ -463,8 +448,8 @@ class DecayingModelController extends AppController
                 if (Validation::uuid($filters['id'])) {
                     $filters['uuid'] = $filters['id'];
                 } else {
-                    $attributes = $this->User->Event->Attribute->fetchAttributesSimple($this->Auth->user(), array(
-                        'conditions' => array('id' => $filters['id'])
+                    $attributes = $this->User->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                        'conditions' => array('Attribute.id' => $filters['id'])
                     ));
                     if (!empty($attributes)) {
                         $filters['uuid'] = $attributes[0]['Attribute']['uuid'];

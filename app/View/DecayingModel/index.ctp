@@ -25,10 +25,10 @@
                     array(
                         'title' => __('My models only'),
                         'text' => __('My Models'),
-                        'url' => sprintf('%s/%s/%s/%s',
+                        'url' => sprintf('%s/%s%s%s',
                             $baseurl . '/decayingModel/index',
-                            isset($passedArgsArray['sort']) ? 'sort:' . $passedArgsArray['sort'] : '',
-                            isset($passedArgsArray['direction']) ? 'direction:' . $passedArgsArray['direction'] : '',
+                            isset($passedArgsArray['sort']) ? 'sort:' . $passedArgsArray['sort'] . '/' : '',
+                            isset($passedArgsArray['direction']) ? 'direction:' . $passedArgsArray['direction'] . '/' : '',
                             'my_models:' . (!isset($passedArgsArray['my_models']) || !$passedArgsArray['my_models'] ? '1' : '0')
                         ),
                         'class' => 'searchFilterButton',
@@ -37,10 +37,10 @@
                     array(
                         'title' => __('Models available to everyone'),
                         'text' => __('Shared Models'),
-                        'url' => sprintf('%s/%s/%s/%s',
+                        'url' => sprintf('%s/%s%s%s',
                             $baseurl . '/decayingModel/index',
-                            isset($passedArgsArray['sort']) ? 'sort:' . $passedArgsArray['sort'] : '',
-                            isset($passedArgsArray['direction']) ? 'direction:' . $passedArgsArray['direction'] : '',
+                            isset($passedArgsArray['sort']) ? 'sort:' . $passedArgsArray['sort'] . '/' : '',
+                            isset($passedArgsArray['direction']) ? 'direction:' . $passedArgsArray['direction'] . '/' : '',
                             'all_orgs:' . (!isset($passedArgsArray['all_orgs']) || !$passedArgsArray['all_orgs'] ? '1' : '0')
                         ),
                         'class' => 'searchFilterButton',
@@ -49,10 +49,10 @@
                     array(
                         'title' => __('Default models only'),
                         'text' => __('Default Models'),
-                        'url' => sprintf('%s/%s/%s/%s',
+                        'url' => sprintf('%s/%s%s%s',
                             $baseurl . '/decayingModel/index',
-                            isset($passedArgsArray['sort']) ? 'sort:' . $passedArgsArray['sort'] : '',
-                            isset($passedArgsArray['direction']) ? 'direction:' . $passedArgsArray['direction'] : '',
+                            isset($passedArgsArray['sort']) ? 'sort:' . $passedArgsArray['sort'] . '/' : '',
+                            isset($passedArgsArray['direction']) ? 'direction:' . $passedArgsArray['direction'] . '/' : '',
                             'default_models:' . (!isset($passedArgsArray['default_models']) || !$passedArgsArray['default_models'] ? '1' : '0')
                         ),
                         'class' => 'searchFilterButton',
@@ -81,9 +81,7 @@
             <th><?php echo __('# Assigned Types') ?></th>
             <th><?php echo $this->Paginator->sort('version');?></th>
             <th><?php echo $this->Paginator->sort('enabled');?></th>
-            <?php if ($isAclTemplate): ?>
-                <th class="actions"><?php echo __('Actions');?></th>
-            <?php endif; ?>
+            <th class="actions"><?php echo __('Actions');?></th>
     </tr><?php
 foreach ($decayingModels as $item): ?>
     <tr>
@@ -112,25 +110,25 @@ foreach ($decayingModels as $item): ?>
         <td><?php echo count($item['DecayingModel']['attribute_types']); ?>&nbsp;</td>
         <td><?php echo h($item['DecayingModel']['version']); ?>&nbsp;</td>
         <td><i class="fas fa-<?php echo $item['DecayingModel']['enabled'] ? 'check' : 'times';?>"></i></td>
-        <?php if ($isAclTemplate): ?>
         <td class="short action-links">
             <?php echo $this->Html->link('', array('action' => 'view', $item['DecayingModel']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
-            <?php echo $this->Html->link('', array('action' => 'edit', $item['DecayingModel']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
             <?php echo $this->Html->link('', array('action' => 'export', $item['DecayingModel']['id'] . '.json'), array('download' => true, 'class' => 'fa fa-cloud-download-alt', 'title' => __('Download model')));?>
-            <?php
-                if (!$item['DecayingModel']['isDefault']) {
-                    echo $this->Form->postLink('', array('action' => 'delete', $item['DecayingModel']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete DecayingModel #' . $item['DecayingModel']['id'] . '?'));
-                }
-            ?>
-            <?php
-                if ($item['DecayingModel']['enabled']):
-                    echo $this->Form->postLink('', array('action' => 'disable', $item['DecayingModel']['id']), array('class' => 'fa fa-pause', 'title' => 'Disable model'), __('Are you sure you want to disable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
-                else:
-                    echo $this->Form->postLink('', array('action' => 'enable', $item['DecayingModel']['id']), array('class' => 'fa fa-play', 'title' => 'Enable model'), __('Are you sure you want to enable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
-                endif;
-            ?>
+            <?php if ($me['Role']['perm_admin']): ?>
+                <?php
+                    if (!$item['DecayingModel']['isDefault']) {
+                        echo $this->Form->postLink('', array('action' => 'delete', $item['DecayingModel']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete DecayingModel #' . $item['DecayingModel']['id'] . '?'));
+                    }
+                ?>
+                <?php echo $this->Html->link('', array('action' => 'edit', $item['DecayingModel']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
+                <?php
+                    if ($item['DecayingModel']['enabled']):
+                        echo $this->Form->postLink('', array('action' => 'disable', $item['DecayingModel']['id']), array('class' => 'fa fa-pause', 'title' => 'Disable model'), __('Are you sure you want to disable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
+                    else:
+                        echo $this->Form->postLink('', array('action' => 'enable', $item['DecayingModel']['id']), array('class' => 'fa fa-play', 'title' => 'Enable model'), __('Are you sure you want to enable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
+                    endif;
+                ?>
+            <?php endif; ?>
         </td>
-        <?php endif; ?>
     </tr><?php
 endforeach; ?>
     </table>

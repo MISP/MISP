@@ -70,6 +70,28 @@ class ACLComponent extends Component
                     'view' => array('*'),
                     'viewPicture' => array('*'),
             ),
+            'decayingModel' => array(
+                "update" => array(),
+                "export" => array('*'),
+                "import" => array('*'),
+                "view" => array('*'),
+                "index" => array('*'),
+                "add" => array('perm_admin'),
+                "edit" => array('perm_admin'),
+                "delete" => array('perm_admin'),
+                "enable" => array('perm_admin'),
+                "disable" => array('perm_admin'),
+                "decayingTool" => array('perm_admin'),
+                "getAllDecayingModels" => array('*'),
+                "decayingToolBasescore" => array('*'),
+                "decayingToolSimulation" => array('*'),
+                "decayingToolRestSearch" => array('*'),
+                "decayingToolComputeSimulation" => array('*')
+            ),
+            'decayingModelMapping' => array(
+                "viewAssociatedTypes" => array('*'),
+                "linkAttributeTypeToModel" => array('perm_admin')
+            ),
             'eventBlacklists' => array(
                     'add' => array(),
                     'delete' => array(),
@@ -502,7 +524,6 @@ class ACLComponent extends Component
                     'checkAndCorrectPgps' => array(),
                     'checkIfLoggedIn' => array('*'),
                     'dashboard' => array('*'),
-                    'decayingTool' => array('perm_admin'),
                     'delete' => array('perm_admin'),
                     'downloadTerms' => array('*'),
                     'edit' => array('*'),

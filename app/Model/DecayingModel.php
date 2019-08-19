@@ -356,8 +356,8 @@ class DecayingModel extends AppModel
     public function getScoreOvertime($user, $model_id, $attribute_id, $model_overrides)
     {
         $this->Attribute = ClassRegistry::init('Attribute');
-        $attribute = $this->Attribute->fetchAttributesSimple($user, array(
-            'conditions' => array('id' => $attribute_id),
+        $attribute = $this->Attribute->fetchAttributes($user, array(
+            'conditions' => array('Attribute.id' => $attribute_id),
             'contain' => array('AttributeTag' => array('Tag'))
         ));
         if (empty($attribute)) {
@@ -485,8 +485,8 @@ class DecayingModel extends AppModel
     {
         if (is_numeric($attribute) && $user !== false) {
             $this->Attribute = ClassRegistry::init('Attribute');
-            $attribute = $this->Attribute->fetchAttributesSimple($user, array(
-                'conditions' => array('id' => $attribute),
+            $attribute = $this->Attribute->fetchAttributes($user, array(
+                'conditions' => array('Attribute.id' => $attribute),
                 'contain' => array('AttributeTag' => array('Tag'))
             ));
         }

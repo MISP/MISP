@@ -33,7 +33,6 @@
     "excludeDecayed": 0,
     "decayingModel": [<?php echo h($decaying_model['DecayingModel']['id']); ?>],
     "to_ids": 1,
-    "org": <?php echo h($user['Organisation']['id']);?>,
     "tags": <?php echo json_encode($registered_taxonomies); ?>,
     "modelOverrides": {
         
