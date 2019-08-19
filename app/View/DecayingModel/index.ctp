@@ -16,6 +16,55 @@
         ?>
         </ul>
     </div>
+
+<?php
+    $data = array(
+        'children' => array(
+            array(
+                'children' => array(
+                    array(
+                        'title' => __('My models only'),
+                        'text' => __('My Models'),
+                        'url' => sprintf('%s/%s/%s/%s',
+                            $baseurl . '/decayingModel/index',
+                            isset($passedArgsArray['sort']) ? 'sort:' . $passedArgsArray['sort'] : '',
+                            isset($passedArgsArray['direction']) ? 'direction:' . $passedArgsArray['direction'] : '',
+                            'my_models:' . (!isset($passedArgsArray['my_models']) || !$passedArgsArray['my_models'] ? '1' : '0')
+                        ),
+                        'class' => 'searchFilterButton',
+                        'active' => isset($passedArgsArray['my_models']) && $passedArgsArray['my_models']
+                    ),
+                    array(
+                        'title' => __('Models available to everyone'),
+                        'text' => __('Shared Models'),
+                        'url' => sprintf('%s/%s/%s/%s',
+                            $baseurl . '/decayingModel/index',
+                            isset($passedArgsArray['sort']) ? 'sort:' . $passedArgsArray['sort'] : '',
+                            isset($passedArgsArray['direction']) ? 'direction:' . $passedArgsArray['direction'] : '',
+                            'all_orgs:' . (!isset($passedArgsArray['all_orgs']) || !$passedArgsArray['all_orgs'] ? '1' : '0')
+                        ),
+                        'class' => 'searchFilterButton',
+                        'active' => isset($passedArgsArray['all_orgs']) && $passedArgsArray['all_orgs']
+                    ),
+                    array(
+                        'title' => __('Default models only'),
+                        'text' => __('Default Models'),
+                        'url' => sprintf('%s/%s/%s/%s',
+                            $baseurl . '/decayingModel/index',
+                            isset($passedArgsArray['sort']) ? 'sort:' . $passedArgsArray['sort'] : '',
+                            isset($passedArgsArray['direction']) ? 'direction:' . $passedArgsArray['direction'] : '',
+                            'default_models:' . (!isset($passedArgsArray['default_models']) || !$passedArgsArray['default_models'] ? '1' : '0')
+                        ),
+                        'class' => 'searchFilterButton',
+                        'active' => isset($passedArgsArray['default_models']) && $passedArgsArray['default_models']
+                    ),
+                )
+            )
+        )
+    );
+    echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+?>
+
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>

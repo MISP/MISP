@@ -94,6 +94,40 @@ class DecayingModelController extends AppController
         $this->set('decaying_model', $decaying_model);
     }
 
+    private function __setIndexFilterConditions($passedArgs)
+    {
+        $white_list_url_parameters = array('sort', 'direction');
+        $passedArgsArray = array();
+        foreach ($passedArgs as $k => $v) {
+            switch ($k) {
+                case 'my_models':
+                    $passedArgsArray[$k] = $v;
+                    if ($v) {
+                        $this->paginate['conditions']['AND'] = array('DecayingModel.org_id' => $this->Auth->user('Organisation')['id']);
+                    }
+                    break;
+                case 'default_models':
+                    $passedArgsArray[$k] = $v;
+                    if ($v) {
+                        $this->paginate['conditions']['AND'] = array('not' => array('DecayingModel.uuid' => null));
+                    }
+                    break;
+                case 'all_orgs':
+                    $passedArgsArray[$k] = $v;
+                    if ($v) {
+                        $this->paginate['conditions']['AND'] = array('DecayingModel.all_orgs' => $v);
+                    }
+                    break;
+                default:
+                    if (in_array($k, $white_list_url_parameters)) {
+                        $passedArgsArray[$k] = $v;
+                    }
+                    break;
+            }
+        }
+        return $passedArgsArray;
+    }
+
     public function index()
     {
         $conditions = array();
@@ -102,9 +136,11 @@ class DecayingModelController extends AppController
         }
         if (!$this->_isSiteAdmin()) {
             $this->paginate = Set::merge($this->paginate, array(
-                    'conditions' => $conditions
+                'conditions' => $conditions
             ));
         }
+        $passedArgsArray = $this->__setIndexFilterConditions($this->passedArgs);
+        $this->set('passedArgsArray', $passedArgsArray);
         $this->set('decayingModel', $this->paginate());
     }
 
