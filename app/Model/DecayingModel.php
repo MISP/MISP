@@ -324,7 +324,10 @@ class DecayingModel extends AppModel
             if ($model_class === false) {
                 continue;
             }
-            $available_formulas[get_class($model_class)] = get_parent_class($model_class) == 'Polynomial' || get_class($model_class) == 'Polynomial' ? 'Polynomial' : get_class($model_class);
+            $available_formulas[get_class($model_class)] = array(
+                'parent_class' => get_parent_class($model_class) == 'Polynomial' || get_class($model_class) == 'Polynomial' ? 'Polynomial' : get_class($model_class),
+                'description' => $model_class::DESCRIPTION
+            );
         }
         return $available_formulas;
     }

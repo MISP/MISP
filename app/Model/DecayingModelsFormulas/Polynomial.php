@@ -3,6 +3,8 @@ include_once 'Base.php';
 
 class Polynomial extends DecayingModelBase
 {
+    public const DESCRIPTION = 'The implementation of the decaying formula from the paper `An indicator scoring method for MISP platforms`.';
+
     public function computeScore($model, $attribute, $base_score, $elapsed_time)
     {
         if ($elapsed_time < 0) {

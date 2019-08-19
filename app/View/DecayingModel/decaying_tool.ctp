@@ -64,12 +64,13 @@
         </div>
     </div>
     <div class="span12">
-        <div>
-            <select id="formulaSelectPicker">
-                <?php foreach ($available_formulas as $formula_name => $extends_smthg): ?>
-                    <option value="<?php echo h($formula_name); ?>" data-extends="<?php echo h($extends_smthg); ?>"><?php echo h($formula_name); ?></option>
+        <div style="margin-bottom: 10px;">
+            <select id="formulaSelectPicker" style="margin: 0px;">
+                <?php foreach ($available_formulas as $formula_name => $formula_data): ?>
+                    <option value="<?php echo h($formula_name); ?>" data-extends="<?php echo h($formula_data['parent_class']); ?>" title="<?php echo h($formula_data['description']); ?>"><?php echo h($formula_name); ?></option>
                 <?php endforeach; ?>
             </select>
+            <i id="formulaSelectPickerHelpText" class="fas fa-question-circle"></i>
         </div>
         <div id="containerFormulaPolynomialSetting">
             <div class="span10" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
@@ -183,6 +184,13 @@ $(document).ready(function() {
     $('#formulaSelectPicker').change(function() {
         toggleContainer();
     })
+
+    $('#formulaSelectPickerHelpText').tooltip({
+        title: function() {
+            return $('#formulaSelectPicker > option:selected').attr('title');
+        },
+        placement: 'right'
+    });
 
 });
 function toggleContainer() {
