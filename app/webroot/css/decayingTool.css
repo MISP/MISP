@@ -163,3 +163,14 @@ svg text.axis-label {
     font: 10px sans-serif;
     fill: #999;
 }
+
+.tableRadioFilterOptionsContainer {
+    display: inline-block;
+    padding: 0 5px;
+    margin-left: 10px;
+    border-top: 1px solid #ddd;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}

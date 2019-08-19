@@ -24,9 +24,7 @@
                 selection_history2: []
             };
             this.model_table = new ModelTable();
-            $.getJSON('/decayingModel/getAllDecayingModels/', function(json) {
-                that.model_table.update(json);
-            });
+            this.model_table.refreshTable();
             this._init();
         };
 
@@ -889,12 +887,30 @@ ModelTable.prototype = {
         ];
         this.data = [];
         this.thead.html(this._get_html_header(this.table_header));
+
+        // bind listener on radio filters
+        var that = this;
+        $('.tableRadioFilterOptionsContainer input[type=\'radio\']').change(function() {
+            that.refreshTable();
+        });
     },
 
     update: function(data) {
         this.associated_types = data.associated_types;
         this.savedDecayingModels = this.massage_data(data.savedDecayingModels);
         this._draw();
+    },
+
+    refreshTable: function(data) {
+        var that = this;
+        var $filter_radio = $('.tableRadioFilterOptionsContainer input[type=\'radio\']:checked');
+        var filters = {};
+        if ($filter_radio) {
+            filters[$filter_radio.val()] = 1;
+        }
+        $.getJSON('/decayingModel/getAllDecayingModels/', filters, function(json) {
+            that.update(json);
+        });
     },
 
     massage_data: function(data) {

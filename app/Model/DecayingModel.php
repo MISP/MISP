@@ -167,7 +167,7 @@ class DecayingModel extends AppModel
         return !is_null($decaying_model['DecayingModel']['uuid']);
     }
 
-    public function fetchAllAllowedModels($user, $full=true)
+    public function fetchAllAllowedModels($user, $full=true, $filters=array())
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
@@ -175,6 +175,13 @@ class DecayingModel extends AppModel
                 'org_id' => $user['Organisation']['id'],
                 'all_orgs' => 1
             );
+        }
+        if (!empty($filters)) {
+            if (isset($filters['my_models']) && $filters['my_models']) {
+                $conditions[] = array('DecayingModel.org_id' => $user['Organisation']['id']);
+            } elseif (isset($filters['default_models']) && $filters['default_models']) {
+                $conditions[] = array('not' => array('DecayingModel.uuid' => null));
+            }
         }
         $decayingModels = $this->find('all', array(
             'conditions' => $conditions,

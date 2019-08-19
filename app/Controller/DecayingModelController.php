@@ -386,7 +386,8 @@ class DecayingModelController extends AppController
     public function getAllDecayingModels()
     {
         if ($this->request->is('get') && $this->request->is('ajax')) {
-            $savedDecayingModels = $this->DecayingModel->fetchAllAllowedModels($this->Auth->user());
+            $filters = $this->request->query;
+            $savedDecayingModels = $this->DecayingModel->fetchAllAllowedModels($this->Auth->user(), true, $filters);
             $associated_models = $this->DecayingModel->DecayingModelMapping->getAssociatedModels($this->Auth->user());
             $associated_types = array();
             foreach ($associated_models as $type => $models) {

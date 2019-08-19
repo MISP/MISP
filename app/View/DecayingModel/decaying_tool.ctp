@@ -138,6 +138,17 @@
 
         <div class="row">
             <div class="span12">
+                <span class="tableRadioFilterOptionsContainer">
+                    <label class="radio inline">
+                        <input type="radio" id="tableRadioFilterAll" name="tableRadioFilterOptions" value="all" checked><?php echo __('All available models');?>
+                    </label>
+                    <label class="radio inline">
+                        <input type="radio" id="tableRadioFilterMy" name="tableRadioFilterOptions" value="my_models"><?php echo __('My models'); ?>
+                    </label>
+                    <label class="radio inline">
+                        <input type="radio" id="tableRadioFilterDefault" name="tableRadioFilterOptions" value="default_models"><?php echo __('Default models'); ?>
+                    </label>
+                </span>
                 <table id="table-model" class="table table-striped table-bordered">
                     <thead id="table-model-head"></thead>
                     <tbody id="table-model-body"></tbody>
