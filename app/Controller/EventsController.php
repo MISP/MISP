@@ -5448,6 +5448,10 @@ class EventsController extends AppController
                     if (isset($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
                         $event = $this->Event->handleMispFormatFromModuleResult($result);
                         $event['Event'] = array('id' => $eventId);
+                        if ($this->_isRest()) {
+                            $this->Event->processModuleResultsDataRouter($this->Auth->user(), $event, $eventId, $importComment);
+                            return $this->RestResponse->viewData($event, $this->response->type());
+                        }
                         $this->set('event', $event);
                         $this->set('menuItem', 'importResults');
                         $render_name = 'resolved_misp_format';
