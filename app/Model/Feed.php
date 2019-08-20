@@ -330,6 +330,7 @@ class Feed extends AppModel
         if ($redis !== false) {
             $pipe = $redis->multi(Redis::PIPELINE);
             $hashTable = array();
+            $cachePrefix = 'misp:' . strtolower($scope) . '_cache:';
 
             $this->Event = ClassRegistry::init('Event');
             $compositeTypes = $this->Event->Attribute->getCompositeTypes();
@@ -341,7 +342,7 @@ class Feed extends AppModel
                 } else {
                     $hashTable[$k] = md5($object['value']);
                 }
-                $redis->sismember('misp:' . strtolower($scope) . '_cache:combined', $hashTable[$k]);
+                $redis->sismember($cachePrefix . 'combined', $hashTable[$k]);
             }
             $results = $pipe->exec();
             if (!$overrideLimit && count($objects) > 10000) {
@@ -383,19 +384,21 @@ class Feed extends AppModel
                         $hitIds[] = $k;
                     }
                 }
-                foreach ($sources as $k3 => $source) {
+                foreach ($sources as $source) {
+                    $sourceScopeId = $source[$scope]['id'];
+
                     $pipe = $redis->multi(Redis::PIPELINE);
                     foreach ($hitIds as $k) {
-                        $redis->sismember('misp:' . strtolower($scope) . '_cache:' . $source[$scope]['id'], $hashTable[$k]);
+                        $redis->sismember($cachePrefix . $sourceScopeId, $hashTable[$k]);
                     }
                     $sourceHits = $pipe->exec();
                     foreach ($sourceHits as $k4 => $hit) {
                         if ($hit) {
-                            if (!isset($event[$scope][$sources[$k3][$scope]['id']]['id'])) {
-                                if (!isset($event[$scope][$sources[$k3][$scope]['id']])) {
-                                    $event[$scope][$sources[$k3][$scope]['id']] = array();
+                            if (!isset($event[$scope][$sourceScopeId]['id'])) {
+                                if (!isset($event[$scope][$sourceScopeId])) {
+                                    $event[$scope][$sourceScopeId] = array();
                                 }
-                                $event[$scope][$sources[$k3][$scope]['id']] = array_merge($event[$scope][$sources[$k3][$scope]['id']], $source[$scope]);
+                                $event[$scope][$sourceScopeId] = array_merge($event[$scope][$sourceScopeId], $source[$scope]);
                             }
                             $objects[$hitIds[$k4]][$scope][] = $source[$scope];
                         }
@@ -412,9 +415,9 @@ class Feed extends AppModel
                                         $i++;
                                         if (in_array($object['type'], $compositeTypes)) {
                                             $value = explode('|', $object['value']);
-                                            $redis->smembers('misp:' . strtolower($scope) . '_cache:event_uuid_lookup:' . md5($value[0]));
+                                            $redis->smembers($cachePrefix . 'event_uuid_lookup:' . md5($value[0]));
                                         } else {
-                                            $redis->smembers('misp:' . strtolower($scope) . '_cache:event_uuid_lookup:' . md5($object['value']));
+                                            $redis->smembers($cachePrefix . 'event_uuid_lookup:' . md5($object['value']));
                                         }
                                     }
                                 }
