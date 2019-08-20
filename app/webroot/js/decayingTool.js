@@ -123,6 +123,7 @@
             /* CANVAS */
             _init: function() {
                 var that = this;
+                this.user_org_id = logged_user_org_id;
                 this.resetMultiplier();
                 this.width = $(this.container).width() - this.options.margin.left - this.options.margin.right;
                 this.height = 380 - this.options.margin.top - this.options.margin.bottom;
@@ -653,7 +654,7 @@
                 var btn_content_html;
                 var selected_model = d3.select($checkbox.closest('tr')[0]).data()[0];
                 if ($checkbox.length > 0) {
-                    if (selected_model.DecayingModel.isDefault) {
+                    if (!selected_model.DecayingModel.isEditable) {
                         save_button.data('isedit', 0).data('modelid', 0);
                         btn_content_html = '<i class="fa fa-plus"> ' + save_button.data('savetext');
                     } else {
@@ -979,10 +980,12 @@ ModelTable.prototype = {
     _gen_td_buttons: function(model) {
         var html_button = '<div style="width: max-content">';
         html_button += '<button class="btn btn-info btn-small decayingLoadBtn" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"> Load model</span></button>';
-        if (model.DecayingModel.enabled) {
-            html_button += '<button class="btn btn-danger btn-small" style="margin-left: 3px;" onclick="decayingTool.disableModel(this, ' + model.DecayingModel.id + ');" title="Disable model"><span class="fa fa-pause"></span></button>'
-        } else {
-            html_button += '<button class="btn btn-success btn-small" style="margin-left: 3px;" onclick="decayingTool.enableModel(this, ' + model.DecayingModel.id + ');" title="Enable model"><span class="fa fa-play"></span></button>'
+        if (model.DecayingModel.isEditable) {
+            if (model.DecayingModel.enabled) {
+                html_button += '<button class="btn btn-danger btn-small" style="margin-left: 3px;" onclick="decayingTool.disableModel(this, ' + model.DecayingModel.id + ');" title="Disable model"><span class="fa fa-pause"></span></button>'
+            } else {
+                html_button += '<button class="btn btn-success btn-small" style="margin-left: 3px;" onclick="decayingTool.enableModel(this, ' + model.DecayingModel.id + ');" title="Enable model"><span class="fa fa-play"></span></button>'
+            }
         }
         html_button += '</div>';
         return html_button;

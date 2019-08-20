@@ -18,10 +18,25 @@
     </div>
 
 <?php
+    $temp = $passedArgsArray;
+    unset($temp['sort']);
+    unset($temp['direction']);
+    $filter_active = count(array_keys($temp)) > 0;
     $data = array(
         'children' => array(
             array(
                 'children' => array(
+                    array(
+                        'title' => __('All Models'),
+                        'text' => __('All Models'),
+                        'url' => sprintf('%s/%s%s',
+                            $baseurl . '/decayingModel/index',
+                            isset($passedArgsArray['sort']) ? 'sort:' . $passedArgsArray['sort'] . '/' : '',
+                            isset($passedArgsArray['direction']) ? 'direction:' . $passedArgsArray['direction'] . '/' : ''
+                        ),
+                        'class' => 'searchFilterButton',
+                        'active' => !$filter_active
+                    ),
                     array(
                         'title' => __('My models only'),
                         'text' => __('My Models'),

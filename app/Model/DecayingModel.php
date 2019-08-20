@@ -169,6 +169,11 @@ class DecayingModel extends AppModel
         return !is_null($decaying_model['DecayingModel']['uuid']);
     }
 
+    public function isEditableByCurrentUser($user, $decaying_model)
+    {
+        return !$this->isDefaultModel($decaying_model) && $decaying_model['DecayingModel']['org_id'] == $user['org_id'];
+    }
+
     public function fetchAllAllowedModels($user, $full=true, $filters=array())
     {
         $conditions = array();
@@ -194,6 +199,7 @@ class DecayingModel extends AppModel
                 $decayingModels[$i]['DecayingModel']['attribute_types'] = $decayingModels[$i]['DecayingModel']['attribute_types'] + Hash::extract($decayingModels[$i]['DecayingModelMapping'], '{n}.attribute_type');
                 unset($decayingModels[$i]['DecayingModelMapping']);
             }
+            $decayingModels[$i]['DecayingModel']['isEditable'] = $this->isEditableByCurrentUser($user, $decayingModels[$i]);
         }
 
         return $decayingModels;

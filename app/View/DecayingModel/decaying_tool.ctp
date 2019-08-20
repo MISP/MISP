@@ -171,6 +171,7 @@
 ?>
 
 <script>
+var logged_user_org_id = <?php echo h($me['org_id']); ?>;
 $(document).ready(function() {
     $('.json-transform').each(function(i) {
         var text = $(this).text().trim();

@@ -172,7 +172,7 @@ class DecayingModelController extends AppController
         $this->set('mayModify', true);
         $restrictedEdition = $this->DecayingModel->isDefaultModel($decayingModel);
         if (!$this->_isSiteAdmin() && $decayingModel['DecayingModel']['org_id'] != $this->Auth->user('Organisation')['id']) {
-            throw new MethodNotAllowedException(__("The model does not belong to your organisation"));
+            throw new UnauthorizedException(__("The model does not belong to your organisation"));
         }
 
         if ($this->request->is('post') || $this->request->is('put')) {
