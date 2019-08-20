@@ -655,14 +655,14 @@
                 var selected_model = d3.select($checkbox.closest('tr')[0]).data()[0];
                 if ($checkbox.length > 0) {
                     if (!selected_model.DecayingModel.isEditable) {
-                        save_button.data('isedit', 0).data('modelid', 0);
+                        save_button.data('isedit', 0).data('modelid', 0).removeClass('btn-warning').addClass('btn-success');
                         btn_content_html = '<i class="fa fa-plus"> ' + save_button.data('savetext');
                     } else {
-                        save_button.data('isedit', 1);
+                        save_button.data('isedit', 1).removeClass('btn-success').addClass('btn-warning');
                         btn_content_html = '<i class="fa fa-edit"> ' + save_button.data('edittext');
                     }
                 } else {
-                    save_button.data('isedit', 0).data('modelid', 0);
+                    save_button.data('isedit', 0).data('modelid', 0).removeClass('btn-warning').addClass('btn-success');
                     btn_content_html = '<i class="fa fa-plus"> ' + save_button.data('savetext');
                 }
                 save_button.html(btn_content_html);
