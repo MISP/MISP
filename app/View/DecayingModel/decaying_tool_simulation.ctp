@@ -91,7 +91,7 @@
     </div>
 </div>
 </div>
-<?php echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'decayingModel', 'menuItem' => 'index')); ?>
+<?php echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'decayingModel', 'menuItem' => '')); ?>
 <?php
     echo $this->element('genericElements/assetLoader', array(
         'css' => array('treemap', 'decayingTool'),

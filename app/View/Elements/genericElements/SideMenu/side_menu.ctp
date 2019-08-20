@@ -882,8 +882,8 @@
                     break;
 
                 case 'decayingModel':
-                    if ($isSiteAdmin) {
-                        if (($menuItem === 'view' || $menuItem === 'index')) {
+                    if ($isAdmin) {
+                        if ($isSiteAdmin && ($menuItem === 'view' || $menuItem === 'index')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                                 'event_id' => 'update',
                                 'url' => '/decayingModel/update',
