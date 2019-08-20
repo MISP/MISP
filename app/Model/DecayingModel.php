@@ -366,7 +366,8 @@ class DecayingModel extends AppModel
         $this->Attribute = ClassRegistry::init('Attribute');
         $attribute = $this->Attribute->fetchAttributes($user, array(
             'conditions' => array('Attribute.id' => $attribute_id),
-            'contain' => array('AttributeTag' => array('Tag'))
+            'contain' => array('AttributeTag' => array('Tag')),
+            'flatten' => 1
         ));
         if (empty($attribute)) {
             throw new NotFoundException(__('Attribute not found'));
@@ -480,7 +481,7 @@ class DecayingModel extends AppModel
         $models = array();
         if ($model_id === false) { // fetch all allowed and associated models
             $associated_model_ids = $this->DecayingModelMapping->getAssociatedModels($user, $attribute['type'], true);
-            $associated_model_ids = array_values($associated_model_ids[$attribute['type']]);
+            $associated_model_ids = isset($associated_model_ids[$attribute['type']]) ? array_values($associated_model_ids[$attribute['type']]) : array();
             if (!empty($associated_model_ids)) {
                 $models = $this->fetchModels($user, $associated_model_ids, false, array('enabled' => true));
             }
