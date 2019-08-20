@@ -49,7 +49,10 @@ class EventDelegationsController extends AppController
         if (!empty($existingDelegations)) {
             throw new MethodNotAllowedException('This event already has a pending delegation request. Please revoke that before creating a new request.');
         }
-        if ($this->request->is('Post')) {
+        if ($this->request->is('post')) {
+            if (empty($this->request->data['EventDelegation'])) {
+                $this->request->data = array('EventDelegation' => $this->request->data);
+            }
             if ($this->request->data['EventDelegation']['distribution'] != 4) {
                 $this->request->data['EventDelegation']['sharing_group_id'] = '0';
             }
@@ -74,6 +77,15 @@ class EventDelegationsController extends AppController
                     'title' => 'Requested event delegation',
                     'change' => 'Requested the delegation of event ' . $event['Event']['id'] . ' to organisation ' . $org['Org']['name'],
             ));
+            if ($this->_isRest()) {
+                $delegation_request = $this->EventDelegation->find('first', array(
+                    'conditions' => array(
+                        'EventDelegation.id' => $this->EventDelegation->id
+                    ),
+                    'recursive' => -1
+                ));
+                return $this->RestResponse->viewData($delegation_request, $this->response->type());
+            }
             $this->Flash->success('Delegation request created.');
             $this->redirect('/events/view/' . $id);
         } else {
