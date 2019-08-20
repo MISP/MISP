@@ -13,6 +13,10 @@ App::uses('AppHelper', 'View/Helper');
                 return '<i class="fas fa-frown white"></i>&nbsp;';
             } else if (strpos($lower_email, 'enrico.lovat') !== false) {
                 return '<i class="fas fa-horse-head white"></i>&nbsp;';
+            } else if (strpos($lower_email, 'christophe.vandeplas') !== false) {
+                return '<i class="fas fa-smile-beam white"></i>&nbsp;';
+            } else if (strpos($lower_email, 'rand') !== false && (strpos($lower_email, 'ecrime') !== false)) {
+                return '<i class="fas fa-camera white"></i>&nbsp;';
             }
             return '';
         }
