@@ -70,7 +70,7 @@
 
 <script>
     $(document).ready(function() {
-        $('#attribute_div .pagination a').click(function(e) {
+        $('#attribute_div .pagination a, #attribute_div thead th > a').click(function(e) {
             var url = this.href;
             $.ajax({
                 beforeSend:function() {
