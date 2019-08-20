@@ -567,12 +567,12 @@
                     // hide everything
                     $body.find('tr').forceClass('hidden', true);
                     // show only matching elements
-                    var $cells = $table.find('tbody > tr > td > span.isFilteringField');
+                    var $cells = $table.find('tbody > tr > td.isFilteringField');
                     $cells.each(function() {
                         if ($(this).text().trim().toUpperCase().indexOf(searchString.toUpperCase()) != -1) {
-                            $(this).parent().filter('.isNotToIDS').forceClass('hidden', !$('#table_toggle_all_type').is(':checked'));
-                            $(this).parent().filter('.isObject').forceClass('hidden', !$('#table_toggle_objects').is(':checked'));
-                            $(this).parent().filter(':not(".isObject, .isNotToIDS")').forceClass('hidden', false);
+                            $(this).parent().filter('tr.isNotToIDS').forceClass('hidden', !$('#table_toggle_all_type').is(':checked'));
+                            $(this).parent().filter('tr.isObject').forceClass('hidden', !$('#table_toggle_objects').is(':checked'));
+                            $(this).parent().filter('tr:not(".isObject, .isNotToIDS")').forceClass('hidden', false);
                         }
                     });
                 }
