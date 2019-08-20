@@ -30,11 +30,15 @@ class EventDelegationsController extends AppController
 
     public function delegateEvent($id)
     {
+        $id = $this->Toolbox->findIdByUuid($this->EventDelegation->Event, $id);
         $event = $this->EventDelegation->Event->find('first', array(
                 'conditions' => array('Event.id' => $id),
                 'recursive' => -1,
                 'fields' => array('Event.id', 'Event.orgc_id', 'Event.distribution')
         ));
+        if (empty($event)) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
         if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
