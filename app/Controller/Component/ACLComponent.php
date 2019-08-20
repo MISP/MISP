@@ -408,9 +408,9 @@ class ACLComponent extends Component
                     'advanced' => array('perm_sighting'),
                     'delete' => array('perm_sighting'),
                     'index' => array('*'),
-                    'listSightings' => array('perm_sighting'),
+                    'listSightings' => array('*'),
                     'quickDelete' => array('perm_sighting'),
-                    'viewSightings' => array('perm_sighting'),
+                    'viewSightings' => array('*'),
                     'quickAdd' => array('perm_sighting')
             ),
             'tagCollections' => array(
