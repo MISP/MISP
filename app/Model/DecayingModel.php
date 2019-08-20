@@ -406,7 +406,18 @@ class DecayingModel extends AppModel
         $start_time = intval($start_time);
         $start_time = $this->round_timestamp_to_hour($start_time);
         // get end time
-        $end_time = $sightings[count($sightings)-1]['Sighting']['date_sighting'] + $model['DecayingModel']['parameters']['tau']*24*60*60;
+        $last_sighting_timestamp = $sightings[count($sightings)-1]['Sighting']['date_sighting'];
+        if ($attribute['Attribute']['timestamp'] > $last_sighting_timestamp) { // The attribute was modified after the last sighting
+            $sightings[count($sightings)] = array(
+                'Sighting' => array(
+                    'date_sighting' => $attribute['Attribute']['timestamp'],
+                    'type' => 0, 
+                    'rounded_timestamp' => $this->round_timestamp_to_hour($attribute['Attribute']['timestamp'])
+                )
+            );
+            $last_sighting_timestamp = $attribute['Attribute']['timestamp'];
+        }
+        $end_time = $last_sighting_timestamp + $model['DecayingModel']['parameters']['tau']*24*60*60;
         $end_time = $this->round_timestamp_to_hour($end_time);
         $base_score_config = $this->Computation->computeBasescore($model, $attribute['Attribute']);
         $base_score = $base_score_config['base_score'];
@@ -432,7 +443,7 @@ class DecayingModel extends AppModel
             'sightings' => $sightings,
             'base_score_config' => $base_score_config,
             'last_sighting' => $sightings[count($sightings)-1],
-            'current_score' => $this->Computation->computeCurrentScore($user, $model, $attribute['Attribute'], $base_score, $sightings[count($sightings)-1]['Sighting']['date_sighting']),
+            'current_score' => $this->Computation->computeCurrentScore($user, $model, $attribute['Attribute'], $base_score, $last_sighting_timestamp),
             'Model' => $model['DecayingModel']
         );
     }

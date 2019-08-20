@@ -102,6 +102,9 @@ abstract class DecayingModelBase
                 $last_sighting_timestamp = $attribute['timestamp']; // if no sighting, take the last update time
             }
         }
+        if ($attribute['timestamp'] > $last_sighting_timestamp) { // The attribute was modified after the last sighting
+            $last_sighting_timestamp = $attribute['timestamp'];
+        }
         $timestamp = time();
         return $this->computeScore($model, $attribute, $base_score, $timestamp - $last_sighting_timestamp);
     }

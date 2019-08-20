@@ -203,7 +203,7 @@
                     .attr('y1', function(d) { return that.height; })
                     .attr('x2', function(d) { return that.x(d.date); })
                     .attr('y2', function(d) { return that.height; })
-                    .style("stroke", "rgba(70, 130, 180, 0.3)")
+                    .style("stroke", "rgba(70, 130, 180, 0.5)")
                     .style("stroke-dasharray", "4,2")
                     .style("shape-rendering", "crispEdges")
                     .transition()
