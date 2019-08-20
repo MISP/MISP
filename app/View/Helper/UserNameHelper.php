@@ -11,6 +11,8 @@ App::uses('AppHelper', 'View/Helper');
                 strpos($lower_email, 'saad.kadhi') !== false
             ) {
                 return '<i class="fas fa-frown white"></i>&nbsp;';
+            } else if (strpos($lower_email, 'enrico.lovat') !== false) {
+                return '<i class="fas fa-horse-head white"></i>&nbsp;';
             }
             return '';
         }
