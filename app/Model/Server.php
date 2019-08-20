@@ -1162,6 +1162,7 @@ class Server extends AppModel
                                 'test' => 'testSalt',
                                 'type' => 'string',
                                 'editable' => false,
+                                'redacted' => true
                         ),
                         'syslog' => array(
                             'level' => 0,

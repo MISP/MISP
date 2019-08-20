@@ -117,7 +117,7 @@ class AttributesController extends AppController
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
         if (!$this->userRole['perm_add']) {
-            throw new MethodNotAllowedException(__('You don\'t have permissions to create attributes'));
+            throw new MethodNotAllowedException(__('You do not have permissions to create attributes'));
         }
         $this->loadModel('Event');
         if (Validation::uuid($eventId)) {
@@ -810,17 +810,32 @@ class AttributesController extends AppController
         if (!$this->Attribute->exists()) {
             throw new NotFoundException(__('Invalid attribute'));
         }
-        $this->Attribute->read();
+        $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
+        $conditions['includeAllTags'] = false;
+        $conditions['includeAttributeUuid'] = true;
+        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
+        if (empty($attribute)) {
+            throw new MethodNotAllowedException('Invalid attribute');
+        }
+        $this->Attribute->data = $attribute[0];
+        $event = $this->Attribute->Event->find('first', array(
+            'conditions' =>
+                array(
+                    'Event.id' => $attribute[0]['Attribute']['event_id']
+                ),
+            'recursive' => -1,
+            'fields' => array('Event.id', 'Event.user_id')
+        ));
         if ($this->Attribute->data['Attribute']['deleted']) {
             throw new NotFoundException(__('Invalid attribute'));
         }
         if (!$this->_isSiteAdmin()) {
             if ($this->Attribute->data['Event']['orgc_id'] == $this->Auth->user('org_id')
-                && (($this->userRole['perm_modify'] && $this->Attribute->data['Event']['user_id'] != $this->Auth->user('id'))
+                && (($this->userRole['perm_modify'] && $event['Event']['user_id'] != $this->Auth->user('id'))
                     || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                $message = __('Invalid attribute.');
+                $message = __('You do not have permission to do that.');
                 if ($this->_isRest()) {
                     throw new ForbiddenException($message);
                 } else {
@@ -1033,9 +1048,15 @@ class AttributesController extends AppController
         if (!$this->Attribute->exists()) {
             return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status'=>200, 'type' => 'json'));
         }
-        $this->Attribute->recursive = -1;
-        $this->Attribute->contain('Event');
-        $attribute = $this->Attribute->read();
+        $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
+        $conditions['includeAllTags'] = false;
+        $conditions['includeAttributeUuid'] = true;
+        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
+        if (empty($attribute)) {
+            throw new MethodNotAllowedException('Invalid attribute');
+        }
+        $attribute = $attribute[0];
+        $this->Attribute->data = $attribute;
 
         if (!$this->_isSiteAdmin()) {
             if ($this->Attribute->data['Event']['orgc_id'] == $this->Auth->user('org_id')
@@ -1043,7 +1064,7 @@ class AttributesController extends AppController
             || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status'=>200, 'type' => 'json'));
+                return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'You do not have permission to do that')), 'status'=>200, 'type' => 'json'));
             }
         }
         if (!$this->_isRest()) {
@@ -1209,7 +1230,7 @@ class AttributesController extends AppController
                 'fields' => array('id', 'event_id'),
         ));
         if (empty($attribute)) {
-            throw new NotFoundException('Invalid Attribute');
+            throw new NotFoundException('Invalid attribute');
         }
         if ($this->request->is('ajax')) {
             if ($this->request->is('post')) {
@@ -2413,7 +2434,7 @@ class AttributesController extends AppController
                     || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                throw new NotFoundException(__('Invalid attribute'));
+                throw new ForbiddenException(__('You do not have permission to do that'));
             }
         }
         $this->layout = 'ajax';
@@ -3057,7 +3078,7 @@ class AttributesController extends AppController
                 ));
                 if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
                     if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You do not have permission to do that.')), 'status' => 200, 'type' => 'json'));
                     }
                 }
                 if (!$this->_isRest()) {
@@ -3216,7 +3237,7 @@ class AttributesController extends AppController
                 ) &&
                 !$this->_isSiteAdmin()
             ) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You do not have permission to do that.')), 'status' => 200, 'type' => 'json'));
             }
 
             $this->autoRender = false;
@@ -3254,7 +3275,7 @@ class AttributesController extends AppController
             throw new NotFoundException(__('Invalid Attribute.'));
         }
         if (!$this->Auth->user('Role')['perm_modify']) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
+            throw new MethodNotAllowedException(__('You do not have permission to do that.'));
         }
         $conditions = array('Attribute.id' => $id);
         if (!$this->_isSiteAdmin()) {
@@ -3269,7 +3290,7 @@ class AttributesController extends AppController
             throw new NotFoundException(__('Invalid Attribute.'));
         }
         if (!$this->Auth->user('Role')['perm_modify_org'] && $this->Auth->user('id') != $attribute['Event']['user_id']) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
+            throw new MethodNotAllowedException(__('You do not have permission to do that.'));
         }
         if (!$this->_isRest()) {
             $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Event']['id']);

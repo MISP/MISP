@@ -1215,6 +1215,18 @@ class ServersController extends AppController
         $this->render('ajax/submoduleStatus');
     }
 
+    public function getSetting($setting_name)
+    {
+        $setting = $this->Server->getSettingData($setting_name);
+        if (!empty($setting["redacted"])) {
+            throw new MethodNotAllowedException(__('This setting is redacted.'));
+        }
+        if (Configure::check($setting_name)) {
+            $setting['value'] = Configure::read($setting_name);
+        }
+        return $this->RestResponse->viewData($setting);
+    }
+
     public function serverSettingsEdit($setting_name, $id = false, $forceSave = false)
     {
         if (!$this->_isSiteAdmin()) {

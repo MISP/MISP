@@ -1524,20 +1524,7 @@ class EventsController extends AppController
     public function view($id = null, $continue=false, $fromEvent=null)
     {
         // find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
-        if (Validation::uuid($id)) {
-            $this->Event->recursive = -1;
-            $temp = $this->Event->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Event.uuid' => $id),
-                'fields' => array('Event.id', 'Event.uuid')
-            ));
-            if ($temp == null) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            $id = $temp['Event']['id'];
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid event'));
-        }
+        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $this->Event->id = $id;
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
@@ -2437,6 +2424,7 @@ class EventsController extends AppController
 
     public function unpublish($id = null)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $this->Event->id = $id;
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
@@ -2486,6 +2474,7 @@ class EventsController extends AppController
     // Publishes the event without sending an alert email
     public function publish($id = null)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $this->Event->id = $id;
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
@@ -2556,6 +2545,7 @@ class EventsController extends AppController
     // Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
     public function alert($id = null)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $this->Event->id = $id;
         $this->Event->recursive = 0;
         if (!$this->Event->exists()) {
@@ -4024,6 +4014,7 @@ class EventsController extends AppController
 
     public function __pushFreetext($attributes, $id, $distribution = false, $sg = false, $adhereToWarninglists = false)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         if ($distribution === false) {
             if (Configure::read('MISP.default_attribute_distribution') != null) {
                 if (Configure::read('MISP.default_attribute_distribution') == 'event') {
@@ -5468,6 +5459,10 @@ class EventsController extends AppController
                     if (isset($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
                         $event = $this->Event->handleMispFormatFromModuleResult($result);
                         $event['Event'] = array('id' => $eventId);
+                        if ($this->_isRest()) {
+                            $this->Event->processModuleResultsDataRouter($this->Auth->user(), $event, $eventId, $importComment);
+                            return $this->RestResponse->viewData($event, $this->response->type());
+                        }
                         $this->set('event', $event);
                         $this->set('menuItem', 'importResults');
                         $render_name = 'resolved_misp_format';
@@ -5596,6 +5591,7 @@ class EventsController extends AppController
     // #TODO i18n
     public function pushEventToZMQ($id)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         if ($this->request->is('Post')) {
             if (Configure::read('Plugin.ZeroMQ_enable')) {
                 $pubSubTool = $this->Event->getPubSubTool();
