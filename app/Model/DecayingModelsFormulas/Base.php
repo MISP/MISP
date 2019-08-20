@@ -70,14 +70,19 @@ abstract class DecayingModelBase
         $overridden_tags = $temp['overridden'];
         $taxonomy_effective_ratios = $this->__getRatioScore($model, $tags);
         $default_base_score = isset($model['DecayingModel']['parameters']['default_base_score']) ? $model['DecayingModel']['parameters']['default_base_score'] : 0 ;
-        $base_score = $default_base_score;
+        $base_score = 0;
+        $flag_contain_matching_taxonomy = false;
         if (!empty($taxonomy_effective_ratios)) {
             foreach ($tags as $k => $tag) {
                 $taxonomy = explode(':', $tag['Tag']['name'])[0];
                 if (isset($taxonomy_effective_ratios[$taxonomy])) {
+                    $flag_contain_matching_taxonomy = true;
                     $base_score += $taxonomy_effective_ratios[$taxonomy] * $tag['Tag']['numerical_value'];
                 }
             }
+        }
+        if (!$flag_contain_matching_taxonomy) {
+            $base_score = $default_base_score;
         }
         return array('base_score' => $base_score, 'overridden' => $overridden_tags, 'tags' => $tags, 'taxonomy_effective_ratios' => $taxonomy_effective_ratios, 'default_base_score' => $default_base_score);
     }

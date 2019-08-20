@@ -51,7 +51,6 @@ class DecayingModel extends AppModel
 
     public function beforeValidate($options = array()) {
         parent::beforeValidate();
-
         if (
             isset($this->data['DecayingModel']['parameters']) &&
             !empty($this->data['DecayingModel']['parameters']) &&
@@ -66,6 +65,9 @@ class DecayingModel extends AppModel
                 }
             }
             return false;
+        } else {
+            $validation = $this->__validateParameters($this->data['DecayingModel']['parameters']);
+            return $validation;
         }
         if (!empty($this->data['DecayingModel']['attribute_types']) && !is_array($this->data['DecayingModel']['attribute_types'])) {
             $encoded = json_decode($this->data['DecayingModel']['attribute_types'], true);

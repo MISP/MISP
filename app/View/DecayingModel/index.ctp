@@ -114,19 +114,21 @@ foreach ($decayingModels as $item): ?>
             <?php echo $this->Html->link('', array('action' => 'view', $item['DecayingModel']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
             <?php echo $this->Html->link('', array('action' => 'export', $item['DecayingModel']['id'] . '.json'), array('download' => true, 'class' => 'fa fa-cloud-download-alt', 'title' => __('Download model')));?>
             <?php if ($me['Role']['perm_admin']): ?>
-                <?php
-                    if (!$item['DecayingModel']['isDefault']) {
-                        echo $this->Form->postLink('', array('action' => 'delete', $item['DecayingModel']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete DecayingModel #' . $item['DecayingModel']['id'] . '?'));
-                    }
-                ?>
-                <?php echo $this->Html->link('', array('action' => 'edit', $item['DecayingModel']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
-                <?php
-                    if ($item['DecayingModel']['enabled']):
-                        echo $this->Form->postLink('', array('action' => 'disable', $item['DecayingModel']['id']), array('class' => 'fa fa-pause', 'title' => 'Disable model'), __('Are you sure you want to disable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
-                    else:
-                        echo $this->Form->postLink('', array('action' => 'enable', $item['DecayingModel']['id']), array('class' => 'fa fa-play', 'title' => 'Enable model'), __('Are you sure you want to enable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
-                    endif;
-                ?>
+                <?php if ($me['Role']['perm_site_admin'] || $item['DecayingModel']['org_id'] == $me['org_id']): ?>
+                    <?php
+                        if (!$item['DecayingModel']['isDefault']) {
+                            echo $this->Form->postLink('', array('action' => 'delete', $item['DecayingModel']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete DecayingModel #' . $item['DecayingModel']['id'] . '?'));
+                        }
+                    ?>
+                    <?php echo $this->Html->link('', array('action' => 'edit', $item['DecayingModel']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
+                    <?php
+                        if ($item['DecayingModel']['enabled']):
+                            echo $this->Form->postLink('', array('action' => 'disable', $item['DecayingModel']['id']), array('class' => 'fa fa-pause', 'title' => 'Disable model'), __('Are you sure you want to disable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
+                        else:
+                            echo $this->Form->postLink('', array('action' => 'enable', $item['DecayingModel']['id']), array('class' => 'fa fa-play', 'title' => 'Enable model'), __('Are you sure you want to enable DecayingModel #' . $item['DecayingModel']['id'] . '?'));
+                        endif;
+                    ?>
+                <?php endif; ?>
             <?php endif; ?>
         </td>
     </tr><?php

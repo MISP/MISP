@@ -16,7 +16,7 @@ class DecayingModelController extends AppController
     public function update($force=false)
     {
         if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException(__('You are not authorised to edit it.'));
+            throw new MethodNotAllowedException(__('You are not authorised to update.'));
         }
 
         if ($this->request->is('post')) {
@@ -151,7 +151,6 @@ class DecayingModelController extends AppController
             if (empty($this->request->data['DecayingModel']['name'])) {
                 throw new MethodNotAllowedException(__("The model must have a name"));
             }
-
             if ($this->DecayingModel->save($this->request->data)) {
                 if ($this->request->is('ajax')) {
                     $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id);
@@ -172,6 +171,9 @@ class DecayingModelController extends AppController
         $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
         $this->set('mayModify', true);
         $restrictedEdition = $this->DecayingModel->isDefaultModel($decayingModel);
+        if (!$this->_isSiteAdmin() && $decayingModel['DecayingModel']['org_id'] != $this->Auth->user('Organisation')['id']) {
+            throw new MethodNotAllowedException(__("The model does not belong to your organisation"));
+        }
 
         if ($this->request->is('post') || $this->request->is('put')) {
 
