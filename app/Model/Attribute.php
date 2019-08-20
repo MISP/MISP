@@ -4042,7 +4042,7 @@ class Attribute extends AppModel
         if (empty($result)) {
             throw new ForbiddenException(__('Invalid attribute'));
         }
-        result = $result[0];
+        $result = $result[0];
 
         // check for permissions
         if (!$user['Role']['perm_site_admin']) {
