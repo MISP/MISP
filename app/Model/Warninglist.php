@@ -190,10 +190,9 @@ class Warninglist extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            $redis->del('misp:warninglist_entries_cache:');
-            foreach ($warninglistEntries as $entry) {
-                $redis->sAdd('misp:warninglist_entries_cache:' . $id, $entry);
-            }
+            $key = 'misp:warninglist_entries_cache:' . $id;
+            $redis->del($key);
+            $redis->sAddArray($key, $warninglistEntries);
             return true;
         }
         return false;
@@ -203,7 +202,7 @@ class Warninglist extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            if (!$redis->exists('misp:warninglist_cache') || $redis->sCard('misp:warninglist_cache') == 0) {
+            if ($redis->sCard('misp:warninglist_cache') === 0) {
                 if (!empty($conditions)) {
                     $warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => $conditions));
                 } else {
@@ -237,7 +236,7 @@ class Warninglist extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            if (!$redis->exists('misp:warninglist_entries_cache:' . $id) || $redis->sCard('misp:warninglist_entries_cache:' . $id) == 0) {
+            if ($redis->sCard('misp:warninglist_entries_cache:' . $id) === 0) {
                 $entries = $this->WarninglistEntry->find('list', array(
                         'recursive' => -1,
                         'conditions' => array('warninglist_id' => $id),
