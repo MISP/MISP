@@ -90,8 +90,8 @@ class SightingsController extends AppController
                     }
                 } else {
                     if ($this->_isRest() || $this->response->type() === 'application/json') {
-                        $this->set('message', __('Sighting added'));
-                        $this->set('_serialize', array('message'));
+                        $sighting = $this->Sighting->find('first', array('conditions' => array('Sighting.id' => $this->Sighting->id), 'recursive' => -1));
+                        return $this->RestResponse->viewData($sighting, $this->response->type());
                     } else {
                         $this->Flash->success(__('Sighting added'));
                         $this->redirect($this->referer());
