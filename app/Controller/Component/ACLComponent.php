@@ -76,12 +76,12 @@ class ACLComponent extends Component
                 "import" => array('*'),
                 "view" => array('*'),
                 "index" => array('*'),
-                "add" => array('perm_admin'),
-                "edit" => array('perm_admin'),
-                "delete" => array('perm_admin'),
-                "enable" => array('perm_admin'),
-                "disable" => array('perm_admin'),
-                "decayingTool" => array('perm_admin'),
+                "add" => array('perm_admin', 'perm_decaying'),
+                "edit" => array('perm_admin', 'perm_decaying'),
+                "delete" => array('perm_admin', 'perm_decaying'),
+                "enable" => array('perm_admin', 'perm_decaying'),
+                "disable" => array('perm_admin', 'perm_decaying'),
+                "decayingTool" => array('perm_admin', 'perm_decaying'),
                 "getAllDecayingModels" => array('*'),
                 "decayingToolBasescore" => array('*'),
                 "decayingToolSimulation" => array('*'),
@@ -90,7 +90,7 @@ class ACLComponent extends Component
             ),
             'decayingModelMapping' => array(
                 "viewAssociatedTypes" => array('*'),
-                "linkAttributeTypeToModel" => array('perm_admin')
+                "linkAttributeTypeToModel" => array('perm_admin', 'perm_decaying')
             ),
             'eventBlacklists' => array(
                     'add' => array(),

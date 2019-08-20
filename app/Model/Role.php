@@ -131,8 +131,14 @@ class Role extends AppModel
         'perm_object_template' => array(
             'id' => 'RolePermObjectTemplate',
             'text' => 'Object Template Editor',
-            'readonlyenabled' => false,
+            'readonlyenabled' => true,
             'title' => 'Create or modify MISP Object templates'
+        ),
+        'perm_decaying' => array(
+            'id' => 'RolePermDecaying',
+            'text' => 'Decaying Model Editor',
+            'readonlyenabled' => true,
+            'title' => 'Create or modify MISP Decaying Models'
         ),
         // Urgently needed permission flag to avoid waking up next to a decapitated horse head sent by Enrico
         'perm_publish_zmq' => array(

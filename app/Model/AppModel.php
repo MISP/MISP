@@ -1194,6 +1194,10 @@ class AppModel extends Model
                     KEY `type` (`type`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
             case 36:
+                $sqlArray[] = "ALTER TABLE `event_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 37:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS decaying_models (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
@@ -1216,10 +1220,8 @@ class AppModel extends Model
                     `model_id` int(11) NOT NULL,
                     PRIMARY KEY (id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
-                break;
-            case 36:
-                $sqlArray[] = "ALTER TABLE `event_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_decaying` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "UPDATE `roles` SET `perm_decaying`=1 WHERE `name` IN ('admin', 'Org Admin', 'User', 'Publisher');";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

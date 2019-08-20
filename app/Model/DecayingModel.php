@@ -235,13 +235,13 @@ class DecayingModel extends AppModel
 
         // if not found return false
         if (empty($decayingModel)) {
-            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
         }
         if (
             !$user['Role']['perm_site_admin'] &&  // if the user is a site admin, return the model without question
             !($user['Organisation']['id'] == $decayingModel['DecayingModel']['org_id'] || $decayingModel['DecayingModel']['all_orgs'])
         ) {
-            throw new MethodNotAllowedException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
         }
 
         if ($full) {
@@ -388,9 +388,6 @@ class DecayingModel extends AppModel
             unset($attribute['AttributeTag']);
         }
         $model = $this->fetchModel($user, $model_id, true);
-        if ($model === false) {
-            throw new NotFoundException(__('Model not found'));
-        }
         if (!empty($model_overrides)) {
             $this->overrideModelParameters($model, $model_overrides);
         }
@@ -402,7 +399,6 @@ class DecayingModel extends AppModel
         }
         // get start time
         $start_time = $attribute['Attribute']['timestamp'];
-        // $start_time = $attribute['Attribute']['first_seen'] < $start_time ? $attribute['Attribute']['first_seen'] : $start_time;
         $start_time = $sightings[0]['Sighting']['date_sighting'] < $start_time ? $sightings[0]['Sighting']['date_sighting'] : $start_time;
         $start_time = intval($start_time);
         $start_time = $this->round_timestamp_to_hour($start_time);
