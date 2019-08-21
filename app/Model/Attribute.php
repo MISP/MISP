@@ -3274,7 +3274,7 @@ class Attribute extends AppModel
                     $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides']);
                     if ($options['excludeDecayed']) { // filter out decayed attribute
                         $decayed_flag = true;
-                        foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) {
+                        foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) { // remove attribute if ALL score results in a decay
                             $decayed_flag = $decayed_flag && $decayResult['decayed'];
                         }
                         if ($decayed_flag) {

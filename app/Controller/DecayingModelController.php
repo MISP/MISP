@@ -19,7 +19,7 @@ class DecayingModelController extends AppController
             throw new MethodNotAllowedException(__('You are not authorised to update.'));
         }
 
-        if ($this->request->is('post')) {
+        if ($this->request->is('post') || $this->request->is('put')) {
             $this->DecayingModel->update($force);
             $message = __('Default decaying models updated');
             if ($this->_isRest()) {

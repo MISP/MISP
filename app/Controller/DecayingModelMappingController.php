@@ -22,10 +22,8 @@ class DecayingModelMappingController extends AppController
     public function linkAttributeTypeToModel($model_id) {
         $model = $this->DecayingModelMapping->DecayingModel->fetchModel($this->Auth->user(), $model_id);
 
-        if ($this->request->is('post')) {
-            if (!isset($this->request->data['DecayingModelMapping']['model_id'])) {
-                $this->request->data['DecayingModelMapping']['model_id'] = $model_id;
-            }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $this->request->data['DecayingModelMapping']['model_id'] = $model_id;
             if (!isset($this->request->data['DecayingModelMapping']['org_id'])) {
                 $this->request->data['DecayingModelMapping']['org_id'] = $this->Auth->user()['org_id'];
             }
