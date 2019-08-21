@@ -73,8 +73,8 @@
                         </td>
                         <td id="basescore-example-tag-0">
                             <div style="width:100%;display:inline-block;" data-original-title="" title="">
-                                <div id="basescore-example-customtag-container" style="float:left" data-original-title="" title="">
-                                    <button id="basescore-example-score-addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" title="Add tag" onclick="event.stopPropagation(); addTagWithValue(this);">+</button>
+                                <div id="basescore-example-customtag-container" style="float: left;display: flex;flex-flow: wrap;" data-original-title="" title="">
+                                    <button id="basescore-example-score-addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px; margin-right: 3px;" title="Add tag" onclick="event.stopPropagation(); addTagWithValue(this);">+</button>
                                 </div>
                             </div>
                         </td>

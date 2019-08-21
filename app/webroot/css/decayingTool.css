@@ -114,6 +114,10 @@
     vertical-align: middle;
 }
 
+.decayingExampleTags {
+    margin-bottom: 3px;
+}
+
 /* decaying simulation */
 div.simulationSubContainer{
     padding: 15px;

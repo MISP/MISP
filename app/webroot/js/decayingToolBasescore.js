@@ -211,14 +211,15 @@ function refreshExamples() {
     for (var i = 1; i <= 3; i++) {
         var numerical_values = [];
         tags = pickRandomTags();
-        tags_html = '';
+        tags_html = '<div style="display: flex; flex-flow: wrap;">';
         tags.forEach(function(tag) {
             numerical_values.push({name: tag.name.split(':')[0], value: tag['numerical_value']});
             var text_color = getTextColour(tag.colour);
-            tags_html += '<span class="tag decayingExampleTags" style="background-color: ' + tag.colour + ';color:' + text_color + '" '
-                + 'title="numerical_value=' + tag['numerical_value'] + '" '
-                + 'data-placement="right">' + tag.name + '</span>&nbsp;';
+            tags_html += '<span class="tagComplete decayingExampleTags" style="background-color: ' + tag.colour + ';color:' + text_color + '" '
+            + 'title="numerical_value=' + tag['numerical_value'] + '" '
+            + 'data-placement="right">' + tag.name + '</span>&nbsp;';
         });
+        tags_html += '</div>';
 
         base_score_computation[i] = compute_base_score(numerical_values);
         var base_score = base_score_computation[i].score.toFixed(1);
