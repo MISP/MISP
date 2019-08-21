@@ -826,16 +826,20 @@ $(document).ready(function() {
         html: true,
         placement: 'right',
         title: function() {
-            var $title = $('<table style="text-align: left;"><thead><tr><th>Taxonomy</th><th>%</th></tr></thead><tbody></tbody></table>').find('tbody');
             var bs_config = $('#input_base_score_config').val();
             var bs_default = $('#input_default_base_score').val();
             if ((bs_config === '' || bs_config === '[]') && bs_default == 0) {
                 return 'No tuning done yet';
-            } else if (bs_default > 0) {
-                return 'Default base score = ' + bs_default;
             } else {
                 bs_config = JSON.parse(bs_config);
             }
+            var html_table = '<table style="text-align: left;"><thead><tr><th>Taxonomy</th><th>%</th></tr></thead><tbody></tbody></table>';
+            if (bs_default > 0 && bs_config.length == 0) {
+                return 'Default base score = ' + bs_default;
+            } else if (bs_default > 0) {
+                html_table = '<div>Default base score = ' + bs_default + '</div>' + html_table;
+            }
+            var $title = $(html_table).find('tbody');
             Object.keys(bs_config).forEach(function(k, i) {
                 var value = bs_config[k];
                 $title.append('<tr><td style="padding-right: 5px;">' + k + '</td><td>' + (value * 100).toFixed(1) + '</td></tr>');
