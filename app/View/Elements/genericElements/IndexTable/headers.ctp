@@ -12,7 +12,8 @@
             $header_data = h($header['name']);
         }
         $headersHtml .= sprintf(
-            '<th>%s</th>',
+            '<th %s>%s</th>',
+            empty($header['header_class']) ? '' : 'class="' . h($header['header_class']) . '"',
             $header_data
         );
     }
