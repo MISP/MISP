@@ -166,7 +166,11 @@ class DecayingModel extends AppModel
 
     public function isDefaultModel($decaying_model)
     {
-        return !is_null($decaying_model['DecayingModel']['uuid']);
+        if (isset($decaying_model['DecayingModel']['uuid'])) {
+            return !is_null($decaying_model['DecayingModel']['uuid']);
+        } else {
+            return false;
+        }
     }
 
     public function isEditableByCurrentUser($user, $decaying_model)
@@ -482,9 +486,9 @@ class DecayingModel extends AppModel
                 $models = $this->fetchModels($user, $associated_model_ids, false, array('enabled' => true));
             }
         } elseif (is_array($model_id)) {
-            $models = $this->fetchModels($user, $model_id, false, array('enabled' => true));
+            $models = $this->fetchModels($user, $model_id, false, array());
         } else {
-            $models[] = $this->fetchModel($user, $model_id, false, array('enabled' => true));
+            $models[] = $this->fetchModel($user, $model_id, false, array());
         }
 
         foreach ($models as $i => $model) {

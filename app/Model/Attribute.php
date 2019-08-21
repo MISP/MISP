@@ -3138,6 +3138,9 @@ class Attribute extends AppModel
         if (!isset($options['decayingModel'])) {
             $options['decayingModel'] = false;
         }
+        if (!isset($options['modelOverrides'])) {
+            $options['modelOverrides'] = array();
+        }
         if (!isset($options['excludeDecayed'])) {
             $options['excludeDecayed'] = 0;
         } else {
