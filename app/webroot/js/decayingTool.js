@@ -501,7 +501,6 @@
             },
             refreshRow: function(data) {
                 // search and replace matching row if any
-                var types = $.extend({}, this.model_table.associated_types);
                 var models = this.model_table.savedDecayingModels.slice(0);
                 if (data.action == 'edit') {
                     models.forEach(function(model, i) {
@@ -512,11 +511,7 @@
                 } else {
                     models.push({DecayingModel: data.data.DecayingModel});
                 }
-                types[data.data.DecayingModel.id] = data.data.DecayingModelMapping;
-                this.model_table.update({
-                    associated_types: types,
-                    savedDecayingModels: models
-                });
+                this.model_table.update(models);
                 this.highlightMatchingRow();
             },
             quickModelDataUpdate: function(model_id, dico_override) {
@@ -901,8 +896,7 @@ ModelTable.prototype = {
     },
 
     update: function(data) {
-        this.associated_types = data.associated_types;
-        this.savedDecayingModels = this.massage_data(data.savedDecayingModels);
+        this.savedDecayingModels = this.massage_data(data);
         this._draw();
     },
 

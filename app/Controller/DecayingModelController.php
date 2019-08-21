@@ -21,7 +21,7 @@ class DecayingModelController extends AppController
 
         if ($this->request->is('post')) {
             $this->DecayingModel->update($force);
-            $message = 'Default decaying models updated';
+            $message = __('Default decaying models updated');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('DecayingModel', 'update', false, $this->response->type(), $message);
             } else {
@@ -36,9 +36,7 @@ class DecayingModelController extends AppController
     public function export($model_id)
     {
         $model = $this->DecayingModel->fetchModel($this->Auth->user(), $model_id, true);
-        unset($model['DecayingModel']['id']);
-        unset($model['DecayingModel']['org_id']);
-        unset($model['DecayingModelMapping']);
+        unset($model['DecayingModel']['id'], $model['DecayingModel']['org_id'], $model['DecayingModelMapping']);
         return $this->RestResponse->viewData($model, $this->response->type());
     }
 
@@ -68,9 +66,9 @@ class DecayingModelController extends AppController
                 throw new MethodNotAllowedException(__('Error while decoding JSON'));
             }
             if ($this->DecayingModel->save($json)) {
-                $this->Flash->success(__('The model has been saved.'));
+                $this->Flash->success(__('The model has been imported.'));
             } else {
-                $this->Flash->error(__('Error while saving model.'));
+                $this->Flash->error(__('Error while importing model.'));
             }
             $this->redirect(array('action' => 'index'));
         }
@@ -79,15 +77,15 @@ class DecayingModelController extends AppController
     public function view($id)
     {
         if (!$this->request->is('get')) {
-            throw new MethodNotAllowedException("This method is not allowed");
+            throw new MethodNotAllowedException(__('This method is not allowed'));
         }
 
         $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true);
-        $this->set('mayModify', true);
         $this->set('id', $id);
         $this->set('decaying_model', $decaying_model);
     }
 
+    // Sets pagination condition for url parameters
     private function __setIndexFilterConditions($passedArgs)
     {
         $white_list_url_parameters = array('sort', 'direction');
@@ -130,8 +128,6 @@ class DecayingModelController extends AppController
                 'org_id' => $this->Auth->user('Organisation')['id'],
                 'all_orgs' => 1
             );
-        }
-        if (!$this->_isSiteAdmin()) {
             $this->paginate = Set::merge($this->paginate, array(
                 'conditions' => $conditions
             ));
@@ -144,9 +140,7 @@ class DecayingModelController extends AppController
     public function add()
     {
         if ($this->request->is('post') || $this->request->is('put')) {
-            if (!isset($this->request->data['DecayingModel']['org_id'])) {
-                $this->request->data['DecayingModel']['org_id'] = $this->Auth->user()['org_id'];
-            }
+            $this->request->data['DecayingModel']['org_id'] = $this->Auth->user()['org_id'];
 
             if (empty($this->request->data['DecayingModel']['name'])) {
                 throw new MethodNotAllowedException(__("The model must have a name"));
@@ -168,26 +162,22 @@ class DecayingModelController extends AppController
 
     public function edit($id)
     {
-        $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
-        $this->set('mayModify', true);
-        $restrictedEdition = $this->DecayingModel->isDefaultModel($decayingModel);
-        if (!$this->_isSiteAdmin() && $decayingModel['DecayingModel']['org_id'] != $this->Auth->user('Organisation')['id']) {
-            throw new UnauthorizedException(__("The model does not belong to your organisation"));
-        }
+        $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id); // ACL done in Model
+        $enforceRestrictedEdition = $this->DecayingModel->isDefaultModel($decayingModel);
 
         if ($this->request->is('post') || $this->request->is('put')) {
 
             $this->request->data['DecayingModel']['id'] = $id;
-            $fieldList = array('enabled', 'all_orgs');
-            if (!$restrictedEdition) {
-                $fieldList += array('name', 'description', 'parameters', 'formula');
+            $fieldListToSave = array('enabled', 'all_orgs');
+            if (!$enforceRestrictedEdition) {
+                $fieldListToSave += array('name', 'description', 'parameters', 'formula');
 
-                if (!isset($this->request->data['DecayingModel']['formula'])) {
+                if (!isset($this->request->data['DecayingModel']['formula'])) { // default to polynomial
                     $this->request->data['DecayingModel']['formula'] = 'polynomial';
                 }
 
                 if ($this->request->data['DecayingModel']['formula'] == 'polynomial') {
-                    if (isset($this->request->data['DecayingModel']['parameters']['settings'])) {
+                    if (isset($this->request->data['DecayingModel']['parameters']['settings'])) { // polynomial doesn't have custom settings
                         $this->request->data['DecayingModel']['parameters']['settings'] = '{}';
                     }
                 } else if (
@@ -237,7 +227,7 @@ class DecayingModelController extends AppController
                 $this->request->data['DecayingModel']['parameters'] = json_encode($this->request->data['DecayingModel']['parameters']);
             }
 
-            $save_result = $this->DecayingModel->save($this->request->data, true, $fieldList);
+            $save_result = $this->DecayingModel->save($this->request->data, true, $fieldListToSave);
             if ($save_result) {
                 if ($this->request->is('ajax')) {
                     $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id);
@@ -261,7 +251,7 @@ class DecayingModelController extends AppController
             $this->request->data = $decayingModel;
             $this->set('id', $id);
             $this->set('decayingModel', $decayingModel);
-            $this->set('restrictEdition', $restrictedEdition);
+            $this->set('restrictEdition', $enforceRestrictedEdition);
             $this->set('action', 'edit');
             $this->render('add');
         }
@@ -269,13 +259,24 @@ class DecayingModelController extends AppController
 
     public function delete($id)
     {
-        if ($this->request->is('post')) {
+        if ($this->request->is('post') || $this->request->is('put')) {
             $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
 
             if ($this->DecayingModel->delete($id, true)) {
-                $this->Flash->success(__('Decaying Model deleted.'));
+                if ($this->request->is('ajax')) {
+                    $response = array('action' => 'delete', 'saved' => true);
+                    return $this->RestResponse->viewData($response, $this->response->type());
+                } else {
+                    $this->Flash->success(__('Decaying Model deleted.'));
+                }
             } else {
-                $this->Flash->error(__('The Decaying Model could not be deleted.'));
+                $error_message = __('The Decaying Model could not be deleted.');
+                if ($this->request->is('ajax')) {
+                    $response = array('action' => 'delete', 'saved' => false, 'errors' => array($error_message));
+                    return $this->RestResponse->viewData($response, $this->response->type());
+                } else {
+                    $this->Flash->error($error_message);
+                }
             }
             $this->redirect(array('action' => 'index'));
         }
@@ -285,17 +286,16 @@ class DecayingModelController extends AppController
     {
         $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
         if ($this->request->is('post') || $this->request->is('put')) {
-            $original_value_enabled = $decayingModel['DecayingModel']['enabled'];
             $decayingModel['DecayingModel']['enabled'] = 1;
             if ($this->DecayingModel->save($decayingModel)) {
                 if ($this->request->is('ajax')) {
-                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'edit');
+                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'enable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 }
                 $this->Flash->success(__('Decaying Model enabled.'));
             } else {
                 if ($this->request->is('ajax')) {
-                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'edit');
+                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'enable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 }
                 $this->Flash->error(__('Error while enabling decaying model'));
@@ -311,17 +311,16 @@ class DecayingModelController extends AppController
     {
         $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
         if ($this->request->is('post') || $this->request->is('put')) {
-            $original_value_enabled = $decayingModel['DecayingModel']['enabled'];
             $decayingModel['DecayingModel']['enabled'] = 0;
             if ($this->DecayingModel->save($decayingModel)) {
                 if ($this->request->is('ajax')) {
-                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'edit');
+                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'disable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 }
                 $this->Flash->success(__('Decaying Model disabled.'));
             } else {
                 if ($this->request->is('ajax')) {
-                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'edit');
+                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'disable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 }
                 $this->Flash->error(__('Error while disabling decaying model'));
@@ -336,14 +335,33 @@ class DecayingModelController extends AppController
     public function decayingTool()
     {
         $parameters = array(
-            'lifetime' => array('value' => 30, 'step' => 1, 'max' => 365, 'greek' => '', 'unit' => 'days', 'name' => 'Lifetime', 'info' => 'Lifetime of the attribute, or time after which the score will be 0'),
-            'decay_speed' => array('value' => 0.3, 'step' => 0.1, 'max' => 10, 'greek' => '', 'name' => 'Decay speed', 'info' => 'Decay speed at which an indicator will loose score'),
-            'threshold' => array('value' => 30, 'step' => 1, 'name' =>'Cutoff threshold', 'info' => 'Cutoff value at which an indicator will be marked as decayed instead of 0')
+            'lifetime' => array(
+                'value' => 30,
+                'step' => 1,
+                'max' => 365,
+                'greek' => '',
+                'unit' => 'days',
+                'name' => __('Lifetime'),
+                'info' => __('Lifetime of the attribute, or time after which the score will be 0')
+            ),
+            'decay_speed' => array(
+                'value' => 0.3,
+                'step' => 0.1,
+                'max' => 10,
+                'greek' => '',
+                'name' => __('Decay speed'),
+                'info' => __('Decay speed at which an indicator will loose score')
+            ),
+            'threshold' => array(
+                'value' => 30,
+                'step' => 1,
+                'max' => 100,
+                'greek' => '',
+                'name' => __('Cutoff threshold'),
+                'info' => __('Cutoff value at which an indicator will be marked as decayed instead of 0')
+            )
         );
         $types = $this->User->Event->Attribute->typeDefinitions;
-        // $types = array_filter($types, function($v, $k) {
-        //     return $v['to_ids'] == 1;
-        // }, ARRAY_FILTER_USE_BOTH);
         $this->loadModel('ObjectTemplateElement');
         $objectTypes = $this->ObjectTemplateElement->getAllAvailableTypes();
         array_walk($objectTypes, function(&$key) {
@@ -359,15 +377,8 @@ class DecayingModelController extends AppController
         $this->set('parameters', $parameters);
         $this->set('types', $types);
         $this->set('savedModels', $savedDecayingModels);
-        $associated_models = $this->DecayingModel->DecayingModelMapping->getAssociatedModels($this->Auth->user());
+        $associated_models = $this->DecayingModel->DecayingModelMapping->getAssociatedModels($this->Auth->user()); // mapping Attribute.type => Models
         $this->set('associated_models', $associated_models);
-        $associated_types = array();
-        foreach ($associated_models as $type => $models) {
-            foreach (array_keys($models) as $model_id) {
-                $associated_types[$model_id][] = $type;
-            }
-        }
-        $this->set('associated_types', $associated_types);
     }
 
     public function getAllDecayingModels()
@@ -375,17 +386,7 @@ class DecayingModelController extends AppController
         if ($this->request->is('get') && $this->request->is('ajax')) {
             $filters = $this->request->query;
             $savedDecayingModels = $this->DecayingModel->fetchAllAllowedModels($this->Auth->user(), true, $filters);
-            $associated_models = $this->DecayingModel->DecayingModelMapping->getAssociatedModels($this->Auth->user());
-            $associated_types = array();
-            foreach ($associated_models as $type => $models) {
-                foreach (array_keys($models) as $model_id) {
-                    $associated_types[$model_id][] = $type;
-                }
-            }
-            return $this->RestResponse->viewData(array(
-                'associated_types' => $associated_types,
-                'savedDecayingModels' => $savedDecayingModels
-            ), $this->response->type());
+            return $this->RestResponse->viewData($savedDecayingModels, $this->response->type());
         } else {
             throw new MethodNotAllowedException(__("This method is only accessible via AJAX."));
         }
@@ -401,9 +402,6 @@ class DecayingModelController extends AppController
     public function decayingToolSimulation($model_id)
     {
         $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $model_id);
-        if (!$decaying_model) {
-            throw new NotFoundException(__('No Decaying Model with the provided ID exists, or you are not authorised to edit it.'));
-        }
         if (isset($this->request->params['named']['attribute_id'])) {
             $this->set('attribute_id', $this->request->params['named']['attribute_id']);
         }
@@ -446,7 +444,7 @@ class DecayingModelController extends AppController
                 $filters['excludeDecayed'] = 0;
             }
             $filters['includeDecayScore'] = 1;
-            if (isset($filters['id'])) { // alows searched by id
+            if (isset($filters['id'])) { // allows searching by id
                 if (Validation::uuid($filters['id'])) {
                     $filters['uuid'] = $filters['id'];
                 } else {
@@ -575,8 +573,7 @@ class DecayingModelController extends AppController
                 $model_overrides = array();
             }
         }
-        // contain score overtime, sightings, and base_score computation
-        $results = $this->DecayingModel->getScoreOvertime($this->Auth->user(), $model_id, $attribute_id, $model_overrides);
-        return $this->RestResponse->viewData($results, $this->response->type());
+        $score_overtime = $this->DecayingModel->getScoreOvertime($this->Auth->user(), $model_id, $attribute_id, $model_overrides);
+        return $this->RestResponse->viewData($score_overtime, $this->response->type());
     }
 }

@@ -202,6 +202,7 @@ class DecayingModel extends AppModel
             if ($full) {
                 $decayingModels[$i]['DecayingModel']['attribute_types'] = $decayingModels[$i]['DecayingModel']['attribute_types'] + Hash::extract($decayingModels[$i]['DecayingModelMapping'], '{n}.attribute_type');
                 unset($decayingModels[$i]['DecayingModelMapping']);
+                $decayingModels[$i]['DecayingModel']['attribute_types'] = array_unique($decayingModels[$i]['DecayingModel']['attribute_types']);
             }
             $decayingModels[$i]['DecayingModel']['isEditable'] = $this->isEditableByCurrentUser($user, $decayingModels[$i]);
         }
@@ -365,6 +366,7 @@ class DecayingModel extends AppModel
         return $time - $offset;
     }
 
+    // Returns score overtime, sightings, base_score computation and other useful information
     public function getScoreOvertime($user, $model_id, $attribute_id, $model_overrides)
     {
         $this->Attribute = ClassRegistry::init('Attribute');
