@@ -36,7 +36,7 @@ function addPickedTags(clicked) {
         .text(base_score)
         .append('<i class="fas fa-question-circle helptext-in-cell useCursorPointer" onclick="genHelpBaseScoreComputation(event, 0)"></i>');
     $('#basescore-example-score-addTagButton').popover('destroy');
-    $('#basescore-example-customtag-container').find('span.tagFirstHalf').parent().tooltip({placement: 'right'});
+    $('#basescore-example-customtag-container').find('span.tagFirstHalf').parent().tooltip({placement: 'right', container: 'body'});
 }
 
 function removeCustomTag(clicked) {
@@ -227,7 +227,7 @@ function refreshExamples() {
         $('#basescore-example-score-'+i).empty()
             .text(base_score)
             .append('<i class="fas fa-question-circle helptext-in-cell useCursorPointer" onclick="genHelpBaseScoreComputation(event, ' + i + ')"></i>');
-        $('span.decayingExampleTags').tooltip();
+        $('span.decayingExampleTags').tooltip({ container: 'body' });
     }
 }
 
