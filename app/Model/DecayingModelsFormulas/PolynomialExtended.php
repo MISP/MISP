@@ -30,9 +30,9 @@ class PolynomialExtended extends Polynomial
         if ($elapsed_time < 0) {
             return 0;
         }
-        $delta = $model['DecayingModel']['parameters']['delta'];
-        $tau = $model['DecayingModel']['parameters']['tau']*24*60*60;
-        $score = $base_score * (1 - pow($elapsed_time / $tau, 1 / $delta));
+        $decay_speed = $model['DecayingModel']['parameters']['decay_speed'];
+        $lifetime = $model['DecayingModel']['parameters']['lifetime']*24*60*60;
+        $score = $base_score * (1 - pow($elapsed_time / $lifetime, 1 / $decay_speed));
 
         // handle `retention` taxonomy tags 
         $temp = $this->__getPrioritizedTag($attribute);

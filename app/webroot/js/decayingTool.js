@@ -36,10 +36,10 @@
             },
 
             getMultiplier: function() {
-                return $('#input_Tau').data('multiplier');
+                return $('#input_lifetime').data('multiplier');
             },
             resetMultiplier: function() {
-                $('#input_Tau').data('multiplier', $('#input_Tau').val()/this.options.TICK_NUM);
+                $('#input_lifetime').data('multiplier', $('#input_lifetime').val()/this.options.TICK_NUM);
             },
 
             /* Model */
@@ -47,9 +47,9 @@
                 if (base_score === undefined) {
                     base_score = 100;
                 }
-                var delta = parseFloat($('#input_Delta').val());
-                var tau = parseInt($('#input_Tau').val());
-                return parseFloat((base_score * (1 - Math.pow(x / tau, 1/delta))).toFixed(2));
+                var decay_speed = parseFloat($('#input_decay_speed').val());
+                var lifetime = parseInt($('#input_lifetime').val());
+                return parseFloat((base_score * (1 - Math.pow(x / lifetime, 1/decay_speed))).toFixed(2));
             },
             getBaseLog: function(x, y) { // compute logarithm of any base
                 return parseFloat(Math.log(y) / Math.log(x));
@@ -60,21 +60,21 @@
                 }
                 x = parseFloat(x);
                 y = parseFloat(y);
-                var tau = parseFloat($('#input_Tau').val());
-                var delta = 1 / this.getBaseLog(x / tau, 1 - (y / base_score));
-                return parseFloat(delta);
+                var lifetime = parseFloat($('#input_lifetime').val());
+                var decay_speed = 1 / this.getBaseLog(x / lifetime, 1 - (y / base_score));
+                return parseFloat(decay_speed);
             },
             getReverseScore: function(y, base_score) {
                 if (base_score === undefined) {
                     base_score = 100;
                 }
-                var delta = parseFloat($('#input_Delta').val());
-                var tau = parseInt($('#input_Tau').val());
-                return (tau * Math.pow(1 - (y / base_score), delta)).toFixed(2);
+                var decay_speed = parseFloat($('#input_decay_speed').val());
+                var lifetime = parseInt($('#input_lifetime').val());
+                return (lifetime * Math.pow(1 - (y / base_score), decay_speed)).toFixed(2);
             },
             genDecay: function() { // generate scoring values over time
                 var that = this;
-                var threshold = parseInt($('#input_Threshold').val());
+                var threshold = parseInt($('#input_threshold').val());
                 return this.genAxis().map(function(e, x) {
                     var y = that.getScore(x * that.getMultiplier());
                     return y >= threshold ? y : 0;
@@ -82,12 +82,12 @@
             },
             genLine: function() { // generate threshold values over time
                 return this.genAxis().map(function(e) {
-                    return parseInt($('#input_Threshold').val());
+                    return parseInt($('#input_threshold').val());
                 });
             },
             genAxis: function(textLabel) { // generate all ticks based on lifetime value
-                var tau = parseInt($('#input_Tau').val());
-                return d3.range(0, tau + tau / this.options.TICK_NUM, tau / this.options.TICK_NUM);
+                var lifetime = parseInt($('#input_lifetime').val());
+                return d3.range(0, lifetime + lifetime / this.options.TICK_NUM, lifetime / this.options.TICK_NUM);
             },
             genAll: function() {
                 var decay = this.genDecay();
@@ -211,8 +211,8 @@
                     .append('circle')
                     .attr('id', 'decayingGraphDot')
                     .attr('class', 'decayingGraphDot useCursorPointer')
-                    .attr("cx", function(d) { return that.x(that.getReverseScore(parseInt($('#input_Threshold').val()))); })
-                    .attr("cy", function(d, i) { return that.y(parseInt($('#input_Threshold').val())); })
+                    .attr("cx", function(d) { return that.x(that.getReverseScore(parseInt($('#input_threshold').val()))); })
+                    .attr("cy", function(d, i) { return that.y(parseInt($('#input_threshold').val())); })
                     .attr("r", 5)
                     .call(this.drag);
 
@@ -223,8 +223,8 @@
                     .append('circle')
                     .attr('id', 'decayingGraphHandleDot')
                     .attr('class', 'decayingGraphHandleDot useCursorPointer')
-                    .attr("cx", function(d) { return that.x(parseFloat($('#input_Tau').val()/2)); })
-                    .attr("cy", function(d) { return that.y(that.getScore(parseInt($('#input_Tau').val()/2))); })
+                    .attr("cx", function(d) { return that.x(parseFloat($('#input_lifetime').val()/2)); })
+                    .attr("cy", function(d) { return that.y(that.getScore(parseInt($('#input_lifetime').val()/2))); })
                     .attr("r", 5)
                     .call(this.drag);
 
@@ -266,13 +266,13 @@
                     var handle = this.svg.select('.decayingGraphHandleDot');
                     var hx = this.x.invert(handle.attr('cx'));
                     var hy = this.getValueYFromCanvas(this.height, parseInt(handle.attr('cy')));
-                    var delta = this.getDeltaFromPoint(hx, hy);
-                    $('#input_Delta').val(delta);
+                    var decay_speed = this.getDeltaFromPoint(hx, hy);
+                    $('#input_decay_speed').val(decay_speed);
                 } else if (computeFromHandle !== undefined && computeFromHandle == 'decayingGraphDot') {
                     var handle = this.svg.select('.decayingGraphDot');
                     var hx = parseInt(handle.attr('cx'));
                     var hy = parseInt(this.getValueYFromCanvas(this.height, parseInt(handle.attr('cy'))));
-                    $('#input_Threshold').val(hy);
+                    $('#input_threshold').val(hy);
                 }
 
                 var data = this.genAll();
@@ -306,13 +306,13 @@
 
                 this.svg.select('.decayingGraphDot')
                     .data([data])
-                    .attr("cx", function(d) { return that.x(that.getReverseScore(parseFloat($('#input_Threshold').val()))); })
-                    .attr("cy", function(d, i) { return that.y(parseFloat($('#input_Threshold').val())); });
+                    .attr("cx", function(d) { return that.x(that.getReverseScore(parseFloat($('#input_threshold').val()))); })
+                    .attr("cy", function(d, i) { return that.y(parseFloat($('#input_threshold').val())); });
 
                 if (computeFromHandle === undefined) {
                     this.svg.select('.decayingGraphHandleDot')
-                        .attr("cx", function(d) { return that.x(parseFloat($('#input_Tau').val()/2)); })
-                        .attr("cy", function(d) { return that.y(that.getScore(parseFloat($('#input_Tau').val()/2))); });
+                        .attr("cx", function(d) { return that.x(parseFloat($('#input_lifetime').val()/2)); })
+                        .attr("cy", function(d) { return that.y(that.getScore(parseFloat($('#input_lifetime').val()/2))); });
                 }
 
                 this.svg.select(".axis-x")
@@ -342,10 +342,10 @@
                     $tr.find('td > span.DMCheckbox > input').prop('checked', true).prop('disabled', false).trigger('change');
                 }
 
-                $('#input_Tau, #input_Tau_range').val(model.parameters.tau);
-                $('#input_Tau').data('multiplier', $('#input_Tau').val()/this.options.TICK_NUM);
-                $('#input_Delta, #input_Delta_range').val(model.parameters.delta);
-                $('#input_Threshold, #input_Threshold_range').val(model.parameters.threshold);
+                $('#input_lifetime, #input_lifetime').val(model.parameters.lifetime);
+                $('#input_lifetime').data('multiplier', $('#input_lifetime').val()/this.options.TICK_NUM);
+                $('#input_decay_speed, #input_decay_speed_range').val(model.parameters.decay_speed);
+                $('#input_threshold, #input_threshold_range').val(model.parameters.threshold);
                 var base_score_config = model.parameters.base_score_config === undefined ? {} : model.parameters.base_score_config;
                 $('#input_base_score_config').val(JSON.stringify(base_score_config));
                 var model_settings = model.parameters.settings === undefined ? {} : model.parameters.settings;
@@ -370,9 +370,9 @@
                 data.description = $form.find('[name="description"]').val();
                 data.formula = $('#formulaSelectPicker').val();
                 var params = {};
-                params.tau = parseInt($('#input_Tau').val());
-                params.delta = parseFloat($('#input_Delta').val());
-                params.threshold = parseInt($('#input_Threshold').val());
+                params.lifetime = parseInt($('#input_lifetime').val());
+                params.decay_speed = parseFloat($('#input_decay_speed').val());
+                params.threshold = parseInt($('#input_threshold').val());
                 params.default_base_score = parseInt($('#input_default_base_score').val());
                 var base_score_config = $('#input_base_score_config').val();
                 base_score_config = base_score_config === '' ? '{}' : base_score_config;
@@ -637,7 +637,7 @@
 
             /* UTIL */
             refreshInfoCells: function() {
-                var threshold = parseInt($('#input_Threshold').val());
+                var threshold = parseInt($('#input_threshold').val());
                 $('#infoCellHalved').text(this.daysToText(this.getReverseScore((100-threshold)/2 + threshold)));
                 $('#infoCellExpired').text(this.daysToText(this.getReverseScore(threshold)));
                 var base_score_config = JSON.parse($('#input_base_score_config').val());
@@ -682,8 +682,8 @@
                 $form.find('#DecayingModelName').val(data.name);
                 $form.find('#DecayingModelDescription').val(data.description);
                 $form.find('#DecayingModelFormula').val(data.formula);
-                $form.find('#DecayingModelParametersTau').val(data.parameters.tau);
-                $form.find('#DecayingModelParametersDelta').val(data.parameters.delta);
+                $form.find('#DecayingModelParametersLifetime').val(data.parameters.lifetime);
+                $form.find('#DecayingModelParametersDecay_speed').val(data.parameters.decay_speed);
                 $form.find('#DecayingModelParametersThreshold').val(data.parameters.threshold);
                 $form.find('#DecayingModelParametersDefaultBaseScore').val(data.parameters.default_base_score);
                 $form.find('#DecayingModelParametersBaseScoreConfig').val(JSON.stringify(data.parameters.base_score_config));
@@ -874,8 +874,8 @@ ModelTable.prototype = {
             {name: 'Formula'},
             {name: 'Parameters',
                 children: [
-                    {name: 'Tau'},
-                    {name: 'Delta'},
+                    {name: 'Lifetime'},
+                    {name: 'Decay speed'},
                     {name: 'Threshold'},
                     {name: 'Default basescore'},
                     {name: 'Basescore config'},
@@ -1011,8 +1011,8 @@ ModelTable.prototype = {
             this._gen_td_link('/organisations/view/'+model.DecayingModel.org_id, model.DecayingModel.org_id, 'DMOrg'),
             this._gen_td(model.DecayingModel.description, 'DMNDescription'),
             this._gen_td(model.DecayingModel.formula, 'DMFormula'),
-            this._gen_td(model.DecayingModel.parameters.tau, 'DMParameterTau'),
-            this._gen_td(model.DecayingModel.parameters.delta, 'DMParameterDelta'),
+            this._gen_td(model.DecayingModel.parameters.lifetime, 'DMParameterLifetime'),
+            this._gen_td(model.DecayingModel.parameters.decay_speed, 'DMParameterDecay_speed'),
             this._gen_td(model.DecayingModel.parameters.threshold, 'DMParameterThreshold'),
             this._gen_td(model.DecayingModel.parameters.default_base_score, 'DMParameterDefaultBasescore'),
             this._gen_td(

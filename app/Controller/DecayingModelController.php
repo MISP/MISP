@@ -206,12 +206,12 @@ class DecayingModelController extends AppController
                         }
                         $this->request->data['DecayingModel']['parameters']['settings'] = $settings;
                     }
-                    if (!isset($this->request->data['DecayingModel']['parameters']['tau'])) {
-                        $this->Flash->error(__('Invalid parameter `tau`.'));
+                    if (!isset($this->request->data['DecayingModel']['parameters']['lifetime'])) {
+                        $this->Flash->error(__('Invalid parameter `lifetime`.'));
                         return false;
                     }
-                    if (!isset($this->request->data['DecayingModel']['parameters']['delta'])) {
-                        $this->Flash->error(__('Invalid parameter `delta`.'));
+                    if (!isset($this->request->data['DecayingModel']['parameters']['decay_speed'])) {
+                        $this->Flash->error(__('Invalid parameter `decay_speed`.'));
                         return false;
                     }
                     if (!isset($this->request->data['DecayingModel']['parameters']['threshold'])) {
@@ -336,9 +336,9 @@ class DecayingModelController extends AppController
     public function decayingTool()
     {
         $parameters = array(
-            'Tau' => array('value' => 30, 'step' => 1, 'max' => 365, 'greek' => 'τ', 'unit' => 'days', 'name' => 'Lifetime', 'info' => 'Lifetime of the attribute, or time after which the score will be 0'),
-            'Delta' => array('value' => 0.3, 'step' => 0.1, 'max' => 10, 'greek' => 'δ', 'name' => 'Decay speed', 'info' => 'Decay speed at which an indicator will loose score'),
-            'Threshold' => array('value' => 30, 'step' => 1, 'name' =>'Cutoff threshold', 'info' => 'Cutoff value at which an indicator will be marked as decayed instead of 0')
+            'lifetime' => array('value' => 30, 'step' => 1, 'max' => 365, 'greek' => '', 'unit' => 'days', 'name' => 'Lifetime', 'info' => 'Lifetime of the attribute, or time after which the score will be 0'),
+            'decay_speed' => array('value' => 0.3, 'step' => 0.1, 'max' => 10, 'greek' => '', 'name' => 'Decay speed', 'info' => 'Decay speed at which an indicator will loose score'),
+            'threshold' => array('value' => 30, 'step' => 1, 'name' =>'Cutoff threshold', 'info' => 'Cutoff value at which an indicator will be marked as decayed instead of 0')
         );
         $types = $this->User->Event->Attribute->typeDefinitions;
         // $types = array_filter($types, function($v, $k) {

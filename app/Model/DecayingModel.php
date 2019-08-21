@@ -17,7 +17,7 @@ class DecayingModel extends AppModel
     );
 
     private $__registered_model_classes = array();
-    public $allowed_overrides = array('threshold' => 1, 'tau', 'delta');
+    public $allowed_overrides = array('threshold' => 1, 'lifetime' => 1, 'decay_speed' => 1);
 
     public function afterFind($results, $primary = false) {
         foreach ($results as $k => $v) {
@@ -414,7 +414,7 @@ class DecayingModel extends AppModel
             );
             $last_sighting_timestamp = $attribute['Attribute']['timestamp'];
         }
-        $end_time = $last_sighting_timestamp + $model['DecayingModel']['parameters']['tau']*24*60*60;
+        $end_time = $last_sighting_timestamp + $model['DecayingModel']['parameters']['lifetime']*24*60*60;
         $end_time = $this->round_timestamp_to_hour($end_time);
         $base_score_config = $this->Computation->computeBasescore($model, $attribute['Attribute']);
         $base_score = $base_score_config['base_score'];

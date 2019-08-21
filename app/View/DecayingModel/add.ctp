@@ -31,24 +31,24 @@
                 'type' => 'checkbox'
             ));
             echo '<div id="ContainerPolynomialSetting">';
-            echo $this->Form->input('DecayingModel.parameters.tau', array(
-                'label' => __('Tau parameter'),
+            echo $this->Form->input('DecayingModel.parameters.lifetime', array(
+                'label' => __('Lifetime parameter'),
                 'type' => 'number',
                 'min' => 0,
                 'title' => _('The end of life of the indicator'),
                 'class' => 'form-control span6',
                 'div' => 'input clear',
-                'value' => isset($this->request->data['DecayingModel']['parameters']['tau']) ? $this->request->data['DecayingModel']['parameters']['tau'] : ''
+                'value' => isset($this->request->data['DecayingModel']['parameters']['lifetime']) ? $this->request->data['DecayingModel']['parameters']['lifetime'] : ''
             ));
-            echo $this->Form->input('DecayingModel.parameters.delta', array(
-                'label' => __('Delta parameter'),
+            echo $this->Form->input('DecayingModel.parameters.decay_speed', array(
+                'label' => __('Decay speed parameter'),
                 'type' => 'number',
                 'min' => 0,
                 'step' => 0.01,
                 'title' => _('The decay speed of the indicator'),
                 'class' => 'form-control span6',
                 'div' => 'input clear',
-                'value' => isset($this->request->data['DecayingModel']['parameters']['delta']) ? $this->request->data['DecayingModel']['parameters']['delta'] : ''
+                'value' => isset($this->request->data['DecayingModel']['parameters']['decay_speed']) ? $this->request->data['DecayingModel']['parameters']['decay_speed'] : ''
             ));
             echo $this->Form->input('DecayingModel.parameters.threshold', array(
                 'label' => __('Threshold parameter'),
