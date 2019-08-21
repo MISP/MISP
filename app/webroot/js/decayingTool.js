@@ -223,8 +223,8 @@
                     .append('circle')
                     .attr('id', 'decayingGraphHandleDot')
                     .attr('class', 'decayingGraphHandleDot useCursorPointer')
-                    .attr("cx", function(d) { return that.x(parseFloat($('#input_lifetime').val()/2)); })
-                    .attr("cy", function(d) { return that.y(that.getScore(parseInt($('#input_lifetime').val()/2))); })
+                    .attr("cx", function(d) { return that.x(parseFloat($('#input_lifetime').val()/4)); })
+                    .attr("cy", function(d) { return that.y(that.getScore(parseInt($('#input_lifetime').val()/4))); })
                     .attr("r", 5)
                     .call(this.drag);
 
@@ -311,8 +311,8 @@
 
                 if (computeFromHandle === undefined) {
                     this.svg.select('.decayingGraphHandleDot')
-                        .attr("cx", function(d) { return that.x(parseFloat($('#input_lifetime').val()/2)); })
-                        .attr("cy", function(d) { return that.y(that.getScore(parseFloat($('#input_lifetime').val()/2))); });
+                        .attr("cx", function(d) { return that.x(parseFloat($('#input_lifetime').val()/4)); })
+                        .attr("cy", function(d) { return that.y(that.getScore(parseFloat($('#input_lifetime').val()/4))); });
                 }
 
                 this.svg.select(".axis-x")
