@@ -3,7 +3,7 @@
     <fieldset>
         <legend><?php echo h(Inflector::humanize($module['name']));?></legend>
         <?php if (isset($module['meta']['description'])) {
-            echo '<p>'.$module['meta']['description'].'</p>';
+            echo '<p>'.h($module['meta']['description']).'</p>';
         } ?>
         <?php
             if (isset($module['mispattributes']['userConfig']) && !empty($module['mispattributes']['userConfig'])) {
