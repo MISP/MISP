@@ -31,7 +31,12 @@
         'key' => __('Enabled'),
         'html' => '<i class="fas fa-' . ($decaying_model['DecayingModel']['enabled'] ? 'check' : 'times') . '"></i>'
     );
-    $table_data[] = array('key' => __('Formula'), 'value' => $decaying_model['DecayingModel']['formula']);
+    $table_data[] = array(
+        'key' => __('Formula'),
+        'html' => $decaying_model['DecayingModel']['formula'] . (
+            isset($available_formulas[$decaying_model['DecayingModel']['formula']]['description']) ? sprintf(' <i class="fas fa-question-circle" data-toggle="tooltip" title="%s"></i>', h($available_formulas[$decaying_model['DecayingModel']['formula']]['description'])) :  ''
+        )
+    );
     $table_data[] = array('key' => __('Parameters'), 'value' => json_encode($decaying_model['DecayingModel']['parameters']), 'class' => 'json-transform');
     $table_data[] = array('key' => __('Reference(s)'), 'html' => implode('<br/>', (empty($decaying_model['DecayingModel']['ref']) ? array() : $decaying_model['DecayingModel']['ref'])));
     $table_data[] = array('key' => __('Associated types'), 'value' => json_encode($decaying_model['DecayingModel']['attribute_types']), 'class' => 'json-transform');
@@ -50,6 +55,7 @@ $(document).ready(function() {
         var parsedJson = syntaxHighlightJson($(this).text().trim());
         $(this).html(parsedJson);
     });
+    $('[data-toggle="tooltip"]').tooltip({placement: 'right'});
 });
 </script>
 <?php

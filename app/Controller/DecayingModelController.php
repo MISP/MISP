@@ -83,6 +83,8 @@ class DecayingModelController extends AppController
         $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true);
         $this->set('id', $id);
         $this->set('decaying_model', $decaying_model);
+        $available_formulas = $this->DecayingModel->listAvailableFormulas();
+        $this->set('available_formulas', $available_formulas);
     }
 
     // Sets pagination condition for url parameters
@@ -135,6 +137,8 @@ class DecayingModelController extends AppController
         $passedArgsArray = $this->__setIndexFilterConditions($this->passedArgs);
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('decayingModels', $this->paginate());
+        $available_formulas = $this->DecayingModel->listAvailableFormulas();
+        $this->set('available_formulas', $available_formulas);
     }
 
     public function add()

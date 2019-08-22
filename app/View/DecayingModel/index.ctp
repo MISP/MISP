@@ -121,7 +121,14 @@ foreach ($decayingModels as $item): ?>
             }
         ?>
         <td data-toggle="json" ondblclick="document.location.href ='<?php echo $baseurl."/decayingModel/view/".$item['DecayingModel']['id']; ?>'"><?php echo json_encode($item['DecayingModel']['parameters']); ?>&nbsp;</td>
-        <td><?php echo h($item['DecayingModel']['formula']); ?>&nbsp;</td>
+        <td>
+            <?php echo h($item['DecayingModel']['formula']); ?>
+            <?php if (isset($available_formulas[$item['DecayingModel']['formula']]['description'])): ?>
+                <i class="fas fa-question-circle" data-toggle="tooltip" title="<?php echo h($available_formulas[$item['DecayingModel']['formula']]['description']); ?>"></i>
+            <?php else: ?>
+                &nbsp
+            <?php endif; ?>
+        </td>
         <td><?php echo count($item['DecayingModel']['attribute_types']); ?>&nbsp;</td>
         <td><?php echo h($item['DecayingModel']['version']); ?>&nbsp;</td>
         <td><i class="fas fa-<?php echo $item['DecayingModel']['enabled'] ? 'check' : 'times';?>"></i></td>
@@ -170,7 +177,7 @@ endforeach; ?>
 
 <script>
 $(document).ready(function() {
-
+    $('[data-toggle="tooltip"]').tooltip();
 });
 function prettyPrintJson() {
     $('[data-toggle=\"json\"]').each(function() {
