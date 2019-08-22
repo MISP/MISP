@@ -1,95 +1,95 @@
 <div class="view">
-<div id="simulationContainer">
-    <div class="simulationSubContainer">
-        <div style="height: 40%; display: flex">
-            <div style="width: 20%; display: flex; flex-direction: column;">
-                <div class="panel-container" style="display: flex; flex-direction: column; flex-grow: 1">
-                    <div style="display: flex;">
-                        <select id="select_model_to_simulate" onchange="modelChangeHandler(this)" style="flex-grow: 1;">
-                            <?php foreach ($all_models as $model): ?>
-                                <option value="<?php echo h($model['DecayingModel']['id']) ?>" <?php echo $decaying_model['DecayingModel']['id'] == $model['DecayingModel']['id'] ? 'selected' : '' ?>><?php echo h($model['DecayingModel']['name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="select_model_to_simulate_infobox" class="btn"><span class="fa fa-question-circle"></span></span>
-                    </div>
-
-                    <ul class="nav nav-tabs" style="margin-right: -5px; margin-bottom: 0px;" id="simulation-tabs">
-                        <li class="<?php echo isset($attribute_id) ? '' : 'active'; ?>"><a href="#restsearch" data-toggle="tab">RestSearch</a></li>
-                        <li class="<?php echo !isset($attribute_id) ? '' : 'active'; ?>"><a href="#specificid" data-toggle="tab">Specific ID</a></li>
-                    </ul>
-
-                    <div class="tab-content" style="padding: 5px; height: 100%;">
-                        <div class="tab-pane <?php echo isset($attribute_id) ? '' : 'active'; ?>" id="restsearch" style="height: 100%;">
-                            <div style="display: flex; flex-direction: column; height: 100%;">
-                                <h3 style="">Attribute RestSearch<span style="vertical-align: top; font-size: x-small;" class="fa fa-question-circle" title="Enforced fields: returnFormat"></span></h3>
-<?php
-    $registered_taxonomies = array_keys($decaying_model['DecayingModel']['parameters']['base_score_config']);
-    foreach ($registered_taxonomies as $i => &$taxonomy_name) {
-        $taxonomy_name = $taxonomy_name . ':%' ;
-    }
-?>
-                                <textarea id="restSearchTextarea">
-{
-    "includeDecayScore": 1,
-    "excludeDecayed": 0,
-    "decayingModel": [<?php echo h($decaying_model['DecayingModel']['id']); ?>],
-    "to_ids": 1,
-    "tags": <?php echo json_encode($registered_taxonomies); ?>,
-    "modelOverrides": {
-        
-    }
-}</textarea>
-                                </br>
-                                <span class="btn btn-primary" style="width: fit-content;" role="button" onclick="doRestSearch(this)"><?php echo __('Search'); ?></span>
-                            </div>
+    <div id="simulationContainer">
+        <div class="simulationSubContainer">
+            <div style="height: 40%; display: flex">
+                <div style="width: 20%; display: flex; flex-direction: column;">
+                    <div class="panel-container" style="display: flex; flex-direction: column; flex-grow: 1">
+                        <div style="display: flex;">
+                            <select id="select_model_to_simulate" onchange="modelChangeHandler(this)" style="flex-grow: 1;">
+                                <?php foreach ($all_models as $model): ?>
+                                    <option value="<?php echo h($model['DecayingModel']['id']) ?>" <?php echo $decaying_model['DecayingModel']['id'] == $model['DecayingModel']['id'] ? 'selected' : '' ?>><?php echo h($model['DecayingModel']['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span id="select_model_to_simulate_infobox" class="btn"><span class="fa fa-question-circle"></span></span>
                         </div>
-                        <div class="tab-pane <?php echo !isset($attribute_id) ? '' : 'active'; ?>" id="specificid">
-                            <h3 style=""><?php echo __('Specific Attribute'); ?></h3>
-                            <div style="display: flex;">
-                                <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend">
-                                    <span class="add-on">ID</span>
-                                    <input type="text" value="<?php echo isset($attribute_id) ? h($attribute_id) : ''; ?>" placeholder="<?php echo __('Attribute ID or UUID') ?>" onkeypress="handle_input_key(event)" style="width: auto;">
+
+                        <ul class="nav nav-tabs" style="margin-right: -5px; margin-bottom: 0px;" id="simulation-tabs">
+                            <li class="<?php echo isset($attribute_id) ? '' : 'active'; ?>"><a href="#restsearch" data-toggle="tab">RestSearch</a></li>
+                            <li class="<?php echo !isset($attribute_id) ? '' : 'active'; ?>"><a href="#specificid" data-toggle="tab">Specific ID</a></li>
+                        </ul>
+
+                        <div class="tab-content" style="padding: 5px; height: 100%;">
+                            <div class="tab-pane <?php echo isset($attribute_id) ? '' : 'active'; ?>" id="restsearch" style="height: 100%;">
+                                <div style="display: flex; flex-direction: column; height: 100%;">
+                                    <h3 style="">Attribute RestSearch<span style="vertical-align: top; font-size: x-small;" class="fa fa-question-circle" title="Enforced fields: returnFormat"></span></h3>
+    <?php
+        $registered_taxonomies = array_keys($decaying_model['DecayingModel']['parameters']['base_score_config']);
+        foreach ($registered_taxonomies as $i => &$taxonomy_name) {
+            $taxonomy_name = $taxonomy_name . ':%' ;
+        }
+    ?>
+                                    <textarea id="restSearchTextarea">
+    {
+        "includeDecayScore": 1,
+        "excludeDecayed": 0,
+        "decayingModel": [<?php echo h($decaying_model['DecayingModel']['id']); ?>],
+        "to_ids": 1,
+        "tags": <?php echo json_encode($registered_taxonomies); ?>,
+        "modelOverrides": {
+            
+        }
+    }</textarea>
+                                    </br>
+                                    <span class="btn btn-primary" style="width: fit-content;" role="button" onclick="doRestSearch(this)"><?php echo __('Search'); ?></span>
                                 </div>
-                                <span id="performRestSearchButton" class="btn btn-primary" style="width: fit-content; margin-left: 4px;" role="button" onclick="doSpecificSearch(this)"><?php echo __('Simulate'); ?></span>
+                            </div>
+                            <div class="tab-pane <?php echo !isset($attribute_id) ? '' : 'active'; ?>" id="specificid">
+                                <h3 style=""><?php echo __('Specific Attribute'); ?></h3>
+                                <div style="display: flex;">
+                                    <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend">
+                                        <span class="add-on">ID</span>
+                                        <input type="text" value="<?php echo isset($attribute_id) ? h($attribute_id) : ''; ?>" placeholder="<?php echo __('Attribute ID or UUID') ?>" onkeypress="handle_input_key(event)" style="width: auto;">
+                                    </div>
+                                    <span id="performRestSearchButton" class="btn btn-primary" style="width: fit-content; margin-left: 4px;" role="button" onclick="doSpecificSearch(this)"><?php echo __('Simulate'); ?></span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                </div>
-            </div>
-            <div style="width: 80%; display: flex;">
-                <div class="panel-container" style="flex-grow: 1; display: flex;">
-                    <div id="basescore-simulation-container" style="width: 30%; min-width: 400px; height: 100%; margin-right: 10px;">
-                        <h5 style="display: inline-block;"><?php echo __('Base score') ?></h5>
-                        <div id="alert-basescore-not-set" class="alert alert-warning" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
-                            <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set. But default value sets.') ?>
-                        </div>
-                        <div id="alert-basescore-not-set" class="alert alert-error" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
-                            <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set') ?>
-                        </div>
-                        <div style="position: relative;">
-                            <?php echo $this->element('DecayingModels/View/basescore_computation_steps'); ?>
-                        </div>
-                        <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
-                            <span class="add-on"><?php echo __('Sighting'); ?></span>
-                            <span id="simulation-sighting" class="add-on"></span>
-                        </div>
-                        <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
-                            <span class="add-on"><?php echo __('Current score'); ?></span>
-                            <span id="simulation-current-score" class="add-on"></span>
-                        </div>
-                    </div>
-                    <div id="chart-decay-simulation-container" style="width: 70%; height: 100%; position: relative; overflow: hidden;">
-                        <div id="simulation_chart" class="svg-container"></div>
                     </div>
                 </div>
+                <div style="width: 80%; display: flex;">
+                    <div class="panel-container" style="flex-grow: 1; display: flex;">
+                        <div id="basescore-simulation-container" style="width: 30%; min-width: 400px; height: 100%; margin-right: 10px;">
+                            <h5 style="display: inline-block;"><?php echo __('Base score') ?></h5>
+                            <div id="alert-basescore-not-set" class="alert alert-warning" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
+                                <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set. But default value sets.') ?>
+                            </div>
+                            <div id="alert-basescore-not-set" class="alert alert-error" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
+                                <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set') ?>
+                            </div>
+                            <div style="position: relative;">
+                                <?php echo $this->element('DecayingModels/View/basescore_computation_steps'); ?>
+                            </div>
+                            <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
+                                <span class="add-on"><?php echo __('Sighting'); ?></span>
+                                <span id="simulation-sighting" class="add-on"></span>
+                            </div>
+                            <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
+                                <span class="add-on"><?php echo __('Current score'); ?></span>
+                                <span id="simulation-current-score" class="add-on"></span>
+                            </div>
+                        </div>
+                        <div id="chart-decay-simulation-container" style="width: 70%; height: 100%; position: relative; overflow: hidden;">
+                            <div id="simulation_chart" class="svg-container"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div style="height: 60%; overflow-y: auto; background-color: #ffffff;" class="panel-container">
-            <div style="height: 100%;" id="attributeTableContainer"></div>
+            <div style="height: 60%; overflow-y: auto; background-color: #ffffff;" class="panel-container">
+                <div style="height: 100%;" id="attributeTableContainer"></div>
+            </div>
         </div>
     </div>
-</div>
 </div>
 <?php echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'decayingModel', 'menuItem' => '')); ?>
 <?php

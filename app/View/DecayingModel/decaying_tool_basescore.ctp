@@ -1,6 +1,6 @@
 <div id="basescore_configurator" class="row">
     <div class="span8" class="taxonomyTableContainer">
-        <input id="table_taxonomy_search" class="input" style="width: 250px; margin: 0px;" type="text" placeholder="<?php echo _('Search Taxonomy'); ?>"></input>
+        <input id="table_taxonomy_search" class="input" style="width: 250px; margin: 0px;" type="text" placeholder="<?php echo __('Search Taxonomy'); ?>"></input>
         <it class="fa fa-times useCursorPointer" title="<?php echo __('Clear search field'); ?>" onclick="$('#table_taxonomy_search').val('').trigger('input');"></it>
         <span style="float: right; margin-top: 6px;" class="badge badge-info"><b><?php echo h($taxonomies_not_having_numerical_value); ?></b><?php echo __(' not having numerical value'); ?></span>
         <div class="input-prepend" style="margin: 4px;">
@@ -29,8 +29,8 @@
                                             <li>
                                                 <a style="position: relative; padding: 3px 5px;">
                                                     <span class="tagComplete"
-                                                    style="margin-right: 35px;background-color: <?php echo $entry['Tag']['colour']; ?>;color:<?php echo $this->TextColour->getTextColour($entry['Tag']['colour']);?>"
-                                                    title="<?php echo sprintf('%s: %s', h($entry['expanded']), h($entry['description'])) ?>"><?php echo $entry['Tag']['name']; ?>
+                                                    style="margin-right: 35px;background-color: <?php echo h($entry['Tag']['colour']); ?>;color:<?php echo h($this->TextColour->getTextColour($entry['Tag']['colour']));?>"
+                                                    title="<?php echo sprintf('%s: %s', h($entry['expanded']), h($entry['description'])) ?>"><?php echo h($entry['Tag']['name']); ?>
                                                     </span>
                                                     <span class="label label-inverse numerical-value-label"><?php echo h($entry['numerical_value']) ?></span>
                                                 </a>
@@ -107,10 +107,10 @@
 </div>
 
 <?php
-echo $this->element('genericElements/assetLoader', array(
-    'css' => array('treemap'),
-    'js' => array('decayingToolBasescore')
-));
+    echo $this->element('genericElements/assetLoader', array(
+        'css' => array('treemap'),
+        'js' => array('decayingToolBasescore')
+    ));
 ?>
 
 <script>
