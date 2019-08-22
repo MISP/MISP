@@ -6,11 +6,6 @@ class DecayingModelMapping extends AppModel
     public $actsAs = array('Containable');
 
     public $validate = array(
-        'org_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-        ),
         'attribute_type' => array(
             'valueNotEmpty' => array(
                 'rule' => array('valueNotEmpty'),
@@ -30,14 +25,8 @@ class DecayingModelMapping extends AppModel
         )
     );
 
-    private $__default_type_mapping_reverse = array();
-
-    public function resetMappingForModel($new_model) {
-        if (!isset($new_model['org_id'])) {
-            $new_model['org_id'] = null;
-        }
+    public function resetMappingForModel($new_model, $user) {
         $this->deleteAll(array(
-            'DecayingModelMapping.org_id' => $new_model['org_id'],
             'model_id' => $new_model['model_id']
         ));
 
@@ -47,9 +36,6 @@ class DecayingModelMapping extends AppModel
                 'attribute_type' => $type,
                 'model_id' => $new_model['model_id']
             );
-            if (!is_null($new_model['org_id'])) {
-                $to_save['org_id'] = $new_model['org_id'];
-            }
             $data[] = $to_save;
         }
 
@@ -63,47 +49,47 @@ class DecayingModelMapping extends AppModel
         }
     }
 
-    public function getAssociatedTypes($user, $model_id) {
-        $decaying_model = $this->DecayingModel->find('first', array(
-            'conditions' => array('id' => $model_id),
-            'recursive' => -1,
-        ));
-        if (empty($decaying_model)) {
-            $associated_types = array();
-        } else {
-            $decaying_model = $decaying_model['DecayingModel'];
+    public function getAssociatedTypes($user, $model) {
+        if (is_numeric($model)) {
+            $model = $this->DecayingModel->fetchModel($user, $model, false);
+        }
+        $decaying_model = isset($model['DecayingModel']) ? $model['DecayingModel'] : $model;
+        if ($decaying_model['isDefault']) {
             $associated_types = $decaying_model['attribute_types'];
+        } else {
             $temp = $this->find('list', array(
                 'conditions' => array(
-                    'OR' => array(
-                        array('org_id' => $user['Organisation']['id']),
-                        array('org_id' => null),
-                    ),
-                    'model_id' => $model_id
+                    'model_id' => $decaying_model['id']
                 ),
                 'recursive' => -1,
                 'fields' => array('attribute_type')
             ));
-            $associated_types = array_values(array_unique(array_merge($associated_types, $temp)));
+            $associated_types = array_values($temp);
         }
         return $associated_types;
     }
 
     public function getAssociatedModels($user, $attribute_type = array()) {
-        $conditions = array(
-            'OR' => array(
-                array('org_id' => $user['Organisation']['id']),
-                array('org_id' => null),
-            )
-        );
-        if (!empty($attribute_type)) {
-            $conditions['attribute_type'] = $attribute_type;
-        }
         $associated_models = $this->find('all', array(
-            'conditions' => $conditions,
+            'conditions' => array(
+                'attribute_type' => $attribute_type,
+                'OR' => array(
+                    'DecayingModel.org_id' => $user['org_id'],
+                    'DecayingModel.all_orgs' => true
+                )
+            ),
             'recursive' => -1,
-            // 'group' => 'attribute_type',
-            'fields' => array('attribute_type', 'model_id')
+            'fields' => array('attribute_type', 'model_id'),
+            'joins' => array( // joins has to be done to enforce ACL
+                array(
+                    'table' => 'decaying_models',
+                    'alias' => 'DecayingModel',
+                    'type' => 'INNER',
+                    'conditions' => array(
+                        'DecayingModel.id = DecayingModelMapping.model_id'
+                    )
+                )
+            )
         ));
         $associated_models = Hash::combine($associated_models, '{n}.DecayingModelMapping.model_id', '{n}.DecayingModelMapping.model_id', '{n}.DecayingModelMapping.attribute_type');
         return $associated_models;

@@ -1215,7 +1215,6 @@ class AppModel extends Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS decaying_model_mappings (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
-                    `org_id` int(11),
                     `attribute_type` varchar(255) COLLATE utf8_bin NOT NULL,
                     `model_id` int(11) NOT NULL,
                     PRIMARY KEY (id)

@@ -134,7 +134,7 @@ class DecayingModel extends AppModel
         return $models;
     }
 
-    public function update($force=false)
+    public function update($force=false, $user)
     {
         $new_models = $this->__load_models($force);
         $temp = $this->find('all', array(
@@ -150,13 +150,13 @@ class DecayingModel extends AppModel
                 if ($force || $new_model['version'] > $existing_model['version']) {
                     $new_model['id'] = $existing_model['id'];
                     $this->save($new_model);
-                    $this->DecayingModelMapping->resetMappingForModel($new_model);
+                    $this->DecayingModelMapping->resetMappingForModel($new_model, $user);
                 }
             } else {
                 $this->create();
                 $this->save($new_model);
                 $new_model['id'] = $this->Model->id;
-                $this->DecayingModelMapping->resetMappingForModel($new_model);
+                $this->DecayingModelMapping->resetMappingForModel($new_model, $user);
             }
         }
     }
@@ -210,7 +210,7 @@ class DecayingModel extends AppModel
             try {
                 $model = $this->fetchModel($user, $id, $full, $conditions);
                 $models[] = $model;
-            } catch (MethodNotAllowedException $e) {
+            } catch (NotFoundException $e) {
                 // Just don't add the model to the result
             }
         }
@@ -246,7 +246,7 @@ class DecayingModel extends AppModel
         }
 
         if ($full) {
-            $decayingModel['DecayingModel']['attribute_types'] = $this->DecayingModelMapping->getAssociatedTypes($user, $decayingModel['DecayingModel']['id']);
+            $decayingModel['DecayingModel']['attribute_types'] = $this->DecayingModelMapping->getAssociatedTypes($user, $decayingModel);
         }
         return $decayingModel;
     }

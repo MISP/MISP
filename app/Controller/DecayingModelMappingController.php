@@ -38,7 +38,7 @@ class DecayingModelMappingController extends AppController
                 unset($this->request->data['DecayingModelMapping']['attributetypes']);
             }
 
-            $response = $this->DecayingModelMapping->resetMappingForModel($this->request->data['DecayingModelMapping']);
+            $response = $this->DecayingModelMapping->resetMappingForModel($this->request->data['DecayingModelMapping'], $this->Auth->user());
             return $this->RestResponse->viewData($response, $this->response->type());
         } else {
             $this->set('model_id', $model_id);

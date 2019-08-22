@@ -20,7 +20,7 @@ class DecayingModelController extends AppController
         }
 
         if ($this->request->is('post') || $this->request->is('put')) {
-            $this->DecayingModel->update($force);
+            $this->DecayingModel->update($force, $this->Auth->user());
             $message = __('Default decaying models updated');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('DecayingModel', 'update', false, $this->response->type(), $message);
