@@ -10946,7 +10946,7 @@ msgid "Can be merged automatically. Injection done."
 msgstr ""
 
 #: View/Objects/add.ctp:293
-msgid "An instance of this attribute already exists. However, as multiple instanciation is allowed by this template, the two attributes will be keept."
+msgid "An instance of this attribute already exists. However, as multiple instances are allowed by this template, the two attributes will be kept."
 msgstr ""
 
 #: View/Objects/add.ctp:321;332

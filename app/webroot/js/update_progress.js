@@ -117,25 +117,25 @@ function update_row_state(i, state) {
         case 0: // success
             row.removeClass('alert-danger alert-info');
             row.addClass('alert-success');
-            icon.removeClass('fa-times-circle-o fa-cogs');
-            icon.addClass('fa-check-circle-o');
+            icon.removeClass('fa-times-circle fa-cogs');
+            icon.addClass('fa-check-circle');
             break;
         case 1: // current
             row.removeClass('alert-success alert-danger');
             row.addClass('alert-info');
-            icon.removeClass('fa-check-circle-o', 'fa-times-circle-o');
+            icon.removeClass('fa-check-circle', 'fa-times-circle');
             icon.addClass('fa-cogs');
             break;
         case 2: //fail
             row.removeClass('alert-success alert-info');
             row.addClass('alert-danger');
-            icon.removeClass('fa-check-circle-o fa-cogs');
-            icon.addClass('fa-times-circle-o');
+            icon.removeClass('fa-check-circle fa-cogs');
+            icon.addClass('fa-times-circle');
             break;
         case 3: //no state
         default:
             row.removeClass('alert-success alert-info alert-danger');
-            icon.removeClass('fa-check-circle-o fa-times-circle-o fa-cogs');
+            icon.removeClass('fa-check-circle fa-times-circle fa-cogs');
             break;
     }
 }

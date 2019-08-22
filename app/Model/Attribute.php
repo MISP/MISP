@@ -4065,24 +4065,26 @@ class Attribute extends AppModel
         if (!$this->exists()) {
             return false;
         }
-        $result = $this->find('first', array(
+        $result = $this->fetchAttributes($user, array(
             'conditions' => array('Attribute.id' => $id),
+            'flatten' => 1,
             'recursive' => -1,
             'contain' => array('Event')
         ));
         if (empty($result)) {
-            throw new ForbiddenException(__('Attribute not found or not authorised.'));
+            throw new ForbiddenException(__('Invalid attribute'));
         }
+        $result = $result[0];
 
         // check for permissions
         if (!$user['Role']['perm_site_admin']) {
             if ($result['Event']['locked']) {
                 if ($user['org_id'] != $result['Event']['org_id'] || !$user['Role']['perm_sync']) {
-                    throw new ForbiddenException(__('Attribute not found or not authorised.'));
+                    throw new ForbiddenException(__('You do not have permission to do that.'));
                 }
             } else {
                 if ($user['org_id'] != $result['Event']['orgc_id']) {
-                    throw new ForbiddenException(__('Attribute not found or not authorised.'));
+                    throw new ForbiddenException(__('You do not have permission to do that.'));
                 }
             }
         }
@@ -4282,10 +4284,6 @@ class Attribute extends AppModel
         }
         if ($paramsOnly) {
             return $params;
-        }
-        if (!isset($this->validFormats[$returnFormat])) {
-            // this is where the new code path for the export modules will go
-            throw new MethodNotFoundException('Invalid export format.');
         }
         if (method_exists($exportTool, 'modify_params')) {
             $params = $exportTool->modify_params($user, $params);

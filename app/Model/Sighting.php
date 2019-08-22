@@ -655,7 +655,7 @@ class Sighting extends AppModel
 
         if (!isset($this->validFormats[$returnFormat])) {
             // this is where the new code path for the export modules will go
-            throw new MethodNotFoundException('Invalid export format.');
+            throw new NotFoundException('Invalid export format.');
         }
 
         $exportToolParams = array(

@@ -202,7 +202,7 @@ cd $PATH_TO_MISP/app
 sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
 # Update composer.phar
 $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'a5c698ffe4b8e849a443b120cd5ba38043260d5c4023dbf93e1558871f1f07f58274fc6f4c93bcfd858c6bd0775cd8d1') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 $SUDO_WWW php composer-setup.php
 $SUDO_WWW php -r "unlink('composer-setup.php');"
 $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
@@ -325,7 +325,7 @@ sudo a2ensite misp-ssl
 
 # Recommended: Change some PHP settings in /etc/php/7.3/apache2/php.ini
 # max_execution_time = 300
-# memory_limit = 512M
+# memory_limit = 2048M
 # upload_max_filesize = 50M
 # post_max_size = 50M
 for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
