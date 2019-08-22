@@ -350,7 +350,7 @@
   ?>
   <?php if (!empty($includeDecayScore)): ?>
     <td class="decayingScoreField">
-          <div id = "Attribute_<?php echo $object['id']; ?>_score_solid" class="inline-field-solid">
+          <div id = "Attribute_<?php echo h($object['id']); ?>_score_solid" class="inline-field-solid">
             <?php echo $this->element('DecayingModels/View/attribute_decay_score', array('scope' => 'object', 'object' => $object, 'uselink' => true)); ?>
           </div>
     </td>
