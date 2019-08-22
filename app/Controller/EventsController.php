@@ -2631,18 +2631,45 @@ class EventsController extends AppController
         }
         // User has filled in his contact form, send out the email.
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (!isset($this->request->data['Event'])) {
+                $this->request->data = array('Event' => $this->request->data);
+            }
             $message = $this->request->data['Event']['message'];
+            if (empty($message)) {
+                $error = __("You must specify a message.");
+                if ($this->_isRest()) {
+                    throw new MethodNotAllowedException($error);
+                } else {
+                    $this->Flash->error($error);
+                    $this->redirect(array('action' => 'contact', $id));
+                }
+            }
+
             $creator_only = $this->request->data['Event']['person'];
             $user = $this->Auth->user();
             $user['gpgkey'] = $this->Event->User->getPGP($user['id']);
             $user['certif_public'] = $this->Event->User->getCertificate($user['id']);
-            if ($this->Event->sendContactEmailRouter($id, $message, $creator_only, $user, $this->_isSiteAdmin())) {
-                // redirect to the view event page
-                $this->Flash->success(__('Email sent to the reporter.', true));
+
+            $success = $this->Event->sendContactEmailRouter($id, $message, $creator_only, $user, $this->_isSiteAdmin());
+            if ($success) {
+                $return_message = __('Email sent to the reporter.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('Events', 'contact', $id, $this->response->type(), $return_message);
+                } else {
+                    $this->Flash->success($return_message);
+                    // redirect to the view event page
+                    $this->redirect(array('action' => 'view', $id));
+                }
             } else {
-                $this->Flash->error(__('Sending of email failed', true), 'default', array(), 'error');
+                $return_message = __('Sending of email failed.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Events', 'contact', $id, $return_message, $this->response->type());
+                } else {
+                    $this->Flash->error($return_message, 'default', array(), 'error');
+                    // redirect to the view event page
+                    $this->redirect(array('action' => 'view', $id));
+                }
             }
-            $this->redirect(array('action' => 'view', $id));
         }
         // User didn't see the contact form yet. Present it to him.
         if (empty($this->data)) {
