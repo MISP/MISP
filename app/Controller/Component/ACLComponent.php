@@ -341,6 +341,7 @@ class ACLComponent extends Component
                     'getGit' => array(),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
+                    'getSetting' => array(),
                     'getSubmodulesStatus' => array('perm_site_admin'),
                     'getSubmoduleQuickUpdateForm' => array('perm_site_admin'),
                     'getWorkers' => array(),
@@ -407,9 +408,9 @@ class ACLComponent extends Component
                     'advanced' => array('perm_sighting'),
                     'delete' => array('perm_sighting'),
                     'index' => array('*'),
-                    'listSightings' => array('perm_sighting'),
+                    'listSightings' => array('*'),
                     'quickDelete' => array('perm_sighting'),
-                    'viewSightings' => array('perm_sighting'),
+                    'viewSightings' => array('*'),
                     'quickAdd' => array('perm_sighting')
             ),
             'tagCollections' => array(

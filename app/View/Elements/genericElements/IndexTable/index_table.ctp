@@ -21,7 +21,9 @@
     if (!empty($data['description'])) {
         echo sprintf('<p>%s</p>', h($data['description']));
     }
-    echo $this->element('/genericElements/IndexTable/pagination', array('paginator' => $this->Paginator));
+    if (empty($data['skip_pagination'])) {
+        echo $this->element('/genericElements/IndexTable/pagination', array('paginator' => $this->Paginator));
+    }
     if (!empty($data['top_bar'])) {
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data['top_bar']));
     }
@@ -41,6 +43,8 @@
         $this->element('/genericElements/IndexTable/headers', array('fields' => $data['fields'], 'paginator' => $this->Paginator)),
         $rows
     );
-    echo $this->element('/genericElements/IndexTable/pagination_counter', array('paginator' => $this->Paginator));
-    echo $this->element('/genericElements/IndexTable/pagination', array('paginator' => $this->Paginator));
+    if (empty($data['skip_pagination'])) {
+        echo $this->element('/genericElements/IndexTable/pagination_counter', array('paginator' => $this->Paginator));
+        echo $this->element('/genericElements/IndexTable/pagination', array('paginator' => $this->Paginator));
+    }
 ?>

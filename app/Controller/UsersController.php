@@ -758,7 +758,7 @@ class UsersController extends AppController
                 }
             }
             $fail = false;
-            if ($this->_isSiteAdmin() && !$abortPost && !empty($this->request->data['User']['email'])) {
+            if (!$this->_isSiteAdmin() && !$abortPost) {
                 $organisation = $this->User->Organisation->find('first', array(
                     'conditions' => array('Organisation.id' => $userToEdit['User']['org_id']),
                     'recursive' => -1
