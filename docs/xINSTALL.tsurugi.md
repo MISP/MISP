@@ -117,7 +117,7 @@ function installMISPonTsurugi() {
   upload_max_filesize=50M
   post_max_size=50M
   max_execution_time=300
-  memory_limit=512M
+  memory_limit=2048M
   PHP_INI=/etc/php/7.0/apache2/php.ini
 
   # apt config

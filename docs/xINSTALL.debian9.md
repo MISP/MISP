@@ -345,7 +345,7 @@ sudo a2ensite misp-ssl
 
 # Recommended: Change some PHP settings in /etc/php/7.3/apache2/php.ini
 # max_execution_time = 300
-# memory_limit = 512M
+# memory_limit = 2048M
 # upload_max_filesize = 50M
 # post_max_size = 50M
 for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
