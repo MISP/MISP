@@ -16,7 +16,7 @@ class DecayingModel extends AppModel
         )
     );
 
-    private $__registered_model_classes = array();
+    private $__registered_model_classes = array(); // Proxy for already instanciated classes
     public $allowed_overrides = array('threshold' => 1, 'lifetime' => 1, 'decay_speed' => 1);
 
     public function afterFind($results, $primary = false) {
@@ -58,7 +58,7 @@ class DecayingModel extends AppModel
         ) {
             $encoded = json_decode($this->data['DecayingModel']['parameters'], true);
             if ($encoded !== null) {
-                $validation = $this->__validateParameters($encoded);
+                $validation = $this->__adjustParameters($encoded);
                 if ($validation !== false) {
                     $this->data['DecayingModel']['parameters'] = json_encode($encoded);
                     return true;
@@ -66,7 +66,7 @@ class DecayingModel extends AppModel
             }
             return false;
         } else {
-            $validation = $this->__validateParameters($this->data['DecayingModel']['parameters']);
+            $validation = $this->__adjustParameters($this->data['DecayingModel']['parameters']);
             return $validation;
         }
         if (!empty($this->data['DecayingModel']['attribute_types']) && !is_array($this->data['DecayingModel']['attribute_types'])) {
@@ -102,15 +102,14 @@ class DecayingModel extends AppModel
     }
 
     /*
-    * may be done at some point but we still want to be generic
-    * so enforcing hardcoded tests here may not be the best solution
+    * May be improved at some point.
     * For now, limit the number of digits for the parameters
     */
-    private function __validateParameters(&$parameters)
+    private function __adjustParameters(&$parameters)
     {
         foreach ($parameters as $name => $value) {
             if (is_array($value)) {
-                $this->__validateParameters($parameters[$name]);
+                $this->__adjustParameters($parameters[$name]);
             } else if (is_numeric($value)) {
                 $parameters[$name] = round($value, 4);
             } else if (!empty($value)) {
@@ -142,7 +141,7 @@ class DecayingModel extends AppModel
             'recursive' => -1
         ));
         $existing_models = array();
-        foreach ($temp as $k => $model) {
+        foreach ($temp as $k => $model) { // create UUID proxy
             $existing_models[$model['DecayingModel']['uuid']] = $model['DecayingModel'];
         }
         foreach ($new_models as $k => $new_model) {
@@ -150,7 +149,6 @@ class DecayingModel extends AppModel
                 $existing_model = $existing_models[$new_model['uuid']];
                 if ($force || $new_model['version'] > $existing_model['version']) {
                     $new_model['id'] = $existing_model['id'];
-                    $new_model['model_id'] = $existing_model['id'];
                     $this->save($new_model);
                     $this->DecayingModelMapping->resetMappingForModel($new_model);
                 }
@@ -158,7 +156,6 @@ class DecayingModel extends AppModel
                 $this->create();
                 $this->save($new_model);
                 $new_model['id'] = $this->Model->id;
-                $new_model['model_id'] = $this->Model->id;
                 $this->DecayingModelMapping->resetMappingForModel($new_model);
             }
         }
@@ -166,11 +163,7 @@ class DecayingModel extends AppModel
 
     public function isDefaultModel($decaying_model)
     {
-        if (isset($decaying_model['DecayingModel']['uuid'])) {
-            return !is_null($decaying_model['DecayingModel']['uuid']);
-        } else {
-            return false;
-        }
+        return isset($decaying_model['DecayingModel']['uuid']) && !is_null($decaying_model['DecayingModel']['uuid']);
     }
 
     public function isEditableByCurrentUser($user, $decaying_model)
@@ -238,13 +231,16 @@ class DecayingModel extends AppModel
         }
         $decayingModel = $this->find('first', $searchOptions);
 
-        // if not found return false
+        // if not found throw
         if (empty($decayingModel)) {
             throw new NotFoundException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
         }
         if (
-            !$user['Role']['perm_site_admin'] &&  // if the user is a site admin, return the model without question
-            !($user['Organisation']['id'] == $decayingModel['DecayingModel']['org_id'] || $decayingModel['DecayingModel']['all_orgs'])
+            !$user['Role']['perm_site_admin'] &&
+            !(  // check owner and visibility
+                $user['Organisation']['id'] == $decayingModel['DecayingModel']['org_id'] ||
+                $decayingModel['DecayingModel']['all_orgs']
+            )
         ) {
             throw new NotFoundException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
         }
@@ -301,6 +297,7 @@ class DecayingModel extends AppModel
         );
     }
 
+    // Include a PHP file and return an instanciation of the formula class
     private function __include_formula_file_and_return_instance($filename='Polynomial.php')
     {
         $formula_files = $this->__listPHPFormulaFiles(); // redundant in some cases but better be safe than sorry
@@ -345,6 +342,7 @@ class DecayingModel extends AppModel
         return $available_formulas;
     }
 
+    // Get a instance of the class associated to a model
     public function getModelClass($model)
     {
         $formula_name = $model['DecayingModel']['formula'] === '' ? 'polynomial' : $model['DecayingModel']['formula'];
@@ -401,7 +399,7 @@ class DecayingModel extends AppModel
         $this->Sighting = ClassRegistry::init('Sighting');
         $sightings = $this->Sighting->listSightings($user, $attribute_id, 'attribute', false, 0, false);
         if (empty($sightings)) {
-            $sightings = array(array('Sighting' => array('date_sighting' => $attribute['Attribute']['timestamp']))); // simulate a sighting nonetheless
+            $sightings = array(array('Sighting' => array('date_sighting' => $attribute['Attribute']['timestamp']))); // simulate a Sighting nonetheless
         }
         // get start time
         $start_time = $attribute['Attribute']['timestamp'];
@@ -410,7 +408,7 @@ class DecayingModel extends AppModel
         $start_time = $this->round_timestamp_to_hour($start_time);
         // get end time
         $last_sighting_timestamp = $sightings[count($sightings)-1]['Sighting']['date_sighting'];
-        if ($attribute['Attribute']['timestamp'] > $last_sighting_timestamp) { // The attribute was modified after the last sighting
+        if ($attribute['Attribute']['timestamp'] > $last_sighting_timestamp) { // The attribute was modified after the last sighting, simulate a Sighting
             $sightings[count($sightings)] = array(
                 'Sighting' => array(
                     'date_sighting' => $attribute['Attribute']['timestamp'],
@@ -425,7 +423,7 @@ class DecayingModel extends AppModel
         $base_score_config = $this->Computation->computeBasescore($model, $attribute['Attribute']);
         $base_score = $base_score_config['base_score'];
 
-        // generate time span from oldest timestamp to last decay, resolution is hours
+        // generate time range from oldest timestamp to last decay, resolution is hours
         $score_overtime = array();
         $rounded_sightings = array();
         $sighting_index = 0;
@@ -451,13 +449,14 @@ class DecayingModel extends AppModel
         );
     }
 
-    public function getClosestSighting($sightings, $time, $previous_index)
+    // Get closest the Sighting for a given time
+    public function getClosestSighting($sightings, $time, $offset)
     {
-        if (count($sightings) <= $previous_index+1) {
-            return $previous_index;
+        if (count($sightings) <= $offset+1) {
+            return $offset;
         }
         $max_time = $time + 3600;
-        $next_index = $previous_index+1;
+        $next_index = $offset+1;
         $next_sighting = $sightings[$next_index]['Sighting']['date_sighting'];
         while ($next_sighting <= $max_time) {
             $next_index++;
