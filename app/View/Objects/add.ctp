@@ -347,7 +347,7 @@
         var old_value = $clicked.data('valueold');
         var revised_value = $clicked.data('valuerevised');
         var col_object_relation = $clicked.data('objectrelation');
-      var col_type = $clicked.data('type');
+        var col_type = $clicked.data('type');
         insertValueAndScroll(col_object_relation, col_type, revised_value, old_value, $clicked);
     }
 
@@ -366,7 +366,7 @@
         var $value_field = $($matching_row.find('div.object_value_field select, div.object_value_field textarea')[0]);
         var cur_val = $value_field.val();
         var selected_value;
-        if (cur_val !== old_value) {
+        if (cur_val != old_value) {
             selected_value = old_value;
             $value_field.val(old_value);
             $clicked.addClass('fa-sign-in-alt fa-flip-horizontal').removeClass('fa-trash-restore');
