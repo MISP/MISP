@@ -11,7 +11,8 @@ abstract class DecayingModelBase
         return 'BONFIRE LIT';
     }
 
-    // get effective taxonomy ratio based on taxonomies attached to the attribute
+    // Get effective taxonomy ratio based on taxonomies attached to the attribute
+    // Basically, it adapts the ratio defined in the model to fit the actual attached tags 
     protected function __getRatioScore($model, $tags)
     {
         $ratioScore = array();
@@ -89,7 +90,7 @@ abstract class DecayingModelBase
         return array('base_score' => $base_score, 'overridden' => $overridden_tags, 'tags' => $tags, 'taxonomy_effective_ratios' => $taxonomy_effective_ratios, 'default_base_score' => $default_base_score);
     }
 
-    // compute the current score for the provided attribute according to the last sighting with the provided model
+    // Compute the current score for the provided attribute according to the last sighting with the provided model
     final public function computeCurrentScore($user, $model, $attribute, $base_score = false, $last_sighting_timestamp = false)
     {
         if ($base_score === false) {
@@ -111,8 +112,9 @@ abstract class DecayingModelBase
         return $this->computeScore($model, $attribute, $base_score, $timestamp - $last_sighting_timestamp);
     }
 
-    // compute the score for the provided attribute according to the elapsed time with the provided model
+    // Compute the score for the provided attribute according to the elapsed time with the provided model
     abstract public function computeScore($model, $attribute, $base_score, $elapsed_time);
+    // Return a True if the attribute should be marked as decayed
     abstract public function isDecayed($model, $attribute, $score);
 }
 
