@@ -70,14 +70,17 @@ class DecayingModelMapping extends AppModel
     }
 
     public function getAssociatedModels($user, $attribute_type = array()) {
+        $conditions = array(
+            'OR' => array(
+                'DecayingModel.org_id' => $user['org_id'],
+                'DecayingModel.all_orgs' => true
+            )
+        );
+        if (!empty($attribute_type)) {
+            $conditions['attribute_type'] = $attribute_type;
+        }
         $associated_models = $this->find('all', array(
-            'conditions' => array(
-                'attribute_type' => $attribute_type,
-                'OR' => array(
-                    'DecayingModel.org_id' => $user['org_id'],
-                    'DecayingModel.all_orgs' => true
-                )
-            ),
+            'conditions' => $conditions,
             'recursive' => -1,
             'fields' => array('attribute_type', 'model_id'),
             'joins' => array( // joins has to be done to enforce ACL
