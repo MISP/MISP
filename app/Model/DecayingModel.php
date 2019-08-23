@@ -150,13 +150,10 @@ class DecayingModel extends AppModel
                 if ($force || $new_model['version'] > $existing_model['version']) {
                     $new_model['id'] = $existing_model['id'];
                     $this->save($new_model);
-                    $this->DecayingModelMapping->resetMappingForModel($new_model, $user);
                 }
             } else {
                 $this->create();
                 $this->save($new_model);
-                $new_model['id'] = $this->Model->id;
-                $this->DecayingModelMapping->resetMappingForModel($new_model, $user);
             }
         }
     }
