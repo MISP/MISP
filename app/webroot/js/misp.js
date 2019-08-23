@@ -4286,18 +4286,18 @@ function jsonToNestedTable(json, header, table_classes) {
     }
     header = header === undefined ? [] : header;
     table_classes = table_classes === undefined ? [] : table_classes;
-    $table = $('<table></table>');
+    var $table = $('<table></table>');
     table_classes.forEach(function(classname) {
         $table.addClass(classname);
     });
     if (header.length > 0) {
-        $header = $('<thead><tr></tr></thead>');
+        var $header = $('<thead><tr></tr></thead>');
         header.forEach(function(col) {
             $header.child().append($('<td>' + col + '</td>'));
         });
         $table.append($header);
     }
-    $body = $('<tbody></tbody>');
+    var $body = $('<tbody></tbody>');
     Object.keys(json).forEach(function(k) {
         var value = json[k];
         if (typeof value === 'object') {

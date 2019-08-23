@@ -17,8 +17,8 @@ function addTagWithValue(clicked) {
 
 function addPickedTags(clicked) {
     var numerical_values = [];
-    $select = $('#basescore-example-tag-picker');
-    $previous_tags = $('#basescore-example-customtag-container span.decayingExampleTags');
+    var $select = $('#basescore-example-tag-picker');
+    var $previous_tags = $('#basescore-example-customtag-container span.decayingExampleTags');
     $previous_tags.each(function() {
         numerical_values.push({name: $(this).text().split(':')[0], value: parseInt($(this).data('numerical_value'))});
     });
@@ -43,7 +43,7 @@ function removeCustomTag(clicked) {
     $(clicked).parent().tooltip('destroy');
     $(clicked).add($(clicked).prev()).remove();
     var numerical_values = [];
-    $previous_tags = $('#basescore-example-customtag-container span.decayingExampleTags');
+    var $previous_tags = $('#basescore-example-customtag-container span.decayingExampleTags');
     $previous_tags.each(function() {
         numerical_values.push({name: $(this).text().split(':')[0], value: parseInt($(this).data('numerical_value'))});
     });
@@ -210,8 +210,8 @@ function genHelpBaseScoreComputation(e, index) {
 function refreshExamples() {
     for (var i = 1; i <= 3; i++) {
         var numerical_values = [];
-        tags = pickRandomTags();
-        tags_html = '<div style="display: flex; flex-flow: wrap;">';
+        var tags = pickRandomTags();
+        var tags_html = '<div style="display: flex; flex-flow: wrap;">';
         tags.forEach(function(tag) {
             numerical_values.push({name: tag.name.split(':')[0], value: tag['numerical_value']});
             var text_color = getTextColour(tag.colour);
