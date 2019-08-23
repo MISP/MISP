@@ -1619,14 +1619,10 @@ function getPopup(id, context, target, admin, popupType) {
             $(popupType).html(data);
             openPopup(popupType, false);
         },
-        error:function(xhr) {
+        error:function() {
             $(".loading").hide();
             $("#gray_out").fadeOut();
-            if (xhr.status === 403) {
-                showMessage('fail', 'Not allowed.');
-            } else {
-                showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
-            }
+            showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
         },
         url: url
     });
@@ -3491,8 +3487,10 @@ function attributeHoverPlacement(element) {
 $('body').on('click', function (e) {
   $('[data-toggle=popover]').each(function () {
     // hide any open popovers when the anywhere else in the body is clicked
-    if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
-      $('#' + currentPopover).popover('destroy');
+    if (typeof currentPopover !== 'undefined') {
+        if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+          $('#' + currentPopover).popover('destroy');
+        }
     }
   });
 });
