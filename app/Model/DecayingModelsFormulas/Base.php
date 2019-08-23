@@ -23,13 +23,13 @@ abstract class DecayingModelBase
         $total_score = 0.0;
         foreach ($tags as $tag) {
             $namespace_predicate = explode(':', $tag['Tag']['name'])[0];
-            if (isset($taxonomy_base_ratio[$namespace_predicate])) {
+            if (isset($taxonomy_base_ratio[$namespace_predicate]) && is_numeric($tag['Tag']['numerical_value'])) {
                 $total_score += floatval($taxonomy_base_ratio[$namespace_predicate]);
             }
         }
         foreach ($tags as $i => $tag) {
             $namespace_predicate = explode(':', $tag['Tag']['name'])[0];
-            if (isset($taxonomy_base_ratio[$namespace_predicate])) {
+            if (isset($taxonomy_base_ratio[$namespace_predicate]) && is_numeric($tag['Tag']['numerical_value'])) {
                 $ratioScore[$namespace_predicate] = floatval($taxonomy_base_ratio[$namespace_predicate]) / $total_score;
             }
         }
