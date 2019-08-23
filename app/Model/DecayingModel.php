@@ -171,6 +171,11 @@ class DecayingModel extends AppModel
         return !$this->isDefaultModel($decaying_model) && $decaying_model['DecayingModel']['org_id'] == $user['org_id'];
     }
 
+    public function attachIsEditableByCurrentUser($user, &$decaying_model)
+    {
+        $decaying_model['DecayingModel']['isEditable'] = $this->isEditableByCurrentUser($user, $decaying_model);
+    }
+
     public function fetchAllAllowedModels($user, $full=true, $filters=array())
     {
         $conditions = array();

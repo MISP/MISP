@@ -235,6 +235,7 @@ class DecayingModelController extends AppController
             if ($save_result) {
                 if ($this->request->is('ajax')) {
                     $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id);
+                    $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $saved);
                     $response = array('data' => $saved, 'action' => 'edit');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 } else {
