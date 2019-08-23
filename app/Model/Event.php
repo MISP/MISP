@@ -2171,7 +2171,13 @@ class Event extends AppModel
                         }
                     }
                     if (isset($options['includeDecayScore']) && $options['includeDecayScore']) {
+                        if (isset($event['EventTag'])) { // include EventTags for score computation
+                            $event['Attribute'][$key]['EventTag'] = $event['EventTag'];
+                        }
                         $this->DecayingModel->attachScoresToAttribute($user, $event['Attribute'][$key]);
+                        if (isset($event['EventTag'])) { // remove included EventTags
+                            unset($event['Attribute'][$key]['EventTag']);
+                        }
                     }
                     // unset empty attribute tags that got added because the tag wasn't exportable
                     if (!empty($attribute['AttributeTag'])) {
