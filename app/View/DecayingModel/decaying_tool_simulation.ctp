@@ -60,23 +60,27 @@
                 <div style="width: 80%; display: flex;">
                     <div class="panel-container" style="flex-grow: 1; display: flex;">
                         <div id="basescore-simulation-container" style="width: 30%; min-width: 400px; height: 100%; margin-right: 10px;">
-                            <h5 style="display: inline-block;"><?php echo __('Base score') ?></h5>
-                            <div id="alert-basescore-not-set" class="alert alert-warning" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
-                                <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set. But default value sets.') ?>
+                            <div>
+                                <h5 style="display: inline-block;"><?php echo __('Base score') ?> <i id="basescore_enlarge_icon" class="fas fa-expand useCursorPointer"></i></h5>
+                                <div id="alert-basescore-not-set" class="alert alert-warning" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
+                                    <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set. But default value sets.') ?>
+                                </div>
+                                <div id="alert-basescore-not-set" class="alert alert-error" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
+                                    <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set') ?>
+                                </div>
                             </div>
-                            <div id="alert-basescore-not-set" class="alert alert-error" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
-                                <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set') ?>
-                            </div>
-                            <div style="position: relative;">
+                            <div style="position: relative; height: calc(100% - 75px); overflow: auto; margin-bottom: 5px;">
                                 <?php echo $this->element('DecayingModels/View/basescore_computation_steps'); ?>
                             </div>
-                            <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
-                                <span class="add-on"><?php echo __('Sighting'); ?></span>
-                                <span id="simulation-sighting" class="add-on"></span>
-                            </div>
-                            <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
-                                <span class="add-on"><?php echo __('Current score'); ?></span>
-                                <span id="simulation-current-score" class="add-on"></span>
+                            <div style="margin-bottom: 5px;">
+                                <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
+                                    <span class="add-on"><?php echo __('Sighting'); ?></span>
+                                    <span id="simulation-sighting" class="add-on"></span>
+                                </div>
+                                <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
+                                    <span class="add-on"><?php echo __('Current score'); ?></span>
+                                    <span id="simulation-current-score" class="add-on"></span>
+                                </div>
                             </div>
                         </div>
                         <div id="chart-decay-simulation-container" style="width: 70%; height: 100%; position: relative; overflow: hidden;">
@@ -117,6 +121,13 @@ $(document).ready(function() {
         },
         html: true,
         placement: 'bottom'
+    });
+
+    $('#basescore_enlarge_icon').click(function() {
+        var $table = $('#computation_help_container > table');
+        var css_container = 'width: 1000px; left: calc(50% - 500px); margin-left: 0;';
+        var css_body = 'max-height: 80%;';
+        openModal('<?php echo __('Basescore computation steps'); ?>', $table[0].outerHTML, '', {}, css_container, css_body);
     });
 
     $('body').on('click', function (e) {

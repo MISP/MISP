@@ -1746,6 +1746,26 @@ function choicePopup(legend, list) {
     openPopup("#popover_form");
 }
 
+function openModal(heading, body, footer, modal_option, css_container, css_body) {
+    var modal_id = 'dynamic_modal_' + new Date().getTime();
+    var modal_html = '<div id="' + modal_id + '" class="modal hide fade" style="' + (css_container !== undefined ? css_container : '') + '" tabindex="-1" role="dialog" aria-hidden="true">';
+    if (heading !== undefined && heading !== '') {
+        modal_html += '<div class="modal-header">'
+                        + '<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>'
+                        + '<h3 id="myModalLabel">' + heading + '</h3>'
+                    + '</div>';
+    }
+    if (body !== undefined && body !== '') {
+        modal_html += '<div class="modal-body" style="' + (css_body !== undefined ? css_body : '') + '">' + body + '</div>';
+    }
+    if (footer !== undefined && footer !== '') {
+        modal_html += '<div class="modal-footer">' + footer + '</div>';
+    }
+    modal_html += '</div>';
+    $('body').append($(modal_html));
+    $('#'+modal_id).modal(modal_option !== undefined ? modal_option : {});
+}
+
 function resizePopoverBody() {
     var bodyheight = $(window).height();
     bodyheight = 3 * bodyheight / 4 - 150;
