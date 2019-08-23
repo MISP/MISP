@@ -3708,7 +3708,7 @@ function selectAllInbetween(last, current) {
         from = to;
         to = temp;
     }
-    $('.select_proposal, .select_attribute').each(function () {
+    $('.select_proposal, .select_attribute, .select').each(function (e) {
         if ($('#' + this.id).parent().parent().index() >= from && $('#' + this.id).parent().parent().index() <= to) {
             $(this).prop('checked', true);
         }
