@@ -294,13 +294,17 @@ class DecayingModelController extends AppController
             $decayingModel['DecayingModel']['enabled'] = 1;
             if ($this->DecayingModel->save($decayingModel)) {
                 if ($this->request->is('ajax')) {
-                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'enable');
+                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+                    $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $model);
+                    $response = array('data' => $model, 'action' => 'enable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 }
                 $this->Flash->success(__('Decaying Model enabled.'));
             } else {
                 if ($this->request->is('ajax')) {
-                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'enable');
+                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+                    $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $model);
+                    $response = array('data' => $model, 'action' => 'enable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 }
                 $this->Flash->error(__('Error while enabling decaying model'));
@@ -319,13 +323,17 @@ class DecayingModelController extends AppController
             $decayingModel['DecayingModel']['enabled'] = 0;
             if ($this->DecayingModel->save($decayingModel)) {
                 if ($this->request->is('ajax')) {
-                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'disable');
+                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+                    $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $model);
+                    $response = array('data' => $model, 'action' => 'disable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 }
                 $this->Flash->success(__('Decaying Model disabled.'));
             } else {
                 if ($this->request->is('ajax')) {
-                    $response = array('data' => $this->DecayingModel->fetchModel($this->Auth->user(), $id), 'action' => 'disable');
+                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+                    $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $model);
+                    $response = array('data' => $model, 'action' => 'disable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 }
                 $this->Flash->error(__('Error while disabling decaying model'));

@@ -502,7 +502,7 @@
             refreshRow: function(data) {
                 // search and replace matching row if any
                 var models = this.model_table.savedDecayingModels.slice(0);
-                if (data.action == 'edit') {
+                if (data.action == 'edit' || data.action == 'enable' || data.action == 'disable') {
                     models.forEach(function(model, i) {
                         if (model.DecayingModel.id == data.data.DecayingModel.id) {
                             models[i].DecayingModel = data.data.DecayingModel;
@@ -678,7 +678,7 @@
                 $form.find('#DecayingModelDescription').val(data.description);
                 $form.find('#DecayingModelFormula').val(data.formula);
                 $form.find('#DecayingModelParametersLifetime').val(data.parameters.lifetime);
-                $form.find('#DecayingModelParametersDecay_speed').val(data.parameters.decay_speed);
+                $form.find('#DecayingModelParametersDecaySpeed').val(data.parameters.decay_speed);
                 $form.find('#DecayingModelParametersThreshold').val(data.parameters.threshold);
                 $form.find('#DecayingModelParametersDefaultBaseScore').val(data.parameters.default_base_score);
                 $form.find('#DecayingModelParametersBaseScoreConfig').val(JSON.stringify(data.parameters.base_score_config));
