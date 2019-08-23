@@ -369,9 +369,16 @@ class DecayingModelController extends AppController
         $types = $this->User->Event->Attribute->typeDefinitions;
         $this->loadModel('ObjectTemplateElement');
         $objectTypes = $this->ObjectTemplateElement->getAllAvailableTypes();
-        array_walk($objectTypes, function(&$key) {
-            $key["isObject"] = true;
-            $key["default_category"] = $key["category"];
+        array_walk($objectTypes, function(&$item, $key) use ($types) {
+            $item["isObject"] = true;
+            $isAttribute = isset($types[$key]);
+            if ($isAttribute) {
+                $item["isAttribute"] = true;
+                $item["default_category"] = $types[$key]['default_category'];
+                $item["to_ids"] = $types[$key]['to_ids'];
+            } else {
+                $item["default_category"] = $item["category"];
+            }
         });
         $types = array_merge($types, $objectTypes);
         ksort($types);

@@ -29,7 +29,10 @@
                         <?php foreach ($types as $type => $info): ?>
                             <?php
                                 $class = 'hidden ';
-                                if (isset($info['isObject']) && $info['isObject']) {
+                                if (
+                                    isset($info['isObject']) && $info['isObject'] &&
+                                    !(isset($info['isAttribute']) && $info['isAttribute'])
+                                ) {
                                     $class .= 'isObject';
                                 } else if (isset($info['to_ids']) && $info['to_ids'] != 1) {
                                     $class .= 'isNotToIDS';
@@ -40,7 +43,7 @@
                             <tr class="<?php echo $class; ?>">
                                 <td><input type="checkbox"></input></td>
                                 <td class="useCursorPointer isFilteringField isAttributeTypeField">
-                                    <?php if(isset($info['isObject']) && $info['isObject']): ?>
+                                    <?php if(isset($info['isObject']) && $info['isObject'] && !(isset($info['isAttribute']) && $info['isAttribute'])): ?>
                                         <it class="fa fa-cube" title="<?php echo __('Belong to a MISP Object'); ?>"></it>
                                     <?php endif; ?>
                                     <span title="<?php echo isset($info['desc']) ? h($info['desc']) : ''; ?>"><?php echo h($type); ?></span>
