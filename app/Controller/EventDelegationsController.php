@@ -179,4 +179,60 @@ class EventDelegationsController extends AppController
             $this->render('ajax/delete_delegation');
         }
     }
+
+    public function index()
+    {
+        $context = 'pending';
+        if ($this->request->is('post') && !empty($this->request->data['context'])) {
+            $context = $this->request->data['context'];
+        } else if (!empty($this->params['named']['context'])) {
+            $context = $this->params['named']['context'];
+        }
+        if ($context === 'pending') {
+            $conditions = array('EventDelegation.org_id' => $this->Auth->user('org_id'));
+        } else if ($context === 'issued') {
+            $conditions = array('EventDelegation.requester_org_id' => $this->Auth->user('org_id'));
+        } else {
+            throw new InvalidArgumentException('Invalid context. Expected values: pending or issued.');
+        }
+        if (!empty($this->params['named']['value'])) {
+            $temp = array();
+            $temp['lower(EventDelegation.message) like'] = '%' . strtolower(trim($this->params['named']['value'])) . '%';
+            $temp['lower(Event.info) like'] = '%' . strtolower(trim($this->params['named']['value'])) . '%';
+            $temp['lower(Org.name) like'] = '%' . strtolower(trim($this->params['named']['value'])) . '%';
+            $temp['lower(RequesterOrg.name) like'] = '%' . strtolower(trim($this->params['named']['value'])) . '%';
+            $conditions['AND'][] = array('OR' => $temp);
+        }
+        $org_fields = array('id', 'name', 'uuid');
+        $event_fields = array('id', 'info', 'uuid', 'analysis', 'distribution', 'threat_level_id', 'date', 'attribute_count');
+        $params = array(
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'contain' => array(
+                'Event' => array('fields' => $event_fields),
+                'Org' => array('fields' => $org_fields),
+                'RequesterOrg' => array('fields' => $org_fields)
+            )
+        );
+        $this->paginate = array_merge($this->paginate, $params);
+        $delegation_requests = $this->paginate();
+        foreach ($delegation_requests as $k => $v) {
+            if ($v['EventDelegation']['distribution'] == -1) {
+                unset($delegation_requests[$k]['EventDelegation']['distribution']);
+            }
+            if ($v['EventDelegation']['sharing_group_id'] == 0) {
+                unset($delegation_requests[$k]['EventDelegation']['sharing_group_id']);
+            }
+            unset($v['EventDelegation']);
+            $delegation_requests[$k]['EventDelegation'] = array_merge($delegation_requests[$k]['EventDelegation'], $v);
+            $delegation_requests[$k] = array('EventDelegation' => $delegation_requests[$k]['EventDelegation']);
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($delegation_requests, $this->response->type());
+        } else {
+            $this->set('context', $context);
+            $this->set('delegation_requests', $delegation_requests);
+            $this->set('passedArgs', json_encode($this->passedArgs, true));
+        }
+    }
 }

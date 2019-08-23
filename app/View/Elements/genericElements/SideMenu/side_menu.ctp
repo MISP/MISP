@@ -302,6 +302,11 @@
                         'url' => '/events/proposalEventIndex',
                         'text' => __('Events with proposals')
                     ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'viewDelegations',
+                        'url' => '/event_delegations/index/context:pending',
+                        'text' => __('View delegation requests')
+                    ));
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/events/export',

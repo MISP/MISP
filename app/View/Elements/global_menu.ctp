@@ -43,6 +43,10 @@
                         'url' => '/events/proposalEventIndex'
                     ),
                     array(
+                        'url' => '/event_delegations/index/context:pending',
+                        'text' => __('View delegation requests')
+                    ),
+                    array(
                         'type' => 'separator'
                     ),
                     array(
