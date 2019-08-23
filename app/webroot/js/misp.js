@@ -4300,6 +4300,9 @@ function jsonToNestedTable(json, header, table_classes) {
     $body = $('<tbody></tbody>');
     Object.keys(json).forEach(function(k) {
         var value = json[k];
+        if (typeof value === 'object') {
+            value = JSON.stringify(value);
+        }
         $body.append($('<tr><td>' + k + '</td><td>' + value + '</td></tr>'))
     });
     $table.append($body);
