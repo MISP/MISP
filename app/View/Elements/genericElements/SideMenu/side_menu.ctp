@@ -702,6 +702,10 @@
                             'url' => '/servers/serverSettings',
                             'text' => __('Server Settings & Maintenance')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/servers/updateProgress',
+                            'text' => __('Update Progress')
+                        ));
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         if (Configure::read('MISP.background_jobs')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
