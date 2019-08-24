@@ -514,11 +514,8 @@ class Feed extends AppModel
     {
         $version = $this->checkMISPVersion();
         $version = implode('.', $version);
-        try {
-            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
-        } catch (Exception $e) {
-            $commit = false;
-        }
+        $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
+
         $result = array(
             'header' => array(
                     'Accept' => 'application/json',
