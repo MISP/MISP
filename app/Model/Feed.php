@@ -426,13 +426,13 @@ class Feed extends AppModel
                         $mispFeedHits = $pipe->exec();
                         foreach ($mispFeedHits as $sourcehitPos => $f) {
                             foreach ($f as $url) {
-                                $urlParts = explode('/', $url);
-                                if (empty($event[$scope][$urlParts[0]]['event_uuids']) || !in_array($urlParts[1], $event[$scope][$urlParts[0]]['event_uuids'])) {
-                                    $event[$scope][$urlParts[0]]['event_uuids'][] = $urlParts[1];
+                                list($feedId, $eventUuid) = explode('/', $url);
+                                if (empty($event[$scope][$feedId]['event_uuids']) || !in_array($eventUuid, $event[$scope][$feedId]['event_uuids'])) {
+                                    $event[$scope][$feedId]['event_uuids'][] = $eventUuid;
                                 }
                                 foreach ($objects[$eventUuidHitPosition[$sourcehitPos]][$scope] as $tempKey => $tempFeed) {
-                                    if ($tempFeed['id'] == $urlParts[0]) {
-                                        $objects[$eventUuidHitPosition[$sourcehitPos]][$scope][$tempKey]['event_uuids'][] = $urlParts[1];
+                                    if ($tempFeed['id'] == $feedId) {
+                                        $objects[$eventUuidHitPosition[$sourcehitPos]][$scope][$tempKey]['event_uuids'][] = $eventUuid;
                                     }
                                 }
                             }
