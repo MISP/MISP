@@ -471,10 +471,7 @@ class Feed extends AppModel
         $currentItem = 0;
         $this->Event = ClassRegistry::init('Event');
         $results = array();
-        $filterRules = false;
-        if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
-            $filterRules = json_decode($feed['Feed']['rules'], true);
-        }
+        $filterRules = $this->__prepareFilterRules($feed);
         if (isset($actions['add']) && !empty($actions['add'])) {
             foreach ($actions['add'] as $uuid) {
                 $result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
@@ -587,9 +584,9 @@ class Feed extends AppModel
 
     private function __filterEventsIndex($events, $feed)
     {
-        $filterRules = array();
-        if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
-            $filterRules = json_decode($feed['Feed']['rules'], true);
+        $filterRules = $this->__prepareFilterRules($feed);
+        if (!$filterRules) {
+            $filterRules = array();
         }
         foreach ($events as $k => $event) {
             if (isset($filterRules['orgs']['OR']) && !empty($filterRules['orgs']['OR']) && !in_array($event['Orgc']['name'], $filterRules['orgs']['OR'])) {
