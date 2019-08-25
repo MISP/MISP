@@ -579,11 +579,13 @@ class FeedsController extends AppController
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
         $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-        $events = $this->Feed->getManifest($feed, $HttpSocket);
-        if (!is_array($events)) {
-            $this->Flash->info($events);
+        try {
+            $events = $this->Feed->getManifest($feed, $HttpSocket);
+        } catch (Exception $e) {
+            $this->Flash->error("Could not fetch manifest for feed: {$e->getMessage()}");
             $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
         }
+
         if (!empty($this->params['named']['searchall'])) {
             foreach ($events as $uuid => $event) {
                 $found = false;

@@ -77,29 +77,17 @@ class Feed extends AppModel
         return $result;
     }
 
-    // gets the event UUIDs from the feed by ID
-    // returns an array with the UUIDs of events that are new or that need updating
+    /**
+     * Gets the event UUIDs from the feed by ID
+     * Returns an array with the UUIDs of events that are new or that need updating
+     * @param array $feed
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
     public function getNewEventUuids($feed, $HttpSocket)
     {
-        $result = array();
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($feed['Feed']['url'] . '/manifest.json')) {
-                $data = file_get_contents($feed['Feed']['url'] . '/manifest.json');
-            }
-        } else {
-            $request = $this->__createFeedRequest($feed['Feed']['headers']);
-            $uri = $feed['Feed']['url'] . '/manifest.json';
-            $response = $HttpSocket->get($uri, '', $request);
-            if ($response->code != 200) {
-                return 1;
-            }
-            $data = $response->body;
-            unset($response);
-        }
-        $manifest = json_decode($data, true);
-        if (!$manifest) {
-            return 2;
-        }
+        $manifest = $this->downloadManifest($feed, $HttpSocket);
         $this->Event = ClassRegistry::init('Event');
         $events = $this->Event->find('all', array(
             'conditions' => array(
@@ -108,6 +96,7 @@ class Feed extends AppModel
             'recursive' => -1,
             'fields' => array('Event.id', 'Event.uuid', 'Event.timestamp')
         ));
+        $result = array();
         foreach ($events as $event) {
             if ($event['Event']['timestamp'] < $manifest[$event['Event']['uuid']]['timestamp']) {
                 $result['edit'][] = array('uuid' => $event['Event']['uuid'], 'id' => $event['Event']['id']);
@@ -160,38 +149,53 @@ class Feed extends AppModel
         return $data;
     }
 
-
-    public function getManifest($feed, $HttpSocket)
+    /**
+     * @param array $feed
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
+    private function downloadManifest($feed, $HttpSocket)
     {
-        $result = array();
-        $request = $this->__createFeedRequest($feed['Feed']['headers']);
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($feed['Feed']['url'] . '/manifest.json')) {
-                $data = file_get_contents($feed['Feed']['url'] . '/manifest.json');
-                if (empty($data)) {
-                    return false;
+        $manifestUrl = $feed['Feed']['url'] . '/manifest.json';
+
+        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local') {
+            if (file_exists($manifestUrl)) {
+                $data = file_get_contents($manifestUrl);
+                if ($data === false) {
+                    throw new Exception("Could not read local manifest file '$manifestUrl'.");
                 }
             } else {
-                throw new NotFoundException('Invalid file.');
+                throw new Exception("Local manifest file '$manifestUrl' doesn't exists.");
             }
         } else {
-            $uri = $feed['Feed']['url'] . '/manifest.json';
-            try {
-                $response = $HttpSocket->get($uri, '', $request);
-            } catch (Exception $e) {
-                return $e->getMessage();
-            }
-            if ($response->code != 200) {
-                return 'Fetching the manifest failed with error: ' . $response->code;
+            $request = $this->__createFeedRequest($feed['Feed']['headers']);
+            $response = $HttpSocket->get($manifestUrl, array(), $request);
+            if ($response === false) {
+                throw new Exception("Could not reach '$manifestUrl'.");
+            } else if ($response->code != 200) { // intentionally !=
+                throw new Exception("Fetching the manifest '$manifestUrl' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
             }
             $data = $response->body;
-            unset($response);
         }
-        try {
-            $events = json_decode($data, true);
-        } catch (Exception $e) {
-            return 'Invalid MISP JSON returned.';
+
+        $manifest = json_decode($data, true);
+        if ($manifest === null) {
+            throw new Exception('Could not parse manifest JSON: ' . json_last_error_msg(), json_last_error());
         }
+
+        return $manifest;
+    }
+
+    /**
+     * @param array $feed
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
+    public function getManifest($feed, $HttpSocket)
+    {
+        $events = $this->downloadManifest($feed, $HttpSocket);
         $events = $this->__filterEventsIndex($events, $feed);
         return $events;
     }
@@ -692,7 +696,7 @@ class Feed extends AppModel
             $event = $event[0];
         }
         if (!isset($event['Event']['uuid'])) {
-            return false;
+            throw new Exception("Event uuid field missing.");
         }
         $event['Event']['distribution'] = $feed['Feed']['distribution'];
         $event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
@@ -706,11 +710,10 @@ class Feed extends AppModel
                 $event['Event']['Tag'] = array();
             }
             $found = false;
-            if (!empty($event['Event']['Tag'])) {
-                foreach ($event['Event']['Tag'] as $tag) {
-                    if (strtolower($tag['name']) === strtolower($feed['Tag']['name'])) {
-                        $found = true;
-                    }
+            foreach ($event['Event']['Tag'] as $tag) {
+                if (strtolower($tag['name']) === strtolower($feed['Tag']['name'])) {
+                    $found = true;
+                    break;
                 }
             }
             if (!$found) {
@@ -849,10 +852,15 @@ class Feed extends AppModel
                 $job->id = $jobId;
                 $job->saveField('message', 'Fetching event manifest.');
             }
-            $actions = $this->getNewEventUuids($this->data, $HttpSocket);
-            if ($jobId) {
-                $job->id = $jobId;
-                $job->saveField('message', 'Fetching events.');
+            try {
+                $actions = $this->getNewEventUuids($this->data, $HttpSocket);
+            } catch (Exception $e) {
+                CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                if ($jobId) {
+                    $job->id = $jobId;
+                    $job->saveField('message', 'Could not fetch event manifest. See log for more details.');
+                }
+                return false;
             }
             if (empty($actions)) {
                 if ($jobId) {
@@ -860,6 +868,10 @@ class Feed extends AppModel
                     $job->saveField('message', 'Job complete.');
                 }
                 return true;
+            }
+            if ($jobId) {
+                $job->id = $jobId;
+                $job->saveField('message', 'Fetching events.');
             }
             $result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
             $this->__cleanupFile($this->data, '/manifest.json');
@@ -1129,12 +1141,15 @@ class Feed extends AppModel
     private function __cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId = false)
     {
         $this->Attribute = ClassRegistry::init('Attribute');
-        $manifest = $this->getManifest($feed, $HttpSocket);
-        if (!empty($manifest)) {
-            $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
-        } else {
+        try {
+            $manifest = $this->getManifest($feed, $HttpSocket);
+        } catch (Exception $e) {
+            CakeLog::error($e->getMessage()); // TODO: Better exception logging
             return false;
         }
+
+        $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
+
         $k = 0;
         if ($jobId) {
             $job = ClassRegistry::init('Job');
