@@ -674,10 +674,10 @@ class FeedsController extends AppController
         $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
         $params = array();
         // params is passed as reference here, the pagination happens in the method, which isn't ideal but considering the performance gains here it's worth it
-        $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage, 60, $params);
-        // we want false as a valid option for the split fetch, but we don't want it for the preview
-        if (!is_array($resultArray)) {
-            $this->Flash->info($resultArray);
+        try {
+            $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage, 60, $params);
+        } catch (Exception $e) {
+            $this->Flash->error("Could not fetch feed: {$e->getMessage()}");
             $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
@@ -723,7 +723,12 @@ class FeedsController extends AppController
             throw new MethodNotAllowedException(__('Invalid feed type.'));
         }
         $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-        $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage);
+        try {
+            $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage);
+        } catch (Exception $e) {
+            $this->Flash->error("Could not fetch feed: {$e->getMessage()}");
+            $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+        }
         // we want false as a valid option for the split fetch, but we don't want it for the preview
         if ($resultArray == false) {
             $resultArray = array();

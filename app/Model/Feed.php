@@ -200,13 +200,28 @@ class Feed extends AppModel
         return $events;
     }
 
+    /**
+     * @param array $feed
+     * @param HttpSocket $HttpSocket
+     * @param string $type
+     * @param int|string $page
+     * @param int $limit
+     * @param array $params
+     * @return array|bool
+     * @throws Exception
+     */
     public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array())
     {
-        $result = array();
-        $data = '';
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($feed['Feed']['url'])) {
-                $data = file_get_contents($feed['Feed']['url']);
+        $feedUrl = $feed['Feed']['url'];
+
+        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local') {
+            if (file_exists($feedUrl)) {
+                $data = file_get_contents($feedUrl);
+                if ($data === false) {
+                    throw new Exception("Could not read local feed file '$feedUrl'.");
+                }
+            } else {
+                throw new Exception("Local feed file '$feedUrl' doesn't exists.");
             }
         } else {
             $feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feed['Feed']['id']) . '.cache';
@@ -215,29 +230,30 @@ class Feed extends AppModel
                 $file = new File($feedCache);
                 if (time() - $file->lastChange() < 600) {
                     $doFetch = false;
-                    $data = file_get_contents($feedCache);
+                    $data = $file->read();
+                    if ($data === false) {
+                        throw new Exception("Could not read feed cache file '$feedCache'.");
+                    }
                 }
             }
             if ($doFetch) {
-                $fetchIssue = false;
-                try {
-                    $request = $this->__createFeedRequest($feed['Feed']['headers']);
-                    $request['redirect'] = 5; // follow redirects
-                    $response = $HttpSocket->get($feed['Feed']['url'], '', $request);
-                } catch (Exception $e) {
-                    return $e->getMessage();
+                $request = $this->__createFeedRequest($feed['Feed']['headers']);
+                $request['redirect'] = 5; // follow redirects
+                $response = $HttpSocket->get($feedUrl, array(), $request);
+
+                if ($response === false) {
+                    throw new Exception("Could not reach '$feedUrl'.");
+                } else if ($response->code != 200) { // intentionally !=
+                    throw new Exception("Fetching the feed '$feedUrl' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
                 }
-                if ($response->code == 200) {
-                    $redis = $this->setupRedis();
-                    if ($redis === false) {
-                        return 'Could not reach Redis.';
-                    }
-                    $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
-                    $data = $response->body;
-                    file_put_contents($feedCache, $data);
-                } else {
-                    return 'Invalid response code returned: ' . $response->code;
+
+                $redis = $this->setupRedis();
+                if ($redis === false) {
+                    throw new Exception('Could not reach Redis.');
                 }
+                $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
+                $data = $response->body;
+                file_put_contents($feedCache, $data);
             }
         }
         App::uses('ComplexTypeTool', 'Tools');
@@ -871,17 +887,24 @@ class Feed extends AppModel
                 $job->id = $jobId;
                 $job->saveField('message', 'Fetching data.');
             }
-            $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
-            $data = array();
-            if (!empty($temp)) {
-                foreach ($temp as $key => $value) {
-                    $data[] = array(
-                        'category' => $value['category'],
-                        'type' => $value['default_type'],
-                        'value' => $value['value'],
-                        'to_ids' => $value['to_ids']
-                    );
+            try {
+                $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
+            } catch (Exception $e) {
+                CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                if ($jobId) {
+                    $job->id = $jobId;
+                    $job->saveField('message', 'Could not fetch freetext feed. See log for more details.');
                 }
+                return false;
+            }
+            $data = array();
+            foreach ($temp as $key => $value) {
+                $data[] = array(
+                    'category' => $value['category'],
+                    'type' => $value['default_type'],
+                    'value' => $value['value'],
+                    'to_ids' => $value['to_ids']
+                );
             }
             if ($jobId) {
                 $job->saveField('progress', 50);
@@ -1110,19 +1133,26 @@ class Feed extends AppModel
                 $jobId = false;
             }
         }
-        $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
-        if (!empty($values)) {
-            foreach ($values as $k => $value) {
-                $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value['value']));
-                $redis->sAdd('misp:feed_cache:combined', md5($value['value']));
-                if ($jobId && ($k % 1000 == 0)) {
-                    $job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' values cached.');
-                }
+        try {
+            $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
+        } catch (Exception $e) {
+            CakeLog::error($e->getMessage()); // TODO: Better exception logging
+            if ($jobId) {
+                $job->id = $jobId;
+                $job->saveField('message', 'Could not fetch freetext feed. See log for more details.');
             }
-            $redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
-            return true;
+            return false;
         }
-        return false;
+
+        foreach ($values as $k => $value) {
+            $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value['value']));
+            $redis->sAdd('misp:feed_cache:combined', md5($value['value']));
+            if ($jobId && ($k % 1000 == 0)) {
+                $job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' values cached.');
+            }
+        }
+        $redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
+        return true;
     }
 
     private function __cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId = false)
