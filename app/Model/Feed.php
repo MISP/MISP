@@ -200,19 +200,6 @@ class Feed extends AppModel
         return $events;
     }
 
-    private function __getRecursive($url, $query, $request, $iterations = 0)
-    {
-        if ($iterations == 5) {
-            return false;
-        }
-        $HttpSocket = $this->__setupHttpSocket(false);
-        $response = $HttpSocket->get($url, $query, $request);
-        if ($response->code == 302 || $response->code == 301) {
-            $response = $this->__getRecursive($response['header']['Location'], $query, $request, $iterations + 1);
-        }
-        return $response;
-    }
-
     public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array())
     {
         $result = array();
@@ -235,8 +222,8 @@ class Feed extends AppModel
                 $fetchIssue = false;
                 try {
                     $request = $this->__createFeedRequest($feed['Feed']['headers']);
-                    $response = $this->__getRecursive($feed['Feed']['url'], '', $request);
-                    //$response = $HttpSocket->get($feed['Feed']['url'], '', array());
+                    $request['redirect'] = 5; // follow redirects
+                    $response = $HttpSocket->get($feed['Feed']['url'], '', $request);
                 } catch (Exception $e) {
                     return $e->getMessage();
                 }
