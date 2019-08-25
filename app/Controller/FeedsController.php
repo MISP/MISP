@@ -520,7 +520,13 @@ class FeedsController extends AppController
             $this->Flash->info(__('Feed is currently not enabled. Make sure you enable it.'));
             $this->redirect(array('action' => 'previewIndex', $feedId));
         }
-        $result = $this->Feed->downloadAndSaveEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+        try {
+            $result = $this->Feed->downloadAndSaveEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+        } catch (Exception $e) {
+            $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
+            $this->redirect(array('action' => 'previewIndex', $feedId));
+        }
+
         if (isset($result['action'])) {
             if ($result['result']) {
                 if ($result['action'] == 'add') {
@@ -762,7 +768,11 @@ class FeedsController extends AppController
             throw new NotFoundException(__('Invalid feed.'));
         }
         $this->Feed->read();
-        $event = $this->Feed->downloadEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+        try {
+            $event = $this->Feed->downloadEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+        } catch (Exception $e) {
+            throw new Exception(__('Could not download the selected Event'), 0, $e);
+        }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($event, $this->response->type());
         }

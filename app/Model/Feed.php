@@ -474,7 +474,14 @@ class Feed extends AppModel
         $filterRules = $this->__prepareFilterRules($feed);
         if (isset($actions['add']) && !empty($actions['add'])) {
             foreach ($actions['add'] as $uuid) {
-                $result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
+                try {
+                    $result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
+                } catch (Exception $e) {
+                    CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                    $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
+                    $currentItem++;
+                    continue;
+                }
                 $this->__cleanupFile($feed, '/' . $uuid . '.json');
                 if ($result === 'blocked') {
                     continue;
@@ -494,7 +501,15 @@ class Feed extends AppModel
         if (isset($actions['edit']) && !empty($actions['edit'])) {
             foreach ($actions['edit'] as $editTarget) {
                 $uuid = $editTarget['uuid'];
-                $result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
+                try {
+                    $result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
+                } catch (Exception $e) {
+                    CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                    $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
+                    $currentItem++;
+                    continue;
+                }
+
                 if ($result === 'blocked') {
                     continue;
                 }
@@ -633,6 +648,13 @@ class Feed extends AppModel
         return $events;
     }
 
+    /**
+     * @param array $feed
+     * @param string $uuid
+     * @param $user Not used
+     * @return array|bool
+     * @throws Exception
+     */
     public function downloadAndSaveEventFromFeed($feed, $uuid, $user)
     {
         $event = $this->downloadEventFromFeed($feed, $uuid, $user);
@@ -642,24 +664,23 @@ class Feed extends AppModel
         return $this->__saveEvent($event, $user);
     }
 
+    /**
+     * @param array $feed
+     * @param string $uuid
+     * @param $user Not used
+     * @return bool|string|array
+     * @throws Exception
+     */
     public function downloadEventFromFeed($feed, $uuid, $user)
     {
-        $path = $feed['Feed']['url'] . '/' . $uuid . '.json';
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($path)) {
-                $data = file_get_contents($path);
-            }
+        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local') {
+            $HttpSocket = false;
         } else {
             $HttpSocket = $this->__setupHttpSocket($feed);
-            $request = $this->__createFeedRequest($feed['Feed']['headers']);
-            $response = $HttpSocket->get($path, '', $request);
-            if ($response->code != 200) {
-                return false;
-            }
-            $data = $response->body;
-            unset($response->body);
         }
-        return $this->__prepareEvent($data, $feed);
+
+        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+        return $this->__prepareEvent($event, $feed);
     }
 
     private function __saveEvent($event, $user)
@@ -685,10 +706,9 @@ class Feed extends AppModel
         return $result;
     }
 
-    private function __prepareEvent($body, $feed)
+    private function __prepareEvent($event, $feed)
     {
         $filterRules = $this->__prepareFilterRules($feed);
-        $event = json_decode($body, true);
         if (isset($event['response'])) {
             $event = $event['response'];
         }
@@ -758,26 +778,19 @@ class Feed extends AppModel
         return ($syncTool->setupHttpSocketFeed($feed));
     }
 
+    /**
+     * @param HttpSocket $HttpSocket
+     * @param array $feed
+     * @param string $uuid
+     * @param $user
+     * @param $filterRules Not used
+     * @return array|bool|string
+     * @throws Exception
+     */
     private function __addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules)
     {
-        if (!Validation::uuid($uuid)) {
-            return false;
-        }
-        $path = $feed['Feed']['url'] . '/' . $uuid . '.json';
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($path)) {
-                $data = file_get_contents($path);
-            }
-        } else {
-            $request = $this->__createFeedRequest($feed['Feed']['headers']);
-            $response = $HttpSocket->get($path, '', $request);
-            if ($response->code != 200) {
-                return false;
-            }
-            $data = $response->body;
-            unset($response);
-        }
-        $event = $this->__prepareEvent($data, $feed);
+        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+        $event = $this->__prepareEvent($event, $feed);
         if (is_array($event)) {
             $this->Event = ClassRegistry::init('Event');
             return $this->Event->_add($event, true, $user);
@@ -786,24 +799,20 @@ class Feed extends AppModel
         }
     }
 
+    /**
+     * @param HttpSocket $HttpSocket
+     * @param array $feed
+     * @param string $uuid
+     * @param int $eventId
+     * @param $user
+     * @param $filterRules Not used
+     * @return mixed
+     * @throws Exception
+     */
     private function __updateEventFromFeed($HttpSocket, $feed, $uuid, $eventId, $user, $filterRules)
     {
-        if (!Validation::uuid($uuid)) {
-            return false;
-        }
-        $path = $feed['Feed']['url'] . '/' . $uuid . '.json';
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($path)) {
-                $data = file_get_contents($path);
-            }
-        } else {
-            $request = $this->__createFeedRequest($feed['Feed']['headers']);
-            $response = $HttpSocket->get($path, '', $request);
-            if ($response->code != 200) {
-                return false;
-            }
-        }
-        $event = $this->__prepareEvent($response->body, $feed);
+        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+        $event = $this->__prepareEvent($event, $feed);
         $this->Event = ClassRegistry::init('Event');
         return $this->Event->_edit($event, $user, $uuid, $jobId = null);
     }
@@ -1170,50 +1179,35 @@ class Feed extends AppModel
             $job->id = $jobId;
         }
         foreach ($manifest as $uuid => $event) {
-            $data = false;
-            $path = $feed['Feed']['url'] . '/' . $uuid . '.json';
-            if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-                if (file_exists($path)) {
-                    $data = file_get_contents($path);
-                }
-            } else {
-                $HttpSocket = $this->__setupHttpSocket($feed);
-                $request = $this->__createFeedRequest($feed['Feed']['headers']);
-                $fetchIssue = false;
-                try {
-                    $response = $HttpSocket->get($path, '', $request);
-                } catch (Exception $e) {
-                    $fetchIssue = true;
-                }
-                if ($fetchIssue || $response->code != 200) {
-                    return false;
-                }
-                $data = $response->body;
+            try {
+                $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+            } catch (Exception $e) {
+                CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                return false;
             }
-            if ($data) {
-                $event = json_decode($data, true);
-                if (!empty($event['Event']['Attribute'])) {
-                    $pipe = $redis->multi(Redis::PIPELINE);
-                    foreach ($event['Event']['Attribute'] as $attribute) {
-                        if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
-                            if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
-                                $value = explode('|', $attribute['value']);
-                                $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[0]));
-                                $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[1]));
-                                $redis->sAdd('misp:feed_cache:combined', md5($value[0]));
-                                $redis->sAdd('misp:feed_cache:combined', md5($value[1]));
-                                $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[0]), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
-                                $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[1]), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
-                            } else {
-                                $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($attribute['value']));
-                                $redis->sAdd('misp:feed_cache:combined', md5($attribute['value']));
-                                $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($attribute['value']), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
-                            }
+
+            if (!empty($event['Event']['Attribute'])) {
+                $pipe = $redis->multi(Redis::PIPELINE);
+                foreach ($event['Event']['Attribute'] as $attribute) {
+                    if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
+                        if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
+                            $value = explode('|', $attribute['value']);
+                            $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[0]));
+                            $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[1]));
+                            $redis->sAdd('misp:feed_cache:combined', md5($value[0]));
+                            $redis->sAdd('misp:feed_cache:combined', md5($value[1]));
+                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[0]), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
+                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[1]), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
+                        } else {
+                            $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($attribute['value']));
+                            $redis->sAdd('misp:feed_cache:combined', md5($attribute['value']));
+                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($attribute['value']), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
                         }
                     }
-                    $pipe->exec();
                 }
+                $pipe->exec();
             }
+
             $k++;
             if ($jobId && ($k % 10 == 0)) {
                 $job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' events cached.');
@@ -1621,5 +1615,50 @@ class Feed extends AppModel
             }
         }
         return $hits;
+    }
+
+    /**
+     * Download and parse event from feed.
+     * @param array $feed
+     * @param string $eventUuid
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
+    private function downloadAndParseEventFromFeed($feed, $eventUuid, $HttpSocket)
+    {
+        if (!Validation::uuid($eventUuid)) {
+            throw new InvalidArgumentException("Given event UUID '$eventUuid' is invalid.");
+        }
+
+        $path = $feed['Feed']['url'] . '/' . $eventUuid . '.json';
+        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local') {
+            if (file_exists($path)) {
+                $data = file_get_contents($path);
+                if ($data === false) {
+                    throw new Exception("Could not read local feed event file '$path'.");
+                }
+            } else {
+                throw new Exception("Local feed event file '$path' doesn't exists.");
+            }
+        } else {
+            $request = $this->__createFeedRequest($feed['Feed']['headers']);
+            $response = $HttpSocket->get($path, array(), $request);
+
+            if ($response === false) {
+                throw new Exception("Could not reach '$path'.");
+            } else if ($response->code != 200) { // intentionally !=
+                throw new Exception("Fetching the feed event '$path' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+            }
+
+            $data = $response->body;
+        }
+
+        $event = json_decode($data, true);
+        if ($event === null) {
+            throw new Exception('Could not parse event JSON: ' . json_last_error_msg(), json_last_error());
+        }
+
+        return $event;
     }
 }
