@@ -111,42 +111,28 @@ class Feed extends AppModel
         return $result;
     }
 
+    /**
+     * @param array $feed
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
     public function getCache($feed, $HttpSocket)
     {
+        $uri = $feed['Feed']['url'] . '/hashes.csv';
+        $data = $this->feedGetUri($feed, $uri, $HttpSocket);
+
+        if (empty($data)) {
+            throw new Exception("File '$uri' with hashes for cache filling is empty.");
+        }
+
+        $data = trim($data);
+        $data = explode("\n", $data);
         $result = array();
-        $request = $this->__createFeedRequest($feed['Feed']['headers']);
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($feed['Feed']['url'] . '/hashes.csv')) {
-                $data = file_get_contents($feed['Feed']['url'] . '/hashes.csv');
-                if (empty($data)) {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        } else {
-            $uri = $feed['Feed']['url'] . '/hashes.csv';
-            try {
-                $response = $HttpSocket->get($uri, '', $request);
-            } catch (Exception $e) {
-                return false;
-            }
-            if ($response->code != 200) {
-                return false;
-            }
-            $data = $response->body;
-            unset($response);
+        foreach ($data as $v) {
+            $result[] = explode(',', $v);
         }
-        try {
-            $data = trim($data);
-            $data = explode("\n", $data);
-            foreach ($data as $k => $v) {
-                $data[$k] = explode(',', $v);
-            }
-        } catch (Exception $e) {
-            return false;
-        }
-        return $data;
+        return $result;
     }
 
     /**
@@ -1199,22 +1185,25 @@ class Feed extends AppModel
 
     private function __cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId = false)
     {
-        $cache = $this->getCache($feed, $HttpSocket);
-        if (empty($cache)) {
+        try {
+            $cache = $this->getCache($feed, $HttpSocket);
+        } catch (Exception $e) {
+            CakeLog::warning($e->getMessage()); // TODO: Better exception logging
             return false;
         }
+
+        $feedId = $feed['Feed']['id'];
         $pipe = $redis->multi(Redis::PIPELINE);
-        $events = array();
-        foreach ($cache as $k => $v) {
-            $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], $v[0]);
+        foreach ($cache as $v) {
+            $redis->sAdd('misp:feed_cache:' . $feedId, $v[0]);
             $redis->sAdd('misp:feed_cache:combined', $v[0]);
-            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . $v[0], $feed['Feed']['id'] . '/' . $v[1]);
+            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . $v[0], $feedId . '/' . $v[1]);
         }
         $pipe->exec();
         if ($jobId) {
             $job = ClassRegistry::init('Job');
             $job->id = $jobId;
-            $job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': cached via quick cache.');
+            $job->saveField('message', 'Feed ' . $feedId . ': cached via quick cache.');
         }
         return true;
     }
