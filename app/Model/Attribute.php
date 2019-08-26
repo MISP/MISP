@@ -3077,6 +3077,14 @@ class Attribute extends AppModel
             );
         }
         if (isset($options['contain'])) {
+            // We may use a string instead of an array to ask for everything
+            // instead of some specific attributes. If so, remove the array from
+            // params, as we will later add the string.
+            foreach($options['contain'] as $contain) {
+                if (gettype($contain) == "string" && isset($params['contain'][$contain])) {
+                    unset($params['contain'][$contain]);
+                }
+            }
             $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
         }
         if (isset($options['page'])) {
