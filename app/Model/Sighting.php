@@ -517,7 +517,10 @@ class Sighting extends AppModel
                     ));
                     $eventOwnerOrgIdList[$temp_event['Event']['id']] = $temp_event['Event']['orgc_id'];
                 }
-                if (empty($eventOwnerOrgIdList[$sighting['Sighting']['event_id']]) || $eventOwnerOrgIdList[$sighting['Sighting']['event_id']] !== $user['org_id']) {
+                if (
+                    empty($eventOwnerOrgIdList[$sighting['Sighting']['event_id']]) ||
+                    ($eventOwnerOrgIdList[$sighting['Sighting']['event_id']] !== $user['org_id'] && $sighting['Sighting']['org_id'] !== $user['org_id'])
+                ) {
                     unset($sightings[$k]);
                 }
             }
