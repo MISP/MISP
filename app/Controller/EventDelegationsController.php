@@ -53,6 +53,9 @@ class EventDelegationsController extends AppController
             if (empty($this->request->data['EventDelegation'])) {
                 $this->request->data = array('EventDelegation' => $this->request->data);
             }
+            if (empty($this->request->data['EventDelegation']['distribution'])) {
+                $this->request->data['EventDelegation']['distribution'] = 0;
+            }
             if ($this->request->data['EventDelegation']['distribution'] != 4) {
                 $this->request->data['EventDelegation']['sharing_group_id'] = '0';
             }
