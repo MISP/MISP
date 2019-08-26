@@ -191,11 +191,13 @@
                             'message' => __('Are you sure you wish to republish the current event to the Kafka topic?')
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'contact',
-                        'url' => '/events/contact/' . $event['Event']['id'],
-                        'text' => __('Contact Reporter')
-                    ));
+                    if (!empty($event['Orgc']['local']) && $event['Event']['orgc_id'] === $event['Event']['org_id']) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'contact',
+                            'url' => '/events/contact/' . $event['Event']['id'],
+                            'text' => __('Contact Reporter')
+                        ));
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'onClick' => array(
                             'function' => 'getPopup',
