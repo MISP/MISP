@@ -24,6 +24,7 @@ before_install:
     - export PATH="$HOME/.local/bin:$PATH"
 
 install:
+    - date
     - sudo apt-get -y update
     # Travis lacks entropy.
     - sudo apt-get -y install haveged
