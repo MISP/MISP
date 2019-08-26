@@ -418,7 +418,7 @@ class Feed extends AppModel
             try {
                 $result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
             } catch (Exception $e) {
-                CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                CakeLog::error($this->exceptionAsMessage("Could not add event '$uuid' from feed {$feed['Feed']['id']}.", $e));
                 $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
                 $currentItem++;
                 continue;
@@ -441,7 +441,7 @@ class Feed extends AppModel
             try {
                 $result = $this->__updateEventFromFeed($HttpSocket, $feed, $uuid, $editTarget['id'], $user, $filterRules);
             } catch (Exception $e) {
-                CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                CakeLog::error($this->exceptionAsMessage("Could not edit event '$uuid' from feed {$feed['Feed']['id']}.", $e));
                 $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
                 $currentItem++;
                 continue;
@@ -786,7 +786,7 @@ class Feed extends AppModel
             try {
                 $actions = $this->getNewEventUuids($this->data, $HttpSocket);
             } catch (Exception $e) {
-                CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                CakeLog::error($this->exceptionAsMessage("Could not get new event uuids for feed $feedId.", $e));
                 $this->jobProgress($jobId, 'Could not fetch event manifest. See log for more details.');
                 return false;
             }
@@ -804,7 +804,7 @@ class Feed extends AppModel
             try {
                 $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
             } catch (Exception $e) {
-                CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                CakeLog::error($this->exceptionAsMessage("Could not get freetext feed $feedId", $e));
                 $this->jobProgress($jobId, 'Could not fetch freetext feed. See log for more details.');
                 return false;
             }
@@ -1018,43 +1018,46 @@ class Feed extends AppModel
 
     private function __cacheFreetextFeed($feed, $redis, $HttpSocket, $jobId = false)
     {
+        $feedId = $feed['Feed']['id'];
+
         try {
             $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
         } catch (Exception $e) {
-            CakeLog::error($e->getMessage()); // TODO: Better exception logging
+            CakeLog::error($this->exceptionAsMessage("Could not get freetext feed $feedId", $e));
             $this->jobProgress($jobId, 'Could not fetch freetext feed. See log for more details.');
             return false;
         }
 
         foreach ($values as $k => $value) {
-            $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value['value']));
+            $redis->sAdd('misp:feed_cache:' . $feedId, md5($value['value']));
             $redis->sAdd('misp:feed_cache:combined', md5($value['value']));
             if ($k % 1000 == 0) {
-                $this->jobProgress($jobId, 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' values cached.');
+                $this->jobProgress($jobId, "Feed $feedId: $k/" . count($values) . " values cached.");
             }
         }
-        $redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
+        $redis->set('misp:feed_cache_timestamp:' . $feedId, time());
         return true;
     }
 
     private function __cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId = false)
     {
+        $feedId = $feed['Feed']['id'];
         $this->Attribute = ClassRegistry::init('Attribute');
         try {
             $manifest = $this->getManifest($feed, $HttpSocket);
         } catch (Exception $e) {
-            CakeLog::error($e->getMessage()); // TODO: Better exception logging
+            CakeLog::error($this->exceptionAsMessage("Could not get manifest for feed $feedId.", $e));
             return false;
         }
 
-        $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
+        $redis->del('misp:feed_cache:' . $feedId);
 
         $k = 0;
         foreach ($manifest as $uuid => $event) {
             try {
                 $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
             } catch (Exception $e) {
-                CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                CakeLog::error($this->exceptionAsMessage("Could not get and parse event '$uuid' for feed $feedId.", $e));
                 return false;
             }
 
@@ -1064,16 +1067,16 @@ class Feed extends AppModel
                     if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
                         if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
                             $value = explode('|', $attribute['value']);
-                            $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[0]));
-                            $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[1]));
+                            $redis->sAdd('misp:feed_cache:' . $feedId, md5($value[0]));
+                            $redis->sAdd('misp:feed_cache:' . $feedId, md5($value[1]));
                             $redis->sAdd('misp:feed_cache:combined', md5($value[0]));
                             $redis->sAdd('misp:feed_cache:combined', md5($value[1]));
-                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[0]), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
-                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[1]), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
+                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[0]), $feedId . '/' . $event['Event']['uuid']);
+                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[1]), $feedId . '/' . $event['Event']['uuid']);
                         } else {
-                            $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($attribute['value']));
+                            $redis->sAdd('misp:feed_cache:' . $feedId, md5($attribute['value']));
                             $redis->sAdd('misp:feed_cache:combined', md5($attribute['value']));
-                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($attribute['value']), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
+                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($attribute['value']), $feedId . '/' . $event['Event']['uuid']);
                         }
                     }
                 }
@@ -1082,7 +1085,7 @@ class Feed extends AppModel
 
             $k++;
             if ($k % 10 == 0) {
-                $this->jobProgress($jobId, 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' events cached.');
+                $this->jobProgress($jobId, "Feed $feedId: $k/" . count($manifest) . " events cached.");
             }
         }
         return true;
@@ -1090,14 +1093,15 @@ class Feed extends AppModel
 
     private function __cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId = false)
     {
+        $feedId = $feed['Feed']['id'];
+
         try {
             $cache = $this->getCache($feed, $HttpSocket);
         } catch (Exception $e) {
-            CakeLog::warning($e->getMessage()); // TODO: Better exception logging
+            CakeLog::notice($this->exceptionAsMessage("Could not get cache file for $feedId.", $e));
             return false;
         }
 
-        $feedId = $feed['Feed']['id'];
         $pipe = $redis->multi(Redis::PIPELINE);
         foreach ($cache as $v) {
             $redis->sAdd('misp:feed_cache:' . $feedId, $v[0]);
@@ -1105,7 +1109,7 @@ class Feed extends AppModel
             $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . $v[0], $feedId . '/' . $v[1]);
         }
         $pipe->exec();
-        $this->jobProgress($jobId, 'Feed ' . $feedId . ': cached via quick cache.');
+        $this->jobProgress($jobId, "Feed $feedId: cached via quick cache.");
         return true;
     }
 
@@ -1579,5 +1583,21 @@ class Feed extends AppModel
                 // ignore error during saving information about job
             }
         }
+    }
+
+    /**
+     * @param string $message
+     * @param Exception $exception
+     * @return string
+     */
+    private function exceptionAsMessage($message, $exception)
+    {
+        $message = sprintf("%s\n[%s] %s",
+            $message,
+            get_class($exception),
+            $exception->getMessage()
+        );
+        $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+        return $message;
     }
 }
