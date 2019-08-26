@@ -158,26 +158,7 @@ class Feed extends AppModel
     private function downloadManifest($feed, $HttpSocket)
     {
         $manifestUrl = $feed['Feed']['url'] . '/manifest.json';
-
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local') {
-            if (file_exists($manifestUrl)) {
-                $data = file_get_contents($manifestUrl);
-                if ($data === false) {
-                    throw new Exception("Could not read local manifest file '$manifestUrl'.");
-                }
-            } else {
-                throw new Exception("Local manifest file '$manifestUrl' doesn't exists.");
-            }
-        } else {
-            $request = $this->__createFeedRequest($feed['Feed']['headers']);
-            $response = $HttpSocket->get($manifestUrl, array(), $request);
-            if ($response === false) {
-                throw new Exception("Could not reach '$manifestUrl'.");
-            } else if ($response->code != 200) { // intentionally !=
-                throw new Exception("Fetching the manifest '$manifestUrl' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
-            }
-            $data = $response->body;
-        }
+        $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket);
 
         $manifest = json_decode($data, true);
         if ($manifest === null) {
@@ -1632,33 +1613,45 @@ class Feed extends AppModel
         }
 
         $path = $feed['Feed']['url'] . '/' . $eventUuid . '.json';
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local') {
-            if (file_exists($path)) {
-                $data = file_get_contents($path);
-                if ($data === false) {
-                    throw new Exception("Could not read local feed event file '$path'.");
-                }
-            } else {
-                throw new Exception("Local feed event file '$path' doesn't exists.");
-            }
-        } else {
-            $request = $this->__createFeedRequest($feed['Feed']['headers']);
-            $response = $HttpSocket->get($path, array(), $request);
-
-            if ($response === false) {
-                throw new Exception("Could not reach '$path'.");
-            } else if ($response->code != 200) { // intentionally !=
-                throw new Exception("Fetching the feed event '$path' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
-            }
-
-            $data = $response->body;
-        }
-
+        $data = $this->feedGetUri($feed, $path, $HttpSocket);
         $event = json_decode($data, true);
         if ($event === null) {
             throw new Exception('Could not parse event JSON: ' . json_last_error_msg(), json_last_error());
         }
 
         return $event;
+    }
+
+    /**
+     * @param array $feed
+     * @param string $uri
+     * @param HttpSocket $HttpSocket
+     * @return string
+     * @throws Exception
+     */
+    private function feedGetUri($feed, $uri, $HttpSocket)
+    {
+        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local') {
+            if (file_exists($uri)) {
+                $data = file_get_contents($uri);
+                if ($data === false) {
+                    throw new Exception("Could not read local file '$uri'.");
+                }
+            } else {
+                throw new Exception("Local file '$uri' doesn't exists.");
+            }
+        } else {
+            $request = $this->__createFeedRequest($feed['Feed']['headers']);
+            $response = $HttpSocket->get($uri, array(), $request);
+
+            if ($response === false) {
+                throw new Exception("Could not reach '$uri'.");
+            } else if ($response->code != 200) { // intentionally !=
+                throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+            }
+            $data = $response->body;
+        }
+
+        return $data;
     }
 }
