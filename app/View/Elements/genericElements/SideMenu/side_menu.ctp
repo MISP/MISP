@@ -191,7 +191,7 @@
                             'message' => __('Are you sure you wish to republish the current event to the Kafka topic?')
                         ));
                     }
-                    if (!empty($event['Orgc']['local']) && $event['Event']['orgc_id'] === $event['Event']['org_id']) {
+                    if (!empty($event['Orgc']['local'])) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'contact',
                             'url' => '/events/contact/' . $event['Event']['id'],
