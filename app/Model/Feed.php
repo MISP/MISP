@@ -96,18 +96,18 @@ class Feed extends AppModel
             'recursive' => -1,
             'fields' => array('Event.id', 'Event.uuid', 'Event.timestamp')
         ));
-        $result = array();
+        $result = array('add' => array(), 'edit' => array());
         foreach ($events as $event) {
-            if ($event['Event']['timestamp'] < $manifest[$event['Event']['uuid']]['timestamp']) {
-                $result['edit'][] = array('uuid' => $event['Event']['uuid'], 'id' => $event['Event']['id']);
+            $eventUuid = $event['Event']['uuid'];
+            if ($event['Event']['timestamp'] < $manifest[$eventUuid]['timestamp']) {
+                $result['edit'][] = array('uuid' => $eventUuid, 'id' => $event['Event']['id']);
             } else {
-                $this->__cleanupFile($feed, '/' . $event['Event']['uuid'] . '.json');
+                $this->__cleanupFile($feed, '/' . $eventUuid . '.json');
             }
-            unset($manifest[$event['Event']['uuid']]);
+            unset($manifest[$eventUuid]);
         }
-        if (!empty($manifest)) {
-            $result['add'] = array_keys($manifest);
-        }
+        // Rest events in manifest does't exists, they will be added
+        $result['add'] = array_keys($manifest);
         return $result;
     }
 
@@ -428,71 +428,64 @@ class Feed extends AppModel
             $job->read(null, $jobId);
             $email = "Scheduled job";
         }
-        $total = 0;
-        if (isset($actions['add']) && !empty($actions['add'])) {
-            $total += count($actions['add']);
-        }
-        if (isset($actions['edit']) && !empty($actions['edit'])) {
-            $total += count($actions['edit']);
-        }
+        $total = count($actions['add']) + count($actions['edit']);
         $currentItem = 0;
         $this->Event = ClassRegistry::init('Event');
         $results = array();
         $filterRules = $this->__prepareFilterRules($feed);
-        if (isset($actions['add']) && !empty($actions['add'])) {
-            foreach ($actions['add'] as $uuid) {
-                try {
-                    $result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
-                } catch (Exception $e) {
-                    CakeLog::error($e->getMessage()); // TODO: Better exception logging
-                    $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
-                    $currentItem++;
-                    continue;
-                }
-                $this->__cleanupFile($feed, '/' . $uuid . '.json');
-                if ($result === 'blocked') {
-                    continue;
-                }
-                if ($result === true) {
-                    $results['add']['success'] = $uuid;
-                } else {
-                    $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $result);
-                }
-                if ($jobId) {
-                    $job->id = $jobId;
-                    $job->saveField('progress', 100 * (($currentItem + 1) / $total));
-                }
-                $currentItem++;
-            }
-        }
-        if (isset($actions['edit']) && !empty($actions['edit'])) {
-            foreach ($actions['edit'] as $editTarget) {
-                $uuid = $editTarget['uuid'];
-                try {
-                    $result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
-                } catch (Exception $e) {
-                    CakeLog::error($e->getMessage()); // TODO: Better exception logging
-                    $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
-                    $currentItem++;
-                    continue;
-                }
 
-                if ($result === 'blocked') {
-                    continue;
-                }
-                $this->__cleanupFile($feed, '/' . $uuid . '.json');
-                if ($result === true) {
-                    $results['edit']['success'] = $uuid;
-                } else {
-                    $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $result);
-                }
-                if ($jobId && $currentItem % 10 == 0) {
-                    $job->id = $jobId;
-                    $job->saveField('progress', 100 * (($currentItem + 1) / $total));
-                }
+        foreach ($actions['add'] as $uuid) {
+            try {
+                $result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
+            } catch (Exception $e) {
+                CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
                 $currentItem++;
+                continue;
             }
+            $this->__cleanupFile($feed, '/' . $uuid . '.json');
+            if ($result === 'blocked') {
+                continue;
+            }
+            if ($result === true) {
+                $results['add']['success'] = $uuid;
+            } else {
+                $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $result);
+            }
+            if ($jobId) {
+                $job->id = $jobId;
+                $job->saveField('progress', 100 * (($currentItem + 1) / $total));
+            }
+            $currentItem++;
         }
+
+        foreach ($actions['edit'] as $editTarget) {
+            $uuid = $editTarget['uuid'];
+            try {
+                $result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
+            } catch (Exception $e) {
+                CakeLog::error($e->getMessage()); // TODO: Better exception logging
+                $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
+                $currentItem++;
+                continue;
+            }
+
+            if ($result === 'blocked') {
+                continue;
+            }
+            $this->__cleanupFile($feed, '/' . $uuid . '.json');
+            if ($result === true) {
+                $results['edit']['success'] = $uuid;
+            } else {
+                $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $result);
+            }
+            if ($jobId && $currentItem % 10 == 0) {
+                $job->id = $jobId;
+                $job->saveField('progress', 100 * (($currentItem + 1) / $total));
+            }
+            $currentItem++;
+        }
+
         return $results;
     }
 
@@ -838,7 +831,7 @@ class Feed extends AppModel
                 }
                 return false;
             }
-            if (empty($actions)) {
+            if (empty($actions['add']) && empty($actions['edit'])) {
                 if ($jobId) {
                     $job->id = $jobId;
                     $job->saveField('message', 'Job complete.');
