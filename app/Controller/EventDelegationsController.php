@@ -58,10 +58,12 @@ class EventDelegationsController extends AppController
             }
             $this->request->data['EventDelegation']['event_id'] = $event['Event']['id'];
             $this->request->data['EventDelegation']['requester_org_id'] = $this->Auth->user('org_id');
+            $org_id = $this->Toolbox->findIdByUuid($this->EventDelegation->Event->Org, $this->request->data['EventDelegation']['org_id']);
+            $this->request->data['EventDelegation']['org_id'] = $org_id;
             $this->EventDelegation->create();
             $this->EventDelegation->save($this->request->data['EventDelegation']);
             $org = $this->EventDelegation->Event->Org->find('first', array(
-                    'conditions' => array('id' => $this->request->data['EventDelegation']['org_id']),
+                    'conditions' => array('id' => $org_id),
                     'recursive' => -1,
                     'fields' => array('name')
             ));
