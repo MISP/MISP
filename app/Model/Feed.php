@@ -179,50 +179,36 @@ class Feed extends AppModel
      */
     public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array())
     {
-        $feedUrl = $feed['Feed']['url'];
+        $isLocal = isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local';
+        $data = false;
 
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local') {
-            if (file_exists($feedUrl)) {
-                $data = file_get_contents($feedUrl);
-                if ($data === false) {
-                    throw new Exception("Could not read local feed file '$feedUrl'.");
-                }
-            } else {
-                throw new Exception("Local feed file '$feedUrl' doesn't exists.");
-            }
-        } else {
+        if (!$isLocal) {
             $feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feed['Feed']['id']) . '.cache';
-            $doFetch = true;
             if (file_exists($feedCache)) {
                 $file = new File($feedCache);
                 if (time() - $file->lastChange() < 600) {
-                    $doFetch = false;
                     $data = $file->read();
                     if ($data === false) {
                         throw new Exception("Could not read feed cache file '$feedCache'.");
                     }
                 }
             }
-            if ($doFetch) {
-                $request = $this->__createFeedRequest($feed['Feed']['headers']);
-                $request['redirect'] = 5; // follow redirects
-                $response = $HttpSocket->get($feedUrl, array(), $request);
+        }
 
-                if ($response === false) {
-                    throw new Exception("Could not reach '$feedUrl'.");
-                } else if ($response->code != 200) { // intentionally !=
-                    throw new Exception("Fetching the feed '$feedUrl' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
-                }
+        if ($data === false) {
+            $feedUrl = $feed['Feed']['url'];
+            $data = $this->feedGetUri($feed, $feedUrl, $HttpSocket, true);
 
+            if (!$isLocal) {
                 $redis = $this->setupRedis();
                 if ($redis === false) {
                     throw new Exception('Could not reach Redis.');
                 }
                 $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
-                $data = $response->body;
                 file_put_contents($feedCache, $data);
             }
         }
+
         App::uses('ComplexTypeTool', 'Tools');
         $complexTypeTool = new ComplexTypeTool();
         $this->Warninglist = ClassRegistry::init('Warninglist');
@@ -1608,10 +1594,11 @@ class Feed extends AppModel
      * @param array $feed
      * @param string $uri
      * @param HttpSocket $HttpSocket
+     * @param bool $followRedirect
      * @return string
      * @throws Exception
      */
-    private function feedGetUri($feed, $uri, $HttpSocket)
+    private function feedGetUri($feed, $uri, $HttpSocket, $followRedirect = false)
     {
         if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local') {
             if (file_exists($uri)) {
@@ -1624,6 +1611,11 @@ class Feed extends AppModel
             }
         } else {
             $request = $this->__createFeedRequest($feed['Feed']['headers']);
+
+            if ($followRedirect) {
+                $request['redirect'] = 5;
+            }
+
             $response = $HttpSocket->get($uri, array(), $request);
 
             if ($response === false) {
