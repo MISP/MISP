@@ -49,8 +49,7 @@ class Feed extends AppModel
 
     public function urlOrExistingFilepath($fields)
     {
-        $input_source = empty($this->data['Feed']['input_source']) ? 'network' : $this->data['Feed']['input_source'];
-        if ($input_source == 'local') {
+        if ($this->isFeedLocal($this->data)) {
             if ($this->data['Feed']['source_format'] == 'misp') {
                 if (!is_dir($this->data['Feed']['url'])) {
                     return 'For MISP type local feeds, please specify the containing directory.';
@@ -179,7 +178,7 @@ class Feed extends AppModel
      */
     public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array())
     {
-        $isLocal = isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local';
+        $isLocal = $this->isFeedLocal($feed);
         $data = false;
 
         if (!$isLocal) {
@@ -619,12 +618,7 @@ class Feed extends AppModel
      */
     public function downloadEventFromFeed($feed, $uuid, $user)
     {
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local') {
-            $HttpSocket = false;
-        } else {
-            $HttpSocket = $this->__setupHttpSocket($feed);
-        }
-
+        $HttpSocket = $this->isFeedLocal($feed) ? false : $this->__setupHttpSocket($feed);
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         return $this->__prepareEvent($event, $feed);
     }
@@ -790,18 +784,13 @@ class Feed extends AppModel
     public function downloadFromFeedInitiator($feedId, $user, $jobId = false)
     {
         $this->id = $feedId;
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
         $job = ClassRegistry::init('Job');
         $this->read();
         if (isset($this->data['Feed']['settings']) && !empty($this->data['Feed']['settings'])) {
             $this->data['Feed']['settings'] = json_decode($this->data['Feed']['settings'], true);
         }
-        if (isset($this->data['Feed']['input_source']) && $this->data['Feed']['input_source'] == 'local') {
-            $HttpSocket = false;
-        } else {
-            $HttpSocket = $syncTool->setupHttpSocketFeed($this->data);
-        }
+
+        $HttpSocket = $this->isFeedLocal($this->data) ? false : $this->__setupHttpSocket($this->data);
         if ($this->data['Feed']['source_format'] == 'misp') {
             if ($jobId) {
                 $job->id = $jobId;
@@ -881,7 +870,7 @@ class Feed extends AppModel
 
     private function __cleanupFile($feed, $file)
     {
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
+        if ($this->isFeedLocal($feed)) {
             if (isset($feed['Feed']['delete_local_file']) && $feed['Feed']['delete_local_file']) {
                 if (file_exists($feed['Feed']['url'] . $file)) {
                     unlink($feed['Feed']['url'] . $file);
@@ -1064,11 +1053,7 @@ class Feed extends AppModel
 
     private function __cacheFeed($feed, $redis, $jobId = false)
     {
-        if ($feed['Feed']['input_source'] == 'local') {
-            $HttpSocket = false;
-        } else {
-            $HttpSocket = $this->__setupHttpSocket($feed);
-        }
+        $HttpSocket = $this->isFeedLocal($feed) ? false : $this->__setupHttpSocket($feed);
         if ($feed['Feed']['source_format'] == 'misp') {
             return $this->__cacheMISPFeed($feed, $redis, $HttpSocket, $jobId);
         } else {
@@ -1600,7 +1585,7 @@ class Feed extends AppModel
      */
     private function feedGetUri($feed, $uri, $HttpSocket, $followRedirect = false)
     {
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local') {
+        if ($this->isFeedLocal($feed)) {
             if (file_exists($uri)) {
                 $data = file_get_contents($uri);
                 if ($data === false) {
@@ -1627,5 +1612,14 @@ class Feed extends AppModel
         }
 
         return $data;
+    }
+
+    /**
+     * @param array $feed
+     * @return bool
+     */
+    private function isFeedLocal($feed)
+    {
+        return isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local';
     }
 }
