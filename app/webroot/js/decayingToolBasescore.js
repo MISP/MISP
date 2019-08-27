@@ -113,24 +113,35 @@ function pickRandomTags() {
     if (taxonomies_name.length == 0) {
         return [];
     }
-
     var temp_taxonomies_name = taxonomies_name.slice();
     var max_tag_num = taxonomies_name.length > 3 ? 3 : taxonomies_name.length;
     var picked_tag_number = getRandomInt(max_tag_num) + 1;
     for (var i = 0; i < picked_tag_number; i++) { // number of tags
         // pick a taxonomy
         var picked_number_taxonomy = getRandomInt(temp_taxonomies_name.length);
-        var picked_taxonomy_name = temp_taxonomies_name[picked_number_taxonomy];
-        var picked_taxonomy = taxonomies_with_num_value[picked_taxonomy_name];
-        // pick a random predicate
-        var picked_number_predicate = getRandomInt(picked_taxonomy['TaxonomyPredicate'].length);
-        var picked_predicate = picked_taxonomy['TaxonomyPredicate'][picked_number_predicate];
-        // pick a random entry -> tag
-        var picked_number_entry = getRandomInt(picked_predicate['TaxonomyEntry'].length);
-        var picked_entry = picked_predicate['TaxonomyEntry'][picked_number_entry];
+        var picked_taxonomy_name_full = temp_taxonomies_name[picked_number_taxonomy];
+        var temp_split = picked_taxonomy_name_full.split(':');
+        var picked_taxonomy_namespace = temp_split[0];
+        var picked_taxonomy_predicate = temp_split[1]
+        var picked_taxonomy = taxonomies_with_num_value[picked_taxonomy_namespace];
+        // pick the predicate
+        var picked_predicate, picked_entry;
+        if (picked_taxonomy['TaxonomyPredicate'][0]['numerical_predicate'] !== undefined && picked_taxonomy['TaxonomyPredicate'][0]['numerical_predicate']) { // predicate is an entry
+            var picked_number_predicate = getRandomInt(picked_taxonomy['TaxonomyPredicate'].length);
+            picked_entry = picked_taxonomy['TaxonomyPredicate'][picked_number_predicate];
+        } else {
+            for (var j=0; j<picked_taxonomy['TaxonomyPredicate'].length; j++) {
+                if (picked_taxonomy['TaxonomyPredicate'][j]['value'] == picked_taxonomy_predicate) {
+                    picked_predicate = picked_taxonomy['TaxonomyPredicate'][j];
+                    break;
+                }
+            }
+            // pick a random entry -> tag
+            var picked_number_entry = getRandomInt(picked_predicate['TaxonomyEntry'].length);
+            picked_entry = picked_predicate['TaxonomyEntry'][picked_number_entry];
+        }
         picked_entry['Tag']['numerical_value'] = parseInt(picked_entry['Tag']['numerical_value']);
         tags.push(picked_entry['Tag']);
-        // delete temp_taxonomies_name[picked_number_taxonomy];
         temp_taxonomies_name.splice(picked_number_taxonomy, 1);
     }
     return tags;
@@ -213,14 +224,15 @@ function refreshExamples() {
         var tags = pickRandomTags();
         var tags_html = '<div style="display: flex; flex-flow: wrap;">';
         tags.forEach(function(tag) {
-            numerical_values.push({name: tag.name.split(':')[0], value: tag['numerical_value']});
+            var temp_tag_name = tag.name.split('=');
+            var tag_name = temp_tag_name.length == 1 ? temp_tag_name[0].split(':')[0] : temp_tag_name[0];
+            numerical_values.push({name: tag_name, value: tag['numerical_value']});
             var text_color = getTextColour(tag.colour);
             tags_html += '<span class="tagComplete decayingExampleTags" style="background-color: ' + tag.colour + ';color:' + text_color + '" '
             + 'title="numerical_value=' + tag['numerical_value'] + '" '
             + 'data-placement="right">' + tag.name + '</span>&nbsp;';
         });
         tags_html += '</div>';
-
         base_score_computation[i] = compute_base_score(numerical_values);
         var base_score = base_score_computation[i].score.toFixed(1);
         var base_score_computation_steps = base_score_computation[i].steps;
