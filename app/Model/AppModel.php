@@ -1220,7 +1220,7 @@ class AppModel extends Model
                     PRIMARY KEY (id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_decaying` tinyint(1) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "UPDATE `roles` SET `perm_decaying`=1 WHERE `name` IN ('admin', 'Org Admin', 'User', 'Publisher');";
+                $sqlArray[] = "UPDATE `roles` SET `perm_decaying`=1 WHERE `perm_sighting`=1;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
