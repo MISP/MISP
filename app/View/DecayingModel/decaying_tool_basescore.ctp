@@ -17,10 +17,10 @@
             <tbody id="body_taxonomies">
                 <?php foreach ($taxonomies as $name => $taxonomy): ?>
                     <?php if (count($taxonomy['TaxonomyPredicate']) > 1): ?>
-                        <tr class="bold" data-namespace="<?php echo h($name); ?>">
-                            <td colspan=2 style="background-color: #999; color: white;">
+                        <tr class="bold useCursorPointer" data-namespace="<?php echo h($name); ?>" onclick="collapseNamespace(this);">
+                            <td colspan=2 style="background-color: #999; color: white; user-select: none;">
                                 <?php echo h($name); ?>
-                                <i class="fas fa-caret-down useCursorPointer" onclick="collapseNamespace(this);"></i>
+                                <i class="caretIconExpand fas fa-caret-down"></i>
                             </td>
                         </tr>
                     <?php endif; ?>
@@ -86,10 +86,10 @@
                     <?php endforeach; ?>
                 <?php endforeach; ?>
                 <?php if (count($excluded_taxonomies) > 1): ?>
-                    <tr class="bold" data-namespace="excluded-taxonomy">
-                        <td colspan=2 style="background-color: #999; color: white;">
+                    <tr class="bold useCursorPointer" data-namespace="excluded-taxonomy" onclick="collapseNamespace(this);">
+                        <td colspan=2 style="background-color: #999; color: white; user-select: none;">
                             <?php echo __('Excluded'); ?>
-                            <i class="fas fa-caret-up useCursorPointer" onclick="collapseNamespace(this);"></i>
+                            <i class="caretIconExpand fas fa-caret-up"></i>
                         </td>
                     </tr>
                 <?php endif; ?>
@@ -157,7 +157,7 @@
             <h3><?php echo __('Computation steps') ?></h3>
             <?php echo $this->element('DecayingModels/View/basescore_computation_steps'); ?>
         </div>
-        <span class="btn btn-primary" onclick="applyBaseScoreConfig();"><i class="fas fa-wrench"> Apply base score</i></span>
+        <span class="btn btn-primary" style="margin-top: 5px;" onclick="applyBaseScoreConfig();"><i class="fas fa-wrench"> <?php echo __('Apply base score'); ?></i></span>
     </div>
 </div>
 
@@ -171,10 +171,10 @@
 <script>
     var taxonomies_with_num_value = <?php echo json_encode($taxonomies); ?>;
     function collapseNamespace(clicked) {
-        var $clicked = $(clicked)
-        var $tr = $clicked.closest('tr');
+        var $tr = $(clicked)
+        var $icon = $tr.find('i.caretIconExpand');
         var namespace = $tr.data('namespace');
         $tr.parent().find('[data-namespace="' + namespace + '"]').not($tr).toggle();
-        $clicked.toggleClass('fa-caret-down').toggleClass('fa-caret-up');
+        $icon.toggleClass('fa-caret-down').toggleClass('fa-caret-up');
     }
 </script>
