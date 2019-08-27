@@ -1251,6 +1251,7 @@ class UsersController extends AppController
         uasort($data, function ($a, $b) {
             return $b['total'] - $a['total'];
         });
+        $data = array_values($data);
         $this->set('data', $data);
         $this->set('max', $max);
         $this->set('selectedTypes', $selectedTypes);
