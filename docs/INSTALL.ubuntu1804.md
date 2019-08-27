@@ -1,11 +1,11 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 18.04.2-server
+## for Ubuntu 18.04.3-server
 
 ### -1/ Installer and Manual install instructions
 
 Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
 
-To install MISP on a fresh Ubuntu install all you need to do is:
+To install MISP on a fresh Ubuntu 18.04, all you need to do is the following:
 
 ```bash
 # Please check the installer options first to make the best choice for your install

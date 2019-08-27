@@ -3531,8 +3531,10 @@ function attributeHoverPlacement(element) {
 $('body').on('click', function (e) {
   $('[data-toggle=popover]').each(function () {
     // hide any open popovers when the anywhere else in the body is clicked
-    if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
-      $('#' + currentPopover).popover('destroy');
+    if (typeof currentPopover !== 'undefined') {
+        if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+          $('#' + currentPopover).popover('destroy');
+        }
     }
   });
 });
@@ -3750,7 +3752,7 @@ function selectAllInbetween(last, current) {
         from = to;
         to = temp;
     }
-    $('.select_proposal, .select_attribute').each(function () {
+    $('.select_proposal, .select_attribute, .select').each(function (e) {
         if ($('#' + this.id).parent().parent().index() >= from && $('#' + this.id).parent().parent().index() <= to) {
             $(this).prop('checked', true);
         }

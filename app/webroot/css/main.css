@@ -771,6 +771,7 @@ a.proposal_link_red:hover {
     display: inline-block;
     margin-right:2px;
     word-wrap:break-word;
+    white-space: normal;
 }
 
 .black-white {

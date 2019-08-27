@@ -191,11 +191,13 @@
                             'message' => __('Are you sure you wish to republish the current event to the Kafka topic?')
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'contact',
-                        'url' => '/events/contact/' . $event['Event']['id'],
-                        'text' => __('Contact Reporter')
-                    ));
+                    if (!empty($event['Orgc']['local'])) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'contact',
+                            'url' => '/events/contact/' . $event['Event']['id'],
+                            'text' => __('Contact Reporter')
+                        ));
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'onClick' => array(
                             'function' => 'getPopup',
@@ -301,6 +303,11 @@
                         'element_id' => 'viewProposalIndex',
                         'url' => '/events/proposalEventIndex',
                         'text' => __('Events with proposals')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'viewDelegations',
+                        'url' => '/event_delegations/index/context:pending',
+                        'text' => __('View delegation requests')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
