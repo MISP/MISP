@@ -427,6 +427,7 @@ class DecayingModelController extends AppController
         $taxonomies = $this->DecayingModel->listTaxonomiesWithNumericalValue();
         $this->set('taxonomies', $taxonomies['taxonomies']);
         $this->set('taxonomies_not_having_numerical_value', $taxonomies['not_having_numerical_value']);
+        $this->set('excluded_taxonomies', $taxonomies['excluded_taxonomies']);
     }
 
     public function decayingToolSimulation($model_id)

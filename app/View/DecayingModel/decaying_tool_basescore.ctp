@@ -46,6 +46,14 @@
                         </td>
                     </tr>
                 <?php endforeach; ?>
+                <?php foreach ($excluded_taxonomies as $namespace => $taxonomy): // excluded taxonomies ?>
+                    <tr>
+                        <td>
+                            <button class="btn" disabled><?php echo h($namespace) ?></button>
+                        </td>
+                        <td><?php echo h($taxonomy['reason']); ?></td>
+                    </tr>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>

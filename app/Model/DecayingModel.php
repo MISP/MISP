@@ -259,6 +259,7 @@ class DecayingModel extends AppModel
         $this->Taxonomy = ClassRegistry::init('Taxonomy');
         $this->Tag = ClassRegistry::init('Tag');
         $taxonomies = $this->Taxonomy->listTaxonomies(array('full' => true, 'enabled' => true));
+        $excluded_taxonomies = array();
         $start_count = count($taxonomies);
         foreach ($taxonomies as $namespace => $taxonomy) {
             if(!empty($taxonomy['TaxonomyPredicate'])) {
@@ -279,22 +280,25 @@ class DecayingModel extends AppModel
                         } else {
                             $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'] = array_values($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry']);
                         }
-                    } else {
+                    } else { // accept predicates that have a numerical value
                         unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]);
                     }
                 }
                 if (empty($taxonomies[$namespace]['TaxonomyPredicate'])) {
+                    $excluded_taxonomies[$namespace] = array('taxonomy' => $taxonomies[$namespace], 'reason' => __('No tags with `numerical_value`'));
                     unset($taxonomies[$namespace]);
                 } else {
                     $taxonomies[$namespace]['TaxonomyPredicate'] = array_values($taxonomies[$namespace]['TaxonomyPredicate']);
                 }
             } else {
                 unset($taxonomies[$namespace]);
+                $excluded_taxonomies[$namespace] = array('taxonomy' => $taxonomies[$namespace], 'reason' => __('No predicate'));
             }
         }
 
         return array(
             'taxonomies' => $taxonomies,
+            'excluded_taxonomies' => $excluded_taxonomies,
             'not_having_numerical_value' => $start_count - count($taxonomies)
         );
     }
