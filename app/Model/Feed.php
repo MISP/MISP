@@ -417,21 +417,16 @@ class Feed extends AppModel
         foreach ($actions['add'] as $uuid) {
             try {
                 $result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
+                if ($result !== 'blocked') {
+                    $results['add']['success'] = $uuid;
+                }
+
             } catch (Exception $e) {
                 CakeLog::error($this->exceptionAsMessage("Could not add event '$uuid' from feed {$feed['Feed']['id']}.", $e));
                 $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
-                $currentItem++;
-                continue;
             }
+
             $this->__cleanupFile($feed, '/' . $uuid . '.json');
-            if ($result === 'blocked') {
-                continue;
-            }
-            if ($result === true) {
-                $results['add']['success'] = $uuid;
-            } else {
-                $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $result);
-            }
             $this->jobProgress($jobId, null, 100 * (($currentItem + 1) / $total));
             $currentItem++;
         }
@@ -440,22 +435,15 @@ class Feed extends AppModel
             $uuid = $editTarget['uuid'];
             try {
                 $result = $this->__updateEventFromFeed($HttpSocket, $feed, $uuid, $editTarget['id'], $user, $filterRules);
+                if ($result !== 'blocked') {
+                    $results['edit']['success'] = $uuid;
+                }
             } catch (Exception $e) {
                 CakeLog::error($this->exceptionAsMessage("Could not edit event '$uuid' from feed {$feed['Feed']['id']}.", $e));
                 $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
-                $currentItem++;
-                continue;
             }
 
-            if ($result === 'blocked') {
-                continue;
-            }
             $this->__cleanupFile($feed, '/' . $uuid . '.json');
-            if ($result === true) {
-                $results['edit']['success'] = $uuid;
-            } else {
-                $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $result);
-            }
             if ($currentItem % 10 == 0) {
                 $this->jobProgress($jobId, null, 100 * (($currentItem + 1) / $total));
             }
