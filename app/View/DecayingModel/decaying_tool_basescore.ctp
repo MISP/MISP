@@ -16,42 +16,89 @@
             </thead>
             <tbody id="body_taxonomies">
                 <?php foreach ($taxonomies as $name => $taxonomy): ?>
-                    <tr>
-                        <td>
-                            <div class="btn-group">
-                                <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-                                      <?php echo h($name) ?>
-                                      <span class="caret"></span>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <?php foreach ($taxonomy['TaxonomyPredicate'] as $p => $predicate): ?>
-                                        <?php foreach ($predicate['TaxonomyEntry'] as $e => $entry): ?>
-                                            <li>
-                                                <a style="position: relative; padding: 3px 5px;">
-                                                    <span class="tagComplete"
-                                                    style="margin-right: 35px;background-color: <?php echo h($entry['Tag']['colour']); ?>;color:<?php echo h($this->TextColour->getTextColour($entry['Tag']['colour']));?>"
-                                                    title="<?php echo sprintf('%s: %s', h($entry['expanded']), h($entry['description'])) ?>"><?php echo h($entry['Tag']['name']); ?>
-                                                    </span>
-                                                    <span class="label label-inverse numerical-value-label"><?php echo h($entry['numerical_value']) ?></span>
-                                                </a>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    <?php endforeach; ?>
-                                </ul>
-                            </div>
-                        </td>
-                        <td>
-                            <input id="slider_<?php echo h($name) ?>" data-taxonomyname="<?php echo h($name) ?>" type="range" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" onchange="sliderChanged(this);" oninput="sliderChanged(this);"></input>
-                            <input type="number" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" class="taxonomySlider" data-taxonomyname="<?php echo h($name) ?>" onchange="inputChanged(this);" oninput="inputChanged(this);"></input>
+                    <?php if (count($taxonomy['TaxonomyPredicate']) > 1): ?>
+                        <tr class="bold" data-namespace="<?php echo h($name); ?>">
+                            <td colspan=2 style="background-color: #999; color: white;">
+                                <?php echo h($name); ?>
+                                <i class="fas fa-caret-down useCursorPointer" onclick="collapseNamespace(this);"></i>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                    <?php foreach ($taxonomy['TaxonomyPredicate'] as $p => $predicate): ?>
+                        <?php if (!isset($predicate['numerical_predicate']) || !$predicate['numerical_predicate']): ?>
+                            <tr data-namespace="<?php echo h($name); ?>">
+                                <td>
+                                    <div class="btn-group">
+                                        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+                                            <?php echo h($predicate['value']) ?>
+                                            <span class="caret"></span>
+                                        </a>
+                                        <ul class="dropdown-menu">
+                                            <?php foreach ($predicate['TaxonomyEntry'] as $e => $entry): ?>
+                                                <li>
+                                                    <a style="position: relative; padding: 3px 5px;">
+                                                        <span class="tagComplete"
+                                                        style="margin-right: 35px;background-color: <?php echo h($entry['Tag']['colour']); ?>;color:<?php echo h($this->TextColour->getTextColour($entry['Tag']['colour']));?>"
+                                                        title="<?php echo sprintf('%s: %s', h($entry['expanded']), h($entry['description'])) ?>"><?php echo h($entry['Tag']['name']); ?>
+                                                        </span>
+                                                        <span class="label label-inverse numerical-value-label"><?php echo h($entry['numerical_value']) ?></span>
+                                                    </a>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input id="slider_<?php echo h($name) ?>" data-taxonomyname="<?php echo h($name) ?>" type="range" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" onchange="sliderChanged(this);" oninput="sliderChanged(this);"></input>
+                                    <input type="number" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" class="taxonomySlider" data-taxonomyname="<?php echo h($name) ?>" onchange="inputChanged(this);" oninput="inputChanged(this);"></input>
+                                </td>
+                            </tr>
+                        <?php else: // numerical_value on predicate ?>
+                            <tr data-namespace="<?php echo h($name); ?>">
+                                <td>
+                                    <div class="btn-group">
+                                        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+                                            <?php echo h($name) ?>
+                                            <span class="caret"></span>
+                                        </a>
+                                        <ul class="dropdown-menu">
+                                            <?php foreach ($taxonomies[$name]['TaxonomyPredicate'] as $p => $predicate): ?>
+                                                <li>
+                                                    <a style="position: relative; padding: 3px 5px;">
+                                                        <span class="tagComplete"
+                                                        style="margin-right: 35px;background-color: <?php echo h($predicate['Tag']['colour']); ?>;color:<?php echo h($this->TextColour->getTextColour($predicate['Tag']['colour']));?>"
+                                                        title="<?php echo sprintf('%s: %s', h($predicate['expanded']), h($predicate['description'])) ?>"><?php echo h($predicate['Tag']['name']); ?>
+                                                        </span>
+                                                        <span class="label label-inverse numerical-value-label"><?php echo h($predicate['numerical_value']) ?></span>
+                                                    </a>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input id="slider_<?php echo h($name) ?>" data-taxonomyname="<?php echo h($name) ?>" type="range" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" onchange="sliderChanged(this);" oninput="sliderChanged(this);"></input>
+                                    <input type="number" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" class="taxonomySlider" data-taxonomyname="<?php echo h($name) ?>" onchange="inputChanged(this);" oninput="inputChanged(this);"></input>
+                                </td>
+                            </tr>
+                            <?php break; ?>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php endforeach; ?>
+                <?php if (count($excluded_taxonomies) > 1): ?>
+                    <tr class="bold" data-namespace="excluded-taxonomy">
+                        <td colspan=2 style="background-color: #999; color: white;">
+                            <?php echo __('Excluded'); ?>
+                            <i class="fas fa-caret-up useCursorPointer" onclick="collapseNamespace(this);"></i>
                         </td>
                     </tr>
-                <?php endforeach; ?>
+                <?php endif; ?>
                 <?php foreach ($excluded_taxonomies as $namespace => $taxonomy): // excluded taxonomies ?>
-                    <tr>
+                    <tr data-namespace="excluded-taxonomy" style="display: none;">
                         <td>
                             <button class="btn" disabled><?php echo h($namespace) ?></button>
                         </td>
-                        <td><?php echo h($taxonomy['reason']); ?></td>
+                        <td style="vertical-align: middle;"><span class='label label-info'><?php echo h($taxonomy['reason']); ?></span></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -123,4 +170,11 @@
 
 <script>
     var taxonomies_with_num_value = <?php echo json_encode($taxonomies); ?>;
+    function collapseNamespace(clicked) {
+        var $clicked = $(clicked)
+        var $tr = $clicked.closest('tr');
+        var namespace = $tr.data('namespace');
+        $tr.parent().find('[data-namespace="' + namespace + '"]').not($tr).toggle();
+        $clicked.toggleClass('fa-caret-down').toggleClass('fa-caret-up');
+    }
 </script>
