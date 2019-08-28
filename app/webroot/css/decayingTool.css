@@ -122,6 +122,7 @@
 div.simulationSubContainer{
     padding: 15px;
     height: 90vh;
+    min-width: 1600px;
     display: flex;
     flex-direction: column;
 }
@@ -150,7 +151,7 @@ div.loading-spinner-container {
     display: inline-block;
     position: relative;
     width: 100%;
-    min-width: 700px;
+    min-width: 500px;
     height: 100%;
     padding-bottom: 100%; /* aspect ratio */
     vertical-align: top;

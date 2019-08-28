@@ -4,7 +4,7 @@
             <div style="height: 40%; display: flex">
                 <div style="width: 20%; display: flex; flex-direction: column;">
                     <div class="panel-container" style="display: flex; flex-direction: column; flex-grow: 1">
-                        <div style="display: flex;">
+                        <div style="display: flex; flex-wrap: wrap;">
                             <select id="select_model_to_simulate" onchange="modelChangeHandler(this)" style="flex-grow: 1;">
                                 <?php foreach ($all_models as $model): ?>
                                     <option value="<?php echo h($model['DecayingModel']['id']) ?>" <?php echo $decaying_model['DecayingModel']['id'] == $model['DecayingModel']['id'] ? 'selected' : '' ?>><?php echo h($model['DecayingModel']['name']); ?></option>
@@ -45,7 +45,7 @@
                             </div>
                             <div class="tab-pane <?php echo !isset($attribute_id) ? '' : 'active'; ?>" id="specificid">
                                 <h3 style=""><?php echo __('Specific Attribute'); ?></h3>
-                                <div style="display: flex;">
+                                <div style="display: flex; flex-wrap: wrap;">
                                     <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend">
                                         <span class="add-on">ID</span>
                                         <input type="text" value="<?php echo isset($attribute_id) ? h($attribute_id) : ''; ?>" placeholder="<?php echo __('Attribute ID or UUID') ?>" onkeypress="handle_input_key(event)" style="width: auto;">
@@ -58,8 +58,8 @@
                     </div>
                 </div>
                 <div style="width: 80%; display: flex;">
-                    <div class="panel-container" style="flex-grow: 1; display: flex;">
-                        <div id="basescore-simulation-container" style="width: 30%; min-width: 400px; height: 100%; margin-right: 10px;">
+                    <div class="panel-container" style="flex-grow: 1; display: flex; width: 100%">
+                        <div id="basescore-simulation-container" style="width: 30%; min-width: 300px; height: 100%; margin-right: 10px;">
                             <div>
                                 <h5 style="display: inline-block;"><?php echo __('Base score') ?> <i id="basescore_enlarge_icon" class="fas fa-expand useCursorPointer"></i></h5>
                                 <div id="alert-basescore-not-set" class="alert alert-warning" style="display: inline-block; margin-bottom: auto; margin-left: 5px; padding: 4px 8px;">
@@ -72,7 +72,7 @@
                             <div style="position: relative; height: calc(100% - 75px); overflow: auto; margin-bottom: 5px;">
                                 <?php echo $this->element('DecayingModels/View/basescore_computation_steps'); ?>
                             </div>
-                            <div style="margin-bottom: 5px;">
+                            <div style="margin-bottom: 5px; white-space: nowrap;">
                                 <div style="margin-left: 4px; margin-bottom: 0px;" class="input-prepend input-append">
                                     <span class="add-on"><?php echo __('Sighting'); ?></span>
                                     <span id="simulation-sighting" class="add-on"></span>
@@ -89,7 +89,7 @@
                     </div>
                 </div>
             </div>
-            <div style="height: 60%; overflow-y: auto; background-color: #ffffff;" class="panel-container">
+            <div style="height: 60%; overflow-y: auto; background-color: #ffffff; min-width: 1600px; " class="panel-container">
                 <div style="height: 100%;" id="attributeTableContainer"></div>
             </div>
         </div>
