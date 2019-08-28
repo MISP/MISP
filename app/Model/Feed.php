@@ -521,7 +521,7 @@ class Feed extends AppModel
         return true;
     }
 
-    private function __filterEventsIndex($events, $feed)
+    private function __filterEventsIndex($events, $feed, $filterRules)
     {
         $filterRules = $this->__prepareFilterRules($feed);
         if (!$filterRules) {
@@ -597,9 +597,10 @@ class Feed extends AppModel
      */
     public function downloadEventFromFeed($feed, $uuid, $user)
     {
+        $filerRules = $this->__prepareFilterRules($feed);
         $HttpSocket = $this->isFeedLocal($feed) ? false : $this->__setupHttpSocket($feed);
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
-        return $this->__prepareEvent($event, $feed);
+        return $this->__prepareEvent($event, $feed, $filerRules);
     }
 
     private function __saveEvent($event, $user)
@@ -625,9 +626,8 @@ class Feed extends AppModel
         return $result;
     }
 
-    private function __prepareEvent($event, $feed)
+    private function __prepareEvent($event, $feed, $filterRules)
     {
-        $filterRules = $this->__prepareFilterRules($feed);
         if (isset($event['response'])) {
             $event = $event['response'];
         }
@@ -681,11 +681,19 @@ class Feed extends AppModel
         return $event;
     }
 
+    /**
+     * @param array $feed
+     * @return bool|mixed
+     * @throws Exception
+     */
     private function __prepareFilterRules($feed)
     {
         $filterRules = false;
         if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
             $filterRules = json_decode($feed['Feed']['rules'], true);
+            if ($filterRules === null) {
+                throw new Exception('Could not parse feed filter rules JSON: ' . json_last_error_msg(), json_last_error());
+            }
         }
         return $filterRules;
     }
@@ -702,14 +710,14 @@ class Feed extends AppModel
      * @param array $feed
      * @param string $uuid
      * @param $user
-     * @param $filterRules Not used
+     * @param array|bool $filterRules
      * @return array|bool|string
      * @throws Exception
      */
     private function __addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules)
     {
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
-        $event = $this->__prepareEvent($event, $feed);
+        $event = $this->__prepareEvent($event, $feed, $filterRules);
         if (is_array($event)) {
             $this->Event = ClassRegistry::init('Event');
             return $this->Event->_add($event, true, $user);
@@ -724,14 +732,14 @@ class Feed extends AppModel
      * @param string $uuid
      * @param int $eventId
      * @param $user
-     * @param $filterRules Not used
+     * @param array|bool $filterRules
      * @return mixed
      * @throws Exception
      */
     private function __updateEventFromFeed($HttpSocket, $feed, $uuid, $eventId, $user, $filterRules)
     {
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
-        $event = $this->__prepareEvent($event, $feed);
+        $event = $this->__prepareEvent($event, $feed, $filterRules);
         $this->Event = ClassRegistry::init('Event');
         return $this->Event->_edit($event, $user, $uuid, $jobId = null);
     }
