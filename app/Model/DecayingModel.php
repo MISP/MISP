@@ -51,6 +51,22 @@ class DecayingModel extends AppModel
 
     public function beforeValidate($options = array()) {
         parent::beforeValidate();
+
+        if (!isset($this->data['DecayingModel']['formula'])) { // default to polynomial
+            $this->data['DecayingModel']['formula'] = 'polynomial';
+        }
+
+        if ($this->data['DecayingModel']['formula'] == 'polynomial') {
+            if (isset($this->data['DecayingModel']['parameters']['settings'])) { // polynomial doesn't have custom settings
+                $this->data['DecayingModel']['parameters']['settings'] = '{}';
+            }
+        } else if (
+            isset($this->data['DecayingModel']['parameters']['settings']) &&
+            $this->data['DecayingModel']['parameters']['settings'] == ''
+        ) {
+            $this->data['DecayingModel']['parameters']['settings'] = '{}';
+        }
+
         if (
             isset($this->data['DecayingModel']['parameters']) &&
             !empty($this->data['DecayingModel']['parameters']) &&
