@@ -253,13 +253,19 @@ class ServerShell extends AppShell
             $jobId = $this->Job->id;
         }
         $this->Job->read(null, $jobId);
-        $result = $this->Feed->cacheFeedInitiator($user, $jobId, $scope);
+        try {
+            $result = $this->Feed->cacheFeedInitiator($user, $jobId, $scope);
+        } catch (Exception $e) {
+            CakeLog::error($e->getMessage());
+            $result = false;
+        }
+
         $this->Job->id = $jobId;
         if ($result !== true) {
-            $message = 'Job Failed. Reason: ';
+            $message = 'Job failed. See logs for more details.';
             $this->Job->save(array(
                     'id' => $jobId,
-                    'message' => $message . $result,
+                    'message' => $message,
                     'progress' => 0,
                     'status' => 3
             ));

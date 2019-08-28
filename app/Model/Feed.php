@@ -945,6 +945,13 @@ class Feed extends AppModel
         return true;
     }
 
+    /**
+     * @param $user Not used
+     * @param int|bool $jobId
+     * @param string $scope
+     * @return bool Returns true if at least one feed was cached sucessfully.
+     * @throws Exception
+     */
     public function cacheFeedInitiator($user, $jobId = false, $scope = 'freetext')
     {
         $params = array(
@@ -954,7 +961,7 @@ class Feed extends AppModel
         );
         $redis = $this->setupRedis();
         if ($redis === false) {
-            return 'Redis not reachable.';
+            throw new Exception('Could not reach Redis.');
         }
         if ($scope !== 'all') {
             if (is_numeric($scope)) {
@@ -964,22 +971,26 @@ class Feed extends AppModel
             } elseif ($scope == 'misp') {
                 $redis->del('misp:feed_cache:event_uuid_lookup:');
                 $params['conditions']['source_format'] = 'misp';
+            } else {
+                throw new InvalidArgumentException("Invalid value for scope, it must be integer or 'freetext', 'csv', 'misp' or 'all' string.");
             }
         } else {
             $redis->del('misp:feed_cache:combined');
             $redis->del('misp:feed_cache:event_uuid_lookup:');
         }
         $feeds = $this->find('all', $params);
+        $atLeastOneSuccess = false;
         foreach ($feeds as $k => $feed) {
             if ($this->__cacheFeed($feed, $redis, $jobId)) {
                 $message = 'Feed ' . $feed['Feed']['id'] . ' cached.';
+                $atLeastOneSuccess = true;
             } else {
                 $message = 'Failed to cache feed ' . $feed['Feed']['id'] . '. See logs for more details.';
             }
 
             $this->jobProgress($jobId, $message, 100 * $k / count($feeds));
         }
-        return true;
+        return $atLeastOneSuccess;
     }
 
     public function attachFeedCacheTimestamps($data)
