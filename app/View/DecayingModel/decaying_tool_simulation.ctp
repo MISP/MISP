@@ -25,7 +25,7 @@
     <?php
         $registered_taxonomies = array_keys($decaying_model['DecayingModel']['parameters']['base_score_config']);
         foreach ($registered_taxonomies as $i => &$taxonomy_name) {
-            $taxonomy_name = $taxonomy_name . ':%' ;
+            $taxonomy_name = $taxonomy_name . '%' ;
         }
     ?>
                                     <textarea id="restSearchTextarea">

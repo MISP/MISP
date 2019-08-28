@@ -540,7 +540,7 @@
                 if (tag === false) {
                     return ['', '', '', this.base_score.toFixed(2)];
                 }
-                var namespace = tag.Tag.name.split(':')[0];
+                var namespace = tag.Tag.name.split('=')[0];
 
                 if (this.base_score_config.taxonomy_effective_ratios[namespace] !== undefined) {
                     var html1 = this.base_score_config.taxonomy_effective_ratios[namespace].toFixed(2);

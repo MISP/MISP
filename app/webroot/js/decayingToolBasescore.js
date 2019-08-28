@@ -20,7 +20,7 @@ function addPickedTags(clicked) {
     var $select = $('#basescore-example-tag-picker');
     var $previous_tags = $('#basescore-example-customtag-container span.decayingExampleTags');
     $previous_tags.each(function() {
-        numerical_values.push({name: $(this).text().split(':')[0], value: parseInt($(this).data('numerical_value'))});
+        numerical_values.push({name: getPrefixTagName($(this).text()), value: parseInt($(this).data('numerical_value'))});
     });
     $select.val().forEach(function(tag_id) {
         var tag = mapping_tag_name_to_tag[tag_id];
@@ -28,7 +28,8 @@ function addPickedTags(clicked) {
         var tag_html = '<div style="display: inline-block;" title="numerical_value=' + tag.numerical_value + '"><span class="tagFirstHalf decayingExampleTags" style="background-color: ' + tag.colour + '; color: ' + getTextColour(tag.colour) + ';" data-numerical_value="' + tag.numerical_value + '">' + tag.name + '</span>'
             + '<span class="tagSecondHalf useCursorPointer" onclick="removeCustomTag(this);">×</span></div>&nbsp;'
         $('#basescore-example-customtag-container').append(tag_html);
-        numerical_values.push({name: tag.name.split(':')[0], value: tag['numerical_value']});
+        var tag_name = getPrefixTagName(tag.name);
+        numerical_values.push({name: tag_name, value: tag['numerical_value']});
     });
     base_score_computation[0] = compute_base_score(numerical_values);
     var base_score = base_score_computation[0].score.toFixed(1);
@@ -45,7 +46,7 @@ function removeCustomTag(clicked) {
     var numerical_values = [];
     var $previous_tags = $('#basescore-example-customtag-container span.decayingExampleTags');
     $previous_tags.each(function() {
-        numerical_values.push({name: $(this).text().split(':')[0], value: parseInt($(this).data('numerical_value'))});
+        numerical_values.push({name: getPrefixTagName($(this).text()), value: parseInt($(this).data('numerical_value'))});
     });
     base_score_computation[0] = compute_base_score(numerical_values);
     var base_score = base_score_computation[0].score.toFixed(1);
@@ -58,14 +59,24 @@ function regenerateValidTags() {
     var $select = $('<select id="basescore-example-tag-picker" multiple="multiple"/>');
     Object.keys(taxonomies_with_num_value).forEach(function(taxonomy_name) {
         var taxonomy = taxonomies_with_num_value[taxonomy_name];
-        var $optgroup = $('<optgroup label="' + taxonomy_name + '"></optgroup>');
-            taxonomy['TaxonomyPredicate'].forEach(function(predicate) {
+        var $optgroup = $('<optgroup></optgroup>').attr('label', taxonomy_name);
+        taxonomy['TaxonomyPredicate'].forEach(function(predicate) {
+            if (predicate['numerical_predicate'] !== undefined && predicate['numerical_predicate']) {
+                mapping_tag_name_to_tag[predicate['Tag']['id']] = predicate['Tag'];
+                var $option = $('<option></option>')
+                    .val(predicate['Tag']['id'])
+                    .text(predicate['Tag']['name'] + ' [' + predicate['Tag']['numerical_value'] + ']');
+                $optgroup.append($option);
+            } else {
                 predicate['TaxonomyEntry'].forEach(function(entry) {
                     mapping_tag_name_to_tag[entry['Tag']['id']] = entry['Tag'];
-                    var $option = $('<option value="' + entry['Tag']['id'] + '">' + entry['Tag']['name'] + ' [' + entry['Tag']['numerical_value'] + ']</option>');
+                    var $option = $('<option></option>')
+                        .val(entry['Tag']['id'])
+                        .text(entry['Tag']['name'] + ' [' + entry['Tag']['numerical_value'] + ']');
                     $optgroup.append($option);
                 });
-            });
+            }
+        });
         $select.append($optgroup);
     });
     return $select;
@@ -98,12 +109,25 @@ function getRatioScore(taxonomies_name) {
     }
     var ratioScore = {};
     total_score = taxonomies_name.reduce(function(acc, name) {
-        return acc + config[name];
+        var inc = 0;
+        if (config[name] !== undefined) {
+            inc = config[name];
+        }
+        return acc + inc;
     }, 0)
     taxonomies_name.forEach(function(name) {
-        ratioScore[name] = config[name] / total_score;
+        if (config[name] !== undefined) {
+            ratioScore[name] = config[name] / total_score;
+        }
     });
     return ratioScore;
+}
+
+// return namespace:predicate for 3-components tagnames and namespace for 2-components tagnames
+function getPrefixTagName(tag_name) {
+    var temp_tag_name = tag_name.split('='); // split on value
+    var prefix = temp_tag_name.length == 1 ? temp_tag_name[0].split(':')[0] : temp_tag_name[0];
+    return prefix;
 }
 
 function pickRandomTags() {
@@ -224,8 +248,7 @@ function refreshExamples() {
         var tags = pickRandomTags();
         var tags_html = '<div style="display: flex; flex-flow: wrap;">';
         tags.forEach(function(tag) {
-            var temp_tag_name = tag.name.split('=');
-            var tag_name = temp_tag_name.length == 1 ? temp_tag_name[0].split(':')[0] : temp_tag_name[0];
+            var tag_name = getPrefixTagName(tag.name);
             numerical_values.push({name: tag_name, value: tag['numerical_value']});
             var text_color = getTextColour(tag.colour);
             tags_html += '<span class="tagComplete decayingExampleTags" style="background-color: ' + tag.colour + ';color:' + text_color + '" '
@@ -254,10 +277,12 @@ function compute_base_score(numerical_values) {
         computation: []
     };
     numerical_values.forEach(function(tag) {
+        var coefficient = 0;
         if (!isNaN(config[tag.name])) {
-            base_score += config[tag.name] * tag.value;
-            steps.computation.push({ ratio: config[tag.name], tag_value: tag.value });
+            coefficient = config[tag.name];
+            base_score += coefficient * tag.value;
         }
+        steps.computation.push({ ratio: coefficient, tag_value: tag.value });
     });
     return { score: base_score, steps: steps };
 }

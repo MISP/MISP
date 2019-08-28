@@ -22,13 +22,13 @@ abstract class DecayingModelBase
         }
         $total_score = 0.0;
         foreach ($tags as $tag) {
-            $namespace_predicate = explode(':', $tag['Tag']['name'])[0];
+            $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
             if (isset($taxonomy_base_ratio[$namespace_predicate]) && is_numeric($tag['Tag']['numerical_value'])) {
                 $total_score += floatval($taxonomy_base_ratio[$namespace_predicate]);
             }
         }
         foreach ($tags as $i => $tag) {
-            $namespace_predicate = explode(':', $tag['Tag']['name'])[0];
+            $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
             if (isset($taxonomy_base_ratio[$namespace_predicate]) && is_numeric($tag['Tag']['numerical_value'])) {
                 $ratioScore[$namespace_predicate] = floatval($taxonomy_base_ratio[$namespace_predicate]) / $total_score;
             }
@@ -77,7 +77,7 @@ abstract class DecayingModelBase
         $flag_contain_matching_taxonomy = false;
         if (!empty($taxonomy_effective_ratios)) {
             foreach ($tags as $k => $tag) {
-                $taxonomy = explode(':', $tag['Tag']['name'])[0];
+                $taxonomy = explode('=', $tag['Tag']['name'])[0];
                 if (isset($taxonomy_effective_ratios[$taxonomy])) {
                     $flag_contain_matching_taxonomy = true;
                     $base_score += $taxonomy_effective_ratios[$taxonomy] * $tag['Tag']['numerical_value'];

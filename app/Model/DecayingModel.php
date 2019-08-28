@@ -277,6 +277,8 @@ class DecayingModel extends AppModel
                         }
                         if (empty($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'])) {
                             unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]);
+                        } else {
+                            $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'] = array_values($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry']);
                         }
                     } else { // accept predicates that have a numerical value
                         if (!is_numeric($predicate['numerical_value'])) {
@@ -288,6 +290,7 @@ class DecayingModel extends AppModel
                             $taxonomies[$namespace]['TaxonomyPredicate'][$p]['numerical_predicate'] = true;
                         }
                     }
+                    
                 }
                 if (empty($taxonomies[$namespace]['TaxonomyPredicate'])) {
                     $excluded_taxonomies[$namespace] = array('taxonomy' => $taxonomies[$namespace], 'reason' => __('No tags nor predicates with `numerical_value`'));
