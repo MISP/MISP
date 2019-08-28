@@ -1542,10 +1542,10 @@ class Feed extends AppModel
             $request = $this->__createFeedRequest($feed['Feed']['headers']);
 
             if ($followRedirect) {
-                $request['redirect'] = 5;
+                $response = $this->getFollowRedirect($HttpSocket, $uri, $request);
+            } else {
+                $response = $HttpSocket->get($uri, array(), $request);
             }
-
-            $response = $HttpSocket->get($uri, array(), $request);
 
             if ($response === false) {
                 throw new Exception("Could not reach '$uri'.");
@@ -1556,6 +1556,32 @@ class Feed extends AppModel
         }
 
         return $data;
+    }
+
+    /**
+     * It should be possible to use 'redirect' $request attribute, but because HttpSocket contains bug that require
+     * certificate for first domain even when redirect to another domain, we need to use own solution.
+     *
+     * @param HttpSocket $HttpSocket
+     * @param string $url
+     * @param array $request
+     * @param int $iterations
+     * @return false|HttpSocketResponse
+     * @throws Exception
+     */
+    private function getFollowRedirect(HttpSocket $HttpSocket, $url, $request, $iterations = 5)
+    {
+        for ($i = 0; $i < $iterations; $i++) {
+            $response = $HttpSocket->get($url, array(), $request);
+            if ($response->isRedirect()) {
+                $HttpSocket = $this->__setupHttpSocket(null); // Replace $HttpSocket with fresh instance
+                $url = trim($response->getHeader('Location'), '=');
+            } else {
+                return $response;
+            }
+        }
+
+        throw new Exception("Maximum number of iteration reached.");
     }
 
     /**
