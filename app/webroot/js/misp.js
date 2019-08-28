@@ -4315,7 +4315,7 @@ function jsonToNestedTable(json, header, table_classes) {
     if (header.length > 0) {
         var $header = $('<thead><tr></tr></thead>');
         header.forEach(function(col) {
-            $header.child().append($('<td>' + col + '</td>'));
+            $header.child().append($('<td></td>').text(col));
         });
         $table.append($header);
     }
@@ -4325,7 +4325,11 @@ function jsonToNestedTable(json, header, table_classes) {
         if (typeof value === 'object') {
             value = JSON.stringify(value);
         }
-        $body.append($('<tr><td>' + k + '</td><td>' + value + '</td></tr>'))
+        $body.append(
+            $('<tr></tr>')
+                .append($('<td></td>').text(k))
+                .append($('<td></td>').text(value))
+        );
     });
     $table.append($body);
     return $table[0].outerHTML;

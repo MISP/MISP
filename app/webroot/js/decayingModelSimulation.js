@@ -530,7 +530,15 @@
             },
             _create_tag_html: function(tag) {
                 if (tag !== false) {
-                    return '<span class="tag" style="white-space: nowrap; background-color:' + tag.Tag.colour + '; color: ' + getTextColour(tag.Tag.colour) + '">' + tag.Tag.name + '</span>';
+                    var $span = $('<span></span>');
+                    $span.addClass('tag')
+                        .css({
+                            'white-space': 'nowrap',
+                            'background-color': tag.Tag.colour,
+                            'color': getTextColour(tag.Tag.colour)
+                        })
+                        .text(tag.Tag.name);
+                    return $span[0].outerHTML;
                 } else { // last row
                     return '<span style="border-radius: 4px; border: 1px solid #ccc; background-color: #eeeeee; padding: 4px 5px;">base_score</span>';
                 }

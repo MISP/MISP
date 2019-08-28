@@ -25,9 +25,20 @@ function addPickedTags(clicked) {
     $select.val().forEach(function(tag_id) {
         var tag = mapping_tag_name_to_tag[tag_id];
         tag.numerical_value = parseInt(tag.numerical_value);
-        var tag_html = '<div style="display: inline-block;" title="numerical_value=' + tag.numerical_value + '"><span class="tagFirstHalf decayingExampleTags" style="background-color: ' + tag.colour + '; color: ' + getTextColour(tag.colour) + ';" data-numerical_value="' + tag.numerical_value + '">' + tag.name + '</span>'
-            + '<span class="tagSecondHalf useCursorPointer" onclick="removeCustomTag(this);">×</span></div>&nbsp;'
-        $('#basescore-example-customtag-container').append(tag_html);
+
+        var $outer_tag = $('<div></div>').css({display: 'inline-block'})
+            .attr('title', 'numerical_value=' + tag.numerical_value);
+        var $inner_tag_1 = $('<span></span>').addClass('tagComplete decayingExampleTags')
+            .css({'background-color': tag.colour, color: getTextColour(tag.colour)})
+            .data('numerical_value', tag.numerical_value)
+            .text(tag.name);
+        var $inner_tag_2 = $('<span></span>').addClass('tagSecondHalf useCursorPointer')
+            .css({'margin-right': '4px'})
+            .attr('onclick', 'removeCustomTag(this);')
+            .text('×');
+        $outer_tag.append($inner_tag_1).append($inner_tag_2);
+        
+        $('#basescore-example-customtag-container').append($outer_tag);
         var tag_name = getPrefixTagName(tag.name);
         numerical_values.push({name: tag_name, value: tag['numerical_value']});
     });
@@ -246,20 +257,22 @@ function refreshExamples() {
     for (var i = 1; i <= 3; i++) {
         var numerical_values = [];
         var tags = pickRandomTags();
-        var tags_html = '<div style="display: flex; flex-flow: wrap;">';
+        var $tag_container = $('<div></div>').css({'display': 'flex', 'flex-flow': 'wrap' });
         tags.forEach(function(tag) {
             var tag_name = getPrefixTagName(tag.name);
             numerical_values.push({name: tag_name, value: tag['numerical_value']});
             var text_color = getTextColour(tag.colour);
-            tags_html += '<span class="tagComplete decayingExampleTags" style="background-color: ' + tag.colour + ';color:' + text_color + '" '
-            + 'title="numerical_value=' + tag['numerical_value'] + '" '
-            + 'data-placement="right">' + tag.name + '</span>&nbsp;';
+            var $tag = $('<span></span>').addClass('tagComplete decayingExampleTags')
+                .css({'background-color': tag.colour, color: text_color, 'margin-right': '4px'})
+                .attr('title', 'numerical_value=' + tag['numerical_value'])
+                .data('placement', 'right')
+                .text(tag.name);
+            $tag_container.append($tag);
         });
-        tags_html += '</div>';
         base_score_computation[i] = compute_base_score(numerical_values);
         var base_score = base_score_computation[i].score.toFixed(1);
         var base_score_computation_steps = base_score_computation[i].steps;
-        $('#basescore-example-tag-'+i).empty().append(tags_html);
+        $('#basescore-example-tag-'+i).empty().append($tag_container);
         $('#basescore-example-score-'+i).empty()
             .text(base_score)
             .append('<i class="fas fa-question-circle helptext-in-cell useCursorPointer" onclick="genHelpBaseScoreComputation(event, ' + i + ')"></i>');

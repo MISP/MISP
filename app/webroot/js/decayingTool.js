@@ -593,6 +593,9 @@
                 } else { // obj is list of type
                     var $tr = this.findMatchingAttributeType(obj);
                 }
+                if (isNaN(model_id)) { // ensure model_id to be a number
+                    return;
+                }
                 var $all_tr = $('#attributeTypeTableBody').find('tr');
                 $all_tr.find("td.isModelIdField > a:contains('" + model_id + "')").remove();
                 var $a = $('<a href="#" onclick="$(\'#modelId_' + model_id + '\').find(\'.decayingLoadBtn\').click();">' + model_id + '</a>')
@@ -832,16 +835,20 @@ $(document).ready(function() {
             if (bs_default > 0 && bs_config.length == 0) {
                 return 'Default base score = ' + bs_default;
             } else if (bs_default > 0) {
-                html_table = '<div>Default base score = ' + bs_default + '</div>' + html_table;
+                html_table = $('<div></div>').title('Default base score = ' + bs_default)[0].outerHTML + html_table;
             }
             var $title = $(html_table).find('tbody');
             Object.keys(bs_config).forEach(function(k, i) {
                 var value = bs_config[k];
-                $title.append('<tr><td style="padding-right: 5px;">' + k + '</td><td>' + (value * 100).toFixed(1) + '</td></tr>');
+                var $td1 = $('<td></td>').css({'padding-right': '5px'}).title(k);
+                var $td2 = $('<td></td>').title((value * 100).toFixed(1));
+                $title.append(
+                    $('<tr></tr>').append($td1).append($td2)
+                );
             })
             var to_return = $title.parent()[0].outerHTML;
             if (bs_default) {
-                to_return = '<b>Default base score = ' + bs_default + '</b></br>' + to_return;
+                to_return = $('<b></b>').title('Default base score = ' + bs_default)[0].outerHTML + '</br>' + to_return;
             }
             return to_return;
         }
@@ -947,11 +954,12 @@ ModelTable.prototype = {
         var sub_tr_html = '<tr>';
         Object.keys(header).forEach(function(key, i) {
             var col = header[key];
+            var th_html;
             if (col.children !== undefined) {
-                var th_html ='<th colspan="' + (col.children.length) + '">' + col.name + '</th>';
+                th_html = $('<th colspan="' + (col.children.length) + '"></th>').text(col.name)[0].outerHTML;
                 sub_tr_html += that._get_html_header(col.children, true);
             } else {
-                var th_html ='<th rowspan="' + (header_max_depth+1) + '">' + col.name + '</th>';
+                th_html = $('<th rowspan="' + (header_max_depth+1) + '"></th>').text(col.name)[0].outerHTML;
             }
             tr_html += th_html;
         });
@@ -960,25 +968,34 @@ ModelTable.prototype = {
         return tr_html + (sub_tr_html.length > 9 ? sub_tr_html : '');
     },
 
-    _gen_td: function(text, td_class, html_attributes) {
+    _gen_td: function(html, td_class, html_attributes) {
+        var $span = $('<span></span>');
         td_class = td_class !== undefined ? td_class : '';
-        attr = '';
+        $span.addClass(td_class);
         if (html_attributes !== undefined) {
             Object.keys(html_attributes).forEach(function(k) {
-                var v = html_attributes[k];
-                attr += 'data-'+ k + '=\"' + v + '\" ';
+                $span.data(k, html_attributes[k]);
             });
         }
-        return '<span class="' + td_class + '" ' + attr + '>' + (text !== undefined ? text : '') + '</span>';
+        $span.html(html !== undefined ? html : '');
+        return $span[0].outerHTML;
     },
-    _gen_td_link: function(url, text, td_class) {
+    _gen_td_link: function(url, html, td_class) {
+        var $span = $('<span></span>');
         td_class = td_class !== undefined ? td_class : '';
-        return '<span class="' + td_class + '"><a href="' + url + '">' + (text !== undefined ? text : '') + '</a></span>';
+        $span.addClass(td_class);
+        $span.append(
+            $('<a></a>').attr('href', url).html(html !== undefined ? html : '')
+        )
+        return $span[0].outerHTML;
     },
     _gen_td_buttons: function(model) {
         var html_button = '<div style="width: max-content">';
         html_button += '<button class="btn btn-info btn-small decayingLoadBtn" onclick="decayingTool.loadModel(this);"><span class="fa fa-line-chart"> Load model</span></button>';
         if (model.DecayingModel.isEditable) {
+            if (isNaN(model.DecayingModel.id)) { // enforce id to be a number
+                return;
+            }
             if (model.DecayingModel.enabled) {
                 html_button += '<button class="btn btn-danger btn-small" style="margin-left: 3px;" onclick="decayingTool.disableModel(this, ' + model.DecayingModel.id + ');" title="Disable model"><span class="fa fa-pause"></span></button>'
             } else {
@@ -1001,18 +1018,18 @@ ModelTable.prototype = {
         var is_row_selected = $('#saveForm #save-model-button').data('modelid') == model.DecayingModel.id;
         return cells_html = [
             this._gen_td('<input type="checkbox" onchange="decayingTool.refreshSaveButton()" style="margin:0" ' + (is_row_selected ? 'checked' : 'disabled') + '></input>', 'DMCheckbox'),
-            this._gen_td_link('/decayingModel/view/'+model.DecayingModel.id, model.DecayingModel.id, 'DMId'),
+            this._gen_td_link('/decayingModel/view/'+model.DecayingModel.id, this._h(model.DecayingModel.id), 'DMId'),
             this._gen_td(
-                model.DecayingModel.name + (model.DecayingModel.isDefault ? '<img src="/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="Default Model from MISP Project" />' : '') ,
+                this._h(model.DecayingModel.name) + (model.DecayingModel.isDefault ? '<img src="/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="Default Model from MISP Project" />' : '') ,
                 'DMName'
             ),
-            this._gen_td_link('/organisations/view/'+model.DecayingModel.org_id, model.DecayingModel.org_id, 'DMOrg'),
-            this._gen_td(model.DecayingModel.description, 'DMNDescription'),
-            this._gen_td(model.DecayingModel.formula, 'DMFormula'),
-            this._gen_td(model.DecayingModel.parameters.lifetime, 'DMParameterLifetime'),
-            this._gen_td(model.DecayingModel.parameters.decay_speed, 'DMParameterDecay_speed'),
-            this._gen_td(model.DecayingModel.parameters.threshold, 'DMParameterThreshold'),
-            this._gen_td(model.DecayingModel.parameters.default_base_score, 'DMParameterDefaultBasescore'),
+            this._gen_td_link('/organisations/view/'+model.DecayingModel.org_id, this._h(model.DecayingModel.org_id), 'DMOrg'),
+            this._gen_td(this._h(model.DecayingModel.description), 'DMNDescription'),
+            this._gen_td(this._h(model.DecayingModel.formula), 'DMFormula'),
+            this._gen_td(this._h(model.DecayingModel.parameters.lifetime), 'DMParameterLifetime'),
+            this._gen_td(this._h(model.DecayingModel.parameters.decay_speed), 'DMParameterDecay_speed'),
+            this._gen_td(this._h(model.DecayingModel.parameters.threshold), 'DMParameterThreshold'),
+            this._gen_td(this._h(model.DecayingModel.parameters.default_base_score), 'DMParameterDefaultBasescore'),
             this._gen_td(
                 bs_config_html,
                 'DMParameterBasescoreConfig',
@@ -1024,7 +1041,7 @@ ModelTable.prototype = {
                 {'basescoreconfig': btoa(JSON.stringify(model.DecayingModel.parameters.settings))}
             ),
             this._gen_td(model.DecayingModel.attribute_types.length, 'DMNumType'),
-            this._gen_td(model.DecayingModel.enabled ? '<i class="fa fa-check"></i>' : '<i class="fa fa-times"></i>', 'DMEnabled'),
+            this._gen_td(this._h(model.DecayingModel.enabled) ? '<i class="fa fa-check"></i>' : '<i class="fa fa-times"></i>', 'DMEnabled'),
             this._gen_td_buttons(model)
         ];
     },
@@ -1055,6 +1072,9 @@ ModelTable.prototype = {
             .transition()
             .duration(this.options.animation_short_duration)
             .style('opacity', 1.0);
+    },
 
+    _h: function(text) {
+        return $('<div>').text(text).html();
     }
 }
