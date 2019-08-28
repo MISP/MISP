@@ -120,7 +120,7 @@ foreach ($decayingModels as $item): ?>
                 $item['DecayingModel']['parameters']['base_score_config'] = new stdClass(); // force output to be {} instead of []
             }
         ?>
-        <td data-toggle="json" ondblclick="document.location.href ='<?php echo $baseurl . '/decayingModel/view/' . h($item['DecayingModel']['id']); ?>'"><?php echo json_encode($item['DecayingModel']['parameters']); ?>&nbsp;</td>
+        <td data-toggle="json" ondblclick="document.location.href ='<?php echo $baseurl . '/decayingModel/view/' . h($item['DecayingModel']['id']); ?>'"><?php echo h(json_encode($item['DecayingModel']['parameters'])); ?>&nbsp;</td>
         <td>
             <?php echo h($item['DecayingModel']['formula']); ?>
             <?php if (isset($available_formulas[$item['DecayingModel']['formula']]['description'])): ?>

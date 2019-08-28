@@ -114,7 +114,7 @@ $(document).ready(function() {
     });
     $('#select_model_to_simulate_infobox').popover({
         title: function() {
-            return $('#select_model_to_simulate option:selected').text();
+            return $('<div>').text($('#select_model_to_simulate option:selected').text()).html();
         },
         content: function() {
             return '<div>' + syntaxHighlightJson(models[$('#select_model_to_simulate').val()]) + '</div>';
@@ -174,7 +174,8 @@ function doRestSearch(clicked, query) {
                     $trs.data('modelOverride', JSON.stringify(json.modelOverrides));
                 }
             },
-            error:function() {
+            error:function(jqXHR, textStatus, errorThrown) {
+                $('#attributeTableContainer').text(textStatus + ': ' + errorThrown);
                 showMessage('fail', '<?php echo __('Failed to perform RestSearch') ?>');
             },
             type:'post',

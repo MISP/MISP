@@ -33,12 +33,12 @@
     );
     $table_data[] = array(
         'key' => __('Formula'),
-        'html' => $decaying_model['DecayingModel']['formula'] . (
+        'html' => h($decaying_model['DecayingModel']['formula']) . (
             isset($available_formulas[$decaying_model['DecayingModel']['formula']]['description']) ? sprintf(' <i class="fas fa-question-circle" data-toggle="tooltip" title="%s"></i>', h($available_formulas[$decaying_model['DecayingModel']['formula']]['description'])) :  ''
         )
     );
     $table_data[] = array('key' => __('Parameters'), 'value' => json_encode($decaying_model['DecayingModel']['parameters']), 'class' => 'json-transform');
-    $table_data[] = array('key' => __('Reference(s)'), 'html' => implode('<br/>', (empty($decaying_model['DecayingModel']['ref']) ? array() : $decaying_model['DecayingModel']['ref'])));
+    $table_data[] = array('key' => __('Reference(s)'), 'html' => implode('<br/>', (empty($decaying_model['DecayingModel']['ref']) ? array() : h($decaying_model['DecayingModel']['ref']))));
     $table_data[] = array('key' => __('Associated types'), 'value' => json_encode($decaying_model['DecayingModel']['attribute_types']), 'class' => 'json-transform');
 ?>
 <div class='view'>
