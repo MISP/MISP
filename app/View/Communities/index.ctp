@@ -71,7 +71,7 @@
                     'icon' => 'eye'
                 ),
                 array(
-                    'url' => '/communities/requestAccess/%s',
+                    'url' => '/communities/requestAccess',
                     'url_params_data_paths' => array(
                         'community_uuid'
                     ),
