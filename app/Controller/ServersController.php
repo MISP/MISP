@@ -2089,31 +2089,4 @@ misp.direct_call(relative_path, body)
             }
         }
     }
-
-    public function listCommunities()
-    {
-        $server_file = new File(APP . 'files/server-metadata/defaults.json');
-        if (!$server_file->exists()) {
-            throw new NotFoundException(__('Default community list not found.'));
-        }
-        $server_list = $server_file->read();
-        if (empty($server_list)) {
-            throw new NotFoundException(__('Default community list empty.'));
-        }
-        try {
-            $server_list = json_decode($server_list, true);
-        } catch (Exception $e) {
-            throw new NotFoundException(__('Default community list not in the expected format.'));
-        }
-        if ($this->__isRest()) {
-            return $this->RestResponse->viewData($server_list, $this->response->type());
-        } else {
-            $this->set('server_list', $server_list);
-        }
-    }
-
-    public function viewCommunity()
-    {
-        
-    }
 }
