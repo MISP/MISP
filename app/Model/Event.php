@@ -2231,9 +2231,6 @@ class Event extends AppModel
                             if ($adata['category'] === 'Financial fraud') {
                                 $event['Object'][$objectKey]['Attribute'][$akey] = $this->Attribute->attachValidationWarnings($adata);
                             }
-                            if (isset($options['includeDecayScore']) && $options['includeDecayScore']) {
-                                $this->DecayingModel->attachScoresToAttribute($user, event['Object'][$objectKey]['Attribute'][$akey]);
-                            }
                         }
                     }
                 }
