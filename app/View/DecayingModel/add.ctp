@@ -20,6 +20,7 @@
             ));
             echo $this->Form->input('formula', array(
                 'value' => isset($this->request->data['DecayingModel']['formula']) ? $this->request->data['DecayingModel']['formula'] : 'polynomial',
+                'options' => $available_formulas,
                 'div' => 'clear'
             ));
             echo $this->Form->input('all_orgs', array(

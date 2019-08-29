@@ -174,6 +174,12 @@ class DecayingModelController extends AppController
             }
         } else {
             $this->set('action', 'add');
+            $available_formulas = $this->DecayingModel->listAvailableFormulas();
+            $formulas = array();
+            foreach ($available_formulas as $formulaName => $f) {
+                $formulas[$formulaName] = $formulaName;
+            }
+            $this->set('available_formulas', $formulas);
         }
     }
 
@@ -220,6 +226,12 @@ class DecayingModelController extends AppController
             $this->set('decayingModel', $decayingModel);
             $this->set('restrictEdition', $enforceRestrictedEdition);
             $this->set('action', 'edit');
+            $available_formulas = $this->DecayingModel->listAvailableFormulas();
+            $formulas = array();
+            foreach ($available_formulas as $formulaName => $f) {
+                $formulas[$formulaName] = $formulaName;
+            }
+            $this->set('available_formulas', $formulas);
             $this->render('add');
         }
     }
