@@ -1626,10 +1626,14 @@ function getPopup(id, context, target, admin, popupType) {
             $(popupType).html(data);
             openPopup(popupType, false);
         },
-        error:function() {
+        error:function(xhr) {
             $(".loading").hide();
             $("#gray_out").fadeOut();
-            showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
+            if (xhr.status === 403) {
+                showMessage('fail', 'Not allowed.');
+            } else {
+                showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
+            }
         },
         url: url
     });

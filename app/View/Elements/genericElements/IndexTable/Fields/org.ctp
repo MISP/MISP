@@ -3,7 +3,7 @@
     echo sprintf(
         '<a href="%s/organisations/view/%s">%s</a>',
         $baseurl,
-        h($org['id']),
+        empty($org['id']) ? h($org['uuid']) : h($org['id']),
         h($org['name'])
     );
 ?>

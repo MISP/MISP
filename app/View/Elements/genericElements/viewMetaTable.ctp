@@ -46,7 +46,7 @@
                         (empty($row['boolean']) ? 'bold red' : 'bold green') : '',
                     empty($row['boolean']) ? 'No' : 'Yes'
                 ),
-                empty($row['value']) ? '' : h($row['value']),
+                empty($row['value']) ? '' : nl2br(h(trim($row['value']))),
                 empty($row['html']) ? '' : $row['html'],
                 empty($element) ? '' : $element
             )

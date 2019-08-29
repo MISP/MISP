@@ -92,6 +92,11 @@ class ACLComponent extends Component
                 "viewAssociatedTypes" => array('*'),
                 "linkAttributeTypeToModel" => array('perm_admin', 'perm_decaying')
             ),
+            'communities' => array(
+                    'index' => array(),
+                    'requestAccess' => array(),
+                    'view' => array()
+            ),
             'eventBlacklists' => array(
                     'add' => array(),
                     'delete' => array(),

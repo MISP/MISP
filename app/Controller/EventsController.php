@@ -2634,6 +2634,7 @@ class EventsController extends AppController
     // Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
     public function contact($id = null)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $this->Event->id = $id;
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
@@ -2654,7 +2655,10 @@ class EventsController extends AppController
                 }
             }
 
-            $creator_only = $this->request->data['Event']['person'];
+            $creator_only = false;
+            if (isset($this->request->data['Event']['person'])) {
+                $creator_only = $this->request->data['Event']['person'];
+            }
             $user = $this->Auth->user();
             $user['gpgkey'] = $this->Event->User->getPGP($user['id']);
             $user['certif_public'] = $this->Event->User->getCertificate($user['id']);

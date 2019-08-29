@@ -21,9 +21,14 @@
     if (!empty($data['description'])) {
         echo sprintf('<p>%s</p>', h($data['description']));
     }
-    if (empty($data['skip_pagination'])) {
-        echo $this->element('/genericElements/IndexTable/pagination', array('paginator' => $this->Paginator));
+    if (!empty($data['html'])) {
+        echo sprintf('<p>%s</p>', $data['html']);
     }
+    $paginationData = array();
+    if (!empty($data['paginationBaseurl'])) {
+        $paginationData['paginationBaseurl'] = $data['paginationBaseurl'];
+    }
+    echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
     if (!empty($data['top_bar'])) {
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data['top_bar']));
     }
@@ -34,17 +39,25 @@
             $row_element = $data['row_element'];
         }
         $rows .= sprintf(
-            '<tr>%s</tr>',
-            $this->element('/genericElements/IndexTable/' . $row_element, array('k' => $k, 'row' => $data_row, 'fields' => $data['fields']))
+            '<tr data-row-id="%s">%s</tr>',
+            h($k),
+            $this->element(
+                '/genericElements/IndexTable/' . $row_element,
+                array(
+                    'k' => $k,
+                    'row' => $data_row,
+                    'fields' => $data['fields'],
+                    'options' => empty($data['options']) ? array() : $data['options'],
+                    'actions' => empty($data['actions']) ? array() : $data['actions']
+                )
+            )
         );
     }
     echo sprintf(
         '<table class="table table-striped table-hover table-condensed">%s%s</table>',
-        $this->element('/genericElements/IndexTable/headers', array('fields' => $data['fields'], 'paginator' => $this->Paginator)),
+        $this->element('/genericElements/IndexTable/headers', array('fields' => $data['fields'], 'paginator' => $this->Paginator, 'actions' => empty($data['actions']) ? false : true)),
         $rows
     );
-    if (empty($data['skip_pagination'])) {
-        echo $this->element('/genericElements/IndexTable/pagination_counter', array('paginator' => $this->Paginator));
-        echo $this->element('/genericElements/IndexTable/pagination', array('paginator' => $this->Paginator));
-    }
+    echo $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
+    echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
 ?>

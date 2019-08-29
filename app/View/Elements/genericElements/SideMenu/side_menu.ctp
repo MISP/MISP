@@ -587,12 +587,28 @@
                             'url' => '/servers/add',
                             'text' => __('New Servers')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/communities/index',
+                            'text' => __('List Communities'),
+                            'element_id' => 'list_communities'
+                        ));
+                        if ($menuItem === 'view_community' || $menuItem === 'request_community_access') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'text' => __('Request Access'),
+                                'url' => '/communities/requestAccesss/' . h($community['community_uuid']),
+                                'element_id' => 'request_community_access'
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'text' => __('View community'),
+                                'url' => '/communities/view/' . h($community['community_uuid']),
+                                'element_id' => 'view_community'
+
+                            ));
+                        }
                     }
                     break;
 
                 case 'admin':
-
-
                     if ($menuItem === 'editUser' || $menuItem === 'viewUser') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewUser',
