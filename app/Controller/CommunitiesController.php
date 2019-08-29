@@ -97,7 +97,7 @@ A brief description of my organisation:
 
 My e-mail address that I wish to use as my username:
 %s
-%s%s
+%s%s%s
 
 Thank you in advance!',
                 $this->request->data['Server']['org_name'],
@@ -118,6 +118,15 @@ Thank you in advance!',
                     PHP_EOL,
                     PHP_EOL,
                     $this->request->data['Server']['message'],
+                    PHP_EOL
+                ),
+                !empty($this->request->data['Server']['anonymise']) ? '' : sprintf(
+                    '%sSent from:%sServer:%s%sServer uuid:%s',
+                    PHP_EOL,
+                    PHP_EOL,
+                    empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'),
+                    PHP_EOL,
+                    Configure::read('MISP.uuid'),
                     PHP_EOL
                 )
             );
