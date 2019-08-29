@@ -605,13 +605,10 @@
 
                             ));
                         }
-
                     }
                     break;
 
                 case 'admin':
-
-
                     if ($menuItem === 'editUser' || $menuItem === 'viewUser') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewUser',
