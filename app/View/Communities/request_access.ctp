@@ -2,8 +2,9 @@
 <?php
     echo $this->Form->create('Server', array('id', 'url' => '/communities/requestAccess/' . $community['community_uuid']));
     echo sprintf(
-        '<fieldset><legend>%s</legend>%s</fieldset>%s',
+        '<fieldset><legend>%s</legend><p style="width:550px;">%s</p>%s</fieldset>%s',
         'Request access to ' . h($community['community_name']),
+        __('Describe both yourself and your organisation as best as you can - keep in mind this information is to be used by the hosts of the community you are requesting access to in order to determine whether you\'re a good fit for their community. The sending server\'s basic metadata is included by default, you can opt out using the "anonymise" checkbox (server url, uuid, version are shared otherwise - though this can be a useful step in establishing trust.).'),
         (
             $this->Form->input('email', array(
                 'label' => __('Requestor E-mail address'),
@@ -41,6 +42,11 @@
             $this->element('/genericElements/Forms/clear') .
             $this->Form->input('sync', array(
                 'label' => __('Request sync access'),
+                'type' => 'checkbox'
+            )) .
+            $this->element('/genericElements/Forms/clear') .
+            $this->Form->input('anonymise', array(
+                'label' => __('Anonymise information on the server used to issue the request'),
                 'type' => 'checkbox'
             ))
         ),
