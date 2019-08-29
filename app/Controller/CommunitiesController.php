@@ -148,6 +148,21 @@ Thank you in advance!',
             $params['body'] = $body;
             $params['subject'] = '[' . $community['community_name'] . '] Requesting MISP access';
             $result = $this->User->sendEmailExternal($this->Auth->user(), $params);
+            $message = $result ? __('Request sent.') : __('Something went wrong and the request could not be sent.');
+            if ($this->_isRest()) {
+                if ($result) {
+                    return $this->RestResponse->saveSuccessResponse('Communities', 'requestAccess', $id, false, $message);
+                } else {
+                    return $this->RestResponse->saveFailResponse('Communities', 'requestAccess', false, $message);
+                }
+            } else {
+                if ($result) {
+                    $this->Flash->success($message);
+                } else {
+                    $this->Flash->error($message);
+                }
+                $this->redirect(array('controller' => 'communities', 'action' => 'view', $id));
+            }
         }
         $this->set('community', $community);
     }
