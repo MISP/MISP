@@ -97,7 +97,7 @@ A brief description of my organisation:
 
 My e-mail address that I wish to use as my username:
 %s
-%s%s%s
+%s%s
 
 Thank you in advance!',
                 $this->request->data['Server']['org_name'],
@@ -106,13 +106,6 @@ Thank you in advance!',
                 $community['community_name'],
                 $this->request->data['Server']['org_description'],
                 $this->request->data['Server']['email'],
-                empty($this->request->data['Server']['gpgkey']) ? '' : sprintf(
-                    '%sThe associated PGP key:%s%s%s',
-                    PHP_EOL,
-                    PHP_EOL,
-                    $this->request->data['Server']['gpgkey'],
-                    PHP_EOL
-                ),
                 empty($this->request->data['Server']['message']) ? '' : sprintf(
                     '%sAdditional information:%s%s%s',
                     PHP_EOL,
@@ -121,13 +114,12 @@ Thank you in advance!',
                     PHP_EOL
                 ),
                 !empty($this->request->data['Server']['anonymise']) ? '' : sprintf(
-                    '%sSent from:%sServer:%s%sServer uuid:%s',
+                    '%sServer used to issue the request%sServer url: %sServer uuid: %sServer version: %s',
                     PHP_EOL,
                     PHP_EOL,
-                    empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'),
-                    PHP_EOL,
-                    Configure::read('MISP.uuid'),
-                    PHP_EOL
+                    (empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl')) . PHP_EOL,
+                    Configure::read('MISP.uuid') . PHP_EOL,
+                    $this->mispVersion . PHP_EOL
                 )
             );
             $imgPath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS;
