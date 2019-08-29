@@ -4,12 +4,18 @@
         <legend><?php echo __('Edit MISP Feed');?></legend>
         <p><?php echo __('Edit a new MISP feed source.');?></p>
     <?php
-            echo $this->Form->input('enabled', array());
-            echo $this->Form->input('caching_enabled', array());
+            echo $this->Form->input('enabled', array(
+                'type' => 'checkbox'
+            ));
+            echo $this->Form->input('caching_enabled', array(
+                'type' => 'checkbox'
+            ));
     ?>
         <div class="input clear"></div>
     <?php
-            echo $this->Form->input('lookup_visible', array());
+            echo $this->Form->input('lookup_visible', array(
+                'type' => 'checkbox'
+            ));
             echo $this->Form->input('name', array(
                     'div' => 'input clear',
                     'placeholder' => __('Feed name'),
