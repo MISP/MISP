@@ -189,6 +189,17 @@ class DecayingModel extends AppModel
         $decaying_model['DecayingModel']['isEditable'] = $this->isEditableByCurrentUser($user, $decaying_model);
     }
 
+    public function fetchAllDefaultModel($user)
+    {
+        $default_models = $this->fetchAllAllowedModels($user, false);
+        foreach ($default_models as $i => $model) {
+            if (!$default_models[$i]['DecayingModel']['isDefault']) {
+                unset($default_models[$i]);
+            }
+        }
+        return $default_models;
+    }
+
     public function fetchAllAllowedModels($user, $full=true, $filters=array())
     {
         $conditions = array();
@@ -521,7 +532,6 @@ class DecayingModel extends AppModel
         } else {
             $models[] = $this->fetchModel($user, $model_id, false, array());
         }
-
         foreach ($models as $i => $model) {
             if (!empty($model_overrides)) {
                 $this->overrideModelParameters($model, $model_overrides);

@@ -69,14 +69,14 @@ class DecayingModelMapping extends AppModel
         return $associated_types;
     }
 
-    public function getAssociatedModels($user, $attribute_type = array()) {
+    public function getAssociatedModels($user, $attribute_type = false) {
         $conditions = array(
             'OR' => array(
                 'DecayingModel.org_id' => $user['org_id'],
                 'DecayingModel.all_orgs' => true
             )
         );
-        if (!empty($attribute_type)) {
+        if ($attribute_type !== false) {
             $conditions['attribute_type'] = $attribute_type;
         }
         $associated_models = $this->find('all', array(
@@ -94,8 +94,18 @@ class DecayingModelMapping extends AppModel
                 )
             )
         ));
+        // Also add default models to selection
+        $default_models = $this->DecayingModel->fetchAllDefaultModel($user);
+        $associated_default_models = array();
+        foreach ($default_models as $i => $model) {
+            $intersection = array_intersect($model['DecayingModel']['attribute_types'], array($attribute_type));
+            if (count($intersection) > 0) {
+                $associated_default_models[$attribute_type][] = $model['DecayingModel']['id'];
+            }
+        }
         $associated_models = Hash::combine($associated_models, '{n}.DecayingModelMapping.model_id', '{n}.DecayingModelMapping.model_id', '{n}.DecayingModelMapping.attribute_type');
-        return $associated_models;
+        $models = array_merge_recursive($associated_default_models, $associated_models);
+        return $models;
     }
 
 }
