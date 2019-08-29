@@ -4155,20 +4155,45 @@ class Server extends AppModel
 
     public function dbSpaceUsage()
     {
-        $sql = sprintf(
-            'select table_name, sum((data_length+index_length)/1024/1024) AS used, sum(data_free)/1024/1024 reclaimable from information_schema.tables where table_schema = %s group by table_name;',
-            "'" . $this->getDataSource()->config['database'] . "'"
-        );
-        $sqlResult = $this->query($sql);
-        $result = array();
-        foreach ($sqlResult as $temp) {
-            foreach ($temp[0] as $k => $v) {
-                $temp[0][$k] = round($v, 2) . 'MB';
+        $dataSource = $this->getDataSource()->config['datasource'];
+        if ($dataSource == 'Database/Mysql') {
+            $sql = sprintf(
+                'select table_name, sum((data_length+index_length)/1024/1024) AS used, sum(data_free)/1024/1024 reclaimable from information_schema.tables where table_schema = %s group by table_name;',
+                "'" . $this->getDataSource()->config['database'] . "'"
+            );
+            $sqlResult = $this->query($sql);
+            $result = array();
+            foreach ($sqlResult as $temp) {
+                foreach ($temp[0] as $k => $v) {
+                    $temp[0][$k] = round($v, 2) . 'MB';
+                }
+                $temp[0]['table'] = $temp['tables']['table_name'];
+                $result[] = $temp[0];
             }
-            $temp[0]['table'] = $temp['tables']['table_name'];
-            $result[] = $temp[0];
+            return $result;
         }
-        return $result;
+        else if ($dataSource == 'Database/Postgres') {
+            $sql = sprintf(
+                'select table_name as table, pg_total_relation_size(%s||%s||table_name) as used from information_schema.tables where table_schema = %s group by table_name;',
+                "'" . $this->getDataSource()->config['database'] . "'",
+                "'.'",
+                "'" . $this->getDataSource()->config['database'] . "'"
+            );
+            $sqlResult = $this->query($sql);
+            $result = array();
+            foreach ($sqlResult as $temp) {
+                foreach ($temp[0] as $k => $v) {
+                    if ($k == "table") {
+                        continue;
+                    }
+                    $temp[0][$k] = round($v / 1024 / 1024, 2) . 'MB';
+                }
+                $temp[0]['reclaimable'] = '0MB';
+                $result[] = $temp[0];
+            }
+            return $result;
+        }
+        
     }
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)
