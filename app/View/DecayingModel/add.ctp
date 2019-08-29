@@ -15,6 +15,7 @@
             ));
         } else {
             echo $this->Form->input('name', array(
+                'type' => 'text'
             ));
             echo $this->Form->input('description', array(
             ));
