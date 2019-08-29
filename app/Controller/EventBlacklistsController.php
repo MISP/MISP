@@ -67,6 +67,9 @@ class EventBlacklistsController extends AppController
     public function massDelete()
     {
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (!isset($this->request->data['EventBlacklist'])) {
+                $this->request->data = array('EventBlacklist' => $this->request->data);
+            }
             $ids = $this->request->data['EventBlacklist']['ids'];
             $event_ids = json_decode($ids, true);
             if (empty($event_ids)) {
