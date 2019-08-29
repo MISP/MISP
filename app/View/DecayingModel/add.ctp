@@ -20,7 +20,7 @@
             echo $this->Form->input('description', array(
             ));
             echo $this->Form->input('formula', array(
-                'value' => isset($this->request->data['DecayingModel']['formula']) ? $this->request->data['DecayingModel']['formula'] : 'polynomial',
+                'value' => isset($this->request->data['DecayingModel']['formula']) ? $this->request->data['DecayingModel']['formula'] : 'Polynomial',
                 'options' => $available_formulas,
                 'div' => 'clear'
             ));
@@ -34,57 +34,58 @@
             ));
             echo '<div id="ContainerPolynomialSetting">';
             echo $this->Form->input('DecayingModel.parameters.lifetime', array(
-                'label' => __('Lifetime parameter'),
+                'label' => sprintf('<b>%s</b> [%s]: %s', __('Lifetime'), __('days'),  __('Lifetime of the attribute, or time after which the score will be 0')),
                 'type' => 'number',
                 'min' => 0,
                 'title' => _('The end of life of the indicator'),
                 'class' => 'form-control span6',
-                'div' => 'input clear',
+                'div' => 'clear',
                 'value' => isset($this->request->data['DecayingModel']['parameters']['lifetime']) ? $this->request->data['DecayingModel']['parameters']['lifetime'] : ''
             ));
             echo $this->Form->input('DecayingModel.parameters.decay_speed', array(
-                'label' => __('Decay speed parameter'),
+                'label' => sprintf('<b>%s</b> [%s]: %s', __('Decay speed'), __('float'),  __('Decay speed at which an indicator will loose score')),
                 'type' => 'number',
                 'min' => 0,
                 'step' => 0.01,
                 'title' => _('The decay speed of the indicator'),
                 'class' => 'form-control span6',
-                'div' => 'input clear',
+                'div' => 'clear',
                 'value' => isset($this->request->data['DecayingModel']['parameters']['decay_speed']) ? $this->request->data['DecayingModel']['parameters']['decay_speed'] : ''
             ));
             echo $this->Form->input('DecayingModel.parameters.threshold', array(
-                'label' => __('Threshold parameter'),
+                'label' => sprintf('<b>%s</b> [%s]: %s', __('Cutoff threshold'), __('float'),  __('Cutoff value at which an indicator will be marked as decayed instead of 0')),
                 'type' => 'number',
                 'min' => 0,
                 'title' => _('The model threshold of the indicator'),
                 'class' => 'form-control span6',
-                'div' => 'input clear',
+                'div' => 'clear',
                 'value' => isset($this->request->data['DecayingModel']['parameters']['threshold']) ? $this->request->data['DecayingModel']['parameters']['threshold'] : ''
             ));
             echo $this->Form->input('DecayingModel.parameters.default_base_score', array(
-                'label' => __('Default base_score parameter'),
+                'label' => sprintf('<b>%s</b> [%s]: %s', __('Default base_score'), __('float'),  __('Default base_score value if no tags are attached to the indicator')),
                 'type' => 'number',
                 'min' => 0,
+                'max' => 100,
                 'title' => _('The model default base_score of the indicator'),
                 'class' => 'form-control span6',
-                'div' => 'input clear',
+                'div' => 'clear',
                 'value' => isset($this->request->data['DecayingModel']['parameters']['default_base_score']) ? $this->request->data['DecayingModel']['parameters']['default_base_score'] : ''
             ));
             echo '<div class="clear"></div>';
-            echo '<label for="DecayingModelParametersBaseScoreConfig">' . __('Base Score configuration') . '</label>';
+            echo '<label for="DecayingModelParametersBaseScoreConfig"><b>' . __('Base Score configuration') . '</b> [json]</label>';
             echo $this->Form->textarea('DecayingModel.parameters.base_score_config', array(
                 'class' => 'form-control span6',
                 'cols' => '10',
-                'value' => isset($this->request->data['DecayingModel']['parameters']['base_score_config']) ? json_encode($this->request->data['DecayingModel']['parameters']['base_score_config']) : ''
+                'value' => isset($this->request->data['DecayingModel']['parameters']['base_score_config']) ? json_encode($this->request->data['DecayingModel']['parameters']['base_score_config']) : '{}'
             ));
             echo '</div>';
             echo '<div id="ContainerOtherSetting">';
                 echo '<div class="clear"></div>';
-                echo '<label for="DecayingModelOtherSettings">' . __('Model Settings') . '</label>';
+                echo '<label for="DecayingModelOtherSettings"><b>' . __('Model Settings') . '</b> [json]</label>';
                 echo $this->Form->textarea('DecayingModel.parameters.settings', array(
                     'class' => 'form-control span6',
                     'cols' => '10',
-                    'value' => isset($this->request->data['DecayingModel']['parameters']['settings']) ? json_encode($this->request->data['DecayingModel']['parameters']['settings']) : ''
+                    'value' => isset($this->request->data['DecayingModel']['parameters']['settings']) ? json_encode($this->request->data['DecayingModel']['parameters']['settings']) : '{}'
                 ));
             echo '</div>';
         }
