@@ -1041,7 +1041,7 @@ ModelTable.prototype = {
                 {'basescoreconfig': btoa(JSON.stringify(model.DecayingModel.parameters.settings))}
             ),
             this._gen_td(model.DecayingModel.attribute_types.length, 'DMNumType'),
-            this._gen_td(this._h(model.DecayingModel.enabled) ? '<i class="fa fa-check"></i>' : '<i class="fa fa-times"></i>', 'DMEnabled'),
+            this._gen_td(model.DecayingModel.enabled ? '<i class="fa fa-check"></i>' : '<i class="fa fa-times"></i>', 'DMEnabled'),
             this._gen_td_buttons(model)
         ];
     },
