@@ -64,7 +64,7 @@ class EventDelegationsController extends AppController
             $org_id = $this->Toolbox->findIdByUuid($this->EventDelegation->Event->Org, $this->request->data['EventDelegation']['org_id']);
             $this->request->data['EventDelegation']['org_id'] = $org_id;
             $this->EventDelegation->create();
-            $this->EventDelegation->save($this->request->data['EventDelegation']);
+            $result = $this->EventDelegation->save($this->request->data['EventDelegation']);
             $org = $this->EventDelegation->Event->Org->find('first', array(
                     'conditions' => array('id' => $org_id),
                     'recursive' => -1,
@@ -72,6 +72,19 @@ class EventDelegationsController extends AppController
             ));
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
+            if (!empty($result)) {
+                $this->Log->save(array(
+                        'org' => $this->Auth->user('Organisation')['name'],
+                        'model' => 'Event',
+                        'model_id' => $event['Event']['id'],
+                        'email' => $this->Auth->user('email'),
+                        'action' => 'request_delegation',
+                        'user_id' => $this->Auth->user('id'),
+                        'title' => 'Request of event delegation failed',
+                        'change' => 'Request of the delegation of event ' . $event['Event']['id'] . ' to organisation ' . $org['Org']['name'] . ' failed.',
+                ));
+                throw new InvalidArgumentException('Invalid input, could not create the Delegation Request.');
+            }
             $this->Log->save(array(
                     'org' => $this->Auth->user('Organisation')['name'],
                     'model' => 'Event',
@@ -91,8 +104,16 @@ class EventDelegationsController extends AppController
                 ));
                 return $this->RestResponse->viewData($delegation_request, $this->response->type());
             }
-            $this->Flash->success('Delegation request created.');
-            $this->redirect('/events/view/' . $id);
+            if (!$this->_isRest()) {
+                $this->Flash->success('Delegation request created.');
+                $this->redirect('/events/view/' . $id);
+            } else {
+                $delegationRequest = $this->EventDelegation->find("first", array(
+                    'recursive' => -1,
+                    'conditions' => array('EventDelegation.id' => $this->EventDelegation->id)
+                ));
+                return $this->RestResponse->viewData($delegationRequest, $this->response->type());
+            }
         } else {
             $orgs = $this->EventDelegation->Event->Org->find('list', array(
                     'conditions' => array(
@@ -153,11 +174,21 @@ class EventDelegationsController extends AppController
                         'title' => 'Completed event delegation',
                         'change' => 'Event ' . $delegation['Event']['id'] . ' successfully transferred to organisation ' . $this->Auth->user('Organisation')['name'],
                 ));
-                $this->Flash->success('Event ownership transferred.');
-                $this->redirect(array('controller' => 'events', 'action' => 'view', $result));
+                $message = 'Event ownership transferred.';
+                if (!$this->_isRest()) {
+                    $this->Flash->success($message);
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $result));
+                } else {
+                    return $this->RestResponse->saveSuccessResponse('EventDelegation', 'acceptDelegation', $id, $this->response->type());
+                }
             } else {
-                $this->Flash->error('Something went wrong and the event could not be transferred.');
-                $this->redirect(array('controller' => 'Event', 'action' => 'view', $delegation['EventDelegation']['event_id']));
+                $message = 'Something went wrong and the event could not be transferred.';
+                if (!$this->_isRest()) {
+                    $this->Flash->error($message);
+                    $this->redirect(array('controller' => 'Event', 'action' => 'view', $delegation['EventDelegation']['event_id']));
+                } else {
+                    return $this->RestResponse->saveFailResponse('EventDelegation', 'acceptDelegation', $id, $message, $this->response->type());
+                }
             }
         } else {
             $this->set('delegationRequest', $delegation);
@@ -177,8 +208,14 @@ class EventDelegationsController extends AppController
         }
         if ($this->request->is('post')) {
             $this->EventDelegation->delete($delegation['EventDelegation']['id']);
-            $this->Flash->success('Delegation request deleted.');
-            $this->redirect(array('controller' => 'events', 'action' => 'index'));
+            $message = 'Delegation request deleted.';
+            if (!$this->_isRest()) {
+                $this->Flash->success($message);
+                $this->redirect(array('controller' => 'events', 'action' => 'index'));
+            } else {
+                return $this->RestResponse->saveSuccessResponse('EventDelegation', 'deleteDelegation', $id, $this->response->type());
+            }
+
         } else {
             $this->set('delegationRequest', $delegation);
             $this->render('ajax/delete_delegation');
