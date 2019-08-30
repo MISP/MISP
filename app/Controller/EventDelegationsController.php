@@ -179,7 +179,7 @@ class EventDelegationsController extends AppController
                     $this->Flash->success($message);
                     $this->redirect(array('controller' => 'events', 'action' => 'view', $result));
                 } else {
-                    return $this->RestResponse->saveSuccessResponse('EventDelegation', 'acceptDelegation', $id, $this->response->type());
+                    return $this->RestResponse->saveSuccessResponse('EventDelegation', 'acceptDelegation', $id, $this->response->type(), $message);
                 }
             } else {
                 $message = 'Something went wrong and the event could not be transferred.';
@@ -213,7 +213,7 @@ class EventDelegationsController extends AppController
                 $this->Flash->success($message);
                 $this->redirect(array('controller' => 'events', 'action' => 'index'));
             } else {
-                return $this->RestResponse->saveSuccessResponse('EventDelegation', 'deleteDelegation', $id, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('EventDelegation', 'deleteDelegation', $id, $this->response->type(), $message);
             }
 
         } else {
