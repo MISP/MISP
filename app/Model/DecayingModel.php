@@ -21,7 +21,6 @@ class DecayingModel extends AppModel
 
     public function afterFind($results, $primary = false) {
         foreach ($results as $k => $v) {
-            $results[$k]['DecayingModel']['isDefault'] = $this->isDefaultModel($v);
             if (!empty($v['DecayingModel']['parameters'])) {
                 $decoded = json_decode($v['DecayingModel']['parameters'], true);
                 if ($decoded === null) {
@@ -174,14 +173,11 @@ class DecayingModel extends AppModel
         }
     }
 
-    public function isDefaultModel($decaying_model)
-    {
-        return isset($decaying_model['DecayingModel']['uuid']) && !is_null($decaying_model['DecayingModel']['uuid']);
-    }
-
     public function isEditableByCurrentUser($user, $decaying_model)
     {
-        return !$this->isDefaultModel($decaying_model) && $decaying_model['DecayingModel']['org_id'] == $user['org_id'];
+        return (
+            $user['Role']['perm_site_admin'] ||
+            ($user['Role']['perm_decaying'] && !$decaying_model['DecayingModel']['default'] && $decaying_model['DecayingModel']['org_id'] == $user['org_id']));
     }
 
     public function attachIsEditableByCurrentUser($user, &$decaying_model)
@@ -191,16 +187,11 @@ class DecayingModel extends AppModel
 
     public function fetchAllDefaultModel($user)
     {
-        $default_models = $this->fetchAllAllowedModels($user, false);
-        foreach ($default_models as $i => $model) {
-            if (!$default_models[$i]['DecayingModel']['isDefault']) {
-                unset($default_models[$i]);
-            }
-        }
+        $default_models = $this->fetchAllAllowedModels($user, false, array(), array('DecayingModel.default' => true));
         return $default_models;
     }
 
-    public function fetchAllAllowedModels($user, $full=true, $filters=array())
+    public function fetchAllAllowedModels($user, $full=true, $filters=array(), $additionnal_conditions=array())
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
@@ -216,6 +207,7 @@ class DecayingModel extends AppModel
                 $conditions[] = array('not' => array('DecayingModel.uuid' => null));
             }
         }
+        $conditions[] = array('AND' => $additionnal_conditions);
         $decayingModels = $this->find('all', array(
             'conditions' => $conditions,
             'include' => $full ? 'DecayingModelMapping' :''

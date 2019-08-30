@@ -54,7 +54,7 @@ class DecayingModelMapping extends AppModel
             $model = $this->DecayingModel->fetchModel($user, $model, false);
         }
         $decaying_model = isset($model['DecayingModel']) ? $model['DecayingModel'] : $model;
-        if ($decaying_model['isDefault']) {
+        if ($decaying_model['default']) {
             $associated_types = $decaying_model['attribute_types'];
         } else {
             $temp = $this->find('list', array(

@@ -65,6 +65,11 @@ class DecayingModelController extends AppController
             if ($json === null) {
                 throw new MethodNotAllowedException(__('Error while decoding JSON'));
             }
+            
+            unset($json['DecayingModel']['id']);
+            $json['DecayingModel']['default'] = 1;
+            $json['DecayingModel']['org_id'] = $this->Auth->user()['org_id'];
+
             if ($this->DecayingModel->save($json)) {
                 $this->Flash->success(__('The model has been imported.'));
             } else {
@@ -144,7 +149,14 @@ class DecayingModelController extends AppController
     public function add()
     {
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (!isset($this->request->data['DecayingModel'])) {
+                $this->request->data = array('DecayingModel' => $this->request->data);
+            }
+
             $this->request->data['DecayingModel']['org_id'] = $this->Auth->user()['org_id'];
+            unset($this->request->data['DecayingModel']['id']);
+            unset($this->request->data['DecayingModel']['uuid']);
+            $this->request->data['DecayingModel']['default'] = 0;
 
             if (empty($this->request->data['DecayingModel']['name'])) {
                 throw new MethodNotAllowedException(__("The model must have a name"));
@@ -153,7 +165,7 @@ class DecayingModelController extends AppController
                 return false;
             }
             if ($this->DecayingModel->save($this->request->data)) {
-                if ($this->request->is('ajax')) {
+                if ($this->request->is('ajax') || $this->_isRest()) {
                     $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id);
                     $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $saved);
                     $response = array('data' => $saved, 'action' => 'add');
@@ -163,7 +175,7 @@ class DecayingModelController extends AppController
                     $this->redirect(array('action' => 'index'));
                 }
             } else {
-                if ($this->request->is('ajax')) {
+                if ($this->request->is('ajax') || $this->_isRest()) {
                     $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id);
                     $response = array('data' => $saved, 'action' => 'add', 'saved' => false);
                     return $this->RestResponse->viewData($response, $this->response->type());
@@ -186,14 +198,14 @@ class DecayingModelController extends AppController
     public function edit($id)
     {
         $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id); // ACL done in Model
-        $enforceRestrictedEdition = $this->DecayingModel->isDefaultModel($decayingModel);
+        $enforceRestrictedEdition = $decayingModel['DecayingModel']['default'];
 
         if ($this->request->is('post') || $this->request->is('put')) {
 
             $this->request->data['DecayingModel']['id'] = $id;
             $fieldListToSave = array('enabled', 'all_orgs');
             if (!$enforceRestrictedEdition) {
-                $fieldListToSave += array('name', 'description', 'parameters', 'formula');
+                $fieldListToSave = array_merge($fieldListToSave, array('name', 'description', 'parameters', 'formula'));
                 if (!$this->__adjustJSONData($this->request->data)) {
                     return false;
                 }
@@ -201,7 +213,7 @@ class DecayingModelController extends AppController
 
             $save_result = $this->DecayingModel->save($this->request->data, true, $fieldListToSave);
             if ($save_result) {
-                if ($this->request->is('ajax')) {
+                if ($this->request->is('ajax') || $this->_isRest()) {
                     $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id);
                     $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $saved);
                     $response = array('data' => $saved, 'action' => 'edit');
@@ -211,7 +223,7 @@ class DecayingModelController extends AppController
                     $this->redirect(array('action' => 'index'));
                 }
             } else {
-                if ($this->request->is('ajax')) {
+                if ($this->request->is('ajax') || $this->_isRest()) {
                     $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id);
                     $response = array('data' => $saved, 'action' => 'edit', 'saved' => false);
                     return $this->RestResponse->viewData($response, $this->response->type());
@@ -240,7 +252,7 @@ class DecayingModelController extends AppController
     private function __adjustJSONData(&$json)
     {
         if (isset($json['DecayingModel']['parameters'])) {
-            if (isset($json['DecayingModel']['parameters']['settings'])) {
+            if (isset($json['DecayingModel']['parameters']['settings']) && !is_array($json['DecayingModel']['parameters']['settings'])) {
                 $settings = json_decode($json['DecayingModel']['parameters']['settings'], true);
                 if ($settings === null) {
                     $this->Flash->error(__('Invalid JSON `Settings`.'));
@@ -265,12 +277,14 @@ class DecayingModelController extends AppController
                 return false;
             }
             if (isset($json['DecayingModel']['parameters']['base_score_config']) && $json['DecayingModel']['parameters']['base_score_config'] != '') {
-                $encoded = json_decode($json['DecayingModel']['parameters']['base_score_config'], true);
-                if ($encoded === null) {
-                    $this->Flash->error(__('Invalid parameter `base_score_config`.'));
-                    return false;
+                if (!is_array($json['DecayingModel']['parameters']['base_score_config'])) {
+                    $encoded = json_decode($json['DecayingModel']['parameters']['base_score_config'], true);
+                    if ($encoded === null) {
+                        $this->Flash->error(__('Invalid parameter `base_score_config`.'));
+                        return false;
+                    }
+                    $json['DecayingModel']['parameters']['base_score_config'] = $encoded;
                 }
-                $json['DecayingModel']['parameters']['base_score_config'] = $encoded;
             } else {
                 $json['DecayingModel']['parameters']['base_score_config'] = new stdClass();
             }
@@ -282,7 +296,13 @@ class DecayingModelController extends AppController
     public function delete($id)
     {
         if ($this->request->is('post') || $this->request->is('put')) {
-            $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+            $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+            if (
+                !$this->DecayingModel->isEditableByCurrentUser($this->Auth->user(), $decaying_model) ||
+                $decaying_model['DecayingModel']['default']
+            ) {
+                throw new MethodNotAllowedException(__('You are not authorised to delete this model.'));
+            }
 
             if ($this->DecayingModel->delete($id, true)) {
                 if ($this->request->is('ajax')) {
@@ -306,10 +326,14 @@ class DecayingModelController extends AppController
 
     public function enable($id)
     {
-        $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+        $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
         if ($this->request->is('post') || $this->request->is('put')) {
-            $decayingModel['DecayingModel']['enabled'] = 1;
-            if ($this->DecayingModel->save($decayingModel)) {
+            if (!$this->DecayingModel->isEditableByCurrentUser($this->Auth->user(), $decaying_model)) {
+                throw new MethodNotAllowedException(__('You are not authorised to enable this model.'));
+            }
+
+            $decaying_model['DecayingModel']['enabled'] = 1;
+            if ($this->DecayingModel->save($decaying_model)) {
                 if ($this->request->is('ajax')) {
                     $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
                     $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $model);
@@ -328,7 +352,7 @@ class DecayingModelController extends AppController
             }
             $this->redirect(array('action' => 'index'));
         } else {
-            $this->set('model', $decayingModel['DecayingModel']);
+            $this->set('model', $decaying_model['DecayingModel']);
             $this->render('ajax/enable_form');
         }
     }
@@ -337,6 +361,10 @@ class DecayingModelController extends AppController
     {
         $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (!$this->DecayingModel->isEditableByCurrentUser($this->Auth->user(), $decaying_model)) {
+                throw new MethodNotAllowedException(__('You are not authorised to disable this model.'));
+            }
+
             $decayingModel['DecayingModel']['enabled'] = 0;
             if ($this->DecayingModel->save($decayingModel)) {
                 if ($this->request->is('ajax')) {

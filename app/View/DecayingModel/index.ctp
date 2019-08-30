@@ -110,7 +110,7 @@ foreach ($decayingModels as $item): ?>
         <td><i class="fas fa-<?php echo $item['DecayingModel']['all_orgs'] ? 'check' : 'times';?>"></i></td>
         <td>
             <a href="<?php echo $baseurl."/decayingModel/view/" . h($item['DecayingModel']['id']); ?>"><?php echo h($item['DecayingModel']['name']); ?>&nbsp;</a>
-            <?php if ($item['DecayingModel']['isDefault']): ?>
+            <?php if ($item['DecayingModel']['default']): ?>
                 <img src="<?php echo $baseurl;?>/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="<?php echo __('Default Model from MISP Project'); ?>" />
             <?php endif; ?>
         </td>
@@ -138,7 +138,7 @@ foreach ($decayingModels as $item): ?>
             <?php if ($me['Role']['perm_admin']): ?>
                 <?php if ($me['Role']['perm_site_admin'] || $item['DecayingModel']['org_id'] == $me['org_id']): ?>
                     <?php
-                        if (!$item['DecayingModel']['isDefault']) {
+                        if (!$item['DecayingModel']['default']) {
                             echo $this->Form->postLink('', array('action' => 'delete', $item['DecayingModel']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete DecayingModel #' . h($item['DecayingModel']['id']) . '?'));
                         }
                     ?>
