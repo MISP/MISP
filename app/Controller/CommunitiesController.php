@@ -78,6 +78,8 @@ class CommunitiesController extends AppController
         ));
         if (!empty($gpgkey['User']['gpgkey'])) {
             $gpgkey = $gpgkey['User']['gpgkey'];
+        } else {
+            $gpgkey = '';
         }
         if (!$this->request->is('post')) {
             if ($this->_isRest()) {
