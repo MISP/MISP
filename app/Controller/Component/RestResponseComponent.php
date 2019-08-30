@@ -279,7 +279,7 @@ class RestResponseComponent extends Component
 
     private $__scopedFieldsConstraint = array();
 
-    public function initialize($controller) {
+    public function initialize(Controller $controller) {
         $this->__configureFieldConstraints();
     }
 
