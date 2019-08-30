@@ -77,6 +77,9 @@ class CommunitiesController extends AppController
             'fields' => array('User.gpgkey')
         ));
         if (!$this->request->is('post')) {
+            if ($this->_isRest()) {
+                return $this->RestResponse->describe('Communities', 'requestAccess', false, $this->response->type());
+            }
             $this->request->data['Server']['email'] = $this->Auth->user('email');
             $this->request->data['Server']['org_name'] = $this->Auth->user('Organisation')['name'];
             $this->request->data['Server']['org_uuid'] = $this->Auth->user('Organisation')['uuid'];
@@ -100,12 +103,12 @@ My e-mail address that I wish to use as my username:
 %s%s
 
 Thank you in advance!',
-                $this->request->data['Server']['org_name'],
-                $this->request->data['Server']['org_uuid'],
+                empty($this->request->data['Server']['org_name']) ? $this->Auth->user('Organisation')['name'] : $this->request->data['Server']['org_name'],
+                empty($this->request->data['Server']['org_uuid']) ? $this->Auth->user('Organisation')['uuid'] : $this->request->data['Server']['org_uuid'],
                 empty($this->request->data['Server']['sync']) ? '' : 'synchronisation ',
                 $community['community_name'],
-                $this->request->data['Server']['org_description'],
-                $this->request->data['Server']['email'],
+                empty($this->request->data['Server']['org_description']) ? '' : $this->request->data['Server']['org_description'],
+                empty($this->request->data['Server']['email']) ? '' : $this->request->data['Server']['email'],
                 empty($this->request->data['Server']['message']) ? '' : sprintf(
                     '%sAdditional information:%s%s%s',
                     PHP_EOL,
@@ -135,11 +138,14 @@ Thank you in advance!',
                     }
                 }
             }
+            if (!isset($this->request->data['Server']['gpgkey'])) {
+                $this->request->data['Server']['gpgkey'] = $gpgkey;
+            }
             if (!empty($image)) {
                 $params['attachments']['logo.png'] = $image;
             }
-            if (!empty($gpgkey)) {
-                $params['attachments']['requestor.asc'] = $gpgkey;
+            if (!empty($this->request->data['Server']['gpgkey'])) {
+                $params['attachments']['requestor.asc'] = $this->request->data['Server']['gpgkey'];
             }
             $params = array();
             $params['to'] = $community['email'];
