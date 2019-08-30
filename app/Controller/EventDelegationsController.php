@@ -72,7 +72,7 @@ class EventDelegationsController extends AppController
             ));
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            if (!empty($result)) {
+            if (empty($result)) {
                 $this->Log->save(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Event',
