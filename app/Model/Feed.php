@@ -328,48 +328,22 @@ class Feed extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            if ($scope === 'Feed') {
-                $params = array(
-                    'recursive' => -1,
-                    'fields' => array('id', 'name', 'url', 'provider', 'source_format')
-                );
-                if (!$user['Role']['perm_site_admin']) {
-                    $params['conditions'] = array('Feed.lookup_visible' => 1);
-                }
-                $sources = $this->find('all', $params);
-            } else {
-                $params = array(
-                    'recursive' => -1,
-                    'fields' => array('id', 'name', 'url', 'caching_enabled')
-                );
-                if (!$user['Role']['perm_site_admin']) {
-                    $params['conditions'] = array('Server.caching_enabled' => 1);
-                }
-                $this->Server = ClassRegistry::init('Server');
-                $sources = $this->Server->find('all', $params);
-            }
-
-            $counter = 0;
-            $hashTable = array();
-            $sourceList = array();
             $pipe = $redis->multi(Redis::PIPELINE);
-            $objectsWithFeedHits = array();
             $hashTable = array();
-            $hitIds = array();
+            $cachePrefix = 'misp:' . strtolower($scope) . '_cache:';
+
             $this->Event = ClassRegistry::init('Event');
-            $objectKeys = array();
+            $compositeTypes = $this->Event->Attribute->getCompositeTypes();
+
             foreach ($objects as $k => $object) {
-                if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
+                if (in_array($object['type'], $compositeTypes)) {
                     $value = explode('|', $object['value']);
                     $hashTable[$k] = md5($value[0]);
-                    $objectKeys[] = $k;
                 } else {
                     $hashTable[$k] = md5($object['value']);
                 }
-                $redis->sismember('misp:' . strtolower($scope) . '_cache:combined', $hashTable[$k]);
-                $objectKeys[] = $k;
+                $redis->sismember($cachePrefix . 'combined', $hashTable[$k]);
             }
-            $results = array();
             $results = $pipe->exec();
             if (!$overrideLimit && count($objects) > 10000) {
                 foreach ($results as $k => $result) {
@@ -383,24 +357,48 @@ class Feed extends AppModel
                     }
                 }
             } else {
+                if ($scope === 'Feed') {
+                    $params = array(
+                        'recursive' => -1,
+                        'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+                    );
+                    if (!$user['Role']['perm_site_admin']) {
+                        $params['conditions'] = array('Feed.lookup_visible' => 1);
+                    }
+                    $sources = $this->find('all', $params);
+                } else {
+                    $params = array(
+                        'recursive' => -1,
+                        'fields' => array('id', 'name', 'url', 'caching_enabled')
+                    );
+                    if (!$user['Role']['perm_site_admin']) {
+                        $params['conditions'] = array('Server.caching_enabled' => 1);
+                    }
+                    $this->Server = ClassRegistry::init('Server');
+                    $sources = $this->Server->find('all', $params);
+                }
+
+                $hitIds = array();
                 foreach ($results as $k => $result) {
                     if ($result && empty($objects[$k]['disable_correlation'])) {
                         $hitIds[] = $k;
                     }
                 }
-                foreach ($sources as $k3 => $source) {
+                foreach ($sources as $source) {
+                    $sourceScopeId = $source[$scope]['id'];
+
                     $pipe = $redis->multi(Redis::PIPELINE);
-                    foreach ($hitIds as $k2 => $k) {
-                        $redis->sismember('misp:' . strtolower($scope) . '_cache:' . $source[$scope]['id'], $hashTable[$k]);
+                    foreach ($hitIds as $k) {
+                        $redis->sismember($cachePrefix . $sourceScopeId, $hashTable[$k]);
                     }
                     $sourceHits = $pipe->exec();
                     foreach ($sourceHits as $k4 => $hit) {
                         if ($hit) {
-                            if (!isset($event[$scope][$sources[$k3][$scope]['id']]['id'])) {
-                                if (!isset($event[$scope][$sources[$k3][$scope]['id']])) {
-                                    $event[$scope][$sources[$k3][$scope]['id']] = array();
+                            if (!isset($event[$scope][$sourceScopeId]['id'])) {
+                                if (!isset($event[$scope][$sourceScopeId])) {
+                                    $event[$scope][$sourceScopeId] = array();
                                 }
-                                $event[$scope][$sources[$k3][$scope]['id']] = array_merge($event[$scope][$sources[$k3][$scope]['id']], $source[$scope]);
+                                $event[$scope][$sourceScopeId] = array_merge($event[$scope][$sourceScopeId], $source[$scope]);
                             }
                             $objects[$hitIds[$k4]][$scope][] = $source[$scope];
                         }
@@ -415,11 +413,11 @@ class Feed extends AppModel
                                     if ($source[$scope]['id'] == $currentFeed['id']) {
                                         $eventUuidHitPosition[$i] = $k;
                                         $i++;
-                                        if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
+                                        if (in_array($object['type'], $compositeTypes)) {
                                             $value = explode('|', $object['value']);
-                                            $redis->smembers('misp:' . strtolower($scope) . '_cache:event_uuid_lookup:' . md5($value[0]));
+                                            $redis->smembers($cachePrefix . 'event_uuid_lookup:' . md5($value[0]));
                                         } else {
-                                            $redis->smembers('misp:' . strtolower($scope) . '_cache:event_uuid_lookup:' . md5($object['value']));
+                                            $redis->smembers($cachePrefix . 'event_uuid_lookup:' . md5($object['value']));
                                         }
                                     }
                                 }
@@ -428,13 +426,13 @@ class Feed extends AppModel
                         $mispFeedHits = $pipe->exec();
                         foreach ($mispFeedHits as $sourcehitPos => $f) {
                             foreach ($f as $url) {
-                                $urlParts = explode('/', $url);
-                                if (empty($event[$scope][$urlParts[0]]['event_uuids']) || !in_array($urlParts[1], $event[$scope][$urlParts[0]]['event_uuids'])) {
-                                    $event[$scope][$urlParts[0]]['event_uuids'][] = $urlParts[1];
+                                list($feedId, $eventUuid) = explode('/', $url);
+                                if (empty($event[$scope][$feedId]['event_uuids']) || !in_array($eventUuid, $event[$scope][$feedId]['event_uuids'])) {
+                                    $event[$scope][$feedId]['event_uuids'][] = $eventUuid;
                                 }
                                 foreach ($objects[$eventUuidHitPosition[$sourcehitPos]][$scope] as $tempKey => $tempFeed) {
-                                    if ($tempFeed['id'] == $urlParts[0]) {
-                                        $objects[$eventUuidHitPosition[$sourcehitPos]][$scope][$tempKey]['event_uuids'][] = $urlParts[1];
+                                    if ($tempFeed['id'] == $feedId) {
+                                        $objects[$eventUuidHitPosition[$sourcehitPos]][$scope][$tempKey]['event_uuids'][] = $eventUuid;
                                     }
                                 }
                             }
