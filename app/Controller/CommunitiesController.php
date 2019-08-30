@@ -106,7 +106,7 @@ Thank you in advance!',
                 empty($this->request->data['Server']['org_name']) ? $this->Auth->user('Organisation')['name'] : $this->request->data['Server']['org_name'],
                 empty($this->request->data['Server']['org_uuid']) ? $this->Auth->user('Organisation')['uuid'] : $this->request->data['Server']['org_uuid'],
                 empty($this->request->data['Server']['sync']) ? '' : 'synchronisation ',
-                $community['community_name'],
+                $community['name'],
                 empty($this->request->data['Server']['org_description']) ? '' : $this->request->data['Server']['org_description'],
                 empty($this->request->data['Server']['email']) ? '' : $this->request->data['Server']['email'],
                 empty($this->request->data['Server']['message']) ? '' : sprintf(
@@ -153,7 +153,7 @@ Thank you in advance!',
             $params['requestor_gpgkey'] = $this->request->data['Server']['gpgkey'];
             $params['gpgkey'] = $community['pgp_key'];
             $params['body'] = $body;
-            $params['subject'] = '[' . $community['community_name'] . '] Requesting MISP access';
+            $params['subject'] = '[' . $community['name'] . '] Requesting MISP access';
             $result = $this->User->sendEmailExternal($this->Auth->user(), $params);
             $message = $result ? __('Request sent.') : __('Something went wrong and the request could not be sent.');
             if ($this->_isRest()) {

@@ -595,12 +595,12 @@
                         if ($menuItem === 'view_community' || $menuItem === 'request_community_access') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'text' => __('Request Access'),
-                                'url' => '/communities/requestAccesss/' . h($community['community_uuid']),
+                                'url' => '/communities/requestAccesss/' . h($community['uuid']),
                                 'element_id' => 'request_community_access'
                             ));
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'text' => __('View community'),
-                                'url' => '/communities/view/' . h($community['community_uuid']),
+                                'url' => '/communities/view/' . h($community['uuid']),
                                 'element_id' => 'view_community'
 
                             ));

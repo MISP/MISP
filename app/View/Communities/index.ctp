@@ -51,9 +51,9 @@
                 ),
                 array(
                     'name' => __('Community name'),
-                    'sort' => 'community_name',
+                    'sort' => 'name',
                     'class' => 'short',
-                    'data_path' => 'community_name',
+                    'data_path' => 'name',
                 ),
                 array(
                     'name' => __('Description'),
@@ -66,14 +66,14 @@
                 array(
                     'url' => '/communities/view',
                     'url_params_data_paths' => array(
-                        'community_uuid'
+                        'uuid'
                     ),
                     'icon' => 'eye'
                 ),
                 array(
                     'url' => '/communities/requestAccess',
                     'url_params_data_paths' => array(
-                        'community_uuid'
+                        'uuid'
                     ),
                     'icon' => 'comments'
                 )

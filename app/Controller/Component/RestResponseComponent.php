@@ -56,7 +56,7 @@ class RestResponseComponent extends Component
                 'description' => "POST a request object describing yourself and your organisation to request access to the desired community.",
                 'mandatory' => array(),
                 'optional' => array('org_name', 'org_uuid', 'sync', 'org_description', 'email', 'message', 'anonymise'),
-                'params' => array('community_uuid')
+                'params' => array('uuid')
             )
         ),
         'Event' => array(
