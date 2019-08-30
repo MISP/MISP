@@ -105,6 +105,7 @@ install:
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.host_org_id" 1'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.email" "info@admin.test"'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.disable_emailing" true'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "debug" true'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
