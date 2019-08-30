@@ -777,11 +777,16 @@ class User extends AppModel
                 }
             }
             $Email->attachments($attachments);
+            $mock = false;
             if (Configure::read('MISP.disable_emailing') || !empty($params['mock'])) {
                 $Email->transport('Debug');
+                $mock = true;
             }
             $result = $Email->send($params['body']);
             $Email->reset();
+            if ($result && !$mock) {
+                return true;
+            }
             return $result;
         }
         return false;
