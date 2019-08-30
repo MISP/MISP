@@ -70,6 +70,11 @@ class ACLComponent extends Component
                     'view' => array('*'),
                     'viewPicture' => array('*'),
             ),
+            'communities' => array(
+                    'index' => array(),
+                    'requestAccess' => array(),
+                    'view' => array()
+            ),
             'eventBlacklists' => array(
                     'add' => array(),
                     'delete' => array(),

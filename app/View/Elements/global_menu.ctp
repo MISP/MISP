@@ -240,6 +240,11 @@
                         'text' => __('Search Feed Caches'),
                         'url' => '/feeds/searchCaches',
                         'requirement' => ($isSiteAdmin || $hostOrgUser)
+                    ),
+                    array(
+                        'text' => __('List Communities'),
+                        'url' => '/communities/index',
+                        'requirement' => ($isSiteAdmin)
                     )
                 )
             ),

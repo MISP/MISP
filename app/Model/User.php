@@ -739,6 +739,54 @@ class User extends AppModel
         return $users;
     }
 
+    public function sendEmailExternal($user, $params)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $params['body'] = str_replace('\n', PHP_EOL, $params['body']);
+        $Email = new CakeEmail();
+        $recipient = array('User' => array('email' => $params['to']));
+        $failed = false;
+        if (!empty($params['gpgkey'])) {
+            $recipient['User']['gpgkey'] = $params['gpgkey'];
+            $encryptionResult = $this->__encryptUsingGPG($Email, $params['body'], $params['subject'], $recipient);
+            if (isset($encryptionResult['failed'])) {
+                $failed = true;
+            }
+            if (isset($encryptionResult['failureReason'])) {
+                $failureReason = $encryptionResult['failureReason'];
+            }
+        }
+        if (!$failed) {
+            $replyToLog = '';
+            $user = array('User' => $user);
+            $attachments = array();
+            $Email->replyTo($params['reply-to']);
+            if (!empty($params['requestor_gpgkey'])) {
+                $attachments['gpgkey.asc'] = array(
+                    'data' => $params['requestor_gpgkey']
+                );
+            }
+            $Email->from(Configure::read('MISP.email'));
+            $Email->returnPath(Configure::read('MISP.email'));
+            $Email->to($params['to']);
+            $Email->subject($params['subject']);
+            $Email->emailFormat('text');
+            if (!empty($params['attachments'])) {
+                foreach ($params['attachments'] as $key => $value) {
+                    $attachments[$k] = array('data' => $value);
+                }
+            }
+            $Email->attachments($attachments);
+            if (Configure::read('MISP.disable_emailing') || !empty($params['mock'])) {
+                $Email->transport('Debug');
+            }
+            $result = $Email->send($params['body']);
+            $Email->reset();
+            return $result;
+        }
+        return false;
+    }
+
     // all e-mail sending is now handled by this method
     // Just pass the user ID in an array that is the target of the e-mail along with the message body and the alternate message body if the message cannot be encrypted
     // the remaining two parameters are the e-mail subject and a secondary user object which will be used as the replyto address if set. If it is set and an encryption key for the replyTo user exists, then his/her public key will also be attached
@@ -833,16 +881,21 @@ class User extends AppModel
         return false;
     }
 
-    private function __finaliseAndSendEmail($replyToUser, &$Email, &$replyToLog, $user, $subject, $body)
+    private function __finaliseAndSendEmail($replyToUser, &$Email, &$replyToLog, $user, $subject, $body, $additionalAttachments = false)
     {
         // If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender
         // For this reason we should also attach the public key of the sender along with the message (if applicable)
+        $attachments = array();
         if ($replyToUser != false) {
             $Email->replyTo($replyToUser['User']['email']);
             if (!empty($replyToUser['User']['gpgkey'])) {
-                $Email->attachments(array('gpgkey.asc' => array('data' => $replyToUser['User']['gpgkey'])));
+                $attachments['gpgkey.asc'] = array(
+                    'data' => $replyToUser['User']['gpgkey']
+                );
             } elseif (!empty($replyToUser['User']['certif_public'])) {
-                $Email->attachments(array($replyToUser['User']['email'] . '.pem' => array('data' => $replyToUser['User']['certif_public'])));
+                $attachments[$replyToUser['User']['email'] . '.pem'] = array(
+                    'data' => $replyToUser['User']['certif_public']
+                );
             }
             $replyToLog = 'from ' . $replyToUser['User']['email'];
         }
@@ -851,6 +904,12 @@ class User extends AppModel
         $Email->to($user['User']['email']);
         $Email->subject($subject);
         $Email->emailFormat('text');
+        if (!empty($additionalAttachments)) {
+            foreach ($additionalAttachments as $key => $value) {
+                $attachments[$k] = array('data' => $value);
+            }
+        }
+        $Email->attachments($attachments);
         $result = $Email->send($body);
         $Email->reset();
         return $result;
