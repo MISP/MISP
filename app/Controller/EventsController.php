@@ -3416,7 +3416,18 @@ class EventsController extends AppController
             $this->render('/Events/module_views/' . $renderView);
         } else {
             $responseType = $this->Event->validFormats[$returnFormat][0];
-            return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+            $filename = 'misp.event.';
+            if (!empty($filters['eventid']) && !is_array($filters['eventid'])) {
+                if (Validation::uuid(trim($filters['eventid']))) {
+                    $filename .= trim($filters['eventid']);
+                } else if (!empty(intval(trim($filters['eventid'])))) {
+                    $filename .= intval(trim($filters['eventid']));
+                }
+            } else {
+                $filename .= 'list';
+            }
+            $filename .= '.' . $responseType;
+            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
         }
 
     }
