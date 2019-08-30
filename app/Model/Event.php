@@ -1883,6 +1883,13 @@ class Event extends AppModel
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
                 $conditions['AND']['OR']['Event.id'] = $delegatedEventIDs;
             }
+            $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
+            $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
+            if ($this->getDataSource()->config['datasource'] == 'Database/Postgres') {
+                $schemaName = $this->getDataSource()->config['schema'];
+                $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);
+                $objectCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Object"."event_id")', $schemaName, $schemaName, $schemaName);
+            }
             $conditionsAttributes['AND'][0]['OR'] = array(
                 array('AND' => array(
                     'Attribute.distribution >' => 0,
@@ -1892,7 +1899,7 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 )),
-                '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
+                $attributeCondSelect => $user['org_id']
             );
 
             $conditionsObjects['AND'][0]['OR'] = array(
@@ -1904,7 +1911,7 @@ class Event extends AppModel
                     'Object.distribution' => 4,
                     'Object.sharing_group_id' => $sgids,
                 )),
-                '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)' => $user['org_id']
+                $objectCondSelect => $user['org_id']
             );
         }
         if ($options['distribution']) {
