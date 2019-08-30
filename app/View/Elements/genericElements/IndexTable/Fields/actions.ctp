@@ -30,12 +30,12 @@
             );
         } else {
             echo sprintf(
-                '<a href="%s" class="black %s" title="%s" aria-label="%s" %s></a>',
+                '<a href="%s" title="%s" aria-label="%s" %s><i class="black %s"></i></a> ',
                 $url,
-                $this->FontAwesome->getClass($action['icon']),
                 empty($action['title']) ? '' : h($action['title']),
                 empty($action['title']) ? '' : h($action['title']),
-                empty($action['onclick']) ? '' : sprintf('onclick="%s"', $action['onclick'])
+                empty($action['onclick']) ? '' : sprintf('onclick="%s"', $action['onclick']),
+                $this->FontAwesome->getClass($action['icon'])
             );
         }
     }
