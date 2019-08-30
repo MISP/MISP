@@ -55,7 +55,7 @@ class RestResponseComponent extends Component
             'requestAccess' => array(
                 'description' => "POST a request object describing yourself and your organisation to request access to the desired community.",
                 'mandatory' => array(),
-                'optional' => array('org_name', 'org_uuid', 'sync', 'org_description', 'email', 'message', 'anonymise', 'gpgkey'),
+                'optional' => array('org_name', 'org_uuid', 'sync', 'org_description', 'email', 'message', 'anonymise', 'gpgkey', 'mock'),
                 'params' => array('uuid')
             )
         ),
@@ -995,6 +995,13 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('Will only return  id, timestamp, published and uuid')
+            ),
+            'mock' => array(
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => array(1 => 'True', 0 => 'False' ),
+                'operators' => array('equal'),
+                'help' => __('Mock the query')
             ),
             'model' => array(
                 'input' => 'select',

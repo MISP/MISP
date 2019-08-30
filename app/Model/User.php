@@ -742,19 +742,6 @@ class User extends AppModel
     public function sendEmailExternal($user, $params)
     {
         $this->Log = ClassRegistry::init('Log');
-        if (Configure::read('MISP.disable_emailing')) {
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'User',
-                    'model_id' => $user['id'],
-                    'email' => $user['email'],
-                    'action' => 'email',
-                    'title' => 'Email to ' . $user['email'] . ', titled "' . $params['subject'] . '" failed. Reason: Emailing is currently disabled on this instance.',
-                    'change' => null,
-            ));
-            return true;
-        }
         $params['body'] = str_replace('\n', PHP_EOL, $params['body']);
         $Email = new CakeEmail();
         $recipient = array('User' => array('email' => $params['to']));
@@ -790,6 +777,9 @@ class User extends AppModel
                 }
             }
             $Email->attachments($attachments);
+            if (Configure::read('MISP.disable_emailing') || !empty($params['mock'])) {
+                $Email->transport('Debug');
+            }
             $result = $Email->send($params['body']);
             $Email->reset();
             return $result;

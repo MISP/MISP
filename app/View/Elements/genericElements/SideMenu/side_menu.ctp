@@ -605,6 +605,12 @@
 
                             ));
                         }
+                        if ($menuItem === 'view_email') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'text' => __('Request E-mail'),
+                                'element_id' => 'view_email'
+                            ));
+                        }
                     }
                     break;
 

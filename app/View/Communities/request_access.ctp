@@ -48,6 +48,11 @@
             $this->Form->input('anonymise', array(
                 'label' => __('Anonymise information on the server used to issue the request'),
                 'type' => 'checkbox'
+            )) .
+            $this->element('/genericElements/Forms/clear') .
+            $this->Form->input('mock', array(
+                'label' => __('Generate e-mail for later use, but do not send it'),
+                'type' => 'checkbox'
             ))
         ),
         $this->Form->button('Submit', array(

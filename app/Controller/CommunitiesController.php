@@ -76,6 +76,9 @@ class CommunitiesController extends AppController
             'recursive' => -1,
             'fields' => array('User.gpgkey')
         ));
+        if (!empty($gpgkey['User']['gpgkey'])) {
+            $gpgkey = $gpgkey['User']['gpgkey'];
+        }
         if (!$this->request->is('post')) {
             if ($this->_isRest()) {
                 return $this->RestResponse->describe('Communities', 'requestAccess', false, $this->response->type());
@@ -83,7 +86,7 @@ class CommunitiesController extends AppController
             $this->request->data['Server']['email'] = $this->Auth->user('email');
             $this->request->data['Server']['org_name'] = $this->Auth->user('Organisation')['name'];
             $this->request->data['Server']['org_uuid'] = $this->Auth->user('Organisation')['uuid'];
-            $this->request->data['Server']['gpgkey'] = $gpgkey['User']['gpgkey'];
+            $this->request->data['Server']['gpgkey'] = $gpgkey;
         } else {
             if (empty($this->request->data['Server'])) {
                 $this->request->data = array('Server' => $this->request->data);
@@ -149,26 +152,36 @@ Thank you in advance!',
             }
             $params = array();
             $params['to'] = $community['email'];
-            $params['reply-to'] = $this->request->data['Server']['email'];
-            $params['requestor_gpgkey'] = $this->request->data['Server']['gpgkey'];
+            $params['reply-to'] = empty($this->request->data['Server']['email']) ? $this->Auth->user('email') : $this->request->data['Server']['email'];
+            $params['requestor_gpgkey'] = empty($this->request->data['Server']['gpgkey']) ? $gpgkey : $this->request->data['Server']['gpgkey'];
             $params['gpgkey'] = $community['pgp_key'];
             $params['body'] = $body;
             $params['subject'] = '[' . $community['name'] . '] Requesting MISP access';
+            $params['mock'] = !empty($this->request->data['Server']['mock']);
             $result = $this->User->sendEmailExternal($this->Auth->user(), $params);
             $message = $result ? __('Request sent.') : __('Something went wrong and the request could not be sent.');
             if ($this->_isRest()) {
-                if ($result) {
+                if ($result === true) {
                     return $this->RestResponse->saveSuccessResponse('Communities', 'requestAccess', $id, false, $message);
+                } elseif ($result) {
+                    return $this->RestResponse->viewData($result);
                 } else {
                     return $this->RestResponse->saveFailResponse('Communities', 'requestAccess', false, $message);
                 }
             } else {
-                if ($result) {
+                if ($result === true) {
                     $this->Flash->success($message);
+                    $this->redirect(array('controller' => 'communities', 'action' => 'view', $id));
+                } elseif ($result) {
+                    $this->set('result', $result);
+                    $this->render('request_access_email');
                 } else {
                     $this->Flash->error($message);
+                    $this->redirect(array('controller' => 'communities', 'action' => 'view', $id));
                 }
-                $this->redirect(array('controller' => 'communities', 'action' => 'view', $id));
+            }
+            if (!empty($this->request->data['Server']['mock'])) {
+                $this->set('mock', $this->request->data['Server']['mock']);
             }
         }
         $this->set('community', $community);
