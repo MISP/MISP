@@ -843,11 +843,15 @@ class StixFromMISPParser(StixParser):
                 attributes.append({'type': attribute_type, 'object_relation': relation,
                                    'value': value if isinstance(value, str) else value.value})
         if attributes:
-            vulnerability_object = MISPObject('vulnerability')
-            vulnerability_object.uuid = uuid
-            for attribute in attributes:
-                vulnerability_object.add_attribute(**attribute)
-            self.misp_event.add_object(**vulnerability_object)
+            if len(attributes) == 1 and attributes[0]['object_relation'] == 'id':
+                attributes[0]['uuid'] = uuid
+                self.misp_event.add_attribute(**attributes[0])
+            else:
+                vulnerability_object = MISPObject('vulnerability')
+                vulnerability_object.uuid = uuid
+                for attribute in attributes:
+                    vulnerability_object.add_attribute(**attribute)
+                self.misp_event.add_object(**vulnerability_object)
 
     def parse_weakness_object(self, weakness, uuid):
         attribute_type = 'text'
