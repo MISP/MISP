@@ -17,6 +17,7 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
 
 _AS_attribute = ('AS', 'asn')
 _as_mapping = {'number': _AS_attribute, 'handle': _AS_attribute, 'name': ('text', 'description')}
+_attack_pattern_object_mapping = {'capec_id': 'id', 'title': 'name', 'description': 'summary'}
 _coa_mapping = {'type_': 'value', 'stage': 'value', 'impact': 'value.value',
                 'description': 'value', 'objective': 'description.value',
                 'cost': 'value.value', 'efficacy': 'value.value'}
@@ -53,6 +54,9 @@ _user_account_object_mapping = {'username': ('text', 'username'), 'full_name': (
                                 'disabled': ('boolean', 'disabled'), 'creation_date': ('datetime', 'created'),
                                 'last_login': ('datetime', 'last_login'), 'home_directory': ('text', 'home_dir'),
                                 'script_path': ('text', 'shell')}
+_vulnerability_object_mapping = {'cve_id': ('text', 'id'), 'description': ('text', 'summary'),
+                                 'published_datetime': ('datetime', 'published')}
+_weakness_object_mapping = {'cwe_id': 'id', 'description': 'description'}
 _whois_registrant_mapping = {'email_address': ('whois-registrant-email', 'address_value.value', 'registrant-email'),
                               'name': ('whois-registrant-name', 'value', 'registrant-name'),
                               'phone_number': ('whois-registrant-phone', 'value', 'registrant-phone'),

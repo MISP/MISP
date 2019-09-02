@@ -819,6 +819,48 @@ class StixFromMISPParser(StixParser):
         if self.references:
             self.build_references()
 
+    def parse_attack_pattern_object(self, attack_pattern):
+        attribute_type = 'text'
+        attributes = []
+        for key, relation in stix2misp_mapping._attack_pattern_object_mapping.items():
+            value = getattr(attack_pattern, key)
+            if value:
+                attributes.append({'type': attribute_type, 'object_relation': relation,
+                                   'value': value if isinstance(value, str) else value.value})
+        if attributes:
+            attack_pattern_object = MISPObject('attack-pattern')
+            for attribute in attributes:
+                attack_pattern_object.add_attribute(**attribute)
+            self.misp_event.add_object(**attack_pattern_object)
+
+    def parse_vulnerability_object(self, vulnerability):
+        attributes = []
+        for key, mapping in stix2misp_mapping._vulnerability_object_mapping.items():
+            value = getattr(vulnerability, key)
+            if value:
+                attribute_type, relation = mapping
+                attributes.append({'type': attribute_type, 'object_relation': relation,
+                                   'value': value if isinstance(value, str) else value.value})
+        if attributes:
+            vulnerability_object = MISPObject('vulnerability')
+            for attribute in attributes:
+                vulnerability_object.add_attribute(**attribute)
+            self.misp_event.add_object(**vulnerability_object)
+
+    def parse_weakness_object(self, weakness):
+        attribute_type = 'text'
+        attributes = []
+        for key, relation in stix2misp_mapping._weakness_object_mapping.items():
+            value = getattr(weakness, key)
+            if value:
+                attributes.append({'type': attribute_type, 'object_relation': relation,
+                                   'value': value if isinstance(value, str) else value.value})
+        if attributes:
+            weakness_object = MISPObject('weakness')
+            for attribute in attributes:
+                weakness_object.add_attribute(**attribute)
+            self.misp_event.add_object(**weakness_object)
+
     # Return type & attributes (or value) of a Custom Object
     def handle_custom(self, properties):
         custom_properties = properties.custom_properties
