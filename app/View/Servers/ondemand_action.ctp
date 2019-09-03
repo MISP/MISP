@@ -70,18 +70,5 @@ $disabledBtnText = $updateLocked ? 'title="' . __('An action is already in progr
 
 <script type="text/javascript">
 $(document).ready(function(){
-    $('.submitButtonToUpdateProgress').click(function() {
-        var form = $(this).closest("form");
-        $.ajax({
-            data: form.serialize(),
-            cache: false,
-            timeout: 100,
-            complete: function (data, textStatus) {
-                window.location.href = $('#btnShowProgress').prop('href');
-            },
-            type:"post",
-            url: form.prop('action')
-	});
-    });
 });
 </script>
