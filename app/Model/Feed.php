@@ -562,6 +562,7 @@ class Feed extends AppModel
                             foreach ($filterRules[$field][$prefix] as $temp) {
                                 if (stripos($object['name'], $temp) !== false) {
                                     $found = true;
+                                    break 2;
                                 }
                             }
                         }
@@ -574,9 +575,6 @@ class Feed extends AppModel
                     }
                 }
             }
-        }
-        if (!$filterRules) {
-            return true;
         }
         return true;
     }
