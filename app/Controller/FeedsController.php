@@ -875,11 +875,11 @@ class FeedsController extends AppController
             $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
         }
         $data = json_decode($this->request->data['Feed']['data'], true);
-        $result = $this->Feed->saveFreetextFeedData($feed, $data, $this->Auth->user());
-        if ($result === true) {
+        try {
+            $this->Feed->saveFreetextFeedData($feed, $data, $this->Auth->user());
             $this->Flash->success(__('Data pulled.'));
-        } else {
-            $this->Flash->error(__('Could not pull the selected data. Reason: %s', $result));
+        } catch (Exception $e) {
+            $this->Flash->error(__('Could not pull the selected data. Reason: %s', $e->getMessage()));
         }
         $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
     }

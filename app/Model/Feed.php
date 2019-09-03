@@ -806,7 +806,7 @@ class Feed extends AppModel
             }
 
             $data = array();
-            foreach ($temp as $key => $value) {
+            foreach ($temp as $value) {
                 $data[] = array(
                     'category' => $value['category'],
                     'type' => $value['default_type'],
@@ -814,15 +814,19 @@ class Feed extends AppModel
                     'to_ids' => $value['to_ids']
                 );
             }
-            $this->jobProgress($jobId, 'Saving data.', 50);
             if (empty($data)) {
                 return true;
             }
-            $result = $this->saveFreetextFeedData($this->data, $data, $user);
-            if ($result !== true) {
-                CakeLog::error($result);
+
+            $this->jobProgress($jobId, 'Saving data.', 50);
+
+            try {
+                $result = $this->saveFreetextFeedData($this->data, $data, $user);
+            } catch (Exception $e) {
+                CakeLog::error($this->exceptionAsMessage("Could not save freetext feed data for feed $feedId.", $e));
                 return false;
             }
+
             $this->__cleanupFile($this->data, '');
         }
         return $result;
@@ -840,17 +844,24 @@ class Feed extends AppModel
         return true;
     }
 
+    /**
+     * @param array $feed
+     * @param array $data
+     * @param array $user
+     * @param int|bool $jobId
+     * @return bool
+     * @throws Exception
+     */
     public function saveFreetextFeedData($feed, $data, $user, $jobId = false)
     {
         $this->Event = ClassRegistry::init('Event');
-        $event = false;
+
         if ($feed['Feed']['fixed_event'] && $feed['Feed']['event_id']) {
             $event = $this->Event->find('first', array('conditions' => array('Event.id' => $feed['Feed']['event_id']), 'recursive' => -1));
             if (empty($event)) {
-                return 'The target event is no longer valid. Make sure that the target event exists.';
+                throw new Exception("The target event is no longer valid. Make sure that the target event {$feed['Feed']['event_id']} exists.");
             }
-        }
-        if (!$event) {
+        } else {
             $this->Event->create();
             $event = array(
                     'info' => $feed['Feed']['name'] . ' feed',
@@ -865,11 +876,11 @@ class Feed extends AppModel
             );
             $result = $this->Event->save($event);
             if (!$result) {
-                return 'Something went wrong while creating a new event.';
+                throw new Exception('Something went wrong while creating a new event.');
             }
             $event = $this->Event->find('first', array('conditions' => array('Event.id' => $this->Event->id), 'recursive' => -1));
             if (empty($event)) {
-                return 'The newly created event is no longer valid. Make sure that the target event exists.';
+                throw new Exception("The newly created event is no longer valid. Make sure that the target event {$this->Event->id} exists.");
             }
             if ($feed['Feed']['fixed_event']) {
                 $feed['Feed']['event_id'] = $event['Event']['id'];
@@ -889,16 +900,15 @@ class Feed extends AppModel
                 'fields' => array('id', 'value1', 'value2')
             ));
             $event['Attribute'] = array();
-            foreach ($temp as $k => $t) {
+            foreach ($temp as $t) {
                 if (!empty($t['Attribute']['value2'])) {
-                    $t['Attribute']['value'] = $t['Attribute']['value1'] . '|' . $t['Attribute']['value2'];
+                    $value = $t['Attribute']['value1'] . '|' . $t['Attribute']['value2'];
                 } else {
-                    $t['Attribute']['value'] = $t['Attribute']['value1'];
+                    $value = $t['Attribute']['value1'];
                 }
-                $event['Attribute'][$t['Attribute']['id']] = $t['Attribute']['value'];
+                $event['Attribute'][$t['Attribute']['id']] = $value;
             }
             unset($temp);
-            $to_delete = array();
             foreach ($data as $k => $dataPoint) {
                 $finder = array_search($dataPoint['value'], $event['Attribute']);
                 if ($finder !== false) {
@@ -907,29 +917,28 @@ class Feed extends AppModel
                 }
             }
             if ($feed['Feed']['delta_merge']) {
-                foreach ($event['Attribute'] as $k => $attribute) {
-                    $to_delete[] = $k;
-                }
+                $to_delete = array_keys($event['Attribute']);
                 if (!empty($to_delete)) {
                     $this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete, 'Attribute.deleted' => 0));
                 }
             }
         }
-        $data = array_values($data);
         if (empty($data)) {
             return true;
         }
+
+        $data = array_values($data);
         $uniqueValues = array();
         foreach ($data as $key => $value) {
-            if (in_array($value['value'], $uniqueValues)) {
+            if (isset($uniqueValues[$value['value']])) {
                 unset($data[$key]);
                 continue;
             }
             $data[$key]['event_id'] = $event['Event']['id'];
             $data[$key]['distribution'] = $feed['Feed']['distribution'];
             $data[$key]['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
-            $data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $data[$key]['to_ids'];
-            $uniqueValues[] = $data[$key]['value'];
+            $data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $value['to_ids'];
+            $uniqueValues[$value['value']] = true;
         }
         $data = array_values($data);
         foreach ($data as $k => $chunk) {
