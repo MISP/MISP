@@ -1,25 +1,14 @@
 <?php
+declare(strict_types=1);
 
 class RandomTool
 {
-    public function __construct()
-    {
-        // import compatibility library for PHP < 7.0
-        if (!function_exists('random_int')) {
-            if (file_exists(APP . 'Lib' . DS . 'random_compat' . DS . 'lib' . DS . 'random.php')) {
-                require_once(APP . 'Lib' . DS . 'random_compat' . DS . 'lib' . DS . 'random.php');
-            }
-        }
-    }
-
     /**
      * Generate a random string
      *
      * Generate a random string, using a cryptographically secure
      * pseudorandom number generator (random_int)
      *
-     * For PHP 7, random_int is a PHP core function
-     * For PHP 5.x, depends on https://github.com/paragonie/random_compat
      *
      * @link https://paragonie.com/b/JvICXzh_jhLyt4y3
      *
@@ -28,25 +17,8 @@ class RandomTool
      * @param string $charset - A string of all possible characters to choose from
      * @return string
      */
-    public function random_str($crypto_secure = true, $length = 32, $charset = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    public function random_str(bool $crypto_secure = true, int $length = 32, string $charset = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
     {
-        // Type checks:
-        if (!is_bool($crypto_secure)) {
-            throw new InvalidArgumentException(
-                'random_str - Argument 1 - expected a boolean'
-            );
-        }
-        if (!is_numeric($length)) {
-            throw new InvalidArgumentException(
-                'random_str - Argument 2 - expected an integer'
-            );
-        }
-        if (!is_string($charset)) {
-            throw new InvalidArgumentException(
-                'random_str - Argument 3 - expected a string'
-            );
-        }
-
         if ($length < 1) {
             // Just return an empty string. Any value < 1 is meaningless.
             return '';
@@ -67,7 +39,7 @@ class RandomTool
         // Now that we have good data, this is the meat of our function:
         $random_str = '';
         for ($i = 0; $i < $length; ++$i) {
-            if ($crypto_secure && function_exists('random_int')) {
+            if ($crypto_secure) {
                 $r = random_int(0, $charset_max);
             } else {
                 $r = mt_rand(0, $charset_max);
