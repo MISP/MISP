@@ -39,7 +39,13 @@ class LoginController extends AppController
         $this->_loadAuthenticationPlugins();
         if (!$this->Auth) {
             CakeLog::error("LinOTP Authentication requested but \$this->Auth is not set. Aborting.");
+            $this->Flash->error("Cannot authenticate due to a server error. Please contact your server administrator");
             throw new InternalErrorException("Configuration error.");
+        }
+
+        if (!function_exists('curl_init')) {
+            CakeLog::error("Curl library is not available - cannot authenticate against LinOTP");
+            $this->Flash->error("Cannot authenticate due to a server error. Please contact your server administrator");
         }
 
         // If we somehow end up here make sure we do not proceed without the required Authentication backend.
