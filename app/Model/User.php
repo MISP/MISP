@@ -1049,50 +1049,46 @@ class User extends AppModel
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
         $HttpSocket = $syncTool->setupHttpSocket();
-        $response = $HttpSocket->get('https://pgp.circl.lu/pks/lookup?search=' . $email . '&op=index&fingerprint=on');
+        $response = $HttpSocket->get('https://pgp.circl.lu/pks/lookup?search=' . urlencode($email) . '&op=index&fingerprint=on&options=mr');
         if ($response->code != 200) {
             return $response->code;
         }
-        $string = str_replace(array("\r", "\n"), "", $response->body);
-        $result = preg_match_all('/<pre>pub(.*?)<\/pre>/', $string, $matches);
-        $results = $this->__extractPGPInfo($matches[1]);
-        return $results;
+        return $this->__extractPGPInfo($response->body);
     }
 
-    private function __extractPGPInfo($lines)
+    private function __extractPGPInfo($body)
     {
-        $extractionRules = array(
-            'key_id' => array('regex' => '/\">(.*?)<\/a>/', 'all' => false, 'alternate' => false),
-            'date' => array('regex' => '/([0-9]{4}\-[0-9]{2}\-[0-9]{2})/', 'all' => false, 'alternate' => false),
-            'fingerprint' => array('regex' => '/Fingerprint=(.*)$/m', 'all' => false, 'alternate' => false),
-            'uri' => array('regex' => '/<a href=\"(.*?)\">/', 'all' => false, 'alternate' => false),
-            'address' => array('regex' => '/<a href="\/pks\/lookup\?op=vindex[^>]*>([^\<]*)<\/a>(.*)Fingerprint/s', 'all' => true, 'alternate' => true),
-        );
         $final = array();
+        $lines = explode("\n", $body);
         foreach ($lines as $line) {
-            if (strpos($line, 'KEY REVOKED')) {
-                continue;
+            $parts = explode(":", $line);
+
+            if ($parts[0] === 'pub') {
+                if (!empty($temp)) {
+                    $final[] = $temp;
+                    $temp = array();
+                }
+
+                if (strpos($parts[6], 'r') !== false || strpos($parts[6], 'd') !== false || strpos($parts[6], 'e') !== false) {
+                    continue; // skip if key is expired, revoked or disabled
+                }
+
+                $temp = array(
+                    'fingerprint' => chunk_split($parts[1], 4, ' '),
+                    'key_id' => substr($parts[1], -8),
+                    'date' => date('Y-m-d', $parts[4]),
+                    'uri' => 'pks/lookup?op=get&search=0x' . $parts[1],
+                );
+
+            } else if ($parts[0] === 'uid' && !empty($temp)) {
+                $temp['address'] = urldecode($parts[1]);
             }
-            $temp = array();
-            foreach ($extractionRules as $ruleName => $rule) {
-                if ($rule['all']) {
-                    preg_match_all($rule['regex'], $line, ${$ruleName});
-                } else {
-                    preg_match($rule['regex'], $line, ${$ruleName});
-                }
-                if ($rule['alternate'] && isset(${$ruleName}[2]) && trim(${$ruleName}[2][0]) != '') {
-                    $temp[$ruleName] = ${$ruleName}[2];
-                } else {
-                    $temp[$ruleName] = ${$ruleName}[1];
-                }
-                if ($rule['all']) {
-                    $temp[$ruleName] = $temp[$ruleName][0];
-                }
-                $temp[$ruleName] = html_entity_decode($temp[$ruleName]);
-            }
-            $temp['address'] = preg_replace('/\s{2,}/', PHP_EOL, trim($temp['address']));
+        }
+
+        if (!empty($temp)) {
             $final[] = $temp;
         }
+
         return $final;
     }
 
