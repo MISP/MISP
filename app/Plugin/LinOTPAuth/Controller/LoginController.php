@@ -102,7 +102,7 @@ class LoginController extends AppController
             if ($this->request->data == array() && $this->Session->read('Message.auth')) {
                 $this->Session->delete('Message.auth');
             } else if ($this->request->data) {
-                $this->Flash->error("Username or password wrong.");
+                $this->Flash->error("Invalid credentials. Please check that you have entered the correct username and password, and that you have a valid second factor enrolled.");
             }
         }
     }
