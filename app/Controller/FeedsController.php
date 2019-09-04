@@ -520,7 +520,13 @@ class FeedsController extends AppController
             $this->Flash->info(__('Feed is currently not enabled. Make sure you enable it.'));
             $this->redirect(array('action' => 'previewIndex', $feedId));
         }
-        $result = $this->Feed->downloadAndSaveEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+        try {
+            $result = $this->Feed->downloadAndSaveEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+        } catch (Exception $e) {
+            $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
+            $this->redirect(array('action' => 'previewIndex', $feedId));
+        }
+
         if (isset($result['action'])) {
             if ($result['result']) {
                 if ($result['action'] == 'add') {
@@ -579,11 +585,13 @@ class FeedsController extends AppController
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
         $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-        $events = $this->Feed->getManifest($feed, $HttpSocket);
-        if (!is_array($events)) {
-            $this->Flash->info($events);
+        try {
+            $events = $this->Feed->getManifest($feed, $HttpSocket);
+        } catch (Exception $e) {
+            $this->Flash->error("Could not fetch manifest for feed: {$e->getMessage()}");
             $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
         }
+
         if (!empty($this->params['named']['searchall'])) {
             foreach ($events as $uuid => $event) {
                 $found = false;
@@ -672,10 +680,10 @@ class FeedsController extends AppController
         $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
         $params = array();
         // params is passed as reference here, the pagination happens in the method, which isn't ideal but considering the performance gains here it's worth it
-        $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage, 60, $params);
-        // we want false as a valid option for the split fetch, but we don't want it for the preview
-        if (!is_array($resultArray)) {
-            $this->Flash->info($resultArray);
+        try {
+            $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage, 60, $params);
+        } catch (Exception $e) {
+            $this->Flash->error("Could not fetch feed: {$e->getMessage()}");
             $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
@@ -721,7 +729,12 @@ class FeedsController extends AppController
             throw new MethodNotAllowedException(__('Invalid feed type.'));
         }
         $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-        $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage);
+        try {
+            $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage);
+        } catch (Exception $e) {
+            $this->Flash->error("Could not fetch feed: {$e->getMessage()}");
+            $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+        }
         // we want false as a valid option for the split fetch, but we don't want it for the preview
         if ($resultArray == false) {
             $resultArray = array();
@@ -755,7 +768,11 @@ class FeedsController extends AppController
             throw new NotFoundException(__('Invalid feed.'));
         }
         $this->Feed->read();
-        $event = $this->Feed->downloadEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+        try {
+            $event = $this->Feed->downloadEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+        } catch (Exception $e) {
+            throw new Exception(__('Could not download the selected Event'), 0, $e);
+        }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($event, $this->response->type());
         }
@@ -858,11 +875,11 @@ class FeedsController extends AppController
             $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
         }
         $data = json_decode($this->request->data['Feed']['data'], true);
-        $result = $this->Feed->saveFreetextFeedData($feed, $data, $this->Auth->user());
-        if ($result === true) {
+        try {
+            $this->Feed->saveFreetextFeedData($feed, $data, $this->Auth->user());
             $this->Flash->success(__('Data pulled.'));
-        } else {
-            $this->Flash->error(__('Could not pull the selected data. Reason: %s', $result));
+        } catch (Exception $e) {
+            $this->Flash->error(__('Could not pull the selected data. Reason: %s', $e->getMessage()));
         }
         $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
     }
