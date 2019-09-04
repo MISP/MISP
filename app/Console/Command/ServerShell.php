@@ -253,13 +253,19 @@ class ServerShell extends AppShell
             $jobId = $this->Job->id;
         }
         $this->Job->read(null, $jobId);
-        $result = $this->Feed->cacheFeedInitiator($user, $jobId, $scope);
+        try {
+            $result = $this->Feed->cacheFeedInitiator($user, $jobId, $scope);
+        } catch (Exception $e) {
+            CakeLog::error($e->getMessage());
+            $result = false;
+        }
+
         $this->Job->id = $jobId;
         if ($result !== true) {
-            $message = 'Job Failed. Reason: ';
+            $message = 'Job failed. See logs for more details.';
             $this->Job->save(array(
                     'id' => $jobId,
-                    'message' => $message . $result,
+                    'message' => $message,
                     'progress' => 0,
                     'status' => 3
             ));
@@ -401,12 +407,26 @@ class ServerShell extends AppShell
         );
         $this->Job->save($data);
         $jobId = $this->Job->id;
-        $result = $this->Feed->cacheFeedInitiator($user, $jobId, 'all');
-        $this->Job->save(array(
-            'message' => 'Job done.',
-            'progress' => 100,
-            'status' => 4
-        ));
+        try {
+            $result = $this->Feed->cacheFeedInitiator($user, $jobId, 'all');
+        } catch (Exception $e) {
+            CakeLog::error($e->getMessage());
+            $result = false;
+        }
+        if ($result) {
+            $this->Job->save(array(
+                'message' => 'Job done.',
+                'progress' => 100,
+                'status' => 4
+            ));
+        } else {
+            $this->Job->save(array(
+                'message' => 'Job failed. See logs for more details.',
+                'progress' => 100,
+                'status' => 3,
+            ));
+        }
+
         $this->Task->id = $task['Task']['id'];
         $this->Task->saveField('message', 'Job completed at ' . date('d/m/Y - H:i:s'));
     }
