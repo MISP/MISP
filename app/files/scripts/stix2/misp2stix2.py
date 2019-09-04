@@ -436,7 +436,7 @@ class StixBuilder():
 
     def add_custom(self, attribute):
         custom_object_id = "x-misp-object--{}".format(attribute['uuid'])
-        custom_object_type = "x-misp-object-{}".format(attribute['type'].replace('|', '-').lower())
+        custom_object_type = "x-misp-object-{}".format(attribute['type'].replace('|', '-').replace(' ', '-').lower())
         labels, markings = self.create_labels(attribute)
         custom_object_args = {'id': custom_object_id, 'x_misp_category': attribute['category'], 'labels': labels,
                               'x_misp_timestamp': self.get_datetime_from_timestamp(attribute['timestamp']),
