@@ -2,6 +2,11 @@
     "prefer-stable": true,
     "minimum-stability": "dev",
     "require": {
+        "php": ">=7.0.0",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-xml": "*",
+        "ext-pcre": "*",
         "kamisama/cake-resque": "4.1.2"
     },
     "suggest": {
