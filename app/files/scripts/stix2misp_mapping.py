@@ -18,6 +18,7 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
 _AS_attribute = ('AS', 'asn')
 _as_mapping = {'number': _AS_attribute, 'handle': _AS_attribute, 'name': ('text', 'description')}
 _attack_pattern_object_mapping = {'capec_id': 'id', 'title': 'name', 'description': 'summary'}
+_attack_pattern_galaxy_mapping = {'description': 'description', 'title': 'value'}
 _coa_mapping = {'type_': 'value', 'stage': 'value', 'impact': 'value.value',
                 'description': 'value', 'objective': 'description.value',
                 'cost': 'value.value', 'efficacy': 'value.value'}

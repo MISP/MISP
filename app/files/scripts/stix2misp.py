@@ -819,6 +819,20 @@ class StixFromMISPParser(StixParser):
         if self.references:
             self.build_references()
 
+    def parse_attack_pattern_galaxy(self, attack_pattern, uuid):
+        print(f'attack pattern:\n{json.dumps(attack_pattern.to_dict(), indent=2)}\n')
+        cluster_type = 'mitre-attack-pattern'
+        cluster = {'type': cluster_type}
+        for feature, key in stix2misp_mapping._attack_pattern_galaxy_mapping.items():
+            value = getattr(attack_pattern, feature)
+            if value:
+                cluster[key] = value if isinstance(value, str) else value.value
+        if attack_pattern.capec_id:
+            cluster['meta'] = {'meta': {'external_id': ['CAPEC-{}'.format(attack_pattern.capec_id)]}}
+        cluster['tag_name'] = 'misp-galaxy:{}="{}"'.format(cluster_type, cluster['value'])
+        self.misp_event['Galaxy'].append({'name': 'Attack Pattern', 'type': 'mitre-attack-pattern',
+                                          'GalaxyCluster': cluster})
+
     def parse_attack_pattern_object(self, attack_pattern, uuid):
         attribute_type = 'text'
         attributes = []
