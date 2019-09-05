@@ -1009,7 +1009,20 @@ class UsersController extends AppController
                 $this->Auth->constructAuthenticate();
             }
         }
-        if ($this->Auth->login()) {
+
+        $user = $this->Auth->identify($this->request, $this->response);
+
+        // Do not login if MISP is disabled and user is not site admin
+        if ($user && !Configure::read('MISP.live') && !$user['Role']['perm_site_admin']) {
+            $message = $this->maintenanceMessage();
+            $this->Flash->info($message);
+            if ($this->request->is('post') || $this->request->is('put')) {
+                $this->redirect($this->request->here);
+            }
+            return;
+        }
+
+        if ($this->Auth->login($user)) {
             $this->__extralog("login");
             $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
             $this->User->id = $this->Auth->user('id');
