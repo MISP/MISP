@@ -2328,7 +2328,7 @@ class Server extends AppModel
             }
         } else {
             // error
-            $fails[$eventId] = __('failed downloading the event');
+            $fails[$eventId] = __('failed downloading the event') . ': ' . json_encode($event);
         }
         return true;
     }
