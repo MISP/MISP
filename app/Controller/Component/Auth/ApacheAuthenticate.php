@@ -192,6 +192,7 @@ class ApacheAuthenticate extends BaseAuthenticate
                 $user['disabled'] = 1;
                 $userModel->save($user, false);
             }
+            CakeLog::notice("User '$userEmail' exists, but no MISP role is assigned.");
             return false;
         }
 
