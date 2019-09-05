@@ -670,6 +670,7 @@ class ShadowAttributesController extends AppController
     // if any of these fields is set, it will create a proposal
     public function edit($id = null)
     {
+        $id = $this->Toolbox->findIdByUuid($this->ShadowAttribute->Event->Attribute, $id);
         $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array(
                 'contain' => array('Event' => array('fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'))),
                 'conditions' => array('Attribute.id' => $id),
@@ -922,6 +923,7 @@ class ShadowAttributesController extends AppController
         } else {
             $all = 1;
         }
+        $eventId = $this->Toolbox->findIdByUuid($this->ShadowAttribute->Event, $eventId, true);
         if ($eventId && is_numeric($eventId)) {
             $conditions['ShadowAttribute.event_id'] = $eventId;
         }

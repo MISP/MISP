@@ -1619,10 +1619,14 @@ function getPopup(id, context, target, admin, popupType) {
             $(popupType).html(data);
             openPopup(popupType, false);
         },
-        error:function() {
+        error:function(xhr) {
             $(".loading").hide();
             $("#gray_out").fadeOut();
-            showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
+            if (xhr.status === 403) {
+                showMessage('fail', 'Not allowed.');
+            } else {
+                showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
+            }
         },
         url: url
     });
@@ -2493,7 +2497,8 @@ function moduleResultsSubmit(id) {
                 name: $(this).find('.ObjectName').text(),
                 meta_category: $(this).find('.ObjectMetaCategory').text(),
                 distribution: $(this).find('.ObjectDistribution').val(),
-                sharing_group_id: $(this).find('.ObjectSharingGroup').val()
+                sharing_group_id: $(this).find('.ObjectSharingGroup').val(),
+                comment: $(this).find('.ObjectComment').val()
             }
             if (temp['distribution'] != '4') {
                 temp['sharing_group_id'] = '0';
@@ -3486,8 +3491,10 @@ function attributeHoverPlacement(element) {
 $('body').on('click', function (e) {
   $('[data-toggle=popover]').each(function () {
     // hide any open popovers when the anywhere else in the body is clicked
-    if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
-      $('#' + currentPopover).popover('destroy');
+    if (typeof currentPopover !== 'undefined') {
+        if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+          $('#' + currentPopover).popover('destroy');
+        }
     }
   });
 });
@@ -3678,28 +3685,6 @@ function loadTagTreemap() {
     });
 }
 
-function loadSightingsData(timestamp) {
-    url = "/sightings/toplist";
-    if (timestamp != undefined) {
-        url = url + '/' + timestamp;
-    }
-    $.ajax({
-        async:true,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            $(".sightingsdiv").html(data);
-        },
-        complete:function() {
-            $(".loading").hide();
-        },
-        type:"get",
-        cache: false,
-        url: url,
-    });
-}
-
 function quickEditEvent(id, field) {
     $.ajax({
         async:true,
@@ -3727,7 +3712,7 @@ function selectAllInbetween(last, current) {
         from = to;
         to = temp;
     }
-    $('.select_proposal, .select_attribute').each(function () {
+    $('.select_proposal, .select_attribute, .select').each(function (e) {
         if ($('#' + this.id).parent().parent().index() >= from && $('#' + this.id).parent().parent().index() <= to) {
             $(this).prop('checked', true);
         }

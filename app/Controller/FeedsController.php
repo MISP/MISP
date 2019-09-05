@@ -902,7 +902,7 @@ class FeedsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Feed', 'cacheFeed', false, $this->response->type(), $message);
         } else {
-            $this->Flash->error($message);
+            $this->Flash->info($message);
             $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
         }
     }

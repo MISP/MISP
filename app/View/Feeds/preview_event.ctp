@@ -102,7 +102,6 @@
 <script type="text/javascript">
 // tooltips
 $(document).ready(function () {
-    //loadEventTags("<?php echo $event['Event']['id']; ?>");
     $("th, td, dt, div, span, li").tooltip({
         'placement': 'top',
         'container' : 'body',

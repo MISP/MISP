@@ -68,6 +68,9 @@ class Attribute extends AppModel
             5 => __('Inherit event')
         );
 
+        //
+        // NOTE WHEN MODIFYING: please ensure to run the script 'tools/gen_misp_types_categories.py' to update the new definitions everywhere. (docu, website, RFC, ...)
+        //  
         $this->categoryDefinitions = array(
             'Internal reference' => array(
                     'desc' => __('Reference used by the publishing party (e.g. ticket number)'),
@@ -144,6 +147,9 @@ class Attribute extends AppModel
                     )
         );
 
+        //
+        // NOTE WHEN MODIFYING: please ensure to run the script 'tools/gen_misp_types_categories.py' to update the new definitions everywhere. (docu, website, RFC, ...)
+        //  
         $this->typeDefinitions = array(
             'md5' => array('desc' => __('A checksum in md5 format'), 'formdesc' => __("You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'sha1' => array('desc' => __('A checksum in sha1 format'), 'formdesc' => __("You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -3071,6 +3077,14 @@ class Attribute extends AppModel
             );
         }
         if (isset($options['contain'])) {
+            // We may use a string instead of an array to ask for everything
+            // instead of some specific attributes. If so, remove the array from
+            // params, as we will later add the string.
+            foreach($options['contain'] as $contain) {
+                if (gettype($contain) == "string" && isset($params['contain'][$contain])) {
+                    unset($params['contain'][$contain]);
+                }
+            }
             $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
         }
         if (isset($options['page'])) {
@@ -3758,16 +3772,44 @@ class Attribute extends AppModel
 
     // gets an attribute, saves it
     // handles encryption, attaching to event/object, logging of issues, tag capturing
-    public function captureAttribute($attribute, $eventId, $user, $objectId = false, $log = false, $parentEvent = false)
+    public function captureAttribute($attribute, $eventId, $user, $objectId = false, $log = false, $parentEvent = false, &$validationErrors = false, $params = array())
     {
         if ($log == false) {
             $log = ClassRegistry::init('Log');
         }
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId ? $objectId : 0;
+        if (!isset($attribute['to_ids'])) {
+            $attribute['to_ids'] = $this->typeDefinitions[$attribute['type']]['to_ids'];
+        }
         $attribute['to_ids'] = $attribute['to_ids'] ? 1 : 0;
-        $attribute['disable_correlation'] = $attribute['disable_correlation'] ? 1 : 0;
+        $attribute['disable_correlation'] = empty($attribute['disable_correlation']) ? 0 : 1;
         unset($attribute['id']);
+        if (isset($attribute['base64'])) {
+            $attribute['data'] = $attribute['base64'];
+        }
+        if (!empty($attribute['enforceWarninglist']) || !empty($params['enforceWarninglist'])) {
+            $this->Warninglist = ClassRegistry::init('Warninglist');
+            if (empty($this->warninglists)) {
+                $this->warninglists = $this->Warninglist->fetchForEventView();
+            }
+            if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attributes[$k])) {
+                $this->validationErrors['warninglist'] = 'Attribute could not be saved as it trips over a warninglist and enforceWarninglist is enforced.';
+                $validationErrors = $this->validationErrors['warninglist'];
+                $log->create();
+                $log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Attribute',
+                        'model_id' => 0,
+                        'email' => $user['email'],
+                        'action' => 'add',
+                        'user_id' => $user['id'],
+                        'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
+                        'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
+                ));
+                return $attribute;
+            }
+        }
         if (isset($attribute['encrypt'])) {
             $result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
             $attribute['data'] = $result['data'];
@@ -3812,6 +3854,9 @@ class Attribute extends AppModel
                 }
             }
             if (isset($attribute['Tag'])) {
+                if (!empty($attribute['Tag']['name'])) {
+                    $attribute['Tag'] = array($attribute['Tag']);
+                }
                 foreach ($attribute['Tag'] as $tag) {
                     $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
                     if ($tag_id) {
@@ -3996,24 +4041,26 @@ class Attribute extends AppModel
         if (!$this->exists()) {
             return false;
         }
-        $result = $this->find('first', array(
+        $result = $this->fetchAttributes($user, array(
             'conditions' => array('Attribute.id' => $id),
+            'flatten' => 1,
             'recursive' => -1,
             'contain' => array('Event')
         ));
         if (empty($result)) {
-            throw new ForbiddenException(__('Attribute not found or not authorised.'));
+            throw new ForbiddenException(__('Invalid attribute'));
         }
+        $result = $result[0];
 
         // check for permissions
         if (!$user['Role']['perm_site_admin']) {
             if ($result['Event']['locked']) {
                 if ($user['org_id'] != $result['Event']['org_id'] || !$user['Role']['perm_sync']) {
-                    throw new ForbiddenException(__('Attribute not found or not authorised.'));
+                    throw new ForbiddenException(__('You do not have permission to do that.'));
                 }
             } else {
                 if ($user['org_id'] != $result['Event']['orgc_id']) {
-                    throw new ForbiddenException(__('Attribute not found or not authorised.'));
+                    throw new ForbiddenException(__('You do not have permission to do that.'));
                 }
             }
         }
@@ -4202,10 +4249,6 @@ class Attribute extends AppModel
         }
         if ($paramsOnly) {
             return $params;
-        }
-        if (!isset($this->validFormats[$returnFormat])) {
-            // this is where the new code path for the export modules will go
-            throw new MethodNotFoundException('Invalid export format.');
         }
         if (method_exists($exportTool, 'modify_params')) {
             $params = $exportTool->modify_params($user, $params);

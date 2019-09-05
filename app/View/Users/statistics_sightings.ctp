@@ -64,8 +64,3 @@
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
 ?>
-<script type="text/javascript">
-$(document).ready(function () {
-    loadSightingsData();
-});
-</script>

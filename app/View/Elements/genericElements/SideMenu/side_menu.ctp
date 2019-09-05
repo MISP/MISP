@@ -191,11 +191,13 @@
                             'message' => __('Are you sure you wish to republish the current event to the Kafka topic?')
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'contact',
-                        'url' => '/events/contact/' . $event['Event']['id'],
-                        'text' => __('Contact Reporter')
-                    ));
+                    if (!empty($event['Orgc']['local'])) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'contact',
+                            'url' => '/events/contact/' . $event['Event']['id'],
+                            'text' => __('Contact Reporter')
+                        ));
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'onClick' => array(
                             'function' => 'getPopup',
@@ -301,6 +303,11 @@
                         'element_id' => 'viewProposalIndex',
                         'url' => '/events/proposalEventIndex',
                         'text' => __('Events with proposals')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'viewDelegations',
+                        'url' => '/event_delegations/index/context:pending',
+                        'text' => __('View delegation requests')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -580,12 +587,34 @@
                             'url' => '/servers/add',
                             'text' => __('New Servers')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/communities/index',
+                            'text' => __('List Communities'),
+                            'element_id' => 'list_communities'
+                        ));
+                        if ($menuItem === 'view_community' || $menuItem === 'request_community_access') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'text' => __('Request Access'),
+                                'url' => '/communities/requestAccess/' . h($community['uuid']),
+                                'element_id' => 'request_community_access'
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'text' => __('View community'),
+                                'url' => '/communities/view/' . h($community['uuid']),
+                                'element_id' => 'view_community'
+
+                            ));
+                        }
+                        if ($menuItem === 'view_email') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'text' => __('Request E-mail'),
+                                'element_id' => 'view_email'
+                            ));
+                        }
                     }
                     break;
 
                 case 'admin':
-
-
                     if ($menuItem === 'editUser' || $menuItem === 'viewUser') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewUser',
@@ -696,6 +725,10 @@
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/servers/serverSettings',
                             'text' => __('Server Settings & Maintenance')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/servers/updateProgress',
+                            'text' => __('Update Progress')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         if (Configure::read('MISP.background_jobs')) {

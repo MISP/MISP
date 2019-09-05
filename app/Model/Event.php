@@ -255,6 +255,7 @@ class Event extends AppModel
         'info' => array(
             'valueNotEmpty' => array(
                 'rule' => array('valueNotEmpty'),
+                'required' => true
             ),
         ),
         'user_id' => array(
@@ -1111,6 +1112,8 @@ class Event extends AppModel
                 if (!$found) {
                     return 403;
                 }
+            } else if (empty($event['SharingGroup']['roaming'])) {
+                return 403;
             }
         }
         $serverModel = ClassRegistry::init('Server');
@@ -1179,6 +1182,16 @@ class Event extends AppModel
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
         $data = json_encode($event);
+        if (!empty(Configure::read('Security.sync_audit'))) {
+            $pushLogEntry = sprintf(
+                "==============================================================\n\n[%s] Pushing Event #%d to Server #%d:\n\n%s\n\n",
+                date("Y-m-d H:i:s"),
+                $event['Event']['id'],
+                $server['Server']['id'],
+                $data
+            );
+            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
+        }
         $response = $HttpSocket->post($uri, $data, $request);
         return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
     }
@@ -1243,7 +1256,7 @@ class Event extends AppModel
                 if (empty($data['Object'][$key])) {
                     unset($data['Object'][$key]);
                 } else {
-                    $data['Object'][$key]['Attribute'] = $this->__prepareAttributesForSync($data['Object'][$key]['Attribute'], $server);
+                    $data['Object'][$key] = $this->__prepareAttributesForSync($data['Object'][$key], $server);
                 }
             }
             $data['Object'] = array_values($data['Object']);
@@ -1870,6 +1883,13 @@ class Event extends AppModel
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
                 $conditions['AND']['OR']['Event.id'] = $delegatedEventIDs;
             }
+            $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
+            $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
+            if ($this->getDataSource()->config['datasource'] == 'Database/Postgres') {
+                $schemaName = $this->getDataSource()->config['schema'];
+                $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);
+                $objectCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Object"."event_id")', $schemaName, $schemaName, $schemaName);
+            }
             $conditionsAttributes['AND'][0]['OR'] = array(
                 array('AND' => array(
                     'Attribute.distribution >' => 0,
@@ -1879,7 +1899,7 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 )),
-                '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
+                $attributeCondSelect => $user['org_id']
             );
 
             $conditionsObjects['AND'][0]['OR'] = array(
@@ -1891,7 +1911,7 @@ class Event extends AppModel
                     'Object.distribution' => 4,
                     'Object.sharing_group_id' => $sgids,
                 )),
-                '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)' => $user['org_id']
+                $objectCondSelect => $user['org_id']
             );
         }
         if ($options['distribution']) {
@@ -2000,7 +2020,7 @@ class Event extends AppModel
         $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation');
         $fieldsObj = array('*');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp');
-        $fieldsOrg = array('id', 'name', 'uuid');
+        $fieldsOrg = array('id', 'name', 'uuid', 'local');
         $fieldsServer = array('id', 'url', 'name');
         if (!$options['includeAllTags']) {
             $tagConditions = array('exportable' => 1);
@@ -2884,6 +2904,9 @@ class Event extends AppModel
     public function sendAlertEmail($id, $senderUser, $oldpublish = null, $processId = null)
     {
         $event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
+        if (empty($event)) {
+            throw new NotFoundException('Invalid Event.');
+        }
         $this->NotificationLog = ClassRegistry::init('NotificationLog');
         if (!$this->NotificationLog->check($event[0]['Event']['orgc_id'], 'publish')) {
             if ($processId) {
@@ -2892,9 +2915,6 @@ class Event extends AppModel
                 $this->Job->saveField('message', 'Mails blocked by org alert threshold.');
             }
             return true;
-        }
-        if (empty($event)) {
-            throw new MethodNotFoundException('Invalid Event.');
         }
         $userConditions = array('autoalert' => 1);
         $this->User = ClassRegistry::init('User');
@@ -3103,13 +3123,6 @@ class Event extends AppModel
                     'conditions' => array('disabled' => 0, 'User.org_id' => $event['Event']['orgc_id']),
                     'recursive' => -1
             ));
-            if (empty($temp)) {
-                $temp = $this->User->find('all', array(
-                        'fields' => array('email', 'gpgkey', 'certif_public', 'contactalert', 'id', 'org_id'),
-                        'conditions' => array('disabled' => 0, 'User.org_id' => $event['Event']['org_id']),
-                        'recursive' => -1
-                ));
-            }
             foreach ($temp as $tempElement) {
                 if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
                     array_push($orgMembers, $tempElement);
@@ -3117,8 +3130,13 @@ class Event extends AppModel
             }
         } else {
             $temp = $this->User->find('first', array(
-                    'conditions' => array('User.id' => $event['Event']['user_id'], 'User.disabled' => 0),
+                    'conditions' => array(
+                        'User.id' => $event['Event']['user_id'],
+                        'User.disabled' => 0,
+                        'User.org_id' => $event['Event']
+                    ),
                     'fields' => array('User.email', 'User.gpgkey', 'User.certif_public'),
+                    'recursive' => -1
             ));
             if (!empty($temp)) {
                 $orgMembers = array(0 => $temp);
@@ -3127,12 +3145,12 @@ class Event extends AppModel
         if (empty($orgMembers)) {
             return false;
         }
-        $temp = $this->__buildContactEventEmailBody($user, $message, $event, $targetUser, $id);
-        $bodyevent = $temp[0];
-        $body = $temp[1];
-        $result = true;
-        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
-        foreach ($orgMembers as &$reporter) {
+        foreach ($orgMembers as $reporter) {
+            $temp = $this->__buildContactEventEmailBody($user, $message, $event, $reporter, $id);
+            $bodyevent = $temp[0];
+            $body = $temp[1];
+            $result = true;
+            $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
             $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
             $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
         }
@@ -3175,7 +3193,7 @@ class Event extends AppModel
         $bodyevent .= 'Analysis    : ' . $event['Event']['analysis'] . "\n";
 
         $userModel = ClassRegistry::init('User');
-        $targetUser = $userModel->getAuthUser($orgMembers[0]['User']['id']);
+        $targetUser = $userModel->getAuthUser($targetUser['User']['id']);
         $sgModel = ClassRegistry::init('SharingGroup');
         $sgs = $sgModel->fetchAllAuthorised($targetUser, false);
 
@@ -3364,6 +3382,22 @@ class Event extends AppModel
                 return 'Blocked by blacklist';
             }
         }
+        if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published'])) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $validationErrors['Event'] = 'Received a published event that was empty. Event add process blocked.';
+            $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'Event',
+                    'model_id' => 0,
+                    'email' => $user['email'],
+                    'action' => 'add',
+                    'user_id' => $user['id'],
+                    'title' => $validationErrors['Event'],
+                    'change' => ''
+            ));
+            return json_encode($validationErrors);
+        }
         $this->create();
         // force check userid and orgname to be from yourself
         $data['Event']['user_id'] = $user['id'];
@@ -3463,39 +3497,39 @@ class Event extends AppModel
             return json_encode($validationErrors);
         }
         $fieldList = array(
-                'Event' => array(
-                    'org_id',
-                    'orgc_id',
-                    'date',
-                    'threat_level_id',
-                    'analysis',
-                    'info',
-                    'user_id',
-                    'published',
-                    'uuid',
-                    'timestamp',
-                    'distribution',
-                    'sharing_group_id',
-                    'locked',
-                    'disable_correlation',
-                    'extends_uuid'
-                ),
-                'Attribute' => $this->Attribute->captureFields,
-                'Object' => array(
-                    'name',
-                    'meta-category',
-                    'description',
-                    'template_uuid',
-                    'template_version',
-                    'event_id',
-                    'uuid',
-                    'timestamp',
-                    'distribution',
-                    'sharing_group_id',
-                    'comment',
-                    'deleted'
-                ),
-                'ObjectRelation' => array()
+            'Event' => array(
+                'org_id',
+                'orgc_id',
+                'date',
+                'threat_level_id',
+                'analysis',
+                'info',
+                'user_id',
+                'published',
+                'uuid',
+                'timestamp',
+                'distribution',
+                'sharing_group_id',
+                'locked',
+                'disable_correlation',
+                'extends_uuid'
+            ),
+            'Attribute' => $this->Attribute->captureFields,
+            'Object' => array(
+                'name',
+                'meta-category',
+                'description',
+                'template_uuid',
+                'template_version',
+                'event_id',
+                'uuid',
+                'timestamp',
+                'distribution',
+                'sharing_group_id',
+                'comment',
+                'deleted'
+            ),
+            'ObjectRelation' => array()
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
         $this->Log = ClassRegistry::init('Log');
@@ -4389,7 +4423,7 @@ class Event extends AppModel
         foreach ($eventArray as $k => &$event) {
             $uuidsToCheck[$event['uuid']] = $k;
         }
-        $localEvents = $this->find('list', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp')));
+        $localEvents = array();
         $temp = $this->find('all', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked')));
         foreach ($temp as $e) {
             $localEvents[$e['Event']['uuid']] = array('timestamp' => $e['Event']['timestamp'], 'locked' => $e['Event']['locked']);
@@ -6243,6 +6277,9 @@ class Event extends AppModel
                 if (isset($object['meta_category']) && !isset($object['meta-category'])) {
                     $object['meta-category'] = $object['meta_category'];
                     unset($object['meta_category']);
+                }
+                if (empty($object['comment'])) {
+                    $object['comment'] = $default_comment;
                 }
                 $object['event_id'] = $id;
                 if (isset($object['id']) && $object['id'] == $initial_object_id) {

@@ -1011,7 +1011,7 @@ class ServersController extends AppController
                         ),
                         'memory_limit' => array(
                             'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
-                            'recommended' => 512,
+                            'recommended' => 2048,
                             'unit' => 'M'
                         ),
                         'upload_max_filesize' => array(
@@ -1055,6 +1055,9 @@ class ServersController extends AppController
                 // if Proxy is set up in the settings, try to connect to a test URL
                 $proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
 
+                // get the DB diagnostics
+                $dbDiagnostics = $this->Server->dbSpaceUsage();
+
                 $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
                 foreach ($moduleTypes as $type) {
                     $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
@@ -1065,7 +1068,7 @@ class ServersController extends AppController
                 $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
                 $this->set('sessionCount', $sessionCount);
 
-                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes');
+                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics');
             }
             // check whether the files are writeable
             $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
@@ -1215,6 +1218,18 @@ class ServersController extends AppController
         $this->render('ajax/submoduleStatus');
     }
 
+    public function getSetting($setting_name)
+    {
+        $setting = $this->Server->getSettingData($setting_name);
+        if (!empty($setting["redacted"])) {
+            throw new MethodNotAllowedException(__('This setting is redacted.'));
+        }
+        if (Configure::check($setting_name)) {
+            $setting['value'] = Configure::read($setting_name);
+        }
+        return $this->RestResponse->viewData($setting);
+    }
+
     public function serverSettingsEdit($setting_name, $id = false, $forceSave = false)
     {
         if (!$this->_isSiteAdmin()) {
@@ -1269,6 +1284,9 @@ class ServersController extends AppController
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'Invalid input. Expected: {"value": "new_setting"}', $this->response->type());
                 }
             }
+            if (!empty($this->request->data['Server']['force'])) {
+                $forceSave = $this->request->data['Server']['force'];
+            }
             if (trim($this->request->data['Server']['value']) === '*****') {
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'No change.', $this->response->type());
@@ -1319,6 +1337,9 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
         $this->Server->restartWorkers($this->Auth->user());
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'restartWorkers', false, $this->response->type(), __('Restarting workers.'));
+        }
         $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
     }
 
@@ -1987,14 +2008,27 @@ misp.direct_call(relative_path, body)
                 $baseurl = Router::url('/', true);
             }
         }
+        $host_org_id = Configure::read('MISP.host_org_id');
+        if (empty($host_org_id)) {
+            throw new MethodNotAllowedException(__('Cannot create sync config - no host org ID configured for the instance.'));
+        }
+        $this->loadModel('Organisation');
+        $host_org = $this->Organisation->find('first', array(
+            'conditions' => array('Organisation.id' => $host_org_id),
+            'recursive' => -1,
+            'fields' => array('name', 'uuid')
+        ));
+        if (empty($host_org)) {
+            throw new MethodNotAllowedException(__('Configured host org not found. Please make sure that the setting is current on the instance.'));
+        }
         $server = array(
             'Server' => array(
                 'url' => $baseurl,
                 'uuid' => Configure::read('MISP.uuid'),
                 'authkey' => $this->Auth->user('authkey'),
                 'Organisation' => array(
-                    'name' => $this->Auth->user('Organisation')['name'],
-                    'uuid' => $this->Auth->user('Organisation')['uuid']
+                    'name' => $host_org['Organisation']['name'],
+                    'uuid' => $host_org['Organisation']['uuid'],
                 )
             )
         );

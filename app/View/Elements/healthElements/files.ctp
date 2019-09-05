@@ -11,7 +11,7 @@
             <?php
                 if (!empty($file['expected'])):
             ?>
-                <b><?php echo __('Files set for each relevant setting');?>:</b>:<br />
+                <b><?php echo __('Files set for each relevant setting');?>:</b><br />
                 <ul>
                     <?php foreach ($file['expected'] as $expectedKey => $expectedValue):
                         $colour = 'red';
