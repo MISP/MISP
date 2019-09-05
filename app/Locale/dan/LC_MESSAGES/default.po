@@ -3705,7 +3705,7 @@ msgid "The debug level of the instance for site admins. This feature allows site
 msgstr "Instansens debug-niveauet for webstedsadmins. Denne funktion lader webstedsadmins eksekvere debug-tilstand på en idriftsat instans uden at afsløre dette overfor andre brugere. Den mest detaljerigholdige Indstilling for debug og site_admin_debug benyttes for admins."
 
 #: Model/Server.php:2172
-msgid "Failed (partially?) because of validation errors: "
+msgid "Failed (partially?) because of errors: "
 msgstr ""
 
 #: Model/Server.php:2176
