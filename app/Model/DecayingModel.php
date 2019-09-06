@@ -168,6 +168,7 @@ class DecayingModel extends AppModel
                 }
             } else {
                 $this->create();
+                $new_model['default'] = true;
                 $this->save($new_model);
             }
         }

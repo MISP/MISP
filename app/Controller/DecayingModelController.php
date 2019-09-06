@@ -70,7 +70,7 @@ class DecayingModelController extends AppController
             unset($json['uuid']);
             $json['default'] = 0;
             $json['org_id'] = $this->Auth->user()['org_id'];
-            
+
             if ($this->DecayingModel->save($json)) {
                 $this->Flash->success(__('The model has been imported.'));
             } else {
