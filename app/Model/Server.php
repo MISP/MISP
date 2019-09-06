@@ -2289,10 +2289,10 @@ class Server extends AppModel
         if (!$existingEvent) {
             // add data for newly imported events
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
-            if ($result) {
+            if ($result === true) {
                 $successes[] = $eventId;
             } else {
-                $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
+                $fails[$eventId] = __('Failed (partially?) because of errors: ') . $result;
             }
         } else {
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
@@ -2316,7 +2316,6 @@ class Server extends AppModel
                 $eventId,
                 $server
         );
-        ;
         if (!empty($event)) {
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
@@ -2329,7 +2328,7 @@ class Server extends AppModel
             }
         } else {
             // error
-            $fails[$eventId] = __('failed downloading the event');
+            $fails[$eventId] = __('failed downloading the event') . ': ' . json_encode($event);
         }
         return true;
     }
