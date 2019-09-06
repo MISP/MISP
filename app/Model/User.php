@@ -1264,8 +1264,13 @@ class User extends AppModel
             require_once 'Crypt/GPG.php';
         }
 
+        $homedir = Configure::read('GnuPG.homedir');
+        if ($homedir === null) {
+            throw new Exception("Configuration option 'GnuPG.homedir' is not set, Crypt_GPG cannot be initialized.");
+        }
+
         $options = array(
-            'homedir' => Configure::read('GnuPG.homedir'),
+            'homedir' => $homedir,
             'gpgconf' => Configure::read('GnuPG.gpgconf'),
             'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg',
         );
