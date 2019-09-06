@@ -71,8 +71,27 @@ class DecayingModelController extends AppController
             $json['default'] = 0;
             $json['org_id'] = $this->Auth->user()['org_id'];
 
+            $attribute_types = array();
+            if (!empty($json['attribute_types'])) {
+                $attribute_types = $json['attribute_types'];
+                unset($json['attribute_types']);
+            }
+
             if ($this->DecayingModel->save($json)) {
-                $this->Flash->success(__('The model has been imported.'));
+                $saved_model = array(
+                    'model_id' => $this->DecayingModel->id,
+                    'attribute_types' => $attribute_types
+                );
+                if (!empty($saved_model['attribute_types'])) {
+                    $result = $this->DecayingModel->DecayingModelMapping->resetMappingForModel($saved_model, $this->Auth->user());
+                } else {
+                    $result = true;
+                }
+                if (!empty($result)) {
+                    $this->Flash->success(__('The model has been imported.'));
+                } else {
+                    $this->Flash->error(__('The model has been but mapping. However importing mapping failed.'));
+                }
             } else {
                 $this->Flash->error(__('Error while importing model.'));
             }
