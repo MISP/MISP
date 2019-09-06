@@ -314,19 +314,21 @@ class AppController extends Controller
             // update script
             $this->{$this->modelClass}->runUpdates();
             $user = $this->Auth->user();
+
             if (!isset($user['force_logout']) || $user['force_logout']) {
                 $this->loadModel('User');
-                $this->User->id = $this->Auth->user('id');
+                $this->User->id = $user['id'];
                 $this->User->saveField('force_logout', false);
             }
-            if ($this->Auth->user('disabled')) {
+
+            if ($user['disabled']) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
                 $log = array(
-                        'org' => $this->Auth->user('Organisation')['name'],
+                        'org' => $user['Organisation']['name'],
                         'model' => 'User',
-                        'model_id' => $this->Auth->user('id'),
-                        'email' => $this->Auth->user('email'),
+                        'model_id' => $user['id'],
+                        'email' => $user['email'],
                         'action' => 'auth_fail',
                         'title' => 'Login attempt by disabled user.',
                         'change' => null,
@@ -340,18 +342,30 @@ class AppController extends Controller
                     $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
                 }
             }
+
+            $userRole = $user['Role'];
+
             $this->set('default_memory_limit', ini_get('memory_limit'));
-            if (isset($this->Auth->user('Role')['memory_limit'])) {
-                if ($this->Auth->user('Role')['memory_limit'] !== '') {
-                    ini_set('memory_limit', $this->Auth->user('Role')['memory_limit']);
-                }
+            if (isset($userRole['memory_limit']) && !empty($userRole['memory_limit'])) {
+                ini_set('memory_limit', $userRole['memory_limit']);
             }
+
             $this->set('default_max_execution_time', ini_get('max_execution_time'));
-            if (isset($this->Auth->user('Role')['max_execution_time'])) {
-                if ($this->Auth->user('Role')['max_execution_time'] !== '') {
-                    ini_set('max_execution_time', $this->Auth->user('Role')['max_execution_time']);
+            if (isset($userRole['max_execution_time']) && !empty($userRole['max_execution_time'])) {
+                ini_set('max_execution_time', $userRole['max_execution_time']);
+            }
+
+            // check if MISP is live
+            if (!Configure::read('MISP.live')) {
+                if (!$userRole['perm_site_admin']) {
+                    $message = $this->maintenanceMessage();
+                    $this->Flash->info($message);
+                    $this->redirect($this->Auth->logout());
+                } else {
+                    $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
                 }
             }
+
         } else {
             if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
                 if (!$this->request->is('ajax')) {
@@ -361,26 +375,6 @@ class AppController extends Controller
             }
         }
 
-        // check if MISP is live
-        if ($this->Auth->user() && !Configure::read('MISP.live')) {
-            $role = $this->getActions();
-            if (!$role['perm_site_admin']) {
-                $message = Configure::read('MISP.maintenance_message');
-                if (empty($message)) {
-                    $this->loadModel('Server');
-                    $message = $this->Server->serverSettings['MISP']['maintenance_message']['value'];
-                }
-                if (strpos($message, '$email') && Configure::read('MISP.email')) {
-                    $email = Configure::read('MISP.email');
-                    $message = str_replace('$email', $email, $message);
-                }
-                $this->Flash->info($message);
-                $this->Auth->logout();
-                throw new MethodNotAllowedException($message);//todo this should pb be removed?
-            } else {
-                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
-            }
-        }
         if ($this->Session->check(AuthComponent::$sessionKey)) {
             if ($this->action !== 'checkIfLoggedIn' || $this->request->params['controller'] !== 'users') {
                 $this->User->id = $this->Auth->user('id');
@@ -1013,5 +1007,19 @@ class AppController extends Controller
             $session['ini']['session.gc_maxlifetime'] = $value;
             Configure::write('Session', $session);
         }
+    }
+
+    protected function maintenanceMessage()
+    {
+        $message = Configure::read('MISP.maintenance_message');
+        if (empty($message)) {
+            $this->loadModel('Server');
+            $message = $this->Server->serverSettings['MISP']['maintenance_message']['value'];
+        }
+        if (strpos($message, '$email') && Configure::read('MISP.email')) {
+            $email = Configure::read('MISP.email');
+            $message = str_replace('$email', $email, $message);
+        }
+        return $message;
     }
 }
