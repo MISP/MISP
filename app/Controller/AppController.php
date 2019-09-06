@@ -47,7 +47,7 @@ class AppController extends Controller
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '84';
-    public $pyMispVersion = '2.4.113';
+    public $pyMispVersion = '2.4.114';
     public $phpmin = '7.0';
     public $phprec = '7.2';
     public $isApiAuthed = false;
@@ -76,8 +76,6 @@ class AppController extends Controller
             'Session',
             'Auth' => array(
                 'authError' => 'Unauthorised access.',
-                'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
-                'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
                 'authenticate' => array(
                     'Form' => array(
                         'passwordHasher' => 'Blowfish',
@@ -105,6 +103,8 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        $this->Auth->loginRedirect = Configure::read('MISP.baseurl') . '/users/routeafterlogin';
+        $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
         $this->__sessionMassage();
         if (Configure::read('Security.allow_cors')) {
             // Add CORS headers

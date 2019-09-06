@@ -578,7 +578,8 @@ class StixFromMISPParser(StixParser):
     def parse_custom_attribute(self, o, labels):
         attribute_type = o['type'].split('x-misp-object-')[1]
         if attribute_type not in misp_types:
-            attribute_type = attribute_type.replace('-', '|')
+            replacement = ' ' if attribute_type == 'named-pipe' else '|'
+            attribute_type = attribute_type.replace('-', replacement)
         attribute = {'type': attribute_type,
                      'timestamp': self.getTimestampfromDate(o['x_misp_timestamp']),
                      'to_ids': bool(labels[1].split('=')[1]),

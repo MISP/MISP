@@ -731,6 +731,7 @@ class EventsController extends AppController
                 unset($rules['contain']);
                 $rules['recursive'] = -1;
                 $rules['fields'] = array('id', 'timestamp', 'published', 'uuid');
+                $rules['contain'] = array('Orgc.uuid');
             }
             $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
             foreach ($paginationRules as $paginationRule) {
@@ -836,6 +837,7 @@ class EventsController extends AppController
                 return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
             } else {
                 foreach ($events as $key => $event) {
+                    $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
                     $events[$key] = $event['Event'];
                 }
                 return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
@@ -3435,7 +3437,18 @@ class EventsController extends AppController
             $this->render('/Events/module_views/' . $renderView);
         } else {
             $responseType = $this->Event->validFormats[$returnFormat][0];
-            return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+            $filename = 'misp.event.';
+            if (!empty($filters['eventid']) && !is_array($filters['eventid'])) {
+                if (Validation::uuid(trim($filters['eventid']))) {
+                    $filename .= trim($filters['eventid']);
+                } else if (!empty(intval(trim($filters['eventid'])))) {
+                    $filename .= intval(trim($filters['eventid']));
+                }
+            } else {
+                $filename .= 'list';
+            }
+            $filename .= '.' . $responseType;
+            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
         }
 
     }

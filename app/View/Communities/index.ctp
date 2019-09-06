@@ -51,9 +51,9 @@
                 ),
                 array(
                     'name' => __('Community name'),
-                    'sort' => 'community_name',
+                    'sort' => 'name',
                     'class' => 'short',
-                    'data_path' => 'community_name',
+                    'data_path' => 'name',
                 ),
                 array(
                     'name' => __('Description'),
@@ -61,19 +61,19 @@
                 )
             ),
             'title' => __('Communities index'),
-            'description' => __('You can find a list of communities below that chose to advertise their existence to the general MISP user-base.\nRequesting access to any of those communities is of course no guarantee of being permitted access, it is simply meant to simplify to means of finding the various communities that one may be eligible for. Get in touch with the misp-project maintainers if you would like your community to be included in the list.'),
+            'description' => __('You can find a list of communities below that chose to advertise their existence to the general MISP user-base. Requesting access to any of those communities is of course no guarantee of being permitted access, it is only meant to simplify the means of finding the various communities that one may be eligible for. Get in touch with the MISP project maintainers if you would like your community to be included in the list.'),
             'actions' => array(
                 array(
                     'url' => '/communities/view',
                     'url_params_data_paths' => array(
-                        'community_uuid'
+                        'uuid'
                     ),
                     'icon' => 'eye'
                 ),
                 array(
                     'url' => '/communities/requestAccess',
                     'url_params_data_paths' => array(
-                        'community_uuid'
+                        'uuid'
                     ),
                     'icon' => 'comments'
                 )

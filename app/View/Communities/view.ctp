@@ -2,8 +2,8 @@
     <?php
         $table_data = array();
         $table_data[] = array('key' => __('Id'), 'value' => $community['id']);
-        $table_data[] = array('key' => __('UUID'), 'value' => $community['community_uuid']);
-        $table_data[] = array('key' => __('Name'), 'value' => $community['community_name']);
+        $table_data[] = array('key' => __('UUID'), 'value' => $community['uuid']);
+        $table_data[] = array('key' => __('Name'), 'value' => $community['name']);
         $table_data[] = array('key' => __('Host organisation'), 'value' => $community['org_name'] . '(' . $community['org_uuid'] . ')');
         $table_data[] = array(
             'key' => __('Vetted by MISP-project'),
@@ -14,7 +14,7 @@
             )
         );
         $optional_fields = array(
-            'type_of_community', 'description', 'rules', 'email', 'sector', 'nationality', 'eligibility', 'pgp_key'
+            'type', 'description', 'rules', 'email', 'sector', 'nationality', 'eligibility', 'pgp_key'
         );
         foreach ($optional_fields as $field) {
             if (!empty($community[$field])) {
@@ -32,7 +32,7 @@
                     h($community['org_name']),
                     h($community['org_name'])
                 ),
-                __('Community ') . h($community['community_name']),
+                __('Community ') . h($community['name']),
                 $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
             )
         );
@@ -40,7 +40,7 @@
             '<a href="%s%s%s" class="btn btn-primary">%s</a>',
             $baseurl,
             '/communities/requestAccess/',
-            h($community['community_uuid']),
+            h($community['uuid']),
             __('Request Access')
         );
     ?>

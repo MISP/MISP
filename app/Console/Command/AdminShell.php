@@ -54,7 +54,7 @@ class AdminShell extends AppShell
         $this->Job->id = $jobId;
         $result = $this->Server->updateAfterPull($submodule_name, $userId);
         $this->Job->saveField('progress', 100);
-        $this->Job->saveField('date_modified', date("y-m-d H:i:s"));
+        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
         if ($result) {
             $this->Job->saveField('message', __('Database updated: ' . $submodule_name));
         } else {
