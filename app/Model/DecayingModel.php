@@ -433,6 +433,10 @@ class DecayingModel extends AppModel
         $sightings = $this->Sighting->listSightings($user, $attribute_id, 'attribute', false, 0, false);
         if (empty($sightings)) {
             $sightings = array(array('Sighting' => array('date_sighting' => $attribute['Attribute']['timestamp']))); // simulate a Sighting nonetheless
+        } else {
+            foreach ($sightings as $i => $sighting) {
+                $sightings[$i]['Sighting']['rounded_timestamp'] = $this->round_timestamp_to_hour($sighting['Sighting']['date_sighting']);
+            }
         }
         // get start time
         $start_time = $attribute['Attribute']['timestamp'];
@@ -463,8 +467,7 @@ class DecayingModel extends AppModel
         for ($t=$start_time; $t < $end_time; $t+=3600) {
             // fetch closest sighting to the current time
             $sighting_index = $this->getClosestSighting($sightings, $t, $sighting_index);
-            $last_sighting = $this->round_timestamp_to_hour($sightings[$sighting_index]['Sighting']['date_sighting']);
-            $sightings[$sighting_index]['Sighting']['rounded_timestamp'] = $last_sighting;
+            $last_sighting = $sightings[$sighting_index]['Sighting']['rounded_timestamp'];
             $elapsed_time = $t - $last_sighting;
             $score_overtime[$t] = $this->Computation->computeScore($model, $attribute['Attribute'], $base_score, $elapsed_time);
         }
