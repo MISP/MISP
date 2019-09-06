@@ -605,7 +605,7 @@ class DecayingModelController extends AppController
                 }
                 $model_overrides = isset($filters['modelOverrides']) ? $filters['modelOverrides'] : array();
                 if (isset($filters['score'])) {
-                    $model_overrides['threshold'] = $filters['score'];
+                    $model_overrides['threshold'] = intval($filters['score']);
                 }
                 $this->DecayingModel->attachScoresToAttribute($this->Auth->user(), $attributes[$k]['Attribute'], $filters['decayingModel'], $model_overrides);
                 if ($filters['excludeDecayed']) { // filter out decayed attribute
@@ -642,6 +642,9 @@ class DecayingModelController extends AppController
             if ($model_overrides === null) {
                 $model_overrides = array();
             }
+        }
+        if (isset($this->params['named']['score'])) {
+            $model_overrides['threshold'] = intval($this->params['named']['score']);
         }
         $score_overtime = $this->DecayingModel->getScoreOvertime($this->Auth->user(), $model_id, $attribute_id, $model_overrides);
         return $this->RestResponse->viewData($score_overtime, $this->response->type());

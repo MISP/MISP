@@ -175,6 +175,9 @@ function doRestSearch(clicked, query) {
                 if (json.modelOverrides !== undefined) {
                     $trs.data('modelOverride', JSON.stringify(json.modelOverrides));
                 }
+                if (json.score !== undefined) {
+                    $trs.data('score', json.score);
+                }
             },
             error:function(jqXHR, textStatus, errorThrown) {
                 $('#attributeTableContainer').text(textStatus + ': ' + errorThrown);
@@ -218,6 +221,10 @@ function doSimulation(clicked, attribute_id) {
     var model_override = $(clicked).data('modelOverride');
     if (model_override !== undefined) {
         url += '/modelOverride:' + model_override;
+    }
+    var score = $(clicked).data('score');
+    if (score !== undefined) {
+        url += '/score:' + score;
     }
     $.ajax({
         beforeSend:function() {
