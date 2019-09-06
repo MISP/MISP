@@ -108,6 +108,7 @@ class StixParser():
             'NetworkConnectionObjectType': self.handle_network_connection,
             'NetworkSocketObjectType': self.handle_network_socket,
             'PDFFileObjectType': self.handle_file,
+            'PipeObjectType': self.handle_pipe,
             'PortObjectType': self.handle_port,
             'ProcessObjectType': self.handle_process,
             'SocketAddressObjectType': self.handle_socket_address,
@@ -418,6 +419,11 @@ class StixParser():
                 attributes.append(["text", prop.split('_')[1], "state"])
         if attributes:
             return "network-socket", self.return_attributes(attributes), ""
+
+    # Return type & value of a names pipe attribute
+    @staticmethod
+    def handle_pipe(properties):
+        return "named pipe", properties.name.value, ""
 
     # Return type & value of a port attribute
     @staticmethod

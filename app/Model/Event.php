@@ -255,6 +255,7 @@ class Event extends AppModel
         'info' => array(
             'valueNotEmpty' => array(
                 'rule' => array('valueNotEmpty'),
+                'required' => true
             ),
         ),
         'user_id' => array(
@@ -1111,6 +1112,8 @@ class Event extends AppModel
                 if (!$found) {
                     return 403;
                 }
+            } else if (empty($event['SharingGroup']['roaming'])) {
+                return 403;
             }
         }
         $serverModel = ClassRegistry::init('Server');
@@ -1880,6 +1883,13 @@ class Event extends AppModel
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
                 $conditions['AND']['OR']['Event.id'] = $delegatedEventIDs;
             }
+            $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
+            $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
+            if ($this->getDataSource()->config['datasource'] == 'Database/Postgres') {
+                $schemaName = $this->getDataSource()->config['schema'];
+                $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);
+                $objectCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Object"."event_id")', $schemaName, $schemaName, $schemaName);
+            }
             $conditionsAttributes['AND'][0]['OR'] = array(
                 array('AND' => array(
                     'Attribute.distribution >' => 0,
@@ -1889,7 +1899,7 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 )),
-                '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
+                $attributeCondSelect => $user['org_id']
             );
 
             $conditionsObjects['AND'][0]['OR'] = array(
@@ -1901,7 +1911,7 @@ class Event extends AppModel
                     'Object.distribution' => 4,
                     'Object.sharing_group_id' => $sgids,
                 )),
-                '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)' => $user['org_id']
+                $objectCondSelect => $user['org_id']
             );
         }
         if ($options['distribution']) {
@@ -2010,7 +2020,7 @@ class Event extends AppModel
         $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation');
         $fieldsObj = array('*');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp');
-        $fieldsOrg = array('id', 'name', 'uuid');
+        $fieldsOrg = array('id', 'name', 'uuid', 'local');
         $fieldsServer = array('id', 'url', 'name');
         if (!$options['includeAllTags']) {
             $tagConditions = array('exportable' => 1);
@@ -2894,6 +2904,9 @@ class Event extends AppModel
     public function sendAlertEmail($id, $senderUser, $oldpublish = null, $processId = null)
     {
         $event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
+        if (empty($event)) {
+            throw new NotFoundException('Invalid Event.');
+        }
         $this->NotificationLog = ClassRegistry::init('NotificationLog');
         if (!$this->NotificationLog->check($event[0]['Event']['orgc_id'], 'publish')) {
             if ($processId) {
@@ -2902,9 +2915,6 @@ class Event extends AppModel
                 $this->Job->saveField('message', 'Mails blocked by org alert threshold.');
             }
             return true;
-        }
-        if (empty($event)) {
-            throw new MethodNotFoundException('Invalid Event.');
         }
         $userConditions = array('autoalert' => 1);
         $this->User = ClassRegistry::init('User');
@@ -3113,13 +3123,6 @@ class Event extends AppModel
                     'conditions' => array('disabled' => 0, 'User.org_id' => $event['Event']['orgc_id']),
                     'recursive' => -1
             ));
-            if (empty($temp)) {
-                $temp = $this->User->find('all', array(
-                        'fields' => array('email', 'gpgkey', 'certif_public', 'contactalert', 'id', 'org_id'),
-                        'conditions' => array('disabled' => 0, 'User.org_id' => $event['Event']['org_id']),
-                        'recursive' => -1
-                ));
-            }
             foreach ($temp as $tempElement) {
                 if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
                     array_push($orgMembers, $tempElement);
@@ -3127,8 +3130,13 @@ class Event extends AppModel
             }
         } else {
             $temp = $this->User->find('first', array(
-                    'conditions' => array('User.id' => $event['Event']['user_id'], 'User.disabled' => 0),
+                    'conditions' => array(
+                        'User.id' => $event['Event']['user_id'],
+                        'User.disabled' => 0,
+                        'User.org_id' => $event['Event']
+                    ),
                     'fields' => array('User.email', 'User.gpgkey', 'User.certif_public'),
+                    'recursive' => -1
             ));
             if (!empty($temp)) {
                 $orgMembers = array(0 => $temp);
@@ -3137,12 +3145,12 @@ class Event extends AppModel
         if (empty($orgMembers)) {
             return false;
         }
-        $temp = $this->__buildContactEventEmailBody($user, $message, $event, $targetUser, $id);
-        $bodyevent = $temp[0];
-        $body = $temp[1];
-        $result = true;
-        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
-        foreach ($orgMembers as &$reporter) {
+        foreach ($orgMembers as $reporter) {
+            $temp = $this->__buildContactEventEmailBody($user, $message, $event, $reporter, $id);
+            $bodyevent = $temp[0];
+            $body = $temp[1];
+            $result = true;
+            $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
             $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
             $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
         }
@@ -3185,7 +3193,7 @@ class Event extends AppModel
         $bodyevent .= 'Analysis    : ' . $event['Event']['analysis'] . "\n";
 
         $userModel = ClassRegistry::init('User');
-        $targetUser = $userModel->getAuthUser($orgMembers[0]['User']['id']);
+        $targetUser = $userModel->getAuthUser($targetUser['User']['id']);
         $sgModel = ClassRegistry::init('SharingGroup');
         $sgs = $sgModel->fetchAllAuthorised($targetUser, false);
 
@@ -3445,13 +3453,12 @@ class Event extends AppModel
         }
         if (isset($data['Event']['uuid'])) {
             // check if the uuid already exists
-            $existingEventCount = $this->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-            if ($existingEventCount > 0) {
+            $existingEvent = $this->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
+            if ($existingEvent) {
                 // RESTful, set response location header so client can find right URL to edit
                 if ($fromPull) {
                     return false;
                 }
-                $existingEvent = $this->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
                 if ($fromXml) {
                     $created_id = $existingEvent['Event']['id'];
                 }

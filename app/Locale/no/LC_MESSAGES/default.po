@@ -3891,8 +3891,8 @@ msgid "The debug level of the instance for site admins. This feature allows site
 msgstr "Feilsøkingsnivået for forekomsten for nettstedadministratorer. Denne funksjonen tillater at webansvarlige kan kjøre feilsøkingsmodus på en levende forekomst uten å utsette den for andre brukere. Det mest fordelaktige alternativet for feilsøking og site_admin_debug brukes til administratorer på nettstedet."
 
 #: Model/Server.php:2254
-msgid "Failed (partially?) because of validation errors: "
-msgstr "Mislyktes (delvis?) På grunn av valideringsfeil: "
+msgid "Failed (partially?) because of errors: "
+msgstr "Mislyktes (delvis?) På grunn av feil: "
 
 #: Model/Server.php:2258
 msgid "Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side."

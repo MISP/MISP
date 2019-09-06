@@ -21,7 +21,7 @@ class SharingGroupsController extends AppController
             'order' => array(
                     'SharingGroup.name' => 'ASC'
             ),
-            'fields' => array('SharingGroup.id', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability', 'SharingGroup.local', 'SharingGroup.active'),
+            'fields' => array('SharingGroup.id', 'SharingGroup.uuid', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability', 'SharingGroup.local', 'SharingGroup.active'),
             'contain' => array(
                     'SharingGroupOrg' => array(
                         'Organisation' => array('fields' => array('Organisation.name', 'Organisation.id', 'Organisation.uuid'))
@@ -51,12 +51,20 @@ class SharingGroupsController extends AppController
 
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
-                $sg = $this->request->data;
                 if (isset($this->request->data['SharingGroup'])) {
                     $this->request->data = $this->request->data['SharingGroup'];
                 }
+                $sg = $this->request->data;
                 $id = $this->SharingGroup->captureSG($this->request->data, $this->Auth->user());
                 if ($id) {
+                    if (empty($sg['roaming']) && empty($sg['SharingGroupServer'])) {
+                       $this->SharingGroup->SharingGroupServer->create();
+                       $this->SharingGroup->SharingGroupServer->save(array(
+                               'sharing_group_id' => $this->SharingGroup->id,
+                               'server_id' => 0,
+                               'all_orgs' => 0
+                       ));
+                   }
                     $sg = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'simplified', false, $id);
                     if (!empty($sg)) {
                         $sg = empty($sg) ? array() : $sg[0];
@@ -93,7 +101,7 @@ class SharingGroupsController extends AppController
                         ));
                     }
                 }
-                if (!$sg['roaming'] && !empty($sg['Server'])) {
+                if (empty($sg['roaming']) && !empty($sg['Server'])) {
                     foreach ($sg['Server'] as $server) {
                         $this->SharingGroup->SharingGroupServer->create();
                         $this->SharingGroup->SharingGroupServer->save(array(
@@ -122,7 +130,7 @@ class SharingGroupsController extends AppController
             return $this->RestResponse->describe('SharingGroup', 'add', false, $this->response->type());
         }
         $this->set('orgs', $orgs);
-        $this->set('localInstance', Configure::read('MISP.baseurl'));
+        $this->set('localInstance', empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'));
         // We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
         $this->set('user', $this->Auth->user());
     }
@@ -215,7 +223,7 @@ class SharingGroupsController extends AppController
         $this->set('sharingGroup', $sharingGroup);
         $this->set('id', $id);
         $this->set('orgs', $orgs);
-        $this->set('localInstance', Configure::read('MISP.baseurl'));
+        $this->set('localInstance', empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'));
         // We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
         $this->set('user', $this->Auth->user());
     }
@@ -316,7 +324,11 @@ class SharingGroupsController extends AppController
         if (isset($sg['SharingGroupServer'])) {
             foreach ($sg['SharingGroupServer'] as $key => $sgs) {
                 if ($sgs['server_id'] == 0) {
-                    $sg['SharingGroupServer'][$key]['Server'] = array('id' => "0", 'name' => 'Local instance', 'url' => Configure::read('MISP.baseurl'));
+                    $sg['SharingGroupServer'][$key]['Server'] = array(
+                        'id' => "0",
+                        'name' => 'Local instance',
+                        'url' => empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl')
+                    );
                 }
             }
         }

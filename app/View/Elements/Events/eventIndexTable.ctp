@@ -61,12 +61,12 @@
 
     </tr>
     <?php foreach ($events as $event): ?>
-    <tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
+    <tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?> id="event_<?php echo h($event['Event']['id']);?>">
             <?php
                 if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):
             ?>
                     <td style="width:10px;" data-id="<?php echo h($event['Event']['id']); ?>">
-                        <input class="select" type="checkbox" data-id="<?php echo $event['Event']['id'];?>" />
+                        <input id="<?php echo h($event['Event']['id']); ?>" class="select" type="checkbox" data-id="<?php echo h($event['Event']['id']);?>" />
                     </td>
             <?php
                 else:
@@ -240,9 +240,19 @@
     <?php endforeach; ?>
 </table>
 <script type="text/javascript">
+    var lastSelected = false;
     $(document).ready(function() {
         $('.select').on('change', function() {
             listCheckboxesChecked();
+        });
+        $('.select').click(function(e) {
+            if ($(this).is(':checked')) {
+                if (e.shiftKey) {
+                    selectAllInbetween(lastSelected, this.id);
+                }
+                lastSelected = this.id;
+            }
+            attributeListAnyAttributeCheckBoxesChecked();
         });
 
         $('.distributionNetworkToggle').each(function() {

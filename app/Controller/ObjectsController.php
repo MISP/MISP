@@ -602,19 +602,14 @@ class ObjectsController extends AppController
 
     public function delete($id, $hard = false)
     {
+        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
         if (!$this->userRole['perm_modify']) {
             throw new MethodNotAllowedException(__('You don\'t have permissions to delete objects.'));
-        }
-        $lookupField = 'id';
-        if (Validation::uuid($id)) {
-            $lookupField = 'uuid';
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid object.'));
         }
         $object = $this->MispObject->find('first', array(
             'recursive' => -1,
             'fields' => array('Object.id', 'Object.event_id', 'Event.id', 'Event.uuid', 'Event.orgc_id'),
-            'conditions' => array('Object.' . $lookupField => $id),
+            'conditions' => array('Object.id' => $id),
             'contain' => array(
                 'Event'
             )
@@ -780,6 +775,7 @@ class ObjectsController extends AppController
 
     public function view($id)
     {
+        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
         if ($this->_isRest()) {
             $objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
             if (!empty($objects)) {
@@ -792,6 +788,7 @@ class ObjectsController extends AppController
                 }
                 return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
             }
+            throw new NotFoundException(__('Invalid object.'));
         }
     }
 

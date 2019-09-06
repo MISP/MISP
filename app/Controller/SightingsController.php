@@ -90,8 +90,8 @@ class SightingsController extends AppController
                     }
                 } else {
                     if ($this->_isRest() || $this->response->type() === 'application/json') {
-                        $this->set('message', __('Sighting added'));
-                        $this->set('_serialize', array('message'));
+                        $sighting = $this->Sighting->find('first', array('conditions' => array('Sighting.id' => $this->Sighting->id), 'recursive' => -1));
+                        return $this->RestResponse->viewData($sighting, $this->response->type());
                     } else {
                         $this->Flash->success(__('Sighting added'));
                         $this->redirect($this->referer());
@@ -228,7 +228,9 @@ class SightingsController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This action can only be accessed via a post request.');
         }
-        $sighting = $this->Sighting->find('first', array('conditions' => array('Sighting.id' => $id), 'recursive' => -1));
+        $id = $this->Toolbox->findIdByUuid($this->Sighting, $id);
+        $conditions = array('Sighting.id' => $id);
+        $sighting = $this->Sighting->find('first', array('conditions' => $conditions, 'recursive' => -1));
         if (empty($sighting)) {
             throw new NotFoundException('Invalid sighting.');
         }
@@ -336,6 +338,8 @@ class SightingsController extends AppController
             'Sighting.' . $context . '_id' => $id
         );
         if ($org_id) {
+            $this->loadModel('Organisation');
+            $org_id = $this->Toolbox->findIdByUuid($this->Organisation, $org_id);
             $conditions[] = array('Sighting.org_id' => $org_id);
         }
         $sightings = $this->Sighting->find('all', array(

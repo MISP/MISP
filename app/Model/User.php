@@ -216,26 +216,6 @@ class User extends AppModel
         'Containable'
     );
 
-    private function __generatePassword()
-    {
-        $groups = array(
-                '0123456789',
-                'abcdefghijklmnopqrstuvwxyz',
-                'ABCDEFGHIJKLOMNOPQRSTUVWXYZ',
-                '!@#$%^&*()_-'
-        );
-        $passwordLength = (Configure::read('Security.password_policy_length') && Configure::read('Security.password_policy_length') >= 12) ? Configure::read('Security.password_policy_length') : 12;
-        $pw = '';
-        for ($i = 0; $i < $passwordLength; $i++) {
-            $chars = implode('', $groups);
-            $pw .= $chars[mt_rand(0, strlen($chars)-1)];
-        }
-        foreach ($groups as $group) {
-            $pw .= $group[mt_rand(0, strlen($group)-1)];
-        }
-        return $pw;
-    }
-
     public function beforeValidate($options = array())
     {
         if (!isset($this->data['User']['id'])) {
@@ -739,6 +719,59 @@ class User extends AppModel
         return $users;
     }
 
+    public function sendEmailExternal($user, $params)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $params['body'] = str_replace('\n', PHP_EOL, $params['body']);
+        $Email = new CakeEmail();
+        $recipient = array('User' => array('email' => $params['to']));
+        $failed = false;
+        if (!empty($params['gpgkey'])) {
+            $recipient['User']['gpgkey'] = $params['gpgkey'];
+            $encryptionResult = $this->__encryptUsingGPG($Email, $params['body'], $params['subject'], $recipient);
+            if (isset($encryptionResult['failed'])) {
+                $failed = true;
+            }
+            if (isset($encryptionResult['failureReason'])) {
+                $failureReason = $encryptionResult['failureReason'];
+            }
+        }
+        if (!$failed) {
+            $replyToLog = '';
+            $user = array('User' => $user);
+            $attachments = array();
+            $Email->replyTo($params['reply-to']);
+            if (!empty($params['requestor_gpgkey'])) {
+                $attachments['gpgkey.asc'] = array(
+                    'data' => $params['requestor_gpgkey']
+                );
+            }
+            $Email->from(Configure::read('MISP.email'));
+            $Email->returnPath(Configure::read('MISP.email'));
+            $Email->to($params['to']);
+            $Email->subject($params['subject']);
+            $Email->emailFormat('text');
+            if (!empty($params['attachments'])) {
+                foreach ($params['attachments'] as $key => $value) {
+                    $attachments[$k] = array('data' => $value);
+                }
+            }
+            $Email->attachments($attachments);
+            $mock = false;
+            if (Configure::read('MISP.disable_emailing') || !empty($params['mock'])) {
+                $Email->transport('Debug');
+                $mock = true;
+            }
+            $result = $Email->send($params['body']);
+            $Email->reset();
+            if ($result && !$mock) {
+                return true;
+            }
+            return $result;
+        }
+        return false;
+    }
+
     // all e-mail sending is now handled by this method
     // Just pass the user ID in an array that is the target of the e-mail along with the message body and the alternate message body if the message cannot be encrypted
     // the remaining two parameters are the e-mail subject and a secondary user object which will be used as the replyto address if set. If it is set and an encryption key for the replyTo user exists, then his/her public key will also be attached
@@ -833,16 +866,21 @@ class User extends AppModel
         return false;
     }
 
-    private function __finaliseAndSendEmail($replyToUser, &$Email, &$replyToLog, $user, $subject, $body)
+    private function __finaliseAndSendEmail($replyToUser, &$Email, &$replyToLog, $user, $subject, $body, $additionalAttachments = false)
     {
         // If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender
         // For this reason we should also attach the public key of the sender along with the message (if applicable)
+        $attachments = array();
         if ($replyToUser != false) {
             $Email->replyTo($replyToUser['User']['email']);
             if (!empty($replyToUser['User']['gpgkey'])) {
-                $Email->attachments(array('gpgkey.asc' => array('data' => $replyToUser['User']['gpgkey'])));
+                $attachments['gpgkey.asc'] = array(
+                    'data' => $replyToUser['User']['gpgkey']
+                );
             } elseif (!empty($replyToUser['User']['certif_public'])) {
-                $Email->attachments(array($replyToUser['User']['email'] . '.pem' => array('data' => $replyToUser['User']['certif_public'])));
+                $attachments[$replyToUser['User']['email'] . '.pem'] = array(
+                    'data' => $replyToUser['User']['certif_public']
+                );
             }
             $replyToLog = 'from ' . $replyToUser['User']['email'];
         }
@@ -851,6 +889,12 @@ class User extends AppModel
         $Email->to($user['User']['email']);
         $Email->subject($subject);
         $Email->emailFormat('text');
+        if (!empty($additionalAttachments)) {
+            foreach ($additionalAttachments as $key => $value) {
+                $attachments[$k] = array('data' => $value);
+            }
+        }
+        $Email->attachments($attachments);
         $result = $Email->send($body);
         $Email->reset();
         return $result;
@@ -985,50 +1029,46 @@ class User extends AppModel
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
         $HttpSocket = $syncTool->setupHttpSocket();
-        $response = $HttpSocket->get('https://pgp.circl.lu/pks/lookup?search=' . $email . '&op=index&fingerprint=on');
+        $response = $HttpSocket->get('https://pgp.circl.lu/pks/lookup?search=' . urlencode($email) . '&op=index&fingerprint=on&options=mr');
         if ($response->code != 200) {
             return $response->code;
         }
-        $string = str_replace(array("\r", "\n"), "", $response->body);
-        $result = preg_match_all('/<pre>pub(.*?)<\/pre>/', $string, $matches);
-        $results = $this->__extractPGPInfo($matches[1]);
-        return $results;
+        return $this->__extractPGPInfo($response->body);
     }
 
-    private function __extractPGPInfo($lines)
+    private function __extractPGPInfo($body)
     {
-        $extractionRules = array(
-            'key_id' => array('regex' => '/\">(.*?)<\/a>/', 'all' => false, 'alternate' => false),
-            'date' => array('regex' => '/([0-9]{4}\-[0-9]{2}\-[0-9]{2})/', 'all' => false, 'alternate' => false),
-            'fingerprint' => array('regex' => '/Fingerprint=(.*)$/m', 'all' => false, 'alternate' => false),
-            'uri' => array('regex' => '/<a href=\"(.*?)\">/', 'all' => false, 'alternate' => false),
-            'address' => array('regex' => '/<a href="\/pks\/lookup\?op=vindex[^>]*>([^\<]*)<\/a>(.*)Fingerprint/s', 'all' => true, 'alternate' => true),
-        );
         $final = array();
+        $lines = explode("\n", $body);
         foreach ($lines as $line) {
-            if (strpos($line, 'KEY REVOKED')) {
-                continue;
+            $parts = explode(":", $line);
+
+            if ($parts[0] === 'pub') {
+                if (!empty($temp)) {
+                    $final[] = $temp;
+                    $temp = array();
+                }
+
+                if (strpos($parts[6], 'r') !== false || strpos($parts[6], 'd') !== false || strpos($parts[6], 'e') !== false) {
+                    continue; // skip if key is expired, revoked or disabled
+                }
+
+                $temp = array(
+                    'fingerprint' => chunk_split($parts[1], 4, ' '),
+                    'key_id' => substr($parts[1], -8),
+                    'date' => date('Y-m-d', $parts[4]),
+                    'uri' => '/pks/lookup?op=get&search=0x' . $parts[1],
+                );
+
+            } else if ($parts[0] === 'uid' && !empty($temp)) {
+                $temp['address'] = urldecode($parts[1]);
             }
-            $temp = array();
-            foreach ($extractionRules as $ruleName => $rule) {
-                if ($rule['all']) {
-                    preg_match_all($rule['regex'], $line, ${$ruleName});
-                } else {
-                    preg_match($rule['regex'], $line, ${$ruleName});
-                }
-                if ($rule['alternate'] && isset(${$ruleName}[2]) && trim(${$ruleName}[2][0]) != '') {
-                    $temp[$ruleName] = ${$ruleName}[2];
-                } else {
-                    $temp[$ruleName] = ${$ruleName}[1];
-                }
-                if ($rule['all']) {
-                    $temp[$ruleName] = $temp[$ruleName][0];
-                }
-                $temp[$ruleName] = html_entity_decode($temp[$ruleName]);
-            }
-            $temp['address'] = preg_replace('/\s{2,}/', PHP_EOL, trim($temp['address']));
+        }
+
+        if (!empty($temp)) {
             $final[] = $temp;
         }
+
         return $final;
     }
 

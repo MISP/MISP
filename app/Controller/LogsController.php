@@ -173,7 +173,7 @@ class LogsController extends AppController
             )
         );
         if (empty($event)) {
-            throw new MethodNotFoundException('Invalid event.');
+            throw new NotFoundException('Invalid event.');
         }
         $event = $event[0];
         $attribute_ids = array();

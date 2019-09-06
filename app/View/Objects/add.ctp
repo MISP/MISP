@@ -290,7 +290,7 @@
                                     <tr class="success" title="<?php echo __('Can be merged automatically. Injection done.'); ; ?>">
                                         <td style="white-space: nowrap;">
                                             <?php if (isset($attribute['is_multiple']) && $attribute['is_multiple']): ?>
-                                                <i class="fas fa-copy useCursorPointer" style="margin-right: 3px;" title="<?php echo __('An instance of this attribute already exists. However, as multiple instanciation is allowed by this template, the two attributes will be keept.'); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="scrollinRow(this);"></i>
+                                                <i class="fas fa-copy useCursorPointer" style="margin-right: 3px;" title="<?php echo __('An instance of this attribute already exists. However, as multiple instances are allowed by this template, the two attributes will be kept.'); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="scrollinRow(this);"></i>
                                             <?php endif; ?>
                                             <?php echo h($attribute['object_relation']); ?>
                                         </td>
@@ -347,7 +347,7 @@
         var old_value = $clicked.data('valueold');
         var revised_value = $clicked.data('valuerevised');
         var col_object_relation = $clicked.data('objectrelation');
-      var col_type = $clicked.data('type');
+        var col_type = $clicked.data('type');
         insertValueAndScroll(col_object_relation, col_type, revised_value, old_value, $clicked);
     }
 
@@ -366,7 +366,7 @@
         var $value_field = $($matching_row.find('div.object_value_field select, div.object_value_field textarea')[0]);
         var cur_val = $value_field.val();
         var selected_value;
-        if (cur_val !== old_value) {
+        if (cur_val != old_value) {
             selected_value = old_value;
             $value_field.val(old_value);
             $clicked.addClass('fa-sign-in-alt fa-flip-horizontal').removeClass('fa-trash-restore');

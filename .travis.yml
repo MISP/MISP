@@ -24,19 +24,15 @@ before_install:
     - export PATH="$HOME/.local/bin:$PATH"
 
 install:
-    - sudo add-apt-repository -y ppa:deadsnakes/ppa
+    - date
     - sudo apt-get -y update
     # Travis lacks entropy.
     - sudo apt-get -y install haveged
-    - sudo apt-get -y install python3.6 python3-pip python3.6-dev python3-nose libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php-mysql php-dev php-cli libapache2-mod-php libfuzzy-dev php-mbstring libonig4 php-json php-xml php-opcache php-readline php-pear php-redis php-gnupg php-gd
+    - sudo apt-get -y install python3 python3-pip python3-dev python3-nose libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php-mysql php-dev php-cli libapache2-mod-php libfuzzy-dev php-mbstring libonig4 php-json php-xml php-opcache php-readline php-pear php-redis php-gnupg php-gd
     - sudo apt-get -y dist-upgrade
-    - wget https://bootstrap.pypa.io/get-pip.py
-    - sudo python3.6 get-pip.py
-    - hash -r
-    - sudo pip3.6 install --upgrade pip setuptools requests pyzmq
-    - hash -r
-    - sudo pip3.6 install --upgrade -r requirements.txt
-    - sudo pip3.6 install pipenv
+    - sudo pip3 install --upgrade pip setuptools requests pyzmq
+    - sudo pip3 install --upgrade -r requirements.txt
+    - sudo pip3 install pipenv
     - phpenv rehash
     - sudo mkdir $HOME/.composer ; sudo chown $USER:www-data $HOME/.composer
     - pushd app
@@ -49,7 +45,7 @@ install:
     - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
     # Set perms
     - sudo chown -R $USER:www-data `pwd`
-    - sudo chmod -R 755 `pwd`
+    - sudo chmod -R 775 `pwd`
     - sudo chmod -R g+ws `pwd`/app/tmp
     - sudo chmod -R g+ws `pwd`/app/tmp/cache
     - sudo chmod -R g+ws `pwd`/app/tmp/cache/persistent
@@ -63,6 +59,7 @@ install:
     - sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
     # install MySQL
     - sudo chmod -R 777 `pwd`/INSTALL
+    - mysql -u root -e "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES';"
     - mysql -u root -e 'create database misp;'
     - mysql -u root -e "grant usage on *.* to misp@localhost identified by 'blah'";
     - mysql -u root -e "grant all privileges on misp.* to misp@localhost;"
@@ -84,7 +81,7 @@ install:
     - sudo cp app/Config/config.default.php app/Config/config.php
     # Ensure the perms
     - sudo chown -R $USER:www-data `pwd`/app/Config
-    - sudo chmod -R 750 `pwd`/app/Config
+    - sudo chmod -R 770 `pwd`/app/Config
     # GPG setup
     - sudo mkdir `pwd`/.gnupg
     # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
@@ -108,6 +105,7 @@ install:
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.host_org_id" 1'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.email" "info@admin.test"'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.disable_emailing" true'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "debug" true'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
