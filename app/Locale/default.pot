@@ -3890,7 +3890,7 @@ msgid "The debug level of the instance for site admins. This feature allows site
 msgstr ""
 
 #: Model/Server.php:2254
-msgid "Failed (partially?) because of validation errors: "
+msgid "Failed (partially?) because of errors: "
 msgstr ""
 
 #: Model/Server.php:2258

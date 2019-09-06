@@ -3453,13 +3453,12 @@ class Event extends AppModel
         }
         if (isset($data['Event']['uuid'])) {
             // check if the uuid already exists
-            $existingEventCount = $this->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-            if ($existingEventCount > 0) {
+            $existingEvent = $this->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
+            if ($existingEvent) {
                 // RESTful, set response location header so client can find right URL to edit
                 if ($fromPull) {
                     return false;
                 }
-                $existingEvent = $this->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
                 if ($fromXml) {
                     $created_id = $existingEvent['Event']['id'];
                 }
