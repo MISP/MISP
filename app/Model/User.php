@@ -1057,7 +1057,7 @@ class User extends AppModel
                     'fingerprint' => chunk_split($parts[1], 4, ' '),
                     'key_id' => substr($parts[1], -8),
                     'date' => date('Y-m-d', $parts[4]),
-                    'uri' => 'pks/lookup?op=get&search=0x' . $parts[1],
+                    'uri' => '/pks/lookup?op=get&search=0x' . $parts[1],
                 );
 
             } else if ($parts[0] === 'uid' && !empty($temp)) {
