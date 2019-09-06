@@ -3279,7 +3279,8 @@ class Attribute extends AppModel
                 }
                 if ($options['includeDecayScore']) {
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
-                    $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides']);
+                    $include_full_model = isset($options['includeFullModel']) && $options['includeFullModel'] ? 1 : 0;
+                    $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides'], $include_full_model);
                     if ($options['excludeDecayed']) { // filter out decayed attribute
                         $decayed_flag = true;
                         foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) { // remove attribute if ALL score results in a decay
@@ -4263,7 +4264,8 @@ class Attribute extends AppModel
                 'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
                 'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
                 'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
-                'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0
+                'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
+                'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0
         );
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];

@@ -510,7 +510,7 @@ class DecayingModel extends AppModel
         }
     }
 
-    public function attachScoresToAttribute($user, &$attribute, $model_id=false, $model_overrides=array())
+    public function attachScoresToAttribute($user, &$attribute, $model_id=false, $model_overrides=array(), $include_full_model=0)
     {
         $models = array();
         if ($model_id === false) { // fetch all allowed and associated models
@@ -530,7 +530,11 @@ class DecayingModel extends AppModel
             }
             $score = $this->getScore($attribute, $model, $user);
             $decayed = $this->isDecayed($attribute, $model, $score);
-            $attribute['decay_score'][] = array('DecayingModel' => $model['DecayingModel'], 'score' => $score, 'decayed' => $decayed);
+            $to_attach = array('score' => $score, 'decayed' => $decayed, 'DecayingModel' => array('id' => $model['DecayingModel']['id']));
+            if ($include_full_model) {
+                $to_attach['DecayingModel'] = $model['DecayingModel'];
+            }
+            $attribute['decay_score'][] = $to_attach;
         }
     }
 
