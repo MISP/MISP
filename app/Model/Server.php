@@ -2528,6 +2528,7 @@ class Server extends AppModel
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/events/index';
         $filter_rules['minimal'] = 1;
+        $filter_rules['published'] = 1;
         try {
             $response = $HttpSocket->post($uri, json_encode($filter_rules), $request);
             if ($response->isOk()) {
@@ -2549,9 +2550,38 @@ class Server extends AppModel
                 } else {
                     // multiple events, iterate over the array
                     $this->Event = ClassRegistry::init('Event');
+                    $blacklisting = array();
+                    if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+                        $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+                        $blacklisting['EventBlacklist'] = array(
+                            'index_field' => 'uuid',
+                            'blacklist_field' => 'event_uuid'
+                        );
+                    }
+                    if (Configure::read('MISP.enableOrgBlacklisting') !== false) {
+                        $this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
+                        $blacklisting['OrgBlacklist'] = array(
+                            'index_field' => 'orgc_uuid',
+                            'blacklist_field' => 'org_uuid'
+                        );
+                    }
                     foreach ($eventArray as $k => $event) {
                         if (1 != $event['published']) {
                             unset($eventArray[$k]); // do not keep non-published events
+                            continue;
+                        }
+                        foreach ($blacklisting as $type => $blacklist) {
+                            if (!empty($eventArray[$k][$blacklist['index_field']])) {
+                                $blacklist_hit = $this->{$type}->find('first', array(
+                                    'conditions' => array($blacklist['blacklist_field'] => $eventArray[$k][$blacklist['index_field']]),
+                                    'recursive' => -1,
+                                    'fields' => array($type . '.id')
+                                ));
+                                if (!empty($blacklist_hit)) {
+                                    unset($eventArray[$k]);
+                                    continue 2;
+                                }
+                            }
                         }
                     }
                     $this->Event->removeOlder($eventArray);
@@ -2565,20 +2595,6 @@ class Server extends AppModel
                         }
                     }
                 }
-                if (!empty($eventIds) && Configure::read('MISP.enableEventBlacklisting') !== false) {
-                    $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-                    foreach ($eventIds as $k => $eventUuid) {
-                        $blacklistEntry = $this->EventBlacklist->find('first', array(
-                            'conditions' => array('event_uuid' => $eventUuid),
-                            'recursive' => -1,
-                            'fields' => array('EventBlacklist.id')
-                        ));
-                        if (!empty($blacklistEntry)) {
-                            unset($eventIds[$k]);
-                        }
-                    }
-                }
-                $eventIds = array_values($eventIds);
                 return $eventIds;
             }
             if ($response->code == '403') {
@@ -4193,7 +4209,7 @@ class Server extends AppModel
             }
             return $result;
         }
-        
+
     }
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)
