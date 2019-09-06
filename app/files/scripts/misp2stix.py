@@ -45,7 +45,7 @@ from stix.coa import CourseOfAction
 from stix.common import InformationSource, Identity, ToolInformation
 from stix.common.confidence import Confidence
 from stix.common.related import RelatedIndicator, RelatedObservable, RelatedThreatActor, RelatedTTP
-from stix.common.vocabs import IncidentStatus
+from stix.common.vocabs import IncidentStatus, MalwareType
 from stix.core import STIXPackage, STIXHeader
 from stix.data_marking import Marking, MarkingSpecification
 from stix.exploit_target import ExploitTarget, Vulnerability, Weakness
@@ -880,6 +880,14 @@ class StixBuilder(object):
             malware = MalwareInstance()
             malware.id_ = "{}:MalwareInstance-{}".format(self.namespace_prefix, uuid)
             malware.title = cluster['value']
+            try:
+                malware.add_type(galaxy['name'])
+            except TypeError:
+                malware_type = MalwareType()
+                name = galaxy['name']
+                malware_type._ALLOWED_VALUES = [name]
+                malware_type.value = name
+                malware.add_type(malware_type)
             if cluster.get('description'):
                 malware.description = cluster['description']
             if cluster['meta'].get('synonyms'):
