@@ -47,7 +47,7 @@ class RestResponseComponent extends Component
                     Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
                     This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed'),
+                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score'),
                 'params' => array()
             )
         ),
@@ -1222,6 +1222,13 @@ class RestResponseComponent extends Component
             'values' => array(1 => 'True', 0 => 'False' ),
             'help' => 'Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields'
         ),
+        'score' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array('min' => 0, 'step' => 1, 'max' => 100),
+            'help' => 'An alias to override on-the-fly the threshold of the decaying model'
+        ),
         'sector' => array(
             'input' => 'text',
             'type' => 'string',
@@ -1590,7 +1597,7 @@ class RestResponseComponent extends Component
         ));
         $field['values'] = array();
         foreach($models as $i => $model_name) {
-            $field['values'][] = array('label' => $model_name, 'value' => $i);
+            $field['values'][] = array('label' => h($model_name), 'value' => $i);
         }
     }
     private function __overwriteTags($scope, &$field) {

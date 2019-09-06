@@ -490,7 +490,8 @@ class DecayingModelController extends AppController
                 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
                 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
                 'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
-                'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'id', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'modelOverrides'
+                'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'id', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'modelOverrides',
+                'score'
             );
             $filterData = array(
                 'request' => $this->request,
@@ -603,6 +604,9 @@ class DecayingModelController extends AppController
                     $filters['decayingModel'] = false;
                 }
                 $model_overrides = isset($filters['modelOverrides']) ? $filters['modelOverrides'] : array();
+                if (isset($filters['score'])) {
+                    $model_overrides['threshold'] = $filters['score'];
+                }
                 $this->DecayingModel->attachScoresToAttribute($this->Auth->user(), $attributes[$k]['Attribute'], $filters['decayingModel'], $model_overrides);
                 if ($filters['excludeDecayed']) { // filter out decayed attribute
                     $decayed_flag = true;

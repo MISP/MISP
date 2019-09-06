@@ -3149,6 +3149,9 @@ class Attribute extends AppModel
         if (!isset($options['modelOverrides'])) {
             $options['modelOverrides'] = array();
         }
+        if (isset($options['score'])) {
+            $options['modelOverrides']['threshold'] = $options['score'];
+        }
         if (!isset($options['excludeDecayed'])) {
             $options['excludeDecayed'] = 0;
         } else {
@@ -4291,6 +4294,9 @@ class Attribute extends AppModel
         }
         if (!empty($filters['modelOverrides'])) {
             $params['modelOverrides'] = $filters['modelOverrides'];
+        }
+        if (!empty($filters['score'])) {
+            $params['score'] = $filters['score'];
         }
         if ($paramsOnly) {
             return $params;

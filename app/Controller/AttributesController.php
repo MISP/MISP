@@ -1892,7 +1892,7 @@ class AttributesController extends AppController
             'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
             'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
             'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'includeSightings', 'includeCorrelations', 'includeDecayScore',
-            'decayingModel', 'excludeDecayed', 'modelOverrides', 'includeFullModel'
+            'decayingModel', 'excludeDecayed', 'modelOverrides', 'includeFullModel', 'score'
         );
         $filterData = array(
             'request' => $this->request,

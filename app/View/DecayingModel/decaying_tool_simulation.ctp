@@ -31,6 +31,8 @@
                                     <textarea id="restSearchTextarea">
     {
         "includeDecayScore": 1,
+        "includeFullModel": 0,
+        "score": <?php echo h($decaying_model['DecayingModel']['parameters']['threshold']); ?>,
         "excludeDecayed": 0,
         "decayingModel": [<?php echo h($decaying_model['DecayingModel']['id']); ?>],
         "to_ids": 1,
@@ -69,7 +71,7 @@
                                     <strong><?php echo __('Base score configuration'); ?></strong> <?php echo __('not set') ?>
                                 </div>
                             </div>
-                            <div style="position: relative; height: calc(100% - 75px); overflow: auto; margin-bottom: 5px;">
+                            <div style="position: relative; max-height: calc(100% - 75px); overflow: auto; margin-bottom: 5px;">
                                 <?php echo $this->element('DecayingModels/View/basescore_computation_steps'); ?>
                             </div>
                             <div style="margin-bottom: 5px; white-space: nowrap;">
