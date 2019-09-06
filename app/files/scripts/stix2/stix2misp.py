@@ -216,7 +216,7 @@ class StixParser():
         attributes = []
         for type_, value in zip(types, values):
             if 'hashes' in type_:
-                hash_type = type_.split('.')[1]
+                hash_type = type_.split('.')[1].strip("'").replace('-', '').lower()
                 attributes.append({'type': hash_type, 'value': value,
                                    'object_relation': hash_type, 'to_ids': True})
             else:
