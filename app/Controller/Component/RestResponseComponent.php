@@ -47,7 +47,7 @@ class RestResponseComponent extends Component
                     Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
                     This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'decayingModel', 'excludeDecayed'),
+                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed'),
                 'params' => array()
             )
         ),
@@ -918,6 +918,12 @@ class RestResponseComponent extends Component
             'type' => 'integer',
             'values' => array(1 => 'True', 0 => 'False' ),
             'help' => 'Include tags of matching events in the response'
+        ),
+        'includeFullModel' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' ),
+            'help' => 'Include all model information of matching events in the response'
         ),
         'includeProposals' => array(
             'input' => 'radio',

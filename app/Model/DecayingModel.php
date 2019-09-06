@@ -530,7 +530,14 @@ class DecayingModel extends AppModel
             }
             $score = $this->getScore($attribute, $model, $user);
             $decayed = $this->isDecayed($attribute, $model, $score);
-            $to_attach = array('score' => $score, 'decayed' => $decayed, 'DecayingModel' => array('id' => $model['DecayingModel']['id']));
+            $to_attach = array(
+                'score' => $score,
+                'decayed' => $decayed,
+                'DecayingModel' => array(
+                    'id' => $model['DecayingModel']['id'],
+                    'name' => $model['DecayingModel']['name']
+                )
+            );
             if ($include_full_model) {
                 $to_attach['DecayingModel'] = $model['DecayingModel'];
             }
