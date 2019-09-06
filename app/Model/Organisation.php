@@ -138,8 +138,8 @@ class Organisation extends AppModel
         foreach ($results as $k => $organisation) {
             if (!empty($organisation['Organisation']['restricted_to_domain'])) {
                 $results[$k]['Organisation']['restricted_to_domain'] = json_decode($organisation['Organisation']['restricted_to_domain'], true);
-                foreach ($results[$k]['Organisation']['restricted_to_domain'] as $k => $v) {
-                    $results[$k]['Organisation']['restricted_to_domain'][$k] = trim($v);
+                foreach ($results[$k]['Organisation']['restricted_to_domain'] as $k2 => $v) {
+                    $results[$k]['Organisation']['restricted_to_domain'][$k2] = trim($v);
                 }
             } else if (isset($organisation['Organisation']['restricted_to_domain'])){
                 $results[$k]['Organisation']['restricted_to_domain'] = array();
