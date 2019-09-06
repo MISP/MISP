@@ -521,7 +521,7 @@ class Feed extends AppModel
         return true;
     }
 
-    private function __filterEventsIndex($events, $feed, $filterRules)
+    private function __filterEventsIndex($events, $feed)
     {
         $filterRules = $this->__prepareFilterRules($feed);
         if (!$filterRules) {
