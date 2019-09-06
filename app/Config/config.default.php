@@ -13,7 +13,7 @@ $config = array(
 			// with examples.
 			//'auth'=>array('CertAuth.Certificate'),
 			//'auth'=>array('ShibbAuth.ApacheShibb'),
-			//'auth'=>array('LinOTPAUth.LinOTP'),
+			//'auth'=>array('LinOTPAuth.LinOTP'),
 		),
 	'MISP'             =>
 		array(
