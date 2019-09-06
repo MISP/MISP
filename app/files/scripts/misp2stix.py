@@ -45,7 +45,7 @@ from stix.coa import CourseOfAction
 from stix.common import InformationSource, Identity, ToolInformation
 from stix.common.confidence import Confidence
 from stix.common.related import RelatedIndicator, RelatedObservable, RelatedThreatActor, RelatedTTP
-from stix.common.vocabs import IncidentStatus, MalwareType
+from stix.common.vocabs import AttackerToolType, IncidentStatus, MalwareType
 from stix.core import STIXPackage, STIXHeader
 from stix.data_marking import Marking, MarkingSpecification
 from stix.exploit_target import ExploitTarget, Vulnerability, Weakness
@@ -1024,6 +1024,14 @@ class StixBuilder(object):
             tool = ToolInformation()
             tool.id_ = "{}:ToolInformation-{}".format(self.namespace_prefix, uuid)
             tool.name = cluster['value']
+            try:
+                tool.type_ = galaxy['name']
+            except ValueError:
+                tool_type = AttackerToolType()
+                name = galaxy['name']
+                tool_type._ALLOWED_VALUES = (name)
+                tool_type.value = name
+                tool.type_ = tool_type
             if cluster.get('description'):
                 tool.description = cluster['description']
             tools = Tools()
