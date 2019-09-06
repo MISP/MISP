@@ -66,10 +66,11 @@ class DecayingModelController extends AppController
                 throw new MethodNotAllowedException(__('Error while decoding JSON'));
             }
             
-            unset($json['DecayingModel']['id']);
-            $json['DecayingModel']['default'] = 1;
-            $json['DecayingModel']['org_id'] = $this->Auth->user()['org_id'];
-
+            unset($json['id']);
+            unset($json['uuid']);
+            $json['default'] = 0;
+            $json['org_id'] = $this->Auth->user()['org_id'];
+            
             if ($this->DecayingModel->save($json)) {
                 $this->Flash->success(__('The model has been imported.'));
             } else {
