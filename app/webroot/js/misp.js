@@ -3347,15 +3347,18 @@ function toggleBoolFilter(url, param) {
             url = url.replace(re, '');
         }
     });
-
     if (res[param] !== undefined) {
-        if (param == 'includeDecayScore') {
-            res[param] = res[param] == '0' ? '1' : '0';
+        if (param == 'deleted') {
+            res[param] = res[param] == 0 ? 2 : 0;
         } else {
-            res[param] = res[param] == '0' ? '2' : '0'; // allow toggle for `deleted`
+            res[param] = res[param] == 0 ? 1 : 0;
         }
     } else {
-        res[param] = '0';
+        if (param == 'deleted') {
+            res[param] = 0;
+        } else {
+            res[param] = 1;
+        }
     }
 
     url += buildFilterURL(res);

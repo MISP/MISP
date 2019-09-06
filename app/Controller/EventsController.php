@@ -1077,6 +1077,13 @@ class EventsController extends AppController
         }
         if (isset($filters['deleted'])) {
             $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : [0, 1];
+            if ($filters['deleted'] == 2) { // not-deleted only
+                $conditions['deleted'] = 0;
+            } elseif ($filters['deleted'] == 1) { // deleted only
+                $conditions['deleted'] = 1;
+            } else { // both
+                $conditions['deleted'] = [0, 1];
+            }
         }
         if (isset($filters['toIDS']) && $filters['toIDS'] != 0) {
             $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
@@ -1218,7 +1225,7 @@ class EventsController extends AppController
         }
         $deleted = 0;
         if (isset($filters['deleted'])) {
-            $deleted = $filters['deleted'] == 2 ? array(0, 1) : $filters['deleted'];
+            $deleted = $filters['deleted'] == 2 ? 0 : 1;
         }
         $this->set('deleted', $deleted);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
@@ -1771,11 +1778,12 @@ class EventsController extends AppController
         $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'extended'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'extended' => 0, 'page' => 0));
 
         if (count($advancedFilteringActive) > 0) {
-            if (count(array_diff_key($advancedFilteringActive, array('deleted', 'includeRelatedTags'))) > 0) {
+            if (count(array_diff_key($advancedFilteringActive, array('deleted', 'includeRelatedTags', 'includeDecayScore'))) > 0) {
                 $res =  true;
             } else if (
                 (isset($advancedFilteringActive['deleted']) && $advancedFilteringActive['deleted'] == 2)
-                || (isset($advancedFilteringActive['includeRelatedTags']) && $advancedFilteringActive['includeRelatedTags'] == 2)
+                || (isset($advancedFilteringActive['includeRelatedTags']) && $advancedFilteringActive['includeRelatedTags'] == 1)
+                || (isset($advancedFilteringActive['includeDecayScore']) && $advancedFilteringActive['includeDecayScore'] == 1)
             ) {
                 $res =  true;
             } else {
