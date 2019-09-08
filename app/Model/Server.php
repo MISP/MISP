@@ -4330,8 +4330,17 @@ class Server extends AppModel
         if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
             $continue = true;
             try {
-                require_once 'Crypt/GPG.php';
-                $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+                if (!class_exists('Crypt_GPG')) {
+                    if (!stream_resolve_include_path('Crypt/GPG.php')) {
+                        throw new Exception("Crypt_GPG is not installed");
+                    }
+                    require_once 'Crypt/GPG.php';
+                }
+                $gpg = new Crypt_GPG(array(
+                    'homedir' => Configure::read('GnuPG.homedir'),
+                    'gpgconf' => Configure::read('GnuPG.gpgconf'),
+                    'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg'
+                ));
             } catch (Exception $e) {
                 $gpgStatus = 2;
                 $continue = false;
