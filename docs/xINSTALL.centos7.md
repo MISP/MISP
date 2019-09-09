@@ -137,11 +137,6 @@ $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 # Make git ignore filesystem permission differences
 $SUDO_WWW git config core.filemode false
 
-# Install packaged pears
-sudo $RUN_PHP "pear channel-update pear.php.net"
-sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml"
-sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml"
-
 # Create a python3 virtualenv
 $SUDO_WWW $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
 sudo mkdir /usr/share/httpd/.cache

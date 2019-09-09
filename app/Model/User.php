@@ -306,8 +306,7 @@ class User extends AppModel
 
         // we have a clean, hopefully public, key here
         try {
-            require_once 'Crypt/GPG.php';
-            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+            $gpg = $this->initializeGpg();
             try {
                 $keyImportOutput = $gpg->importKey($check['gpgkey']);
                 if (!empty($keyImportOutput['fingerprint'])) {
@@ -379,7 +378,7 @@ class User extends AppModel
         return preg_match($regex, $value);
     }
 
-    public function identicalFieldValues($field=array(), $compareField=null)
+    public function identicalFieldValues($field = array(), $compareField = null)
     {
         foreach ($field as $key => $value) {
             $v1 = $value;
@@ -450,10 +449,9 @@ class User extends AppModel
     {
         if (!$gpg) {
             try {
-                require_once 'Crypt/GPG.php';
-                $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+                $gpg = $this->initializeGpg();
             } catch (Exception $e) {
-                $result[2] ='GnuPG is not configured on this system.';
+                $result[2] = 'GnuPG is not configured on this system.';
                 $result[0] = true;
                 return $result;
             }
@@ -499,7 +497,6 @@ class User extends AppModel
 
     public function verifyGPG($id = false)
     {
-        require_once 'Crypt/GPG.php';
         $this->Behaviors->detach('Trim');
         $results = array();
         $conditions = array('not' => array('gpgkey' => ''));
@@ -513,7 +510,7 @@ class User extends AppModel
         if (empty($users)) {
             return $results;
         }
-        $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+        $gpg = $this->initializeGpg();
         foreach ($users as $k => $user) {
             $results[$user['User']['id']] = $this->verifySingleGPG($user, $gpg);
         }
@@ -1057,7 +1054,7 @@ class User extends AppModel
                     'fingerprint' => chunk_split($parts[1], 4, ' '),
                     'key_id' => substr($parts[1], -8),
                     'date' => date('Y-m-d', $parts[4]),
-                    'uri' => 'pks/lookup?op=get&search=0x' . $parts[1],
+                    'uri' => '/pks/lookup?op=get&search=0x' . $parts[1],
                 );
 
             } else if ($parts[0] === 'uid' && !empty($temp)) {
@@ -1217,9 +1214,9 @@ class User extends AppModel
     public function verifyPassword($user_id, $password)
     {
         $currentUser = $this->find('first', array(
-                'conditions' => array('User.id' => $user_id),
-                'recursive' => -1,
-                'fields' => array('User.password')
+            'conditions' => array('User.id' => $user_id),
+            'recursive' => -1,
+            'fields' => array('User.password')
         ));
         if (empty($currentUser)) {
             return false;
@@ -1422,5 +1419,32 @@ class User extends AppModel
         App::import('Lib', 'SysLog.SysLog');
         $syslog = new SysLog();
         $syslog->write('notice', $description . ' -- ' . $action . (empty($fieldResult) ? '' : '-- ' . $fieldResult));
+    }
+
+    /**
+     * @return Crypt_GPG
+     * @throws Exception
+     */
+    private function initializeGpg()
+    {
+        if (!class_exists('Crypt_GPG')) {
+            if (!stream_resolve_include_path('Crypt/GPG.php')) {
+                throw new Exception("Crypt_GPG is not installed.");
+            }
+            require_once 'Crypt/GPG.php';
+        }
+
+        $homedir = Configure::read('GnuPG.homedir');
+        if ($homedir === null) {
+            throw new Exception("Configuration option 'GnuPG.homedir' is not set, Crypt_GPG cannot be initialized.");
+        }
+
+        $options = array(
+            'homedir' => $homedir,
+            'gpgconf' => Configure::read('GnuPG.gpgconf'),
+            'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg',
+        );
+
+        return new Crypt_GPG($options);
     }
 }
