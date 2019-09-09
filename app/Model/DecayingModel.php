@@ -152,6 +152,9 @@ class DecayingModel extends AppModel
     public function update($force=false, $user)
     {
         $new_models = $this->__load_models($force);
+        if (empty($new_models)) {
+            throw new NotFoundException(__('Models could not be loaded or default decaying models folder is empty'));
+        }
         $temp = $this->find('all', array(
             'recursive' => -1
         ));
