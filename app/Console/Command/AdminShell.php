@@ -506,4 +506,30 @@ class AdminShell extends AppShell
         $this->Server->cleanCacheFiles();
         echo '...caches lost in time, like tears in rain.' . PHP_EOL;
     }
+
+    public function resetSyncAuthkeys()
+    {
+        if (empty($this->args[0])) {
+            echo sprintf(
+                __("MISP mass sync authkey reset command line tool.\n\nUsage: %sConsole/cake resetSyncAuthkeys [user_id]") . "\n\n",
+                APP
+            );
+            die();
+        } else {
+            $userId = $this->args[0];
+            $user = $this->User->getAuthUser($userId);
+            if (empty($user)) {
+                echo __('Invalid user.') . "\n\n";
+            }
+            if (!$user['Role']['perm_site_admin']) {
+                echo __('User has to be a site admin.') . "\n\n";
+            }
+            if (!empty($this->args[1])) {
+                $jobId = $this->args[1];
+            } else {
+                $jobId = false;
+            }
+            $this->User->resetAllSyncAuthKeys($user, $jobId);
+        }
+    }
 }

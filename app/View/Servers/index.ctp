@@ -21,6 +21,7 @@
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo __('Connection test');?></th>
+            <th><?php echo __('Reset API key');?></th>
             <th><?php echo $this->Paginator->sort('internal');?></th>
             <th><?php echo $this->Paginator->sort('push');?></th>
             <th><?php echo $this->Paginator->sort('pull');?></th>
@@ -70,6 +71,20 @@ foreach ($servers as $server):
             ?>
         </td>
         <td id="connection_test_<?php echo $server['Server']['id'];?>"><span role="button" tabindex="0" aria-label="<?php echo __('Test the connection to the remote instance');?>" title="<?php echo __('Test the connection to the remote instance');?>" class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');"><?php echo __('Run');?></span></td>
+        <td id="reset_api_key_<?php echo $server['Server']['id'];?>">
+            <?php
+                echo $this->Form->postLink(
+                    __('Reset'),
+                    $baseurl . '/servers/resetRemoteAuthKey/' . $server['Server']['id'],
+                    array(
+                        'style' => 'line-height:10px; padding: 4px 4px;',
+                        'title' => __('Remotely reset API key'),
+                        'aria-label' => __('Remotely reset API key'),
+                        'class' => 'btn btn-primary'
+                    )
+                );
+            ?>
+        </td>
 
 <td><span class="<?php echo ($server['Server']['internal']? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['internal']? __('Yes') : __('No')); ?>" title="<?php echo ($server['Server']['internal']? __('Internal instance that ignores distribution level degradation *WARNING: Only use this setting if you have several internal instances and the sync link is to an internal extension of the current MISP community*') : __('Normal sync link to an external MISP instance. Distribution degradation will follow the normal rules.')); ?>"></span></td>
         <td><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['push']? __('Yes') : __('No')); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (<?php echo __('Rules');?>)</span></td>
