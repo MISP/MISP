@@ -355,7 +355,7 @@ class ACLComponent extends Component
                     'import' => array(),
                     'index' => array(),
                     'ondemandAction' => array(),
-                    'postTest' => array(),
+                    'postTest' => array('perm_sync'),
                     'previewEvent' => array(),
                     'previewIndex' => array(),
                     'pull' => array(),
