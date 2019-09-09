@@ -37,12 +37,6 @@
 	path = Plugin/DebugKit
 	url = https://github.com/cakephp/debug_kit.git
 	branch = 2.2
-[submodule "INSTALL/Crypt_GPG"]
-	path = INSTALL/dependencies/Crypt_GPG
-	url = https://github.com/pear/Crypt_GPG
-[submodule "INSTALL/Console_CommandLine"]
-	path = INSTALL/dependencies/Console_CommandLine
-	url = https://github.com/pear/Console_CommandLine
 [submodule "INSTALL/dependencies/Net_GeoIP"]
 	path = INSTALL/dependencies/Net_GeoIP
 	url = https://github.com/pear/Net_GeoIP
