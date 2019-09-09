@@ -871,14 +871,10 @@ class UsersController extends AppController
                     $fieldsResultStr = substr($fieldsResultStr, 2);
                     $user = $this->User->find('first', array(
                         'recursive' => -1,
-                        'conditions' => array('User.id' => $this->id)
+                        'conditions' => array('User.id' => $this->User->id)
                     ));
                     $this->User->extralog($this->Auth->user(), "edit", "user", $fieldsResultStr, $user);
                     if ($this->_isRest()) {
-                        $user = $this->User->find('first', array(
-                                'conditions' => array('User.id' => $this->User->id),
-                                'recursive' => -1
-                        ));
                         $user['User']['password'] = '******';
                         return $this->RestResponse->viewData($user, $this->response->type());
                     } else {
