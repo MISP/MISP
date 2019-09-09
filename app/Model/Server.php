@@ -3985,6 +3985,9 @@ class Server extends AppModel
     public function runPOSTtest($id)
     {
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
+        if (empty($server)) {
+            throw new InvalidArgumentException(__('Invalid server.'));
+        }
         $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
         $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
@@ -3992,6 +3995,7 @@ class Server extends AppModel
         $this->Log = ClassRegistry::init('Log');
         try {
             $response = $HttpSocket->post($uri, json_encode(array('testString' => $testFile)), $request);
+            $rawBody = $response->body;
             $response = json_decode($response, true);
         } catch (Exception $e) {
             $this->Log->create();
@@ -4007,7 +4011,14 @@ class Server extends AppModel
             return 8;
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
-            $responseString = isset($response['body']) ? $response['body'] : 'Response was empty.';
+            $responseString = '';
+            if (!empty($repsonse['body']['testString'])) {
+                $responseString = $response['body']['testString'];
+            } else if (!empty($rawBody)){
+                $responseString = $rawBody;
+            } else {
+                $responseString = __('Response was empty.');
+            }
             $this->Log->create();
             $this->Log->save(array(
                     'org' => 'SYSTEM',
