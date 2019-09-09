@@ -4007,7 +4007,7 @@ class Server extends AppModel
             return 8;
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
-            $responseString = isset($response['body']['testString']) ? $response['body']['testString'] : 'Response was empty.';
+            $responseString = isset($response['body']) ? $response['body'] : 'Response was empty.';
             $this->Log->create();
             $this->Log->save(array(
                     'org' => 'SYSTEM',
