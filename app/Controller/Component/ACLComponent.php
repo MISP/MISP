@@ -503,7 +503,6 @@ class ACLComponent extends Component
                     'admin_index' => array('perm_admin'),
                     'admin_quickEmail' => array('perm_admin'),
                     'admin_view' => array('perm_admin'),
-                    'arrayCopy' => array(),
                     'attributehistogram' => array('*'),
                     'change_pw' => array('*'),
                     'checkAndCorrectPgps' => array(),
