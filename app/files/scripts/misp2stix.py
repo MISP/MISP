@@ -1036,11 +1036,11 @@ class StixBuilder(object):
             tool = ToolInformation()
             tool.id_ = "{}:ToolInformation-{}".format(self.namespace_prefix, uuid)
             tool.name = cluster['value']
+            name = "Mitre Tool" if galaxy['type'] == 'mitre-tool' else galaxy['name']
             try:
-                tool.type_ = galaxy['name']
+                tool.type_ = name
             except ValueError:
                 tool_type = AttackerToolType()
-                name = galaxy['name']
                 tool_type._ALLOWED_VALUES = (name)
                 tool_type.value = name
                 tool.type_ = tool_type
