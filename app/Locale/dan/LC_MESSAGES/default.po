@@ -3705,7 +3705,7 @@ msgid "The debug level of the instance for site admins. This feature allows site
 msgstr "Instansens debug-niveauet for webstedsadmins. Denne funktion lader webstedsadmins eksekvere debug-tilstand på en idriftsat instans uden at afsløre dette overfor andre brugere. Den mest detaljerigholdige Indstilling for debug og site_admin_debug benyttes for admins."
 
 #: Model/Server.php:2172
-msgid "Failed (partially?) because of validation errors: "
+msgid "Failed (partially?) because of errors: "
 msgstr ""
 
 #: Model/Server.php:2176
@@ -15325,7 +15325,7 @@ msgstr "Synkroniser bruger for"
 
 #: View/Users/admin_add.ctp:70
 #: View/Users/admin_edit.ctp:64
-msgid "Paste the user's GnuPG key here or try to retrieve it from the MIT key server by clicking on \"Fetch GnuPG key\" below."
+msgid "Paste the user's GnuPG key here or try to retrieve it from the CIRCL key server by clicking on \"Fetch GnuPG key\" below."
 msgstr ""
 
 #: View/Users/admin_add.ctp:72

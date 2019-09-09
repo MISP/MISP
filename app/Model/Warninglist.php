@@ -190,10 +190,9 @@ class Warninglist extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            $redis->del('misp:warninglist_entries_cache:');
-            foreach ($warninglistEntries as $entry) {
-                $redis->sAdd('misp:warninglist_entries_cache:' . $id, $entry);
-            }
+            $key = 'misp:warninglist_entries_cache:' . $id;
+            $redis->del($key);
+            $redis->sAddArray($key, $warninglistEntries);
             return true;
         }
         return false;
@@ -203,7 +202,7 @@ class Warninglist extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            if (!$redis->exists('misp:warninglist_cache') || $redis->sCard('misp:warninglist_cache') == 0) {
+            if ($redis->sCard('misp:warninglist_cache') === 0) {
                 if (!empty($conditions)) {
                     $warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => $conditions));
                 } else {
@@ -237,7 +236,7 @@ class Warninglist extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            if (!$redis->exists('misp:warninglist_entries_cache:' . $id) || $redis->sCard('misp:warninglist_entries_cache:' . $id) == 0) {
+            if ($redis->sCard('misp:warninglist_entries_cache:' . $id) === 0) {
                 $entries = $this->WarninglistEntry->find('list', array(
                         'recursive' => -1,
                         'conditions' => array('warninglist_id' => $id),
@@ -257,6 +256,11 @@ class Warninglist extends AppModel
         return $entries;
     }
 
+    /**
+     * Filter out invalid IPv4 or IPv4 CIDR and append maximum netmaks if no netmask is given.
+     * @param array $inputValues
+     * @return array
+     */
     private function filterCidrList($inputValues)
     {
         $outputValues = [];
@@ -279,7 +283,7 @@ class Warninglist extends AppModel
                 continue;
             }
 
-            $outputValues[] = $v;
+            $outputValues[$v] = $v;
         }
         return $outputValues;
     }
@@ -293,17 +297,21 @@ class Warninglist extends AppModel
         foreach ($warninglists as $k => &$t) {
             $t['values'] = $this->getWarninglistEntries($t['Warninglist']['id']);
             $t['values'] = array_values($t['values']);
-            if ($t['Warninglist']['type'] == 'hostname') {
-                foreach ($t['values'] as $vk => $v) {
-                    $t['values'][$vk] = rtrim($v, '.');
+
+            if ($t['Warninglist']['type'] === 'hostname') {
+                $values = [];
+                foreach ($t['values'] as $v) {
+                    $v = rtrim($v, '.');
+                    $values[$v] = $v;
                 }
-            } else if ($t['Warninglist']['type'] == 'string' || $t['Warninglist']['type'] == 'hostname') {
+                $t['values'] = $values;
+            } else if ($t['Warninglist']['type'] === 'string') {
                 $t['values'] = array_combine($t['values'], $t['values']);
             } else if ($t['Warninglist']['type'] === 'cidr') {
                 $t['values'] = $this->filterCidrList($t['values']);
             }
 
-            foreach ($t['WarninglistType'] as &$wt) {
+            foreach ($t['WarninglistType'] as $wt) {
                 $t['types'][] = $wt['type'];
             }
             unset($warninglists[$k]['WarninglistType']);
@@ -435,44 +443,29 @@ class Warninglist extends AppModel
     // For the future we can expand this to look for CIDR overlaps?
     private function __evalCIDRList($listValues, $value)
     {
-        $ipv4cidrlist = array();
-        $ipv6cidrlist = array();
-        // separate the CIDR list into IPv4 and IPv6
-        foreach ($listValues as $lv) {
-            if (strpos($lv, '.') !== false) { // IPv4 address must contain dot
-                $ipv4cidrlist[] = $lv;
-            } else {
-                $ipv6cidrlist[] = $lv;
-            }
-        }
-        // evaluate the value separately for IPv4 and IPv6
         if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            return $this->__evalCIDR($value, $ipv4cidrlist, '__ipv4InCidr');
-        } elseif (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            return $this->__evalCIDR($value, $ipv6cidrlist, '__ipv6InCidr');
-        }
-        return false;
-    }
+            // This code converts IP address to all possible CIDRs that can contains given IP address
+            // and then check if given hash table contains that CIDR.
+            $ip = ip2long($value);
+            for ($bits = 0; $bits <= 32; $bits++) {
+                $mask = -1 << (32 - $bits);
+                $needle = long2ip($ip & $mask) . "/$bits";
+                if (isset($listValues[$needle])) {
+                    return true;
+                }
+            }
 
-    private function __evalCIDR($value, $listValues, $function)
-    {
-        foreach ($listValues as $lv) {
-            if ($this->$function($value, $lv)) {
-                return true;
+        } elseif (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            foreach ($listValues as $lv) {
+                if (strpos($lv, ':') !== false) { // IPv6 CIDR must contain dot
+                    if ($this->__ipv6InCidr($value, $lv)) {
+                        return true;
+                    }    
+                }
             }
         }
-        return false;
-    }
 
-    // using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5
-    private function __ipv4InCidr($ip, $cidr)
-    {
-        list($subnet, $bits) = explode('/', $cidr);
-        $ip = ip2long($ip);
-        $subnet = ip2long($subnet);
-        $mask = -1 << (32 - $bits);
-        $subnet &= $mask; # nb: in case the supplied subnet wasn't correctly aligned
-        return ($ip & $mask) == $subnet;
+        return false;
     }
 
     // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php

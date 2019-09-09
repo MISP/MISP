@@ -216,11 +216,6 @@ installCoreRHEL () {
   # Make git ignore filesystem permission differences
   $SUDO_WWW git config core.filemode false
 
-  # Install packaged pears
-  sudo $RUN_PHP -- pear channel-update pear.php.net
-  sudo $RUN_PHP -- pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-  sudo $RUN_PHP -- pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
-
   # Create a python3 virtualenv
   $SUDO_WWW $RUN_PYTHON -- virtualenv -p python3 $PATH_TO_MISP/venv
   sudo mkdir /usr/share/httpd/.cache
@@ -355,7 +350,7 @@ installCake_RHEL ()
 
   # Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
   # max_execution_time = 300
-  # memory_limit = 512M
+  # memory_limit = 2048M
   # upload_max_filesize = 50M
   # post_max_size = 50M
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit

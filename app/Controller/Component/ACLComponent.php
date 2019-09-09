@@ -70,6 +70,11 @@ class ACLComponent extends Component
                     'view' => array('*'),
                     'viewPicture' => array('*'),
             ),
+            'communities' => array(
+                    'index' => array(),
+                    'requestAccess' => array(),
+                    'view' => array()
+            ),
             'eventBlacklists' => array(
                     'add' => array(),
                     'delete' => array(),
@@ -81,6 +86,7 @@ class ACLComponent extends Component
                     'acceptDelegation' => array('perm_add'),
                     'delegateEvent' => array('perm_delegate'),
                     'deleteDelegation' => array('perm_add'),
+                    'index' => array('*'),
                     'view' => array('*'),
             ),
             'events' => array(
@@ -341,6 +347,7 @@ class ACLComponent extends Component
                     'getGit' => array(),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
+                    'getSetting' => array(),
                     'getSubmodulesStatus' => array('perm_site_admin'),
                     'getSubmoduleQuickUpdateForm' => array('perm_site_admin'),
                     'getWorkers' => array(),
@@ -407,9 +414,9 @@ class ACLComponent extends Component
                     'advanced' => array('perm_sighting'),
                     'delete' => array('perm_sighting'),
                     'index' => array('*'),
-                    'listSightings' => array('perm_sighting'),
+                    'listSightings' => array('*'),
                     'quickDelete' => array('perm_sighting'),
-                    'viewSightings' => array('perm_sighting'),
+                    'viewSightings' => array('*'),
                     'quickAdd' => array('perm_sighting')
             ),
             'tagCollections' => array(

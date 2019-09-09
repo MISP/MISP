@@ -1813,18 +1813,20 @@ class AppModel extends Model
 
     public function setupRedis()
     {
-        if (class_exists('Redis')) {
-            if ($this->__redisConnection) {
-                return $this->__redisConnection;
-            }
-            $redis = new Redis();
-        } else {
+        if ($this->__redisConnection) {
+            return $this->__redisConnection;
+        }
+
+        if (!class_exists('Redis')) {
             return false;
         }
-        $host = Configure::read('MISP.redis_host') ? Configure::read('MISP.redis_host') : '127.0.0.1';
-        $port = Configure::read('MISP.redis_port') ? Configure::read('MISP.redis_port') : 6379;
-        $database = Configure::read('MISP.redis_database') ? Configure::read('MISP.redis_database') : 13;
+
+        $host = Configure::read('MISP.redis_host') ?: '127.0.0.1';
+        $port = Configure::read('MISP.redis_port') ?: 6379;
+        $database = Configure::read('MISP.redis_database') ?: 13;
         $pass = Configure::read('MISP.redis_password');
+
+        $redis = new Redis();
         if (!$redis->connect($host, $port)) {
             return false;
         }

@@ -49,9 +49,7 @@ class GalaxiesController extends AppController
 
     public function view($id)
     {
-        if (!is_numeric($id)) {
-            throw new NotFoundException('Invalid galaxy.');
-        }
+        $id = $this->Toolbox->findIdByUuid($this->Galaxy, $id);
         if (isset($this->params['named']['searchall']) && strlen($this->params['named']['searchall']) > 0) {
             $this->set('passedArgsArray', array('all' => $this->params['named']['searchall']));
         }

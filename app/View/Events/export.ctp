@@ -58,7 +58,7 @@
                     '<td>%s%s</td>',
                     h($type['description']),
                     empty($type['params']['includeAttachments']) ? '' : sprintf(
-                        '<span class="%s">%s</span>',
+                        ' <span class="%s">%s.</span>',
                         Configure::read('MISP.cached_attachments') ? 'green' : 'red',
                         Configure::read('MISP.cached_attachments') ? __('Attachments are enabled on this instance') : __('Attachments are disabled on this instance')
                     )

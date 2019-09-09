@@ -289,6 +289,9 @@ class TagsController extends AppController
             throw new NotFoundException('You don\'t have permission to do that.');
         }
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (!isset($this->request->data['Tag'])) {
+                $this->request->data = array('Tag' => $this->request->data);
+            }
             $this->request->data['Tag']['id'] = $id;
             if ($this->Tag->save($this->request->data)) {
                 if ($this->_isRest()) {

@@ -1,11 +1,11 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 18.04.2-server
+## for Ubuntu 18.04.3-server
 
 ### -1/ Installer and Manual install instructions
 
 Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
 
-To install MISP on a fresh Ubuntu install all you need to do is:
+To install MISP on a fresh Ubuntu 18.04, all you need to do is the following:
 
 ```bash
 # Please check the installer options first to make the best choice for your install
@@ -116,7 +116,6 @@ installDepsPhp72 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 
@@ -190,10 +189,6 @@ installCore () {
 
   # install plyara
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
-
-  # Install Crypt_GPG and Console_CommandLine
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 }
 # <snippet-end 1_mispCoreInstall.sh>
 ```

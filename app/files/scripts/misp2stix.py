@@ -89,7 +89,8 @@ class StixBuilder(object):
                 idgen.set_id_namespace(Namespace(self.baseurl, self.orgname, "MISP"))
         self.namespace_prefix = idgen.get_id_namespace_alias()
         ## MAPPING FOR ATTRIBUTES
-        self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable}
+        self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable,
+                                      "named pipe": self.generate_pipe_observable}
         self.simple_type_to_method.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"], self.resolve_file_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], self.generate_ip_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], self.generate_socket_address_observable))
@@ -529,6 +530,17 @@ class StixBuilder(object):
         observable_object.id_ = "{}:{}-{}".format(self.namespace_prefix, observable_property.__class__.__name__, attribute_uuid)
         observable = Observable(observable_object)
         observable.id_ = "{}:Observable-{}".format(self.namespace_prefix, attribute_uuid)
+        return observable
+
+    def generate_pipe_observable(self, attribute):
+        attribute_uuid = attribute['uuid']
+        pipe_object = Pipe()
+        pipe.named = True
+        pipe.name = attribute['value']
+        pipe.name.condition = 'Equals'
+        pipe.parent.id_ = "{}PipeObject-{}".format(self.namesapce_prefix, attribute_uuid)
+        observable = Observable(pipe_object)
+        observable.id_ = "{}:Pipe-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
     def generate_port_observable(self, attribute):

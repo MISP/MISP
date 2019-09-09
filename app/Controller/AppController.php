@@ -46,8 +46,8 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '82';
-    public $pyMispVersion = '2.4.112';
+    private $__queryVersion = '84';
+    public $pyMispVersion = '2.4.114';
     public $phpmin = '7.0';
     public $phprec = '7.2';
     public $isApiAuthed = false;
@@ -76,8 +76,6 @@ class AppController extends Controller
             'Session',
             'Auth' => array(
                 'authError' => 'Unauthorised access.',
-                'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
-                'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
                 'authenticate' => array(
                     'Form' => array(
                         'passwordHasher' => 'Blowfish',
@@ -90,7 +88,8 @@ class AppController extends Controller
             'Security',
             'ACL',
             'RestResponse',
-            'Flash'
+            'Flash',
+            'Toolbox'
             //,'DebugKit.Toolbar'
     );
 
@@ -104,6 +103,8 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        $this->Auth->loginRedirect = Configure::read('MISP.baseurl') . '/users/routeafterlogin';
+        $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
         $this->__sessionMassage();
         if (Configure::read('Security.allow_cors')) {
             // Add CORS headers
@@ -377,7 +378,7 @@ class AppController extends Controller
                 $this->Auth->logout();
                 throw new MethodNotAllowedException($message);//todo this should pb be removed?
             } else {
-                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $baseurl . '/servers/advancedUpdate/', 'urlName' => 'Advanced Update'), 'clear' => 1));
+                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
             }
         }
         if ($this->Session->check(AuthComponent::$sessionKey)) {

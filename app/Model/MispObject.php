@@ -439,6 +439,7 @@ class MispObject extends AppModel
                         }
                         $v['disable_correlation'] = $request_item['disable_correlation'];
                         $template['ObjectTemplateElement'][] = $v;
+                        unset($v['uuid']); // force creating a new attribute if template element entry gets reused
                     } else {
                         $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template_object_elements[$k]['object_relation'] . '") that would not pass validation due to this.';
                     }

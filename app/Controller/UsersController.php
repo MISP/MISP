@@ -758,7 +758,7 @@ class UsersController extends AppController
                 }
             }
             $fail = false;
-            if ($this->_isSiteAdmin() && !$abortPost && !empty($this->request->data['User']['email'])) {
+            if (!$this->_isSiteAdmin() && !$abortPost) {
                 $organisation = $this->User->Organisation->find('first', array(
                     'conditions' => array('Organisation.id' => $userToEdit['User']['org_id']),
                     'recursive' => -1
@@ -1251,6 +1251,7 @@ class UsersController extends AppController
         uasort($data, function ($a, $b) {
             return $b['total'] - $a['total'];
         });
+        $data = array_values($data);
         $this->set('data', $data);
         $this->set('max', $max);
         $this->set('selectedTypes', $selectedTypes);
