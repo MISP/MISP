@@ -45,7 +45,7 @@ from stix.coa import CourseOfAction
 from stix.common import InformationSource, Identity, ToolInformation
 from stix.common.confidence import Confidence
 from stix.common.related import RelatedIndicator, RelatedObservable, RelatedThreatActor, RelatedTTP
-from stix.common.vocabs import AttackerToolType, IncidentStatus, MalwareType
+from stix.common.vocabs import IncidentStatus
 from stix.core import STIXPackage, STIXHeader
 from stix.data_marking import Marking, MarkingSpecification
 from stix.exploit_target import ExploitTarget, Vulnerability, Weakness
@@ -696,7 +696,7 @@ class StixBuilder(object):
             ttp = self.create_ttp_from_galaxy(uuid, galaxy_name, cluster['id'], cluster['type'])
             attack_pattern = AttackPattern()
             attack_pattern.id_ = "{}:AttackPattern-{}".format(self.namespace_prefix, uuid)
-            attack_pattern.title = cluster['value']
+            attack_pattern.title = "{}: {}".format(galaxy_name, cluster['value'])
             attack_pattern.description = cluster['description']
             if cluster['meta'].get('external_id'):
                 external_id = cluster['meta']['external_id'][0]
@@ -785,7 +785,7 @@ class StixBuilder(object):
             uuid = cluster['collection_uuid']
             course_of_action = CourseOfAction()
             course_of_action.id_ = "{}:CourseOfAction-{}".format(self.namespace_prefix, uuid)
-            course_of_action.title = cluster['value']
+            course_of_action.title = "{}: {}".format(galaxy_name, cluster['value'])
             course_of_action.description = cluster['description']
             self.galaxies['course_of_action'].append(course_of_action)
 
@@ -891,15 +891,7 @@ class StixBuilder(object):
             ttp = self.create_ttp_from_galaxy(uuid, galaxy_name, cluster['id'], cluster['type'])
             malware = MalwareInstance()
             malware.id_ = "{}:MalwareInstance-{}".format(self.namespace_prefix, uuid)
-            malware.title = cluster['value']
-            try:
-                malware.add_type(galaxy['name'])
-            except TypeError:
-                malware_type = MalwareType()
-                name = galaxy['name']
-                malware_type._ALLOWED_VALUES = [name]
-                malware_type.value = name
-                malware.add_type(malware_type)
+            malware.title = "{}: {}".format(galaxy_name, cluster['value'])
             if cluster.get('description'):
                 malware.description = cluster['description']
             if cluster['meta'].get('synonyms'):
@@ -1015,7 +1007,7 @@ class StixBuilder(object):
             uuid = cluster['collection_uuid']
             threat_actor = ThreatActor()
             threat_actor.id_ = "{}:ThreatActor-{}".format(self.namespace_prefix, uuid)
-            threat_actor.title = cluster['value']
+            threat_actor.title = "{}: {}".format(galaxy_name, cluster['value'])
             if cluster.get('description'):
                 threat_actor.description = cluster['description']
             meta = cluster['meta']
@@ -1035,15 +1027,8 @@ class StixBuilder(object):
             ttp = self.create_ttp_from_galaxy(uuid, galaxy_name, cluster['id'], cluster['type'])
             tool = ToolInformation()
             tool.id_ = "{}:ToolInformation-{}".format(self.namespace_prefix, uuid)
-            tool.name = cluster['value']
             name = "Mitre Tool" if galaxy['type'] == 'mitre-tool' else galaxy['name']
-            try:
-                tool.type_ = name
-            except ValueError:
-                tool_type = AttackerToolType()
-                tool_type._ALLOWED_VALUES = (name)
-                tool_type.value = name
-                tool.type_ = tool_type
+            tool.name = "{}: {}".format(name, cluster['value'])
             if cluster.get('description'):
                 tool.description = cluster['description']
             tools = Tools()
