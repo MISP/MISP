@@ -2289,10 +2289,10 @@ class Server extends AppModel
         if (!$existingEvent) {
             // add data for newly imported events
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
-            if ($result === true) {
+            if ($result) {
                 $successes[] = $eventId;
             } else {
-                $fails[$eventId] = __('Failed (partially?) because of errors: ') . $result;
+                $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
             }
         } else {
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
@@ -2316,6 +2316,7 @@ class Server extends AppModel
                 $eventId,
                 $server
         );
+        ;
         if (!empty($event)) {
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
@@ -2328,7 +2329,7 @@ class Server extends AppModel
             }
         } else {
             // error
-            $fails[$eventId] = __('failed downloading the event') . ': ' . json_encode($event);
+            $fails[$eventId] = __('failed downloading the event');
         }
         return true;
     }
@@ -3984,6 +3985,9 @@ class Server extends AppModel
     public function runPOSTtest($id)
     {
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
+        if (empty($server)) {
+            throw new InvalidArgumentException(__('Invalid server.'));
+        }
         $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
         $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
@@ -3991,6 +3995,7 @@ class Server extends AppModel
         $this->Log = ClassRegistry::init('Log');
         try {
             $response = $HttpSocket->post($uri, json_encode(array('testString' => $testFile)), $request);
+            $rawBody = $response->body;
             $response = json_decode($response, true);
         } catch (Exception $e) {
             $this->Log->create();
@@ -4006,7 +4011,14 @@ class Server extends AppModel
             return 8;
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
-            $responseString = isset($response['body']['testString']) ? $response['body']['testString'] : 'Response was empty.';
+            $responseString = '';
+            if (!empty($repsonse['body']['testString'])) {
+                $responseString = $response['body']['testString'];
+            } else if (!empty($rawBody)){
+                $responseString = $rawBody;
+            } else {
+                $responseString = __('Response was empty.');
+            }
             $this->Log->create();
             $this->Log->save(array(
                     'org' => 'SYSTEM',
@@ -5196,5 +5208,66 @@ class Server extends AppModel
             $results[$target] = $result === false ? false : true;
         }
         return $results;
+    }
+
+    public function resetRemoteAuthKey($id)
+    {
+        $server = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Server.id' => $id)
+        ));
+        if (empty($server)) {
+            return __('Invalid server');
+        }
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
+        $uri = $server['Server']['url'] . '/users/resetauthkey/me';
+        try {
+            $response = $HttpSocket->post($uri, '{}', $request);
+        } catch (Exception $e) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $message = 'Could not reset the remote authentication key.';
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: ' . $message,
+            ));
+            return $message;
+        }
+        if ($response->isOk()) {
+            try {
+                $response = json_decode($response->body, true);
+            } catch (Exception $e) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $message = 'Invalid response received from the remote instance.';
+                $this->Log->save(array(
+                        'org' => 'SYSTEM',
+                        'model' => 'Server',
+                        'model_id' => $id,
+                        'email' => 'SYSTEM',
+                        'action' => 'error',
+                        'user_id' => 0,
+                        'title' => 'Error: ' . $message,
+                ));
+                return $message;
+            }
+            if (!empty($response['message'])) {
+                $authkey = $response['message'];
+            }
+            if (substr($authkey, 0, 17) === 'Authkey updated: ') {
+                $authkey = substr($authkey, 17, 57);
+            }
+            $server['Server']['authkey'] = $authkey;
+            $this->save($server);
+            return true;
+        } else {
+            return __('Could not reset the remote authentication key.');
+        }
     }
 }

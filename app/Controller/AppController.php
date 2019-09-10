@@ -260,19 +260,24 @@ class AppController extends Controller
                         } else {
                             // User not authenticated correctly
                             // reset the session information
-                            $this->Session->destroy();
-                            $this->Log = ClassRegistry::init('Log');
-                            $this->Log->create();
-                            $log = array(
-                                    'org' => 'SYSTEM',
-                                    'model' => 'User',
-                                    'model_id' => 0,
-                                    'email' => 'SYSTEM',
-                                    'action' => 'auth_fail',
-                                    'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
-                                    'change' => null,
-                            );
-                            $this->Log->save($log);
+                            $redis = $this->{$this->modelClass}->setupRedis();
+                            if ($redis && !$redis->exists('misp:auth_fail_throttling:' . trim($auth_key))) {
+                                $redis->set('misp:auth_fail_throttling:' . trim($auth_key), 1);
+                                $redis->expire('misp:auth_fail_throttling:' . trim($auth_key), 3600);
+                                $this->Session->destroy();
+                                $this->Log = ClassRegistry::init('Log');
+                                $this->Log->create();
+                                $log = array(
+                                        'org' => 'SYSTEM',
+                                        'model' => 'User',
+                                        'model_id' => 0,
+                                        'email' => 'SYSTEM',
+                                        'action' => 'auth_fail',
+                                        'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
+                                        'change' => null,
+                                );
+                                $this->Log->save($log);
+                            }
                             throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                         }
                         unset($user);
@@ -538,7 +543,7 @@ class AppController extends Controller
         return $name;
     }
 
-    public function blackhole($type)
+    public function blackhole($type=false)
     {
         if ($type === 'csrf') {
             throw new BadRequestException($type);
