@@ -43,4 +43,3 @@
 [submodule "INSTALL/Console_CommandLine"]
 	path = INSTALL/dependencies/Console_CommandLine
 	url = https://github.com/pear/Console_CommandLine
-

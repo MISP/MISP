@@ -763,7 +763,6 @@ installDepsPhp70 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 
@@ -785,7 +784,6 @@ installDepsPhp73 () {
   php7.3 php7.3-cli \
   php7.3-dev \
   php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 }
@@ -1137,7 +1135,6 @@ installDepsPhp73 () {
   php7.3 php7.3-cli \
   php7.3-dev \
   php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 }
@@ -1153,7 +1150,6 @@ installDepsPhp72 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 
@@ -1174,7 +1170,6 @@ installDepsPhp70 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 
@@ -1324,10 +1319,6 @@ installCore () {
 
   # install plyara
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
-
-  # Install Crypt_GPG and Console_CommandLine
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 }
 
 installCake () {

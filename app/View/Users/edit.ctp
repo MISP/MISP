@@ -20,7 +20,7 @@
     ?>
         <div class="input clear"></div>
     <?php
-        echo $this->Form->input('gpgkey', array('label' => __('GnuPG key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s GnuPG key here or try to retrieve it from the MIT key server by clicking on "Fetch GnuPG key" below.')));
+        echo $this->Form->input('gpgkey', array('label' => __('GnuPG key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s GnuPG key here or try to retrieve it from the CIRCL key server by clicking on "Fetch GnuPG key" below.')));
         ?>
             <div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch GnuPG key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GnuPG key');?></span></div>
         <?php

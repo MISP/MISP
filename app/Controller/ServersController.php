@@ -44,12 +44,6 @@ class ServersController extends AppController
 
     public function index()
     {
-        if (!$this->_isSiteAdmin()) {
-            if (!$this->userRole['perm_sync'] && !$this->userRole['perm_admin']) {
-                $this->redirect(array('controller' => 'events', 'action' => 'index'));
-            }
-            $this->paginate['conditions'] = array('Server.org_id LIKE' => $this->Auth->user('org_id'));
-        }
         if ($this->_isRest()) {
             $params = array(
                 'recursive' => -1,
@@ -2086,6 +2080,30 @@ misp.direct_call(relative_path, body)
                     $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Server->validationErrors, true)));
                     $this->redirect(array('action' => 'index'));
                 }
+            }
+        }
+    }
+
+    public function resetRemoteAuthKey($id)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint expects POST requests.'));
+        }
+        $result = $this->Server->resetRemoteAuthkey($id);
+        if ($result !== true) {
+            if (!$this->_isRest()) {
+                $this->Flash->error($result);
+                $this->redirect(array('action' => 'index'));
+            } else {
+                return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $message, $this->response->type());
+            }
+        } else {
+            $message = __('API key updated.');
+            if (!$this->_isRest()) {
+                $this->Flash->success($message);
+                $this->redirect(array('action' => 'index'));
+            } else {
+                return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $message, $this->response->type());
             }
         }
     }
