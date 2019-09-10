@@ -835,20 +835,20 @@ $(document).ready(function() {
             if (bs_default > 0 && bs_config.length == 0) {
                 return 'Default base score = ' + bs_default;
             } else if (bs_default > 0) {
-                html_table = $('<div></div>').title('Default base score = ' + bs_default)[0].outerHTML + html_table;
+                html_table = $('<div></div>').text('Default base score = ' + bs_default)[0].outerHTML + html_table;
             }
             var $title = $(html_table).find('tbody');
             Object.keys(bs_config).forEach(function(k, i) {
                 var value = bs_config[k];
-                var $td1 = $('<td></td>').css({'padding-right': '5px'}).title(k);
-                var $td2 = $('<td></td>').title((value * 100).toFixed(1));
+                var $td1 = $('<td></td>').css({'padding-right': '5px'}).text(k);
+                var $td2 = $('<td></td>').text((value * 100).toFixed(1));
                 $title.append(
                     $('<tr></tr>').append($td1).append($td2)
                 );
             })
             var to_return = $title.parent()[0].outerHTML;
             if (bs_default) {
-                to_return = $('<b></b>').title('Default base score = ' + bs_default)[0].outerHTML + '</br>' + to_return;
+                to_return = $('<b></b>').text('Default base score = ' + bs_default)[0].outerHTML + '</br>' + to_return;
             }
             return to_return;
         }
