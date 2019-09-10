@@ -1152,7 +1152,7 @@ class StixFromMISPParser(StixParser):
                 galaxies_references.extend([coa.course_of_action.idref for coa in coas])
         if self.event.attributed_threat_actors:
             galaxies_references.extend([ta.item.idref for ta in self.event.attributed_threat_actors.threat_actor])
-        if self.event.leveraged_ttps.ttp:
+        if self.event.leveraged_ttps and self.event.leveraged_ttps.ttp:
             galaxies_references.extend([ttp.item.idref for ttp in self.event.leveraged_ttps.ttp])
         self.galaxies_references = tuple('-'.join((r for r in ref.split('-')[-5:])) for ref in galaxies_references)
 
