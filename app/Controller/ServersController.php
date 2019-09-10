@@ -897,6 +897,13 @@ class ServersController extends AppController
         return array_replace(array(0 => __('No organisation selected.')), $local_orgs);
     }
 
+    public function dbSchemaDiagnostic()
+    {
+        $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
+        $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics);
+        $this->render('/Elements/healthElements/db_schema_status');
+    }
+
     public function serverSettings($tab=false)
     {
         if (!$this->_isSiteAdmin()) {
@@ -1057,6 +1064,7 @@ class ServersController extends AppController
 
                 // get the DB diagnostics
                 $dbDiagnostics = $this->Server->dbSpaceUsage();
+                $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
 
                 $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
                 foreach ($moduleTypes as $type) {
@@ -1068,7 +1076,7 @@ class ServersController extends AppController
                 $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
                 $this->set('sessionCount', $sessionCount);
 
-                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics');
+                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics');
             }
             // check whether the files are writeable
             $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);

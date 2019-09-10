@@ -31,5 +31,8 @@
             __('Actions')
         );
     }
-    echo $headersHtml;
+    $thead = '<thead>';
+    $thead .= $headersHtml;
+    $thead .= '</thead>';
+    echo $thead;
 ?>

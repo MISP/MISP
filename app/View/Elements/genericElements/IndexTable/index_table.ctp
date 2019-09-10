@@ -28,7 +28,10 @@
     if (!empty($data['paginationBaseurl'])) {
         $paginationData['paginationBaseurl'] = $data['paginationBaseurl'];
     }
-    echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
+    $skip_pagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
+    if (!$skip_pagination) {
+        echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
+    }
     if (!empty($data['top_bar'])) {
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data['top_bar']));
     }
@@ -53,11 +56,19 @@
             )
         );
     }
+    $tbody = '<tbody>' . $rows . '</tbody>';
     echo sprintf(
-        '<table class="table table-striped table-hover table-condensed">%s%s</table>',
-        $this->element('/genericElements/IndexTable/headers', array('fields' => $data['fields'], 'paginator' => $this->Paginator, 'actions' => empty($data['actions']) ? false : true)),
-        $rows
+        '<div style="%s">',
+        isset($data['max_height']) ? sprintf('max-height: %s; overflow-y: auto; resize: both', $data['max_height']) : ''
     );
-    echo $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
-    echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
+        echo sprintf(
+            '<table class="table table-striped table-hover table-condensed">%s%s</table>',
+            $this->element('/genericElements/IndexTable/headers', array('fields' => $data['fields'], 'paginator' => $this->Paginator, 'actions' => empty($data['actions']) ? false : true)),
+            $tbody
+        );
+    echo '</div>';
+    if (!$skip_pagination) {
+        echo $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
+        echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
+    }
 ?>

@@ -200,6 +200,7 @@
             'data' => array(
                 'data' => $dbDiagnostics,
                 'skip_pagination' => 1,
+                'max_height' => '400px',
                 'fields' => array(
                     array(
                         'name' => __('Table'),
@@ -225,6 +226,10 @@
         ));
         echo '</div>';
     ?>
+        <h4><?php echo __('Schema status');?></h4>
+        <div style="width: 70vw; padding-left: 10px;">
+            <?php echo $this->element('/healthElements/db_schema_status', array($dbSchemaDiagnostics)); ?>
+        </div>
     <h3><?php echo __('Advanced attachment handler');?></h3>
         <?php echo __('The advanced attachment tools are used by the add attachment functionality to extract additional data about the uploaded sample.');?>
         <div style="background-color:#f7f7f9;width:400px;">

@@ -4211,6 +4211,79 @@ class Server extends AppModel
 
     }
 
+    public function dbSchemaDiagnostic()
+    {
+        $data_source = $this->getDataSource()->config['datasource'];
+        $db_actual_schema = array();
+        if ($data_source == 'Database/Mysql') {
+            $sql_show = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
+            $sql_result = $this->query($sql_show);
+            $tables = HASH::extract($sql_result, '{n}.tables.table_name');
+            foreach ($tables as $table) {
+                $sql_desc = sprintf('DESC `%s`;', $table);
+                $sql_result = $this->query($sql_desc);
+                foreach ($sql_result as $column_schema) {
+                    $db_actual_schema[$table][] = array_values($column_schema['COLUMNS']);
+                }
+            }
+        }
+        else if ($data_source == 'Database/Postgres') {
+            return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
+        }
+
+        $db_expected_schema = $this->getExpectedDBSchema();
+        $db_schema_comparison = $this->compareDBSchema($db_actual_schema, $db_expected_schema);
+        return $db_schema_comparison;
+    }
+
+    public function getExpectedDBSchema()
+    {
+        App::uses('Folder', 'Utility');
+        $file = new File(ROOT . DS . 'db_schema.json', true);
+        $db_expected_schema = json_decode($file->read(), true);
+        $file->close();
+        return $db_expected_schema;
+    }
+
+    public function compareDBSchema($db_actual_schema, $db_expected_schema)
+    {
+        $db_diff = array();
+        // perform schema comparison
+        foreach($db_expected_schema as $table_name => $columns) {
+            if (!array_key_exists($table_name, $db_actual_schema)) {
+                $db_diff[$table_name][] = array('description' => sprintf(__('Table `%s` does not exists'), $table_name));
+            } else {
+                foreach ($columns as $i => $column) {
+                    if (isset($db_actual_schema[$table_name][$i])) {
+                        $col_diff = array_diff($column, $db_actual_schema[$table_name][$i]);
+                        if (count($col_diff) > 0) {
+                            $db_diff[$table_name][] = array(
+                                'description' => sprintf(__('Column `%s` is different than what is expected'), $column[0]),
+                                'column_name' => $column[0],
+                                'actual' => $db_actual_schema[$table_name][$i],
+                                'expected' => $column
+                            );
+                        }
+                    } else {
+                        $db_diff[$table_name][] = array(
+                            'description' => sprintf(__('Column `%s` does not exists in the current database schema'), $column[0]),
+                            'column_name' => $column[0],
+                            'actual' => array('None'),
+                            'expected' => $column
+                        );
+                    }
+                }
+            }
+        }
+        foreach(array_diff(array_keys($db_actual_schema), array_keys($db_expected_schema)) as $additional_table) {
+            $db_diff[$additional_table][] = array(
+                'description' => sprintf(__('Table `%s` is not registered in the expected database schema'), $additional_table),
+                'column_name' => $additional_table,
+            );
+        }
+        return $db_diff;
+    }
+
     public function writeableDirsDiagnostics(&$diagnostic_errors)
     {
         App::uses('File', 'Utility');
