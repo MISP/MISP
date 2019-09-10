@@ -1096,6 +1096,26 @@ class StixBuilder(object):
         ttp.add_exploit_target(ET)
         self.ttps_from_objects[uuid] = ttp
 
+    def parse_vulnerability_galaxy(self, galaxy):
+        galaxy_name = galaxy['name']
+        for cluster in galaxy['GalaxyCluster']:
+            uuid = cluster['collection_uuid']
+            ttp = self.create_ttp_from_galaxy(uuid, galaxy_name, cluster['id'], cluster['type'])
+            vulnerability = Vulnerability()
+            vulnerability.id_ = "{}:Vulnerability-{}".format(self.namespace_prefix, uuid)
+            vulnerability.title = cluster['value']
+            vulnerability.description = cluster['description']
+            if cluster['meta'].get('aliases'):
+                vulnerability.cve_id = cluster['meta']['aliases'][0]
+            if cluster['meta'].get('refs'):
+                for reference in cluster['meta']['refs']:
+                    vulnerability.add_reference(reference)
+            ET = ExploitTarget()
+            ET.id_ = "{}:ExploitTarget-{}".format(self.namespace_prefix, uuid)
+            ET.add_vulnerability(vulnerability)
+            ttp.add_exploit_target(ET)
+            self.incident.add_leveraged_ttps(self.append_ttp(galaxy_name, ttp))
+
     def parse_weakness(self, misp_object):
         ttp = self.create_ttp_from_object(misp_object)
         weakness = Weakness()
