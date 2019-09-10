@@ -542,7 +542,7 @@ class AppController extends Controller
         return $name;
     }
 
-    public function blackhole($type)
+    public function blackhole($type=false)
     {
         if ($type === 'csrf') {
             throw new BadRequestException($type);
