@@ -701,7 +701,7 @@ class StixBuilder(object):
             if cluster['meta'].get('external_id'):
                 external_id = cluster['meta']['external_id'][0]
                 if external_id.startswith('CAPEC'):
-                    attack_pattern.capec_id = external_id.split('-')[1]
+                    attack_pattern.capec_id = external_id
             behavior = Behavior()
             behavior.add_attack_pattern(attack_pattern)
             ttp.behavior = behavior
