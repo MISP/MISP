@@ -361,6 +361,7 @@ class ACLComponent extends Component
                     'pull' => array(),
                     'purgeSessions' => array(),
                     'push' => array(),
+                    'resetRemoteAuthKey' => array(),
                     'rest' => array('perm_auth'),
                     'restartWorkers' => array(),
                     'serverSettings' => array(),
