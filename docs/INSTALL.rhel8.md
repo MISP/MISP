@@ -142,7 +142,7 @@ yumInstallCoreDeps () {
   sudo systemctl enable --now redis.service
 
   PHP_INI=/etc/php.ini
-  sudo yum install php php-fpm php-devel php-pear \
+  sudo yum install php php-fpm php-devel \
        php-mysqlnd \
        php-mbstring \
        php-xml \
@@ -199,11 +199,6 @@ installCoreRHEL () {
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
   # Make git ignore filesystem permission differences
   $SUDO_WWW git config core.filemode false
-
-  # Install packaged pears
-  sudo $RUN_PHP -- pear channel-update pear.php.net
-  sudo $RUN_PHP -- pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-  sudo $RUN_PHP -- pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 
   # Create a python3 virtualenv
   $SUDO_WWW virtualenv-3 -p python3 $PATH_TO_MISP/venv

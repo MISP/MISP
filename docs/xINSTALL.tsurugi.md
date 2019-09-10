@@ -172,8 +172,6 @@ function installMISPonTsurugi() {
   a2dissite 000-default
   a2ensite default-ssl
 
-  pear channel-update pear.php.net
-  pear install Crypt_GPG
   pecl channel-update pecl.php.net
 
   yes '' |pecl install redis

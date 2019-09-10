@@ -216,26 +216,6 @@ class User extends AppModel
         'Containable'
     );
 
-    private function __generatePassword()
-    {
-        $groups = array(
-                '0123456789',
-                'abcdefghijklmnopqrstuvwxyz',
-                'ABCDEFGHIJKLOMNOPQRSTUVWXYZ',
-                '!@#$%^&*()_-'
-        );
-        $passwordLength = (Configure::read('Security.password_policy_length') && Configure::read('Security.password_policy_length') >= 12) ? Configure::read('Security.password_policy_length') : 12;
-        $pw = '';
-        for ($i = 0; $i < $passwordLength; $i++) {
-            $chars = implode('', $groups);
-            $pw .= $chars[mt_rand(0, strlen($chars)-1)];
-        }
-        foreach ($groups as $group) {
-            $pw .= $group[mt_rand(0, strlen($group)-1)];
-        }
-        return $pw;
-    }
-
     public function beforeValidate($options = array())
     {
         if (!isset($this->data['User']['id'])) {
@@ -326,8 +306,7 @@ class User extends AppModel
 
         // we have a clean, hopefully public, key here
         try {
-            require_once 'Crypt/GPG.php';
-            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+            $gpg = $this->initializeGpg();
             try {
                 $keyImportOutput = $gpg->importKey($check['gpgkey']);
                 if (!empty($keyImportOutput['fingerprint'])) {
@@ -399,7 +378,7 @@ class User extends AppModel
         return preg_match($regex, $value);
     }
 
-    public function identicalFieldValues($field=array(), $compareField=null)
+    public function identicalFieldValues($field = array(), $compareField = null)
     {
         foreach ($field as $key => $value) {
             $v1 = $value;
@@ -470,10 +449,9 @@ class User extends AppModel
     {
         if (!$gpg) {
             try {
-                require_once 'Crypt/GPG.php';
-                $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+                $gpg = $this->initializeGpg();
             } catch (Exception $e) {
-                $result[2] ='GnuPG is not configured on this system.';
+                $result[2] = 'GnuPG is not configured on this system.';
                 $result[0] = true;
                 return $result;
             }
@@ -519,7 +497,6 @@ class User extends AppModel
 
     public function verifyGPG($id = false)
     {
-        require_once 'Crypt/GPG.php';
         $this->Behaviors->detach('Trim');
         $results = array();
         $conditions = array('not' => array('gpgkey' => ''));
@@ -533,7 +510,7 @@ class User extends AppModel
         if (empty($users)) {
             return $results;
         }
-        $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+        $gpg = $this->initializeGpg();
         foreach ($users as $k => $user) {
             $results[$user['User']['id']] = $this->verifySingleGPG($user, $gpg);
         }
@@ -1077,7 +1054,7 @@ class User extends AppModel
                     'fingerprint' => chunk_split($parts[1], 4, ' '),
                     'key_id' => substr($parts[1], -8),
                     'date' => date('Y-m-d', $parts[4]),
-                    'uri' => 'pks/lookup?op=get&search=0x' . $parts[1],
+                    'uri' => '/pks/lookup?op=get&search=0x' . $parts[1],
                 );
 
             } else if ($parts[0] === 'uid' && !empty($temp)) {
@@ -1237,9 +1214,9 @@ class User extends AppModel
     public function verifyPassword($user_id, $password)
     {
         $currentUser = $this->find('first', array(
-                'conditions' => array('User.id' => $user_id),
-                'recursive' => -1,
-                'fields' => array('User.password')
+            'conditions' => array('User.id' => $user_id),
+            'recursive' => -1,
+            'fields' => array('User.password')
         ));
         if (empty($currentUser)) {
             return false;
@@ -1272,5 +1249,202 @@ class User extends AppModel
         $this->validator()->remove('password'); // password is too simple, remove validation
         $this->save($admin);
         return $authKey;
+    }
+
+    public function resetAllSyncAuthKeysRouter($user, $jobId = false)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $eventModel = ClassRegistry::init('Event');
+            $data = array(
+                    'worker' => $eventModel->__getPrioWorkerIfPossible(),
+                    'job_type' => __('reset_all_sync_api_keys'),
+                    'job_input' => __('Reseting all API keys'),
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => $user['org_id'],
+                    'org' => $user['Organisation']['name'],
+                    'message' => 'Issuing new API keys to all sync users.',
+            );
+            $job->save($data);
+            $jobId = $job->id;
+            $process_id = CakeResque::enqueue(
+                    'prio',
+                    'AdminShell',
+                    array('resetSyncAuthkeys', $user['id'], $jobId),
+                    true
+            );
+            $job->saveField('process_id', $process_id);
+            return true;
+        } else {
+            return $this->resetAllSyncAuthKeys($user);
+        }
+    }
+
+    public function resetAllSyncAuthKeys($user, $jobId = false)
+    {
+        $affected_users = $this->find('all', array(
+            'recursive' => -1,
+            'contain' => array('Role'),
+            'conditions' => array(
+                'OR' => array(
+                    'Role.perm_sync' => 1,
+                    'Role.perm_admin' => 1
+                ),
+                'Role.perm_site_admin' => 0
+            )
+        ));
+        $results = array('success' => 0, 'fails' => 0);
+        $user_count = count($affected_users);
+        if ($jobId) {
+            $job = ClassRegistry::init('Job');
+            $existingJob = $job->find('first', array(
+                'conditions' => array('Job.id' => $jobId),
+                'recursive' => -1
+            ));
+            if (empty($existingJob)) {
+                $jobId = false;
+            }
+        }
+        foreach ($affected_users as $k => $affected_user) {
+            try {
+                $reset_result = $this->resetauthkey($user, $affected_user['User']['id'], true);
+                if ($reset_result) {
+                    $results['success'] += 1;
+                } else {
+                    $results['fails'] += 1;
+                }
+            } catch (Exception $e) {
+                $results['fails'] += 1;
+            }
+            if ($jobId) {
+                if ($k % 100 == 0) {
+                    $job->id =  $jobId;
+                    $job->saveField('progress', 100 * (($k + 1) / count($user_count)));
+                    $job->saveField('message', __('Reset in progress - %s/%s.', $k, $user_count));
+                }
+            }
+        }
+        if ($jobId) {
+            $message = __('%s authkeys reset, %s could not be reset', $results['success'], $results['fails']);
+            $job->saveField('progress', 100);
+            $job->saveField('message', $message);
+            $job->saveField('status', 4);
+        }
+        return $results;
+    }
+
+    public function resetauthkey($user, $id, $alert = false)
+    {
+        $this->id = $id;
+        if (!$id || !$this->exists($id)) {
+            return false;
+        }
+        $updatedUser = $this->read();
+        $oldKey = $this->data['User']['authkey'];
+        if (empty($user['Role']['perm_site_admin']) && !($user['Role']['perm_admin'] && $user['org_id'] == $updatedUser['User']['org_id']) && ($user['id'] != $id)) {
+            return false;
+        }
+        $newkey = $this->generateAuthKey();
+        $this->saveField('authkey', $newkey);
+        $this->extralog(
+                $user,
+                'reset_auth_key',
+                sprintf(
+                    __('Authentication key for user %s (%s) updated.'),
+                    $updatedUser['User']['id'],
+                    $updatedUser['User']['email']
+                ),
+                $fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')',
+                $updatedUser
+        );
+        if ($alert) {
+            $baseurl = Configure::read('MISP.external_baseurl');
+            if (empty($baseurl)) {
+                $baseurl = Configure::read('MISP.baseurl');
+            }
+            $body = __(
+                "Dear user,\n\nan API key reset has been triggered by an administrator for your user account on %s.\n\nYour new API key is: %s\n\nPlease update your server's sync setup to reflect this change.\n\nWe apologise for the inconvenience.",
+                $baseurl,
+                $newkey
+            );
+            $bodyNoEnc = __(
+                "Dear user,\n\nan API key reset has been triggered by an administrator for your user account on %s.\n\nYour new API key can be retrieved by logging in using this sync user's account.\n\nPlease update your server's sync setup to reflect this change.\n\nWe apologise for the inconvenience.",
+                $baseurl,
+                $newkey
+            );
+            $this->sendEmail(
+                $updatedUser,
+                $body,
+                $bodyNoEnc,
+                __('API key reset by administrator')
+            );
+        }
+        return $newkey;
+    }
+
+    public function extralog($user, $action = null, $description = null, $fieldsResult = null, $modifiedUser = null)
+    {
+        // new data
+        $model = 'User';
+        $modelId = $user['id'];
+        if (!empty($modifiedUser)) {
+            $modelId = $modifiedUser['User']['id'];
+        }
+        if ($action == 'login') {
+            $description = "User (" . $user['id'] . "): " . $user['email'];
+        } elseif ($action == 'logout') {
+            $description = "User (" . $user['id'] . "): " . $user['email'];
+        } elseif ($action == 'edit') {
+            $description = "User (" . $modifiedUser['User']['id'] . "): " . $modifiedUser['User']['email'];
+        } elseif ($action == 'change_pw') {
+            $description = "User (" . $modifiedUser['User']['id'] . "): " . $modifiedUser['User']['email'];
+            $fieldsResult = "Password changed.";
+        }
+
+        // query
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        $this->Log->save(array(
+            'org' => $user['Organisation']['name'],
+            'model' => $model,
+            'model_id' => $modelId,
+            'email' => $user['email'],
+            'action' => $action,
+            'title' => $description,
+            'change' => isset($fieldsResult) ? $fieldsResult : ''));
+
+        // write to syslogd as well
+        App::import('Lib', 'SysLog.SysLog');
+        $syslog = new SysLog();
+        $syslog->write('notice', $description . ' -- ' . $action . (empty($fieldResult) ? '' : '-- ' . $fieldResult));
+    }
+
+    /**
+     * @return Crypt_GPG
+     * @throws Exception
+     */
+    private function initializeGpg()
+    {
+        if (!class_exists('Crypt_GPG')) {
+            if (!stream_resolve_include_path('Crypt/GPG.php')) {
+                throw new Exception("Crypt_GPG is not installed.");
+            }
+            require_once 'Crypt/GPG.php';
+        }
+
+        $homedir = Configure::read('GnuPG.homedir');
+        if ($homedir === null) {
+            throw new Exception("Configuration option 'GnuPG.homedir' is not set, Crypt_GPG cannot be initialized.");
+        }
+
+        $options = array(
+            'homedir' => $homedir,
+            'gpgconf' => Configure::read('GnuPG.gpgconf'),
+            'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg',
+        );
+
+        return new Crypt_GPG($options);
     }
 }

@@ -3705,7 +3705,7 @@ msgid "The debug level of the instance for site admins. This feature allows site
 msgstr "Уровень отладки приложения для администраторов сайта. Данный функционал позволяет администраторам сайта включать режим отладки на рабтающих инстансах без воздействия на других пользователей."
 
 #: Model/Server.php:2172
-msgid "Failed (partially?) because of validation errors: "
+msgid "Failed (partially?) because of errors: "
 msgstr ""
 
 #: Model/Server.php:2176
@@ -15332,8 +15332,8 @@ msgstr "Синхронизировать пользователя"
 
 #: View/Users/admin_add.ctp:70
 #: View/Users/admin_edit.ctp:64
-msgid "Paste the user's GnuPG key here or try to retrieve it from the MIT key server by clicking on \"Fetch GnuPG key\" below."
-msgstr "Вставьте GnuPG ключ пользователя сюда или нажмите кнопку \"Получить GnuPG ключ\" для получения ключа с сервера MIT."
+msgid "Paste the user's GnuPG key here or try to retrieve it from the CIRCL key server by clicking on \"Fetch GnuPG key\" below."
+msgstr "Вставьте GnuPG ключ пользователя сюда или нажмите кнопку \"Получить GnuPG ключ\" для получения ключа с сервера CIRCL."
 
 #: View/Users/admin_add.ctp:72
 #: View/Users/admin_edit.ctp:66

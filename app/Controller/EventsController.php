@@ -730,6 +730,7 @@ class EventsController extends AppController
                 unset($rules['contain']);
                 $rules['recursive'] = -1;
                 $rules['fields'] = array('id', 'timestamp', 'published', 'uuid');
+                $rules['contain'] = array('Orgc.uuid');
             }
             $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
             foreach ($paginationRules as $paginationRule) {
@@ -835,6 +836,7 @@ class EventsController extends AppController
                 return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
             } else {
                 foreach ($events as $key => $event) {
+                    $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
                     $events[$key] = $event['Event'];
                 }
                 return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));

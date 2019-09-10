@@ -3705,7 +3705,7 @@ msgid "The debug level of the instance for site admins. This feature allows site
 msgstr "サイト管理者用のインスタンスのデバッグレベル。 この機能により、サイト管理者は、他のユーザーに公開することなく、動作中のインスタンスでデバッグモードを実行できます。 debug と site_admin_debug の最も冗長なオプションは、サイト管理者に使用されます。"
 
 #: Model/Server.php:2172
-msgid "Failed (partially?) because of validation errors: "
+msgid "Failed (partially?) because of errors: "
 msgstr ""
 
 #: Model/Server.php:2176
@@ -15347,8 +15347,8 @@ msgstr "同期ユーザー用"
 
 #: View/Users/admin_add.ctp:70
 #: View/Users/admin_edit.ctp:64
-msgid "Paste the user's GnuPG key here or try to retrieve it from the MIT key server by clicking on \"Fetch GnuPG key\" below."
-msgstr "ユーザーの GnuPG キーをここに貼り付けるか、下の \"GnuPG キーを取得\"をクリックして MIT キーサーバーから取得します。"
+msgid "Paste the user's GnuPG key here or try to retrieve it from the CIRCL key server by clicking on \"Fetch GnuPG key\" below."
+msgstr "ユーザーの GnuPG キーをここに貼り付けるか、下の \"GnuPG キーを取得\"をクリックして CIRCL キーサーバーから取得します。"
 
 #: View/Users/admin_add.ctp:72
 #: View/Users/admin_edit.ctp:66
