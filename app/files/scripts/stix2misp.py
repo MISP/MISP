@@ -1335,21 +1335,21 @@ class ExternalStixParser(StixParser):
 
     # Parse the ttps field of an external STIX document
     def parse_ttps(self, ttps):
+        galaxy_types = {value: key for key, value in stix2misp_mapping._galaxy_mapping.items() if 'malware' in value}
         for ttp in ttps:
             if ttp.behavior and ttp.behavior.malware_instances:
                 mi = ttp.behavior.malware_instances[0]
-                if mi.types:
-                    mi_type = mi.types[0].value
-                    cluster = {'type': mi_type, 'value': ttp.title,
-                               'tag_name': 'misp-galaxy:{}="{}"'.format(mi_type, ttp.title)}
-                    if mi.description:
-                        cluster['description'] = mi.description.value
-                    if mi.names:
-                        synonyms = []
-                        for name in mi.names:
-                            synonyms.append(name.value)
-                        cluster['meta'] = {'synonyms': synonyms}
-                    self.galaxies[mi_type].append(cluster)
+                mi_types = mi.types
+                mi_name = mi_types[0].value if mi_types and mi_types[0].value in galaxy_types else "Malware"
+                cluster_type = stix2misp_mapping._galaxy_mapping[mi_name]
+                value = ttp.title
+                cluster = {'name': mi_name, 'type': cluster_type, 'value': value,
+                           'tag_name': 'misp-galaxy:{}="{}"'.format(cluster_type, value)}
+                if mi.description:
+                    cluster['description'] = mi.description.value
+                if mi.names:
+                    cluster['meta'] = {'synonyms': [name.value for name in mi.names]}
+                self.galaxies[mi_name].append(cluster)
 
     # Parse a DNS object
     def resolve_dns_objects(self):
