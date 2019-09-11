@@ -926,7 +926,14 @@ class AppController extends Controller
         if (Configure::read('Plugin.CustomAuth_enable')) {
             $header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
             $authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-            $headerNamespace = Configure::read('Plugin.CustomAuth_use_header_namespace') ? (Configure::read('Plugin.CustomAuth_header_namespace') ? Configure::read('Plugin.CustomAuth_header_namespace') : 'HTTP_') : '';
+            if (
+                !Configure::check('Plugin.CustomAuth_use_header_namespace') ||
+                (Configure::check('Plugin.CustomAuth_use_header_namespace') && Configure::read('Plugin.CustomAuth_use_header_namespace'))
+            ) {
+                $headerNamespace = Configure::read('Plugin.CustomAuth_header_namespace');
+            } else {
+                $headerNamespace = '';
+            }
             if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
                 if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $server['REMOTE_ADDR']) {
                     $this->Log = ClassRegistry::init('Log');
