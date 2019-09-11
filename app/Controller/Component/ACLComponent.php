@@ -165,7 +165,6 @@ class ACLComponent extends Component
                     'xml' => array('*')
             ),
             'favouriteTags' => array(
-                'index' => array('*'),
                 'toggle' => array('*'),
                 'getToggleField' => array('*')
             ),
@@ -504,6 +503,7 @@ class ACLComponent extends Component
                     'admin_index' => array('perm_admin'),
                     'admin_quickEmail' => array('perm_admin'),
                     'admin_view' => array('perm_admin'),
+                    'arrayCopy' => array(),
                     'attributehistogram' => array('*'),
                     'change_pw' => array('*'),
                     'checkAndCorrectPgps' => array(),
@@ -514,7 +514,6 @@ class ACLComponent extends Component
                     'edit' => array('*'),
                     'fetchPGPKey' => array('*'),
                     'histogram' => array('*'),
-                    'index' => array('*'),
                     'initiatePasswordReset' => array('perm_admin'),
                     'login' => array('*'),
                     'logout' => array('*'),
