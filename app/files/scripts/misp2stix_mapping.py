@@ -30,11 +30,12 @@ misp_indicator_type.update(dict.fromkeys(["domain", "domain|ip", "hostname"], "D
 misp_indicator_type.update(dict.fromkeys(["regkey", "regkey|value"], "Host Characteristics"))
 cybox_validation = {"AutonomousSystem": "isInt"}
 
-galaxy_types_mapping = dict.fromkeys(['mitre-attack-pattern', 'mitre-enterprise-attack-attack-pattern',
-                                      'mitre-mobile-attack-attack-pattern', 'mitre-pre-attack-attack-pattern'],
-                                     'parse_attack_pattern_galaxy')
+galaxy_types_mapping = {'branded-vulnerability': 'parse_vulnerability_galaxy'}
+galaxy_types_mapping.update(dict.fromkeys(['mitre-attack-pattern', 'mitre-enterprise-attack-attack-pattern',
+                                           'mitre-mobile-attack-attack-pattern', 'mitre-pre-attack-attack-pattern'],
+                                           'parse_attack_pattern_galaxy'))
 galaxy_types_mapping.update(dict.fromkeys(['mitre-course-of-action',
-                                           'mitre-entreprise-attack-course-of-action',
+                                           'mitre-enterprise-attack-course-of-action',
                                            'mitre-mobile-attack-course-of-action'],
                                           'parse_course_of_action_galaxy'))
 galaxy_types_mapping.update(dict.fromkeys(['android', 'banker', 'stealer', 'backdoor', 'ransomware', 'mitre-malware',
