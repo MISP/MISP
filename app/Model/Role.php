@@ -131,7 +131,7 @@ class Role extends AppModel
         'perm_object_template' => array(
             'id' => 'RolePermObjectTemplate',
             'text' => 'Object Template Editor',
-            'readonlyenabled' => true,
+            'readonlyenabled' => false,
             'title' => 'Create or modify MISP Object templates'
         ),
         'perm_decaying' => array(

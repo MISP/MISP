@@ -1824,7 +1824,7 @@ class Event extends AppModel
         if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         }
-        if (isset($options['includeDecayScore']) && $options['includeDecayScore']) {
+        if (!empty()($options['includeDecayScore'])) {
             $this->DecayingModel = ClassRegistry::init('DecayingModel');
         }
         foreach ($possibleOptions as &$opt) {
@@ -2177,7 +2177,7 @@ class Event extends AppModel
                             $event['Attribute'][$key]['data'] = $encodedFile;
                         }
                     }
-                    if (isset($options['includeDecayScore']) && $options['includeDecayScore']) {
+                    if (!empty($options['includeDecayScore'])) {
                         if (isset($event['EventTag'])) { // include EventTags for score computation
                             $event['Attribute'][$key]['EventTag'] = $event['EventTag'];
                         }
