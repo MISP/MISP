@@ -46,24 +46,30 @@ abstract class DecayingModelBase
             foreach ($attribute['EventTag'] as $i => $tag) {
                 $tags[] = $tag;
                 $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
-                $temp_mapping[$namespace_predicate] = $i;
+                $temp_mapping[$namespace_predicate][] = $i;
             }
         }
         if (isset($attribute['AttributeTag'])) {
             foreach ($attribute['AttributeTag'] as $tag) {
                 $namespace_predicate = explode('=', $tag['Tag']['name'])[0];
-                if (isset($temp_mapping[$namespace_predicate])) { // need to override event tag
-                    $overridden_tags[] = array(
-                        'EventTag' => $tags[$temp_mapping[$namespace_predicate]],
-                        'AttributeTag' => $tag
-                    );
-                    $tags[$temp_mapping[$namespace_predicate]] = $tag;
+                if (!empty($temp_mapping[$namespace_predicate])) { // need to override event tag
+                    foreach ($temp_mapping[$namespace_predicate] as $i => $eventtag_index) {
+                        $overridden_tags[] = array(
+                            'EventTag' => $tags[$eventtag_index],
+                            'AttributeTag' => $tag
+                        );
+                        if ($i === 0)  { // override first one
+                            $tags[$eventtag_index] = $tag;
+                        } else { // remove remaining overriden
+                            unset($tags[$eventtag_index]);
+                        }
+                    }
                 } else {
                     $tags[] = $tag;
                 }
             }
         }
-        return array('tags' => $tags, 'overridden' => $overridden_tags);
+        return array('tags' => array_values($tags), 'overridden' => $overridden_tags);
     }
 
     public function computeBasescore($model, $attribute)

@@ -513,13 +513,13 @@
                     this.overriddenTags.forEach(function(entry) {
                         var cur_namespace_predicate = entry.AttributeTag.Tag.name.split('=')[0];
                         if (namespace_predicate == cur_namespace_predicate) {
-                            overridden_html += '<div style="filter: grayscale(80%);">' + that._create_tag_html(entry.EventTag) + '</div>';
+                            overridden_html += '<div class="overriden_tag_wrapper" style="filter: grayscale(80%);">' + that._create_tag_html(entry.EventTag) + '</div>';
                         }
                     });
                     if (overridden_html !== '') {
                         return '<div style="position:relative;" class="useCursorPointer overridden_tags_container">'
                             + overridden_html
-                            + '<div style="top:-12px;margin-bottom:-12px; left:4px;margin-right:-4px; float: left;  position: relative;">' + html_tag + '</div>'
+                            + '<div class="attribute_tag_wrapper" style="top:-12px;margin-bottom:-12px; left:4px;margin-right:-4px; float: left;  position: relative;">' + html_tag + '</div>'
                         + '</div>';
                     } else {
                         return html_tag;
@@ -616,11 +616,12 @@
             },
 
             _generateOverridenExplanationPopoverHTML: function($div) {
-                var $tags = $div.find('.tag');
-                var $tag_event = $tags.eq(0);
-                var $tag_attribute = $tags.eq(1);
+                var $tags_event = $div.find('.overriden_tag_wrapper .tag');
+                var $tag_attribute = $div.find('.attribute_tag_wrapper .tag');
                 var html = '<div style="text-align: center;">';
-                    html += '<div>' + $tag_event[0].outerHTML + '</div>'
+                    $tags_event.each(function() {
+                        html += '<div>' + $(this)[0].outerHTML + '</div>'
+                    });
                     html += '<div><i class="fa fa-arrow-down"></i></div>'
                     html += '<div>' + $tag_attribute[0].outerHTML + '</div>'
                 html += '</div>';
