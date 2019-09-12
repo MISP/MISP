@@ -32,6 +32,9 @@ class DecayingModelController extends AppController
     public function export($model_id)
     {
         $model = $this->DecayingModel->fetchModel($this->Auth->user(), $model_id, true);
+        if (empty($model)) {
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+        }
         unset($model['DecayingModel']['id'], $model['DecayingModel']['uuid'], $model['DecayingModel']['org_id'], $model['DecayingModelMapping']);
         return $this->RestResponse->viewData($model, $this->response->type());
     }
@@ -98,6 +101,9 @@ class DecayingModelController extends AppController
     public function view($id)
     {
         $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true);
+        if (empty($decaying_model)) {
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+        }
         $this->set('id', $id);
         $this->set('decaying_model', $decaying_model);
         $available_formulas = $this->DecayingModel->listAvailableFormulas();
@@ -193,8 +199,10 @@ class DecayingModelController extends AppController
                     }
                 }
                 if ($this->request->is('ajax') || $this->_isRest()) {
-                    $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id);
-                    $saved = $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $saved);
+                    $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id, true, array(), true);
+                    if (empty($saved)) {
+                        throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+                    }
                     $response = array('data' => $saved, 'action' => 'add');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 } else {
@@ -227,8 +235,11 @@ class DecayingModelController extends AppController
 
     public function edit($id)
     {
-        $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id); // ACL done in Model
-        $enforceRestrictedEdition = $decayingModel['DecayingModel']['default'];
+        $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+        if (empty($decaying_model)) {
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+        }
+        $enforceRestrictedEdition = $decaying_model['DecayingModel']['default'];
 
         if ($this->request->is('post') || $this->request->is('put')) {
 
@@ -245,8 +256,10 @@ class DecayingModelController extends AppController
             $save_result = $this->DecayingModel->save($this->request->data, true, $fieldListToSave);
             if ($save_result) {
                 if ($this->request->is('ajax') || $this->_isRest()) {
-                    $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id);
-                    $saved = $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $saved);
+                    $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id, true, array(), true);
+                    if (empty($saved)) {
+                        throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+                    }
                     $response = array('data' => $saved, 'action' => 'edit');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 } else {
@@ -256,6 +269,9 @@ class DecayingModelController extends AppController
             } else {
                 if ($this->request->is('ajax') || $this->_isRest()) {
                     $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id);
+                    if (empty($saved)) {
+                        throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+                    }
                     $response = array('data' => $saved, 'action' => 'edit', 'saved' => false);
                     return $this->RestResponse->viewData($response, $this->response->type());
                 } else {
@@ -264,9 +280,9 @@ class DecayingModelController extends AppController
                 }
             }
         } else {
-            $this->request->data = $decayingModel;
+            $this->request->data = $decaying_model;
             $this->set('id', $id);
-            $this->set('decayingModel', $decayingModel);
+            $this->set('decayingModel', $decaying_model);
             $this->set('restrictEdition', $enforceRestrictedEdition);
             $this->set('action', 'edit');
             $available_formulas = $this->DecayingModel->listAvailableFormulas();
@@ -331,6 +347,9 @@ class DecayingModelController extends AppController
     {
         if ($this->request->is('post') || $this->request->is('put')) {
             $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+            if (empty($decaying_model)) {
+                throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+            }
             if (
                 !$this->DecayingModel->isEditableByCurrentUser($this->Auth->user(), $decaying_model) ||
                 $decaying_model['DecayingModel']['default']
@@ -361,6 +380,9 @@ class DecayingModelController extends AppController
     public function enable($id)
     {
         $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+        if (empty($decaying_model)) {
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+        }
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!$this->DecayingModel->isEditableByCurrentUser($this->Auth->user(), $decaying_model)) {
                 throw new MethodNotAllowedException(__('You are not authorised to enable this model.'));
@@ -369,16 +391,20 @@ class DecayingModelController extends AppController
             $decaying_model['DecayingModel']['enabled'] = 1;
             if ($this->DecayingModel->save($decaying_model)) {
                 if ($this->request->is('ajax')) {
-                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
-                    $model = $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $model);
+                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true, array(), true);
+                    if (empty($model)) {
+                        throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+                    }
                     $response = array('data' => $model, 'action' => 'enable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 }
                 $this->Flash->success(__('Decaying Model enabled.'));
             } else {
                 if ($this->request->is('ajax')) { // ajax caller expect data to be returned to update the DOM accordingly
-                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
-                    $model = $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $model);
+                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true, array(), true);
+                    if (empty($model)) {
+                        throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+                    }
                     $response = array('data' => $model, 'action' => 'enable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 } elseif ($this->_isRest()) {
@@ -396,25 +422,32 @@ class DecayingModelController extends AppController
 
     public function disable($id)
     {
-        $decayingModel = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+        $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+        if (empty($decaying_model)) {
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+        }
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!$this->DecayingModel->isEditableByCurrentUser($this->Auth->user(), $decaying_model)) {
                 throw new MethodNotAllowedException(__('You are not authorised to disable this model.'));
             }
 
-            $decayingModel['DecayingModel']['enabled'] = 0;
-            if ($this->DecayingModel->save($decayingModel)) {
+            $decaying_model['DecayingModel']['enabled'] = 0;
+            if ($this->DecayingModel->save($decaying_model)) {
                 if ($this->request->is('ajax')) {
-                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
-                    $model = $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $model);
+                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true, array(), true);
+                    if (empty($model)) {
+                        throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+                    }
                     $response = array('data' => $model, 'action' => 'disable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 }
                 $this->Flash->success(__('Decaying Model disabled.'));
             } else {
                 if ($this->request->is('ajax')) { // ajax caller expect data to be returned to update the DOM accordingly
-                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
-                    $model = $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $model);
+                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true, array(), true);
+                    if (empty($model)) {
+                        throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+                    }
                     $response = array('data' => $model, 'action' => 'disable');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 } elseif ($this->_isRest()) {
@@ -425,7 +458,7 @@ class DecayingModelController extends AppController
             }
             $this->redirect(array('action' => 'index'));
         } else {
-            $this->set('model', $decayingModel['DecayingModel']);
+            $this->set('model', $decaying_model['DecayingModel']);
             $this->render('ajax/disable_form');
         }
     }
@@ -504,6 +537,9 @@ class DecayingModelController extends AppController
     public function decayingToolSimulation($model_id)
     {
         $decaying_model = $this->DecayingModel->fetchModel($this->Auth->user(), $model_id);
+        if (empty($decaying_model)) {
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+        }
         if (isset($this->request->params['named']['attribute_id'])) {
             $this->set('attribute_id', $this->request->params['named']['attribute_id']);
         }

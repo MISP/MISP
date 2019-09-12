@@ -21,6 +21,9 @@ class DecayingModelMappingController extends AppController
 
     public function linkAttributeTypeToModel($model_id) {
         $model = $this->DecayingModelMapping->DecayingModel->fetchModel($this->Auth->user(), $model_id);
+        if (empty($model)) {
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+        }
 
         if ($this->request->is('post') || $this->request->is('put')) {
             $this->request->data['DecayingModelMapping']['model_id'] = $model_id;

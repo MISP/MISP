@@ -232,15 +232,13 @@ class DecayingModel extends AppModel
         return $decayingModels;
     }
 
-    public function fetchModels($user, $ids, $full=true, $conditions=array())
+    public function fetchModels($user, $ids, $full=true, $conditions=array(), $attach_editable=0)
     {
         $models = array();
         foreach ($ids as $id) {
-            try {
-                $model = $this->fetchModel($user, $id, $full, $conditions);
+            $model = $this->fetchModel($user, $id, $full, $conditions, $attach_editable);
+            if (!empty($model)) {
                 $models[] = $model;
-            } catch (NotFoundException $e) {
-                // Just don't add the model to the result
             }
         }
         return $models;
@@ -249,7 +247,7 @@ class DecayingModel extends AppModel
     // Method that fetches decayingModel
     // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
     // - full attach Attribute types associated to the requested model
-    public function fetchModel($user, $id, $full=true, $conditions=array())
+    public function fetchModel($user, $id, $full=true, $conditions=array(), $attach_editable=0)
     {
         $conditions['id'] = $id;
         $searchOptions = array(
@@ -262,7 +260,7 @@ class DecayingModel extends AppModel
 
         // if not found throw
         if (empty($decayingModel)) {
-            throw new NotFoundException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
+            return array();
         }
         if (
             !$user['Role']['perm_site_admin'] &&
@@ -271,12 +269,13 @@ class DecayingModel extends AppModel
                 $decayingModel['DecayingModel']['all_orgs']
             )
         ) {
-            throw new NotFoundException(__('No Decaying Model with the provided ID exists, or you are not authorised to view it.'));
+            return array();
         }
 
         if ($full) {
             $decayingModel['DecayingModel']['attribute_types'] = $this->DecayingModelMapping->getAssociatedTypes($user, $decayingModel);
         }
+        $decayingModel = $this->attachIsEditableByCurrentUser($this->Auth->user(), $decayingModel);
         return $decayingModel;
     }
 
@@ -433,6 +432,9 @@ class DecayingModel extends AppModel
             unset($attribute['AttributeTag']);
         }
         $model = $this->fetchModel($user, $model_id, true);
+        if (empty($model)) {
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+        }
         if (!empty($model_overrides)) {
             $this->overrideModelParameters($model, $model_overrides);
         }

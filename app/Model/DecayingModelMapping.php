@@ -52,6 +52,9 @@ class DecayingModelMapping extends AppModel
     public function getAssociatedTypes($user, $model) {
         if (is_numeric($model)) {
             $model = $this->DecayingModel->fetchModel($user, $model, false);
+            if (empty($model)) {
+                throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+            }
         }
         $decaying_model = isset($model['DecayingModel']) ? $model['DecayingModel'] : $model;
         if ($decaying_model['default']) {
