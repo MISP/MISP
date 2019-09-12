@@ -401,12 +401,12 @@ class DecayingModel extends AppModel
     }
 
     // returns timestamp set to the rounded hour
-    public function round_timestamp_to_hour($time, $closest=1)
+    public function round_timestamp_to_hour($time, $floor=1)
     {
-        if ($closest) {
-            return round((float) $time / 3600) * 3600;
-        } else {
+        if ($floor) {
             return floor((float) $time / 3600) * 3600;
+        } else {
+            return round((float) $time / 3600) * 3600;
         }
     }
 
