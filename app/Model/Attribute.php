@@ -404,7 +404,8 @@ class Attribute extends AppModel
         'yara-json' => array('json', 'YaraExport', 'json'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'csv' => array('csv', 'CsvExport', 'csv'),
-        'cache' => array('txt', 'CacheExport', 'cache')
+        'cache' => array('txt', 'CacheExport', 'cache'),
+        'attack-sightings' => array('json', 'AttackSightingsExport', 'json')
     );
 
     // FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
