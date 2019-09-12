@@ -21,7 +21,7 @@
                         <div class="tab-content" style="padding: 5px; height: 100%;">
                             <div class="tab-pane <?php echo isset($attribute_id) ? '' : 'active'; ?>" id="restsearch" style="height: 100%;">
                                 <div style="display: flex; flex-direction: column; height: 100%;">
-                                    <h3 style="">Attribute RestSearch<span style="vertical-align: top; font-size: x-small;" class="fa fa-question-circle" title="Enforced fields: returnFormat"></span></h3>
+                                    <h3 style="">Attribute RestSearch<span style="vertical-align: top; font-size: x-small;" class="fa fa-question-circle" title="Enforced fields: [returnFormat, includeEventTags]"></span></h3>
     <?php
         $registered_taxonomies = array_keys($decaying_model['DecayingModel']['parameters']['base_score_config']);
         foreach ($registered_taxonomies as $i => &$taxonomy_name) {

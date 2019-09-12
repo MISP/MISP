@@ -502,6 +502,8 @@ class DecayingModelController extends AppController
         $this->set('all_models', $allowed_models);
     }
 
+    // TODO: Consider using the export tool to perform the post treatement
+    // as this does not mirror a complete restSearch (not using fetchAttribute)
     public function decayingToolRestSearch($continue = false)
     {
         if ($this->request->is('post') || $this->request->is('put')) {
@@ -529,9 +531,7 @@ class DecayingModelController extends AppController
             if ($filters === false) {
                 return $exception;
             }
-            if (!isset($filters['includeEventTags'])) {
-                $filters['includeEventTags'] = 1;
-            }
+            $filters['includeEventTags'] = 1;
             if (!isset($filters['excludeDecayed'])) {
                 $filters['excludeDecayed'] = 0;
             }
