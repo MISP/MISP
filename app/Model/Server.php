@@ -4220,10 +4220,15 @@ class Server extends AppModel
             $sql_result = $this->query($sql_show);
             $tables = HASH::extract($sql_result, '{n}.tables.table_name');
             foreach ($tables as $table) {
-                $sql_desc = sprintf('DESC `%s`;', $table);
+                // $sql_desc = sprintf('DESC `%s`;', $table);
+                $sql_desc = sprintf(
+                    "SELECT column_name, is_nullable, data_type, character_maximum_length, numeric_precision, datetime_precision, collation_name
+                    FROM information_schema.columns
+                    WHERE table_schema = '%s' AND table_name = '%s'", $this->getDataSource()->config['database'], $table);
                 $sql_result = $this->query($sql_desc);
                 foreach ($sql_result as $column_schema) {
-                    $db_actual_schema[$table][] = array_values($column_schema['COLUMNS']);
+                    // $db_actual_schema[$table][] = array_values($column_schema['COLUMNS']);
+                    $db_actual_schema[$table][] = array_values($column_schema['columns']);
                 }
             }
         }
