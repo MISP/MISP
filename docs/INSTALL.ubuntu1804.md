@@ -206,8 +206,6 @@ installCake () {
   # Make composer cache happy
   # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
   sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 
   # Enable CakeResque with php-redis

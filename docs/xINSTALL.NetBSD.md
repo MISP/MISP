@@ -238,9 +238,6 @@ sudo -u www php -r "if (hash_file('SHA384', 'composer-setup.php') === 'a5c698ffe
 ('composer-setup.php'); } echo PHP_EOL;"
 sudo -u www env HOME=/tmp php composer-setup.php
 sudo -u www php -r "unlink('composer-setup.php');"
-
-sudo -u www HOME=/tmp php composer.phar require kamisama/cake-resque:4.1.2
-sudo -u www HOME=/tmp php composer.phar config vendor-dir Vendor
 sudo -u www HOME=/tmp php composer.phar install
 
 # To use the scheduler worker for scheduled tasks, do the following:
