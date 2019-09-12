@@ -314,7 +314,7 @@ COPY public.roles (id, name, created, modified, perm_add, perm_modify, perm_modi
 2	Org Admin	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	f	t	t	f	t	f	f	t	t	t	t	t	f	f			f	t	t	t
 3	User	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	f	f	f	f	f	f	t	f	f	f	f	f	f	t	f	t			f	f	f	t
 4	Publisher	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	f	f	f	f	t	f	f	f	f	f	f	t	f	f			f	t	t	t
-5	Sync user	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	t	f	f	f	t	f	f	f	f	t	f	t	f	f			f	t	t	f
+5	Sync user	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	t	f	f	f	t	f	f	f	f	t	f	t	f	f			f	t	t	t
 6	Read Only	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	f	f	f	f	f	f	f	f	f	t	f	f	f	f	f	f	f	f	f			f	f	f	f
 \.
 
