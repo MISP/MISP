@@ -37,7 +37,7 @@ abstract class DecayingModelBase
     }
 
     // return attribute tag with event tag matching the namespace+predicate overridden
-    protected function __getPrioritizedTag($attribute)
+    protected function __getPrioritisedTag($attribute)
     {
         $tags = array();
         $overridden_tags = array();
@@ -87,7 +87,13 @@ abstract class DecayingModelBase
         if (!$flag_contain_matching_taxonomy) {
             $base_score = $default_base_score;
         }
-        return array('base_score' => $base_score, 'overridden' => $overridden_tags, 'tags' => $tags, 'taxonomy_effective_ratios' => $taxonomy_effective_ratios, 'default_base_score' => $default_base_score);
+        return array(
+            'base_score' => $base_score,
+            'overridden' => $overridden_tags,
+            'tags' => $tags,
+            'taxonomy_effective_ratios' => $taxonomy_effective_ratios,
+            'default_base_score' => $default_base_score
+        );
     }
 
     // Compute the current score for the provided attribute according to the last sighting with the provided model

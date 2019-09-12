@@ -26,6 +26,9 @@ class DecayingModelMapping extends AppModel
     );
 
     public function resetMappingForModel($new_model, $user) {
+        if (empty($new_model['model_id'])) {
+            throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+        }
         $this->deleteAll(array(
             'model_id' => $new_model['model_id']
         ));
