@@ -1193,6 +1193,7 @@ class AppModel extends Model
                     KEY `org_id` (`org_id`),
                     KEY `type` (`type`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+                    break;
             case 36:
                 $sqlArray[] = "ALTER TABLE `event_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
@@ -1222,6 +1223,13 @@ class AppModel extends Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_decaying` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "UPDATE `roles` SET `perm_decaying`=1 WHERE `perm_sighting`=1;";
+                $this->__addIndex('decaying_models', 'uuid');
+                $this->__addIndex('decaying_models', 'name');
+                $this->__addIndex('decaying_models', 'org_id');
+                $this->__addIndex('decaying_models', 'enabled');
+                $this->__addIndex('decaying_models', 'all_orgs');
+                $this->__addIndex('decaying_models', 'version');
+                $this->__addIndex('decaying_model_mappings', 'model_id');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
