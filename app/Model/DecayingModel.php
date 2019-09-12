@@ -449,10 +449,9 @@ class DecayingModel extends AppModel
         $sightings = $this->Sighting->listSightings($user, $attribute_id, 'attribute', false, 0, false);
         if (empty($sightings)) {
             $sightings = array(array('Sighting' => array('date_sighting' => $attribute['Attribute']['timestamp']))); // simulate a Sighting nonetheless
-        } else {
-            foreach ($sightings as $i => $sighting) {
-                $sightings[$i]['Sighting']['rounded_timestamp'] = $this->round_timestamp_to_hour($sighting['Sighting']['date_sighting']);
-            }
+        }
+        foreach ($sightings as $i => $sighting) {
+            $sightings[$i]['Sighting']['rounded_timestamp'] = $this->round_timestamp_to_hour($sighting['Sighting']['date_sighting']);
         }
         // get start time
         $start_time = $attribute['Attribute']['timestamp'];
