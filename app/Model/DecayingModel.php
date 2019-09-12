@@ -234,6 +234,9 @@ class DecayingModel extends AppModel
 
     public function fetchModels($user, $ids, $full=true, $conditions=array(), $attach_editable=0)
     {
+        if (is_numeric($ids)) {
+            $ids = array($ids);
+        }
         $models = array();
         foreach ($ids as $id) {
             $model = $this->fetchModel($user, $id, $full, $conditions, $attach_editable);
@@ -536,12 +539,10 @@ class DecayingModel extends AppModel
             if (!empty($associated_model_ids)) {
                 $models = $this->fetchModels($user, $associated_model_ids, false, array('enabled' => true));
             }
-        } elseif (is_array($model_id)) {
-            $models = $this->fetchModels($user, $model_id, false, array());
         } else {
-            $models[] = $this->fetchModel($user, $model_id, false, array());
+            $models = $this->fetchModels($user, $model_id, false, array());
         }
-        foreach ($models as $i => $model) {
+        foreach ($models as $model) {
             if (!empty($model_overrides)) {
                 $model = $this->overrideModelParameters($model, $model_overrides);
             }
@@ -574,6 +575,9 @@ class DecayingModel extends AppModel
         }
         if (is_numeric($model) && $user !== false) {
             $model = $this->fetchModel($user, $model);
+            if (empty($model)) {
+                throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+            }
         }
         $this->Computation = $this->getModelClass($model);
         return $this->Computation->computeCurrentScore($user, $model, $attribute);
