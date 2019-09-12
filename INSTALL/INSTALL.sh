@@ -943,8 +943,6 @@ alias composer70='composer72'
 composer72 () {
   cd $PATH_TO_MISP/app
   mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 }
 
@@ -961,8 +959,6 @@ composer73 () {
   checkFail "composer.phar checksum failed, please investigate manually. " $?
   $SUDO_WWW php composer-setup.php
   $SUDO_WWW php -r "unlink('composer-setup.php');"
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 }
 
@@ -1329,8 +1325,6 @@ installCake () {
   # Make composer cache happy
   # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
   sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 
   # Enable CakeResque with php-redis

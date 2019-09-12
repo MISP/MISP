@@ -443,6 +443,9 @@ class RestResponseComponent extends Component
                 $type = $format;
             }
             if (!$raw) {
+                if (is_string($response)) {
+                    $response = array('message' => $response);
+                }
                 $response = json_encode($response, JSON_PRETTY_PRINT);
             }
         }

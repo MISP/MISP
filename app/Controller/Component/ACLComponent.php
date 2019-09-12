@@ -187,7 +187,6 @@ class ACLComponent extends Component
                     'xml' => array('*')
             ),
             'favouriteTags' => array(
-                'index' => array('*'),
                 'toggle' => array('*'),
                 'getToggleField' => array('*')
             ),
@@ -536,7 +535,6 @@ class ACLComponent extends Component
                     'edit' => array('*'),
                     'fetchPGPKey' => array('*'),
                     'histogram' => array('*'),
-                    'index' => array('*'),
                     'initiatePasswordReset' => array('perm_admin'),
                     'login' => array('*'),
                     'logout' => array('*'),

@@ -251,8 +251,6 @@ sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install .
 ```bash
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd ${PATH_TO_MISP}/app
-sudo -u www php composer.phar require kamisama/cake-resque:4.1.2
-sudo -u www php composer.phar config vendor-dir Vendor
 sudo -u www php composer.phar install
 
 # To use the scheduler worker for scheduled tasks, do the following:

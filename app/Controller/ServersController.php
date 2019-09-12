@@ -1620,8 +1620,13 @@ class ServersController extends AppController
     {
         if ($this->request->is('post')) {
             $status = $this->Server->getCurrentGitStatus();
-            $update = $this->Server->update($status);
-            return new CakeResponse(array('body'=> $update, 'type' => 'txt'));
+            $raw = array();
+            $update = $this->Server->update($status, $raw);
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData(array('results' => $raw), $this->response->type());
+            } else {
+                return new CakeResponse(array('body'=> $update, 'type' => 'txt'));
+            }
         } else {
             $branch = $this->Server->getCurrentBranch();
             $this->set('branch', $branch);
