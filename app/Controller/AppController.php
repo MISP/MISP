@@ -46,7 +46,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '84';
+    private $__queryVersion = '85';
     public $pyMispVersion = '2.4.114';
     public $phpmin = '7.0';
     public $phprec = '7.2';
@@ -453,6 +453,7 @@ class AppController extends Controller
             $this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
+            $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
             $this->userRole = $role;
             if (Configure::read('MISP.log_paranoid')) {
                 $this->Log = ClassRegistry::init('Log');

@@ -26,7 +26,7 @@ class EventsController extends AppController
     );
 
     private $acceptedFilteringNamedParams = array('sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
-        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting'
+        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting'
     );
 
     public $defaultFilteringRules =  array(
@@ -37,6 +37,7 @@ class EventsController extends AppController
         'warning' => 0,
         'deleted' => 2,
         'includeRelatedTags' => 0,
+        'includeDecayScore' => 0,
         'toIDS' => 0,
         'feed' => 0,
         'server' => 0,
@@ -1078,6 +1079,13 @@ class EventsController extends AppController
         }
         if (isset($filters['deleted'])) {
             $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : [0, 1];
+            if ($filters['deleted'] == 2) { // not-deleted only
+                $conditions['deleted'] = 0;
+            } elseif ($filters['deleted'] == 1) { // deleted only
+                $conditions['deleted'] = 1;
+            } else { // both
+                $conditions['deleted'] = [0, 1];
+            }
         }
         if (isset($filters['toIDS']) && $filters['toIDS'] != 0) {
             $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
@@ -1098,6 +1106,12 @@ class EventsController extends AppController
             $conditions['includeRelatedTags'] = 1;
         } else {
             $this->set('includeRelatedTags', 0);
+        }
+        if (!empty($filters['includeDecayScore'])) {
+            $this->set('includeDecayScore', 1);
+            $conditions['includeDecayScore'] = 1;
+        } else {
+            $this->set('includeDecayScore', 0);
         }
 
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
@@ -1213,7 +1227,7 @@ class EventsController extends AppController
         }
         $deleted = 0;
         if (isset($filters['deleted'])) {
-            $deleted = $filters['deleted'] == 2 ? array(0, 1) : $filters['deleted'];
+            $deleted = $filters['deleted'] == 2 ? 0 : 1;
         }
         $this->set('deleted', $deleted);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
@@ -1544,6 +1558,9 @@ class EventsController extends AppController
         if (isset($this->params['named']['includeRelatedTags']) && $this->params['named']['includeRelatedTags']) {
             $conditions['includeRelatedTags'] = 1;
         }
+        if (!empty($this->params['named']['includeDecayScore'])) {
+            $conditions['includeDecayScore'] = 1;
+        }
         if (isset($this->params['named']['public']) && $this->params['named']['public']) {
             $conditions['distribution'] = array(3, 5);
         }
@@ -1619,6 +1636,7 @@ class EventsController extends AppController
         }
         $this->set('deleted', isset($this->params['named']['deleted']) ? ($this->params['named']['deleted'] == 2 ? 0 : 1) : 0);
         $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
+        $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
         if (!$this->_isRest()) {
             if ($this->_isSiteAdmin() && $results[0]['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
                 $this->Flash->info(__('You are currently logged in as a site administrator and editing an event not belonging to your organisation, which goes against the sharing model of MISP. Please only use this as a last resort and use normal user account for day to day work.'));
@@ -1762,11 +1780,12 @@ class EventsController extends AppController
         $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'extended'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'extended' => 0, 'page' => 0));
 
         if (count($advancedFilteringActive) > 0) {
-            if (count(array_diff_key($advancedFilteringActive, array('deleted', 'includeRelatedTags'))) > 0) {
+            if (count(array_diff_key($advancedFilteringActive, array('deleted', 'includeRelatedTags', 'includeDecayScore'))) > 0) {
                 $res =  true;
             } else if (
-                (isset($advancedFilteringActive['deleted']) && $advancedFilteringActive['deleted'] == 2)
-                || (isset($advancedFilteringActive['includeRelatedTags']) && $advancedFilteringActive['includeRelatedTags'] == 2)
+                (isset($advancedFilteringActive['deleted']) && $advancedFilteringActive['deleted'] == 2) || 
+                (isset($advancedFilteringActive['includeRelatedTags']) && $advancedFilteringActive['includeRelatedTags'] == 1) || 
+                (isset($advancedFilteringActive['includeDecayScore']) && $advancedFilteringActive['includeDecayScore'] == 1)
             ) {
                 $res =  true;
             } else {

@@ -70,6 +70,28 @@ class ACLComponent extends Component
                     'view' => array('*'),
                     'viewPicture' => array('*'),
             ),
+            'decayingModel' => array(
+                "update" => array(),
+                "export" => array('*'),
+                "import" => array('*'),
+                "view" => array('*'),
+                "index" => array('*'),
+                "add" => array( 'OR' => array('perm_admin', 'perm_decaying')),
+                "edit" => array( 'OR' => array('perm_admin', 'perm_decaying')),
+                "delete" => array( 'OR' => array('perm_admin', 'perm_decaying')),
+                "enable" => array( 'OR' => array('perm_admin', 'perm_decaying')),
+                "disable" => array( 'OR' => array('perm_admin', 'perm_decaying')),
+                "decayingTool" => array( 'OR' => array('perm_admin', 'perm_decaying')),
+                "getAllDecayingModels" => array('*'),
+                "decayingToolBasescore" => array('*'),
+                "decayingToolSimulation" => array('*'),
+                "decayingToolRestSearch" => array('*'),
+                "decayingToolComputeSimulation" => array('*')
+            ),
+            'decayingModelMapping' => array(
+                "viewAssociatedTypes" => array('*'),
+                "linkAttributeTypeToModel" => array( 'OR' => array('perm_admin', 'perm_decaying'))
+            ),
             'communities' => array(
                     'index' => array(),
                     'requestAccess' => array(),

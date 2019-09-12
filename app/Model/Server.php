@@ -4873,6 +4873,7 @@ class Server extends AppModel
             'app/files/misp-objects',
             'app/files/noticelists',
             'app/files/warninglists',
+            'app/files/misp-decaying-models',
             'cti-python-stix2'
         );
         return in_array($submodule, $accepted_submodules_names);
