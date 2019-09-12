@@ -86,7 +86,7 @@ class DecayingModelController extends AppController
                 if (!empty($result)) {
                     $this->Flash->success(__('The model has been imported.'));
                 } else {
-                    $this->Flash->error(__('The model has been but mapping. However importing mapping failed.'));
+                    $this->Flash->error(__('The model has been imported. However importing mapping failed.'));
                 }
             } else {
                 $this->Flash->error(__('Error while importing model.'));
@@ -180,14 +180,25 @@ class DecayingModelController extends AppController
             if ($this->request->data === false) {
                 return false;
             }
+            $attribute_types = array();
+            if (!empty($this->request->data['attribute_types'])) {
+                $attribute_types = $this->request->data['attribute_types'];
+                unset($this->request->data['attribute_types']);
+            }
             if ($this->DecayingModel->save($this->request->data)) {
+                $success_message = __('The model has been saved.');
+                if (!empty($saved_model['attribute_types'])) {
+                    if (!$this->DecayingModel->DecayingModelMapping->resetMappingForModel($saved_model, $this->Auth->user())) {
+                        $success_message = __('The model has been saved. However importing mapping failed.');
+                    }
+                }
                 if ($this->request->is('ajax') || $this->_isRest()) {
                     $saved = $this->DecayingModel->fetchModel($this->Auth->user(), $this->DecayingModel->id);
                     $saved = $this->DecayingModel->attachIsEditableByCurrentUser($this->Auth->user(), $saved);
                     $response = array('data' => $saved, 'action' => 'add');
                     return $this->RestResponse->viewData($response, $this->response->type());
                 } else {
-                    $this->Flash->success(__('The model has been saved.'));
+                    $this->Flash->success($sucess_messaqge);
                     $this->redirect(array('action' => 'index'));
                 }
             } else {

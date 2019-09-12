@@ -16,7 +16,7 @@ class DecayingModel extends AppModel
         )
     );
 
-    private $__registered_model_classes = array(); // Proxy for already instanciated classes
+    private $__registered_model_classes = array(); // Proxy for already instantiated classes
     public $allowed_overrides = array('threshold' => 1, 'lifetime' => 1, 'decay_speed' => 1);
 
     public function afterFind($results, $primary = false) {
@@ -66,30 +66,28 @@ class DecayingModel extends AppModel
             $this->data['DecayingModel']['parameters']['settings'] = '{}';
         }
 
+        if (!empty($this->data['DecayingModel']['attribute_types']) && !is_array($this->data['DecayingModel']['attribute_types'])) {
+            $encoded = json_decode($this->data['DecayingModel']['attribute_types'], true);
+            if ($encoded === null) {
+                return false;
+            }
+        }
+
         if (
             isset($this->data['DecayingModel']['parameters']) &&
             !empty($this->data['DecayingModel']['parameters']) &&
             !is_array($this->data['DecayingModel']['parameters'])
         ) {
             $encoded = json_decode($this->data['DecayingModel']['parameters'], true);
-            if ($encoded !== null) {
-                $validation = $this->__adjustParameters($encoded);
-                if ($validation !== false) {
-                    $this->data['DecayingModel']['parameters'] = json_encode($encoded);
-                    return true;
-                }
+            if ($encoded === null) {
+                return false;
             }
-            return false;
+            $encoded = $this->__adjustParameters($encoded);
+            $this->data['DecayingModel']['parameters'] = json_encode($encoded);
+            return true;
         } else {
-            $validation = $this->__adjustParameters($this->data['DecayingModel']['parameters']);
-            return $validation;
-        }
-        if (!empty($this->data['DecayingModel']['attribute_types']) && !is_array($this->data['DecayingModel']['attribute_types'])) {
-            $encoded = json_decode($this->data['DecayingModel']['attribute_types'], true);
-            if ($encoded !== null) {
-                return true;
-            }
-            return false;
+            $this->data['DecayingModel']['parameters'] = $this->__adjustParameters($this->data['DecayingModel']['parameters']);
+            return $this->data['DecayingModel']['parameters'];
         }
     }
 
@@ -120,7 +118,7 @@ class DecayingModel extends AppModel
     * May be improved at some point.
     * For now, limit the number of digits for the parameters
     */
-    private function __adjustParameters(&$parameters)
+    private function __adjustParameters($parameters)
     {
         foreach ($parameters as $name => $value) {
             if (is_array($value)) {
@@ -133,7 +131,7 @@ class DecayingModel extends AppModel
                 $parameters[$name] = 0;
             }
         }
-        return true;
+        return $parameters;
     }
 
     private function __load_models($force = false)
@@ -181,7 +179,12 @@ class DecayingModel extends AppModel
     {
         return (
             $user['Role']['perm_site_admin'] ||
-            ($user['Role']['perm_decaying'] && !$decaying_model['DecayingModel']['default'] && $decaying_model['DecayingModel']['org_id'] == $user['org_id']));
+            (
+                $user['Role']['perm_decaying'] &&
+                !$decaying_model['DecayingModel']['default'] &&
+                $decaying_model['DecayingModel']['org_id'] == $user['org_id']
+            )
+        );
     }
 
     public function attachIsEditableByCurrentUser($user, $decaying_model)
