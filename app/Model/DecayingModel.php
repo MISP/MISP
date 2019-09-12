@@ -51,6 +51,13 @@ class DecayingModel extends AppModel
     public function beforeValidate($options = array()) {
         parent::beforeValidate();
 
+        if (!isset($this->data['DecayingModel']['name'])) { // Model must have a name
+            return false;
+        }
+        if (!isset($this->data['DecayingModel']['all_orgs'])) { // visible to all orgs by default
+            $this->data['DecayingModel']['all_orgs'] = 1;
+        }
+
         if (!isset($this->data['DecayingModel']['formula'])) { // default to polynomial
             $this->data['DecayingModel']['formula'] = 'polynomial';
         }
@@ -73,8 +80,10 @@ class DecayingModel extends AppModel
             }
         }
 
+        if (!isset($this->data['DecayingModel']['parameters'])) {
+            $this->data['DecayingModel']['parameters'] = array('threshold' => 0, 'lifetime' => 0, 'decay_speed' => 0);
+        }
         if (
-            isset($this->data['DecayingModel']['parameters']) &&
             !empty($this->data['DecayingModel']['parameters']) &&
             !is_array($this->data['DecayingModel']['parameters'])
         ) {
@@ -84,11 +93,10 @@ class DecayingModel extends AppModel
             }
             $encoded = $this->__adjustParameters($encoded);
             $this->data['DecayingModel']['parameters'] = json_encode($encoded);
-            return true;
         } else {
             $this->data['DecayingModel']['parameters'] = $this->__adjustParameters($this->data['DecayingModel']['parameters']);
-            return $this->data['DecayingModel']['parameters'];
         }
+        return true;
     }
 
     public function beforeSave($options = array()) {
