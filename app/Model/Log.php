@@ -35,6 +35,7 @@ class Log extends AppModel
                             'export',
                             'file_upload',
                             'galaxy',
+                            'include_formula',
                             'login',
                             'login_fail',
                             'logout',

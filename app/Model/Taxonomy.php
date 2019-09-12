@@ -478,6 +478,9 @@ class Taxonomy extends AppModel
         ));
         $taxonomies = array();
         foreach ($temp as $t) {
+            if (isset($options['full']) && $options['full']) {
+                $t['Taxonomy']['TaxonomyPredicate'] = $t['TaxonomyPredicate'];
+            }
             $taxonomies[$t['Taxonomy']['namespace']] = $t['Taxonomy'];
         }
         return $taxonomies;

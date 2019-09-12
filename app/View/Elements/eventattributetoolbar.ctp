@@ -169,6 +169,15 @@
                         'requirement' => ($me['Role']['perm_sync'] || $event['Orgc']['id'] == $me['org_id'])
                     ),
                     array(
+                        'id' => 'show_attribute_decaying_score',
+                        'title' => __('Show attribute decaying score'),
+                        'fa-icon' => 'chart-line',
+                        'text' => __('Decay score'),
+                        'active' => $includeDecayScore,
+                        'onClick' => 'toggleBoolFilter',
+                        'onClickParams' => array($urlHere, 'includeDecayScore')
+                    ),
+                    array(
                         'id' => 'show_attribute_context',
                         'title' => __('Show attribute context fields'),
                         'fa-icon' => 'info-circle',

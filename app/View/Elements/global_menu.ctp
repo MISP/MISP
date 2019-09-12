@@ -183,6 +183,18 @@
                         'type' => 'separator'
                     ),
                     array(
+                        'text' => __('Decaying Models Tool'),
+                        'url' => '/decayingModel/decayingTool',
+                        'requirement' => $isAdmin
+                    ),
+                    array(
+                        'text' => __('Decaying Models'),
+                        'url' => '/decayingModel/index',
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
                         'text' => __('User Guide'),
                         'url' => 'https://www.circl.lu/doc/misp/'
                     ),
@@ -291,7 +303,6 @@
                     ),
                     array(
                         'type' => 'separator',
-                        'requirement' => $isSiteAdmin
                     ),
                     array(
                         'text' => __('Server Settings & Maintenance'),

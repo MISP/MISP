@@ -174,6 +174,9 @@
   <td class="shortish">&nbsp;</td>
   <td class="shortish">&nbsp;</td>
   <td class="short">&nbsp;</td>
+  <?php if (!empty($includeDecayScore)): ?>
+    <td class="decayingScoreField">&nbsp;</td>
+  <?php endif; ?>
   <td class="short action-links">
     <?php
         if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin) {

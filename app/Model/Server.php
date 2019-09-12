@@ -4873,6 +4873,7 @@ class Server extends AppModel
             'app/files/misp-objects',
             'app/files/noticelists',
             'app/files/warninglists',
+            'app/files/misp-decaying-models',
             'cti-python-stix2'
         );
         return in_array($submodule, $accepted_submodules_names);
@@ -5010,7 +5011,7 @@ class Server extends AppModel
         return implode('\n', $result);
     }
 
-    public function update($status)
+    public function update($status, &$raw = array())
     {
         $final = '';
         $workingDirectoryPrefix = 'cd $(git rev-parse --show-toplevel) && ';
@@ -5020,17 +5021,35 @@ class Server extends AppModel
         );
         foreach ($cleanup_commands as $cleanup_command) {
             $final .= $cleanup_command . "\n\n";
-            exec($cleanup_command, $output);
+            $status = false;
+            exec($cleanup_command, $output, $status);
+            $raw[] = array(
+                'input' => $cleanup_command,
+                'output' => $output,
+                'status' => $status
+            );
             $final .= implode("\n", $output) . "\n\n";
         }
         $command1 = $workingDirectoryPrefix . 'git pull origin ' . $status['branch'] . ' 2>&1';
         $command2 = $workingDirectoryPrefix . 'git submodule update --init --recursive 2>&1';
         $final .= $command1 . "\n\n";
-        exec($command1, $output);
+        $status = false;
+        exec($command1, $output, $status);
+        $raw[] = array(
+            'input' => $command1,
+            'output' => $output,
+            'status' => $status
+        );
         $final .= implode("\n", $output) . "\n\n=================================\n\n";
         $output = array();
         $final .= $command2 . "\n\n";
-        exec($command2, $output);
+        $status = false;
+        exec($command2, $output, $status);
+        $raw[] = array(
+            'input' => $command2,
+            'output' => $output,
+            'status' => $status
+        );
         $final .= implode("\n", $output);
         return $final;
     }

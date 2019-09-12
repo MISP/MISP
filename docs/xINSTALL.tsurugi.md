@@ -228,8 +228,6 @@ function installMISPonTsurugi() {
 
   cd $PATH_TO_MISP/app
   mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 
   $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
