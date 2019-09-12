@@ -1824,7 +1824,7 @@ class Event extends AppModel
         if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         }
-        if (!empty()($options['includeDecayScore'])) {
+        if (!empty($options['includeDecayScore'])) {
             $this->DecayingModel = ClassRegistry::init('DecayingModel');
         }
         foreach ($possibleOptions as &$opt) {
