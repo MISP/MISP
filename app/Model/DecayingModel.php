@@ -351,9 +351,24 @@ class DecayingModel extends AppModel
             $full_path = APP . 'Model/DecayingModelsFormulas/' . $formula_files[$index];
             if (is_file($full_path)) {
                 include_once $full_path;
-                $model_class = ClassRegistry::init($expected_classname);
-                if ($model_class->checkLoading() === 'BONFIRE LIT') {
-                    return $model_class;
+                try {
+                    $model_class = ClassRegistry::init($expected_classname);
+                    if ($model_class->checkLoading() === 'BONFIRE LIT') {
+                        return $model_class;
+                    }
+                } catch (Exception $e) {
+                    $this->Log = ClassRegistry::init('Log');
+                    $this->Log->create();
+                    $this->Log->save(array(
+                        'org' => 'SYSTEM',
+                        'model' => 'DecayingModel',
+                        'model_id' => 0,
+                        'email' => 'SYSTEM',
+                        'action' => 'include_formula',
+                        'title' => sprintf('Error while trying to include file `%s`: %s', $filename, $e->getMessage()),
+                        'change' => ''
+                    ));
+                    return false;
                 }
             }
         }
