@@ -184,9 +184,10 @@ class DecayingModel extends AppModel
             ($user['Role']['perm_decaying'] && !$decaying_model['DecayingModel']['default'] && $decaying_model['DecayingModel']['org_id'] == $user['org_id']));
     }
 
-    public function attachIsEditableByCurrentUser($user, &$decaying_model)
+    public function attachIsEditableByCurrentUser($user, $decaying_model)
     {
         $decaying_model['DecayingModel']['isEditable'] = $this->isEditableByCurrentUser($user, $decaying_model);
+        return $decaying_model;
     }
 
     public function fetchAllDefaultModel($user)
