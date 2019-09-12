@@ -1213,23 +1213,23 @@ class AppModel extends Model
                     `formula` varchar(255) COLLATE utf8_bin NOT NULL,
                     `version` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
                     `default` tinyint(1) NOT NULL DEFAULT 0,
-                    PRIMARY KEY (id)
+                    PRIMARY KEY (id),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `name` (`name`),
+                    INDEX `org_id` (`org_id`),
+                    INDEX `enabled` (`enabled`),
+                    INDEX `all_orgs` (`all_orgs`),
+                    INDEX `version` (`version`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS decaying_model_mappings (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
                     `attribute_type` varchar(255) COLLATE utf8_bin NOT NULL,
                     `model_id` int(11) NOT NULL,
-                    PRIMARY KEY (id)
+                    PRIMARY KEY (id),
+                    INDEX `model_id` (`model_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_decaying` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "UPDATE `roles` SET `perm_decaying`=1 WHERE `perm_sighting`=1;";
-                $this->__addIndex('decaying_models', 'uuid');
-                $this->__addIndex('decaying_models', 'name');
-                $this->__addIndex('decaying_models', 'org_id');
-                $this->__addIndex('decaying_models', 'enabled');
-                $this->__addIndex('decaying_models', 'all_orgs');
-                $this->__addIndex('decaying_models', 'version');
-                $this->__addIndex('decaying_model_mappings', 'model_id');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
