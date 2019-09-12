@@ -2181,7 +2181,7 @@ class Event extends AppModel
                         if (isset($event['EventTag'])) { // include EventTags for score computation
                             $event['Attribute'][$key]['EventTag'] = $event['EventTag'];
                         }
-                        $this->DecayingModel->attachScoresToAttribute($user, $event['Attribute'][$key]);
+                        $event['Attribute'][$key] = $this->DecayingModel->attachScoresToAttribute($user, $event['Attribute'][$key]);
                         if (isset($event['EventTag'])) { // remove included EventTags
                             unset($event['Attribute'][$key]['EventTag']);
                         }

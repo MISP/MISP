@@ -398,10 +398,13 @@ class DecayingModel extends AppModel
     }
 
     // returns timestamp set to the rounded hour
-    public function round_timestamp_to_hour($time)
+    public function round_timestamp_to_hour($time, $closest=1)
     {
-        $offset = $time % 3600;
-        return $time - $offset;
+        if ($closest) {
+            return round((float) $time / 3600) * 3600;
+        } else {
+            return floor((float) $time / 3600) * 3600;
+        }
     }
 
     // Returns score overtime, sightings, base_score computation and other useful information
@@ -436,7 +439,7 @@ class DecayingModel extends AppModel
             throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
         }
         if (!empty($model_overrides)) {
-            $this->overrideModelParameters($model, $model_overrides);
+            $model = $this->overrideModelParameters($model, $model_overrides);
         }
         $this->Computation = $this->getModelClass($model);
         $this->Sighting = ClassRegistry::init('Sighting');
@@ -514,16 +517,17 @@ class DecayingModel extends AppModel
         return $next_index-1;
     }
 
-    public function overrideModelParameters(&$model, $model_overrides)
+    public function overrideModelParameters($model, $model_overrides)
     {
         foreach ($model_overrides as $parameter => $value) {
             if (isset($this->allowed_overrides[$parameter])) {
                 $model['DecayingModel']['parameters'][$parameter] = $value;
             }
         }
+        return $model;
     }
 
-    public function attachScoresToAttribute($user, &$attribute, $model_id=false, $model_overrides=array(), $include_full_model=0)
+    public function attachScoresToAttribute($user, $attribute, $model_id=false, $model_overrides=array(), $include_full_model=0)
     {
         $models = array();
         if ($model_id === false) { // fetch all allowed and associated models
@@ -539,7 +543,7 @@ class DecayingModel extends AppModel
         }
         foreach ($models as $i => $model) {
             if (!empty($model_overrides)) {
-                $this->overrideModelParameters($model, $model_overrides);
+                $model = $this->overrideModelParameters($model, $model_overrides);
             }
             $score = $this->getScore($attribute, $model, $user);
             $decayed = $this->isDecayed($attribute, $model, $score);
@@ -556,6 +560,7 @@ class DecayingModel extends AppModel
             }
             $attribute['decay_score'][] = $to_attach;
         }
+        return $attribute;
     }
 
     public function getScore($attribute, $model, $user=false)
