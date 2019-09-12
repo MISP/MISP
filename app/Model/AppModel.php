@@ -1202,7 +1202,7 @@ class AppModel extends Model
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS decaying_models (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-                    `name` text,
+                    `name` varchar(255) COLLATE utf8_bin NOT NULL,
                     `parameters` text,
                     `attribute_types` text,
                     `description` text,
