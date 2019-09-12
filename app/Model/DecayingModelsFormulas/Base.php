@@ -68,7 +68,7 @@ abstract class DecayingModelBase
 
     public function computeBasescore($model, $attribute)
     {
-        $temp = $this->__getPrioritizedTag($attribute);
+        $temp = $this->__getPrioritisedTag($attribute);
         $tags = $temp['tags'];
         $overridden_tags = $temp['overridden'];
         $taxonomy_effective_ratios = $this->__getRatioScore($model, $tags);

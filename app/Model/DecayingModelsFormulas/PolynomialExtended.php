@@ -30,7 +30,7 @@ class PolynomialExtended extends Polynomial
         $score = parent::computeScore($model, $attribute, $base_score, $elapsed_time);
 
         // handle `retention` taxonomy tags 
-        $temp = $this->__getPrioritizedTag($attribute);
+        $temp = $this->__getPrioritisedTag($attribute);
         $tags = $temp['tags'];
         foreach ($tags as $tag) {
             $tagname = $tag['Tag']['name'];
