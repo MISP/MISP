@@ -278,7 +278,7 @@ class DecayingModel extends AppModel
         if ($full) {
             $decayingModel['DecayingModel']['attribute_types'] = $this->DecayingModelMapping->getAssociatedTypes($user, $decayingModel);
         }
-        $decayingModel = $this->attachIsEditableByCurrentUser($this->Auth->user(), $decayingModel);
+        $decayingModel = $this->attachIsEditableByCurrentUser($user, $decayingModel);
         return $decayingModel;
     }
 
