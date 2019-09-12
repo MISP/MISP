@@ -394,7 +394,7 @@ class DecayingModel extends AppModel
             }
             $available_formulas[get_class($model_class)] = array(
                 'parent_class' => get_parent_class($model_class) == 'Polynomial' || get_class($model_class) == 'Polynomial' ? 'Polynomial' : get_class($model_class),
-                'description' => $model_class::DESCRIPTION
+                'description' => $model_class->description
             );
         }
         return $available_formulas;

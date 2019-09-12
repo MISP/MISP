@@ -1,11 +1,6 @@
 <?php
 abstract class DecayingModelBase
 {
-
-    // Description of the formula. Will be displayed at various places in the web interface
-    // Should be overriden
-    public const DESCRIPTION = '';
-
     public function checkLoading()
     {
         return 'BONFIRE LIT';

@@ -4,7 +4,7 @@ include_once 'Polynomial.php';
 class PolynomialExtended extends Polynomial
 {
     function __construct() {
-        $DESCRIPTION = __('The implementation of the decaying formula from the paper `An indicator scoring method for MISP platforms` with support of the `Retention` taxonomy which overrides the final score.');
+        $this->description = __('The implementation of the decaying formula from the paper `An indicator scoring method for MISP platforms` with support of the `Retention` taxonomy which overrides the final score.');
 
         // setup `retention` taxonomy
         $this->Taxonomy = ClassRegistry::init('Taxonomy');
