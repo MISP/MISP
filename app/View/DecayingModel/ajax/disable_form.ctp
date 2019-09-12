@@ -1,6 +1,5 @@
 <div>
     <?php
-        echo $this->Form->create('DecayingModel', array('url' => '/DecayingModel/disable/' . $model['id']));
-        echo $this->Form->end();
+        echo $this->Form->postLink(__('Disable model'), '/DecayingModel/disable/' . h($model['id']))
     ?>
 </div>
