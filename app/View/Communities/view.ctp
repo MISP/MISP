@@ -4,7 +4,7 @@
         $table_data[] = array('key' => __('Id'), 'value' => $community['id']);
         $table_data[] = array('key' => __('UUID'), 'value' => $community['uuid']);
         $table_data[] = array('key' => __('Name'), 'value' => $community['name']);
-        $table_data[] = array('key' => __('Host organisation'), 'value' => $community['org_name'] . '(' . $community['org_uuid'] . ')');
+        $table_data[] = array('key' => __('Host organisation'), 'value' => $community['org_name'] . ' (' . $community['org_uuid'] . ')');
         $table_data[] = array(
             'key' => __('Vetted by MISP-project'),
             'html' => sprintf(
