@@ -43,6 +43,7 @@ class Log extends AppModel
                             'publish',
                             'publish alert',
                             'pull',
+                            'purge_events',
                             'push',
                             'remove_dead_workers',
                             'request',
