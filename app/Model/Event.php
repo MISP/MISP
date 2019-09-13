@@ -4064,7 +4064,10 @@ class Event extends AppModel
         if ($passAlong) {
             $conditions[] = array('Server.id !=' => $passAlong);
         }
-        $servers = $this->Server->find('all', array('conditions' => $conditions));
+        $servers = $this->Server->find('all', array(
+            'conditions' => $conditions,
+            'order' => array('Server.priority ASC', 'Server.id ASC')
+        ));
         // iterate over the servers and upload the event
         if (empty($servers)) {
             return true;

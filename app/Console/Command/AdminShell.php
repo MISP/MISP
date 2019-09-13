@@ -2,7 +2,7 @@
 App::uses('AppShell', 'Console/Command');
 class AdminShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed');
 
     public function jobGenerateCorrelation() {
         $jobId = $this->args[0];
@@ -530,6 +530,25 @@ class AdminShell extends AppShell
                 $jobId = false;
             }
             $this->User->resetAllSyncAuthKeys($user, $jobId);
+        }
+    }
+
+    public function purgeFeedEvents()
+    {
+        if (
+            (empty($this->args[0]) || !is_numeric($this->args[0])) ||
+            (empty($this->args[1]) || !is_numeric($this->args[1]))
+        ) {
+            echo 'Usage: ' . APP . '/cake ' . 'Admin purgeFeedEvents [user_id] [feed_id]' . PHP_EOL;
+        } else {
+            $user_id = $this->args[0];
+            $feed_id = $this->args[1];
+            $result = $this->Feed->cleanupFeedEvents($user_id, $feed_id);
+            if (is_string($result)) {
+                echo __("\nError: %s\n", $result);
+            } else {
+                echo __("%s events purged.\n", $result);
+            }
         }
     }
 }

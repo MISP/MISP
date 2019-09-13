@@ -20,6 +20,7 @@
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
+            <th><?php echo __('Prio');?></th>
             <th><?php echo __('Connection test');?></th>
             <th><?php echo __('Reset API key');?></th>
             <th><?php echo $this->Paginator->sort('internal');?></th>
@@ -38,7 +39,7 @@
             <th class="actions"><?php echo __('Actions');?></th>
     </tr>
     <?php
-foreach ($servers as $server):
+foreach ($servers as $row_pos => $server):
     $rules = array();
     $rules['push'] = json_decode($server['Server']['push_rules'], true);
     $rules['pull'] = json_decode($server['Server']['pull_rules'], true);
@@ -61,14 +62,28 @@ foreach ($servers as $server):
             }
         }
     }
+    $arrows = '';
+    foreach (['up', 'down'] as $direction) {
+        $arrows .= sprintf(
+            '<i class="fas fa-arrow-circle-%s rearrange-%s" aria-label="%s" title="%s" data-server-id="%s"></i>',
+            $direction,
+            $direction,
+            $direction === 'up' ? __('Move server priority up') : __('Move server priority down'),
+            $direction === 'up' ? __('Move server priority up') : __('Move server priority down'),
+            $server['Server']['id']
+        );
+    }
 ?>
-    <tr>
+    <tr id="row_<?php echo h($server['Server']['id']); ?>">
         <td class="short"><?php echo h($server['Server']['id']); ?></td>
         <td>
             <?php
                 if (!empty($server['Server']['name'])) echo h($server['Server']['name']);
                 else echo h($server['Server']['url']);
             ?>
+        </td>
+        <td id="priority_<?php echo $server['Server']['id'];?>">
+            <?php echo $arrows;?>
         </td>
         <td id="connection_test_<?php echo $server['Server']['id'];?>"><span role="button" tabindex="0" aria-label="<?php echo __('Test the connection to the remote instance');?>" title="<?php echo __('Test the connection to the remote instance');?>" class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');"><?php echo __('Run');?></span></td>
         <td id="reset_api_key_<?php echo $server['Server']['id'];?>">
@@ -179,6 +194,12 @@ endforeach; ?>
 <script type="text/javascript">
     $(document).ready(function(){
         popoverStartup();
+        $('.rearrange-up').click(function() {
+            moveIndexRow($(this).data('server-id'), 'up', '/servers/changePriority');
+        });
+        $('.rearrange-down').click(function() {
+            moveIndexRow($(this).data('server-id'), 'down', '/servers/changePriority');
+        });
     });
 </script>
 <?php

@@ -1544,12 +1544,19 @@ class EventsController extends AppController
         } else {
             $conditions['includeAttachments'] = true;
         }
+        $deleted = 0;
         if (isset($this->params['named']['deleted'])) {
+            $deleted = $this->params['named']['deleted'];
+        }
+        if (isset($this->request->data['deleted'])) {
+            $deleted = $this->request->data['deleted'];
+        }
+        if (isset($deleted)) {
             // workaround for old instances trying to pull events with both deleted / non deleted data
-            if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $this->params['named']['deleted'] == 1) {
+            if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
                 $conditions['deleted'] = array(0,1);
             } else {
-                $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? array(0,1) : $this->params['named']['deleted'];
+                $conditions['deleted'] = $deleted == 2 ? array(0,1) : $deleted;
             }
         }
         if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
@@ -1634,7 +1641,7 @@ class EventsController extends AppController
         if ($this->_isRest()) {
             $this->set('event', $event);
         }
-        $this->set('deleted', isset($this->params['named']['deleted']) ? ($this->params['named']['deleted'] == 2 ? 0 : 1) : 0);
+        $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 0);
         $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
         $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
         if (!$this->_isRest()) {
@@ -1783,8 +1790,8 @@ class EventsController extends AppController
             if (count(array_diff_key($advancedFilteringActive, array('deleted', 'includeRelatedTags', 'includeDecayScore'))) > 0) {
                 $res =  true;
             } else if (
-                (isset($advancedFilteringActive['deleted']) && $advancedFilteringActive['deleted'] == 2) || 
-                (isset($advancedFilteringActive['includeRelatedTags']) && $advancedFilteringActive['includeRelatedTags'] == 1) || 
+                (isset($advancedFilteringActive['deleted']) && $advancedFilteringActive['deleted'] == 2) ||
+                (isset($advancedFilteringActive['includeRelatedTags']) && $advancedFilteringActive['includeRelatedTags'] == 1) ||
                 (isset($advancedFilteringActive['includeDecayScore']) && $advancedFilteringActive['includeDecayScore'] == 1)
             ) {
                 $res =  true;

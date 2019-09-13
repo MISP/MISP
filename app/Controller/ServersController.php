@@ -22,7 +22,7 @@ class ServersController extends AppController
             ),
             'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
             'order' => array(
-                    'Server.url' => 'ASC'
+                    'Server.priority' => 'ASC'
             ),
     );
 
@@ -2110,6 +2110,24 @@ misp.direct_call(relative_path, body)
             } else {
                 return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $message, $this->response->type());
             }
+        }
+    }
+
+    public function changePriority($id = false, $direction = 'down') {
+        $this->Server->id = $id;
+        if (!$this->Server->exists()) {
+            throw new InvalidArgumentException(__('ID has to be a valid server connection'));
+        }
+        if ($direction !== 'up' && $direction !== 'down') {
+            throw new InvalidArgumentException(__('Invalid direction. Valid options: ', 'up', 'down'));
+        }
+        $success = $this->Server->reprioritise($id, $direction);
+        if ($success) {
+            $message = __('Priority changed.');
+            return $this->RestResponse->saveSuccessResponse('Servers', 'changePriority', $message, $this->response->type());
+        } else {
+            $message = __('Priority could not be changed.');
+            return $this->RestResponse->saveFailResponse('Servers', 'changePriority', $id, $message, $this->response->type());
         }
     }
 }

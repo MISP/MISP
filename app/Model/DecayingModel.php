@@ -51,6 +51,13 @@ class DecayingModel extends AppModel
     public function beforeValidate($options = array()) {
         parent::beforeValidate();
 
+        if (!isset($this->data['DecayingModel']['name'])) { // Model must have a name
+            return false;
+        }
+        if (!isset($this->data['DecayingModel']['all_orgs'])) { // visible to all orgs by default
+            $this->data['DecayingModel']['all_orgs'] = 1;
+        }
+
         if (!isset($this->data['DecayingModel']['formula'])) { // default to polynomial
             $this->data['DecayingModel']['formula'] = 'polynomial';
         }
@@ -73,8 +80,10 @@ class DecayingModel extends AppModel
             }
         }
 
+        if (!isset($this->data['DecayingModel']['parameters'])) {
+            $this->data['DecayingModel']['parameters'] = array('threshold' => 0, 'lifetime' => 0, 'decay_speed' => 0);
+        }
         if (
-            isset($this->data['DecayingModel']['parameters']) &&
             !empty($this->data['DecayingModel']['parameters']) &&
             !is_array($this->data['DecayingModel']['parameters'])
         ) {
@@ -84,11 +93,10 @@ class DecayingModel extends AppModel
             }
             $encoded = $this->__adjustParameters($encoded);
             $this->data['DecayingModel']['parameters'] = json_encode($encoded);
-            return true;
         } else {
             $this->data['DecayingModel']['parameters'] = $this->__adjustParameters($this->data['DecayingModel']['parameters']);
-            return $this->data['DecayingModel']['parameters'];
         }
+        return true;
     }
 
     public function beforeSave($options = array()) {
@@ -122,7 +130,7 @@ class DecayingModel extends AppModel
     {
         foreach ($parameters as $name => $value) {
             if (is_array($value)) {
-                $this->__adjustParameters($parameters[$name]);
+                $parameters[$name] = $this->__adjustParameters($parameters[$name]);
             } else if (is_numeric($value)) {
                 $parameters[$name] = round($value, 4);
             } else if (!empty($value)) {
@@ -283,7 +291,8 @@ class DecayingModel extends AppModel
     }
 
     // filter out taxonomies and entries not having a numerical value
-    public function listTaxonomiesWithNumericalValue()
+    // create_non_existing_tags will create (on-the-fly/non-presistent) tags that are present in the taxonomy but not created yet
+    public function listTaxonomiesWithNumericalValue($create_non_existing_tags=1)
     {
         $this->Taxonomy = ClassRegistry::init('Taxonomy');
         $this->Tag = ClassRegistry::init('Tag');
@@ -300,6 +309,15 @@ class DecayingModel extends AppModel
                                 unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]);
                             } else {
                                 $tag_name = sprintf('%s:%s="%s"', $taxonomy['namespace'], $predicate['value'], $entry['value']);
+                                if (isset($tags[strtoupper($tag_name)])) {
+                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
+                                } else { // tag is not created yet. Create a false one.
+                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = array(
+                                        'id' => 0,
+                                        'name' => $tag_name,
+                                        'colour' => 'grey',
+                                    );
+                                }
                                 $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
                                 $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag']['numerical_value'] = $entry['numerical_value'];
                             }
@@ -314,7 +332,15 @@ class DecayingModel extends AppModel
                             unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]);
                         } else {
                             $tag_name = sprintf('%s:%s', $taxonomy['namespace'], $predicate['value']);
-                            $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
+                            if (isset($tags[strtoupper($tag_name)])) {
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
+                            } else { // tag is not created yet. Create a false one.
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag'] = array(
+                                    'id' => 0,
+                                    'name' => $tag_name,
+                                    'colour' => 'grey',
+                                );
+                            }
                             $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag']['numerical_value'] = $predicate['numerical_value'];
                             $taxonomies[$namespace]['TaxonomyPredicate'][$p]['numerical_predicate'] = true;
                         }

@@ -2167,6 +2167,19 @@ class Server extends AppModel
     public function beforeSave($options = array())
     {
         $this->data['Server']['url'] = rtrim($this->data['Server']['url'], '/');
+        if (empty($this->data['Server']['id'])) {
+            $max_prio = $this->find('first', array(
+                'recursive' => -1,
+                'order' => array('Server.priority' => 'DESC'),
+                'fields' => array('Server.priority')
+            ));
+            if (empty($max_prio)) {
+                $max_prio = 0;
+            } else {
+                $max_prio = $max_prio['Server']['priority'];
+            }
+            $this->data['Server']['priority'] = $max_prio + 1;
+        }
         return true;
     }
 
@@ -5287,5 +5300,37 @@ class Server extends AppModel
         } else {
             return __('Could not reset the remote authentication key.');
         }
+    }
+
+    public function reprioritise($id = false, $direction = 'up')
+    {
+        $servers = $this->find('all', array(
+            'recursive' => -1,
+            'order' => array('Server.priority ASC', 'Server.id ASC')
+        ));
+        $success = true;
+        if ($id) {
+            foreach ($servers as $k => $server) {
+                if ($server['Server']['id'] && $server['Server']['id'] == $id) {
+                    if (
+                        !($k === 0 && $direction === 'up') &&
+                        !(empty($servers[$k+1]) && $direction === 'down')
+                    ) {
+                        $temp = $servers[$k];
+                        $destination = $direction === 'up' ? $k-1 : $k+1;
+                        $servers[$k] = $servers[$destination];
+                        $servers[$destination] = $temp;
+                    } else {
+                        $success = false;
+                    }
+                }
+            }
+        }
+        foreach ($servers as $k => $server) {
+            $server['Server']['priority'] = $k + 1;
+            $result = $this->save($server);
+            $success = $success && $result;
+        }
+        return $success;
     }
 }
