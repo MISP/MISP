@@ -96,9 +96,8 @@ class StixBuilder():
 
     def add_all_markings(self):
         for marking_args in self.markings.values():
-            marking_id = marking_args['id']
             marking = MarkingDefinition(**marking_args)
-            self.append_object(marking, marking_id)
+            self.append_object(marking)
 
     def add_all_relationships(self):
         for source, targets in self.relationships.items():
@@ -387,13 +386,13 @@ class StixBuilder():
                 aliases.append(a)
             sdo_args['aliases'] = aliases
         sdo_args['labels'] = labels
-        return sdo_args, sdo_id
+        return sdo_args
 
     def add_attack_pattern(self, galaxy):
-        a_p_args, a_p_id = self.generate_galaxy_args(galaxy, True, False, 'attack-pattern')
+        a_p_args = self.generate_galaxy_args(galaxy, True, False, 'attack-pattern')
         a_p_args['created_by_ref'] = self.identity_id
         attack_pattern = AttackPattern(**a_p_args)
-        self.append_object(attack_pattern, a_p_id)
+        self.append_object(attack_pattern)
 
     def add_attack_pattern_object(self, misp_object, to_ids):
         a_p_id = 'attack-pattern--{}'.format(misp_object['uuid'])
@@ -407,11 +406,11 @@ class StixBuilder():
             capec_id = "CAPEC-{}".format(attributes_dict['id'])
             a_p_args['external_references'] = [{'source_name': 'capec', 'external_id': capec_id}]
         attack_pattern = AttackPattern(**a_p_args)
-        self.append_object(attack_pattern, a_p_id)
+        self.append_object(attack_pattern)
 
     def add_course_of_action(self, misp_object):
-        coa_args, coa_id = self.generate_galaxy_args(misp_object, False, False, 'course-of-action')
-        self.add_coa_stix_object(coa_args, coa_id)
+        coa_args= self.generate_galaxy_args(misp_object, False, False, 'course-of-action')
+        self.add_coa_stix_object(coa_args)
 
     def add_course_of_action_from_object(self, misp_object, _):
         coa_id = 'course-of-action--{}'.format(misp_object['uuid'])
@@ -425,12 +424,12 @@ class StixBuilder():
                 coa_args['description'] = attribute['value']
         if not 'name' in coa_args:
             return
-        self.add_coa_stix_object(coa_args, coa_id)
+        self.add_coa_stix_object(coa_args)
 
-    def add_coa_stix_object(self, coa_args, coa_id):
+    def add_coa_stix_object(self, coa_args):
         coa_args['created_by_ref'] = self.identity_id
         course_of_action = CourseOfAction(**coa_args)
-        self.append_object(course_of_action, coa_id)
+        self.append_object(course_of_action)
 
     def add_custom(self, attribute):
         custom_object_id = "x-misp-object--{}".format(attribute['uuid'])
@@ -457,7 +456,7 @@ class StixBuilder():
             def __init__(self, **kwargs):
                 return
         custom_object = Custom(**custom_object_args)
-        self.append_object(custom_object, custom_object_id)
+        self.append_object(custom_object)
 
     def add_identity(self, attribute):
         identity_id = "identity--{}".format(attribute['uuid'])
@@ -471,7 +470,7 @@ class StixBuilder():
         if markings:
             identity_args['object_marking_refs'] = self.handle_tags(markings)
         identity = Identity(**identity_args)
-        self.append_object(identity, identity_id)
+        self.append_object(identity)
 
     def add_indicator(self, attribute):
         attribute_type = attribute['type']
@@ -495,19 +494,19 @@ class StixBuilder():
         if markings:
             indicator_args['object_marking_refs'] = self.handle_tags(markings)
         indicator = Indicator(**indicator_args)
-        self.append_object(indicator, indicator_id)
+        self.append_object(indicator)
 
     def add_intrusion_set(self, galaxy):
-        i_s_args, i_s_id = self.generate_galaxy_args(galaxy, False, True, 'intrusion-set')
+        i_s_args = self.generate_galaxy_args(galaxy, False, True, 'intrusion-set')
         i_s_args['created_by_ref'] = self.identity_id
         intrusion_set = IntrusionSet(**i_s_args)
-        self.append_object(intrusion_set, i_s_id)
+        self.append_object(intrusion_set)
 
     def add_malware(self, galaxy):
-        malware_args, malware_id = self.generate_galaxy_args(galaxy, True, False, 'malware')
+        malware_args= self.generate_galaxy_args(galaxy, True, False, 'malware')
         malware_args['created_by_ref'] = self.identity_id
         malware = Malware(**malware_args)
-        self.append_object(malware, malware_id)
+        self.append_object(malware)
 
     def add_observed_data(self, attribute):
         attribute_type = attribute['type']
@@ -523,19 +522,19 @@ class StixBuilder():
         if markings:
             observed_data_args['object_marking_refs'] = self.handle_tags(markings)
         observed_data = ObservedData(**observed_data_args)
-        self.append_object(observed_data, observed_data_id)
+        self.append_object(observed_data)
 
     def add_threat_actor(self, galaxy):
-        t_a_args,  t_a_id = self.generate_galaxy_args(galaxy, False, True, 'threat-actor')
+        t_a_args = self.generate_galaxy_args(galaxy, False, True, 'threat-actor')
         t_a_args['created_by_ref'] = self.identity_id
         threat_actor = ThreatActor(**t_a_args)
-        self.append_object(threat_actor, t_a_id)
+        self.append_object(threat_actor)
 
     def add_tool(self, galaxy):
-        tool_args, tool_id = self.generate_galaxy_args(galaxy, True, False, 'tool')
+        tool_args = self.generate_galaxy_args(galaxy, True, False, 'tool')
         tool_args['created_by_ref'] = self.identity_id
         tool = Tool(**tool_args)
-        self.append_object(tool, tool_id)
+        self.append_object(tool)
 
     def add_vulnerability(self, attribute):
         vulnerability_id = "vulnerability--{}".format(attribute['uuid'])
@@ -549,7 +548,7 @@ class StixBuilder():
         if markings:
             vulnerability_args['object_marking_refs'] = self.handle_tags(markings)
         vulnerability = Vulnerability(**vulnerability_args)
-        self.append_object(vulnerability, vulnerability_id)
+        self.append_object(vulnerability)
 
     def add_vulnerability_from_galaxy(self, attribute):
         vulnerability_id = "vulnerability--{}".format(attribute['uuid'])
@@ -568,7 +567,7 @@ class StixBuilder():
                               'created_by_ref': self.identity_id, 'labels': labels,
                               'description': description, 'interoperability': True}
         vulnerability = Vulnerability(**vulnerability_args)
-        self.append_object(vulnerability, vulnerability_id)
+        self.append_object(vulnerability)
 
     def add_object_custom(self, misp_object, to_ids):
         custom_object_id = 'x-misp-object--{}'.format(misp_object['uuid'])
@@ -594,7 +593,7 @@ class StixBuilder():
             def __init__(self, **kwargs):
                 return
         custom_object = Custom(**custom_object_args)
-        self.append_object(custom_object, custom_object_id)
+        self.append_object(custom_object)
 
     def add_object_indicator(self, misp_object, pattern_arg=None):
         indicator_id = 'indicator--{}'.format(misp_object['uuid'])
@@ -613,7 +612,7 @@ class StixBuilder():
                           'kill_chain_phases': killchain, 'interoperability': True,
                           'created_by_ref': self.identity_id}
         indicator = Indicator(**indicator_args)
-        self.append_object(indicator, indicator_id)
+        self.append_object(indicator)
 
     def add_object_observable(self, misp_object, observable_arg=None):
         observed_data_id = 'observed-data--{}'.format(misp_object['uuid'])
@@ -634,7 +633,7 @@ class StixBuilder():
             observed_data = ObservedData(**observed_data_args)
         except exceptions.InvalidValueError:
             observed_data = self.fix_enumeration_issues(name, observed_data_args)
-        self.append_object(observed_data, observed_data_id)
+        self.append_object(observed_data)
 
     @staticmethod
     def fix_enumeration_issues(name, args):
@@ -663,11 +662,11 @@ class StixBuilder():
                               'name': name, 'created_by_ref': self.identity_id,
                               'labels': labels, 'interoperability': True}
         vulnerability = Vulnerability(**vulnerability_args)
-        self.append_object(vulnerability, vulnerability_id)
+        self.append_object(vulnerability)
 
-    def append_object(self, stix_object, stix_object_id):
+    def append_object(self, stix_object):
         self.SDOs.append(stix_object)
-        self.object_refs.append(stix_object_id)
+        self.object_refs.append(stix_object.id)
 
     @staticmethod
     def create_killchain(category):
