@@ -5328,7 +5328,8 @@ class Server extends AppModel
         }
         foreach ($servers as $k => $server) {
             $server['Server']['priority'] = $k + 1;
-            $success = $success && $this->save($server);
+            $result = $this->save($server);
+            $success = $success && $result;
         }
         return $success;
     }
