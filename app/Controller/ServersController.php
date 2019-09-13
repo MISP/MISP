@@ -2113,7 +2113,7 @@ misp.direct_call(relative_path, body)
         }
     }
 
-    public function changePriority($id, $direction) {
+    public function changePriority($id = false, $direction = 'down') {
         $this->Server->id = $id;
         if (!$this->Server->exists()) {
             throw new InvalidArgumentException(__('ID has to be a valid server connection'));
@@ -2127,7 +2127,7 @@ misp.direct_call(relative_path, body)
             return $this->RestResponse->saveSuccessResponse('Servers', 'changePriority', $message, $this->response->type());
         } else {
             $message = __('Priority could not be changed.');
-            return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $message, $this->response->type());
+            return $this->RestResponse->saveFailResponse('Servers', 'changePriority', $id, $message, $this->response->type());
         }
     }
 }
