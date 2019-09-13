@@ -167,6 +167,7 @@ yumInstallCoreDeps () {
                    rh-php72-php-xml \
                    rh-php72-php-bcmath \
                    rh-php72-php-opcache \
+                   rh-php72-php-pear \
                    rh-php72-php-gd -y
 
   # Install Python 3.6 from SCL, see
