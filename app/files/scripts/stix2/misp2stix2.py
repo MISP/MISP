@@ -44,7 +44,6 @@ class StixBuilder():
     def __init__(self):
         self.orgs = []
         self.galaxies = []
-        self.to_return = {}
 
     def loadEvent(self, args):
         pathname = os.path.dirname(args[0])
@@ -52,6 +51,8 @@ class StixBuilder():
         with open(filename, 'rt', encoding='utf-8') as f:
             self.json_event = json.loads(f.read())
         self.filename = filename
+        self.load_objects_mapping()
+        self.load_galaxy_mapping()
 
     def buildEvent(self):
         self.initialize_misp_types()
@@ -59,8 +60,7 @@ class StixBuilder():
         outputfile = "{}.out".format(self.filename)
         with open(outputfile, 'wt', encoding='utf-8') as f:
             f.write(json.dumps(stix_packages, cls=base.STIXJSONEncoder))
-        self.to_return['success'] = 1
-        print(json.dumps(self.to_return))
+        print(json.dumps({'success': 1}))
 
     def eventReport(self):
         if not self.object_refs and self.links:
@@ -152,7 +152,6 @@ class StixBuilder():
                 except KeyError:
                     self.add_custom(attribute)
         if self.misp_event.get('Object'):
-            self.load_objects_mapping()
             self.objects_to_parse = defaultdict(dict)
             misp_objects = self.misp_event['Object']
             for misp_object in misp_objects:
@@ -167,7 +166,6 @@ class StixBuilder():
             if self.objects_to_parse:
                 self.resolve_objects2parse()
         if self.misp_event.get('Galaxy'):
-            self.load_galaxy_mapping()
             for galaxy in self.misp_event['Galaxy']:
                 self.parse_galaxy(galaxy, self.report_id)
         report = self.eventReport()
