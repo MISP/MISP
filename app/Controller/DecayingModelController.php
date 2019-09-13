@@ -108,6 +108,9 @@ class DecayingModelController extends AppController
         $this->set('decaying_model', $decaying_model);
         $available_formulas = $this->DecayingModel->listAvailableFormulas();
         $this->set('available_formulas', $available_formulas);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($decaying_model, $this->response->type());
+        }
     }
 
     // Sets pagination condition for url parameters
