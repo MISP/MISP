@@ -1219,6 +1219,9 @@ class AttributesController extends AppController
         } elseif (!is_numeric($id)) {
             throw new NotFoundException('Invalid attribute');
         }
+        if (isset($this->params['named']['hard'])) {
+            $hard = $this->params['named']['hard'];
+        }
         $this->set('id', $id);
         $conditions = array('id' => $id);
         if (!$hard) {
@@ -1245,8 +1248,8 @@ class AttributesController extends AppController
                 $this->render('ajax/attributeConfirmationForm');
             }
         } else {
-            if (!$this->request->is('post') && !$this->_isRest()) {
-                throw new MethodNotAllowedException();
+            if (!$this->request->is('post')) {
+                throw new MethodNotAllowedException(__('This function is only accessible via POST requests.'));
             }
             if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
                 if ($this->_isRest() || $this->response->type() === 'application/json') {
