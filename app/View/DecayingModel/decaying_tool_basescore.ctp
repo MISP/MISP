@@ -1,7 +1,7 @@
 <div id="basescore_configurator" class="row">
     <div class="span8" class="taxonomyTableContainer">
         <input id="table_taxonomy_search" class="input" style="width: 250px; margin: 0px;" type="text" placeholder="<?php echo __('Search Taxonomy'); ?>"></input>
-        <it class="fa fa-times useCursorPointer" title="<?php echo __('Clear search field'); ?>" onclick="$('#table_taxonomy_search').val('').trigger('input');"></it>
+        <i class="fa fa-times useCursorPointer" title="<?php echo __('Clear search field'); ?>" onclick="$('#table_taxonomy_search').val('').trigger('input');"></i>
         <span style="float: right; margin-top: 6px;" class="badge badge-info"><b><?php echo h($taxonomies_not_having_numerical_value); ?></b><?php echo __(' not having numerical value'); ?></span>
         <div class="input-prepend" style="margin: 4px;">
             <span class="add-on"><?php echo __('Default basescore') ?></span>
@@ -16,7 +16,7 @@
             </thead>
             <tbody id="body_taxonomies">
                 <?php foreach ($taxonomies as $name => $taxonomy): ?>
-                    <?php if (count($taxonomy['TaxonomyPredicate']) > 1): ?>
+                    <?php if (count($taxonomy['TaxonomyPredicate']) > 0): ?>
                         <tr class="bold useCursorPointer" data-namespace="<?php echo h($name); ?>" onclick="collapseNamespace(this);">
                             <td colspan=2 style="background-color: #999; color: white; user-select: none;">
                                 <?php echo h($name); ?>
