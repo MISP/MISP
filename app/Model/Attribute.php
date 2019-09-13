@@ -404,7 +404,8 @@ class Attribute extends AppModel
         'yara-json' => array('json', 'YaraExport', 'json'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'csv' => array('csv', 'CsvExport', 'csv'),
-        'cache' => array('txt', 'CacheExport', 'cache')
+        'cache' => array('txt', 'CacheExport', 'cache'),
+        'attack-sightings' => array('json', 'AttackSightingsExport', 'json')
     );
 
     // FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
@@ -2975,7 +2976,8 @@ class Attribute extends AppModel
         $params = array(
             'conditions' => $this->buildConditions($user),
             'fields' => array(),
-            'recursive' => -1
+            'recursive' => -1,
+            'contain' => array()
         );
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
@@ -2983,10 +2985,14 @@ class Attribute extends AppModel
         if (isset($options['fields'])) {
             $params['fields'] = $options['fields'];
         }
+        if (isset($options['contain'])) {
+            $params['contain'] = $options['contain'];
+        }
         $results = $this->find('all', array(
             'conditions' => $params['conditions'],
             'recursive' => -1,
             'fields' => $params['fields'],
+            'contain' => $params['contain'],
             'sort' => false
         ));
         return $results;
@@ -3135,6 +3141,23 @@ class Attribute extends AppModel
         if (!isset($options['includeWarninglistHits'])) {
             $options['includeWarninglistHits'] = false;
         }
+        if (!isset($options['includeDecayScore'])) {
+            $options['includeDecayScore'] = false;
+        }
+        if (!isset($options['decayingModel'])) {
+            $options['decayingModel'] = false;
+        }
+        if (!isset($options['modelOverrides'])) {
+            $options['modelOverrides'] = array();
+        }
+        if (isset($options['score'])) {
+            $options['modelOverrides']['threshold'] = $options['score'];
+        }
+        if (!isset($options['excludeDecayed'])) {
+            $options['excludeDecayed'] = 0;
+        } else {
+            $options['includeDecayScore'] = true;
+        }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
         } else {
@@ -3256,6 +3279,20 @@ class Attribute extends AppModel
                     if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
                         $encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
                         $results[$key]['Attribute']['data'] = $encodedFile;
+                    }
+                }
+                if ($options['includeDecayScore']) {
+                    $this->DecayingModel = ClassRegistry::init('DecayingModel');
+                    $include_full_model = isset($options['includeFullModel']) && $options['includeFullModel'] ? 1 : 0;
+                    $results[$key]['Attribute'] = $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides'], $include_full_model);
+                    if ($options['excludeDecayed']) { // filter out decayed attribute
+                        $decayed_flag = true;
+                        foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) { // remove attribute if ALL score results in a decay
+                            $decayed_flag = $decayed_flag && $decayResult['decayed'];
+                        }
+                        if ($decayed_flag) {
+                            unset($results[$key]);
+                        }
                     }
                 }
                 if (!empty($results[$key])) {
@@ -4230,7 +4267,9 @@ class Attribute extends AppModel
                 'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
                 'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
                 'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
-                'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0
+                'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
+                'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
+                'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0
         );
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];
@@ -4246,6 +4285,19 @@ class Attribute extends AppModel
         }
         if (!empty($filters['deleted'])) {
             $params['deleted'] = $filters['deleted'];
+        }
+        if (!empty($filters['excludeDecayed'])) {
+            $params['excludeDecayed'] = $filters['excludeDecayed'];
+            $params['includeDecayScore'] = 1;
+        }
+        if (!empty($filters['decayingModel'])) {
+            $params['decayingModel'] = $filters['decayingModel'];
+        }
+        if (!empty($filters['modelOverrides'])) {
+            $params['modelOverrides'] = $filters['modelOverrides'];
+        }
+        if (!empty($filters['score'])) {
+            $params['score'] = $filters['score'];
         }
         if ($paramsOnly) {
             return $params;

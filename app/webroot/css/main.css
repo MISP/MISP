@@ -891,6 +891,13 @@ a.proposal_link_red:hover {
 .ajax_popover_form_large {
     width: 1400px;
     left: calc(50% - 700px);
+    z-index: 30;
+}
+
+.ajax_popover_form_x_large {
+    width: 1700px;
+    left: calc(50% - 850px);
+    z-index: 30;
 }
 
 .ajax_popover_matrix {
@@ -1124,6 +1131,10 @@ li .generic-picker-item-element-check {
     z-index:-111;
 }
 
+span.success {
+    background-color: #d0e9c6 !important;
+}
+
 .ajaxMessage {
     display:none;
     margin-left:10px;
@@ -1137,6 +1148,14 @@ li .generic-picker-item-element-check {
     padding: 5px;
     border: 1px solid #dddddd;
     border-radius: 3px;
+}
+
+.panel-container {
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    background-color: #fafafa;
+    padding: 5px;
+    margin: 5px;
 }
 
 .inline-input {
@@ -1258,6 +1277,10 @@ li .generic-picker-item-element-check {
 
 .tabMenuSides {
     border-top: 1px solid #ddd;
+}
+
+.cellHeavyTopBorder {
+    border-top: 2px solid #000;
 }
 
 .tabMenuFilterFieldHeader {
@@ -1543,6 +1566,13 @@ li .generic-picker-item-element-check {
     padding-left:0px !important;
     padding-right:0px !important;
     border-top:0px !important;
+}
+
+.fa.helptext-in-cell, .fas.helptext-in-cell {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    margin-top: -6px;
 }
 
 .templateTableHeader {
