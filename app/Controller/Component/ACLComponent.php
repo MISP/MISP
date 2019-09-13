@@ -357,6 +357,7 @@ class ACLComponent extends Component
             'servers' => array(
                     'add' => array(),
                     'cache' => array(),
+                    'changePriority' => array(),
                     'checkout' => array(),
                     'createSync' => array('perm_sync'),
                     'delete' => array(),
