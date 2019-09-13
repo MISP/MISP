@@ -1222,6 +1222,9 @@ class AttributesController extends AppController
         if (isset($this->params['named']['hard'])) {
             $hard = $this->params['named']['hard'];
         }
+        if (isset($this->request->data['hard'])) {
+            $hard = $this->request->data['hard'];
+        }
         $this->set('id', $id);
         $conditions = array('id' => $id);
         if (!$hard) {
@@ -1248,7 +1251,7 @@ class AttributesController extends AppController
                 $this->render('ajax/attributeConfirmationForm');
             }
         } else {
-            if (!$this->request->is('post')) {
+            if (!$this->request->is('post') && !$this->request->is('delete')) {
                 throw new MethodNotAllowedException(__('This function is only accessible via POST requests.'));
             }
             if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
