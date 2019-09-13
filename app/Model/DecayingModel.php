@@ -291,7 +291,8 @@ class DecayingModel extends AppModel
     }
 
     // filter out taxonomies and entries not having a numerical value
-    public function listTaxonomiesWithNumericalValue()
+    // create_non_existing_tags will create (on-the-fly/non-presistent) tags that are present in the taxonomy but not created yet
+    public function listTaxonomiesWithNumericalValue($create_non_existing_tags=1)
     {
         $this->Taxonomy = ClassRegistry::init('Taxonomy');
         $this->Tag = ClassRegistry::init('Tag');
@@ -308,6 +309,15 @@ class DecayingModel extends AppModel
                                 unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]);
                             } else {
                                 $tag_name = sprintf('%s:%s="%s"', $taxonomy['namespace'], $predicate['value'], $entry['value']);
+                                if (isset($tags[strtoupper($tag_name)])) {
+                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
+                                } else { // tag is not created yet. Create a false one.
+                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = array(
+                                        'id' => 0,
+                                        'name' => $tag_name,
+                                        'colour' => 'grey',
+                                    );
+                                }
                                 $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
                                 $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag']['numerical_value'] = $entry['numerical_value'];
                             }
@@ -322,7 +332,15 @@ class DecayingModel extends AppModel
                             unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]);
                         } else {
                             $tag_name = sprintf('%s:%s', $taxonomy['namespace'], $predicate['value']);
-                            $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
+                            if (isset($tags[strtoupper($tag_name)])) {
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
+                            } else { // tag is not created yet. Create a false one.
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag'] = array(
+                                    'id' => 0,
+                                    'name' => $tag_name,
+                                    'colour' => 'grey',
+                                );
+                            }
                             $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag']['numerical_value'] = $predicate['numerical_value'];
                             $taxonomies[$namespace]['TaxonomyPredicate'][$p]['numerical_predicate'] = true;
                         }
