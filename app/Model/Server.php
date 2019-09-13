@@ -5320,9 +5320,8 @@ class Server extends AppModel
                         $destination = $direction === 'up' ? $k-1 : $k+1;
                         $servers[$k] = $servers[$destination];
                         $servers[$destination] = $temp;
-
                     } else {
-                        return false;
+                        $success = false;
                     }
                 }
             }
