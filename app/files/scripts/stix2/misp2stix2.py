@@ -44,6 +44,7 @@ class StixBuilder():
     def __init__(self):
         self.orgs = []
         self.galaxies = []
+        self.ids = {}
 
     def loadEvent(self, args):
         pathname = os.path.dirname(args[0])
@@ -100,7 +101,7 @@ class StixBuilder():
             self.append_object(marking)
 
     def add_all_relationships(self):
-        for source, targets in self.relationships.items():
+        for source, targets in self.relationships['defined'].items():
             if source.startswith('report'):
                 continue
             source_type,_ = source.split('--')
@@ -113,7 +114,18 @@ class StixBuilder():
                     relation = "has"
                 relationship = Relationship(source_ref=source, target_ref=target,
                                             relationship_type=relation, interoperability=True)
-                self.append_object(relationship, relationship.id)
+                self.append_object(relationship, id_mapping=False)
+        for source_uuid, references in self.relationships['to_define'].items():
+            for reference in references:
+                target_uuid, relationship_type = reference
+                try:
+                    source = '{}--{}'.format(self.ids[source_uuid], source_uuid)
+                    target = '{}--{}'.format(self.ids[target_uuid], target_uuid)
+                except KeyError:
+                    continue
+                relationship = Relationship(source_ref=source, relationship_type=relationship_type,
+                                            target_ref=target, interoperability=True)
+                self.append_object(relationship, id_mapping=False)
 
     def __set_identity(self):
         org = self.misp_event['Orgc']
@@ -142,7 +154,8 @@ class StixBuilder():
         self.object_refs = []
         self.links = []
         self.markings = {}
-        self.relationships = defaultdict(list)
+        self.relationships = {'defined': defaultdict(list),
+                              'to_define': {}}
         i = self.__set_identity()
         if self.misp_event.get('Attribute'):
             for attribute in self.misp_event['Attribute']:
@@ -152,8 +165,7 @@ class StixBuilder():
                     self.add_custom(attribute)
         if self.misp_event.get('Object'):
             self.objects_to_parse = defaultdict(dict)
-            misp_objects = self.misp_event['Object']
-            for misp_object in misp_objects:
+            for misp_object in self.misp_event['Object']:
                 name = misp_object['name']
                 if name == 'original-imported-file':
                     continue
@@ -162,6 +174,8 @@ class StixBuilder():
                     getattr(self, objectsMapping[name]['to_call'])(misp_object, to_ids)
                 except KeyError:
                     self.add_object_custom(misp_object, to_ids)
+                if misp_object.get('ObjectReference'):
+                    self.relationships['to_define'][misp_object['uuid']] = tuple((r['referenced_uuid'], r['relationship_type']) for r in misp_object['ObjectReference'])
             if self.objects_to_parse:
                 self.resolve_objects2parse()
         if self.misp_event.get('Galaxy'):
@@ -359,7 +373,7 @@ class StixBuilder():
         if galaxy_uuid not in self.galaxies:
             to_call(galaxy)
             self.galaxies.append(galaxy_uuid)
-        self.relationships[source_id].append("{}--{}".format(stix_type, galaxy_uuid))
+        self.relationships['defined'][source_id].append("{}--{}".format(stix_type, galaxy_uuid))
 
     @staticmethod
     def generate_galaxy_args(galaxy, b_killchain, b_alias, sdo_type):
@@ -664,9 +678,12 @@ class StixBuilder():
         vulnerability = Vulnerability(**vulnerability_args)
         self.append_object(vulnerability)
 
-    def append_object(self, stix_object):
+    def append_object(self, stix_object, id_mapping=True):
         self.SDOs.append(stix_object)
         self.object_refs.append(stix_object.id)
+        if id_mapping:
+            object_type, uuid = stix_object.id.split('--')
+            self.ids[uuid] = object_type
 
     @staticmethod
     def create_killchain(category):
