@@ -130,7 +130,7 @@ class DecayingModel extends AppModel
     {
         foreach ($parameters as $name => $value) {
             if (is_array($value)) {
-                $this->__adjustParameters($parameters[$name]);
+                $parameters[$name] = $this->__adjustParameters($parameters[$name]);
             } else if (is_numeric($value)) {
                 $parameters[$name] = round($value, 4);
             } else if (!empty($value)) {
