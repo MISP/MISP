@@ -5287,4 +5287,36 @@ class Server extends AppModel
             return __('Could not reset the remote authentication key.');
         }
     }
+
+    public function reprioritise($id = false, $direction = 'up')
+    {
+        $servers = $this->find('all', array(
+            'recursive' => -1,
+            'order' => array('Server.priority ASC', 'Server.id ASC')
+        ));
+        $success = true;
+        if ($id) {
+            foreach ($servers as $k => $server) {
+                if ($server['Server']['id'] && $server['Server']['id'] == $id) {
+                    if (
+                        !($k === 0 && $direction === 'up') &&
+                        !(empty($servers[$k+1]) && $direction === 'down')
+                    ) {
+                        $temp = $servers[$k];
+                        $destination = $direction === 'up' ? $k-1 : $k+1;
+                        $servers[$k] = $servers[$destination];
+                        $servers[$destination] = $temp;
+
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+        foreach ($servers as $k => $server) {
+            $server['Server']['priority'] = $k + 1;
+            $success = $success && $this->save($server);
+        }
+        return $success;
+    }
 }

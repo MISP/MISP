@@ -4395,6 +4395,29 @@ function fetchFormDataAjax(url, callback) {
     });
 }
 
+function moveIndexRow(id, direction, endpoint) {
+    var row = $('#row_' + id);
+    $.ajax({
+        url: baseurl + endpoint + '/' + id + '/' + direction,
+        type: 'GET',
+        success: function(data) {
+            if (direction === 'up') {
+                if (row.prev().length) {
+                    row.insertBefore(row.prev());
+                }
+            } else {
+                if (row.next().length) {
+                    row.insertAfter(row.next());
+                }
+            }
+            handleGenericAjaxResponse({'saved':true, 'success':['Server priority changed.']});
+        },
+        error: function(data) {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Something went wrong, could not change the priority as requested.']});
+        }
+    });
+}
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({
