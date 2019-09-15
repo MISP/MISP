@@ -986,14 +986,14 @@ class Feed extends AppModel
             } elseif ($scope == 'freetext' || $scope == 'csv') {
                 $params['conditions']['source_format'] = array('csv', 'freetext');
             } elseif ($scope == 'misp') {
-                $redis->del('misp:feed_cache:event_uuid_lookup:');
+                $redis->del($redis->keys('misp:feed_cache:event_uuid_lookup:*'));
                 $params['conditions']['source_format'] = 'misp';
             } else {
                 throw new InvalidArgumentException("Invalid value for scope, it must be integer or 'freetext', 'csv', 'misp' or 'all' string.");
             }
         } else {
             $redis->del('misp:feed_cache:combined');
-            $redis->del('misp:feed_cache:event_uuid_lookup:');
+            $redis->del($redis->keys('misp:feed_cache:event_uuid_lookup:*'));
         }
         $feeds = $this->find('all', $params);
         $atLeastOneSuccess = false;

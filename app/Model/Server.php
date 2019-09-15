@@ -5141,7 +5141,7 @@ class Server extends AppModel
             $params['conditions']['Server.id'] = $id;
         } else {
             $redis->del('misp:server_cache:combined');
-            $redis->del('misp:server_cache:event_uuid_lookup:');
+            $redis->del($redis->keys('misp:server_cache:event_uuid_lookup:*'));
         }
         $servers = $this->find('all', $params);
         if ($jobId) {
