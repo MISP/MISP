@@ -1,18 +1,22 @@
+<?php
+$passwordPopover = '<span class=\"blue bold\">' . __('Length') .'</span>: ' . h($length) . '<br />';
+$passwordPopover .= '<span class=\"blue bold\">' . __('Complexity') .'</span>: ' . h($complexity);
+?>
 <div class="users form">
 <?php echo $this->Form->create('User', array('novalidate' => true));?>
     <fieldset>
         <legend><?php echo __('Edit My Profile'); ?></legend>
+        <?php if ($isLdapAuthEnabled) echo '<p class="alert">User profile managed by ' . (Configure::read('LdapAuth.name') ?: 'LDAP') . '.</p>'; ?>
     <?php
-        echo $this->Form->input('email');
-    ?>
+        echo $this->Form->input('email', array('disabled' => !$canChangeEmail));
+            ?>
         <div class="input clear"></div>
-    <?php
-        $passwordPopover = '<span class=\"blue bold\">' . __('Length') .'</span>: ' . h($length) . '<br />';
-        $passwordPopover .= '<span class=\"blue bold\">' . __('Complexity') .'</span>: ' . h($complexity);
+        <?php
         echo $this->Form->input('password', array(
-            'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+            'label' => __('Password') . ' <span id="PasswordPopover" class="icon-info-sign"></span>',
+            'disabled' => !$canChangePassword,
         ));
-        echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
+        echo $this->Form->input('confirm_password', array('type' => 'password', 'disabled' => !$canChangePassword, 'div' => array('class' => 'input password required')));
     ?>
         <div class="input clear"></div>
     <?php

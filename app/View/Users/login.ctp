@@ -17,7 +17,7 @@
         </span><br /><br />
         <div>
         <?php if (Configure::read('MISP.main_logo') && file_exists(APP . '/webroot/img/custom/' . Configure::read('MISP.main_logo'))): ?>
-            <img src="<?php echo $baseurl?>/img/custom/<?php echo h(Configure::read('MISP.main_logo'));?>" style=" display:block; margin-left: auto; margin-right: auto;" />
+            <img src="<?php echo $baseurl?>/img/custom/<?php echo h(Configure::read('MISP.main_logo'));?>" style="display:block; margin-left: auto; margin-right: auto;" />
         <?php else: ?>
             <img src="/img/misp-logo.png" style="display:block; margin-left: auto; margin-right: auto;"/>
         <?php endif;?>
@@ -34,9 +34,13 @@
             endif;
             echo $this->Form->create('User');
         ?>
-        <legend><?php echo __('Login');?></legend>
+        <legend><?php echo ($isLdapAuthEnabled && Configure::read('LdapAuth.name') ? Configure::read('LdapAuth.name') . ' ' : '') .  __('Login');?></legend>
         <?php
-            echo $this->Form->input('email', array('autocomplete' => 'off', 'autofocus'));
+            if ($isLdapAuthEnabled) {
+                echo $this->Form->input('email', array('autocomplete' => 'off', 'autofocus', 'type' => 'text', 'label' => __('Username')));
+            } else {
+                echo $this->Form->input('email', array('autocomplete' => 'off', 'autofocus'));
+            }
             echo $this->Form->input('password', array('autocomplete' => 'off'));
         ?>
             <div class="clear"></div>

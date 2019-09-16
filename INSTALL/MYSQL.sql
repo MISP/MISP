@@ -1287,10 +1287,12 @@ CREATE TABLE IF NOT EXISTS `users` (
   `force_logout` tinyint(1) NOT NULL DEFAULT 0,
   `date_created` bigint(20),
   `date_modified` bigint(20),
+  `ldap_dn` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`),
   INDEX `email` (`email`),
   INDEX `org_id` (`org_id`),
-  INDEX `server_id` (`server_id`)
+  INDEX `server_id` (`server_id`),
+  UNIQUE `ldap_dn` (`ldap_dn`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------

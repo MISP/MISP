@@ -168,8 +168,11 @@ class UsersController extends AppController
             }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
-                $fieldList = array('email', 'autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
-                if (!empty($this->request->data['User']['password'])) {
+                $fieldList = array('autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
+                if ($this->userCanChangeEmail()) {
+                    $fieldList[] = 'email';
+                }
+                if (!empty($this->request->data['User']['password']) && $this->userCanChangePassword()) {
                     $fieldList[] = 'password';
                     $fieldList[] = 'confirm_password';
                 }
@@ -223,12 +226,14 @@ class UsersController extends AppController
         $roles = $this->User->Role->find('list');
         $this->set(compact('roles'));
         $this->set('id', $id);
+        $this->set('isLdapAuthEnabled', Configure::read('LdapAuth.enabled'));
+        $this->set('canChangeEmail', $this->userCanChangeEmail());
     }
 
     public function change_pw()
     {
-        if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
-            throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
+        if (!$this->userCanChangePassword()) {
+            throw new MethodNotAllowedException('User password self-management has been disabled on this instance.');
         }
         $id = $this->Auth->user('id');
         $user = $this->User->find('first', array(
@@ -567,6 +572,7 @@ class UsersController extends AppController
             $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
             $this->set('id', $id);
             $this->set('user2', $user2);
+            $this->set('isLdapAuthEnabled', Configure::read('LdapAuth.enabled'));
         }
     }
 
@@ -653,6 +659,11 @@ class UsersController extends AppController
                     $this->request->data['User']['change_pw'] = 1;
                     $this->request->data['User']['termsaccepted'] = 0;
                 }
+            }
+            // If user cannot change his password (for example when self management is disabled), doesnt make sense
+            // to force new user to change password
+            if (!$this->userCanChangePassword()) {
+                $this->request->data['User']['change_pw'] = 0;
             }
             if (!isset($this->request->data['User']['disabled'])) {
                 $this->request->data['User']['disabled'] = false;
@@ -773,6 +784,7 @@ class UsersController extends AppController
             $this->set('isSiteAdmin', $this->_isSiteAdmin());
             $this->set('default_role_id', $default_role_id);
             $this->set('servers', $servers);
+            $this->set('isLdapAuthEnabled', Configure::read('LdapAuth.enabled'));
             $this->set(compact('roles'));
             $this->set(compact('syncRoles'));
         }
@@ -872,6 +884,9 @@ class UsersController extends AppController
                 if (!$this->_isSiteAdmin()) {
                     $blockedFields[] = 'org_id';
                 }
+                if (!$this->userCanChangePassword()) {
+                    $blockedFields[] = 'change_pw';
+                }
                 foreach (array_keys($this->request->data['User']) as $field) {
                     if (in_array($field, $blockedFields)) {
                         continue;
@@ -892,6 +907,7 @@ class UsersController extends AppController
                     }
                 }
                 if (
+                    $this->adminCanChangePassword() &&
                     isset($this->request->data['User']['enable_password']) && $this->request->data['User']['enable_password'] != '0' &&
                     isset($this->request->data['User']['password']) && "" != $this->request->data['User']['password']
                 ) {
@@ -1087,6 +1103,9 @@ class UsersController extends AppController
                 $this->Auth->constructAuthenticate();
             }
         }
+
+        $this->set('isLdapAuthEnabled', Configure::read('LdapAuth.enabled'));
+
         if ($this->Auth->login()) {
             $this->User->extralog($this->Auth->user(), "login");
             $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
@@ -1574,6 +1593,9 @@ class UsersController extends AppController
     {
         if (!$this->_isAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+        if (!$this->adminCanChangePassword()) {
+            throw new MethodNotAllowedException('User password is managed by external identity provider.');
         }
         $user = $this->User->find('first', array(
             'conditions' => array('id' => $id),

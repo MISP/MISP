@@ -87,6 +87,9 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         'class' => empty($user['User']['disabled']) ? '' : 'background-red',
         'boolean' => $user['User']['disabled']
     );
+    if ($isLdapAuthEnabled) {
+        $table_data[] = array('key' => 'LDAP DN', 'html' => !empty($user['User']['ldap_dn']) ? h($user['User']['ldap_dn']) : __('Not managed by LDAP'));
+    }
     echo $this->element('genericElements/assetLoader', array(
         'css' => array('vis', 'distribution-graph'),
         'js' => array('vis', 'network-distribution-graph')

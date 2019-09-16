@@ -1884,7 +1884,8 @@ CREATE TABLE public.users (
     last_login bigint DEFAULT '0'::bigint,
     force_logout boolean DEFAULT false NOT NULL,
     date_created numeric,
-    date_modified numeric
+    date_modified numeric,
+    ldap_dn character varying(255) DEFAULT NULL
 );
 
 

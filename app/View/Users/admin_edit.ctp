@@ -2,9 +2,7 @@
 <?php echo $this->Form->create('User', array('novalidate'=>true));?>
     <fieldset>
         <legend><?php echo __('Admin Edit User'); ?></legend>
-    <?php
-        echo $this->Form->input('email');
-    ?>
+        <?php echo $this->Form->input('email'); ?>
         <div class="clear"></div>
     <?php
         $password = true;
@@ -29,7 +27,7 @@
     <div class="clear"></div>
     <div id="passwordDivDiv">
         <?php
-            echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => __('Set password')));
+            echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => __('Set password'), 'disabled' => !$adminCanChangePassword));
         ?>
         <div id="PasswordDiv">
             <div class="clear"></div>
@@ -67,7 +65,7 @@
     <?php
         if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('SMIME key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s SMIME public key in PEM format here.')));
         echo $this->Form->input('termsaccepted', array('type' => 'checkbox', 'label' => __('Terms accepted')));
-        echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => __('Change Password')));
+        echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => __('Change Password'), 'disabled' => !$canChangePassword));
         echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
         echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
 

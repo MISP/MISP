@@ -85,8 +85,9 @@
                     <?php
                         if (($isAclAdmin && (($user['User']['org_id'] == $me['org_id'])) || ('1' == $me['id'])) || ($isSiteAdmin)):
                     ?>
+                        <?php if ($adminCanChangePassword): ?>
                             <span role="button" tabindex="0" class="fa fa-sync useCursorPointer" onClick="initiatePasswordReset('<?php echo $user['User']['id']; ?>');" title="<?php echo __('Create new credentials and inform user');?>" role="button" tabindex="0" aria-label="<?php echo __('Create new credentials and inform user');?>"></span>
-                    <?php
+                        <?php endif;
                             echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit')));
                             echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', $user['User']['id']));
                         endif;

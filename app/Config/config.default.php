@@ -131,6 +131,21 @@ $config = array(
             'userModelKey' => 'email', // User field that will be used for querying.
         ),
 	*/
+    // LDAP form authentication
+    // More info at https://www.circl.lu/doc/misp/appendices/
+    /*
+    'LdapAuth' => array(
+        'enabled' => true,
+        'name' => 'My Identity provider',
+        'ldapServer' => 'ldap://example.com',
+        'ldapDN' => 'cn=users,cn=accounts,dc=example,dc=com',
+        'ldapSearchFilter' => '(objectclass=inetuser)',
+        'ldapReaderUser' => 'uid=misp,cn=sysaccounts,cn=etc,dc=example,dc=com',
+        'ldapReaderPassword' => 'UserPassword',
+        'ldapUserGroup' => 'cn=misp-users,cn=groups,cn=accounts,dc=example,dc=com',
+        'updateUser' => true,
+    );
+     */
 	// Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.
 	// Feel free to enable it and report back to us if you run into any issues.
 	//

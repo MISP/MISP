@@ -69,6 +69,7 @@ class AppModel extends Model
         )
     );
 
+    // db_version => requires_logout
     public $db_changes = array(
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
@@ -77,7 +78,7 @@ class AppModel extends Model
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
-        45 => false, 46 => false, 47 => false
+        45 => false, 46 => false, 47 => false, 48 => true,
     );
 
     public $advanced_updates_description = array(
@@ -283,7 +284,7 @@ class AppModel extends Model
     public function updateDatabase($command)
     {
         $this->Log = ClassRegistry::init('Log');
-    
+
         $liveOff = false;
         $exitOnError = false;
         if (isset($this->advanced_updates_description[$command])) {
@@ -1324,6 +1325,10 @@ class AppModel extends Model
                 $this->__addIndex('taxonomy_predicates', 'numerical_value');
                 $this->__addIndex('taxonomy_entries', 'numerical_value');
                 break;
+            case 48:
+                $sqlArray[] = "ALTER TABLE `users` ADD `ldap_dn` varchar(255) COLLATE utf8_bin DEFAULT NULL;";
+                $this->__addIndex('users', 'ldap_dn', false, true);
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1580,18 +1585,20 @@ class AppModel extends Model
         }
     }
 
-    private function __addIndex($table, $field, $length = false)
+    private function __addIndex($table, $field, $length = false, $unique = false)
     {
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
         $this->Log = ClassRegistry::init('Log');
         if ($dataSource == 'Database/Postgres') {
-            $addIndex = "CREATE INDEX idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
+            $type = $unique ? 'UNIQUE INDEX' : 'INDEX';
+            $addIndex = "CREATE $type idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
         } else {
+            $type = $unique ? 'UNIQUE' : 'INDEX';
             if (!$length) {
-                $addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`);";
+                $addIndex = "ALTER TABLE `" . $table . "` ADD $type `" . $field . "` (`" . $field . "`);";
             } else {
-                $addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`(" . $length . "));";
+                $addIndex = "ALTER TABLE `" . $table . "` ADD $type `" . $field . "` (`" . $field . "`(" . $length . "));";
             }
         }
         $result = true;

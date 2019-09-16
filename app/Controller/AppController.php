@@ -26,6 +26,7 @@ App::uses('ConnectionManager', 'Model');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
+App::uses('LdapAuthenticate', 'Controller/Component/Auth');
 
 /**
  * Application Controller
@@ -164,6 +165,7 @@ class AppController extends Controller
             $this->loadModel('Server');
             $this->Server->serverSettingsSaveValue('MISP.uuid', CakeText::uuid());
         }
+
         // check if Apache provides kerberos authentication data
         $envvar = Configure::read('ApacheSecureAuth.apacheEnv');
         if (isset($_SERVER[$envvar])) {
@@ -177,7 +179,14 @@ class AppController extends Controller
             );
         } else {
             $this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
+
+            // When LDAP authentication is enabled, default form authentication is disabled.
+            if (Configure::read('LdapAuth.enabled')) {
+                $this->Auth->authenticate['Ldap'] = $this->Auth->authenticate['Form'];
+                unset($this->Auth->authenticate['Form']);
+            }
         }
+
         if (!empty($this->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
         }
@@ -234,6 +243,22 @@ class AppController extends Controller
                         if ($user) {
                             unset($user['User']['gpgkey']);
                             unset($user['User']['certif_public']);
+
+                            // When LDAP authentication is enabled, it is necessary to validate account if still exists and is enabled.
+                            if (Configure::read('LdapAuth.enabled')) {
+                                $failLog = null;
+                                if (empty($user['User']['ldap_dn'])) {
+                                    $failLog = 'LDAP authentication is enabled, but user is not managed by LDAP.';
+                                } else if (!LdapAuthenticate::isUserValid($user['User'])) {
+                                    $failLog = 'User doesn\'t exists in LDAP or is disabled.';
+                                }
+                                if ($failLog) {
+                                    $this->Log = ClassRegistry::init('Log');
+                                    $this->Log->createLogEntry($user['User'], 'auth_fail', 'User', $user['User']['id'], 'Failed authentication using API key (' . trim($auth_key) . '): ' . $failLog);
+                                    throw new ForbiddenException('Authentication failed.');
+                                }
+                            }
+
                             // User found in the db, add the user info to the session
                             if (Configure::read('MISP.log_auth')) {
                                 $this->Log = ClassRegistry::init('Log');
@@ -435,6 +460,8 @@ class AppController extends Controller
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
+            $this->set('canChangePassword', $this->userCanChangePassword());
+            $this->set('adminCanChangePassword', $this->adminCanChangePassword());
             $this->userRole = $role;
             if (Configure::read('MISP.log_paranoid')) {
                 $this->Log = ClassRegistry::init('Log');
@@ -477,7 +504,7 @@ class AppController extends Controller
             }
         }
 
-        $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
+        $this->set('loggedInUserName', $this->loggedInUserName($this->Auth->user('email')));
         if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
             $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
         } else {
@@ -596,15 +623,17 @@ class AppController extends Controller
         $this->set('baseurl', h($baseurl));
     }
 
-    private function __convertEmailToName($email)
+    private function loggedInUserName($user)
     {
-        $name = explode('@', (string)$email);
-        $name = explode('.', $name[0]);
-        foreach ($name as $key => $value) {
-            $name[$key] = ucfirst($value);
+        if (Configure::read('LdapAuth.enabled') && !empty($user['ldap_dn'])) {
+            return ldap_explode_dn($user['ldap_dn'], 1)[0];
+        } else {
+            $name = explode('@', (string) $user['email']);
+            $name = explode('.', $name[0]);
+            $name = array_map('ucfirst', $name);
+            $name = implode(' ', $name);
+            return $name;
         }
-        $name = implode(' ', $name);
-        return $name;
     }
 
     public function blackhole($type=false)
@@ -1215,5 +1244,36 @@ class AppController extends Controller
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
         }
+    }
+
+    protected function userCanChangePassword()
+    {
+        if (Configure::read('LdapAuth.enabled') || $this->Auth->className === 'ApacheSecureAuth') {
+            return false;
+        }
+
+        if (Configure::read('MISP.disableUserSelfManagement')) {
+            return $this->_isAdmin();
+        }
+
+        return true;
+    }
+
+    protected function adminCanChangePassword()
+    {
+        if (Configure::read('LdapAuth.enabled') || $this->Auth->className === 'ApacheSecureAuth') {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function userCanChangeEmail()
+    {
+        if (Configure::read('LdapAuth.enabled')) {
+            return false;
+        }
+
+        return true;
     }
 }

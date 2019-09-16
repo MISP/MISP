@@ -2,6 +2,8 @@
 <?php echo $this->Form->create('User', array('novalidate'=>true));?>
     <fieldset>
         <legend><?php echo __('Admin Add User'); ?></legend>
+        <?php if ($isLdapAuthEnabled) echo '<p class="alert">User profiles are managed by ' . (Configure::read('LdapAuth.name') ?: 'LDAP') . ' 
+        You can still create a new user, but user cannot login until an account with the same email address will be created in LDAP.</p>'; ?>
     <?php
         echo $this->Form->input('email');
     ?>
@@ -29,7 +31,7 @@
     <div class="clear"></div>
     <div id="passwordDivDiv">
         <?php
-            echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => __('Set password')));
+            echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => __('Set password'), 'disabled' => !$adminCanChangePassword));
         ?>
         <div id="PasswordDiv">
             <div class="clear"></div>
@@ -89,7 +91,8 @@
         echo $this->Form->input('notify', array(
             'label' => __('Send credentials automatically'),
             'type' => 'checkbox',
-            'checked' => isset($this->request->data['User']['notify']) ? $this->request->data['User']['notify'] : true
+            'disabled' => $isLdapAuthEnabled,
+            'checked' => $isLdapAuthEnabled ? false : (isset($this->request->data['User']['notify']) ? $this->request->data['User']['notify'] : true)
         ));
     ?>
     </fieldset>
