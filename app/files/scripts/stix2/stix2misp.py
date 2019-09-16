@@ -547,11 +547,13 @@ class StixFromMISPParser(StixParser):
         name = self.get_misp_type(labels)
         tag = labels[1]
         galaxy_type, value = tag.split(':')[1].split('=')
-        galaxy_description, cluster_description = o.get('description').split('|')
+        galaxy_desc, cluster_desc = o['description'].split(' | ') if ' | ' in o['description'] else ('', o['description'])
         _, uuid = o.get('id').split('--')
-        galaxy = {'type': galaxy_type, 'name': name, 'description': galaxy_description,
+        galaxy = {'type': galaxy_type, 'name': name,
                   'GalaxyCluster': [{'type': galaxy_type, 'value':value, 'tag_name': tag,
-                                     'description': cluster_description, 'collection_uuid': uuid}]}
+                                     'description': cluster_desc, 'collection_uuid': uuid}]}
+        if galaxy_desc:
+            galaxy['description'] = galaxy_desc
         return galaxy
 
     def parse_MISP_course_of_action(self, o, _):
