@@ -572,7 +572,13 @@ class StixFromMISPParser(StixParser):
         attributes = []
         for key, value in o['x_misp_values'].items():
             attribute_type, object_relation = key.split('_')
-            misp_object.add_attribute(**{'type': attribute_type, 'value': value, 'object_relation': object_relation})
+            if isinstance(value, list):
+                for single_value in value:
+                    misp_object.add_attribute(**{'type': attribute_type, 'value': single_value,
+                                                 'object_relation': object_relation})
+            else:
+                misp_object.add_attribute(**{'type': attribute_type, 'value': value,
+                                             'object_relation': object_relation})
         self.misp_event.add_object(**misp_object)
 
     def parse_custom_attribute(self, o, labels):

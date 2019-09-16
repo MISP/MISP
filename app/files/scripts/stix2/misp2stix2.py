@@ -744,12 +744,12 @@ class StixBuilder():
         return mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)
 
     def fetch_custom_values(self, attributes, object_id):
-        values = {}
+        values = defaultdict(list)
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             attribute_type = '{}_{}'.format(attribute['type'], attribute['object_relation'])
-            values[attribute_type] = attribute['value']
-        return values
+            values[attribute_type].append(attribute['value'])
+        return {attribute_type: value[0] if len(value) == 1 else value for attribute_type, value in values.items()}
 
     @staticmethod
     def fetch_ids_flag(attributes):
