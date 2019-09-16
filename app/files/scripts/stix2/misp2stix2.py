@@ -670,11 +670,15 @@ class StixBuilder():
 
     def add_object_vulnerability(self, misp_object, to_ids):
         vulnerability_id = 'vulnerability--{}'.format(misp_object['uuid'])
-        name = self.fetch_vulnerability_name(misp_object['Attribute'])
-        labels = self.create_object_labels(name, misp_object.get('meta-category'), to_ids)
+        name, description, references = self.fetch_vulnerability_fields(misp_object['Attribute'])
+        labels = self.create_object_labels(misp_object['name'], misp_object['meta-category'], to_ids)
         vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
                               'name': name, 'created_by_ref': self.identity_id,
                               'labels': labels, 'interoperability': True}
+        if description:
+            vulnerability_args['description'] = description
+        if references:
+            vulnerability_args['external_references'] = references
         vulnerability = Vulnerability(**vulnerability_args)
         self.append_object(vulnerability)
 
@@ -759,11 +763,19 @@ class StixBuilder():
         return False
 
     @staticmethod
-    def fetch_vulnerability_name(attributes):
+    def fetch_vulnerability_fields(attributes):
+        name = "Undefined name"
+        description = ""
+        references = []
         for attribute in attributes:
-            if attribute['type'] == 'vulnerability':
-                return attribute['value']
-        return "Undefined name"
+            if attribute['object_relation'] == 'id':
+                name = attribute['value']
+                references.append({'source_name': 'cve', 'external_id': name})
+            elif attribute['object_relation'] == 'summary':
+                description = attribute['value']
+            elif attribute['object_relation'] == 'references':
+                references.append({'source_name': 'url', 'url': attribute['value']})
+        return name, description, references
 
     def handle_tags(self, tags):
         return [self.markings[tag]['id'] if tag in self.markings else self.create_marking(tag) for tag in tags]
