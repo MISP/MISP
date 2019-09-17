@@ -5442,6 +5442,9 @@ class EventsController extends AppController
                 if (empty($this->request->data['Event']['config']['header']) && $this->request->data['Event']['config']['has_header'] === '1') {
                     $this->request->data['Event']['config']['header'] = ' ';
                 }
+                if (empty($this->request->data['Event']['config']['special_delimiter'])) {
+                    $this->request->data['Event']['config']['special_delimiter'] = ' ';
+                }
             }
             foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
                 if (!$fail) {
