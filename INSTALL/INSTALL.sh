@@ -231,6 +231,7 @@ setOpt () {
       ("-U") echo "upgrade"; UPGRADE=1 ;;
       ("-N") echo "nuke"; NUKE=1 ;;
       ("-u") echo "unattended"; UNATTENDED=1 ;;
+      ("-ni") echo "noninteractive"; NONINTERACTIVE=1 ;;
       ("-f") echo "force"; FORCE=1 ;;
       (*) echo "$o is not a valid argument"; exit 1 ;;
     esac
@@ -1968,7 +1969,7 @@ generateInstaller () {
 # Simple debug function with message
 
 # Make sure no alias exists
-if [[ $(type -t debug) == "alias" ]]; then unalias debug; fi
+[[ $(type -t debug) == "alias" ]] && unalias debug
 debug () {
   echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}" > /dev/tty
   if [ ! -z $DEBUG ]; then
