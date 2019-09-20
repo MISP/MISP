@@ -30,22 +30,13 @@ class RestResponseComponent extends Component
                 'params' => array('attribute_id')
             ),
             'deleteSelected' => array(
-                'description' => "POST a list of attribute IDs in JSON format to this API
-                    to delete the given attributes. This API also expects an event ID passed via
-                    the URL or via the event_id key. The id key also takes 'all' as a parameter
-                    for a wildcard search to mass delete attributes. If you want the function to
-                    also hard-delete already soft-deleted attributes, pass the allow_hard_delete
-                    key.",
+                'description' => "POST a list of attribute IDs in JSON format to this API to delete the given attributes. This API also expects an event ID passed via the URL or via the event_id key. The id key also takes 'all' as a parameter for a wildcard search to mass delete attributes. If you want the function to also hard-delete already soft-deleted attributes, pass the allow_hard_delete key.",
                 'mandatory' => array('id'),
                 'optional' => array('event_id', 'allow_hard_delete'),
                 'params' => array('event_id')
             ),
             'restSearch' => array(
-                'description' => "Search MISP using a list of filter parameters and return the data
-                    in the selected format. The search is available on an event and an attribute level,
-                    just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
-                    Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
-                    This API allows pagination via the page and limit parameters.",
+                'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score'),
                 'params' => array()
@@ -77,11 +68,7 @@ class RestResponseComponent extends Component
                 'optional' => array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal')
             ),
             'restSearch' => array(
-                'description' => "Search MISP using a list of filter parameters and return the data
-                    in the selected format. The search is available on an event and an attribute level,
-                    just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
-                    Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
-                    This API allows pagination via the page and limit parameters.",
+                'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags'),
                 'params' => array()
@@ -199,10 +186,7 @@ class RestResponseComponent extends Component
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time')
             ),
             'restSearch' => array(
-                'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format.
-                    The search is available on an event, attribute or instance level,
-                    just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/).
-                    id MUST be provided if context is set.",
+                'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id MUST be provided if context is set.",
                 'mandatory' => array('returnFormat'),
                 'optional' => array('id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
                 'params' => array('context')
@@ -380,7 +364,7 @@ class RestResponseComponent extends Component
             if (empty($temp)) {
                 return '[]';
             }
-            return json_encode(array('api_info' => $temp));
+            return json_encode(array('api_info' => $temp), JSON_PRETTY_PRINT);
         }
         return '[]';
     }
