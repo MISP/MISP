@@ -1687,9 +1687,7 @@
       "colour": "#005b9d",
       "exportable": true,
       "org_id": "0",
-      "hide_tag": false,
-      "user_id": "0",
-      "numerical_value": null
+      "hide_tag": false
     }
   },
   {
@@ -1725,9 +1723,7 @@
       "colour": "#004577",
       "exportable": true,
       "org_id": "0",
-      "hide_tag": false,
-      "user_id": "0",
-      "numerical_value": null
+      "hide_tag": false
     }
   },
   {
@@ -1763,9 +1759,7 @@
       "colour": "#004577",
       "exportable": true,
       "org_id": "0",
-      "hide_tag": false,
-      "user_id": "0",
-      "numerical_value": null
+      "hide_tag": false
     }
   },
   {
@@ -1801,9 +1795,7 @@
       "colour": "#004577",
       "exportable": true,
       "org_id": "0",
-      "hide_tag": false,
-      "user_id": "0",
-      "numerical_value": null
+      "hide_tag": false
     }
   },
   {
@@ -1839,9 +1831,7 @@
       "colour": "#004577",
       "exportable": true,
       "org_id": "0",
-      "hide_tag": false,
-      "user_id": "0",
-      "numerical_value": null
+      "hide_tag": false
     }
   },
   {
@@ -1877,9 +1867,7 @@
       "colour": "#004577",
       "exportable": true,
       "org_id": "0",
-      "hide_tag": false,
-      "user_id": "0",
-      "numerical_value": null
+      "hide_tag": false
     }
   },
   {
@@ -1915,9 +1903,7 @@
       "colour": "#004577",
       "exportable": true,
       "org_id": "0",
-      "hide_tag": false,
-      "user_id": "0",
-      "numerical_value": null
+      "hide_tag": false
     }
   },
   {
@@ -1953,9 +1939,7 @@
       "colour": "#004577",
       "exportable": true,
       "org_id": "0",
-      "hide_tag": false,
-      "user_id": "0",
-      "numerical_value": null
+      "hide_tag": false
     }
   }
 ]
