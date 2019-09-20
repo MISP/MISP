@@ -463,15 +463,15 @@ class TagsController extends AppController
             throw new MethodNotAllowedException('Invalid event.');
         }
         $this->loadModel('GalaxyCluster');
-        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')));
+        $cluster_names = $this->GalaxyCluster->find('list', array(
+            'fields' => array('GalaxyCluster.tag_name'),
+            'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')
+        ));
         $this->helpers[] = 'TextColour';
         $conditions = array(
                 'event_id' => $id,
                 'Tag.name !=' => $cluster_names
         );
-        if (empty($this->Auth->user()['Role']['perm_sync'])) {
-            $conditions['EventTag.local'] = false;
-        }
         $tags = $this->EventTag->find('all', array(
                 'conditions' => $conditions,
                 'contain' => array('Tag'),
@@ -505,9 +505,6 @@ class TagsController extends AppController
         $eventId = $this->Tag->AttributeTag->Attribute->data['Attribute']['event_id'];
 
         $conditions = array('attribute_id' => $id);
-        if (empty($this->Auth->user()['Role']['perm_sync'])) {
-            $conditions['AttributeTag.local'] = false;
-        }
         $attributeTags = $this->AttributeTag->find('all', array(
             'conditions' => $conditions,
             'contain' => array('Tag'),
