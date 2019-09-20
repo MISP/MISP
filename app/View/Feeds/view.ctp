@@ -21,7 +21,8 @@
                     array(
                         'event' => false,
                         'tags' => array(array('Tag' => $feed['Tag'])),
-                        'tagAccess' => false
+                        'tagAccess' => false,
+                        'static_tags_only' => true
                     )
                 )
             )
