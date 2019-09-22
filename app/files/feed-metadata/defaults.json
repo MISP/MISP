@@ -1941,5 +1941,33 @@
       "org_id": "0",
       "hide_tag": false
     }
-  }
+  },
+  {
+        "Feed": {
+            "id": "114",
+            "name": "DigitalSide Threat-Intel OSINT Feed",
+            "provider": "osint.digitalside.it",
+            "url": "https:\/\/osint.digitalside.it\/Threat-Intel\/digitalside-misp-feed\/",
+            "rules": "",
+            "enabled": false,
+            "distribution": "0",
+            "sharing_group_id": "0",
+            "tag_id": "0",
+            "default": false,
+            "source_format": "misp",
+            "fixed_event": true,
+            "delta_merge": false,
+            "event_id": "0",
+            "publish": false,
+            "override_ids": false,
+            "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+            "input_source": "network",
+            "delete_local_file": false,
+            "lookup_visible": false,
+            "headers": "",
+            "caching_enabled": false,
+            "force_to_ids": false,
+            "cache_timestamp": "1568901075"
+        }
+    }
 ]
