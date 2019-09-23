@@ -23,9 +23,9 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `object_id` int(11) NOT NULL DEFAULT 0,
   `object_relation` varchar(255) COLLATE utf8_bin,
   `category` varchar(255) COLLATE utf8_bin NOT NULL,
-  `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `value1` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `value2` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `value1` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `value2` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `to_ids` tinyint(1) NOT NULL DEFAULT 1,
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `timestamp` int(11) NOT NULL DEFAULT 0,
@@ -70,9 +70,10 @@ CREATE TABLE IF NOT EXISTS `attribute_tags` (
 --
 
 CREATE TABLE IF NOT EXISTS `bruteforces` (
-  `ip` varchar(255) COLLATE utf8_bin NOT NULL,
+  `ip` varchar(255) COLLATE utf8_bin NOT NULL AUTO_INCREMENT,
   `username` varchar(255) COLLATE utf8_bin NOT NULL,
-  `expire` datetime NOT NULL
+  `expire` datetime NOT NULL,
+  PRIMARY KEY (`id`),
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -165,8 +166,8 @@ CREATE TABLE IF NOT EXISTS `event_blacklists` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `created` datetime NOT NULL,
-  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci,
   `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `event_uuid` (`event_uuid`),
@@ -222,7 +223,7 @@ CREATE TABLE IF NOT EXISTS `event_tags` (
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `tag_id` (`tag_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- -------------------------------------------------------
 
@@ -302,7 +303,7 @@ CREATE TABLE IF NOT EXISTS `galaxies` (
   `description` text COLLATE utf8_bin NOT NULL,
   `version` varchar(255) COLLATE utf8_bin NOT NULL,
   `icon` VARCHAR(255) COLLATE utf8_bin NOT NULL DEFAULT '',
-  `namespace` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT "misp",
+  `namespace` varchar(255) COLLATE utf8_general_ci NOT NULL DEFAULT "misp",
   PRIMARY KEY (id),
   INDEX `name` (`name`),
   INDEX `uuid` (`uuid`),
@@ -395,7 +396,7 @@ CREATE TABLE IF NOT EXISTS `jobs` (
   `date_created` datetime NOT NULL,
   `date_modified` datetime NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -442,10 +443,10 @@ CREATE TABLE IF NOT EXISTS `news` (
 
 CREATE TABLE IF NOT EXISTS `noticelists` (
     `id` int(11) NOT NULL AUTO_INCREMENT,
-    `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-    `expanded_name` text COLLATE utf8_unicode_ci NOT NULL,
-    `ref` text COLLATE utf8_unicode_ci,
-    `geographical_area` varchar(255) COLLATE utf8_unicode_ci,
+    `name` varchar(255) COLLATE utf8_general_ci NOT NULL,
+    `expanded_name` text COLLATE utf8_general_ci NOT NULL,
+    `ref` text COLLATE utf8_general_ci,
+    `geographical_area` varchar(255) COLLATE utf8_general_ci,
     `version` int(11) NOT NULL DEFAULT 1,
     `enabled` tinyint(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
@@ -462,7 +463,7 @@ CREATE TABLE IF NOT EXISTS `noticelists` (
 CREATE TABLE IF NOT EXISTS `noticelist_entries` (
     `id` int(11) NOT NULL AUTO_INCREMENT,
     `noticelist_id` int(11) NOT NULL,
-    `data` text COLLATE utf8_unicode_ci NOT NULL,
+    `data` text COLLATE utf8_general_ci NOT NULL,
     PRIMARY KEY (`id`),
     INDEX `noticelist_id` (`noticelist_id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -479,7 +480,7 @@ CREATE TABLE IF NOT EXISTS `org_blacklists` (
   `created` datetime NOT NULL,
   PRIMARY KEY (`id`),
   `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
-  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -490,9 +491,9 @@ CREATE TABLE IF NOT EXISTS `org_blacklists` (
 
 CREATE TABLE IF NOT EXISTS `objects` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-  `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-  `description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci,
+  `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci,
+  `description` text CHARACTER SET utf8 COLLATE utf8_general_ci,
   `template_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
   `template_version` int(11) NOT NULL,
   `event_id` int(11) NOT NULL,
@@ -530,7 +531,7 @@ CREATE TABLE IF NOT EXISTS `object_references` (
   `referenced_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
   `referenced_id` int(11) NOT NULL,
   `referenced_type` int(11) NOT NULL DEFAULT 0,
-  `relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci,
   `comment` text COLLATE utf8_bin NOT NULL,
   `deleted` TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
@@ -551,7 +552,7 @@ CREATE TABLE IF NOT EXISTS `object_references` (
 CREATE TABLE IF NOT EXISTS `object_relationships` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `version` int(11) NOT NULL,
-  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci,
   `description` text COLLATE utf8_bin NOT NULL,
   `format` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (id),
@@ -569,8 +570,8 @@ CREATE TABLE IF NOT EXISTS `object_templates` (
   `user_id` int(11) NOT NULL,
   `org_id` int(11) NOT NULL,
   `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-  `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci,
+  `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci,
   `description` text COLLATE utf8_bin,
   `version` int(11) NOT NULL,
   `requirements` text COLLATE utf8_bin,
@@ -618,16 +619,16 @@ CREATE TABLE IF NOT EXISTS `organisations` (
   `name` varchar(255) COLLATE utf8_bin NOT NULL,
   `date_created` datetime NOT NULL,
   `date_modified` datetime NOT NULL,
-  `description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-  `nationality` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-  `sector` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `description` text CHARACTER SET utf8 COLLATE utf8_general_ci,
+  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci,
+  `nationality` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci,
+  `sector` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci,
   `created_by` int(11) NOT NULL DEFAULT 0,
   `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-  `contacts` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `contacts` text CHARACTER SET utf8 COLLATE utf8_general_ci,
   `local` tinyint(1) NOT NULL DEFAULT 0,
   `restricted_to_domain` text COLLATE utf8_bin,
-  `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `landingpage` text CHARACTER SET utf8 COLLATE utf8_general_ci,
   PRIMARY KEY (`id`),
   INDEX `uuid` (`uuid`),
   INDEX `name` (`name`(255))
@@ -638,7 +639,7 @@ CREATE TABLE IF NOT EXISTS `org_blacklists` (
   `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `created` datetime NOT NULL,
   `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
-  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci,
   PRIMARY KEY (`id`),
   INDEX `org_uuid` (`org_uuid`),
   INDEX `org_name` (`org_name`)
@@ -654,13 +655,13 @@ CREATE TABLE IF NOT EXISTS `posts` (
   `date_created` datetime NOT NULL,
   `date_modified` datetime NOT NULL,
   `user_id` int(11) NOT NULL,
-  `contents` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `contents` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `post_id` int(11) NOT NULL DEFAULT 0,
   `thread_id` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `post_id` (`post_id`),
   INDEX `thread_id` (`thread_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -756,14 +757,14 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `old_id` int(11) DEFAULT 0,
   `event_id` int(11) NOT NULL,
-  `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `category` varchar(255) COLLATE utf8_bin NOT NULL,
   `value1` text COLLATE utf8_bin,
   `to_ids` tinyint(1) NOT NULL DEFAULT 1,
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `value2` text COLLATE utf8_bin,
   `org_id` int(11) NOT NULL,
-  `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
   `event_org_id` int(11) NOT NULL,
   `comment` text COLLATE utf8_bin NOT NULL,
   `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
@@ -852,9 +853,9 @@ CREATE TABLE `sharing_group_servers` (
 
 CREATE TABLE `sharing_groups` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `releasability` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `releasability` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `description` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `organisation_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `org_id` int(11) NOT NULL,
@@ -913,7 +914,7 @@ CREATE TABLE IF NOT EXISTS `tags` (
   INDEX `name` (`name`(255)),
   INDEX `org_id` (`org_id`),
   INDEX `user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 -- --------------------------------------------------------
@@ -932,7 +933,7 @@ CREATE TABLE IF NOT EXISTS `tasks` (
   `next_execution_time` int(11) NOT NULL,
   `message` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -994,7 +995,7 @@ CREATE TABLE IF NOT EXISTS `templates` (
   `org` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `share` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -1008,7 +1009,7 @@ CREATE TABLE IF NOT EXISTS `template_elements` (
   `position` int(11) NOT NULL,
   `element_definition` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -1028,7 +1029,7 @@ CREATE TABLE IF NOT EXISTS `template_element_attributes` (
   `mandatory` tinyint(1) NOT NULL,
   `batch` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -1046,7 +1047,7 @@ CREATE TABLE IF NOT EXISTS `template_element_files` (
   `mandatory` tinyint(1) NOT NULL,
   `batch` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -1060,7 +1061,7 @@ CREATE TABLE IF NOT EXISTS `template_element_texts` (
   `template_element_id` int(11) NOT NULL,
   `text` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -1073,7 +1074,7 @@ CREATE TABLE IF NOT EXISTS `template_tags` (
   `template_id` int(11) NOT NULL,
   `tag_id` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -1089,7 +1090,7 @@ CREATE TABLE IF NOT EXISTS `threads` (
   `user_id` int(11) NOT NULL,
   `post_count` int(11) NOT NULL,
   `event_id` int(11) NOT NULL,
-  `title` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `title` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `org_id` int(11) NOT NULL,
   `sharing_group_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),
@@ -1097,7 +1098,7 @@ CREATE TABLE IF NOT EXISTS `threads` (
   INDEX `event_id` (`event_id`),
   INDEX `org_id` (`org_id`),
   INDEX `sharing_group_id` (`sharing_group_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -1111,7 +1112,7 @@ CREATE TABLE IF NOT EXISTS `threat_levels` (
   `description` varchar(255) DEFAULT NULL,
   `form_description` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -1124,7 +1125,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `password` varchar(255) COLLATE utf8_bin NOT NULL,
   `org_id` int(11) NOT NULL,
   `server_id` int(11) NOT NULL DEFAULT 0,
-  `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `autoalert` tinyint(1) NOT NULL DEFAULT 0,
   `authkey` varchar(40) COLLATE utf8_bin DEFAULT NULL,
   `invited_by` int(11) NOT NULL DEFAULT 0,
@@ -1174,7 +1175,7 @@ CREATE TABLE IF NOT EXISTS `warninglists` (
 
 CREATE TABLE IF NOT EXISTS `warninglist_entries` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `value` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `warninglist_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `warninglist_id` (`warninglist_id`)
@@ -1201,7 +1202,7 @@ CREATE TABLE IF NOT EXISTS `warninglist_types` (
 
 CREATE TABLE IF NOT EXISTS `whitelist` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `name` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
