@@ -4120,7 +4120,7 @@ class EventsController extends AppController
             $this->Event->insertLock($this->Auth->user(), $id);
             $attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
             $default_comment = $this->request->data['Attribute']['default_comment'];
-            $force = $this->request->data['Attribute']['force'];
+            $force = $this->_isSiteAdmin() && $this->request->data['Attribute']['force'];
             $flashMessage = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, $default_comment, $force);
             $this->Flash->info($flashMessage);
             $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
