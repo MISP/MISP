@@ -3089,27 +3089,31 @@ function getTextColour(hex) {
     }
 }
 
-function pgpChoiceSelect(uri) {
+function gpgSelect(fingerprint) {
     $("#popover_form").fadeOut();
     $("#gray_out").fadeOut();
     $.ajax({
         type: "get",
-        url: "https://pgp.circl.lu" + uri,
+        url: "/users/fetchGpgKey/" + fingerprint,
+        beforeSend: function () {
+            $(".loading").show();
+        },
         success: function (data) {
-            var result = data.split("<pre>")[1].split("</pre>")[0];
-            $("#UserGpgkey").val(result);
+            $("#UserGpgkey").val(data);
             showMessage('success', "Key found!");
         },
         error: function (data, textStatus, errorThrown) {
             showMessage('fail', textStatus + ": " + errorThrown);
+        },
+        complete: function () {
             $(".loading").hide();
-            $("#gray_out").fadeOut();
-        }
+        },
     });
 }
 
 function lookupPGPKey(emailFieldName) {
-    simplePopup("/users/fetchPGPKey/" + $('#' + emailFieldName).val());
+    var email = $('#' + emailFieldName).val();
+    simplePopup("/users/searchGpgKey/" + email);
 }
 
 function zeroMQServerAction(action) {

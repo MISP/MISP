@@ -1021,52 +1021,26 @@ class User extends AppModel
         return $message;
     }
 
-    public function fetchPGPKey($email)
+    /**
+     * @param string $email
+     * @return array
+     * @throws Exception
+     */
+    public function searchGpgKey($email)
     {
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket();
-        $response = $HttpSocket->get('https://pgp.circl.lu/pks/lookup?search=' . urlencode($email) . '&op=index&fingerprint=on&options=mr');
-        if ($response->code != 200) {
-            return $response->code;
-        }
-        return $this->__extractPGPInfo($response->body);
+        $gpgTool = new GpgTool();
+        return $gpgTool->searchGpgKey($email);
     }
 
-    private function __extractPGPInfo($body)
+    /**
+     * @param string $fingerprint
+     * @return string|null
+     * @throws Exception
+     */
+    public function fetchGpgKey($fingerprint)
     {
-        $final = array();
-        $lines = explode("\n", $body);
-        foreach ($lines as $line) {
-            $parts = explode(":", $line);
-
-            if ($parts[0] === 'pub') {
-                if (!empty($temp)) {
-                    $final[] = $temp;
-                    $temp = array();
-                }
-
-                if (strpos($parts[6], 'r') !== false || strpos($parts[6], 'd') !== false || strpos($parts[6], 'e') !== false) {
-                    continue; // skip if key is expired, revoked or disabled
-                }
-
-                $temp = array(
-                    'fingerprint' => chunk_split($parts[1], 4, ' '),
-                    'key_id' => substr($parts[1], -8),
-                    'date' => date('Y-m-d', $parts[4]),
-                    'uri' => '/pks/lookup?op=get&search=0x' . $parts[1],
-                );
-
-            } else if ($parts[0] === 'uid' && !empty($temp)) {
-                $temp['address'] = urldecode($parts[1]);
-            }
-        }
-
-        if (!empty($temp)) {
-            $final[] = $temp;
-        }
-
-        return $final;
+        $gpgTool = new GpgTool();
+        return $gpgTool->fetchGpgKey($fingerprint);
     }
 
     public function describeAuthFields()
