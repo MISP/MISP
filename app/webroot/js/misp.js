@@ -1202,10 +1202,15 @@ function submitPopoverForm(context_id, referer, update_context_id) {
                     $('#sightingsListAllToggle').addClass('btn-primary');
                 }
                 if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')) eventUnpublish();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                showMessage('fail', textStatus + ": " + errorThrown);
+            },
+            complete: function () {
                 $(".loading").hide();
             },
-            type:"post",
-            url:url
+            type: "post",
+            url: url,
         });
     }
 
