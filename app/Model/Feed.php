@@ -422,7 +422,7 @@ class Feed extends AppModel
                 }
 
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not add event '$uuid' from feed {$feed['Feed']['id']}.", $e));
+                $this->logException("Could not add event '$uuid' from feed {$feed['Feed']['id']}.", $e);
                 $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
             }
 
@@ -439,7 +439,7 @@ class Feed extends AppModel
                     $results['edit']['success'] = $uuid;
                 }
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not edit event '$uuid' from feed {$feed['Feed']['id']}.", $e));
+                $this->logException("Could not edit event '$uuid' from feed {$feed['Feed']['id']}.", $e);
                 $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
             }
 
@@ -780,7 +780,7 @@ class Feed extends AppModel
             try {
                 $actions = $this->getNewEventUuids($this->data, $HttpSocket);
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not get new event uuids for feed $feedId.", $e));
+                $this->logException("Could not get new event uuids for feed $feedId.", $e);
                 $this->jobProgress($jobId, 'Could not fetch event manifest. See log for more details.');
                 return false;
             }
@@ -798,7 +798,7 @@ class Feed extends AppModel
             try {
                 $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not get freetext feed $feedId", $e));
+                $this->logException("Could not get freetext feed $feedId", $e);
                 $this->jobProgress($jobId, 'Could not fetch freetext feed. See log for more details.');
                 return false;
             }
@@ -821,7 +821,7 @@ class Feed extends AppModel
             try {
                 $result = $this->saveFreetextFeedData($this->data, $data, $user);
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not save freetext feed data for feed $feedId.", $e));
+                $this->logException("Could not save freetext feed data for feed $feedId.", $e);
                 return false;
             }
 
@@ -1037,7 +1037,7 @@ class Feed extends AppModel
         try {
             $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
         } catch (Exception $e) {
-            CakeLog::error($this->exceptionAsMessage("Could not get freetext feed $feedId", $e));
+            $this->logException("Could not get freetext feed $feedId", $e);
             $this->jobProgress($jobId, 'Could not fetch freetext feed. See log for more details.');
             return false;
         }
@@ -1060,7 +1060,7 @@ class Feed extends AppModel
         try {
             $manifest = $this->getManifest($feed, $HttpSocket);
         } catch (Exception $e) {
-            CakeLog::error($this->exceptionAsMessage("Could not get manifest for feed $feedId.", $e));
+            $this->logException("Could not get manifest for feed $feedId.", $e);
             return false;
         }
 
@@ -1071,7 +1071,7 @@ class Feed extends AppModel
             try {
                 $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not get and parse event '$uuid' for feed $feedId.", $e));
+                $this->logException("Could not get and parse event '$uuid' for feed $feedId.", $e);
                 return false;
             }
 
@@ -1112,7 +1112,7 @@ class Feed extends AppModel
         try {
             $cache = $this->getCache($feed, $HttpSocket);
         } catch (Exception $e) {
-            CakeLog::notice($this->exceptionAsMessage("Could not get cache file for $feedId.", $e));
+            $this->logException("Could not get cache file for $feedId.", $e, LOG_NOTICE);
             return false;
         }
 
@@ -1623,22 +1623,6 @@ class Feed extends AppModel
                 // ignore error during saving information about job
             }
         }
-    }
-
-    /**
-     * @param string $message
-     * @param Exception $exception
-     * @return string
-     */
-    private function exceptionAsMessage($message, $exception)
-    {
-        $message = sprintf("%s\n[%s] %s",
-            $message,
-            get_class($exception),
-            $exception->getMessage()
-        );
-        $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
-        return $message;
     }
 
     /**
