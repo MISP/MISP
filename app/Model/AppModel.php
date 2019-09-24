@@ -2362,4 +2362,21 @@ class AppModel extends Model
             }
         }
     }
+    
+    /**
+     * @param string $message
+     * @param Exception $exception
+     * @param int $type
+     * @return bool
+     */
+    protected function logException($message, Exception $exception, $type = LOG_ERR)
+    {
+        $message = sprintf("%s\n[%s] %s",
+            $message,
+            get_class($exception),
+            $exception->getMessage()
+        );
+        $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+        return $this->log($message, $type);
+    }
 }
