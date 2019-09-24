@@ -96,8 +96,7 @@ class StixBuilder():
         return {'source_name': source, 'url': url}
 
     def add_all_markings(self):
-        for marking_args in self.markings.values():
-            marking = MarkingDefinition(**marking_args)
+        for marking in self.markings.values():
             self.append_object(marking)
 
     def add_all_relationships(self):
@@ -713,16 +712,18 @@ class StixBuilder():
                 'from_object']
 
     def create_marking(self, tag):
-        try:
+        if tag in tlp_markings:
             marking_definition = globals()[tlp_markings[tag]]
-            id = marking_definition.id
-        except KeyError:
-            id = 'marking-definition--%s' % uuid.uuid4()
-            definition_type, definition = tag.split(':')
-            marking_definition = {'type': 'marking-definition', 'id': id, 'definition_type': definition_type,
-                                  'definition': {definition_type: definition}}
-        self.markings[tag] = marking_definition
-        return id
+            return marking_definition.id
+        marking_id = 'marking-definition--%s' % uuid.uuid4()
+        definition_type, definition = tag.split(':')
+        marking_definition = {'type': 'marking-definition', 'id': marking_id, 'definition_type': definition_type,
+                              'definition': {definition_type: definition}}
+        try:
+            self.markings[tag] = MarkingDefinition(**marking_definition)
+        except exceptions.TLPMarkingDefinitionError:
+            return
+        return marking_id
 
     @staticmethod
     def _parse_tag(namespace, predicate):
@@ -778,7 +779,12 @@ class StixBuilder():
         return name, description, references
 
     def handle_tags(self, tags):
-        return [self.markings[tag]['id'] if tag in self.markings else self.create_marking(tag) for tag in tags]
+        marking_ids = []
+        for tag in tags:
+            marking_id = self.markings[tag]['id'] if tag in self.markings else self.create_marking(tag)
+            if marking_id:
+                marking_ids.append(marking_id)
+        return marking_ids
 
     def resolve_asn_observable(self, attributes, object_id):
         asn = objectsMapping['asn']['observable']
