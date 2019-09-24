@@ -643,9 +643,10 @@ class StixParser():
             file_header = headers.file_header
             misp_object.add_attribute(**{"type": "counter", "object_relation": "number-sections",
                                          "value": file_header.number_of_sections.value})
-            for h in file_header.hashes:
-                hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
-                header_object.add_attribute(**{"type": hash_type, "value": hash_value, "object_relation": hash_relation})
+            if file_header.hashes:
+                for h in file_header.hashes:
+                    hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
+                    header_object.add_attribute(**{"type": hash_type, "value": hash_value, "object_relation": hash_relation})
             if file_header.size_of_optional_header:
                 header_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
                                                "value": file_header.size_of_optional_header.value})
