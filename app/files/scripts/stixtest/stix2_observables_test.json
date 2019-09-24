@@ -1,7 +1,7 @@
 {
     "type": "bundle",
     "spec_version": "2.0",
-    "id": "bundle--5d888a93-d328-4502-8007-01d2a964451a",
+    "id": "bundle--5d89440c-7f98-4c49-b670-1350a964451a",
     "objects": [
         {
             "type": "identity",
@@ -17,7 +17,7 @@
             "name": "STIX observables test event",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "created": "2018-03-28T00:00:00.000Z",
-            "published": "2019-09-23T08:56:15Z",
+            "published": "2019-09-23T16:23:25Z",
             "object_marking_refs": [
                 "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9"
             ],
@@ -73,7 +73,6 @@
                 "observed-data--5ac4db18-7d84-4ab3-b47b-01ef0a00020f",
                 "observed-data--5ac4db18-0040-46e6-b788-01ef0a00020f",
                 "observed-data--5ac4db18-1c74-4220-a942-01ef0a00020f",
-                "observed-data--5ac4db19-c620-4b8d-a5a7-01ef0a00020f",
                 "observed-data--5ac4db19-f4d0-460f-94c8-01ef0a00020f",
                 "observed-data--5afb32e7-cb00-4dd5-ba41-02090a00020f",
                 "observed-data--5afb332f-1fbc-4028-be0d-02070a00020f",
@@ -86,6 +85,7 @@
                 "vulnerability--6c14bf61-c388-4d10-aeb6-9a0881550a39",
                 "x-misp-object--13f1e6e7-87ab-4ced-bb84-d9461b3eb36a",
                 "attack-pattern--7edfed6f-7b06-46ea-8aba-9c4075df40d1",
+                "observed-data--5ac4db19-c620-4b8d-a5a7-01ef0a00020f",
                 "attack-pattern--dcb864dc-775f-11e7-9fbb-1f41b4996683",
                 "intrusion-set--10df003c-7831-11e7-bdb9-971cdd1218df",
                 "malware--d752161c-78f6-11e7-a0ea-bfa79b407ce4",
@@ -93,11 +93,11 @@
                 "course-of-action--a8825ae8-6dea-11e7-8d57-7728f3cfe086",
                 "threat-actor--7cdff317-a673-4474-84ec-4f1754947823",
                 "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9",
-                "relationship--2e798119-00bc-4be3-baf5-6b31bbe1a15e",
-                "relationship--951205b5-e5ba-4bfa-9804-3af0867fe507",
-                "relationship--fbf91718-4e8a-4faf-8150-db275f1294d8"
+                "relationship--bb5c27de-7123-4fb6-9328-fa6a75d75d9a",
+                "relationship--ea61d8de-e34f-4713-87ba-177c7e757a8f",
+                "relationship--5d406dde-281f-4857-ad39-5e44b805f6b0"
             ],
-            "modified": "2019-09-23T09:04:20.311Z"
+            "modified": "2019-09-23T22:15:41.461Z"
         },
         {
             "id": "observed-data--5ac4db18-1294-41ba-a57f-01ef0a00020f",
@@ -868,35 +868,6 @@
             "modified": "2019-09-23T09:04:20.305Z"
         },
         {
-            "id": "observed-data--5ac4db19-c620-4b8d-a5a7-01ef0a00020f",
-            "type": "observed-data",
-            "labels": [
-                "misp:type=\"file\"",
-                "misp:category=\"file\"",
-                "misp:to_ids=\"False\"",
-                "from_object"
-            ],
-            "number_observed": 1,
-            "objects": {
-                "0": {
-                    "type": "file",
-                    "hashes": {
-                        "MD5": "b2a5abfeef9e36964281a31e17b57c97",
-                        "SHA-256": "3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8",
-                        "SHA-1": "5898fc860300e228dcd54c0b1045b5fa0dcda502"
-                    },
-                    "size": 1234,
-                    "x_misp_text_state": "Trusted",
-                    "name": "oui"
-                }
-            },
-            "first_observed": "2019-08-12T11:31:03Z",
-            "last_observed": "2019-08-12T11:31:03Z",
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2019-09-23T09:04:20.305Z",
-            "modified": "2019-09-23T09:04:20.305Z"
-        },
-        {
             "id": "observed-data--5ac4db19-f4d0-460f-94c8-01ef0a00020f",
             "type": "observed-data",
             "labels": [
@@ -1257,6 +1228,66 @@
             "modified": "2019-09-23T09:04:20.309Z"
         },
         {
+            "id": "observed-data--5ac4db19-c620-4b8d-a5a7-01ef0a00020f",
+            "type": "observed-data",
+            "labels": [
+                "misp:type=\"WindowsPEBinaryFile\"",
+                "misp:category=\"file\"",
+                "misp:to_ids=\"False\"",
+                "from_object"
+            ],
+            "number_observed": 1,
+            "objects": {
+                "0": {
+                    "type": "file",
+                    "hashes": {
+                        "MD5": "b2a5abfeef9e36964281a31e17b57c97",
+                        "SHA-256": "3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8",
+                        "SHA-1": "5898fc860300e228dcd54c0b1045b5fa0dcda502"
+                    },
+                    "size": 1234,
+                    "x_misp_text_state": "Trusted",
+                    "name": "oui",
+                    "extensions": {
+                        "windows-pebinary-ext": {
+                            "pe_type": "exe",
+                            "x_misp_text_entrypoint_address": "5369222868",
+                            "x_misp_datetime_compilation_timestamp": "2019-03-16T12:31:22",
+                            "x_misp_filename_original_filename": "PuTTY",
+                            "x_misp_filename_internal_filename": "PuTTY",
+                            "x_misp_text_file_description": "SSH, Telnet and Rlogin client",
+                            "x_misp_text_file_version": "Release 0.71 (with embedded help)",
+                            "x_misp_text_lang_id": "080904B0",
+                            "x_misp_text_product_name": "PuTTY suite",
+                            "x_misp_text_product_version": "Release 0.71",
+                            "x_misp_text_company_name": "Simon Tatham",
+                            "x_misp_text_legal_copyright": "Copyright \u00a9 1997-2019 Simon Tatham.",
+                            "number_of_sections": 1,
+                            "sections": [
+                                {
+                                    "name": ".rsrc",
+                                    "size": 305152,
+                                    "entropy": 7.836462238824369,
+                                    "hashes": {
+                                        "ssdeep": "6144:BvqbV6zoA5yJJ1entjx+UJlVshhKuqMrgyNhahL2uSvhM:BvuVy5UJUtwUJ/UjHSEuSvK",
+                                        "MD5": "8a2a5fc2ce56b3b04d58539a95390600",
+                                        "SHA-1": "0aeb9def096e9f73e9460afe6f8783a32c7eabdf",
+                                        "SHA-256": "c6b3ac8303a72be90b0e47f69977e6f5665693d4ea0aa93e5c27b5c556c7cf9b",
+                                        "SHA-512": "98fce208e6ed9612db53725fe03b73ab7cb1b487814d521c3c218273cad33891ce832c4f842c6f492d92df1e78414c82a00ddb91a1f8ec7d67325231a597a78f"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "first_observed": "2019-09-23T16:23:16Z",
+            "last_observed": "2019-09-23T16:23:16Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T22:15:41.459Z",
+            "modified": "2019-09-23T22:15:41.459Z"
+        },
+        {
             "id": "attack-pattern--dcb864dc-775f-11e7-9fbb-1f41b4996683",
             "type": "attack-pattern",
             "name": "DLL Search Order Hijacking - T1038",
@@ -1370,29 +1401,29 @@
         },
         {
             "type": "relationship",
-            "id": "relationship--2e798119-00bc-4be3-baf5-6b31bbe1a15e",
-            "created": "2019-09-23T09:04:20.311Z",
-            "modified": "2019-09-23T09:04:20.311Z",
+            "id": "relationship--bb5c27de-7123-4fb6-9328-fa6a75d75d9a",
+            "created": "2019-09-23T22:15:41.461Z",
+            "modified": "2019-09-23T22:15:41.461Z",
             "source_ref": "vulnerability--6c14bf61-c388-4d10-aeb6-9a0881550a39",
-            "relationship_type": "related-to ",
+            "relationship_type": "related-to",
             "target_ref": "vulnerability--5ac4db18-0150-4435-b016-01ef0a00020f"
         },
         {
             "type": "relationship",
-            "id": "relationship--951205b5-e5ba-4bfa-9804-3af0867fe507",
-            "created": "2019-09-23T09:04:20.311Z",
-            "modified": "2019-09-23T09:04:20.311Z",
+            "id": "relationship--ea61d8de-e34f-4713-87ba-177c7e757a8f",
+            "created": "2019-09-23T22:15:41.461Z",
+            "modified": "2019-09-23T22:15:41.461Z",
             "source_ref": "vulnerability--6c14bf61-c388-4d10-aeb6-9a0881550a39",
-            "relationship_type": "weakened-by ",
+            "relationship_type": "weakened-by",
             "target_ref": "x-misp-object--13f1e6e7-87ab-4ced-bb84-d9461b3eb36a"
         },
         {
             "type": "relationship",
-            "id": "relationship--fbf91718-4e8a-4faf-8150-db275f1294d8",
-            "created": "2019-09-23T09:04:20.311Z",
-            "modified": "2019-09-23T09:04:20.311Z",
+            "id": "relationship--5d406dde-281f-4857-ad39-5e44b805f6b0",
+            "created": "2019-09-23T22:15:41.461Z",
+            "modified": "2019-09-23T22:15:41.461Z",
             "source_ref": "vulnerability--6c14bf61-c388-4d10-aeb6-9a0881550a39",
-            "relationship_type": "targeted-by ",
+            "relationship_type": "targeted-by",
             "target_ref": "attack-pattern--7edfed6f-7b06-46ea-8aba-9c4075df40d1"
         }
     ]

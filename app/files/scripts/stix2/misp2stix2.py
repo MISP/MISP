@@ -122,8 +122,8 @@ class StixBuilder():
                     target = '{}--{}'.format(self.ids[target_uuid], target_uuid)
                 except KeyError:
                     continue
-                relationship = Relationship(source_ref=source, relationship_type=relationship_type,
-                                            target_ref=target, interoperability=True)
+                relationship = Relationship(source_ref=source, target_ref=target, interoperability=True,
+                                            relationship_type=relationship_type.strip())
                 self.append_object(relationship, id_mapping=False)
 
     def __set_identity(self):
