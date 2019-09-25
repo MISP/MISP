@@ -1460,13 +1460,15 @@ class AppModel extends Model
     public function cleanCacheFiles()
     {
         Cache::clear();
+        Cache::clear(false, '_cake_core_');
+        Cache::clear(false, '_cake_model_');
         clearCache();
-        $files = array();
-        $files = array_merge($files, glob(CACHE . 'models' . DS . 'myapp*'));
+
+        $files = glob(CACHE . 'models' . DS . 'myapp*');
         $files = array_merge($files, glob(CACHE . 'persistent' . DS . 'myapp*'));
-        foreach ($files as $f) {
-            if (is_file($f)) {
-                unlink($f);
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                unlink($file);
             }
         }
     }

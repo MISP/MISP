@@ -3726,34 +3726,18 @@ class Server extends AppModel
         } else {
             $oldValue = Configure::read($setting['name']);
             $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
+
             if ($settingSaveResult) {
-                $result = $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => $user['email'],
-                        'action' => 'serverSettingsEdit',
-                        'user_id' => $user['id'],
-                        'title' => 'Server setting changed',
-                        'change' => $setting['name'] . ' (' . $oldValue . ') => (' . $value . ')',
-                ));
+                $this->Log = ClassRegistry::init('Log');
+                $change = array($setting['name'] => array($oldValue, $value));
+                $this->Log->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting changed', $change);
+
                 // execute after hook
                 if (isset($setting['afterHook'])) {
                     $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value));
                     if ($afterResult !== true) {
-                        $this->Log->create();
-                        $result = $this->Log->save(array(
-                                'org' => $user['Organisation']['name'],
-                                'model' => 'Server',
-                                'model_id' => 0,
-                                'email' => $user['email'],
-                                'action' => 'serverSettingsEdit',
-                                'user_id' => $user['id'],
-                                'title' => 'Server setting issue',
-                                'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
-                        ));
+                        $change = 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult;
+                        $this->Log->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting issue', $change);
                         return $afterResult;
                     }
                 }
@@ -4070,10 +4054,7 @@ class Server extends AppModel
         if (empty($user)) {
             $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
         }
-        App::uses('Folder', 'Utility');
-        $file = new File(ROOT . DS . 'VERSION.json', true);
-        $localVersion = json_decode($file->read(), true);
-        $file->close();
+        $localVersion = $this->checkMISPVersion();
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
