@@ -33,7 +33,6 @@
         $this->Form->button(__('Submit'), array('class' => 'btn btn-primary')),
         $this->Form->end()
     );
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'regexp', 'menuItem' => 'edit', 'id' => $this->Form->value('Regexp.id')));
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'user_settings_set'));
 ?>
 <script type="text/javascript">
