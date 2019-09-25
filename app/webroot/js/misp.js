@@ -4257,8 +4257,6 @@ function checkIfLoggedIn() {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }
-        }).fail(function() {
-                window.location.replace(baseurl + "/users/login");
         });
     }
     setTimeout(function() { checkIfLoggedIn(); }, 5000);
@@ -4275,7 +4273,7 @@ function insertHTMLRestResponse() {
 }
 
 function insertJSONRestResponse() {
-    $('#rest-response-container').append('<p id="json-response-container" style="border: 1px solid blue; padding:5px;" />');
+    $('#rest-response-container').append('<p id="json-response-container" style="border: 1px solid blue; padding:5px; overflow-wrap: break-word;" />');
     var parsedJson = syntaxHighlightJson($('#rest-response-hidden-container').text());
     $('#json-response-container').html(parsedJson);
 }

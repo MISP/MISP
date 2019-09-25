@@ -51,7 +51,8 @@
                 'label' => __('HTTP method to use'),
                 'options' => array(
                     'GET' => 'GET',
-                    'POST' => 'POST'
+                    'POST' => 'POST',
+                    'DELETE' => 'DELETE'
                 )
             ));
         ?>

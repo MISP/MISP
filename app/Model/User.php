@@ -723,11 +723,12 @@ class User extends AppModel
         $Email = new CakeEmail();
         $recipient = array('User' => array('email' => $params['to']));
         $failed = false;
+        $mock = false;
         if (!empty($params['gpgkey'])) {
             $recipient['User']['gpgkey'] = $params['gpgkey'];
             $encryptionResult = $this->__encryptUsingGPG($Email, $params['body'], $params['subject'], $recipient);
             if (isset($encryptionResult['failed'])) {
-                $failed = true;
+                $mock = true;
             }
             if (isset($encryptionResult['failureReason'])) {
                 $failureReason = $encryptionResult['failureReason'];
@@ -754,8 +755,7 @@ class User extends AppModel
                 }
             }
             $Email->attachments($attachments);
-            $mock = false;
-            if (Configure::read('MISP.disable_emailing') || !empty($params['mock'])) {
+            if (!empty(Configure::read('MISP.disable_emailing')) || !empty($params['mock'])) {
                 $Email->transport('Debug');
                 $mock = true;
             }

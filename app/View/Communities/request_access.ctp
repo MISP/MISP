@@ -52,7 +52,9 @@
             $this->element('/genericElements/Forms/clear') .
             $this->Form->input('mock', array(
                 'label' => __('Generate e-mail for later use, but do not send it'),
-                'type' => 'checkbox'
+                'type' => 'checkbox',
+                'disabled' => !empty(Configure::read('MISP.disable_emailing')),
+                'checked' => !empty(Configure::read('MISP.disable_emailing'))
             ))
         ),
         $this->Form->button('Submit', array(

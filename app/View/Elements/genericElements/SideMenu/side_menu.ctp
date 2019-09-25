@@ -545,7 +545,7 @@
                             'url' => sprintf(
                                 '/servers/pull/%s/%s',
                                 h($server['Server']['id']),
-                                h($server['Event']['id'])
+                                h($event['Event']['id'])
                             ),
                             'text' => __('Fetch This Event'),
                             'message' => __('Are you sure you want to fetch and save this event on your instance?')

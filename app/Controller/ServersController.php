@@ -310,6 +310,7 @@ class ServersController extends AppController
                                 $this->request->data['Server']['external_uuid'] = $json['uuid'];
                             } else {
                                 $this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+                                $this->request->data['Server']['organisation_type'] = 1;
                             }
                         }
                     }
@@ -1835,6 +1836,17 @@ class ServersController extends AppController
                 $python = $this->__generatePythonScript($request, $url);
             }
             $response = $HttpSocket->post($url, $request['body'], array('header' => $request['header']));
+        } elseif (
+            !empty($request['method']) &&
+            $request['method'] === 'DELETE'
+        ) {
+            if ($curl !== false) {
+                $curl = $this->__generateCurlQuery('delete', $request, $url);
+            }
+            if ($python !== false) {
+                $python = $this->__generatePythonScript($request, $url);
+            }
+            $response = $HttpSocket->delete($url, false, array('header' => $request['header']));
         } else {
             return false;
         }
@@ -1936,7 +1948,7 @@ misp.direct_call(relative_path, body)
         $relative_path = $this->request->data['url'];
         $result = $this->RestResponse->getApiInfo($relative_path);
         if ($this->_isRest()) {
-            return $result;
+            return $this->RestResponse->viewData($result, $this->response->type(), false, true);
         } else {
             $result = json_decode($result, true);
             if (empty($result)) {

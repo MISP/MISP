@@ -3726,34 +3726,18 @@ class Server extends AppModel
         } else {
             $oldValue = Configure::read($setting['name']);
             $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
+
             if ($settingSaveResult) {
-                $result = $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => $user['email'],
-                        'action' => 'serverSettingsEdit',
-                        'user_id' => $user['id'],
-                        'title' => 'Server setting changed',
-                        'change' => $setting['name'] . ' (' . $oldValue . ') => (' . $value . ')',
-                ));
+                $this->Log = ClassRegistry::init('Log');
+                $change = array($setting['name'] => array($oldValue, $value));
+                $this->Log->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting changed', $change);
+
                 // execute after hook
                 if (isset($setting['afterHook'])) {
                     $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value));
                     if ($afterResult !== true) {
-                        $this->Log->create();
-                        $result = $this->Log->save(array(
-                                'org' => $user['Organisation']['name'],
-                                'model' => 'Server',
-                                'model_id' => 0,
-                                'email' => $user['email'],
-                                'action' => 'serverSettingsEdit',
-                                'user_id' => $user['id'],
-                                'title' => 'Server setting issue',
-                                'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
-                        ));
+                        $change = 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult;
+                        $this->Log->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting issue', $change);
                         return $afterResult;
                     }
                 }
@@ -4070,10 +4054,7 @@ class Server extends AppModel
         if (empty($user)) {
             $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
         }
-        App::uses('Folder', 'Utility');
-        $file = new File(ROOT . DS . 'VERSION.json', true);
-        $localVersion = json_decode($file->read(), true);
-        $file->close();
+        $localVersion = $this->checkMISPVersion();
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
@@ -4319,7 +4300,7 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'stix2' => '1.1.2', 'pymisp' => '>2.4.93');
+        $expected = array('stix' => '>1.2.0.6', 'cybox' => '>2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '1.1.3', 'pymisp' => '>2.4.93');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);
