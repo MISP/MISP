@@ -70,7 +70,7 @@ class Attribute extends AppModel
 
         //
         // NOTE WHEN MODIFYING: please ensure to run the script 'tools/gen_misp_types_categories.py' to update the new definitions everywhere. (docu, website, RFC, ...)
-        //  
+        //
         $this->categoryDefinitions = array(
             'Internal reference' => array(
                     'desc' => __('Reference used by the publishing party (e.g. ticket number)'),
@@ -149,7 +149,7 @@ class Attribute extends AppModel
 
         //
         // NOTE WHEN MODIFYING: please ensure to run the script 'tools/gen_misp_types_categories.py' to update the new definitions everywhere. (docu, website, RFC, ...)
-        //  
+        //
         $this->typeDefinitions = array(
             'md5' => array('desc' => __('A checksum in md5 format'), 'formdesc' => __("You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'sha1' => array('desc' => __('A checksum in sha1 format'), 'formdesc' => __("You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -405,7 +405,8 @@ class Attribute extends AppModel
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'cache' => array('txt', 'CacheExport', 'cache'),
-        'attack-sightings' => array('json', 'AttackSightingsExport', 'json')
+        'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
+        'netfilter' => array('txt', 'NetfilterExport', 'sh')
     );
 
     // FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
@@ -4313,7 +4314,10 @@ class Attribute extends AppModel
             'filters' => $filters
         );
         if (!empty($exportTool->additional_params)) {
-            $params = array_merge($params, $exportTool->additional_params);
+            $params = array_merge_recursive(
+                $params,
+                $exportTool->additional_params
+            );
         }
         $tmpfile = tmpfile();
         fwrite($tmpfile, $exportTool->header($exportToolParams));
