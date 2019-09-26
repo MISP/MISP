@@ -180,7 +180,8 @@ class Event extends AppModel
         'yara-json' => array('json', 'YaraExport', 'json'),
         'cache' => array('txt', 'CacheExport', 'cache'),
         'attack' => array('html', 'AttackExport', 'html'),
-        'attack-sightings' => array('json', 'AttackSightingsExport', 'json')
+        'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
+        'netfilter' => array('txt', 'NetfilterExport', 'sh')
     );
 
     public $csv_event_context_fields_to_fetch = array(
