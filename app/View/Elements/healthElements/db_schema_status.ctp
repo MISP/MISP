@@ -86,10 +86,16 @@
         $table .= $rows . '</tbody></table>';
         echo $table;
     } else {
-        echo sprintf('<span class="label label-success" title="%s">%s <i class="fas fa-check"></i></span>',
-            __('The current database is correct'),
-            __('Database schema diagnostic: ')
-        );
+        if (empty($error)) {
+            echo sprintf('<span class="label label-success" title="%s">%s <i class="fas fa-check"></i></span>',
+                __('The current database is correct'),
+                __('Database schema diagnostic: ')
+            );
+        } else {
+            echo sprintf('<span class="label label-important" style="margin-left: 5px;" >%s <i class="fas fa-times"></i></span>',
+                h($error)
+            );
+        }
     }
     echo sprintf('<span class="label label-default" style="margin-left: 5px;">%s</span>',
         __('Expected DB_version: ') . h($expectedDbVersion)

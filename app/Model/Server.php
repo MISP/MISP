@@ -4219,20 +4219,42 @@ class Server extends AppModel
 
     public function dbSchemaDiagnostic()
     {
-        $db_actual_schema = $this->getActualDBSchema();
-        $table_column_names = $db_actual_schema['column'];
-        $db_actual_schema = $db_actual_schema['schema'];
-        $db_expected_schema = $this->getExpectedDBSchema();
-        $db_schema_comparison = $this->compareDBSchema($db_actual_schema, $db_expected_schema['schema']);
         $actual_db_version = $this->AdminSetting->find('first', array(
             'conditions' => array('setting' => 'db_version')
         ))['AdminSetting']['value'];
-        return array(
-            'checked_table_column' => $table_column_names,
-            'diagnostic' => $db_schema_comparison,
-            'expected_db_version' => $db_expected_schema['db_version'],
-            'actual_db_version' => $actual_db_version
-        );
+        $data_source = $this->getDataSource()->config['datasource'];
+        if ($data_source == 'Database/Mysql') {
+            $db_actual_schema = $this->getActualDBSchema();
+            $table_column_names = $db_actual_schema['column'];
+            $db_actual_schema = $db_actual_schema['schema'];
+            $db_expected_schema = $this->getExpectedDBSchema();
+            if ($db_expected_schema !== false) {
+                $db_schema_comparison = $this->compareDBSchema($db_actual_schema, $db_expected_schema['schema']);
+                return array(
+                    'checked_table_column' => $table_column_names,
+                    'diagnostic' => $db_schema_comparison,
+                    'expected_db_version' => $db_expected_schema['db_version'],
+                    'actual_db_version' => $actual_db_version,
+                    'error' => ''
+                );
+            } else {
+                return array(
+                    'checked_table_column' => array(),
+                    'diagnostic' => array(),
+                    'expected_db_version' => '?',
+                    'actual_db_version' => $actual_db_version,
+                    'error' => sprintf('Diagnostic not available as the expected schema file could not be loaded')
+                );
+            }
+        } else {
+            return array(
+                'checked_table_column' => array(),
+                'diagnostic' => array(),
+                'expected_db_version' => '?',
+                'actual_db_version' => $actual_db_version,
+                'error' => sprintf('Diagnostic not available for DataSource `%s`', $data_source)
+            );
+        }
     }
 
     public function getExpectedDBSchema()
@@ -4241,7 +4263,11 @@ class Server extends AppModel
         $file = new File(ROOT . DS . 'db_schema.json', true);
         $db_expected_schema = json_decode($file->read(), true);
         $file->close();
-        return $db_expected_schema;
+        if (!is_null($db_expected_schema)) {
+            return $db_expected_schema;
+        } else {
+            return false;
+        }
     }
 
     public function getActualDBSchema($table_column_names = array('column_name', 'is_nullable', 'data_type', 'character_maximum_length', 'numeric_precision', 'datetime_precision', 'collation_name'))

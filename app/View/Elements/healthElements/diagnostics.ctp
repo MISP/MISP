@@ -232,7 +232,8 @@
                 'checkedTableColumn' => $dbSchemaDiagnostics['checked_table_column'],
                 'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'],
                 'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
-                'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version']
+                'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version'],
+                'error' => $dbSchemaDiagnostics['error']
             )); ?>
         </div>
     <h3><?php echo __('Advanced attachment handler');?></h3>
