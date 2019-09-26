@@ -895,7 +895,8 @@ class ServersController extends AppController
     public function dbSchemaDiagnostic()
     {
         $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
-        $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics);
+        $this->set('checkedTableColumn', $dbSchemaDiagnostics['checked_table_column']);
+        $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics['diagnostic']);
         $this->render('/Elements/healthElements/db_schema_status');
     }
 

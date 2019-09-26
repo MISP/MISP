@@ -4219,32 +4219,14 @@ class Server extends AppModel
 
     public function dbSchemaDiagnostic()
     {
-        $data_source = $this->getDataSource()->config['datasource'];
-        $db_actual_schema = array();
-        if ($data_source == 'Database/Mysql') {
-            $sql_show = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
-            $sql_result = $this->query($sql_show);
-            $tables = HASH::extract($sql_result, '{n}.tables.table_name');
-            foreach ($tables as $table) {
-                // $sql_desc = sprintf('DESC `%s`;', $table);
-                $sql_desc = sprintf(
-                    "SELECT column_name, is_nullable, data_type, character_maximum_length, numeric_precision, datetime_precision, collation_name
-                    FROM information_schema.columns
-                    WHERE table_schema = '%s' AND table_name = '%s'", $this->getDataSource()->config['database'], $table);
-                $sql_result = $this->query($sql_desc);
-                foreach ($sql_result as $column_schema) {
-                    // $db_actual_schema[$table][] = array_values($column_schema['COLUMNS']);
-                    $db_actual_schema[$table][] = array_values($column_schema['columns']);
-                }
-            }
-        }
-        else if ($data_source == 'Database/Postgres') {
-            return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
-        }
-
+        $table_column_names = array('column_name', 'is_nullable', 'data_type', 'character_maximum_length', 'numeric_precision', 'datetime_precision', 'collation_name');
+        $db_actual_schema = $this->getActualDBSchema($table_column_names);
         $db_expected_schema = $this->getExpectedDBSchema();
         $db_schema_comparison = $this->compareDBSchema($db_actual_schema, $db_expected_schema);
-        return $db_schema_comparison;
+        return array(
+            'checked_table_column' => $table_column_names,
+            'diagnostic' => $db_schema_comparison
+        );
     }
 
     public function getExpectedDBSchema()
@@ -4254,6 +4236,31 @@ class Server extends AppModel
         $db_expected_schema = json_decode($file->read(), true);
         $file->close();
         return $db_expected_schema;
+    }
+
+    public function getActualDBSchema($table_column_names = array())
+    {
+        $db_actual_schema = array();
+        $data_source = $this->getDataSource()->config['datasource'];
+        if ($data_source == 'Database/Mysql') {
+            $sql_show = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
+            $sql_result = $this->query($sql_show);
+            $tables = HASH::extract($sql_result, '{n}.tables.table_name');
+            foreach ($tables as $table) {
+                $sql_desc = sprintf(
+                    "SELECT %s
+                    FROM information_schema.columns
+                    WHERE table_schema = '%s' AND table_name = '%s'", implode(',', $table_column_names), $this->getDataSource()->config['database'], $table);
+                $sql_result = $this->query($sql_desc);
+                foreach ($sql_result as $column_schema) {
+                    $db_actual_schema[$table][] = array_values($column_schema['columns']);
+                }
+            }
+        }
+        else if ($data_source == 'Database/Postgres') {
+            return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
+        }
+        return $db_actual_schema;
     }
 
     public function compareDBSchema($db_actual_schema, $db_expected_schema)

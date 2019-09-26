@@ -4320,7 +4320,7 @@ function jsonToNestedTable(json, header, table_classes) {
     if (header.length > 0) {
         var $header = $('<thead><tr></tr></thead>');
         header.forEach(function(col) {
-            $header.child().append($('<td></td>').text(col));
+            $header.children().append($('<th></th>').text(col));
         });
         $table.append($header);
     }
@@ -4335,6 +4335,33 @@ function jsonToNestedTable(json, header, table_classes) {
                 .append($('<td></td>').text(k))
                 .append($('<td></td>').text(value))
         );
+    });
+    $table.append($body);
+    return $table[0].outerHTML;
+}
+
+function arrayToNestedTable(header, data, table_classes) {
+    header = header === undefined ? [] : header;
+    table_classes = table_classes === undefined ? ['table', 'table-condensed', 'table-bordered'] : table_classes;
+    var $table = $('<table></table>');
+    table_classes.forEach(function(classname) {
+        $table.addClass(classname);
+    });
+    if (header.length > 0) {
+        var $header = $('<thead><tr></tr></thead>');
+        header.forEach(function(col) {
+            $header.children().append($('<th></th>').text(col));
+        });
+        $table.append($header);
+    }
+    var $body = $('<tbody></tbody>');
+    data.forEach(function(row, i) {
+        var $tr = $('<tr></tr>');
+        row.forEach(function(cell, j) {
+            var $td = $('<td></td>').text(cell);
+            $tr.append($td);
+        });
+        $body.append($tr);
     });
     $table.append($body);
     return $table[0].outerHTML;

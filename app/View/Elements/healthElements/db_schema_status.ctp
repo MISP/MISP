@@ -78,8 +78,8 @@
 
                 $rows .= '<tr>';
                     $rows .= sprintf('<td>%s</td>', $sane_description);
-                    $rows .= sprintf('<td>%s</td>', implode(' ', $sane_expected));
-                    $rows .= sprintf('<td>%s</td>', implode(' ', $sane_actual));
+                    $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($table_name), h($i), implode(' ', $sane_expected));
+                    $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($table_name), h($i), implode(' ', $sane_actual));
                 $rows .= '</tr>';
             }
         }
@@ -92,3 +92,33 @@
         );
     }
 ?>
+<script>
+var db_schema_diagnostics = <?php echo json_encode($dbSchemaDiagnostics); ?>;
+var db_schema_diagnostics_columns = <?php echo json_encode($checkedTableColumn); ?>;
+
+$(document).ready(function() {
+    var popover_diagnostic = $('td.dbColumnDiagnosticRow').popover({
+        title: '<?php echo __('Column diagnostic'); ?>',
+        content: function() {
+            var $row = $(this);
+            var tableName = $row.data('table');
+            var column_id = $row.data('index');
+            var popover_html = arrayToNestedTable(
+                db_schema_diagnostics_columns,
+                [
+                    db_schema_diagnostics[tableName][column_id].expected,
+                    db_schema_diagnostics[tableName][column_id].actual,
+                ]
+            );
+            return popover_html;
+        },
+        html: true,
+        placement: function(context, src) {
+            $(context).css('max-width', 'fit-content'); // make popover larger
+            return 'top';
+        },
+        container: 'body',
+        trigger: 'hover'
+    });
+});
+</script>
