@@ -97,7 +97,8 @@
             );
         }
     }
-    echo sprintf('<span class="label label-default" style="margin-left: 5px;">%s</span>',
+    echo sprintf('<span class="label label-%s" style="margin-left: 5px;">%s</span>',
+        is_numeric($expectedDbVersion) ? 'success' : 'important',
         __('Expected DB_version: ') . h($expectedDbVersion)
     );
     if ($expectedDbVersion == $actualDbVersion) {
