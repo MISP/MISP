@@ -24,23 +24,22 @@
     if (!empty($data['html'])) {
         echo sprintf('<p>%s</p>', $data['html']);
     }
-    $paginationData = array();
-    if (!empty($data['paginationBaseurl'])) {
-        $paginationData['paginationBaseurl'] = $data['paginationBaseurl'];
-    }
     $skip_pagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
     if (!$skip_pagination) {
+        $paginationData = array();
+        if (!empty($data['paginationBaseurl'])) {
+            $paginationData['paginationBaseurl'] = $data['paginationBaseurl'];
+        }
         echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
     }
     if (!empty($data['top_bar'])) {
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data['top_bar']));
     }
     $rows = '';
+    $row_element = isset($data['row_element']) ? $data['row_element'] : 'row';
+    $options = isset($data['options']) ? $data['options'] : array();
+    $actions = isset($data['actions']) ? $data['actions'] : array();
     foreach ($data['data'] as $k => $data_row) {
-        $row_element = 'row';
-        if (!empty($data['row_element'])) {
-            $row_element = $data['row_element'];
-        }
         $rows .= sprintf(
             '<tr data-row-id="%s">%s</tr>',
             h($k),
@@ -50,8 +49,8 @@
                     'k' => $k,
                     'row' => $data_row,
                     'fields' => $data['fields'],
-                    'options' => empty($data['options']) ? array() : $data['options'],
-                    'actions' => empty($data['actions']) ? array() : $data['actions']
+                    'options' => $options,
+                    'actions' => $actions,
                 )
             )
         );

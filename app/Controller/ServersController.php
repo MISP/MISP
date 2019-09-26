@@ -22,7 +22,7 @@ class ServersController extends AppController
             ),
             'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
             'order' => array(
-                    'Server.url' => 'ASC'
+                    'Server.priority' => 'ASC'
             ),
     );
 
@@ -44,12 +44,6 @@ class ServersController extends AppController
 
     public function index()
     {
-        if (!$this->_isSiteAdmin()) {
-            if (!$this->userRole['perm_sync'] && !$this->userRole['perm_admin']) {
-                $this->redirect(array('controller' => 'events', 'action' => 'index'));
-            }
-            $this->paginate['conditions'] = array('Server.org_id LIKE' => $this->Auth->user('org_id'));
-        }
         if ($this->_isRest()) {
             $params = array(
                 'recursive' => -1,
@@ -316,6 +310,7 @@ class ServersController extends AppController
                                 $this->request->data['Server']['external_uuid'] = $json['uuid'];
                             } else {
                                 $this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+                                $this->request->data['Server']['organisation_type'] = 1;
                             }
                         }
                     }
@@ -1634,8 +1629,13 @@ class ServersController extends AppController
     {
         if ($this->request->is('post')) {
             $status = $this->Server->getCurrentGitStatus();
-            $update = $this->Server->update($status);
-            return new CakeResponse(array('body'=> $update, 'type' => 'txt'));
+            $raw = array();
+            $update = $this->Server->update($status, $raw);
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData(array('results' => $raw), $this->response->type());
+            } else {
+                return new CakeResponse(array('body'=> $update, 'type' => 'txt'));
+            }
         } else {
             $branch = $this->Server->getCurrentBranch();
             $this->set('branch', $branch);
@@ -1844,6 +1844,17 @@ class ServersController extends AppController
                 $python = $this->__generatePythonScript($request, $url);
             }
             $response = $HttpSocket->post($url, $request['body'], array('header' => $request['header']));
+        } elseif (
+            !empty($request['method']) &&
+            $request['method'] === 'DELETE'
+        ) {
+            if ($curl !== false) {
+                $curl = $this->__generateCurlQuery('delete', $request, $url);
+            }
+            if ($python !== false) {
+                $python = $this->__generatePythonScript($request, $url);
+            }
+            $response = $HttpSocket->delete($url, false, array('header' => $request['header']));
         } else {
             return false;
         }
@@ -1945,7 +1956,7 @@ misp.direct_call(relative_path, body)
         $relative_path = $this->request->data['url'];
         $result = $this->RestResponse->getApiInfo($relative_path);
         if ($this->_isRest()) {
-            return $result;
+            return $this->RestResponse->viewData($result, $this->response->type(), false, true);
         } else {
             $result = json_decode($result, true);
             if (empty($result)) {
@@ -2095,6 +2106,48 @@ misp.direct_call(relative_path, body)
                     $this->redirect(array('action' => 'index'));
                 }
             }
+        }
+    }
+
+    public function resetRemoteAuthKey($id)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint expects POST requests.'));
+        }
+        $result = $this->Server->resetRemoteAuthkey($id);
+        if ($result !== true) {
+            if (!$this->_isRest()) {
+                $this->Flash->error($result);
+                $this->redirect(array('action' => 'index'));
+            } else {
+                return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $message, $this->response->type());
+            }
+        } else {
+            $message = __('API key updated.');
+            if (!$this->_isRest()) {
+                $this->Flash->success($message);
+                $this->redirect(array('action' => 'index'));
+            } else {
+                return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $message, $this->response->type());
+            }
+        }
+    }
+
+    public function changePriority($id = false, $direction = 'down') {
+        $this->Server->id = $id;
+        if (!$this->Server->exists()) {
+            throw new InvalidArgumentException(__('ID has to be a valid server connection'));
+        }
+        if ($direction !== 'up' && $direction !== 'down') {
+            throw new InvalidArgumentException(__('Invalid direction. Valid options: ', 'up', 'down'));
+        }
+        $success = $this->Server->reprioritise($id, $direction);
+        if ($success) {
+            $message = __('Priority changed.');
+            return $this->RestResponse->saveSuccessResponse('Servers', 'changePriority', $message, $this->response->type());
+        } else {
+            $message = __('Priority could not be changed.');
+            return $this->RestResponse->saveFailResponse('Servers', 'changePriority', $id, $message, $this->response->type());
         }
     }
 }

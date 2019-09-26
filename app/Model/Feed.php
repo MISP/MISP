@@ -461,7 +461,7 @@ class Feed extends AppModel
 
         $result = array(
             'header' => array(
-                    'Accept' => 'application/json',
+                    'Accept' => array('application/json', 'text/plain'),
                     'Content-Type' => 'application/json',
                     'MISP-version' => $version,
                     'MISP-uuid' => Configure::read('MISP.uuid')
@@ -502,6 +502,7 @@ class Feed extends AppModel
                             foreach ($filterRules[$field][$prefix] as $temp) {
                                 if (stripos($object['name'], $temp) !== false) {
                                     $found = true;
+                                    break 2;
                                 }
                             }
                         }
@@ -514,9 +515,6 @@ class Feed extends AppModel
                     }
                 }
             }
-        }
-        if (!$filterRules) {
-            return true;
         }
         return true;
     }
@@ -1641,5 +1639,53 @@ class Feed extends AppModel
         );
         $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
         return $message;
+    }
+
+    /**
+     * remove all events tied to a feed. Returns int on success, error message
+     * as string on failure
+     */
+    public function cleanupFeedEvents($user_id, $id)
+    {
+        $feed = $this->find('first', array(
+            'conditions' => array('Feed.id' => $id),
+            'recursive' => -1
+        ));
+        if (empty($feed)) {
+            return __('Invalid feed id.');
+        }
+        if (!in_array($feed['Feed']['source_format'], array('csv', 'freetext'))) {
+            return __('Feed has to be either a CSV or a freetext feed for the purging to work.');
+        }
+        $this->User = ClassRegistry::init('User');
+        $user = $this->User->getAuthUser($user_id);
+        if (empty($user)) {
+            return __('Invalid user id.');
+        }
+        $conditions = array('Event.info' => $feed['Feed']['name'] . ' feed');
+        $this->Event = ClassRegistry::init('Event');
+        $events = $this->Event->find('list', array(
+            'conditions' => $conditions,
+            'fields' => array('Event.id', 'Event.id')
+        ));
+        $count = count($events);
+        foreach ($events as $event_id) {
+            $this->Event->delete($event_id);
+        }
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'Feed',
+                'model_id' => $id,
+                'email' => $user['email'],
+                'action' => 'purge_events',
+                'title' => __('Events related to feed %s purged.', $id),
+                'change' => null,
+        ));
+        $feed['Feed']['fixed_event'] = 1;
+        $feed['Feed']['event_id'] = 0;
+        $this->save($feed);
+        return $count;
     }
 }

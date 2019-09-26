@@ -545,7 +545,7 @@
                             'url' => sprintf(
                                 '/servers/pull/%s/%s',
                                 h($server['Server']['id']),
-                                h($server['Event']['id'])
+                                h($event['Event']['id'])
                             ),
                             'text' => __('Fetch This Event'),
                             'message' => __('Are you sure you want to fetch and save this event on your instance?')
@@ -909,6 +909,55 @@
                                 'element_id' => 'edit',
                                 'url' => '/templates/edit/' . h($id),
                                 'text' => __('Edit Template')
+                            ));
+                        }
+                    }
+                    break;
+
+                case 'decayingModel':
+                    if ($isAdmin) {
+                        if ($isSiteAdmin && ($menuItem === 'view' || $menuItem === 'index')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                                'event_id' => 'update',
+                                'url' => '/decayingModel/update',
+                                'text' => __('Update Default Models')
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                                'event_id' => 'update',
+                                'url' => '/decayingModel/update/true',
+                                'text' => __('Force Update Default Models')
+                            ));
+                        }
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/decayingModel/import',
+                            'text' => __('Import Decaying Model')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/decayingModel/add',
+                            'text' => __('Add Decaying Model')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/decayingModel/decayingTool',
+                            'text' => __('Decaying Tool')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                    }
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/decayingModel/index',
+                        'text' => __('List Decaying Models')
+                    ));
+                    if (($menuItem === 'view' || $menuItem === 'edit')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => '/decayingModel/view/' . h($id),
+                            'text' => __('View Decaying Model')
+                        ));
+                        if ($isSiteAdmin) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => '/decayingModel/edit/' . h($id),
+                                'text' => __('Edit Decaying Model')
                             ));
                         }
                     }

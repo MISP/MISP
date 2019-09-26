@@ -723,11 +723,12 @@ class User extends AppModel
         $Email = new CakeEmail();
         $recipient = array('User' => array('email' => $params['to']));
         $failed = false;
+        $mock = false;
         if (!empty($params['gpgkey'])) {
             $recipient['User']['gpgkey'] = $params['gpgkey'];
             $encryptionResult = $this->__encryptUsingGPG($Email, $params['body'], $params['subject'], $recipient);
             if (isset($encryptionResult['failed'])) {
-                $failed = true;
+                $mock = true;
             }
             if (isset($encryptionResult['failureReason'])) {
                 $failureReason = $encryptionResult['failureReason'];
@@ -754,8 +755,7 @@ class User extends AppModel
                 }
             }
             $Email->attachments($attachments);
-            $mock = false;
-            if (Configure::read('MISP.disable_emailing') || !empty($params['mock'])) {
+            if (!empty(Configure::read('MISP.disable_emailing')) || !empty($params['mock'])) {
                 $Email->transport('Debug');
                 $mock = true;
             }
@@ -1249,6 +1249,176 @@ class User extends AppModel
         $this->validator()->remove('password'); // password is too simple, remove validation
         $this->save($admin);
         return $authKey;
+    }
+
+    public function resetAllSyncAuthKeysRouter($user, $jobId = false)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $eventModel = ClassRegistry::init('Event');
+            $data = array(
+                    'worker' => $eventModel->__getPrioWorkerIfPossible(),
+                    'job_type' => __('reset_all_sync_api_keys'),
+                    'job_input' => __('Reseting all API keys'),
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => $user['org_id'],
+                    'org' => $user['Organisation']['name'],
+                    'message' => 'Issuing new API keys to all sync users.',
+            );
+            $job->save($data);
+            $jobId = $job->id;
+            $process_id = CakeResque::enqueue(
+                    'prio',
+                    'AdminShell',
+                    array('resetSyncAuthkeys', $user['id'], $jobId),
+                    true
+            );
+            $job->saveField('process_id', $process_id);
+            return true;
+        } else {
+            return $this->resetAllSyncAuthKeys($user);
+        }
+    }
+
+    public function resetAllSyncAuthKeys($user, $jobId = false)
+    {
+        $affected_users = $this->find('all', array(
+            'recursive' => -1,
+            'contain' => array('Role'),
+            'conditions' => array(
+                'OR' => array(
+                    'Role.perm_sync' => 1,
+                    'Role.perm_admin' => 1
+                ),
+                'Role.perm_site_admin' => 0
+            )
+        ));
+        $results = array('success' => 0, 'fails' => 0);
+        $user_count = count($affected_users);
+        if ($jobId) {
+            $job = ClassRegistry::init('Job');
+            $existingJob = $job->find('first', array(
+                'conditions' => array('Job.id' => $jobId),
+                'recursive' => -1
+            ));
+            if (empty($existingJob)) {
+                $jobId = false;
+            }
+        }
+        foreach ($affected_users as $k => $affected_user) {
+            try {
+                $reset_result = $this->resetauthkey($user, $affected_user['User']['id'], true);
+                if ($reset_result) {
+                    $results['success'] += 1;
+                } else {
+                    $results['fails'] += 1;
+                }
+            } catch (Exception $e) {
+                $results['fails'] += 1;
+            }
+            if ($jobId) {
+                if ($k % 100 == 0) {
+                    $job->id =  $jobId;
+                    $job->saveField('progress', 100 * (($k + 1) / count($user_count)));
+                    $job->saveField('message', __('Reset in progress - %s/%s.', $k, $user_count));
+                }
+            }
+        }
+        if ($jobId) {
+            $message = __('%s authkeys reset, %s could not be reset', $results['success'], $results['fails']);
+            $job->saveField('progress', 100);
+            $job->saveField('message', $message);
+            $job->saveField('status', 4);
+        }
+        return $results;
+    }
+
+    public function resetauthkey($user, $id, $alert = false)
+    {
+        $this->id = $id;
+        if (!$id || !$this->exists($id)) {
+            return false;
+        }
+        $updatedUser = $this->read();
+        $oldKey = $this->data['User']['authkey'];
+        if (empty($user['Role']['perm_site_admin']) && !($user['Role']['perm_admin'] && $user['org_id'] == $updatedUser['User']['org_id']) && ($user['id'] != $id)) {
+            return false;
+        }
+        $newkey = $this->generateAuthKey();
+        $this->saveField('authkey', $newkey);
+        $this->extralog(
+                $user,
+                'reset_auth_key',
+                sprintf(
+                    __('Authentication key for user %s (%s) updated.'),
+                    $updatedUser['User']['id'],
+                    $updatedUser['User']['email']
+                ),
+                $fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')',
+                $updatedUser
+        );
+        if ($alert) {
+            $baseurl = Configure::read('MISP.external_baseurl');
+            if (empty($baseurl)) {
+                $baseurl = Configure::read('MISP.baseurl');
+            }
+            $body = __(
+                "Dear user,\n\nan API key reset has been triggered by an administrator for your user account on %s.\n\nYour new API key is: %s\n\nPlease update your server's sync setup to reflect this change.\n\nWe apologise for the inconvenience.",
+                $baseurl,
+                $newkey
+            );
+            $bodyNoEnc = __(
+                "Dear user,\n\nan API key reset has been triggered by an administrator for your user account on %s.\n\nYour new API key can be retrieved by logging in using this sync user's account.\n\nPlease update your server's sync setup to reflect this change.\n\nWe apologise for the inconvenience.",
+                $baseurl,
+                $newkey
+            );
+            $this->sendEmail(
+                $updatedUser,
+                $body,
+                $bodyNoEnc,
+                __('API key reset by administrator')
+            );
+        }
+        return $newkey;
+    }
+
+    public function extralog($user, $action = null, $description = null, $fieldsResult = null, $modifiedUser = null)
+    {
+        // new data
+        $model = 'User';
+        $modelId = $user['id'];
+        if (!empty($modifiedUser)) {
+            $modelId = $modifiedUser['User']['id'];
+        }
+        if ($action == 'login') {
+            $description = "User (" . $user['id'] . "): " . $user['email'];
+        } elseif ($action == 'logout') {
+            $description = "User (" . $user['id'] . "): " . $user['email'];
+        } elseif ($action == 'edit') {
+            $description = "User (" . $modifiedUser['User']['id'] . "): " . $modifiedUser['User']['email'];
+        } elseif ($action == 'change_pw') {
+            $description = "User (" . $modifiedUser['User']['id'] . "): " . $modifiedUser['User']['email'];
+            $fieldsResult = "Password changed.";
+        }
+
+        // query
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        $this->Log->save(array(
+            'org' => $user['Organisation']['name'],
+            'model' => $model,
+            'model_id' => $modelId,
+            'email' => $user['email'],
+            'action' => $action,
+            'title' => $description,
+            'change' => isset($fieldsResult) ? $fieldsResult : ''));
+
+        // write to syslogd as well
+        App::import('Lib', 'SysLog.SysLog');
+        $syslog = new SysLog();
+        $syslog->write('notice', $description . ' -- ' . $action . (empty($fieldResult) ? '' : '-- ' . $fieldResult));
     }
 
     /**

@@ -49,25 +49,25 @@
 	xmlns:xlink="http://www.w3.org/1999/xlink"
 	xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
 	xmlns:xs="http://www.w3.org/2001/XMLSchema"
-	 id="ORGNAME:Package-e0e3b74f-f8cd-425f-9aba-05499ea00152" version="1.1.1" timestamp="2019-08-12T16:37:45.735280">
+	 id="ORGNAME:Package-aa5d559a-135f-40e8-a2cd-b39cfe6391fb" version="1.1.1" timestamp="2019-09-24T10:56:20.252310">
     <stix:STIX_Header>
         <stix:Title>Export from ORGNAME MISP</stix:Title>
         <stix:Package_Intent xsi:type="stixVocabs:PackageIntentVocab-1.0">Threat Report</stix:Package_Intent>
     </stix:STIX_Header>
     <stix:Related_Packages>
         <stix:Related_Package>
-            <stix:Package id="ORGNAME:STIXPackage-5abb8534-ba9c-48cd-bb63-02480a00020f" version="1.1.1" timestamp="2019-08-12T12:30:36">
+            <stix:Package id="ORGNAME:STIXPackage-5abb8534-ba9c-48cd-bb63-02480a00020f" version="1.1.1" timestamp="2019-09-23T16:22:08">
                 <stix:STIX_Header>
                     <stix:Title>Export from ORGNAME MISP</stix:Title>
                     <stix:Package_Intent xsi:type="stixVocabs:PackageIntentVocab-1.0">Threat Report</stix:Package_Intent>
                 </stix:STIX_Header>
                 <stix:TTPs>
-                    <stix:TTP id="ORGNAME:TTP-dcb864dc-775f-11e7-9fbb-1f41b4996683" timestamp="2019-08-12T14:37:46.000594+00:00" xsi:type='ttp:TTPType'>
+                    <stix:TTP id="ORGNAME:TTP-dcb864dc-775f-11e7-9fbb-1f41b4996683" timestamp="2019-09-24T08:56:20.523961+00:00" xsi:type='ttp:TTPType'>
                         <ttp:Title>Attack Pattern: mitre-attack-pattern (MISP GalaxyCluster #7454)</ttp:Title>
                         <ttp:Behavior>
                             <ttp:Attack_Patterns>
-                                <ttp:Attack_Pattern capec_id="471" id="ORGNAME:AttackPattern-dcb864dc-775f-11e7-9fbb-1f41b4996683">
-                                    <ttp:Title>DLL Search Order Hijacking - T1038</ttp:Title>
+                                <ttp:Attack_Pattern capec_id="CAPEC-471" id="ORGNAME:AttackPattern-dcb864dc-775f-11e7-9fbb-1f41b4996683">
+                                    <ttp:Title>Attack Pattern: DLL Search Order Hijacking - T1038</ttp:Title>
                                     <ttp:Description>Windows systems use a common method to look for required DLLs to load into a program. (Citation: Microsoft DLL Search) Adversaries may take advantage of the Windows DLL search order and programs that ambiguously specify DLLs to gain privilege escalation and persistence. 
             
             Adversaries may perform DLL preloading, also called binary planting attacks, (Citation: OWASP Binary Planting) by placing a malicious DLL with the same name as an ambiguously specified DLL in a location that Windows searches before the legitimate DLL. Often this location is the current working directory of the program. Remote DLL preloading attacks occur when a program sets its current directory to a remote location such as a Web share before loading a DLL. (Citation: Microsoft 2269637) Adversaries may use this behavior to cause the program to load a malicious DLL. 
@@ -81,7 +81,7 @@
                             </ttp:Attack_Patterns>
                         </ttp:Behavior>
                     </stix:TTP>
-                    <stix:TTP id="ORGNAME:TTP-d752161c-78f6-11e7-a0ea-bfa79b407ce4" timestamp="2019-08-12T14:37:46.001745+00:00" xsi:type='ttp:TTPType'>
+                    <stix:TTP id="ORGNAME:TTP-d752161c-78f6-11e7-a0ea-bfa79b407ce4" timestamp="2019-09-24T08:56:20.525015+00:00" xsi:type='ttp:TTPType'>
                         <ttp:Title>Malware: mitre-malware (MISP GalaxyCluster #6734)</ttp:Title>
                         <ttp:Behavior>
                             <ttp:Malware>
@@ -89,19 +89,19 @@
                                     <ttp:Name>Elise</ttp:Name>
                                     <ttp:Name>BKDR_ESILE</ttp:Name>
                                     <ttp:Name>Page</ttp:Name>
-                                    <ttp:Title>Elise - S0081</ttp:Title>
+                                    <ttp:Title>Malware: Elise - S0081</ttp:Title>
                                     <ttp:Description>[Elise](https://attack.mitre.org/software/S0081) is a custom backdoor Trojan that appears to be used exclusively by [Lotus Blossom](https://attack.mitre.org/groups/G0030). It is part of a larger group of
             tools referred to as LStudio, ST Group, and APT0LSTU. (Citation: Lotus Blossom Jun 2015)(Citation: Accenture Dragonfish Jan 2018)</ttp:Description>
                                 </ttp:Malware_Instance>
                             </ttp:Malware>
                         </ttp:Behavior>
                     </stix:TTP>
-                    <stix:TTP id="ORGNAME:TTP-d700dc5c-78f6-11e7-a476-5f748c8e4fe0" timestamp="2019-08-12T14:37:46.001991+00:00" xsi:type='ttp:TTPType'>
+                    <stix:TTP id="ORGNAME:TTP-d700dc5c-78f6-11e7-a476-5f748c8e4fe0" timestamp="2019-09-24T08:56:20.525261+00:00" xsi:type='ttp:TTPType'>
                         <ttp:Title>Tool: mitre-tool (MISP GalaxyCluster #7242)</ttp:Title>
                         <ttp:Resources>
                             <ttp:Tools>
                                 <ttp:Tool id="ORGNAME:ToolInformation-d700dc5c-78f6-11e7-a476-5f748c8e4fe0">
-                                    <cyboxCommon:Name>ifconfig - S0101</cyboxCommon:Name>
+                                    <cyboxCommon:Name>Mitre Tool: ifconfig - S0101</cyboxCommon:Name>
                                     <cyboxCommon:Description>[ifconfig](https://attack.mitre.org/software/S0101) is a Unix-based utility used to gather information about and interact with the TCP/IP settings on a system. (Citation: Wikipedia Ifconfig)</cyboxCommon:Description>
                                 </ttp:Tool>
                             </ttp:Tools>
@@ -208,12 +208,12 @@
                     </stix:TTP>
                 </stix:TTPs>
                 <stix:Incidents>
-                    <stix:Incident id="ORGNAME:Incident-5abb8534-ba9c-48cd-bb63-02480a00020f" timestamp="2019-08-12T12:44:00" xsi:type='incident:IncidentType'>
+                    <stix:Incident id="ORGNAME:Incident-5abb8534-ba9c-48cd-bb63-02480a00020f" timestamp="2019-09-23T16:22:29" xsi:type='incident:IncidentType'>
                         <incident:Title>STIX indicators test event</incident:Title>
                         <incident:External_ID source="MISP Event">1255</incident:External_ID>
                         <incident:Time>
                             <incident:Incident_Discovery precision="second">2018-03-28T00:00:00</incident:Incident_Discovery>
-                            <incident:Incident_Reported precision="second">2019-08-12T12:44:00</incident:Incident_Reported>
+                            <incident:Incident_Reported precision="second">2019-09-23T16:22:29</incident:Incident_Reported>
                         </incident:Time>
                         <incident:Reporter>
                             <stixCommon:Identity>
@@ -967,43 +967,6 @@
                                 </stixCommon:Indicator>
                             </incident:Related_Indicator>
                             <incident:Related_Indicator>
-                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
-                                <stixCommon:Indicator id="ORGNAME:indicator-5b239e0f-d7fc-4426-b92b-02740a00020f" timestamp="2018-06-15T11:07:59" xsi:type='indicator:IndicatorType'>
-                                    <indicator:Title>Payload delivery: 08a2fc565a1389a511ab9206b9a1e6b4b433486a (MISP Attribute #253478)</indicator:Title>
-                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
-                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">File Hash Watchlist</indicator:Type>
-                                    <indicator:Description>Payload delivery: 08a2fc565a1389a511ab9206b9a1e6b4b433486a (MISP Attribute #253478)</indicator:Description>
-                                    <indicator:Valid_Time_Position/>
-                                    <indicator:Observable id="ORGNAME:File-5b239e0f-d7fc-4426-b92b-02740a00020f">
-                                        <cybox:Object id="ORGNAME:FileObject-5b239e0f-d7fc-4426-b92b-02740a00020f">
-                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
-                                                <FileObj:Hashes>
-                                                    <cyboxCommon:Hash>
-                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA1</cyboxCommon:Type>
-                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">08a2fc565a1389a511ab9206b9a1e6b4b433486a</cyboxCommon:Simple_Hash_Value>
-                                                    </cyboxCommon:Hash>
-                                                </FileObj:Hashes>
-                                            </cybox:Properties>
-                                        </cybox:Object>
-                                    </indicator:Observable>
-                                    <indicator:Handling>
-                                        <marking:Marking>
-                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
-                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="WHITE"/>
-                                        </marking:Marking>
-                                    </indicator:Handling>
-                                    <indicator:Confidence timestamp="2018-06-15T11:07:59">
-                                        <stixCommon:Value>High</stixCommon:Value>
-                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
-                                    </indicator:Confidence>
-                                    <indicator:Producer>
-                                        <stixCommon:Identity>
-                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
-                                        </stixCommon:Identity>
-                                    </indicator:Producer>
-                                </stixCommon:Indicator>
-                            </incident:Related_Indicator>
-                            <incident:Related_Indicator>
                                 <stixCommon:Relationship>Network activity</stixCommon:Relationship>
                                 <stixCommon:Indicator id="ORGNAME:indicator-5b239f8e-20d8-4880-ad38-02740a00020f" timestamp="2019-08-08T13:44:21" xsi:type='indicator:IndicatorType'>
                                     <indicator:Title>Network activity: AS66642 (MISP Attribute #253479)</indicator:Title>
@@ -1025,6 +988,38 @@
                                         </marking:Marking>
                                     </indicator:Handling>
                                     <indicator:Confidence timestamp="2019-08-08T13:44:21">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Artifacts dropped</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5d886bd1-136c-4ced-8566-0e42a964451a" timestamp="2019-09-23T06:53:05" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Artifacts dropped: \\.\pipe\testpipe (MISP Attribute #273917)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Host Characteristics</indicator:Type>
+                                    <indicator:Description>Artifacts dropped: \\.\pipe\testpipe (MISP Attribute #273917)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:Pipe-5d886bd1-136c-4ced-8566-0e42a964451a">
+                                        <cybox:Object id="ORGNAME:PipeObject-5d886bd1-136c-4ced-8566-0e42a964451a">
+                                            <cybox:Properties xsi:type="PipeObj:PipeObjectType">
+                                                <PipeObj:Name condition="Equals">\\.\pipe\testpipe</PipeObj:Name>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="WHITE"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2019-09-23T06:53:05">
                                         <stixCommon:Value>High</stixCommon:Value>
                                         <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
                                     </indicator:Confidence>
@@ -1218,66 +1213,24 @@
                                                     <EmailMessageObj:X_Mailer condition="Equals">oui_X-mailer</EmailMessageObj:X_Mailer>
                                                 </EmailMessageObj:Header>
                                                 <EmailMessageObj:Attachments>
-                                                    <EmailMessageObj:File object_reference="ORGNAME:File-4f336506-422a-4334-8adf-f49a6216194d"/>
-                                                    <EmailMessageObj:File object_reference="ORGNAME:File-bec249b6-dd4d-4b6d-a4fb-6664045ae871"/>
+                                                    <EmailMessageObj:File object_reference="ORGNAME:File-e68798d1-bf3e-4381-bcd1-8f01ea6ef221"/>
+                                                    <EmailMessageObj:File object_reference="ORGNAME:File-a7d2eef8-2861-441b-a244-5a6ddbd1ef00"/>
                                                 </EmailMessageObj:Attachments>
                                             </cybox:Properties>
                                             <cybox:Related_Objects>
-                                                <cybox:Related_Object id="ORGNAME:File-4f336506-422a-4334-8adf-f49a6216194d">
+                                                <cybox:Related_Object id="ORGNAME:File-e68798d1-bf3e-4381-bcd1-8f01ea6ef221">
                                                     <cybox:Properties xsi:type="FileObj:FileObjectType">
                                                         <FileObj:File_Name condition="Equals">oui.jpg</FileObj:File_Name>
                                                     </cybox:Properties>
                                                     <cybox:Relationship xsi:type="cyboxVocabs:ObjectRelationshipVocab-1.1">Contains</cybox:Relationship>
                                                 </cybox:Related_Object>
-                                                <cybox:Related_Object id="ORGNAME:File-bec249b6-dd4d-4b6d-a4fb-6664045ae871">
+                                                <cybox:Related_Object id="ORGNAME:File-a7d2eef8-2861-441b-a244-5a6ddbd1ef00">
                                                     <cybox:Properties xsi:type="FileObj:FileObjectType">
                                                         <FileObj:File_Name condition="Equals">oui.png</FileObj:File_Name>
                                                     </cybox:Properties>
                                                     <cybox:Relationship xsi:type="cyboxVocabs:ObjectRelationshipVocab-1.1">Contains</cybox:Relationship>
                                                 </cybox:Related_Object>
                                             </cybox:Related_Objects>
-                                        </cybox:Object>
-                                    </indicator:Observable>
-                                    <indicator:Handling>
-                                        <marking:Marking>
-                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
-                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="WHITE"/>
-                                        </marking:Marking>
-                                    </indicator:Handling>
-                                    <indicator:Producer>
-                                        <stixCommon:Identity>
-                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
-                                        </stixCommon:Identity>
-                                    </indicator:Producer>
-                                </stixCommon:Indicator>
-                            </incident:Related_Indicator>
-                            <incident:Related_Indicator>
-                                <stixCommon:Relationship>file</stixCommon:Relationship>
-                                <stixCommon:Indicator id="ORGNAME:MISPObject-5ac47782-e1b8-40b6-96b4-02510a00020f" timestamp="2019-08-12T11:28:32" xsi:type='indicator:IndicatorType'>
-                                    <indicator:Title>file (MISP Object #13262)</indicator:Title>
-                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
-                                    <indicator:Description>file (MISP Object #13262)</indicator:Description>
-                                    <indicator:Valid_Time_Position/>
-                                    <indicator:Observable id="ORGNAME:File-5ac47782-e1b8-40b6-96b4-02510a00020f">
-                                        <cybox:Object id="ORGNAME:FileObject-5ac47782-e1b8-40b6-96b4-02510a00020f">
-                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
-                                                <FileObj:File_Name condition="Equals">oui</FileObj:File_Name>
-                                                <FileObj:Size_In_Bytes condition="Equals">1234</FileObj:Size_In_Bytes>
-                                                <FileObj:Hashes>
-                                                    <cyboxCommon:Hash>
-                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">MD5</cyboxCommon:Type>
-                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">b2a5abfeef9e36964281a31e17b57c97</cyboxCommon:Simple_Hash_Value>
-                                                    </cyboxCommon:Hash>
-                                                    <cyboxCommon:Hash>
-                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA256</cyboxCommon:Type>
-                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8</cyboxCommon:Simple_Hash_Value>
-                                                    </cyboxCommon:Hash>
-                                                    <cyboxCommon:Hash>
-                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA1</cyboxCommon:Type>
-                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">5898fc860300e228dcd54c0b1045b5fa0dcda502</cyboxCommon:Simple_Hash_Value>
-                                                    </cyboxCommon:Hash>
-                                                </FileObj:Hashes>
-                                            </cybox:Properties>
                                         </cybox:Object>
                                     </indicator:Observable>
                                     <indicator:Handling>
@@ -1609,30 +1562,110 @@
                                     </indicator:Producer>
                                 </stixCommon:Indicator>
                             </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>file</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5ac47782-e1b8-40b6-96b4-02510a00020f" timestamp="2019-09-23T16:22:08" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>file (MISP Object #13262)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>file (MISP Object #13262)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:WinExecutableFile-5ac47782-e1b8-40b6-96b4-02510a00020f">
+                                        <cybox:Object id="ORGNAME:WinExecutableFileObject-5ac47782-e1b8-40b6-96b4-02510a00020f">
+                                            <cybox:Properties xsi:type="WinExecutableFileObj:WindowsExecutableFileObjectType">
+                                                <FileObj:File_Name condition="Equals">oui</FileObj:File_Name>
+                                                <FileObj:Size_In_Bytes condition="Equals">1234</FileObj:Size_In_Bytes>
+                                                <FileObj:Hashes>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">MD5</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">b2a5abfeef9e36964281a31e17b57c97</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA256</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA1</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">5898fc860300e228dcd54c0b1045b5fa0dcda502</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                </FileObj:Hashes>
+                                                <WinExecutableFileObj:Headers>
+                                                    <WinExecutableFileObj:File_Header>
+                                                        <WinExecutableFileObj:Number_Of_Sections>8</WinExecutableFileObj:Number_Of_Sections>
+                                                    </WinExecutableFileObj:File_Header>
+                                                </WinExecutableFileObj:Headers>
+                                                <WinExecutableFileObj:Sections>
+                                                    <WinExecutableFileObj:Section>
+                                                        <WinExecutableFileObj:Section_Header>
+                                                            <WinExecutableFileObj:Name>.rsrc</WinExecutableFileObj:Name>
+                                                            <WinExecutableFileObj:Size_Of_Raw_Data>305152</WinExecutableFileObj:Size_Of_Raw_Data>
+                                                        </WinExecutableFileObj:Section_Header>
+                                                        <WinExecutableFileObj:Entropy>
+                                                            <WinExecutableFileObj:Value>7.836462238824369</WinExecutableFileObj:Value>
+                                                        </WinExecutableFileObj:Entropy>
+                                                        <WinExecutableFileObj:Header_Hashes>
+                                                            <cyboxCommon:Hash>
+                                                                <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">MD5</cyboxCommon:Type>
+                                                                <cyboxCommon:Simple_Hash_Value condition="Equals">8a2a5fc2ce56b3b04d58539a95390600</cyboxCommon:Simple_Hash_Value>
+                                                            </cyboxCommon:Hash>
+                                                            <cyboxCommon:Hash>
+                                                                <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA1</cyboxCommon:Type>
+                                                                <cyboxCommon:Simple_Hash_Value condition="Equals">0aeb9def096e9f73e9460afe6f8783a32c7eabdf</cyboxCommon:Simple_Hash_Value>
+                                                            </cyboxCommon:Hash>
+                                                            <cyboxCommon:Hash>
+                                                                <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA256</cyboxCommon:Type>
+                                                                <cyboxCommon:Simple_Hash_Value condition="Equals">c6b3ac8303a72be90b0e47f69977e6f5665693d4ea0aa93e5c27b5c556c7cf9b</cyboxCommon:Simple_Hash_Value>
+                                                            </cyboxCommon:Hash>
+                                                            <cyboxCommon:Hash>
+                                                                <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA512</cyboxCommon:Type>
+                                                                <cyboxCommon:Simple_Hash_Value condition="Equals">98fce208e6ed9612db53725fe03b73ab7cb1b487814d521c3c218273cad33891ce832c4f842c6f492d92df1e78414c82a00ddb91a1f8ec7d67325231a597a78f</cyboxCommon:Simple_Hash_Value>
+                                                            </cyboxCommon:Hash>
+                                                            <cyboxCommon:Hash>
+                                                                <cyboxCommon:Type condition="Equals">Other</cyboxCommon:Type>
+                                                                <cyboxCommon:Simple_Hash_Value condition="Equals">6144:BvqbV6zoA5yJJ1entjx+UJlVshhKuqMrgyNhahL2uSvhM:BvuVy5UJUtwUJ/UjHSEuSvK</cyboxCommon:Simple_Hash_Value>
+                                                            </cyboxCommon:Hash>
+                                                        </WinExecutableFileObj:Header_Hashes>
+                                                    </WinExecutableFileObj:Section>
+                                                </WinExecutableFileObj:Sections>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="WHITE"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
                         </incident:Related_Indicators>
                         <incident:Leveraged_TTPs>
                             <incident:Leveraged_TTP>
                                 <stixCommon:Relationship>Attack Pattern</stixCommon:Relationship>
-                                <stixCommon:TTP idref="ORGNAME:TTP-dcb864dc-775f-11e7-9fbb-1f41b4996683" timestamp="2019-08-12T14:37:46.000594+00:00" xsi:type='ttp:TTPType'/>
+                                <stixCommon:TTP idref="ORGNAME:TTP-dcb864dc-775f-11e7-9fbb-1f41b4996683" timestamp="2019-09-24T08:56:20.523961+00:00" xsi:type='ttp:TTPType'/>
                             </incident:Leveraged_TTP>
                             <incident:Leveraged_TTP>
                                 <stixCommon:Relationship>Malware</stixCommon:Relationship>
-                                <stixCommon:TTP idref="ORGNAME:TTP-d752161c-78f6-11e7-a0ea-bfa79b407ce4" timestamp="2019-08-12T14:37:46.001745+00:00" xsi:type='ttp:TTPType'/>
+                                <stixCommon:TTP idref="ORGNAME:TTP-d752161c-78f6-11e7-a0ea-bfa79b407ce4" timestamp="2019-09-24T08:56:20.525015+00:00" xsi:type='ttp:TTPType'/>
                             </incident:Leveraged_TTP>
                             <incident:Leveraged_TTP>
                                 <stixCommon:Relationship>Tool</stixCommon:Relationship>
-                                <stixCommon:TTP idref="ORGNAME:TTP-d700dc5c-78f6-11e7-a476-5f748c8e4fe0" timestamp="2019-08-12T14:37:46.001991+00:00" xsi:type='ttp:TTPType'/>
+                                <stixCommon:TTP idref="ORGNAME:TTP-d700dc5c-78f6-11e7-a476-5f748c8e4fe0" timestamp="2019-09-24T08:56:20.525261+00:00" xsi:type='ttp:TTPType'/>
                             </incident:Leveraged_TTP>
                         </incident:Leveraged_TTPs>
                         <incident:Attributed_Threat_Actors>
                             <incident:Threat_Actor>
                                 <stixCommon:Relationship>ThreatActor</stixCommon:Relationship>
-                                <stixCommon:Threat_Actor idref="ORGNAME:ThreatActor-7cdff317-a673-4474-84ec-4f1754947823" timestamp="2019-08-12T14:37:46.002487+00:00" xsi:type='ta:ThreatActorType'>
+                                <stixCommon:Threat_Actor idref="ORGNAME:ThreatActor-7cdff317-a673-4474-84ec-4f1754947823" timestamp="2019-09-24T08:56:20.525866+00:00" xsi:type='ta:ThreatActorType'>
                                 </stixCommon:Threat_Actor>
                             </incident:Threat_Actor>
                         </incident:Attributed_Threat_Actors>
                         <incident:COA_Taken>
-                            <incident:Course_Of_Action idref="ORGNAME:CourseOfAction-a8825ae8-6dea-11e7-8d57-7728f3cfe086" timestamp="2019-08-12T14:37:46.002281+00:00" xsi:type='coa:CourseOfActionType'/>
+                            <incident:Course_Of_Action idref="ORGNAME:CourseOfAction-a8825ae8-6dea-11e7-8d57-7728f3cfe086" timestamp="2019-09-24T08:56:20.525659+00:00" xsi:type='coa:CourseOfActionType'/>
                         </incident:COA_Taken>
                         <incident:History>
                             <incident:History_Item>
@@ -1698,36 +1731,36 @@
                     </stix:Incident>
                 </stix:Incidents>
                 <stix:Courses_Of_Action>
-                    <stix:Course_Of_Action id="ORGNAME:CourseOfAction-a8825ae8-6dea-11e7-8d57-7728f3cfe086" timestamp="2019-08-12T14:37:46.002281+00:00" xsi:type='coa:CourseOfActionType'>
-                        <coa:Title>Access Token Manipulation Mitigation - T1134</coa:Title>
+                    <stix:Course_Of_Action id="ORGNAME:CourseOfAction-a8825ae8-6dea-11e7-8d57-7728f3cfe086" timestamp="2019-09-24T08:56:20.525659+00:00" xsi:type='coa:CourseOfActionType'>
+                        <coa:Title>Course of Action: Access Token Manipulation Mitigation - T1134</coa:Title>
                         <coa:Description>Access tokens are an integral part of the security system within Windows and cannot be turned off. However, an attacker must already have administrator level access on the local system to make full use of this technique; be sure to restrict users and accounts to the least privileges they require to do their job.
             
             Any user can also spoof access tokens if they have legitimate credentials. Follow mitigation guidelines for preventing adversary use of [Valid Accounts](https://attack.mitre.org/techniques/T1078). Limit permissions so that users and user groups cannot create tokens. This setting should be defined for the local system account only. GPO: Computer Configuration &gt; [Policies] &gt; Windows Settings &gt; Security Settings &gt; Local Policies &gt; User Rights Assignment: Create a token object. (Citation: Microsoft Create Token) Also define who can create a process level token to only the local and network service through GPO: Computer Configuration &gt; [Policies] &gt; Windows Settings &gt; Security Settings &gt; Local Policies &gt; User Rights Assignment: Replace a process level token. (Citation: Microsoft Replace Process Token)
             
             Also limit opportunities for adversaries to increase privileges by limiting Privilege Escalation opportunities.</coa:Description>
                     </stix:Course_Of_Action>
-                    <stix:Course_Of_Action id="ORGNAME:CourseOfAction-5d514ff9-ac30-4fb5-b9e7-3eb4a964451a" timestamp="2019-08-12T14:37:46.021325+00:00" xsi:type='coa:CourseOfActionType'>
+                    <stix:Course_Of_Action id="ORGNAME:CourseOfAction-5d514ff9-ac30-4fb5-b9e7-3eb4a964451a" timestamp="2019-09-24T08:56:20.543126+00:00" xsi:type='coa:CourseOfActionType'>
                         <coa:Title>Block traffic to PIVY C2 Server (10.10.10.10)</coa:Title>
                         <coa:Stage xsi:type="stixVocabs:COAStageVocab-1.0">Response</coa:Stage>
                         <coa:Objective>
                             <coa:Description>Block communication between the PIVY agents and the C2 Server</coa:Description>
                         </coa:Objective>
-                        <coa:Impact timestamp="2019-08-12T14:37:46.021419+00:00">
+                        <coa:Impact timestamp="2019-09-24T08:56:20.543214+00:00">
                             <stixCommon:Value>Low</stixCommon:Value>
                         </coa:Impact>
-                        <coa:Cost timestamp="2019-08-12T14:37:46.021400+00:00">
+                        <coa:Cost timestamp="2019-09-24T08:56:20.543196+00:00">
                             <stixCommon:Value>Low</stixCommon:Value>
                         </coa:Cost>
-                        <coa:Efficacy timestamp="2019-08-12T14:37:46.021435+00:00">
+                        <coa:Efficacy timestamp="2019-09-24T08:56:20.543229+00:00">
                             <stixCommon:Value>High</stixCommon:Value>
                         </coa:Efficacy>
                     </stix:Course_Of_Action>
                 </stix:Courses_Of_Action>
                 <stix:Threat_Actors>
-                    <stix:Threat_Actor id="ORGNAME:ThreatActor-7cdff317-a673-4474-84ec-4f1754947823" timestamp="2019-08-12T14:37:46.002487+00:00" xsi:type='ta:ThreatActorType'>
-                        <ta:Title>APT 16</ta:Title>
+                    <stix:Threat_Actor id="ORGNAME:ThreatActor-7cdff317-a673-4474-84ec-4f1754947823" timestamp="2019-09-24T08:56:20.525866+00:00" xsi:type='ta:ThreatActorType'>
+                        <ta:Title>Threat Actor: APT 16</ta:Title>
                         <ta:Description>Between November 26, 2015, and December 1, 2015, known and suspected China-based APT groups launched several spear-phishing attacks targeting Japanese and Taiwanese organizations in the high-tech, government services, media and financial services industries. Each campaign delivered a malicious Microsoft Word document exploiting the aforementioned EPS dict copy use-after-free vulnerability, and the local Windows privilege escalation vulnerability CVE-2015-1701. The successful exploitation of both vulnerabilities led to the delivery of either a downloader that we refer to as IRONHALO, or a backdoor that we refer to as ELMER.</ta:Description>
-                        <ta:Intended_Effect timestamp="2019-08-12T14:37:46.002901+00:00">
+                        <ta:Intended_Effect timestamp="2019-09-24T08:56:20.526308+00:00">
                             <stixCommon:Value>Espionage</stixCommon:Value>
                         </ta:Intended_Effect>
                     </stix:Threat_Actor>

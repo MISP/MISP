@@ -35,6 +35,7 @@ class Log extends AppModel
                             'export',
                             'file_upload',
                             'galaxy',
+                            'include_formula',
                             'login',
                             'login_fail',
                             'logout',
@@ -43,11 +44,13 @@ class Log extends AppModel
                             'publish',
                             'publish alert',
                             'pull',
+                            'purge_events',
                             'push',
                             'remove_dead_workers',
                             'request',
                             'request_delegation',
                             'reset_auth_key',
+                            'security',
                             'serverSettingsEdit',
                             'tag',
                             'undelete',
@@ -174,19 +177,51 @@ class Log extends AppModel
         return $data;
     }
 
-    public function createLogEntry($user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0), $action, $model, $model_id = 0, $title = '', $change = '')
+    /**
+     * @param string|array $user
+     * @param string $action
+     * @param string $model
+     * @param int $modelId
+     * @param string $title
+     * @param string|array $change
+     * @throws Exception
+     */
+    public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
     {
+        if ($user === 'SYSTEM') {
+            $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
+        } else if (!is_array($user)) {
+            throw new InvalidArgumentException("User must be array or 'SYSTEM' string.");
+        }
+
+        if (is_array($change)) {
+            $output = array();
+            foreach ($change as $field => $values) {
+                if (strpos($field, 'password') !== false) { // if field name contains password, replace value with asterisk
+                    $oldValue = $newValue = "*****";
+                } else {
+                    list($oldValue, $newValue) = $values;
+                }
+                $output[] = "$field ($oldValue) => ($newValue)";
+            }
+            $change = implode(", ", $output);
+        }
+
         $this->create();
-        $this->save(array(
-                'org' => $user['Organisation']['name'],
-                'email' =>$user['email'],
-                'user_id' => $user['id'],
-                'action' => $action,
-                'title' => $title,
-                'change' => $change,
-                'model' => $model,
-                'model_id' => $model_id,
+        $result = $this->save(array(
+            'org' => $user['Organisation']['name'],
+            'email' => $user['email'],
+            'user_id' => $user['id'],
+            'action' => $action,
+            'title' => $title,
+            'change' => $change,
+            'model' => $model,
+            'model_id' => $modelId,
         ));
+
+        if (!$result) {
+            throw new Exception("Cannot save log because of validation errors: " . json_encode($this->validationErrors));
+        }
     }
 
     // to combat a certain bug that causes the upgrade scripts to loop without being able to set the correct version

@@ -179,7 +179,8 @@ class Event extends AppModel
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json'),
         'cache' => array('txt', 'CacheExport', 'cache'),
-        'attack' => array('html', 'AttackExport', 'html')
+        'attack' => array('html', 'AttackExport', 'html'),
+        'attack-sightings' => array('json', 'AttackSightingsExport', 'json')
     );
 
     public $csv_event_context_fields_to_fetch = array(
@@ -1815,13 +1816,17 @@ class Event extends AppModel
             'extended',
             'excludeGalaxy',
             'includeRelatedTags',
-            'excludeLocalTags'
+            'excludeLocalTags',
+            'includeDecayScore'
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
         }
         if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        }
+        if (!empty($options['includeDecayScore'])) {
+            $this->DecayingModel = ClassRegistry::init('DecayingModel');
         }
         foreach ($possibleOptions as &$opt) {
             if (!isset($options[$opt])) {
@@ -2171,6 +2176,15 @@ class Event extends AppModel
                         if ($this->Attribute->typeIsAttachment($attribute['type'])) {
                             $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
                             $event['Attribute'][$key]['data'] = $encodedFile;
+                        }
+                    }
+                    if (!empty($options['includeDecayScore'])) {
+                        if (isset($event['EventTag'])) { // include EventTags for score computation
+                            $event['Attribute'][$key]['EventTag'] = $event['EventTag'];
+                        }
+                        $event['Attribute'][$key] = $this->DecayingModel->attachScoresToAttribute($user, $event['Attribute'][$key]);
+                        if (isset($event['EventTag'])) { // remove included EventTags
+                            unset($event['Attribute'][$key]['EventTag']);
                         }
                     }
                     // unset empty attribute tags that got added because the tag wasn't exportable
@@ -4050,7 +4064,10 @@ class Event extends AppModel
         if ($passAlong) {
             $conditions[] = array('Server.id !=' => $passAlong);
         }
-        $servers = $this->Server->find('all', array('conditions' => $conditions));
+        $servers = $this->Server->find('all', array(
+            'conditions' => $conditions,
+            'order' => array('Server.priority ASC', 'Server.id ASC')
+        ));
         // iterate over the servers and upload the event
         if (empty($servers)) {
             return true;

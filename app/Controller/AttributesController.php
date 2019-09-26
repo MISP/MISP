@@ -1219,6 +1219,12 @@ class AttributesController extends AppController
         } elseif (!is_numeric($id)) {
             throw new NotFoundException('Invalid attribute');
         }
+        if (isset($this->params['named']['hard'])) {
+            $hard = $this->params['named']['hard'];
+        }
+        if (isset($this->request->data['hard'])) {
+            $hard = $this->request->data['hard'];
+        }
         $this->set('id', $id);
         $conditions = array('id' => $id);
         if (!$hard) {
@@ -1245,8 +1251,8 @@ class AttributesController extends AppController
                 $this->render('ajax/attributeConfirmationForm');
             }
         } else {
-            if (!$this->request->is('post') && !$this->_isRest()) {
-                throw new MethodNotAllowedException();
+            if (!$this->request->is('post') && !$this->request->is('delete')) {
+                throw new MethodNotAllowedException(__('This function is only accessible via POST requests.'));
             }
             if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
                 if ($this->_isRest() || $this->response->type() === 'application/json') {
@@ -1891,7 +1897,8 @@ class AttributesController extends AppController
             'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
             'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
             'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
-            'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'includeSightings', 'includeCorrelations'
+            'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'includeSightings', 'includeCorrelations', 'includeDecayScore',
+            'decayingModel', 'excludeDecayed', 'modelOverrides', 'includeFullModel', 'score'
         );
         $filterData = array(
             'request' => $this->request,
@@ -3056,13 +3063,21 @@ class AttributesController extends AppController
             $success = 0;
             $fails = 0;
             foreach ($idList as $id) {
-                $attribute = $this->Attribute->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0),
-                    'contain' => array('Event.orgc_id')
-                ));
-                if (empty($attribute)) {
+                $attributes = $this->Attribute->fetchAttributes(
+                    $this->Auth->user(),
+                    array(
+                        'conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0),
+                        'contain' => array('Event.orgc_id')
+                    )
+                );
+                if (empty($attributes)) {
                     throw new NotFoundException(__('Invalid attribute'));
+                } else {
+                    $attribute = $attributes[0];
+                }
+                if (!$this->userRole['perm_tagger']) {
+                    $fails++;
+                    continue;
                 }
                 if ((!$this->userRole['perm_sync'] && !$this->_isSiteAdmin()) && $attribute['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
                     if (Configure::read('MISP.host_org_id') != $this->Auth->user('org_id') || !$local) {
@@ -3075,11 +3090,6 @@ class AttributesController extends AppController
                     'conditions' => array('Event.id' => $eventId),
                     'recursive' => -1
                 ));
-                if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-                    if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You do not have permission to do that.')), 'status' => 200, 'type' => 'json'));
-                    }
-                }
                 if (!$this->_isRest()) {
                     $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
                 }

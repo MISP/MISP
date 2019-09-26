@@ -192,7 +192,13 @@ class Warninglist extends AppModel
         if ($redis !== false) {
             $key = 'misp:warninglist_entries_cache:' . $id;
             $redis->del($key);
-            $redis->sAddArray($key, $warninglistEntries);
+            if (method_exists($redis, 'saddArray')) {
+                $redis->sAddArray($key, $warninglistEntries);
+            } else {
+                foreach ($warninglistEntries as $entry) {
+                    $redis->sAdd('misp:warninglist_entries_cache:' . $id, $entry);
+                }
+            }
             return true;
         }
         return false;
@@ -460,7 +466,7 @@ class Warninglist extends AppModel
                 if (strpos($lv, ':') !== false) { // IPv6 CIDR must contain dot
                     if ($this->__ipv6InCidr($value, $lv)) {
                         return true;
-                    }    
+                    }
                 }
             }
         }
@@ -470,12 +476,12 @@ class Warninglist extends AppModel
 
     // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
     private function __ipv6InCidr($ip, $cidr)
-    {     
+    {
         list($address, $netmask) = explode('/', $cidr);
-        
+
         $bytesAddr = unpack('n*', inet_pton($address));
         $bytesTest = unpack('n*', inet_pton($ip));
-        
+
         for ($i = 1, $ceil = ceil($netmask / 16); $i <= $ceil; ++$i) {
             $left = $netmask - 16 * ($i - 1);
             $left = ($left <= 16) ? $left : 16;
@@ -484,7 +490,7 @@ class Warninglist extends AppModel
                 return false;
             }
         }
-        
+
         return true;
     }
 

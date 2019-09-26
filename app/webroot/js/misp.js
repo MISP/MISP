@@ -1492,7 +1492,7 @@ function templateElementFileCategoryChange(category) {
     }
 }
 
-function openPopup(id, adjust_layout) {
+function openPopup(id, adjust_layout, callback) {
     adjust_layout = adjust_layout === undefined ? true : adjust_layout;
     if (adjust_layout) {
         var window_height = $(window).height();
@@ -1511,10 +1511,14 @@ function openPopup(id, adjust_layout) {
         }
     }
     $("#gray_out").fadeIn();
-    $(id).fadeIn();
+    $(id).fadeIn(400, function() {
+        if (callback !== undefined) {
+            callback();
+        }
+    });
 }
 
-function openPopover(clicked, data, hover, placement) {
+function openPopover(clicked, data, hover, placement, callback) {
     hover = hover === undefined ? false : hover;
     placement = placement === undefined ? 'right' : placement;
     /* popup handling */
@@ -1549,6 +1553,9 @@ function openPopover(clicked, data, hover, placement) {
             }
             var popoverTitle = popover.find('h3.popover-title');
             popoverTitle.html(title + closeButtonHtml);
+            if (callback !== undefined) {
+                callback(popover);
+            }
         })
         .on('keydown.volatilePopover', function(e) {
             if(e.keyCode == 27) { // ESC
@@ -1741,6 +1748,26 @@ function choicePopup(legend, list) {
 
     $("#popover_form").html(popupHtml);
     openPopup("#popover_form");
+}
+
+function openModal(heading, body, footer, modal_option, css_container, css_body) {
+    var modal_id = 'dynamic_modal_' + new Date().getTime();
+    var modal_html = '<div id="' + modal_id + '" class="modal hide fade" style="' + (css_container !== undefined ? css_container : '') + '" tabindex="-1" role="dialog" aria-hidden="true">';
+    if (heading !== undefined && heading !== '') {
+        modal_html += '<div class="modal-header">'
+                        + '<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>'
+                        + '<h3 id="myModalLabel">' + heading + '</h3>'
+                    + '</div>';
+    }
+    if (body !== undefined && body !== '') {
+        modal_html += '<div class="modal-body" style="' + (css_body !== undefined ? css_body : '') + '">' + body + '</div>';
+    }
+    if (footer !== undefined && footer !== '') {
+        modal_html += '<div class="modal-footer">' + footer + '</div>';
+    }
+    modal_html += '</div>';
+    $('body').append($(modal_html));
+    $('#'+modal_id).modal(modal_option !== undefined ? modal_option : {});
 }
 
 function resizePopoverBody() {
@@ -3049,6 +3076,19 @@ function testConnection(id) {
     })
 }
 
+function getTextColour(hex) {
+    hex = hex.slice(1);
+    var r = parseInt(hex.substring(0,2), 16);
+    var g = parseInt(hex.substring(2,4), 16);
+    var b = parseInt(hex.substring(4,6), 16);
+    var avg = ((2 * r) + b + (3 * g))/6;
+    if (avg < 128) {
+        return 'white';
+    } else {
+        return 'black';
+    }
+}
+
 function pgpChoiceSelect(uri) {
     $("#popover_form").fadeOut();
     $("#gray_out").fadeOut();
@@ -3307,11 +3347,18 @@ function toggleBoolFilter(url, param) {
             url = url.replace(re, '');
         }
     });
-
-    if (res[param] !== undefined) { // allow toggle for `deleted`.
-        res[param] = res[param] == '0' ? '2' : '0';
+    if (res[param] !== undefined) {
+        if (param == 'deleted') {
+            res[param] = res[param] == 0 ? 2 : 0;
+        } else {
+            res[param] = res[param] == 0 ? 1 : 0;
+        }
     } else {
-        res[param] = '0';
+        if (param == 'deleted') {
+            res[param] = 0;
+        } else {
+            res[param] = 1;
+        }
     }
 
     url += buildFilterURL(res);
@@ -4210,8 +4257,6 @@ function checkIfLoggedIn() {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }
-        }).fail(function() {
-                window.location.replace(baseurl + "/users/login");
         });
     }
     setTimeout(function() { checkIfLoggedIn(); }, 5000);
@@ -4228,7 +4273,7 @@ function insertHTMLRestResponse() {
 }
 
 function insertJSONRestResponse() {
-    $('#rest-response-container').append('<p id="json-response-container" style="border: 1px solid blue; padding:5px;" />');
+    $('#rest-response-container').append('<p id="json-response-container" style="border: 1px solid blue; padding:5px; overflow-wrap: break-word;" />');
     var parsedJson = syntaxHighlightJson($('#rest-response-hidden-container').text());
     $('#json-response-container').html(parsedJson);
 }
@@ -4257,6 +4302,42 @@ function syntaxHighlightJson(json, indent) {
             }
             return '<span class="' + cls + '">' + match + '</span>';
     });
+}
+
+function jsonToNestedTable(json, header, table_classes) {
+    if (typeof json == 'string') {
+        json = JSON.parse(json);
+    }
+    if (Object.keys(json).length == 0) {
+        return '';
+    }
+    header = header === undefined ? [] : header;
+    table_classes = table_classes === undefined ? [] : table_classes;
+    var $table = $('<table></table>');
+    table_classes.forEach(function(classname) {
+        $table.addClass(classname);
+    });
+    if (header.length > 0) {
+        var $header = $('<thead><tr></tr></thead>');
+        header.forEach(function(col) {
+            $header.child().append($('<td></td>').text(col));
+        });
+        $table.append($header);
+    }
+    var $body = $('<tbody></tbody>');
+    Object.keys(json).forEach(function(k) {
+        var value = json[k];
+        if (typeof value === 'object') {
+            value = JSON.stringify(value);
+        }
+        $body.append(
+            $('<tr></tr>')
+                .append($('<td></td>').text(k))
+                .append($('<td></td>').text(value))
+        );
+    });
+    $table.append($body);
+    return $table[0].outerHTML;
 }
 
 function liveFilter() {
@@ -4392,6 +4473,29 @@ function fetchFormDataAjax(url, callback) {
         type:"get",
         cache: false,
         url: url
+    });
+}
+
+function moveIndexRow(id, direction, endpoint) {
+    var row = $('#row_' + id);
+    $.ajax({
+        url: baseurl + endpoint + '/' + id + '/' + direction,
+        type: 'GET',
+        success: function(data) {
+            if (direction === 'up') {
+                if (row.prev().length) {
+                    row.insertBefore(row.prev());
+                }
+            } else {
+                if (row.next().length) {
+                    row.insertAfter(row.next());
+                }
+            }
+            handleGenericAjaxResponse({'saved':true, 'success':['Server priority changed.']});
+        },
+        error: function(data) {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Something went wrong, could not change the priority as requested.']});
+        }
     });
 }
 

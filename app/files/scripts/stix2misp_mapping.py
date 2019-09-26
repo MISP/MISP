@@ -17,6 +17,8 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
 
 _AS_attribute = ('AS', 'asn')
 _as_mapping = {'number': _AS_attribute, 'handle': _AS_attribute, 'name': ('text', 'description')}
+_attack_pattern_object_mapping = {'capec_id': 'id', 'title': 'name', 'description': 'summary'}
+_attack_pattern_galaxy_mapping = {'description': 'description', 'title': 'value'}
 _coa_mapping = {'type_': 'value', 'stage': 'value', 'impact': 'value.value',
                 'description': 'value', 'objective': 'description.value',
                 'cost': 'value.value', 'efficacy': 'value.value'}
@@ -53,6 +55,9 @@ _user_account_object_mapping = {'username': ('text', 'username'), 'full_name': (
                                 'disabled': ('boolean', 'disabled'), 'creation_date': ('datetime', 'created'),
                                 'last_login': ('datetime', 'last_login'), 'home_directory': ('text', 'home_dir'),
                                 'script_path': ('text', 'shell')}
+_vulnerability_object_mapping = {'cve_id': ('text', 'id'), 'description': ('text', 'summary'),
+                                 'published_datetime': ('datetime', 'published')}
+_weakness_object_mapping = {'cwe_id': 'id', 'description': 'description'}
 _whois_registrant_mapping = {'email_address': ('whois-registrant-email', 'address_value.value', 'registrant-email'),
                               'name': ('whois-registrant-name', 'value', 'registrant-name'),
                               'phone_number': ('whois-registrant-phone', 'value', 'registrant-phone'),
@@ -64,6 +69,33 @@ _x509_datetime_types = ('not_before', 'not_after')
 _x509_pubkey_types = ('exponent', 'modulus')
 _x509_certificate_types = ('version', 'serial_number', 'issuer', 'subject')
 
+_galaxy_mapping = {'Enterprise Attack - Course of Action': 'mitre-enterprise-attack-course-of-action',
+                   'Tool': 'tool', 'Preventive Measure': 'preventive-measure',
+                   'Course of Action': 'mitre-course-of-action', 'TDS': 'tds',
+                   'attck4fraud': 'attck4fraud', 'Malware': 'mitre-malware',
+                   'Mobile Attack - Attack Pattern': 'mitre-mobile-attack-attack-pattern',
+                   'Exploit-Kit': 'exploit-kit', 'Sector': 'sector',
+                   'Mobile Attack - Intrusion Set': 'mitre-mobile-attack-intrusion-set',
+                   'Banker': 'banker', 'Backdoor': 'backdoor', 'RAT': 'rat',
+                   'o365-exchange-techniques': 'o365-exchange-techniques',
+                   'Microsoft Activity Group actor': 'microsoft-activity-group',
+                   'Intrusion Set': 'mitre-intrusion-set', 'Android': 'android',
+                   'Mobile Attack - Malware': 'mitre-mobile-attack-malware',
+                   'Cert EU GovSector': 'cert-eu-govsector', 'Stealer': 'stealer',
+                   'Enterprise Attack - Intrusion Set': 'mitre-enterprise-attack-intrusion-set',
+                   'Mobile Attack - Course of Action': 'mitre-mobile-attack-course-of-action',
+                   'Mobile Attack - Tool': 'mitre-mobile-attack-tool',
+                   'Target Information': 'target-information','Botnet': 'botnet',
+                   'Attack Pattern': 'mitre-attack-pattern','Malpedia': 'malpedia',
+                   'Enterprise Attack - Malware': 'mitre-enterprise-attack-malware',
+                   'Enterprise Attack - Attack Pattern': 'mitre-enterprise-attack-attack-pattern',
+                   'Pre Attack - Intrusion Set': 'mitre-pre-attack-intrusion-set',
+                   'Branded Vulnerability': 'branded_vulnerability',
+                   'Pre Attack - Attack Pattern': 'mitre-pre-attack-attack-pattern',
+                   'Election guidelines': 'election-guidelines',
+                   'Enterprise Attack - Tool': 'mitre-enterprise-attack-tool',
+                   'Threat Actor': 'threat-actor', 'Mitre Tool': 'tool',
+                   'Ransomware': 'ransomware'}
 
 _AIS_marking_mapping = {'prefix': 'ais-marking:',
                         'proprietary': 'AISMarking="{}_Proprietary"',
