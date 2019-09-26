@@ -1043,8 +1043,9 @@ class Feed extends AppModel
         }
 
         foreach ($values as $k => $value) {
-            $redis->sAdd('misp:feed_cache:' . $feedId, md5($value['value']));
-            $redis->sAdd('misp:feed_cache:combined', md5($value['value']));
+            $md5Value = md5($value['value']);
+            $redis->sAdd('misp:feed_cache:' . $feedId, $md5Value);
+            $redis->sAdd('misp:feed_cache:combined', $md5Value);
             if ($k % 1000 == 0) {
                 $this->jobProgress($jobId, "Feed $feedId: $k/" . count($values) . " values cached.");
             }
