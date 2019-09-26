@@ -86,9 +86,23 @@
         $table .= $rows . '</tbody></table>';
         echo $table;
     } else {
-        echo sprintf('<span class="label label-success" title="%s">%s<i class="fas fa-check"></i></span>',
+        echo sprintf('<span class="label label-success" title="%s">%s <i class="fas fa-check"></i></span>',
             __('The current database is correct'),
             __('Database schema diagnostic: ')
+        );
+    }
+    echo sprintf('<span class="label label-default" style="margin-left: 5px;">%s</span>',
+        __('Expected DB_version: ') . h($expectedDbVersion)
+    );
+    if ($expectedDbVersion == $actualDbVersion) {
+        echo sprintf('<span class="label label-success" style="margin-left: 5px;" title="%s">%s <i class="fas fa-check"></i></span>',
+            __('The current database version matches the expected one'),
+            __('Actual DB_version: ') . h($actualDbVersion)
+        );
+    } else {
+        echo sprintf('<span class="label label-important" style="margin-left: 5px;" title="%s">%s <i class="fas fa-times"></i></span>',
+            __('The current database version does not matche the expected one'),
+            __('Actual DB_version: ') . h($actualDbVersion)
         );
     }
 ?>
@@ -115,7 +129,7 @@ $(document).ready(function() {
         html: true,
         placement: function(context, src) {
             $(context).css('max-width', 'fit-content'); // make popover larger
-            return 'top';
+            return 'bottom';
         },
         container: 'body',
         trigger: 'hover'

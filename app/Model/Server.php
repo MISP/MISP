@@ -4219,13 +4219,19 @@ class Server extends AppModel
 
     public function dbSchemaDiagnostic()
     {
-        $table_column_names = array('column_name', 'is_nullable', 'data_type', 'character_maximum_length', 'numeric_precision', 'datetime_precision', 'collation_name');
-        $db_actual_schema = $this->getActualDBSchema($table_column_names);
+        $db_actual_schema = $this->getActualDBSchema();
+        $table_column_names = $db_actual_schema['column'];
+        $db_actual_schema = $db_actual_schema['schema'];
         $db_expected_schema = $this->getExpectedDBSchema();
-        $db_schema_comparison = $this->compareDBSchema($db_actual_schema, $db_expected_schema);
+        $db_schema_comparison = $this->compareDBSchema($db_actual_schema, $db_expected_schema['schema']);
+        $actual_db_version = $this->AdminSetting->find('first', array(
+            'conditions' => array('setting' => 'db_version')
+        ))['AdminSetting']['value'];
         return array(
             'checked_table_column' => $table_column_names,
-            'diagnostic' => $db_schema_comparison
+            'diagnostic' => $db_schema_comparison,
+            'expected_db_version' => $db_expected_schema['db_version'],
+            'actual_db_version' => $actual_db_version
         );
     }
 
@@ -4238,7 +4244,7 @@ class Server extends AppModel
         return $db_expected_schema;
     }
 
-    public function getActualDBSchema($table_column_names = array())
+    public function getActualDBSchema($table_column_names = array('column_name', 'is_nullable', 'data_type', 'character_maximum_length', 'numeric_precision', 'datetime_precision', 'collation_name'))
     {
         $db_actual_schema = array();
         $data_source = $this->getDataSource()->config['datasource'];
@@ -4260,7 +4266,7 @@ class Server extends AppModel
         else if ($data_source == 'Database/Postgres') {
             return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
-        return $db_actual_schema;
+        return array('schema' => $db_actual_schema, 'column' => $table_column_names);
     }
 
     public function compareDBSchema($db_actual_schema, $db_expected_schema)

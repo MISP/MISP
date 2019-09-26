@@ -228,7 +228,12 @@
     ?>
         <h4><?php echo __('Schema status');?></h4>
         <div style="width: 70vw; padding-left: 10px;">
-            <?php echo $this->element('/healthElements/db_schema_status', array('checkedTableColumn' => $dbSchemaDiagnostics['checked_table_column'], 'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'])); ?>
+            <?php echo $this->element('/healthElements/db_schema_status', array(
+                'checkedTableColumn' => $dbSchemaDiagnostics['checked_table_column'],
+                'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'],
+                'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
+                'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version']
+            )); ?>
         </div>
     <h3><?php echo __('Advanced attachment handler');?></h3>
         <?php echo __('The advanced attachment tools are used by the add attachment functionality to extract additional data about the uploaded sample.');?>

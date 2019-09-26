@@ -892,14 +892,6 @@ class ServersController extends AppController
         return array_replace(array(0 => __('No organisation selected.')), $local_orgs);
     }
 
-    public function dbSchemaDiagnostic()
-    {
-        $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
-        $this->set('checkedTableColumn', $dbSchemaDiagnostics['checked_table_column']);
-        $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics['diagnostic']);
-        $this->render('/Elements/healthElements/db_schema_status');
-    }
-
     public function serverSettings($tab=false)
     {
         if (!$this->_isSiteAdmin()) {

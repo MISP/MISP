@@ -526,4 +526,25 @@ class AdminShell extends AppShell
             }
         }
     }
+
+    public function dumpCurrentDatabaseSchema()
+    {
+        $db_actual_schema = $this->Server->getActualDBSchema()['schema'];
+        $db_version = $this->AdminSetting->find('first', array(
+            'conditions' => array('setting' => 'db_version')
+        ));
+        if (!empty($db_version) && !empty($db_actual_schema)) {
+            $db_version = $db_version['AdminSetting']['value'];
+            $data = array(
+                'schema' => $db_actual_schema,
+                'db_version' => $db_version
+            );
+            $file = new File(ROOT . DS . 'db_schema.json', true);
+            $file->write(json_encode($data));
+            $file->close();
+            echo __("> Database schema dumped on disk") . PHP_EOL;
+        } else {
+            echo __("Something went wrong. Could not find the existing db version or fetch the current database schema.") . PHP_EOL;
+        }
+    }
 }
