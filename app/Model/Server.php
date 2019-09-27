@@ -4223,38 +4223,28 @@ class Server extends AppModel
             'conditions' => array('setting' => 'db_version')
         ))['AdminSetting']['value'];
         $data_source = $this->getDataSource()->config['datasource'];
+        $schema_diagnostic = array(
+            'actual_db_version' => $actual_db_version,
+            'checked_table_column' => array(),
+            'diagnostic' => array(),
+            'expected_db_version' => '?',
+            'error' => ''
+        );
         if ($data_source == 'Database/Mysql') {
             $db_actual_schema = $this->getActualDBSchema();
-            $table_column_names = $db_actual_schema['column'];
-            $db_actual_schema = $db_actual_schema['schema'];
             $db_expected_schema = $this->getExpectedDBSchema();
             if ($db_expected_schema !== false) {
-                $db_schema_comparison = $this->compareDBSchema($db_actual_schema, $db_expected_schema['schema']);
-                return array(
-                    'checked_table_column' => $table_column_names,
-                    'diagnostic' => $db_schema_comparison,
-                    'expected_db_version' => $db_expected_schema['db_version'],
-                    'actual_db_version' => $actual_db_version,
-                    'error' => ''
-                );
+                $db_schema_comparison = $this->compareDBSchema($db_actual_schema['schema'], $db_expected_schema['schema']);
+                $schema_diagnostic['checked_table_column'] = $db_actual_schema['column'];
+                $schema_diagnostic['diagnostic'] = $db_schema_comparison;
+                $schema_diagnostic['expected_db_version'] = $db_expected_schema['db_version'];
             } else {
-                return array(
-                    'checked_table_column' => array(),
-                    'diagnostic' => array(),
-                    'expected_db_version' => '?',
-                    'actual_db_version' => $actual_db_version,
-                    'error' => sprintf('Diagnostic not available as the expected schema file could not be loaded')
-                );
+                $schema_diagnostic['error'] = sprintf('Diagnostic not available as the expected schema file could not be loaded');
             }
         } else {
-            return array(
-                'checked_table_column' => array(),
-                'diagnostic' => array(),
-                'expected_db_version' => '?',
-                'actual_db_version' => $actual_db_version,
-                'error' => sprintf('Diagnostic not available for DataSource `%s`', $data_source)
-            );
+            $schema_diagnostic['error'] = sprintf('Diagnostic not available for DataSource `%s`', $data_source);
         }
+        return $schema_diagnostic;
     }
 
     public function getExpectedDBSchema()
@@ -4270,20 +4260,29 @@ class Server extends AppModel
         }
     }
 
-    public function getActualDBSchema($table_column_names = array('column_name', 'is_nullable', 'data_type', 'character_maximum_length', 'numeric_precision', 'datetime_precision', 'collation_name'))
-    {
+    public function getActualDBSchema(
+        $table_column_names = array(
+            'column_name',
+            'is_nullable',
+            'data_type',
+            'character_maximum_length',
+            'numeric_precision',
+            'datetime_precision',
+            'collation_name'
+        )
+    ){
         $db_actual_schema = array();
         $data_source = $this->getDataSource()->config['datasource'];
         if ($data_source == 'Database/Mysql') {
-            $sql_show = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
-            $sql_result = $this->query($sql_show);
+            $sql_get_table = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
+            $sql_result = $this->query($sql_get_table);
             $tables = HASH::extract($sql_result, '{n}.tables.table_name');
             foreach ($tables as $table) {
-                $sql_desc = sprintf(
+                $sql_schema = sprintf(
                     "SELECT %s
                     FROM information_schema.columns
                     WHERE table_schema = '%s' AND table_name = '%s'", implode(',', $table_column_names), $this->getDataSource()->config['database'], $table);
-                $sql_result = $this->query($sql_desc);
+                $sql_result = $this->query($sql_schema);
                 foreach ($sql_result as $column_schema) {
                     $db_actual_schema[$table][] = array_values($column_schema['columns']);
                 }
@@ -4298,11 +4297,12 @@ class Server extends AppModel
     public function compareDBSchema($db_actual_schema, $db_expected_schema)
     {
         $db_diff = array();
-        // perform schema comparison
+        // perform schema comparison for tables
         foreach($db_expected_schema as $table_name => $columns) {
             if (!array_key_exists($table_name, $db_actual_schema)) {
                 $db_diff[$table_name][] = array('description' => sprintf(__('Table `%s` does not exists'), $table_name));
             } else {
+                // perform schema copmarison for table's columns
                 foreach ($columns as $i => $column) {
                     if (isset($db_actual_schema[$table_name][$i])) {
                         $col_diff = array_diff($column, $db_actual_schema[$table_name][$i]);
