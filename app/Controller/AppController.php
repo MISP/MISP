@@ -373,7 +373,7 @@ class AppController extends Controller
                 }
             }
         } else {
-            $pre_auth_actions = array('login', 'register');
+            $pre_auth_actions = array('login', 'register', 'getGpgPublicKey');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
                 $pre_auth_actions[] = 'email_otp';
             }

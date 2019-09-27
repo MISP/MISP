@@ -685,6 +685,7 @@ class ACLComponent extends Component
                     'verifyCertificate' => array(),
                     'verifyGPG' => array(),
                     'view' => array('*'),
+                    'getGpgPublicKey' => array('*'),
             ),
             'userSettings' => array(
                     'index' => array('*'),

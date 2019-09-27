@@ -33,7 +33,7 @@ class UsersController extends AppController
         parent::beforeFilter();
 
         // what pages are allowed for non-logged-in users
-        $allowedActions = array('login', 'logout');
+        $allowedActions = array('login', 'logout', 'getGpgPublicKey');
         if(!empty(Configure::read('Security.email_otp_enabled'))) {
           $allowedActions[] = 'email_otp';
         }
@@ -2315,6 +2315,26 @@ class UsersController extends AppController
             throw new NotFoundException('No key with given fingerprint found.');
         }
         return new CakeResponse(array('body' => $key));
+    }
+
+    public function getGpgPublicKey()
+    {
+        if (!Configure::read("MISP.download_gpg_from_homedir")) {
+            throw new MethodNotAllowedException("Downloading GPG public key from homedir is not allowed.");
+        }
+
+        $key = $this->User->getGpgPublicKey();
+        if (!$key) {
+            throw new NotFoundException("Public key not found.");
+        }
+
+        list($fingeprint, $publicKey) = $key;
+        $response = new CakeResponse(array(
+            'body' => $publicKey,
+            'type' => 'text/plain',
+        ));
+        $response->download($fingeprint . '.asc');
+        return $response;
     }
 
     public function checkIfLoggedIn()
