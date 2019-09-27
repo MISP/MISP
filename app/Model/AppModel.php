@@ -36,7 +36,7 @@ class AppModel extends Model
 
     public $inserted_ids = array();
 
-    private $__redisConnection = false;
+    private $__redisConnection = null;
 
     private $__profiler = array();
 
@@ -1824,14 +1824,19 @@ class AppModel extends Model
         return preg_match('@^([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+$@i', $filename);
     }
 
-    public function setupRedis()
+    /**
+     * Similar method as `setupRedis`, but this method throw exception if Redis cannot be reached.
+     * @return Redis
+     * @throws Exception
+     */
+    public function setupRedisWithException()
     {
         if ($this->__redisConnection) {
             return $this->__redisConnection;
         }
 
         if (!class_exists('Redis')) {
-            return false;
+            throw new Exception("Class Redis doesn't exists.");
         }
 
         $host = Configure::read('MISP.redis_host') ?: '127.0.0.1';
@@ -1841,14 +1846,34 @@ class AppModel extends Model
 
         $redis = new Redis();
         if (!$redis->connect($host, $port)) {
-            return false;
+            throw new Exception("Could not connect to Redis: {$redis->getLastError()}");
         }
         if (!empty($pass)) {
-            $redis->auth($pass);
+            if (!$redis->auth($pass)) {
+                throw new Exception("Could not authenticate to Redis: {$redis->getLastError()}");
+            }
         }
-        $redis->select($database);
+        if (!$redis->select($database)) {
+            throw new Exception("Could not select Redis database $database: {$redis->getLastError()}");
+        }
+
         $this->__redisConnection = $redis;
         return $redis;
+    }
+
+    /**
+     * Method for backward compatibility.
+     * @deprecated
+     * @see AppModel::setupRedisWithException
+     * @return bool|Redis
+     */
+    public function setupRedis()
+    {
+        try {
+            return $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     public function getKafkaPubTool()
