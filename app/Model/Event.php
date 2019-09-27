@@ -5852,7 +5852,9 @@ class Event extends AppModel
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
             if ($result) {
-                $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
+                if ($original_file) {
+                    $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
+                }
                 return $created_id;
             }
             return $validationIssues;
