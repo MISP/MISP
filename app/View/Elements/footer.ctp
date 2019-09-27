@@ -32,7 +32,7 @@
             <div class="pull-right" style="position:relative;padding-top:9px;z-index:2;">
                 <?php
                     if (Configure::read('MISP.footer_logo')) {
-                        if (Configure::read('MISP.footer_logo')) echo $this->Html->image('custom/' . h(Configure::read('MISP.footer_logo')), array('alt' => 'Footer Logo', 'onerror' => "this.style.display='none';", 'style' => 'height:24px'));
+                        echo $this->Html->image('custom/' . h(Configure::read('MISP.footer_logo')), array('alt' => 'Footer Logo', 'onerror' => "this.style.display='none';", 'style' => 'height:24px'));
                     }
                 ?>
             </div>
