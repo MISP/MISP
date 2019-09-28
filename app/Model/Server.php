@@ -4214,7 +4214,24 @@ class Server extends AppModel
             }
             return $result;
         }
+    }
 
+    public function redisInfo()
+    {
+        $output = array(
+            'extensionVersion' => phpversion('redis'),
+            'connection' => false,
+        );
+
+        try {
+            $redis = $this->setupRedisWithException();
+            $output['connection'] = true;
+            $output = array_merge($output, $redis->info());
+        } catch (Exception $e) {
+            $output['connection_error'] = $e->getMessage();
+        }
+
+        return $output;
     }
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)

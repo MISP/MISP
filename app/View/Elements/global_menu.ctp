@@ -188,7 +188,7 @@
                         'requirement' => $isAdmin
                     ),
                     array(
-                        'text' => __('Decaying Models'),
+                        'text' => __('List Decaying Models'),
                         'url' => '/decayingModel/index',
                     ),
                     array(
