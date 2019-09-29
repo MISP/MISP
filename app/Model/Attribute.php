@@ -3103,7 +3103,11 @@ class Attribute extends AppModel
         if (!empty($options['includeGalaxy'])) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         }
-        if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
+        if (
+            Configure::read('MISP.proposals_block_attributes') &&
+            isset($options['conditions']['AND']['Attribute.to_ids']) &&
+            array($options['conditions']['AND']['Attribute.to_ids'] == 1, in_array(1, $options['conditions']['AND']['Attribute.to_ids']))
+        ) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
                     'ShadowAttribute' => array(
