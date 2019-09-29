@@ -2211,7 +2211,10 @@ class Event extends AppModel
                             }
                         }
                     }
-                    if (Configure::read('MISP.proposals_block_attributes') && isset($options['to_ids']) && $options['to_ids']) {
+                    if (
+                        Configure::read('MISP.proposals_block_attributes') &&
+                        !empty($options['allow_proposal_blocking'])
+                    ) {
                         foreach ($results[$eventKey]['Attribute'][$key]['ShadowAttribute'] as $sa) {
                             if ($sa['proposal_to_delete'] || $sa['to_ids'] == 0) {
                                 unset($results[$eventKey]['Attribute'][$key]);
@@ -6712,6 +6715,7 @@ class Event extends AppModel
             if (!isset($filters['published'])) {
                 $filters['published'] = 1;
             }
+            $filters['allow_proposal_blocking'] = 1;
         }
 
         if (!empty($exportTool->renderView)) {

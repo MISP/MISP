@@ -3104,8 +3104,7 @@ class Attribute extends AppModel
         }
         if (
             Configure::read('MISP.proposals_block_attributes') &&
-            isset($options['conditions']['AND']['Attribute.to_ids']) &&
-            array($options['conditions']['AND']['Attribute.to_ids'] == 1, in_array(1, $options['conditions']['AND']['Attribute.to_ids']))
+            !empty($options['allow_proposal_blocking'])
         ) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
@@ -4239,6 +4238,7 @@ class Attribute extends AppModel
             if (!isset($filters['published'])) {
                 $filters['published'] = 1;
             }
+            $filters['allow_proposal_blocking'] = 1;
         }
         if (!empty($filters['quickFilter'])) {
             $filters['searchall'] = $filters['quickFilter'];
@@ -4273,7 +4273,8 @@ class Attribute extends AppModel
                 'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
                 'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
                 'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
-                'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0
+                'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
+                'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0
         );
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];
