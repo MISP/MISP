@@ -159,13 +159,12 @@ class AdminShell extends AppShell
         }
     }
 
-    public function updateWarningLists() {
-        $result = $this->Galaxy->update();
-        if ($result) {
-            echo 'Warning lists updated' . PHP_EOL;
-        } else {
-            echo 'Could not update warning lists' . PHP_EOL;
-        }
+    public function updateWarningLists() 
+    {
+        $result = $this->Warninglist->update();
+        $success = count($result['success']);
+        $fails = count($result['fails']);
+        echo "$success warninglists updated, $fails fails" . PHP_EOL;
     }
 
     public function updateNoticeLists() {

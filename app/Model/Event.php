@@ -5818,7 +5818,7 @@ class Event extends AppModel
         return $this->save($event);
     }
 
-    public function upload_stix($user, $filename, $stix_version, $original_file)
+    public function upload_stix($user, $filename, $stix_version, $original_file, $publish)
     {
         App::uses('Folder', 'Utility');
         App::uses('File', 'Utility');
@@ -5844,12 +5844,20 @@ class Event extends AppModel
         if (trim($result) == '1') {
             $data = file_get_contents($output_path);
             $data = json_decode($data, true);
+            if (empty($data['Event'])) {
+                $data = array('Event' => $data);
+            }
             unlink($output_path);
             $created_id = false;
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
             if ($result) {
-                $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
+                if ($original_file) {
+                    $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
+                }
+                if ($publish && $user['Role']['perm_publish']) {
+                    $this->publish($this->getID(), null);
+                }
                 return $created_id;
             }
             return $validationIssues;
