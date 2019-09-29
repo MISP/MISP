@@ -5205,7 +5205,6 @@ class Server extends AppModel
             'page' => $i,
             'limit' => $chunk_size
         );
-        debug($filter_rules);
         $request = $this->setupSyncRequest($server);
         try {
             $response = $HttpSocket->post($server['Server']['url'] . '/attributes/restSearch.json', json_encode($filter_rules), $request);

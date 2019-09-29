@@ -63,7 +63,6 @@ class UserSetting extends AppModel
         } else {
             $this->data['UserSetting']['value'] = '[]';
         }
-        debug($this->data);
         return true;
     }
 
