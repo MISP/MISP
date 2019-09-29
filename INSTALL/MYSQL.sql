@@ -1033,7 +1033,7 @@ CREATE TABLE IF NOT EXISTS `tags` (
   INDEX `name` (`name`(255)),
   INDEX `org_id` (`org_id`),
   INDEX `user_id` (`user_id`),
-  INDEX `numerical_value` (`numerical_value`),
+  INDEX `numerical_value` (`numerical_value`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 
