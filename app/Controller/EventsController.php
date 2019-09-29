@@ -2599,7 +2599,6 @@ class EventsController extends AppController
             }
             // send out the email
             $emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user(), $this->Event->data['Event']['publish_timestamp']);
-            throw new Exception();
             if (is_bool($emailResult) && $emailResult == true) {
                 // Performs all the actions required to publish an event
                 $result = $this->Event->publishRouter($id, null, $this->Auth->user());
