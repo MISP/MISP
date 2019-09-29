@@ -121,9 +121,11 @@ class UserSettingsController extends AppController
             ),
             'contain' => array('User.id', 'User.org_id')
         ));
+        if (empty($userSetting)) {
+            throw new NotFoundException(__('Invalid user setting.'));
+        }
         $checkAccess = $this->UserSetting->checkAccess($this->Auth->user(), $userSetting);
-        if (empty($userSetting) || !$checkAccess) {
-            // If we haven't found a user setting with this ID that the user can access, throw an exception.
+        if (!$checkAccess) {
             throw new NotFoundException(__('Invalid user setting.'));
         }
         if ($this->_isRest()) {
@@ -174,7 +176,6 @@ class UserSettingsController extends AppController
                 }
                 $userSetting['setting'] = $this->request->data['UserSetting']['setting'];
             }
-            debug($this->request->data['UserSetting']);
             $userSetting['value'] = empty($this->request->data['UserSetting']['value']) ? '' :
                 json_encode(json_decode($this->request->data['UserSetting']['value'], true));
             $existingSetting = $this->UserSetting->find('first', array(
@@ -221,7 +222,7 @@ class UserSettingsController extends AppController
         }
         if ($this->_isRest()) {
             // GET request via the API should describe the endpoint
-            return $this->RestResponse->describe('UserSettings', 'set', false, $this->response->type());
+            return $this->RestResponse->describe('UserSettings', 'setSetting', false, $this->response->type());
         } else {
             // load the valid settings from the model
             $validSettings = $this->UserSetting->validSettings;
@@ -238,6 +239,9 @@ class UserSettingsController extends AppController
                 ));
             } else {
                 $users = array($this->Auth->user('id') => $this->Auth->user('email'));
+            }
+            if (!empty($user_id) && $this->request->is('get')) {
+                $this->request->data['UserSetting']['user_id'] = $user_id;
             }
             $this->set('users', $users);
             $this->set('validSettings', $validSettings);
@@ -257,7 +261,7 @@ class UserSettingsController extends AppController
             ),
             'contain' => array('User.id', 'User.org_id')
         ));
-        $checkAccess = $this->UserSetting->checkAccess($this->Auth->user(), $userSetting);
+        $checkAccess = $this->UserSetting->checkAccess($this->Auth->user(), $userSetting, $user_id);
         if (empty($checkAccess)) {
             throw new MethodNotAllowedException(__('Invalid setting.'));
         }
@@ -290,9 +294,11 @@ class UserSettingsController extends AppController
             ),
             'contain' => array('User.id', 'User.org_id')
         ));
+        if (empty($userSetting)) {
+            throw new NotFoundException(__('Invalid user setting.'));
+        }
         $checkAccess = $this->UserSetting->checkAccess($this->Auth->user(), $userSetting);
-        if (empty($userSetting) || !$checkAccess) {
-            // If we haven't found a user setting with this ID that the user can access, throw an exception.
+        if (!$checkAccess) {
             throw new NotFoundException(__('Invalid user setting.'));
         }
         if ($this->request->is('post') || $this->request->is('delete')) {
