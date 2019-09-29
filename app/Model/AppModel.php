@@ -76,7 +76,7 @@ class AppModel extends Model
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
-        39 => false
+        39 => false, 40 => false
     );
 
     public $advanced_updates_description = array(
@@ -1259,6 +1259,10 @@ class AppModel extends Model
                     INDEX `user_id` (`user_id`),
                     INDEX `timestamp` (`timestamp`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                break;
+            case 40:
+                $sqlArray[] = "ALTER TABLE `user_settings` ADD `timestamp` int(11) NOT NULL;";
+                $indexArray[] = array('user_settings', 'timestamp');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
