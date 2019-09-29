@@ -606,6 +606,14 @@ class Attribute extends AppModel
 
     public function beforeSave($options = array())
     {
+        if (!empty($this->data['Attribute']['id'])) {
+            $this->old = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Attribute.id' => $this->data['Attribute']['id'])
+            ));
+        } else {
+            $this->old = false;
+        }
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
         if (!empty($this->data['Attribute']['type'])) {
@@ -622,11 +630,6 @@ class Attribute extends AppModel
                 $this->data['Attribute']['value1'] = $this->data['Attribute']['value'];
                 $this->data['Attribute']['value2'] = '';
             }
-        }
-
-        // update correlation... (only needed here if there's an update)
-        if ($this->id || !empty($this->data['Attribute']['id'])) {
-            $this->__beforeSaveCorrelation($this->data['Attribute']);
         }
         // always return true after a beforeSave()
         return true;
@@ -670,7 +673,26 @@ class Attribute extends AppModel
                 $this->__alterAttributeCount($this->data['Attribute']['event_id'], false, $passedEvent);
             }
         } else {
-            $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+            /*
+             * Only recorrelate if:
+             * - We are dealing with a new attribute OR
+             * - The existing attribute's previous state is known AND
+             *   value, type or disable correlation have changed
+             * This will avoid recorrelations when it's not really needed, such as adding a tag
+             */
+            if (!$created) {
+                if (
+                    empty($this->old) ||
+                    $this->data['Attribute']['value'] != $this->old['Attribute']['value'] ||
+                    $this->data['Attribute']['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
+                    $this->data['Attribute']['type'] != $this->old['Attribute']['type']
+                ) {
+                    $this->__beforeSaveCorrelation($this->data['Attribute']);
+                    $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+                }
+            } else {
+                $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+            }
         }
         $result = true;
         // if the 'data' field is set on the $this->data then save the data to the correct file
