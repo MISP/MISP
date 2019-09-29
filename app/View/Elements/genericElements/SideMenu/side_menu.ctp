@@ -448,7 +448,7 @@
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'user_settings_index_me',
-                        'url' => '/user_settings/index/user:me',
+                        'url' => '/user_settings/index/user_id:me',
                         'text' => __('My Settings')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -680,8 +680,13 @@
                     if ($isAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'user_settings_index',
-                            'url' => '/user_settings/index/user:all',
+                            'url' => '/user_settings/index/user_id:all',
                             'text' => __('User settings')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'user_settings_set',
+                            'url' => '/user_settings/setSetting',
+                            'text' => __('Set Setting')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'contact',

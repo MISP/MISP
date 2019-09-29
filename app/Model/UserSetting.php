@@ -15,7 +15,11 @@ class UserSetting extends AppModel
     );
 
     public $validate = array(
-
+        'json' => array(
+            'isValidJson' => array(
+                'rule' => array('isValidJson'),
+            )
+        )
     );
 
     public $belongsTo = array(
@@ -52,13 +56,14 @@ class UserSetting extends AppModel
         if (empty($this->data['UserSetting']['timestamp'])) {
             $this->data['UserSetting']['timestamp'] = time();
         }
-        if (!empty($this->data['UserSetting']['value'])) {
+        if (!empty($this->data['UserSetting']['value']) && $this->data['UserSetting']['value'] !== 'null') {
             if (is_array($this->data['UserSetting']['value'])) {
                 $this->data['UserSetting']['value'] = json_encode($this->data['UserSetting']['value']);
             }
         } else {
             $this->data['UserSetting']['value'] = '[]';
         }
+        debug($this->data);
         return true;
     }
 
@@ -83,24 +88,44 @@ class UserSetting extends AppModel
      * returns true for org admins if setting["User"]["org_id"] === $user["org_id"]
      * returns true for any user if setting["user_id"] === $user["id"]
      */
-    public function checkAccess($user, $setting)
-    {
-        if (is_numeric($user)) {
-            $user = $this->User->getAuthUser($user);
-        }
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        } else if ($user['Role']['perm_admin']) {
-            if ($user['org_id'] === $setting['User']['org_id']) {
-                return true;
-            }
-        } else {
-            if ($user['id'] === $setting['UserSetting']['user_id']) {
-                return true;
-            }
-        }
-        return false;
-    }
+     public function checkAccess($user, $setting, $user_id = false)
+     {
+         if (is_numeric($user)) {
+             $user = $this->User->getAuthUser($user);
+         }
+         if (empty($setting) && !empty($user_id) && is_numeric($user_id)) {
+             $userToCheck = $this->User->find('first', array(
+                 'conditions' => array('User.id' => $user_id),
+                 'recursive' => -1
+             ));
+             if (empty($userToCheck)) {
+                 return false;
+             }
+             $setting = array(
+                'User' => array(
+                    'org_id' => $userToCheck['User']['org_id']
+                ),
+                'UserSetting' => array(
+                    'user_id' => $userToCheck['User']['id']
+                )
+             );
+         }
+         if ($user['Role']['perm_site_admin']) {
+             return true;
+         } else if ($user['Role']['perm_admin']) {
+             if ($user['org_id'] === $setting['User']['org_id']) {
+                 return true;
+             }
+         } else {
+             if (
+                 $user['id'] === $setting['UserSetting']['user_id'] &&
+                 (!Configure::check('MISP.disableUserSelfManagement') || Configure::check('MISP.disableUserSelfManagement'))
+             ) {
+                 return true;
+             }
+         }
+         return false;
+     }
 
     /*
      *  Check whether the event is something the user is interested (to be alerted on)
@@ -115,10 +140,17 @@ class UserSetting extends AppModel
                 'UserSetting.setting' => 'publish_alert_filter'
             )
         ));
-        if (empty($rule)) {
+        // We should return true if no setting has been configured, or there's a setting with an empty value
+        if (empty($rule) || empty($rule['UserSetting']['value'])) {
             return true;
         }
-        return $this->__recursiveConvert($rule['UserSetting']['value'], $event);
+        // recursively evaluate the boolean tree to true/false and return the value
+        $result = $this->__recursiveConvert($rule['UserSetting']['value'], $event);
+        if (isset($result[0])) {
+            return $result[0];
+        } else {
+            return false;
+        }
     }
 
     /*
@@ -138,7 +170,7 @@ class UserSetting extends AppModel
                     $temp = null;
                     foreach ($parts as $partValue) {
                         if ($temp === null) {
-                            $temp = $k === 'NOT' ? !$partValue : $partValue;
+                            $temp = ($k === 'NOT') ? !$partValue : $partValue;
                         } else {
                             if ($k === 'OR') {
                                 $temp = $temp || $partValue;
@@ -151,7 +183,6 @@ class UserSetting extends AppModel
                     }
                     $toReturn []= $temp;
                 } else {
-                    $v = mb_strtolower($v);
                     $toReturn []= $this->__checkEvent($k, $v, $event);
                 }
             }
@@ -177,6 +208,9 @@ class UserSetting extends AppModel
     {
         if (!is_array($lookup_values)) {
             $lookup_values = array($lookup_values);
+        }
+        foreach ($lookup_values as $k => $v) {
+            $lookup_values[$k] = mb_strtolower($v);
         }
         if ($rule === 'AttributeTag.name') {
             $values = array_merge(

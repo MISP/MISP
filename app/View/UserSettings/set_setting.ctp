@@ -10,7 +10,8 @@
                 array(
                     'div' => 'clear',
                     'class' => 'input input-xxlarge',
-                    'options' => array($users)
+                    'options' => array($users),
+                    'disabled' => count($users) === 1
                 )
             ),
             $this->Form->input(

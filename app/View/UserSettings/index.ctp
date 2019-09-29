@@ -33,13 +33,13 @@
                                 'active' => $context === 'org',
                                 'url' => $baseurl . '/user_settings/index/user_id:org',
                                 'text' => __('Organisation'),
-                                'requirements' => $isAdmin
+                                'requirement' => $isAdmin
                             ),
                             array(
                                 'active' => $context === 'all',
                                 'url' => $baseurl . '/user_settings/index/user_id:all',
                                 'text' => __('All'),
-                                'requirements' => $isSiteAdmin
+                                'requirement' => $isSiteAdmin
                             )
                         )
                     )
@@ -95,7 +95,7 @@
         )
     ));
     echo '</div>';
-    if ($context === 'me') {
+    if ($context === 'me' || (!$isAdmin && !$isSiteAdmin)) {
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'user_settings_index_me'));
     } else {
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'user_settings_index'));
