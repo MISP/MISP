@@ -75,7 +75,8 @@ class AppModel extends Model
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
-        33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false
+        33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
+        39 => false
     );
 
     public $advanced_updates_description = array(
@@ -1246,6 +1247,19 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE servers ADD  priority int(11) NOT NULL DEFAULT 0;";
                 $indexArray[] = array('servers', 'priority');
                 break;
+            case 39:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS user_settings (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `value` text,
+                    `user_id` int(11) NOT NULL,
+                    `timestamp` int(11) NOT NULL,
+                    PRIMARY KEY (id),
+                    INDEX `key` (`key`),
+                    INDEX `user_id` (`user_id`),
+                    INDEX `timestamp` (`timestamp`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1512,6 +1526,17 @@ class AppModel extends Model
             return true;
         }
         return ucfirst($field) . ' cannot be empty.';
+    }
+
+    public function valueIsJson($value)
+    {
+        $field = array_keys($value);
+        $field = $field[0];
+        $json_decoded = json_decode($value[$field]);
+        if ($json_decoded === null) {
+            return __('Invalid JSON.');
+        }
+        return true;
     }
 
     public function valueIsID($value)

@@ -2980,10 +2980,13 @@ class Event extends AppModel
         $sgModel = ClassRegistry::init('SharingGroup');
 
         $userCount = count($users);
+        $this->UserSetting = ClassRegistry::init('UserSetting');
         foreach ($users as $k => $user) {
-            $body = $this->__buildAlertEmailBody($event[0], $user, $oldpublish, $sgModel);
-            $bodyNoEnc = "A new or modified event was just published on " . $this->__getAnnounceBaseurl() . "/events/view/" . $event[0]['Event']['id'];
-            $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
+            if ($this->UserSetting->checkPublishFilter($user, $event[0])) {
+                $body = $this->__buildAlertEmailBody($event[0], $user, $oldpublish, $sgModel);
+                $bodyNoEnc = "A new or modified event was just published on " . $this->__getAnnounceBaseurl() . "/events/view/" . $event[0]['Event']['id'];
+                $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
+            }
             if ($processId) {
                 $this->Job->id = $processId;
                 $this->Job->saveField('progress', $k / $userCount * 100);
