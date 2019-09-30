@@ -75,11 +75,14 @@
                 $sane_description = highlightAndSanitize($column_diagnostic['description'], $column_diagnostic['column_name'], '');
                 $sane_expected = highlightAndSanitize($column_diagnostic['expected'], $diff_expected);
                 $sane_actual = highlightAndSanitize($column_diagnostic['actual'], $diff_actual, 'important');
+                $unique_row = empty($sane_expected) && empty($sane_actual);
 
                 $rows .= '<tr>';
-                    $rows .= sprintf('<td>%s</td>', $sane_description);
-                    $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($table_name), h($i), implode(' ', $sane_expected));
-                    $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($table_name), h($i), implode(' ', $sane_actual));
+                    $rows .= sprintf('<td %s>%s</td>', $unique_row ? 'colspan=3' : '', $sane_description);
+                    if (!$unique_row) {
+                        $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($table_name), h($i), implode(' ', $sane_expected));
+                        $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($table_name), h($i), implode(' ', $sane_actual));
+                    }
                 $rows .= '</tr>';
             }
         }
@@ -108,7 +111,7 @@
         );
     } else {
         echo sprintf('<span class="label label-important" style="margin-left: 5px;" title="%s">%s <i class="fas fa-times"></i></span>',
-            __('The current database version does not matche the expected one'),
+            __('The current database version does not match the expected one'),
             __('Actual DB_version: ') . h($actualDbVersion)
         );
     }

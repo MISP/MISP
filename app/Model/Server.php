@@ -4352,7 +4352,10 @@ class Server extends AppModel
         // perform schema comparison for tables
         foreach($db_expected_schema as $table_name => $columns) {
             if (!array_key_exists($table_name, $db_actual_schema)) {
-                $db_diff[$table_name][] = array('description' => sprintf(__('Table `%s` does not exists'), $table_name));
+                $db_diff[$table_name][] = array(
+                    'description' => sprintf(__('Table `%s` does not exist'), $table_name),
+                    'column_name' => $table_name,
+                );
             } else {
                 // perform schema copmarison for table's columns
                 foreach ($columns as $i => $column) {
@@ -4360,7 +4363,7 @@ class Server extends AppModel
                         $col_diff = array_diff($column, $db_actual_schema[$table_name][$i]);
                         if (count($col_diff) > 0) {
                             $db_diff[$table_name][] = array(
-                                'description' => sprintf(__('Column `%s` is different than what is expected'), $column[0]),
+                                'description' => sprintf(__('Column `%s` is different'), $column[0]),
                                 'column_name' => $column[0],
                                 'actual' => $db_actual_schema[$table_name][$i],
                                 'expected' => $column
@@ -4368,7 +4371,7 @@ class Server extends AppModel
                         }
                     } else {
                         $db_diff[$table_name][] = array(
-                            'description' => sprintf(__('Column `%s` does not exists in the current database schema'), $column[0]),
+                            'description' => sprintf(__('Column `%s` does not exist'), $column[0]),
                             'column_name' => $column[0],
                             'actual' => array('None'),
                             'expected' => $column
@@ -4379,7 +4382,7 @@ class Server extends AppModel
         }
         foreach(array_diff(array_keys($db_actual_schema), array_keys($db_expected_schema)) as $additional_table) {
             $db_diff[$additional_table][] = array(
-                'description' => sprintf(__('Table `%s` is not registered in the expected database schema'), $additional_table),
+                'description' => sprintf(__('Table `%s` is an additional table'), $additional_table),
                 'column_name' => $additional_table,
             );
         }
