@@ -241,25 +241,6 @@ class AppModel extends Model
     public function updateDatabase($command)
     {
         $this->Log = ClassRegistry::init('Log');
-        // Exit if updates are locked.
-        // This is not as reliable as a real lock implementation
-        // However, as all updates are re-playable, there is no harm if they
-        // get played multiple time. The purpose of this lightweight lock
-        // is only to limit the load
-        if ($this->isUpdateLocked()) {
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => 'SYSTEM',
-                    'action' => 'update_database',
-                    'user_id' => 0,
-                    'title' => __('Issues executing the SQL query for ') . $command,
-                    'change' => __('Database updates are locked')
-            ));
-            return false;
-        }
         $this->__resetUpdateProgress();
 
         $liveOff = false;
@@ -1278,7 +1259,6 @@ class AppModel extends Model
         }
 
         $now = new DateTime();
-        $this->__changeLockState(time());
         // switch MISP instance live to false
         if ($liveOff) {
             $this->Server = Classregistry::init('Server');
@@ -1391,7 +1371,6 @@ class AppModel extends Model
         if (!$flag_stop && $error_count == 0) {
             $this->__postUpdate($command);
         }
-        $this->__changeLockState(false);
         if ($flag_stop && $error_count > 0) {
             $this->Log->create();
             $this->Log->save(array(
@@ -1584,6 +1563,8 @@ class AppModel extends Model
     public function runUpdates($verbose = false, $useWorker = true, $processId = false)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $this->Job = ClassRegistry::init('Job');
+        $this->Log = ClassRegistry::init('Log');
         $db = ConnectionManager::getDataSource('default');
         $tables = $db->listSources();
         $requiresLogout = false;
@@ -1605,10 +1586,29 @@ class AppModel extends Model
             $db_version = $db_version[0];
             $updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
             if (!empty($updates)) {
+                // Exit if updates are locked.
+                // This is not as reliable as a real lock implementation
+                // However, as all updates are re-playable, there is no harm if they
+                // get played multiple time. The purpose of this lightweight lock
+                // is only to limit the load.
+                if ($this->isUpdateLocked()) { // prevent creation of useless workers
+                    $this->Log->create();
+                    $this->Log->save(array(
+                            'org' => 'SYSTEM',
+                            'model' => 'Server',
+                            'model_id' => 0,
+                            'email' => 'SYSTEM',
+                            'action' => 'update_database',
+                            'user_id' => 0,
+                            'title' => __('Issues executing run_updates'),
+                            'change' => __('Database updates are locked')
+                    ));
+                    return false;
+                }
+                
                 // restart this function by a worker
                 if ($useWorker && Configure::read('MISP.background_jobs')) {
-                    $job = ClassRegistry::init('Job');
-                    $job->create();
+                    $this->Job->create();
                     $data = array(
                         'worker' => 'prio',
                         'job_type' => 'run_updates',
@@ -1619,17 +1619,40 @@ class AppModel extends Model
                         'org' => '',
                         'message' => 'Updating.',
                     );
-                    $job->save($data);
-                    $jobId = $job->id;
+                    $this->Job->save($data);
+                    $jobId = $this->Job->id;
                     $process_id = CakeResque::enqueue(
                             'prio',
                             'AdminShell',
                             array('runUpdates', $jobId),
                             true
                     );
-                    $job->saveField('process_id', $process_id);
+                    $this->Job->saveField('process_id', $process_id);
                     return true;
                 }
+
+                // See comment above for `isUpdateLocked()`
+                if ($this->isUpdateLocked()) { // prevent continuation of job is worker was spawned already
+                    $this->Log->create();
+                    $this->Log->save(array(
+                            'org' => 'SYSTEM',
+                            'model' => 'Server',
+                            'model_id' => 0,
+                            'email' => 'SYSTEM',
+                            'action' => 'update_database',
+                            'user_id' => 0,
+                            'title' => __('Issues executing run_updates'),
+                            'change' => __('Updates are locked')
+                    ));
+                        if (!empty($job)) {
+                            $job['Job']['progress'] = '100';
+                            $job['Job']['message'] = __('Update done');
+                            $this->Job->save($job);
+                        }
+                    return false;
+                }
+                $this->__changeLockState(time());
+
                 $job = $this->Job->read(null, $processId);
                 $update_done = 0;
                 foreach ($updates as $update => $temp) {
@@ -1665,6 +1688,7 @@ class AppModel extends Model
         if ($requiresLogout) {
             $this->updateDatabase('destroyAllSessions');
         }
+        $this->__changeLockState(false);
         return true;
     }
 
