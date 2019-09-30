@@ -4260,6 +4260,20 @@ class Server extends AppModel
         }
     }
 
+    // TODO: Use CakePHP 3.X's Schema System
+    /*
+        $db = ConnectionManager::get('default');
+
+        // Create a schema collection.
+        $collection = $db->schemaCollection();
+
+        // Get the table names
+        $tables = $collection->listTables();
+
+        // Get a single table (instance of Schema\TableSchema)
+        $tableSchema = $collection->describe('posts');
+
+    */
     public function getActualDBSchema(
         $table_column_names = array(
             'column_name',

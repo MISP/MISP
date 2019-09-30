@@ -191,7 +191,7 @@ class AppModel extends Model
                 $this->__fixServerPullPushRules();
                 break;
             case 38:
-                $this->updateDatabase($command);
+                $db_update_success = $this->updateDatabase($command);
                 $this->__addServerPriority();
                 break;
             default:
@@ -240,7 +240,11 @@ class AppModel extends Model
     public function updateDatabase($command)
     {
         $this->Log = ClassRegistry::init('Log');
-        // Exit if updates are locked
+        // Exit if updates are locked.
+        // This is not as reliable as a real lock implementation
+        // However, as all updates are re-playable, there is no harm if they
+        // get played multiple time. The purpose of this lightweight lock
+        // is only to limit the load
         if ($this->isUpdateLocked()) {
             $this->Log->create();
             $this->Log->save(array(
@@ -1312,7 +1316,7 @@ class AppModel extends Model
                 } catch (Exception $e) {
                     $error_message = $e->getMessage();
                     $this->Log->create();
-                    $this->Log->save(array(
+                    $log_message = array(
                         'org' => 'SYSTEM',
                         'model' => 'Server',
                         'model_id' => 0,
@@ -1321,7 +1325,7 @@ class AppModel extends Model
                         'user_id' => 0,
                         'title' => __('Issues executing the SQL query for ') . $command,
                         'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $error_message
-                    ));
+                    );
                     $this->__setUpdateResMessages($i, __('Issues executing the SQL query for ') . $command . __('. The returned error is: ') . PHP_EOL . $error_message);
                     $error_duplicate_column = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';
                     $error_duplicate_index = 'SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name';
@@ -1335,26 +1339,29 @@ class AppModel extends Model
                             $flag_stop = true;
                             break;
                         }
+                    } else {
+                        $log_message['change'] = $log_message['change'] . PHP_EOL . __('However, as this error is whitelisted, the update went through.');
                     }
+                    $this->Log->save($log_message);
                 }
             }
         }
         if (!$flag_stop) {
-             if (!empty($indexArray)) {
-                 if ($clean) {
-                     $this->cleanCacheFiles();
-                 }
-                 foreach ($indexArray as $i => $iA) {
-                     $this->__setUpdateProgress(count($sqlArray)+$i, false);
-                     if (isset($iA[2])) {
-                         $this->__addIndex($iA[0], $iA[1], $iA[2]);
-                     } else {
-                         $this->__addIndex($iA[0], $iA[1]);
-                     }
-                     $this->__setUpdateResMessages(count($sqlArray)+$i, __('Successfuly indexed ') . implode($iA, '->'));
-                 }
-             }
-             $this->__setUpdateProgress(count($sqlArray)+count($indexArray), false);
+            if (!empty($indexArray)) {
+                if ($clean) {
+                    $this->cleanCacheFiles();
+                }
+                foreach ($indexArray as $i => $iA) {
+                    $this->__setUpdateProgress(count($sqlArray)+$i, false);
+                    if (isset($iA[2])) {
+                        $this->__addIndex($iA[0], $iA[1], $iA[2]);
+                    } else {
+                        $this->__addIndex($iA[0], $iA[1]);
+                    }
+                    $this->__setUpdateResMessages(count($sqlArray)+$i, __('Successfuly indexed ') . implode($iA, '->'));
+                }
+            }
+            $this->__setUpdateProgress(count($sqlArray)+count($indexArray), false);
          }
         if ($clean) {
             $this->cleanCacheFiles();
