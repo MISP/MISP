@@ -2211,7 +2211,10 @@ class Event extends AppModel
                             }
                         }
                     }
-                    if (Configure::read('MISP.proposals_block_attributes') && isset($options['to_ids']) && $options['to_ids']) {
+                    if (
+                        Configure::read('MISP.proposals_block_attributes') &&
+                        !empty($options['allow_proposal_blocking'])
+                    ) {
                         foreach ($results[$eventKey]['Attribute'][$key]['ShadowAttribute'] as $sa) {
                             if ($sa['proposal_to_delete'] || $sa['to_ids'] == 0) {
                                 unset($results[$eventKey]['Attribute'][$key]);
@@ -2980,10 +2983,13 @@ class Event extends AppModel
         $sgModel = ClassRegistry::init('SharingGroup');
 
         $userCount = count($users);
+        $this->UserSetting = ClassRegistry::init('UserSetting');
         foreach ($users as $k => $user) {
-            $body = $this->__buildAlertEmailBody($event[0], $user, $oldpublish, $sgModel);
-            $bodyNoEnc = "A new or modified event was just published on " . $this->__getAnnounceBaseurl() . "/events/view/" . $event[0]['Event']['id'];
-            $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
+            if ($this->UserSetting->checkPublishFilter($user, $event[0])) {
+                $body = $this->__buildAlertEmailBody($event[0], $user, $oldpublish, $sgModel);
+                $bodyNoEnc = "A new or modified event was just published on " . $this->__getAnnounceBaseurl() . "/events/view/" . $event[0]['Event']['id'];
+                $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
+            }
             if ($processId) {
                 $this->Job->id = $processId;
                 $this->Job->saveField('progress', $k / $userCount * 100);
@@ -4168,9 +4174,10 @@ class Event extends AppModel
     // Performs all the actions required to publish an event
     public function publish($id, $passAlong = null, $jobId = null)
     {
-        $this->id = $id;
-        $this->recursive = 0;
-        $event = $this->read(null, $id);
+        $event = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Event.id' => $id)
+        ));
         if (empty($event)) {
             return false;
         }
@@ -5818,7 +5825,7 @@ class Event extends AppModel
         return $this->save($event);
     }
 
-    public function upload_stix($user, $filename, $stix_version, $original_file)
+    public function upload_stix($user, $filename, $stix_version, $original_file, $publish)
     {
         App::uses('Folder', 'Utility');
         App::uses('File', 'Utility');
@@ -5844,12 +5851,20 @@ class Event extends AppModel
         if (trim($result) == '1') {
             $data = file_get_contents($output_path);
             $data = json_decode($data, true);
+            if (empty($data['Event'])) {
+                $data = array('Event' => $data);
+            }
             unlink($output_path);
             $created_id = false;
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
             if ($result) {
-                $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
+                if ($original_file) {
+                    $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
+                }
+                if ($publish && $user['Role']['perm_publish']) {
+                    $this->publish($this->getID(), null);
+                }
                 return $created_id;
             }
             return $validationIssues;
@@ -6701,6 +6716,7 @@ class Event extends AppModel
             if (!isset($filters['published'])) {
                 $filters['published'] = 1;
             }
+            $filters['allow_proposal_blocking'] = 1;
         }
 
         if (!empty($exportTool->renderView)) {

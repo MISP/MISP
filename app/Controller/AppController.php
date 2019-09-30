@@ -463,7 +463,11 @@ class AppController extends Controller
         }
 
         $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-        $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+        if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
+            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+        } else {
+            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+        }
         $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
     }

@@ -2390,3 +2390,7 @@ table tr:hover .down-expand-button {
 .large-left-margin {
     margin-left:8px;
 }
+
+#notice_message {
+   margin: 10px;
+}

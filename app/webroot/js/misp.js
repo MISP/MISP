@@ -4285,7 +4285,7 @@ function syntaxHighlightJson(json, indent) {
     if (typeof json == 'string') {
         json = JSON.parse(json);
     }
-    json = JSON.stringify(json, undefined, 2);
+    json = JSON.stringify(json, undefined, indent);
     json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/(?:\r\n|\r|\n)/g, '<br>').replace(/ /g, '&nbsp;');
     return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
             var cls = 'json_number';
