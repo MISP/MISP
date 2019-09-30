@@ -317,14 +317,8 @@ class AdminShell extends AppShell
         $whoami = exec('whoami');
         if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
-            $this->Server->runUpdates(true, false);
-            if (!empty($this->args[0])) {
-                $processId = $this->args[0];
-                $job = $this->Job->read(null, $processId);
-                $job['Job']['progress'] = 100;
-                $job['Job']['message'] = 'Update done';
-                $this->Job->save($job);
-            }
+            $processId = $this->args[0];
+            $this->Server->runUpdates(true, false, $processId);
             echo 'All updates completed.' . PHP_EOL;
         } else {
             die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);

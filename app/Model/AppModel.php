@@ -1581,7 +1581,7 @@ class AppModel extends Model
         return true;
     }
 
-    public function runUpdates($verbose = false, $useWorker = true)
+    public function runUpdates($verbose = false, $useWorker = true, $processId = false)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $db = ConnectionManager::getDataSource('default');
@@ -1630,9 +1630,16 @@ class AppModel extends Model
                     $job->saveField('process_id', $process_id);
                     return true;
                 }
+                $job = $this->Job->read(null, $processId);
+                $update_done = 0;
                 foreach ($updates as $update => $temp) {
                     if ($verbose) {
                         echo str_pad('Executing ' . $update, 30, '.');
+                    }
+                    if (!empty($job)) {
+                        $job['Job']['progress'] = floor($update_done / count($updates)) * 100;
+                        $job['Job']['message'] = sprintf(__('Running update %s'), $update);
+                        $this->Job->save($job);
                     }
                     $db_update_success = $this->updateMISP($update);
                     if ($temp) {
@@ -1645,6 +1652,12 @@ class AppModel extends Model
                     if ($verbose) {
                         echo "\033[32mDone\033[0m" . PHP_EOL;
                     }
+                    $update_done++;
+                }
+                if (!empty($job)) {
+                    $job['Job']['progress'] = '100';
+                    $job['Job']['message'] = __('Update done');
+                    $this->Job->save($job);
                 }
                 $this->__queueCleanDB();
             }
