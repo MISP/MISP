@@ -1795,44 +1795,47 @@ class AppModel extends Model
         return $updates;
     }
 
-
-    public function populateNotifications($user)
+    public function populateNotifications($user, $mode = 'full')
     {
         $notifications = array();
-        $proposalCount = $this->_getProposalCount($user);
-        $notifications['total'] = 0;
-        $notifications['proposalCount'] = $proposalCount[0];
-        $notifications['total'] += $proposalCount[0];
-        $notifications['proposalEventCount'] = $proposalCount[1];
+        list($notifications['proposalCount'], $notifications['proposalEventCount']) = $this->_getProposalCount($user, $mode);
+        $notifications['total'] = $notifications['proposalCount'];
         if (Configure::read('MISP.delegation')) {
-            $delegationCount = $this->_getDelegationCount($user);
-            $notifications['total'] += $delegationCount;
-            $notifications['delegationCount'] = $delegationCount;
+            $notifications['delegationCount'] = $this->_getDelegationCount($user);
+            $notifications['total'] += $notifications['delegationCount'];
         }
         return $notifications;
     }
 
-
-    private function _getProposalCount($user)
+    // if not using $mode === 'full', simply check if an entry exists. We really don't care about the real count for the top menu.
+    private function _getProposalCount($user, $mode = 'full')
     {
         $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
-        $this->ShadowAttribute->recursive = -1;
-        $shadowAttributes = $this->ShadowAttribute->find('all', array(
+        $results[0] = $this->ShadowAttribute->find(
+            'count',
+            array(
                 'recursive' => -1,
-                'fields' => array('event_id', 'event_org_id'),
                 'conditions' => array(
                         'ShadowAttribute.event_org_id' => $user['org_id'],
                         'ShadowAttribute.deleted' => 0,
-                )));
-        $results = array();
-        $eventIds = array();
-        $results[0] = count($shadowAttributes);
-        foreach ($shadowAttributes as $sa) {
-            if (!in_array($sa['ShadowAttribute']['event_id'], $eventIds)) {
-                $eventIds[] = $sa['ShadowAttribute']['event_id'];
-            }
+                )
+            )
+        );
+        if ($mode === 'full') {
+            $results[1] = $this->ShadowAttribute->find(
+                'count',
+                array(
+                    'recursive' => -1,
+                    'conditions' => array(
+                            'ShadowAttribute.event_org_id' => $user['org_id'],
+                            'ShadowAttribute.deleted' => 0,
+                    ),
+                    'fields' => 'distinct event_id'
+                )
+            );
+        } else {
+            $results[1] = $results[0];
         }
-        $results[1] = count($eventIds);
         return $results;
     }
 
@@ -1840,10 +1843,8 @@ class AppModel extends Model
     {
         $this->EventDelegation = ClassRegistry::init('EventDelegation');
         $delegations = $this->EventDelegation->find('count', array(
-                'recursive' => -1,
-                'conditions' => array(
-                        'EventDelegation.org_id' => $user['org_id']
-                )
+            'recursive' => -1,
+            'conditions' => array('EventDelegation.org_id' => $user['org_id'])
         ));
         return $delegations;
     }
