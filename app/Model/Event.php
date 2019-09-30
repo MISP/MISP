@@ -4174,9 +4174,10 @@ class Event extends AppModel
     // Performs all the actions required to publish an event
     public function publish($id, $passAlong = null, $jobId = null)
     {
-        $this->id = $id;
-        $this->recursive = 0;
-        $event = $this->read(null, $id);
+        $event = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Event.id' => $id)
+        ));
         if (empty($event)) {
             return false;
         }
