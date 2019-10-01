@@ -1107,6 +1107,9 @@ class ServersController extends AppController
                         'writeableDirs' => $writeableDirs,
                         'writeableFiles' => $writeableFiles,
                         'readableFiles' => $readableFiles,
+                        'dbDiagnostics' => $dbDiagnostics,
+                        'dbSchemaDiagnostics' => $dbSchemaDiagnostics,
+                        'redisInfo' => $redisInfo,
                         'finalSettings' => $dumpResults,
                         'extensions' => $extensions,
                         'workers' => $worker_array
