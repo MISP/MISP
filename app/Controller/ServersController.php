@@ -1146,7 +1146,7 @@ class ServersController extends AppController
         if ($type != 'scheduler') {
             $workerIssueCount = 0;
             $workerDiagnostic = $this->Server->workerDiagnostics($workerIssueCount);
-            if (isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
+            if ($type == 'update' && isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
                 $message = __('Only one `update` worker can run at a time');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'startWorker', false, $message, $this->response->type());
