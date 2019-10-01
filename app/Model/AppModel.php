@@ -1285,7 +1285,9 @@ class AppModel extends Model
             } catch (Exception $e) {
                 $this->__setPreUpdateTestState(false);
                 $this->__setUpdateProgress(0, false);
-                $this->__setUpdateResMessages(0, __('Issues executing the pre-update test `') . $function_name . __('`. The returned error is: ') . PHP_EOL . $e->getMessage());
+                $this->__setUpdateResMessages(0, sprintf(__('Issues executing the pre-update test `%s`. The returned error is: %s') . PHP_EOL,
+                    $function_name, $e->getMessage()
+                ));
                 $this->__setUpdateError(0);
                 $error_count++;
                 $exitOnError = true;
@@ -1308,9 +1310,9 @@ class AppModel extends Model
                         'action' => 'update_database',
                         'user_id' => 0,
                         'title' => __('Successfuly executed the SQL query for ') . $command,
-                        'change' => __('The executed SQL query was: ') . $sql
+                        'change' => sprintf(__('The executed SQL query was: %s'), $sql)
                     ));
-                    $this->__setUpdateResMessages($i, __('Successfuly executed the SQL query for ') . $command);
+                    $this->__setUpdateResMessages($i, sprintf(__('Successfuly executed the SQL query for %s'), $command));
                 } catch (Exception $e) {
                     $error_message = $e->getMessage();
                     $this->Log->create();
@@ -1321,10 +1323,10 @@ class AppModel extends Model
                         'email' => 'SYSTEM',
                         'action' => 'update_database',
                         'user_id' => 0,
-                        'title' => __('Issues executing the SQL query for ') . $command,
+                        'title' => sprintf(__('Issues executing the SQL query for %s'), $command),
                         'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $error_message
                     );
-                    $this->__setUpdateResMessages($i, __('Issues executing the SQL query for ') . $command . __('. The returned error is: ') . PHP_EOL . $error_message);
+                    $this->__setUpdateResMessages($i, __('Issues executing the SQL query for `%s`. The returned error is: ' . PHP_EOL . '%s'), $command, $error_message);
                     $error_duplicate_column = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';
                     $error_duplicate_index = 'SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name';
                     if (
@@ -1380,7 +1382,7 @@ class AppModel extends Model
                     'email' => 'SYSTEM',
                     'action' => 'update_database',
                     'user_id' => 0,
-                    'title' => __('Issues executing the SQL query for ') . $command,
+                    'title' => sprintf(__('Issues executing the SQL query for %s'), $command),
                     'change' => __('Database updates stopped as some errors occured and the stop flag is enabled.')
             ));
             return false;
