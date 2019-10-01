@@ -3067,6 +3067,7 @@ class AttributesController extends AppController
                     $this->Auth->user(),
                     array(
                         'conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0),
+                        'flatten' => 1,
                         'contain' => array('Event.orgc_id')
                     )
                 );
