@@ -4266,7 +4266,8 @@ class Server extends AppModel
             'checked_table_column' => array(),
             'diagnostic' => array(),
             'expected_db_version' => '?',
-            'error' => ''
+            'error' => '',
+            'remaining_lock_time' => $this->getLockRemainingTime()
         );
         if ($data_source == 'Database/Mysql') {
             $db_actual_schema = $this->getActualDBSchema();
@@ -4357,23 +4358,44 @@ class Server extends AppModel
                     'column_name' => $table_name,
                 );
             } else {
-                // perform schema copmarison for table's columns
-                foreach ($columns as $i => $column) {
-                    if (isset($db_actual_schema[$table_name][$i])) {
-                        $col_diff = array_diff($column, $db_actual_schema[$table_name][$i]);
+                // perform schema comparison for table's columns
+                $expected_column_keys = array();
+                $keyed_expected_column = array();
+                foreach($columns as $column) {
+                    $expected_column_keys[] = $column[0];
+                    $keyed_expected_column[$column[0]] = $column;
+                }
+                $existing_column_keys = array();
+                $keyed_actual_column = array();
+                foreach($db_actual_schema[$table_name] as $column) {
+                    $existing_column_keys[] = $column[0];
+                    $keyed_actual_column[$column[0]] = $column;
+                }
+
+                $additional_keys_in_actual_schema = array_diff($existing_column_keys, $expected_column_keys);
+                foreach($additional_keys_in_actual_schema as $additional_keys) {
+                    $db_diff[$table_name][] = array(
+                        'description' => sprintf(__('Column `%s` exists but should not'), $additional_keys),
+                        'column_name' => $additional_keys
+                    );
+                }
+
+                foreach ($keyed_expected_column as $column_name => $column) {
+                    if (isset($keyed_actual_column[$column_name])) {
+                        $col_diff = array_diff($column, $keyed_actual_column[$column_name]);
                         if (count($col_diff) > 0) {
                             $db_diff[$table_name][] = array(
-                                'description' => sprintf(__('Column `%s` is different'), $column[0]),
+                                'description' => sprintf(__('Column `%s` is different'), $column_name),
                                 'column_name' => $column[0],
-                                'actual' => $db_actual_schema[$table_name][$i],
+                                'actual' => $keyed_actual_column[$column_name],
                                 'expected' => $column
                             );
                         }
                     } else {
                         $db_diff[$table_name][] = array(
-                            'description' => sprintf(__('Column `%s` does not exist'), $column[0]),
-                            'column_name' => $column[0],
-                            'actual' => array('None'),
+                            'description' => sprintf(__('Column `%s` does not exist but should'), $column_name),
+                            'column_name' => $column_name,
+                            'actual' => array(),
                             'expected' => $column
                         );
                     }

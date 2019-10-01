@@ -233,7 +233,8 @@
                 'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'],
                 'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
                 'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version'],
-                'error' => $dbSchemaDiagnostics['error']
+                'error' => $dbSchemaDiagnostics['error'],
+                'remainingLockTime' => $dbSchemaDiagnostics['remaining_lock_time']
             )); ?>
         </div>
     <h3><?= __("Redis info") ?></h3>

@@ -1701,6 +1701,7 @@ class AppModel extends Model
                 if (!empty($job)) {
                     $job['Job']['message'] = __('Update done');
                 }
+                $this->__changeLockState(false);
                 $this->__queueCleanDB();
             } else {
                 if (!empty($job)) {
@@ -1717,7 +1718,6 @@ class AppModel extends Model
         if ($requiresLogout) {
             $this->updateDatabase('destroyAllSessions');
         }
-        $this->__changeLockState(false);
         return true;
     }
 
@@ -1820,7 +1820,7 @@ class AppModel extends Model
         return is_null($locked) ? false : $locked;
     }
 
-    public function isUpdateLocked()
+    public function getLockRemainingTime()
     {
         $lockState = $this->getUpdateLockState();
         if ($lockState !== false && $lockState !== '') {
@@ -1833,11 +1833,17 @@ class AppModel extends Model
                 $this->Server = ClassRegistry::init('Server');
                 $updateWaitThreshold = intval($this->Server->serverSettings['MISP']['updateTimeThreshold']['value']);
             }
-            if ($diffSec < $updateWaitThreshold) {
-                return true;
-            }
+            $remainingTime = $updateWaitThreshold - $diffSec;
+            return $remainingTime > 0 ? $remainingTime : 0;
+        } else {
+            return 0;
         }
-        return false;
+    }
+
+    public function isUpdateLocked()
+    {
+        $remainingTime = $this->getLockRemainingTime();
+        return $remainingTime > 0;
     }
 
     private function __queueCleanDB()
