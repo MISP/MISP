@@ -13,6 +13,7 @@ cd "${0%/*}"
 ../cake CakeResque.CakeResque start --interval 5 --queue prio
 ../cake CakeResque.CakeResque start --interval 5 --queue cache
 ../cake CakeResque.CakeResque start --interval 5 --queue email
+../cake CakeResque.CakeResque start --interval 5 --queue update
 ../cake CakeResque.CakeResque startscheduler --interval 5
 
 exit 0

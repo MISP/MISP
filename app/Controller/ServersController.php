@@ -1138,12 +1138,23 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
-        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio');
+        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
         if (!in_array($type, $validTypes)) {
             throw new MethodNotAllowedException('Invalid worker type.');
         }
         $prepend = '';
         if ($type != 'scheduler') {
+            $workerIssueCount = 0;
+            $workerDiagnostic = $this->Server->workerDiagnostics($workerIssueCount);
+            if (isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
+                $message = __('Only one `update` worker can run at a time');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Servers', 'startWorker', false, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                    $this->redirect('/servers/serverSettings/workers');
+                }
+            }
             shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null 2>&1 &');
         } else {
             shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');

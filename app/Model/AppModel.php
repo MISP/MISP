@@ -1565,6 +1565,7 @@ class AppModel extends Model
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->Job = ClassRegistry::init('Job');
         $this->Log = ClassRegistry::init('Log');
+        $this->Server = ClassRegistry::init('Server');
         $db = ConnectionManager::getDataSource('default');
         $tables = $db->listSources();
         $requiresLogout = false;
@@ -1617,9 +1618,19 @@ class AppModel extends Model
 
                 // restart this function by a worker
                 if ($useWorker && Configure::read('MISP.background_jobs')) {
+                    $workerIssueCount = 0;
+                    $workerDiagnostic = $this->Server->workerDiagnostics($workerIssueCount);
+                    $workerType = '';
+                    if (isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
+                        $workerType = 'update';
+                    } elseif (isset($workerDiagnostic['prio']['ok']) && $workerDiagnostic['prio']['ok']) {
+                        $workerType = 'prio';
+                    } else { // no worker running, doing inline update
+                        return $this->runUpdates($verbose, false);
+                    }
                     $this->Job->create();
                     $data = array(
-                        'worker' => 'prio',
+                        'worker' => $workerType,
                         'job_type' => 'run_updates',
                         'job_input' => 'command: ' . implode(',', $updates),
                         'status' => 0,

@@ -4642,6 +4642,7 @@ class Server extends AppModel
                     'default' => array('ok' => false),
                     'email' => array('ok' => false),
                     'prio' => array('ok' => false),
+                    'update' => array('ok' => false),
                     'scheduler' => array('ok' => false)
             );
         }
@@ -4657,6 +4658,7 @@ class Server extends AppModel
                 'default' => array('ok' => true),
                 'email' => array('ok' => true),
                 'prio' => array('ok' => true),
+                'update' => array('ok' => true),
                 'scheduler' => array('ok' => true)
         );
         $procAccessible = file_exists('/proc');
@@ -5268,7 +5270,7 @@ class Server extends AppModel
 
     public function startWorker($queue)
     {
-        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio');
+        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
         if (!in_array($queue, $validTypes)) {
             return __('Invalid worker type.');
         }

@@ -25,7 +25,7 @@ class JobsController extends AppController
         $issueCount = 0;
         $workers = $this->Server->workerDiagnostics($issueCount);
         $this->recursive = 0;
-        $queues = array('email', 'default', 'cache', 'prio');
+        $queues = array('email', 'default', 'cache', 'prio', 'update');
         if ($queue && in_array($queue, $queues)) {
             $this->paginate['conditions'] = array('Job.worker' => $queue);
         }
