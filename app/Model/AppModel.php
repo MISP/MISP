@@ -1585,6 +1585,10 @@ class AppModel extends Model
             }
             $db_version = $db_version[0];
             $updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
+            $job = $this->Job->find('first', array(
+                'conditions' => array('Job.id' => $processId)
+            ));
+
             if (!empty($updates)) {
                 // Exit if updates are locked.
                 // This is not as reliable as a real lock implementation
@@ -1601,11 +1605,16 @@ class AppModel extends Model
                             'action' => 'update_database',
                             'user_id' => 0,
                             'title' => __('Issues executing run_updates'),
-                            'change' => __('Database updates are locked')
+                            'change' => __('Database updates are locked. Worker not spawned')
                     ));
-                    return false;
+                    if (!empty($job)) { // if multiple prio worker is enabled, want to mark them as done
+                        $job['Job']['progress'] = 100;
+                        $job['Job']['message'] = __('Update done');
+                       $this->Job->save($job);
+                    }
+                    return true;
                 }
-                
+
                 // restart this function by a worker
                 if ($useWorker && Configure::read('MISP.background_jobs')) {
                     $this->Job->create();
@@ -1632,7 +1641,9 @@ class AppModel extends Model
                 }
 
                 // See comment above for `isUpdateLocked()`
-                if ($this->isUpdateLocked()) { // prevent continuation of job is worker was spawned already
+                // prevent continuation of job if worker was already spawned
+                // (could happens if multiple prio workers are up)
+                if ($this->isUpdateLocked()) {
                     $this->Log->create();
                     $this->Log->save(array(
                             'org' => 'SYSTEM',
@@ -1642,25 +1653,24 @@ class AppModel extends Model
                             'action' => 'update_database',
                             'user_id' => 0,
                             'title' => __('Issues executing run_updates'),
-                            'change' => __('Updates are locked')
+                            'change' => __('Updates are locked. Stopping worker gracefully')
                     ));
-                        if (!empty($job)) {
-                            $job['Job']['progress'] = '100';
-                            $job['Job']['message'] = __('Update done');
-                            $this->Job->save($job);
-                        }
-                    return false;
+                    if (!empty($job)) {
+                        $job['Job']['progress'] = 100;
+                        $job['Job']['message'] = __('Update done');
+                        $this->Job->save($job);
+                    }
+                    return true;
                 }
                 $this->__changeLockState(time());
 
-                $job = $this->Job->read(null, $processId);
                 $update_done = 0;
                 foreach ($updates as $update => $temp) {
                     if ($verbose) {
                         echo str_pad('Executing ' . $update, 30, '.');
                     }
                     if (!empty($job)) {
-                        $job['Job']['progress'] = floor($update_done / count($updates)) * 100;
+                        $job['Job']['progress'] = floor($update_done / count($updates) * 100);
                         $job['Job']['message'] = sprintf(__('Running update %s'), $update);
                         $this->Job->save($job);
                     }
@@ -1678,11 +1688,19 @@ class AppModel extends Model
                     $update_done++;
                 }
                 if (!empty($job)) {
-                    $job['Job']['progress'] = '100';
                     $job['Job']['message'] = __('Update done');
-                    $this->Job->save($job);
                 }
                 $this->__queueCleanDB();
+            } else {
+                if (!empty($job)) {
+                    $job['Job']['message'] = __('Update done in another worker. Gracefuly stopping.');
+                }
+            }
+            // mark current worker as done, as well as queued workers than manages to pass the locks
+            // (happens if user hit reload before first worker start its job)
+            if (!empty($job)) {
+                $job['Job']['progress'] = 100;
+                $this->Job->save($job);
             }
         }
         if ($requiresLogout) {
