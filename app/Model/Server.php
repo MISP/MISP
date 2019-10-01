@@ -4386,6 +4386,7 @@ class Server extends AppModel
                     'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg'
                 ));
             } catch (Exception $e) {
+                $this->logException("Error during initializing GPG.", $e, LOG_NOTICE);
                 $gpgStatus = 2;
                 $continue = false;
             }
@@ -4393,6 +4394,7 @@ class Server extends AppModel
                 try {
                     $key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
                 } catch (Exception $e) {
+                    $this->logException("Error during adding GPG signing key.", $e, LOG_NOTICE);
                     $gpgStatus = 3;
                     $continue = false;
                 }
@@ -4402,6 +4404,7 @@ class Server extends AppModel
                     $gpgStatus = 0;
                     $signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
                 } catch (Exception $e) {
+                    $this->logException("Error during GPG signing.", $e, LOG_NOTICE);
                     $gpgStatus = 4;
                 }
             }
