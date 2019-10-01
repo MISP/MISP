@@ -241,7 +241,7 @@
         <li><b><?php echo __('Description');?></b>: <?php echo __('A brief description of the task.');?></li>
         <li><b><?php echo __('Message');?></b>: <?php echo __('This field shows when the job was queued by the scheduler for execution.');?></li>
     </ul>
-    <br /><img src="<?php echo $baseurl;?>/img/doc/schedule.png" alt = "" title = "<?php echo __('Site administrators can schedule reccuring tasks on this page.');?>"/><br />
+    <br /><img src="<?php echo $baseurl;?>/img/doc/schedule.png" alt = "" title = "<?php echo __('Site administrators can schedule recurring tasks on this page.');?>"/><br />
     <h2 ><a id="faq"></a><?php echo __('Frequently asked questions');?></h2>
     <b><?php echo __('Losing access to the platform and resetting the password');?></b><br /><br />
     <?php echo __('If you ever lock yourself out of MISP as a site admin, there is a command line tool to reset your password. This can also be handy if you have changed the salt key and invalidated all of the passwords.');?><br />

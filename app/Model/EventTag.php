@@ -153,7 +153,7 @@ class EventTag extends AppModel
         if ($eventId != 0) {
             $statementArray['conditions'] = array('event_id' => $eventId);
         }
-        // tag along with its occurence in the event
+        // tag along with its occurrence in the event
         $subQuery = $db->buildStatement(
             $statementArray,
             $this

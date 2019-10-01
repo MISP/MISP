@@ -108,7 +108,7 @@
                 }
             }
 
-            // value rule - search in the object's atribute value
+            // value rule - search in the object's attribute value
             $valueMatch = true;
             if (isset($obj['Attribute'])) {
                 foreach ($obj['Attribute'] as $attr) {

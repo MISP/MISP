@@ -55,7 +55,7 @@
     <li><b><?php echo __('Statistics');?>:</b> <?php echo __('View statistics about the users and the data contained within this instance.');?>
         <ul>
             <li>
-                <b><?php echo __('General Statistics');?>:</b> <?php echo __('View a set of statistics such as the number of Events and Attributes currently in existance on the platform. The number in the bracket shows the number of new items added during this week.');?>
+                <b><?php echo __('General Statistics');?>:</b> <?php echo __('View a set of statistics such as the number of Events and Attributes currently in existence on the platform. The number in the bracket shows the number of new items added during this week.');?>
             </li>
             <li>
                 <b><?php echo __('Activity Heatmap');?>:</b> <?php echo __('This graph shows a heatmap of all activity related to creating event related data on a day by day basis. By default, the graph shows the sum of the contributions of all organisations, but using the buttons representing each organisation in existance on the platform you can switch to the activity heatmap of a single organisation. If you\'d like to see the activity further back in the past, just use the arrow buttons to navigate the heatmap.');?>

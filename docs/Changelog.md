@@ -515,7 +515,7 @@ Other
     file containing at most a number of attributes
     defined by a limit
   - Each file is then parsed instead of parsing each
-    event individualy, which reduces the number of
+    event individually, which reduces the number of
     times the python scripts are called, reducing
     the execution time of the overall process
   - The result is then returned as on single file
@@ -1910,7 +1910,7 @@ Fix
   viewport is small. [Sami Mokaddem]
 
   Under a viewport of 1400px, the modal's position is set to absolute
-  alowing the user to use the scrollbar for navigation.
+  allowing the user to use the scrollbar for navigation.
 - [stix2 import] Fixed object name while importing file with pe &
   sections. [chrisr3d]
 - [stix2 export] Fixed observable object of File with PE extension.
@@ -2493,7 +2493,7 @@ Fix
   [iglocska]
 - [bug] Endless loop when terms are not accepted / password not reset
   fixed, fixes #3336. [iglocska]
-- Fixed premission on a view level for add tags. [iglocska]
+- Fixed permission on a view level for add tags. [iglocska]
 - Fixed permission check for adding tags to an event. [iglocska]
 - [ACL] added new functions to the ACL. [iglocska]
 - [bug] invalid function call for the event lock via the objects
@@ -2930,7 +2930,7 @@ Other
 - Install pymisp for python3. [Richard van den Berg]
 - Use python3 to install stix/cybox/mixbox libraries. [Richard van den
   Berg]
-- [stix1 export][stix2 import] Kept only usefull pymisp library import.
+- [stix1 export][stix2 import] Kept only useful pymisp library import.
   [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
@@ -3276,7 +3276,7 @@ Fix
 - [DistributionGraph] sharing group search and uniqueness of results.
   [Sami Mokaddem]
 
-  fix a bug where filtering per sharing group was not inlcuding inherit
+  fix a bug where filtering per sharing group was not including inherit
   attributes.
   Enforce uniqueness of involved entities.
 - Fixed distribution level swapping when filtering from the distribution
@@ -3497,7 +3497,7 @@ Other
 - Updated stix header title. [chrisr3d]
 
   The header is actually skipped in MISP and the one
-  from misp2stix_framing is used, but usefull for
+  from misp2stix_framing is used, but useful for
   command line tests
 - Merge branch '2.4' of github.com:MISP/MISP into stix. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
@@ -3677,7 +3677,7 @@ Fix
 - Enforcewarninglist can still accidentally convert the attribute list
   to an attribute dictionary using attribute fetchAttributes(), fixes
   #3166. [iglocska]
-- Log seach should allow form resubmissions. [iglocska]
+- Log search should allow form resubmissions. [iglocska]
 - Fix to the invalid refanging (Third time's the charm) [iglocska]
 - Fixed invalid refanging. [iglocska]
 - + changed to . in url. [iglocska]
@@ -3869,7 +3869,7 @@ Other
 - Added possibility to change physics on the fly. [Sami Mokaddem]
 - Added physics toogle button for event graph. [Sami Mokaddem]
 - Fix #3074: Edit button vanishes on cancelled delete. [Sami Mokaddem]
-- Better support of hierachical view and clutering unreferenced nodes.
+- Better support of hierarchical view and clutering unreferenced nodes.
   [Sami Mokaddem]
 - First draft of hierarchical layout. [Sami Mokaddem]
 - Fixed bug where the node focus was not performed if the node was
@@ -5556,7 +5556,7 @@ Fix
   is not always justified to use Identity
 - Inverted check on filterwarninglistAttributes causing the warninglist
   not to be adhered to correctly. [iglocska]
-- Match the rate of the pulisher in the subscriber as default.
+- Match the rate of the publisher in the subscriber as default.
   [iglocska]
 - Remove trailing slash from MISP.baseurl. [Jan Skalny]
 - Fixed a tag lookup scope error in attributes/restSearch. [iglocska]
@@ -6984,7 +6984,7 @@ Fix
 - Fixed the saving of objects. [iglocska]
 - Updated the new ajax methods to follow the new JSON rules. [iglocska]
 - Various fixes. [iglocska]
-- Fixed an outdated index pointing to a now non-existant field.
+- Fixed an outdated index pointing to a now non-existent field.
   [iglocska]
 - Ommit object template elements with invalid attribute types.
   [iglocska]
@@ -8261,7 +8261,7 @@ Fix
 - Avoid undefined calls to .value. [Hannah Ward]
 - Updated JS to fix Infinite loading when adding an attribute fails,
   fixes #2102. [iglocska]
-- Removed unnecesary part of the previous fix. [iglocska]
+- Removed unnecessary part of the previous fix. [iglocska]
 - Fixed a mass attribute edit issue if no sharing groups are created on
   the instnace. [iglocska]
 - Added fallback for getallheaders() missing for some systems.
@@ -8910,7 +8910,7 @@ Fix
 - Added correct recognition of ip:port indicators to the freetext import
   tool, fixes #1919. [iglocska]
 - Added (dot) to the refanging. [iglocska]
-- Incorect IF statment in app/Model/AppModel.php, fixes #1891.
+- Incorect IF statement in app/Model/AppModel.php, fixes #1891.
   [iglocska]
 
 Other
@@ -9197,7 +9197,7 @@ Fix
 - Remove the admin setting changes too using the prune job. [iglocska]
 - Fix and cleanup script for a specific bug. [iglocska]
 
-  - rare occurance, but some MISP servers enter an upgrade loop causing massive amounts of log entries
+  - rare occurrence, but some MISP servers enter an upgrade loop causing massive amounts of log entries
   - this patch cleans up the bug preventing further upgrade loops as well as offers a script to clean up the fallout
 - Fixed a bug that didn't correctly handle validation errors on the
   attribute add popup, fixes #1875. [iglocska]
@@ -9737,7 +9737,7 @@ Changes
 - Added mobile-application-id to payload installation. [iglocska]
 - Exposed the new warninglist override via APIs and moved the lookup
   method to the warninglist model. [iglocska]
-- Added new attribute type: mobile applicaiton id. [iglocska]
+- Added new attribute type: mobile application id. [iglocska]
 
   - Also some further changes to the warninglist enforcement
 - Added twitter-id and mapped github-repo to external analysis.
@@ -11384,7 +11384,7 @@ Fix
 - XSS vulnerability in a malicious feed provider. [iglocska]
 
   Thanks to Emanuele Gentili from tigersecurity.pro for reporting this vulnerability
-- Small change, removal of unnecesary parameter. [iglocska]
+- Small change, removal of unnecessary parameter. [iglocska]
 - Fixed some issues with the misp export importer and added better
   logging. [iglocska]
 - Taxonomies updated to the latest version. [Alexandre Dulaunoy]
@@ -14855,7 +14855,7 @@ v2.4.0 (2015-12-24)
   the tags... [iglocska]
 - Fixes to some validations issues using cakephp 2.7. [iglocska]
 - Fix to the pubsub tool. [iglocska]
-- Small fix thta resolves the inability to delete orgs. [iglocska]
+- Small fix that resolves the inability to delete orgs. [iglocska]
 - Further progress. [iglocska]
 
   - rework of the push mechanism
@@ -14920,7 +14920,7 @@ v2.4.0 (2015-12-24)
   - Further refactoring / tweaking of the vent view
 - Progress on several features. [Iglocska]
 
-  - implemented a custom pagination tool for data sets that are not directly taken from teh db
+  - implemented a custom pagination tool for data sets that are not directly taken from the db
     - currently creates a pagination object that mocks CakePHP pagination
     - supports the CakePHP pagination view helper
     - supports: pagination, sorting, custom filters
@@ -15720,7 +15720,7 @@ v2.3.139 (2015-10-09)
   CentOS, fixes #685. [Iglocska]
 
   - Under these distros, php is blocked from seeing concurrently running php processes even under the same user
-  - instead of running ps, the diagnostic now checks the existance of the pid file in /proc/
+  - instead of running ps, the diagnostic now checks the existence of the pid file in /proc/
 
 
 v2.3.138 (2015-10-09)
@@ -19034,7 +19034,7 @@ v2.2.1 (2014-02-19)
 - Merge branch 'hotfix-2.1.20' into develop. [iglocska]
 - Fix to the related attributes. [iglocska]
 
-  - related atributes were flowing into the next field if there were too many to fit the 5% width
+  - related attributes were flowing into the next field if there were too many to fit the 5% width
 
   - hovering over a related attribute caused a misaligned tooltip to appear and block the link itself on IE
 - Merge branch 'hotfix-2.1.19' [iglocska]
@@ -21063,7 +21063,7 @@ v2.2.1 (2014-02-19)
   make RESTfull event add and edit work again.
 - RESTfull sync. [noud]
 
-  RESTfull attribute add, edit and view, to be usefull in sync.
+  RESTfull attribute add, edit and view, to be useful in sync.
 - RESTfull/sync. [noud]
 
   redid the sync, so if add and exist, send HTTP 302 and different
@@ -21499,7 +21499,7 @@ v2.2.1 (2014-02-19)
   db conversion using whitelist, not whitelists.
 - Index. [noud]
 
-  some line disapeared, in view as well on attribute level.
+  some line disappeared, in view as well on attribute level.
   Andras Iklody suggested a html non breaking space, that worked.
 - Code. [noud]
 
@@ -21560,7 +21560,7 @@ v2.2.1 (2014-02-19)
   corrections toward code standards.
 - Index. [noud]
 
-  some line disapeared.
+  some line disappeared.
   Andras Iklody suggested a html non breaking space, that worked.
 - Count. [noud]
 

@@ -1394,7 +1394,7 @@ INSERT INTO `template_element_texts` (`id`, `name`, `template_element_id`, `text
 (2, 'Optional information', 5, 'All of the fields below are optional, please fill out anything that''s applicable.'),
 (4, 'Required Fields', 11, 'The following fields are mandatory'),
 (5, 'Optional information about the payload delivery', 13, 'All of the fields below are optional, please fill out anything that''s applicable. This section describes the payload delivery, including the e-mail itself, the attached file, the vulnerability it is exploiting and any malicious urls in the e-mail.'),
-(6, 'Optional information obtained from analysing the malicious file', 16, 'Information about the analysis of the malware (if applicable). This can include C2 information, artifacts dropped during the analysis, persistance mechanism, etc.'),
+(6, 'Optional information obtained from analysing the malicious file', 16, 'Information about the analysis of the malware (if applicable). This can include C2 information, artifacts dropped during the analysis, persistence mechanism, etc.'),
 (7, 'Malware Sample', 29, 'If you can, please upload the sample that the report revolves around.'),
 (8, 'Dropped Artifacts', 31, 'Describe any dropped artifacts that you have encountered during your analysis'),
 (9, 'C2 Information', 32, 'The following field deals with Command and Control information obtained during the analysis. All fields are optional.'),

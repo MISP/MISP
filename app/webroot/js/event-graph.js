@@ -1829,7 +1829,7 @@ function getTextColour(hex) {
 
 
 function genericPopupCallback(result) {
-	// sucess and eventgraph is enabled
+	// success and eventgraph is enabled
 	if (result == "success" && dataHandler !== undefined) {
 		mispInteraction.apply_callback();
 		dataHandler.fetch_data_and_update(false);

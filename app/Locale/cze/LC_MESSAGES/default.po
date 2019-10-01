@@ -1778,7 +1778,7 @@ msgid "Enabled logging to an ElasticSearch instance"
 msgstr ""
 
 #: Model/Server.php:1384
-msgid "The URL(s) at which to access ElasticSearch - comma seperate if you want to have more than one."
+msgid "The URL(s) at which to access ElasticSearch - comma separate if you want to have more than one."
 msgstr ""
 
 #: Model/Server.php:1392
@@ -9302,7 +9302,7 @@ msgid "This field shows when the job was queued by the scheduler for execution."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:244
-msgid "Site administrators can schedule reccuring tasks on this page."
+msgid "Site administrators can schedule recurring tasks on this page."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:245
@@ -11285,7 +11285,7 @@ msgid "You can choose which format you would like to use as input/output for the
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:427
-msgid "The following headers are required if you wish to recieve / push XML data"
+msgid "The following headers are required if you wish to receive / push XML data"
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:431

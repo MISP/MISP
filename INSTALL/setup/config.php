@@ -118,7 +118,7 @@ $config['CakeResque'] = array(
 		'tmpdir' => App::pluginPath('CakeResque') . 'tmp' . DS
 	),
 
-	// Other usefull environment variable you wish to set
+	// Other useful environment variable you wish to set
 	// Passing a key only will search for its value in the $_SERVER scope
 	// eg : array('SERVER_NAME'); => will search for the value in $_SERVER['SERVER_NAME']
 	// Passing a key and a value will set the env variable to this value

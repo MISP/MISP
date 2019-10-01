@@ -581,7 +581,7 @@ class NidsExport
         $explodedNames = explode('.', $name);
         // for each part
         foreach ($explodedNames as $explodedName) {
-            // count the lenght of the part, and add |length| before
+            // count the length of the part, and add |length| before
             $length = strlen($explodedName);
             if ($length > 255) {
                 log('WARNING: DNS name is too long for RFC: '.$name);
@@ -613,7 +613,7 @@ class NidsExport
         $explodedNames = explode('.', $name);
         // for each part
         foreach ($explodedNames as $explodedName) {
-            // count the lenght of the part, and add |length| before
+            // count the length of the part, and add |length| before
             $length = strlen($explodedName);
             if ($length > 255) {
                 log('WARNING: DNS name is too long for RFC: '.$name);

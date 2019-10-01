@@ -31,7 +31,7 @@
  *
  * Remember that Logable behavior needs to be added after RevisionBehavior. In fact, just put it last to be safe.
  *
- * Optionally register what user was responisble for the activity :
+ * Optionally register what user was responsible for the activity :
  *
  * - Supply configuration only if defaults are wrong. Example given with defaults :
  *
@@ -207,7 +207,7 @@ class LogableBehavior extends ModelBehavior {
 		if (!$this->UserModel) {
 			return NULL;
 		}
-		// if logged in user is asking for her own log, use the data we allready have
+		// if logged in user is asking for her own log, use the data we already have
 		if (isset($this->user) && isset($this->user[$this->UserModel->alias][$this->UserModel->primaryKey]) && $user_id == $this->user[$this->UserModel->alias][$this->UserModel->primaryKey] && isset($this->user[$this->UserModel->alias][$this->UserModel->displayField])) {
 			$username = $this->user[$this->UserModel->alias][$this->UserModel->displayField];
 		} else {

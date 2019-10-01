@@ -101,7 +101,7 @@ and attachments and finally publishing it.');?><br /><br />
 For users trying to populate an event, after clicking on the populate from template button, you\'ll be presented with a list of all currently accessible templates. Pick the one that best describes the event that you are creating.');?> </p>
 <img src="<?php echo $baseurl;?>/img/doc/template_choice.png" alt="<?php echo __('Template Choice');?>" title = "<?php echo __('Choose the most appropriate template for your event.');?>"/><br /><br />
 <p><?php echo __('Once you have chosen a template, you\'ll be presented with the actual form contained within. Make sure you fill out as many fields as possible with the mandatory fields - marked by a star in a bracket such as this: (*) - are filled out.<br />
-Templates are devided into sections, with each section having a title and a description in addition to a series of fields. Each field can be an attribute or a file attachment field. An attribute field has the following components');?>:</p>
+Templates are divided into sections, with each section having a title and a description in addition to a series of fields. Each field can be an attribute or a file attachment field. An attribute field has the following components');?>:</p>
 <img src="<?php echo $baseurl;?>/img/doc/template_field.png" alt="<?php echo __('Template Field');?>" title = "<?php echo __('MISP will generate attributes based on the field\'s settings and the data that you provide.');?>"/><br /><br />
 <ul>
 <li><b><?php echo __('Field');?></b>: <?php echo __('The name of the field along with an indication if the field is mandatory.');?></li>
@@ -424,7 +424,7 @@ Each post is made up of the following');?>:<br /><br />
 <h3><?php echo __('Requests');?></h3>
 <?php echo __('Use any HTTP compliant library to perform requests.');?><br /><br />
 <?php echo __('You can choose which format you would like to use as input/output for the REST calls by specifying the Accept and Content-Type headers.');?><br /><br />
-<?php echo __('The following headers are required if you wish to recieve / push XML data');?>:<br /><br />
+<?php echo __('The following headers are required if you wish to receive / push XML data');?>:<br /><br />
 <b>Authorization</b>: <span class=red><?php echo h($user['authkey']); ?></span><br />
 <b>Accept</b>: <span class=red>application/xml</span><br />
 <b>Content-Type</b>: <span class=red>application/xml</span><br /><br />

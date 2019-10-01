@@ -19,7 +19,7 @@ class EventGraphController extends AppController
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
 
-        // retreive current org_id
+        // retrieve current org_id
         $org_id = $this->_checkOrg();
 
         // validate event

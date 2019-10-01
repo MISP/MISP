@@ -1778,7 +1778,7 @@ msgid "Enabled logging to an ElasticSearch instance"
 msgstr "Activer la connexion à une instance ElasticSearch"
 
 #: Model/Server.php:1384
-msgid "The URL(s) at which to access ElasticSearch - comma seperate if you want to have more than one."
+msgid "The URL(s) at which to access ElasticSearch - comma separate if you want to have more than one."
 msgstr "L'URL(s) pour accéder à ElasticSearch - séparée par des virgules si vous en avez plusieurs."
 
 #: Model/Server.php:1392

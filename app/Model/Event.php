@@ -1108,7 +1108,7 @@ class Event extends AppModel
         if (!$server['Server']['internal'] && $object['distribution'] == 2) {
             $object['distribution'] = 1;
         }
-        // If the object has a sharing group attached, make sure it can be transfered
+        // If the object has a sharing group attached, make sure it can be transferred
         if ($object['distribution'] == 4) {
             if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Object' => $object), $server, 'Object') === false) {
                 return false;
@@ -1136,7 +1136,7 @@ class Event extends AppModel
             $attribute['distribution'] = 1;
         }
 
-        // If the attribute has a sharing group attached, make sure it can be transfered
+        // If the attribute has a sharing group attached, make sure it can be transferred
         if ($attribute['distribution'] == 4) {
             if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
                 return false;

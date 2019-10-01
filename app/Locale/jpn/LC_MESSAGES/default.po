@@ -1778,7 +1778,7 @@ msgid "Enabled logging to an ElasticSearch instance"
 msgstr "ElasticSearch インスタンスへのロギングを有効化"
 
 #: Model/Server.php:1384
-msgid "The URL(s) at which to access ElasticSearch - comma seperate if you want to have more than one."
+msgid "The URL(s) at which to access ElasticSearch - comma separate if you want to have more than one."
 msgstr "ElasticSearch にアクセスする URL(s) - 複数の URL を持つ場合はカンマで区切ります。"
 
 #: Model/Server.php:1392
@@ -9905,7 +9905,7 @@ msgid "General Statistics"
 msgstr "一般的な統計"
 
 #: View/Pages/doc/user_management.ctp:58
-msgid "View a set of statistics such as the number of Events and Attributes currently in existance on the platform. The number in the bracket shows the number of new items added during this week."
+msgid "View a set of statistics such as the number of Events and Attributes currently in existence on the platform. The number in the bracket shows the number of new items added during this week."
 msgstr "プラットフォーム上に現存するイベントやアトリビュートの数などの統計情報を表示します。カギ括弧内の数字は今週追加された新しい項目数を示しています。"
 
 #: View/Pages/doc/user_management.ctp:61
@@ -10171,7 +10171,7 @@ msgstr "イベントに最適なテンプレートを選択してください。
 
 #: View/Pages/doc/using_the_system.ctp:103
 msgid "Once you have chosen a template, you'll be presented with the actual form contained within. Make sure you fill out as many fields as possible with the mandatory fields - marked by a star in a bracket such as this: (*) - are filled out.<br />\n"
-"Templates are devided into sections, with each section having a title and a description in addition to a series of fields. Each field can be an attribute or a file attachment field. An attribute field has the following components"
+"Templates are divided into sections, with each section having a title and a description in addition to a series of fields. Each field can be an attribute or a file attachment field. An attribute field has the following components"
 msgstr "テンプレートを選択すると、それに含まれる実際のフォームが表示されます。できるだけ多くの項目と、必須項目に記入してください。必須項目には、次のような括弧内の星印 (*) がマークされています。<br />\n"
 "テンプレートはセクションに分割されています。各セクションは一連の項目に加えてタイトルと説明を持っています。各項目は、アトリビュートまたは添付ファイル項目になります。アトリビュート項目には以下のコンポーネントがあります"
 
@@ -11311,7 +11311,7 @@ msgid "You can choose which format you would like to use as input/output for the
 msgstr "Accept 及び Content-Type ヘッダーを指定することで、REST コールの入力/出力フォーマットを選択することができます。"
 
 #: View/Pages/doc/using_the_system.ctp:427
-msgid "The following headers are required if you wish to recieve / push XML data"
+msgid "The following headers are required if you wish to receive / push XML data"
 msgstr "XML データを受信 / プッシュするには、次のヘッダーが必要です"
 
 #: View/Pages/doc/using_the_system.ctp:431
