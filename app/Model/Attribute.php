@@ -126,7 +126,7 @@ class Attribute extends AppModel
             'Financial fraud' => array(
                     'desc' => __('Financial Fraud indicators'),
                     'formdesc' => __('Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.'),
-                    'types' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex', 'anonymised'),
+                    'types' => array('btc', 'dash', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex', 'anonymised'),
                     ),
             'Support Tool' => array(
                     'desc' => __('Tools supporting analysis or detection of the event'),
@@ -211,6 +211,7 @@ class Attribute extends AppModel
             'target-location' => array('desc' => __('Attack Targets Physical Location(s)'), 'default_category' => 'Targeting data', 'to_ids' => 0),
             'target-external' => array('desc' => __('External Target Organizations Affected by this Attack'), 'default_category' => 'Targeting data', 'to_ids' => 0),
             'btc' => array('desc' => __('Bitcoin Address'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
+            'dash' => array('desc' => __('Dash Address'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
             'xmr' => array('desc' => __('Monero Address'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
             'iban' => array('desc' => __('International Bank Account Number'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
             'bic' => array('desc' => __('Bank Identifier Code Number also known as SWIFT-BIC, SWIFT code or ISO 9362 code'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
@@ -1372,6 +1373,7 @@ class Attribute extends AppModel
             case 'iban':
             case 'bic':
             case 'btc':
+            case 'dash':
             case 'xmr':
                 if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
                     $returnValue = true;
