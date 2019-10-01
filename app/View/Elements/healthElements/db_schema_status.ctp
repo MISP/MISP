@@ -121,7 +121,7 @@
     }
     echo '<br/>';
     $humanReadableTime = sprintf('%smin %ssec', floor($remainingLockTime / 60), $remainingLockTime % 60);
-    echo sprintf('<span class="label label-%s" style="margin-left: 5px;" title="%s">%s <i class="fas fa-%s"></i></span>',
+    echo sprintf('<span class="label label-%s" title="%s">%s <i class="fas fa-%s"></i></span>',
         $remainingLockTime > 0 ? 'important' : 'success',
         $remainingLockTime > 0 ? __('Update are locked') : __('Update are not locked'),
         $remainingLockTime > 0 ? sprintf(__('Update unlocked in %s'), h($humanReadableTime)) : __('Update are not locked'),
