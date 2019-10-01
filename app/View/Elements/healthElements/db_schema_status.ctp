@@ -48,8 +48,12 @@
 <?php
     if (count($dbSchemaDiagnostics) > 0) {
         echo sprintf('<span  style="margin-bottom: 5px;" class="label label-important" title="%s">%s<i style="font-size: larger;" class="fas fa-times"></i></span>',
-            __('The current database schema does not match the excpect format'),
+            __('The current database schema does not match the expected format'),
             __('Database schema diagnostic: ')
+        );
+        echo sprintf('<div class="alert alert-error"><strong>%s</strong> %s</div>',
+            __('Critical warning!'),
+            __('The MISP database seems to be in an inconsistent state. Immediate attention is required.')
         );
         $table = sprintf('%s%s%s', 
             '<table class="table table-bordered table-condensed">',
