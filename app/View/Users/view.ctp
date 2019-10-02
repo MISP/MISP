@@ -29,8 +29,8 @@
     $table_data[] = array('key' => __('Terms accepted'), 'boolean' => $user['User']['termsaccepted']);
     $table_data[] = array(
         'key' => __('GnuPG key'),
-        'class_value' => "quickSelect " . $user['User']['gpgkey'] ? 'green' : 'bold red',
-        'html' => $user['User']['gpgkey'] ? nl2br(h($user['User']['gpgkey'])) : __("N/A")
+        'element' => 'genericElements/key',
+        'element_params' => array('key' => $user['User']['gpgkey']),
     );
     if (!empty($user['User']['gpgkey'])) {
         $table_data[] = array(
@@ -46,9 +46,9 @@
     }
     if (Configure::read('SMIME.enabled')) {
         $table_data[] = array(
-            'key' => __('SMIME Public certificate'),
-            'class_value' => "red quickSelect",
-            'html' => (h($user['User']['certif_public'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['certif_public']))) : "N/A"
+            'key' => __('S/MIME Public certificate'),
+            'element' => 'genericElements/key',
+            'element_params' => array('key' => $user['User']['certif_public']),
         );
     }
     echo sprintf(
