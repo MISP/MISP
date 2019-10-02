@@ -971,7 +971,7 @@ class FeedsController extends AppController
             $message = 'Feed caching job initiated.';
         } else {
             $result = $this->Feed->cacheFeedInitiator($this->Auth->user(), false, $scope);
-            if (!$result) {
+            if ($result['fails'] > 0) {
                 $this->Flash->error(__('Caching the feeds has failed.'));
                 $this->redirect(array('action' => 'index'));
             }

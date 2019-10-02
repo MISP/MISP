@@ -1008,10 +1008,10 @@ class Feed extends AppModel
     }
 
     /**
-     * @param $user Not used
+     * @param $user - Not used
      * @param int|bool $jobId
      * @param string $scope
-     * @return bool Returns true if at least one feed was cached successfully.
+     * @return array
      * @throws Exception
      */
     public function cacheFeedInitiator($user, $jobId = false, $scope = 'freetext')
@@ -1021,10 +1021,7 @@ class Feed extends AppModel
             'recursive' => -1,
             'fields' => array('source_format', 'input_source', 'url', 'id', 'settings', 'headers')
         );
-        $redis = $this->setupRedis();
-        if ($redis === false) {
-            throw new Exception('Could not reach Redis.');
-        }
+        $redis = $this->setupRedisWithException();
         if ($scope !== 'all') {
             if (is_numeric($scope)) {
                 $params['conditions']['id'] = $scope;
@@ -1041,18 +1038,20 @@ class Feed extends AppModel
             $redis->del($redis->keys('misp:feed_cache:event_uuid_lookup:*'));
         }
         $feeds = $this->find('all', $params);
-        $atLeastOneSuccess = false;
+
+        $results = array('successes' => 0, 'fails' => 0);
         foreach ($feeds as $k => $feed) {
             if ($this->__cacheFeed($feed, $redis, $jobId)) {
                 $message = 'Feed ' . $feed['Feed']['id'] . ' cached.';
-                $atLeastOneSuccess = true;
+                $results['successes']++;
             } else {
                 $message = 'Failed to cache feed ' . $feed['Feed']['id'] . '. See logs for more details.';
+                $results['fails']++;
             }
 
             $this->jobProgress($jobId, $message, 100 * $k / count($feeds));
         }
-        return $atLeastOneSuccess;
+        return $results;
     }
 
     public function attachFeedCacheTimestamps($data)
