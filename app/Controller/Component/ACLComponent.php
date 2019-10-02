@@ -557,6 +557,13 @@ class ACLComponent extends Component
                     'verifyGPG' => array(),
                     'view' => array('*'),
             ),
+            'userSettings' => array(
+                    'index' => array('*'),
+                    'view' => array('*'),
+                    'setSetting' => array('*'),
+                    'getSetting' => array('*'),
+                    'delete' => array('*')
+            ),
             'warninglists' => array(
                     'checkValue' => array('perm_auth'),
                     'delete' => array(),

@@ -217,6 +217,16 @@ class Server extends AppModel
                                 'type' => 'string',
                                 'cli_only' => 1
                         ),
+                        'ca_path' => array(
+                                'level' => 1,
+                                'description' => __('MISP will default to the bundled mozilla certificate bundle shipped with the framework, which is rather stale. If you wish to use an alternate bundle, just set this setting using the path to the bundle to use. This setting can only be modified via the CLI.'),
+                                'value' => APP . 'Lib/cakephp/lib/Cake/Config/cacert.pem',
+                                'errorMessage' => '',
+                                'null' => true,
+                                'test' => 'testForCABundle',
+                                'type' => 'string',
+                                'cli_only' => 1
+                        ),
                         'disable_auto_logout' => array(
                                 'level' => 1,
                                 'description' => __('In some cases, a heavily used MISP instance can generate unwanted blackhole errors due to a high number of requests hitting the server. Disable the auto logout functionality to ease the burden on the system.'),
@@ -3381,6 +3391,17 @@ class Server extends AppModel
         return $this->__testForFile($value, APP . 'files' . DS . 'terms');
     }
 
+    public function testForCABundle($value)
+    {
+        $file = new File($value);
+        if (!$file->exists()) {
+            return __('Invalid file path or file not accessible.');
+        }
+        if ($file->ext() !== 'pem') {
+            return __('File has to be in .pem format.');
+        }
+    }
+
     public function testForStyleFile($value)
     {
         if (empty($value)) {
@@ -4214,7 +4235,24 @@ class Server extends AppModel
             }
             return $result;
         }
+    }
 
+    public function redisInfo()
+    {
+        $output = array(
+            'extensionVersion' => phpversion('redis'),
+            'connection' => false,
+        );
+
+        try {
+            $redis = $this->setupRedisWithException();
+            $output['connection'] = true;
+            $output = array_merge($output, $redis->info());
+        } catch (Exception $e) {
+            $output['connection_error'] = $e->getMessage();
+        }
+
+        return $output;
     }
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)
@@ -5188,7 +5226,6 @@ class Server extends AppModel
             'page' => $i,
             'limit' => $chunk_size
         );
-        debug($filter_rules);
         $request = $this->setupSyncRequest($server);
         try {
             $response = $HttpSocket->post($server['Server']['url'] . '/attributes/restSearch.json', json_encode($filter_rules), $request);

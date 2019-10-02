@@ -6,7 +6,6 @@ class SyncTool
     public function setupHttpSocket($server = null)
     {
         $params = array();
-        App::uses('HttpSocket', 'Network/Http');
         if (!empty($server)) {
             if ($server['Server']['cert_file']) {
                 $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '.pem';
@@ -22,20 +21,33 @@ class SyncTool
                 }
             }
         }
-        $HttpSocket = new HttpSocket($params);
-        if (empty($server['Server']['skip_proxy'])) {
-            $proxy = Configure::read('Proxy');
-            if (isset($proxy['host']) && !empty($proxy['host'])) {
-                $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
-            }
-        }
-        return $HttpSocket;
+
+        return $this->createHttpSocket($params);
     }
 
     public function setupHttpSocketFeed($feed = null)
     {
+        return $this->setupHttpSocket();
+    }
+
+    /**
+     * @param array $params
+     * @return HttpSocket
+     * @throws Exception
+     */
+    private function createHttpSocket($params = array())
+    {
+        // Use own CA PEM file
+        $caPath = Configure::read('MISP.ca_path');
+        if (!isset($params['ssl_cafile']) && $caPath) {
+            if (!file_exists($caPath)) {
+                throw new Exception("CA file '$caPath' doesn't exists.");
+            }
+            $params['ssl_cafile'] = $caPath;
+        }
+
         App::uses('HttpSocket', 'Network/Http');
-        $HttpSocket = new HttpSocket();
+        $HttpSocket = new HttpSocket($params);
         $proxy = Configure::read('Proxy');
         if (isset($proxy['host']) && !empty($proxy['host'])) {
             $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);

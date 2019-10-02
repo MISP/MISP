@@ -18,9 +18,7 @@
         if (isset($action['postLink'])) {
             echo $this->Form->postLink(
                 '',
-                array(
-                    'url' => $url
-                ),
+                $url,
                 array(
                     'class' => $this->FontAwesome->getClass($action['icon']) . ' black ' . (empty($action['class']) ? '' : h($action['class'])),
                     'title' => empty($action['title']) ? '' : h($action['title']),

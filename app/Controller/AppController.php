@@ -426,7 +426,7 @@ class AppController extends Controller
                 $this->Log->create();
                 $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
                 if (($this->request->is('post') || $this->request->is('put')) && !empty(Configure::read('MISP.log_paranoid_include_post_body'))) {
-                    $payload = $this->request->data;
+                    $payload = $this->request->input();
                     if (!empty($payload['_Token'])) {
                         unset($payload['_Token']);
                     }
@@ -463,7 +463,11 @@ class AppController extends Controller
         }
 
         $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-        $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+        if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
+            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+        } else {
+            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+        }
         $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
     }

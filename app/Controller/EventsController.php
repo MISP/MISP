@@ -2080,7 +2080,13 @@ class EventsController extends AppController
                 $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
                 $tempFile->write($this->request->input());
                 $tempFile->close();
-                $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version, $original_file);
+                $result = $this->Event->upload_stix(
+                    $this->Auth->user(),
+                    $randomFileName,
+                    $stix_version,
+                    $original_file,
+                    $this->data['Event']['publish']
+                );
                 if (is_array($result)) {
                     return $this->RestResponse->saveSuccessResponse('Events', 'upload_stix', false, $this->response->type(), 'STIX document imported, event\'s created: ' . implode(', ', $result) . '.');
                 } elseif (is_numeric($result)) {
@@ -2098,7 +2104,13 @@ class EventsController extends AppController
                     $randomFileName = $this->Event->generateRandomFileName();
                     $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
                     move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
-                    $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version, $original_file);
+                    $result = $this->Event->upload_stix(
+                        $this->Auth->user(),
+                        $randomFileName,
+                        $stix_version,
+                        $original_file,
+                        $this->data['Event']['publish']
+                    );
                     if (is_array($result)) {
                         $this->Flash->success(__('STIX document imported, event\'s created: ' . implode(', ', $result) . '.'));
                         $this->redirect(array('action' => 'index'));

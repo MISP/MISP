@@ -249,6 +249,17 @@ class RestResponseComponent extends Component
                 'http_method' => 'GET'
             )
         ),
+        'UserSetting' => array(
+            'setSetting' => array(
+                'description' => "POST a User setting object in JSON format to this API to create a new setting or update the equivalent existing setting. Admins/site admins can specify a user ID besides their own.",
+                'mandatory' => array('setting', 'value'),
+                'optional' => array('user_id')
+            ),
+            'delete' => array(
+                'description' => "POST or DELETE to this API to delete an existing setting.",
+                'params' => array('id')
+            )
+        ),
         'Warninglist' => array(
             'checkValue' => array(
                 'description' => "POST a JSON list with value(s) to check against the warninglists to get a JSON dictionary as a response with any hits, if there are any (with the key being the passed value triggering a warning).",
@@ -1563,10 +1574,12 @@ class RestResponseComponent extends Component
                                         $fieldsConstraint[$sf]['label'] = $label;
                                     }
                                 } else {
-                                    $fieldsConstraint[$field] = $this->__fieldsConstraint[$field];
-                                    $label = $scope . '.' . $field;
-                                    $fieldsConstraint[$field]['id'] = $label;
-                                    $fieldsConstraint[$field]['label'] = $label;
+                                    if (!empty($this->__fieldsConstraint[$field])) {
+                                        $fieldsConstraint[$field] = $this->__fieldsConstraint[$field];
+                                        $label = $scope . '.' . $field;
+                                        $fieldsConstraint[$field]['id'] = $label;
+                                        $fieldsConstraint[$field]['label'] = $label;
+                                    }
                                 }
 
                                 // add dynamic data and overwrite name collisions
