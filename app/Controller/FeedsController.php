@@ -508,6 +508,9 @@ class FeedsController extends AppController
                 }
             }
         }
+        if (!isset($message)) {
+            $message = __('No feed enabled.');
+        }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData(array('result' => $message), $this->response->type());
         } else {
