@@ -1231,7 +1231,9 @@ class Feed extends AppModel
 
     public function importFeeds($feeds, $user, $default = false)
     {
-        $feeds = json_decode($feeds, true);
+        if (is_string($feeds)) {
+            $feeds = json_decode($feeds, true);
+        }
         if ($feeds && !isset($feeds[0])) {
             $feeds = array($feeds);
         }

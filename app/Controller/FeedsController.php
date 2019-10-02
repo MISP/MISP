@@ -132,7 +132,10 @@ class FeedsController extends AppController
     public function importFeeds()
     {
         if ($this->request->is('post')) {
-            $results = $this->Feed->importFeeds($this->request->data['Feed']['json'], $this->Auth->user());
+            if (isset($this->request->data['Feed']['json'])) {
+                $this->request->data = $this->request->data['Feed']['json'];
+            }
+            $results = $this->Feed->importFeeds($this->request->data, $this->Auth->user());
             if ($results['successes'] > 0) {
                 $flashType = 'success';
                 $message = $results['successes'] . ' new feeds added.';
@@ -505,8 +508,12 @@ class FeedsController extends AppController
                 }
             }
         }
-        $this->Flash->success($message);
-        $this->redirect(array('action' => 'index'));
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(array('result' => $message), $this->response->type());
+        } else {
+            $this->Flash->success($message);
+            $this->redirect(array('action' => 'index'));
+        }
     }
 
     public function getEvent($feedId, $eventUuid, $all = false)
