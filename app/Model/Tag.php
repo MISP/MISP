@@ -366,7 +366,7 @@ class Tag extends AppModel
         return $colour;
     }
 
-    public function quickAdd($name, $colour = false, $returnId = false)
+    public function quickAdd($name, $colour = false, $numerical_value = null)
     {
         $this->create();
         if ($colour === false) {
@@ -377,16 +377,22 @@ class Tag extends AppModel
             'colour' => $colour,
             'exportable' => 1
         );
+        if (!is_null($numerical_value)) {
+            $data['numerical_value'] = $numerical_value;
+        }
         return ($this->save($data));
     }
 
-    public function quickEdit($tag, $name, $colour, $hide = false)
+    public function quickEdit($tag, $name, $colour, $hide = false, $numerical_value = null)
     {
-        if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false) {
+        if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false || $tag['Tag']['numerical_value'] !== $numerical_value) {
             $tag['Tag']['name'] = $name;
             $tag['Tag']['colour'] = $colour;
             if ($hide !== false) {
                 $tag['Tag']['hide_tag'] = $hide;
+            }
+            if (!is_null($numerical_value)) {
+                $tag['Tag']['numerical_value'] = $numerical_value;
             }
             return ($this->save($tag['Tag']));
         }

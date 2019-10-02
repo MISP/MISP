@@ -23,7 +23,7 @@
                         array(
                             'text' => __('My Org\'s Events'),
                             'active' => !$all,
-                            'url' => '/shadow_attributes/index'
+                            'url' => '/shadow_attributes/index/all:0'
                         ),
                         array(
                             'text' => __('All Events'),
@@ -31,6 +31,12 @@
                             'url' => '/shadow_attributes/index/all:1'
                         )
                     )
+                ),
+                array(
+                    'type' => 'search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
+                    'data' => '',
                 )
             )
         );
@@ -38,6 +44,7 @@
     ?>
     <table class="table table-striped table-hover table-condensed">
         <tr>
+            <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo __('Event');?></th>
             <th>
                 <?php echo $this->Paginator->sort('org', __('Proposal by'));?>
@@ -66,6 +73,9 @@
         </tr>
         <?php foreach ($shadowAttributes as $event):?>
         <tr>
+            <td class="short">
+                <?php echo h($event['ShadowAttribute']['id']);?>
+            </td>
             <td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
                 <?php echo h($event['Event']['id']);?>
             </td>
@@ -125,3 +135,15 @@
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewProposals'));
 ?>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter('/all:<?php echo h($all); ?>');
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter('/all:<?php echo h($all); ?>');
+            }
+        });
+    });
+</script>

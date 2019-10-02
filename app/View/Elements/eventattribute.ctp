@@ -164,6 +164,10 @@
             <th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
             <th><?php echo __('Sightings');?></th>
             <th><?php echo __('Activity');?></th>
+            <?php if ($includeDecayScore): ?>
+                <th class="decayingScoreField" title="<?php echo __('Decaying Score');?>"><?php echo __('Score');?></th>
+                <?php $fieldCount += 1; ?>
+            <?php endif; ?>
             <th class="actions"><?php echo __('Actions');?></th>
         </tr>
         <?php
@@ -183,7 +187,8 @@
                     'mayChangeCorrelation' => $mayChangeCorrelation,
                     'page' => $page,
                     'fieldCount' => $fieldCount,
-                    'includeRelatedTags' => !empty($includeRelatedTags) ? 1 : 0
+                    'includeRelatedTags' => !empty($includeRelatedTags) ? 1 : 0,
+                    'includeDecayingScore' => !empty($includeDecayingScore) ? 1 : 0
                 ));
                 if (!empty($focus) && ($object['objectType'] == 'object' || $object['objectType'] == 'attribute') && $object['uuid'] == $focus) {
                     $focusedRow = $k;

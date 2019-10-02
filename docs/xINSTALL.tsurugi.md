@@ -117,7 +117,7 @@ function installMISPonTsurugi() {
   upload_max_filesize=50M
   post_max_size=50M
   max_execution_time=300
-  memory_limit=512M
+  memory_limit=2048M
   PHP_INI=/etc/php/7.0/apache2/php.ini
 
   # apt config
@@ -172,8 +172,6 @@ function installMISPonTsurugi() {
   a2dissite 000-default
   a2ensite default-ssl
 
-  pear channel-update pear.php.net
-  pear install Crypt_GPG
   pecl channel-update pecl.php.net
 
   yes '' |pecl install redis
@@ -230,8 +228,6 @@ function installMISPonTsurugi() {
 
   cd $PATH_TO_MISP/app
   mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 
   $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php

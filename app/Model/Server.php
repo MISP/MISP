@@ -49,6 +49,11 @@ class Server extends AppModel
         'authkey' => array(
             'rule' => array('validateAuthkey')
         ),
+        'name' => array(
+            'rule' => array('notBlank'),
+            'allowEmpty' => false,
+            'required' => true
+        ),
         'org_id' => array(
             'numeric' => array(
                 'rule' => array('valueIsID'),
@@ -520,7 +525,15 @@ class Server extends AppModel
                         'cveurl' => array(
                                 'level' => 1,
                                 'description' => __('Turn Vulnerability type attributes into links linking to the provided CVE lookup'),
-                                'value' => '',
+                                'value' => 'http://cve.circl.lu/cve/',
+                                'errorMessage' => '',
+                                'test' => 'testForEmpty',
+                                'type' => 'string',
+                        ),
+                        'cweurl' => array(
+                                'level' => 1,
+                                'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
+                                'value' => 'http://cve.circl.lu/cwe/',
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
                                 'type' => 'string',
@@ -723,6 +736,15 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                        'log_skip_db_logs_completely' => array(
+                            'level' => 0,
+                            'description' => __('This functionality allows you to completely disable any logs from being saved in your SQL backend. This is HIGHLY advised against, you lose all the functionalities provided by the audit log subsystem along with the event history (as these are built based on the logs on the fly). Only enable this if you understand and accept the associated risks.'),
+                            'value' => false,
+                            'errorMessage' => __('Logging has now been disabled - your audit logs will not capture failed authentication attempts, your event history logs are not being populated and no system maintenance messages are being logged.'),
+                            'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'log_paranoid' => array(
                                 'level' => 0,
                                 'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
@@ -843,7 +865,16 @@ class Server extends AppModel
                         ),
                         'block_old_event_alert_age' => array(
                                 'level' => 1,
-                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "Date" field of the event is used. Expected format: integer, in days'),
+                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "timestamp" field of the event is used. Expected format: integer, in days'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => false,
+                        ),
+                        'block_old_event_alert_by_date' => array(
+                                'level' => 1,
+                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control the threshold for the event.date field, indicating how old an event can be for it to be alerted on. The "date" field of the event is used. Expected format: integer, in days'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testForNumeric',
@@ -1131,6 +1162,7 @@ class Server extends AppModel
                                 'test' => 'testSalt',
                                 'type' => 'string',
                                 'editable' => false,
+                                'redacted' => true
                         ),
                         'syslog' => array(
                             'level' => 0,
@@ -1210,6 +1242,15 @@ class Server extends AppModel
                             'test' => 'testForEmpty',
                             'type' => 'string',
                             'null' => true
+                        ),
+                        'sync_audit' => array(
+                            'level' => 1,
+                            'description' => __('Enable this setting to create verbose logs of synced event data for debugging reasons. Logs are saved in your MISP directory\'s app/files/scripts/tmp/ directory.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
                         )
                 ),
                 'SecureAuth' => array(
@@ -1271,7 +1312,7 @@ class Server extends AppModel
                                 'description' => __('The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout.'),
                                 'value' => '',
                                 'errorMessage' => '',
-                                'test' => 'testForNumeric',
+                                'test' => 'testForCookieTimeout',
                                 'type' => 'numeric'
                         )
                 ),
@@ -2126,6 +2167,19 @@ class Server extends AppModel
     public function beforeSave($options = array())
     {
         $this->data['Server']['url'] = rtrim($this->data['Server']['url'], '/');
+        if (empty($this->data['Server']['id'])) {
+            $max_prio = $this->find('first', array(
+                'recursive' => -1,
+                'order' => array('Server.priority' => 'DESC'),
+                'fields' => array('Server.priority')
+            ));
+            if (empty($max_prio)) {
+                $max_prio = 0;
+            } else {
+                $max_prio = $max_prio['Server']['priority'];
+            }
+            $this->data['Server']['priority'] = $max_prio + 1;
+        }
         return true;
     }
 
@@ -2364,6 +2418,7 @@ class Server extends AppModel
         // if we are downloading a single event, don't fetch all proposals
         $conditions = is_numeric($technique) ? array('Event.id' => $technique) : array();
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server);
+        $server['Server']['version'] = $this->getRemoteVersion($id);
         if (!empty($eventIds['error'])) {
             $errors = array(
                 '1' => __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'),
@@ -2416,18 +2471,10 @@ class Server extends AppModel
             }
         }
         if ($jobId) {
+            $job->saveField('progress', 50);
             $job->saveField('message', 'Pulling proposals.');
         }
-        $events = $eventModel->find('list', array(
-                'fields' => array('uuid'),
-                'recursive' => -1,
-                'conditions' => $conditions
-        ));
-        $pulledProposals = array();
-        if (!empty($events)) {
-            $proposals = $eventModel->downloadProposalsFromServer($events, $server);
-            $pulledProposals = $this->__handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user);
-        }
+        $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
         if ($jobId) {
             $job->saveField('progress', 100);
             $job->saveField('message', 'Pull completed.');
@@ -2443,7 +2490,12 @@ class Server extends AppModel
             'action' => 'pull',
             'user_id' => $user['id'],
             'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-            'change' => count($successes) . ' events and ' . array_sum($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+            'change' => sprintf(
+                '%s events and %s proposals pulled or updated. %s events failed or didn\'t need an update.',
+                count($successes),
+                $pulledProposals,
+                count($fails)
+            )
         ));
         return array($successes, $fails, $pulledProposals);
     }
@@ -2489,6 +2541,7 @@ class Server extends AppModel
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/events/index';
         $filter_rules['minimal'] = 1;
+        $filter_rules['published'] = 1;
         try {
             $response = $HttpSocket->post($uri, json_encode($filter_rules), $request);
             if ($response->isOk()) {
@@ -2510,9 +2563,38 @@ class Server extends AppModel
                 } else {
                     // multiple events, iterate over the array
                     $this->Event = ClassRegistry::init('Event');
+                    $blacklisting = array();
+                    if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+                        $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+                        $blacklisting['EventBlacklist'] = array(
+                            'index_field' => 'uuid',
+                            'blacklist_field' => 'event_uuid'
+                        );
+                    }
+                    if (Configure::read('MISP.enableOrgBlacklisting') !== false) {
+                        $this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
+                        $blacklisting['OrgBlacklist'] = array(
+                            'index_field' => 'orgc_uuid',
+                            'blacklist_field' => 'org_uuid'
+                        );
+                    }
                     foreach ($eventArray as $k => $event) {
                         if (1 != $event['published']) {
                             unset($eventArray[$k]); // do not keep non-published events
+                            continue;
+                        }
+                        foreach ($blacklisting as $type => $blacklist) {
+                            if (!empty($eventArray[$k][$blacklist['index_field']])) {
+                                $blacklist_hit = $this->{$type}->find('first', array(
+                                    'conditions' => array($blacklist['blacklist_field'] => $eventArray[$k][$blacklist['index_field']]),
+                                    'recursive' => -1,
+                                    'fields' => array($type . '.id')
+                                ));
+                                if (!empty($blacklist_hit)) {
+                                    unset($eventArray[$k]);
+                                    continue 2;
+                                }
+                            }
                         }
                     }
                     $this->Event->removeOlder($eventArray);
@@ -2526,20 +2608,6 @@ class Server extends AppModel
                         }
                     }
                 }
-                if (!empty($eventIds) && Configure::read('MISP.enableEventBlacklisting') !== false) {
-                    $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-                    foreach ($eventIds as $k => $eventUuid) {
-                        $blacklistEntry = $this->EventBlacklist->find('first', array(
-                            'conditions' => array('event_uuid' => $eventUuid),
-                            'recursive' => -1,
-                            'fields' => array('EventBlacklist.id')
-                        ));
-                        if (!empty($blacklistEntry)) {
-                            unset($eventIds[$k]);
-                        }
-                    }
-                }
-                $eventIds = array_values($eventIds);
                 return $eventIds;
             }
             if ($response->code == '403') {
@@ -2563,7 +2631,7 @@ class Server extends AppModel
         $url = $this->data['Server']['url'];
         $push = $this->checkVersionCompatibility($id, $user);
         if (isset($push['canPush']) && !$push['canPush']) {
-            $push = 'Remote instance is outdated.';
+            $push = 'Remote instance is outdated or no permission to push.';
         }
         if (!is_array($push)) {
             $message = sprintf('Push to server %s failed. Reason: %s', $id, $push);
@@ -2959,7 +3027,7 @@ class Server extends AppModel
     {
         if (isset($setting)) {
             if (!empty($leafValue['test'])) {
-                $result = $this->{$leafValue['test']}($setting);
+                $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
                 if ($result !== true) {
                     $leafValue['error'] = 1;
                     if ($result !== false) {
@@ -2994,7 +3062,7 @@ class Server extends AppModel
     {
         $languages = $this->loadAvailableLanguages();
         if (!isset($languages[$value])) {
-            return 'Invalid language.';
+            return __('Invalid language.');
         }
         return true;
     }
@@ -3015,7 +3083,7 @@ class Server extends AppModel
     {
         $tag_collections = $this->loadTagCollections();
         if (!isset($tag_collections[intval($value)])) {
-            return 'Invalid tag_collection.';
+            return __('Invalid tag_collection.');
         }
         return true;
     }
@@ -3023,7 +3091,19 @@ class Server extends AppModel
     public function testForNumeric($value)
     {
         if (!is_numeric($value)) {
-            return 'This setting has to be a number.';
+            return __('This setting has to be a number.');
+        }
+        return true;
+    }
+
+    public function testForCookieTimeout($value)
+    {
+        $numeric = $this->testForNumeric($value);
+        if ($numeric !== true) {
+            return $numeric;
+        }
+        if ($value < Configure::read('Session.timeout') && $value !== 0) {
+            return __('The cookie timeout is currently lower than the session timeout. This will invalidate the cookie before the session expires.');
         }
         return true;
     }
@@ -3248,20 +3328,26 @@ class Server extends AppModel
         return true;
     }
 
-    public function testBool($value)
+    public function testBool($value, $errorMessage = false)
     {
         if ($value !== true && $value !== false) {
+            if ($errorMessage) {
+                return $errorMessage;
+            }
             return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
         }
         return true;
     }
 
-    public function testBoolFalse($value)
+    public function testBoolFalse($value, $errorMessage = false)
     {
-        if (!$this->testBool($value)) {
-            return $this->testBool($value);
+        if ($this->testBool($value, $errorMessage) !== true) {
+            return $this->testBool($value, $errorMessage);
         }
         if ($value !== false) {
+            if ($errorMessage) {
+                return $errorMessage;
+            }
             return 'It is highly recommended that this setting is disabled. Make sure you understand the impact of having this setting turned on.';
         } else {
             return true;
@@ -3640,34 +3726,18 @@ class Server extends AppModel
         } else {
             $oldValue = Configure::read($setting['name']);
             $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
+
             if ($settingSaveResult) {
-                $result = $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => $user['email'],
-                        'action' => 'serverSettingsEdit',
-                        'user_id' => $user['id'],
-                        'title' => 'Server setting changed',
-                        'change' => $setting['name'] . ' (' . $oldValue . ') => (' . $value . ')',
-                ));
+                $this->Log = ClassRegistry::init('Log');
+                $change = array($setting['name'] => array($oldValue, $value));
+                $this->Log->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting changed', $change);
+
                 // execute after hook
                 if (isset($setting['afterHook'])) {
                     $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value));
                     if ($afterResult !== true) {
-                        $this->Log->create();
-                        $result = $this->Log->save(array(
-                                'org' => $user['Organisation']['name'],
-                                'model' => 'Server',
-                                'model_id' => 0,
-                                'email' => $user['email'],
-                                'action' => 'serverSettingsEdit',
-                                'user_id' => $user['id'],
-                                'title' => 'Server setting issue',
-                                'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
-                        ));
+                        $change = 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult;
+                        $this->Log->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting issue', $change);
                         return $afterResult;
                     }
                 }
@@ -3730,7 +3800,7 @@ class Server extends AppModel
         }
         $settingsToSave = array(
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
-            'Security', 'Session.defaults', 'Session.timeout', 'Session.cookie_timeout',
+            'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
             'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'
         );
@@ -3912,6 +3982,9 @@ class Server extends AppModel
     public function runPOSTtest($id)
     {
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
+        if (empty($server)) {
+            throw new InvalidArgumentException(__('Invalid server.'));
+        }
         $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
         $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
@@ -3919,6 +3992,7 @@ class Server extends AppModel
         $this->Log = ClassRegistry::init('Log');
         try {
             $response = $HttpSocket->post($uri, json_encode(array('testString' => $testFile)), $request);
+            $rawBody = $response->body;
             $response = json_decode($response, true);
         } catch (Exception $e) {
             $this->Log->create();
@@ -3934,7 +4008,14 @@ class Server extends AppModel
             return 8;
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
-            $responseString = isset($response['body']['testString']) ? $response['body']['testString'] : 'Response was empty.';
+            $responseString = '';
+            if (!empty($repsonse['body']['testString'])) {
+                $responseString = $response['body']['testString'];
+            } else if (!empty($rawBody)){
+                $responseString = $rawBody;
+            } else {
+                $responseString = __('Response was empty.');
+            }
             $this->Log->create();
             $this->Log->save(array(
                     'org' => 'SYSTEM',
@@ -3973,10 +4054,7 @@ class Server extends AppModel
         if (empty($user)) {
             $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
         }
-        App::uses('Folder', 'Utility');
-        $file = new File(ROOT . DS . 'VERSION.json', true);
-        $localVersion = json_decode($file->read(), true);
-        $file->close();
+        $localVersion = $this->checkMISPVersion();
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
@@ -4051,6 +4129,9 @@ class Server extends AppModel
         if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) {
             $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
         }
+        if (empty($response) && $remoteVersion[2] < 111) {
+            $response = "Sync to Server ('" . $id . "') initiated, but version 2.4.111 is required in order to be able to pull proposals from the remote side.";
+        }
 
         if ($response !== false) {
             $this->Log = ClassRegistry::init('Log');
@@ -4091,6 +4172,49 @@ class Server extends AppModel
             return false;
         }
         return $existingServer[$this->alias]['id'];
+    }
+
+    public function dbSpaceUsage()
+    {
+        $dataSource = $this->getDataSource()->config['datasource'];
+        if ($dataSource == 'Database/Mysql') {
+            $sql = sprintf(
+                'select table_name, sum((data_length+index_length)/1024/1024) AS used, sum(data_free)/1024/1024 reclaimable from information_schema.tables where table_schema = %s group by table_name;',
+                "'" . $this->getDataSource()->config['database'] . "'"
+            );
+            $sqlResult = $this->query($sql);
+            $result = array();
+            foreach ($sqlResult as $temp) {
+                foreach ($temp[0] as $k => $v) {
+                    $temp[0][$k] = round($v, 2) . 'MB';
+                }
+                $temp[0]['table'] = $temp['tables']['table_name'];
+                $result[] = $temp[0];
+            }
+            return $result;
+        }
+        else if ($dataSource == 'Database/Postgres') {
+            $sql = sprintf(
+                'select table_name as table, pg_total_relation_size(%s||%s||table_name) as used from information_schema.tables where table_schema = %s group by table_name;',
+                "'" . $this->getDataSource()->config['database'] . "'",
+                "'.'",
+                "'" . $this->getDataSource()->config['database'] . "'"
+            );
+            $sqlResult = $this->query($sql);
+            $result = array();
+            foreach ($sqlResult as $temp) {
+                foreach ($temp[0] as $k => $v) {
+                    if ($k == "table") {
+                        continue;
+                    }
+                    $temp[0][$k] = round($v / 1024 / 1024, 2) . 'MB';
+                }
+                $temp[0]['reclaimable'] = '0MB';
+                $result[] = $temp[0];
+            }
+            return $result;
+        }
+
     }
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)
@@ -4176,7 +4300,7 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'stix2' => '1.1.2', 'pymisp' => '>2.4.93');
+        $expected = array('stix' => '>1.2.0.6', 'cybox' => '>2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '1.1.3', 'pymisp' => '>2.4.93');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);
@@ -4212,8 +4336,17 @@ class Server extends AppModel
         if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
             $continue = true;
             try {
-                require_once 'Crypt/GPG.php';
-                $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+                if (!class_exists('Crypt_GPG')) {
+                    if (!stream_resolve_include_path('Crypt/GPG.php')) {
+                        throw new Exception("Crypt_GPG is not installed");
+                    }
+                    require_once 'Crypt/GPG.php';
+                }
+                $gpg = new Crypt_GPG(array(
+                    'homedir' => Configure::read('GnuPG.homedir'),
+                    'gpgconf' => Configure::read('GnuPG.gpgconf'),
+                    'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg'
+                ));
             } catch (Exception $e) {
                 $gpgStatus = 2;
                 $continue = false;
@@ -4506,6 +4639,7 @@ class Server extends AppModel
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
         $HttpSocket = $syncTool->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
         $response = $HttpSocket->get($server['Server']['url'] . '/servers/getVersion', $data = '', $request);
         if ($response->code == 200) {
             try {
@@ -4529,7 +4663,7 @@ class Server extends AppModel
      * 2: no route to host
      * 3: empty result set
      */
-    public function previewIndex($id, $user, $passedArgs)
+    public function previewIndex($id, $user, $passedArgs, &$total_count = 0)
     {
         $server = $this->find('first', array(
             'conditions' => array('Server.id' => $id),
@@ -4539,7 +4673,7 @@ class Server extends AppModel
         }
         $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
-        $validArgs = array_merge(array('sort', 'direction'), $this->validEventIndexFilters);
+        $validArgs = array_merge(array('sort', 'direction', 'page', 'limit'), $this->validEventIndexFilters);
         $urlParams = '';
         foreach ($validArgs as $v) {
             if (isset($passedArgs[$v])) {
@@ -4548,6 +4682,10 @@ class Server extends AppModel
         }
         $uri = $server['Server']['url'] . '/events/index' . $urlParams;
         $response = $HttpSocket->get($uri, $data = '', $request);
+        if (!empty($response->headers['X-Result-Count'])) {
+            $temp = $response->headers['X-Result-Count'];
+            $total_count = $temp;
+        }
         if ($response->code == 200) {
             try {
                 $events = json_decode($response->body, true);
@@ -4653,7 +4791,6 @@ class Server extends AppModel
             }
             $validServers[] = $server;
         }
-
         return $validServers;
     }
 
@@ -4730,6 +4867,7 @@ class Server extends AppModel
             'app/files/misp-objects',
             'app/files/noticelists',
             'app/files/warninglists',
+            'app/files/misp-decaying-models',
             'cti-python-stix2'
         );
         return in_array($submodule, $accepted_submodules_names);
@@ -4867,7 +5005,7 @@ class Server extends AppModel
         return implode('\n', $result);
     }
 
-    public function update($status)
+    public function update($status, &$raw = array())
     {
         $final = '';
         $workingDirectoryPrefix = 'cd $(git rev-parse --show-toplevel) && ';
@@ -4877,17 +5015,35 @@ class Server extends AppModel
         );
         foreach ($cleanup_commands as $cleanup_command) {
             $final .= $cleanup_command . "\n\n";
-            exec($cleanup_command, $output);
+            $status = false;
+            exec($cleanup_command, $output, $status);
+            $raw[] = array(
+                'input' => $cleanup_command,
+                'output' => $output,
+                'status' => $status
+            );
             $final .= implode("\n", $output) . "\n\n";
         }
         $command1 = $workingDirectoryPrefix . 'git pull origin ' . $status['branch'] . ' 2>&1';
         $command2 = $workingDirectoryPrefix . 'git submodule update --init --recursive 2>&1';
         $final .= $command1 . "\n\n";
-        exec($command1, $output);
+        $status = false;
+        exec($command1, $output, $status);
+        $raw[] = array(
+            'input' => $command1,
+            'output' => $output,
+            'status' => $status
+        );
         $final .= implode("\n", $output) . "\n\n=================================\n\n";
         $output = array();
         $final .= $command2 . "\n\n";
-        exec($command2, $output);
+        $status = false;
+        exec($command2, $output, $status);
+        $raw[] = array(
+            'input' => $command2,
+            'output' => $output,
+            'status' => $status
+        );
         $final .= implode("\n", $output);
         return $final;
     }
@@ -5064,5 +5220,98 @@ class Server extends AppModel
             $results[$target] = $result === false ? false : true;
         }
         return $results;
+    }
+
+    public function resetRemoteAuthKey($id)
+    {
+        $server = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Server.id' => $id)
+        ));
+        if (empty($server)) {
+            return __('Invalid server');
+        }
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
+        $uri = $server['Server']['url'] . '/users/resetauthkey/me';
+        try {
+            $response = $HttpSocket->post($uri, '{}', $request);
+        } catch (Exception $e) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $message = 'Could not reset the remote authentication key.';
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: ' . $message,
+            ));
+            return $message;
+        }
+        if ($response->isOk()) {
+            try {
+                $response = json_decode($response->body, true);
+            } catch (Exception $e) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $message = 'Invalid response received from the remote instance.';
+                $this->Log->save(array(
+                        'org' => 'SYSTEM',
+                        'model' => 'Server',
+                        'model_id' => $id,
+                        'email' => 'SYSTEM',
+                        'action' => 'error',
+                        'user_id' => 0,
+                        'title' => 'Error: ' . $message,
+                ));
+                return $message;
+            }
+            if (!empty($response['message'])) {
+                $authkey = $response['message'];
+            }
+            if (substr($authkey, 0, 17) === 'Authkey updated: ') {
+                $authkey = substr($authkey, 17, 57);
+            }
+            $server['Server']['authkey'] = $authkey;
+            $this->save($server);
+            return true;
+        } else {
+            return __('Could not reset the remote authentication key.');
+        }
+    }
+
+    public function reprioritise($id = false, $direction = 'up')
+    {
+        $servers = $this->find('all', array(
+            'recursive' => -1,
+            'order' => array('Server.priority ASC', 'Server.id ASC')
+        ));
+        $success = true;
+        if ($id) {
+            foreach ($servers as $k => $server) {
+                if ($server['Server']['id'] && $server['Server']['id'] == $id) {
+                    if (
+                        !($k === 0 && $direction === 'up') &&
+                        !(empty($servers[$k+1]) && $direction === 'down')
+                    ) {
+                        $temp = $servers[$k];
+                        $destination = $direction === 'up' ? $k-1 : $k+1;
+                        $servers[$k] = $servers[$destination];
+                        $servers[$destination] = $temp;
+                    } else {
+                        $success = false;
+                    }
+                }
+            }
+        }
+        foreach ($servers as $k => $server) {
+            $server['Server']['priority'] = $k + 1;
+            $result = $this->save($server);
+            $success = $success && $result;
+        }
+        return $success;
     }
 }

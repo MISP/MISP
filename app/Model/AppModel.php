@@ -75,7 +75,8 @@ class AppModel extends Model
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
-        33 => false, 34 => false, 35 => false, 36 => false, 37 => false
+        33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
+        39 => false
     );
 
     public $advanced_updates_description = array(
@@ -209,13 +210,24 @@ class AppModel extends Model
             case 34:
                 $this->__fixServerPullPushRules();
                 break;
-            case 37:
+            case 38:
+                $this->updateDatabase($command);
+                $this->__addServerPriority();
+                break;
+            case 39:
                 $this->updateDatabase('seenOnAttributeAndObject', true);
                 break;
             default:
                 $this->updateDatabase($command);
                 break;
         }
+    }
+
+    private function __addServerPriority()
+    {
+        $this->Server = ClassRegistry::init('Server');
+        $this->Server->reprioritise();
+        return true;
     }
 
     private function __addNewFeeds($feeds)
@@ -1227,10 +1239,47 @@ class AppModel extends Model
                     KEY `org_id` (`org_id`),
                     KEY `type` (`type`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
-                break;
+                    break;
             case 36:
                 $sqlArray[] = "ALTER TABLE `event_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 37:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS decaying_models (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+                    `name` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `parameters` text,
+                    `attribute_types` text,
+                    `description` text,
+                    `org_id` int(11),
+                    `enabled` tinyint(1) NOT NULL DEFAULT 0,
+                    `all_orgs` tinyint(1) NOT NULL DEFAULT 1,
+                    `ref` text COLLATE utf8_unicode_ci,
+                    `formula` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `version` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+                    `default` tinyint(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (id),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `name` (`name`),
+                    INDEX `org_id` (`org_id`),
+                    INDEX `enabled` (`enabled`),
+                    INDEX `all_orgs` (`all_orgs`),
+                    INDEX `version` (`version`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS decaying_model_mappings (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `attribute_type` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `model_id` int(11) NOT NULL,
+                    PRIMARY KEY (id),
+                    INDEX `model_id` (`model_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_decaying` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "UPDATE `roles` SET `perm_decaying`=1 WHERE `perm_sighting`=1;";
+                break;
+            case 38:
+                $sqlArray[] = "ALTER TABLE servers ADD  priority int(11) NOT NULL DEFAULT 0;";
+                $indexArray[] = array('servers', 'priority');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1506,13 +1555,15 @@ class AppModel extends Model
     public function cleanCacheFiles()
     {
         Cache::clear();
+        Cache::clear(false, '_cake_core_');
+        Cache::clear(false, '_cake_model_');
         clearCache();
-        $files = array();
-        $files = array_merge($files, glob(CACHE . 'models' . DS . 'myapp*'));
+
+        $files = glob(CACHE . 'models' . DS . 'myapp*');
         $files = array_merge($files, glob(CACHE . 'persistent' . DS . 'myapp*'));
-        foreach ($files as $f) {
-            if (is_file($f)) {
-                unlink($f);
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                unlink($file);
             }
         }
     }
@@ -1897,18 +1948,20 @@ class AppModel extends Model
 
     public function setupRedis()
     {
-        if (class_exists('Redis')) {
-            if ($this->__redisConnection) {
-                return $this->__redisConnection;
-            }
-            $redis = new Redis();
-        } else {
+        if ($this->__redisConnection) {
+            return $this->__redisConnection;
+        }
+
+        if (!class_exists('Redis')) {
             return false;
         }
-        $host = Configure::read('MISP.redis_host') ? Configure::read('MISP.redis_host') : '127.0.0.1';
-        $port = Configure::read('MISP.redis_port') ? Configure::read('MISP.redis_port') : 6379;
-        $database = Configure::read('MISP.redis_database') ? Configure::read('MISP.redis_database') : 13;
+
+        $host = Configure::read('MISP.redis_host') ?: '127.0.0.1';
+        $port = Configure::read('MISP.redis_port') ?: 6379;
+        $database = Configure::read('MISP.redis_database') ?: 13;
         $pass = Configure::read('MISP.redis_password');
+
+        $redis = new Redis();
         if (!$redis->connect($host, $port)) {
             return false;
         }

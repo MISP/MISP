@@ -305,7 +305,11 @@ class Taxonomy extends AppModel
                 if (
                     (!in_array('colour', $skipUpdateFields) && $temp['Tag']['colour'] != $colours[$k]) ||
                     (!in_array('name', $skipUpdateFields) && $temp['Tag']['name'] !== $entry['tag']) ||
-                    (!in_array('numerical_value', $skipUpdateFields) && isset($entry['numerical_value']) && isset($temp['Tag']['numerical_value']) && $temp['Tag']['numerical_value'] !== $entry['numerical_value'])
+                    (
+                        !in_array('numerical_value', $skipUpdateFields) &&
+                        isset($entry['numerical_value']) && array_key_exists('numerical_value', $temp['Tag']) && // $temp['Tag']['num..'] may be null.
+                        $temp['Tag']['numerical_value'] !== $entry['numerical_value']
+                    )
                 ) {
                     if (!in_array('colour', $skipUpdateFields)) {
                         $temp['Tag']['colour'] = (isset($entry['colour']) && !empty($entry['colour'])) ? $entry['colour'] : $colours[$k];
@@ -313,7 +317,7 @@ class Taxonomy extends AppModel
                     if (!in_array('name', $skipUpdateFields)) {
                         $temp['Tag']['name'] = $entry['tag'];
                     }
-                    if (!in_array('numerical_value', $skipUpdateFields)) {
+                    if (!in_array('numerical_value', $skipUpdateFields) && (isset($entry['numerical_value']) && $entry['numerical_value'] !== null)) {
                         $temp['Tag']['numerical_value'] = $entry['numerical_value'];
                     }
                     $this->Tag->save($temp['Tag']);
@@ -338,21 +342,25 @@ class Taxonomy extends AppModel
             if (isset($entry['colour']) && !empty($entry['colour'])) {
                 $colour = $entry['colour'];
             }
+            $numerical_value = null;
+            if (isset($entry['numerical_value'])) {
+                $numerical_value = $entry['numerical_value'];
+            }
             if ($tagList) {
                 foreach ($tagList as $tagName) {
                     if ($tagName === $entry['tag']) {
                         if (isset($tags[strtoupper($entry['tag'])])) {
-                            $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colour, 0);
+                            $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colour, 0, $numerical_value);
                         } else {
-                            $this->Tag->quickAdd($tagName, $colour);
+                            $this->Tag->quickAdd($tagName, $colour, $numerical_value);
                         }
                     }
                 }
             } else {
                 if (isset($tags[strtoupper($entry['tag'])])) {
-                    $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colour, 0);
+                    $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colour, 0, $numerical_value);
                 } else {
-                    $this->Tag->quickAdd($entry['tag'], $colour);
+                    $this->Tag->quickAdd($entry['tag'], $colour, $numerical_value);
                 }
             }
         }
@@ -470,6 +478,9 @@ class Taxonomy extends AppModel
         ));
         $taxonomies = array();
         foreach ($temp as $t) {
+            if (isset($options['full']) && $options['full']) {
+                $t['Taxonomy']['TaxonomyPredicate'] = $t['TaxonomyPredicate'];
+            }
             $taxonomies[$t['Taxonomy']['namespace']] = $t['Taxonomy'];
         }
         return $taxonomies;

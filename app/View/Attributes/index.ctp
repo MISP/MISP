@@ -44,7 +44,7 @@
     </div>
     <?php
         $headers = array(
-            $this->Paginator->sort('date'),
+            $this->Paginator->sort('timestamp', __('Date')),
             $this->Paginator->sort('event_id'),
             $this->Paginator->sort('Event.orgc_id', __('Org')),
             $this->Paginator->sort('category'),

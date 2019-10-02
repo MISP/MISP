@@ -6,6 +6,10 @@ App::uses('AppHelper', 'View/Helper');
  */
     class FontAwesomeHelper extends AppHelper {
 
+        public function getClass($icon) {
+            return $this->findNamespace($icon) . ' fa-' . $icon;
+        }
+
         public function findNamespace($icon)
         {
             $fab_icons = array(

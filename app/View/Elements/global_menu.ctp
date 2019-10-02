@@ -36,11 +36,15 @@
                     ),
                     array(
                         'text' => __('View Proposals'),
-                        'url' => '/shadow_attributes/index'
+                        'url' => '/shadow_attributes/index/all:0'
                     ),
                     array(
                         'text' => __('Events with proposals'),
                         'url' => '/events/proposalEventIndex'
+                    ),
+                    array(
+                        'url' => '/event_delegations/index/context:pending',
+                        'text' => __('View delegation requests')
                     ),
                     array(
                         'type' => 'separator'
@@ -179,6 +183,18 @@
                         'type' => 'separator'
                     ),
                     array(
+                        'text' => __('Decaying Models Tool'),
+                        'url' => '/decayingModel/decayingTool',
+                        'requirement' => $isAdmin
+                    ),
+                    array(
+                        'text' => __('Decaying Models'),
+                        'url' => '/decayingModel/index',
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
                         'text' => __('User Guide'),
                         'url' => 'https://www.circl.lu/doc/misp/'
                     ),
@@ -236,6 +252,11 @@
                         'text' => __('Search Feed Caches'),
                         'url' => '/feeds/searchCaches',
                         'requirement' => ($isSiteAdmin || $hostOrgUser)
+                    ),
+                    array(
+                        'text' => __('List Communities'),
+                        'url' => '/communities/index',
+                        'requirement' => ($isSiteAdmin)
                     )
                 )
             ),
@@ -282,7 +303,6 @@
                     ),
                     array(
                         'type' => 'separator',
-                        'requirement' => $isSiteAdmin
                     ),
                     array(
                         'text' => __('Server Settings & Maintenance'),
@@ -363,8 +383,9 @@
                 'type' => 'root',
                 'url' => '/users/dashboard',
                 'html' => sprintf(
-                    '<span class="white" title="%s">%s&nbsp;&nbsp;&nbsp;%s</span>',
+                    '<span class="white" title="%s">%s%s&nbsp;&nbsp;&nbsp;%s</span>',
                     h($me['email']),
+                    $this->UserName->prepend($me['email']),
                     h($loggedInUserName),
                     sprintf(
                         '<i class="fa fa-envelope %s"></i>',

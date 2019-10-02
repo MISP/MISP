@@ -528,8 +528,9 @@ class ObjectsController extends AppController
             if (isset($this->request->data['Object']['data'])) {
                 $this->request->data = json_decode($this->request->data['Object']['data'], true);
             }
-            if (!isset($this->request->data['Attribute'])) {
-                $this->request->data = array('Attribute' => $this->request->data);
+            if (isset($this->request->data['Object'])) {
+                $this->request->data = array_merge($this->request->data, $this->request->data['Object']);
+                unset($this->request->data['Object']);
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
             $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute);
@@ -542,7 +543,11 @@ class ObjectsController extends AppController
                         $objectToSave = $this->MispObject->find('first', array(
                             'recursive' => -1,
                             'conditions' => array('Object.id' => $id),
-                            'contain' => array('Attribute')
+                            'contain' => array(
+                                'Attribute' => array(
+                                    'fields' => $this->MispObject->Attribute->defaultFields
+                                )
+                            )
                         ));
                         if (!empty($objectToSave)) {
                             $objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
@@ -932,19 +937,14 @@ class ObjectsController extends AppController
 
     public function delete($id, $hard = false)
     {
+        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
         if (!$this->userRole['perm_modify']) {
             throw new MethodNotAllowedException(__('You don\'t have permissions to delete objects.'));
-        }
-        $lookupField = 'id';
-        if (Validation::uuid($id)) {
-            $lookupField = 'uuid';
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid object.'));
         }
         $object = $this->MispObject->find('first', array(
             'recursive' => -1,
             'fields' => array('Object.id', 'Object.event_id', 'Event.id', 'Event.uuid', 'Event.orgc_id'),
-            'conditions' => array('Object.' . $lookupField => $id),
+            'conditions' => array('Object.id' => $id),
             'contain' => array(
                 'Event'
             )
@@ -959,7 +959,7 @@ class ObjectsController extends AppController
         if (!$this->_isRest()) {
             $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
         }
-        if ($this->request->is('post')) {
+        if ($this->request->is('post') || $this->request->is('delete')) {
             if ($this->__delete($id, $hard)) {
                 $message = 'Object deleted.';
                 if ($this->request->is('ajax')) {
@@ -1110,6 +1110,7 @@ class ObjectsController extends AppController
 
     public function view($id)
     {
+        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
         if ($this->_isRest()) {
             $objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
             if (!empty($objects)) {
@@ -1122,6 +1123,7 @@ class ObjectsController extends AppController
                 }
                 return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
             }
+            throw new NotFoundException(__('Invalid object.'));
         }
     }
 

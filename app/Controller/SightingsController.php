@@ -90,8 +90,8 @@ class SightingsController extends AppController
                     }
                 } else {
                     if ($this->_isRest() || $this->response->type() === 'application/json') {
-                        $this->set('message', __('Sighting added'));
-                        $this->set('_serialize', array('message'));
+                        $sighting = $this->Sighting->find('first', array('conditions' => array('Sighting.id' => $this->Sighting->id), 'recursive' => -1));
+                        return $this->RestResponse->viewData($sighting, $this->response->type());
                     } else {
                         $this->Flash->success(__('Sighting added'));
                         $this->redirect($this->referer());
@@ -228,7 +228,9 @@ class SightingsController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This action can only be accessed via a post request.');
         }
-        $sighting = $this->Sighting->find('first', array('conditions' => array('Sighting.id' => $id), 'recursive' => -1));
+        $id = $this->Toolbox->findIdByUuid($this->Sighting, $id);
+        $conditions = array('Sighting.id' => $id);
+        $sighting = $this->Sighting->find('first', array('conditions' => $conditions, 'recursive' => -1));
         if (empty($sighting)) {
             throw new NotFoundException('Invalid sighting.');
         }
@@ -310,82 +312,20 @@ class SightingsController extends AppController
         return $this->RestResponse->viewData($sightings, $responseType, false, true);
     }
 
-    public function listSightings($id, $context = 'attribute', $org_id = false)
+    public function listSightings($id = false, $context = 'attribute', $org_id = false)
     {
-        $this->loadModel('Event');
         $rawId = $id;
-        $id = $this->Sighting->explodeIdList($id);
-        if ($context === 'attribute') {
-            $object = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
-        } else {
-            // let's set the context to event here, since we reuse the variable later on for some additional lookups.
-            // Passing $context = 'org' could have interesting results otherwise...
-            $context = 'event';
-            $object = $this->Event->fetchEvent($this->Auth->user(), $options = array('eventid' => $id, 'metadata' => true));
+        $parameters = array('id', 'context', 'org_id');
+        foreach ($parameters as $parameter) {
+            if ($this->request->is('post') && isset($this->request->data[$parameter])) {
+                ${$parameter} = $this->request->data[$parameter];
+            }
         }
-        if (empty($object)) {
-            throw new MethodNotAllowedException('Invalid object.');
-        }
-        $conditions = array(
-            'Sighting.' . $context . '_id' => $id
-        );
         if ($org_id) {
-            $conditions[] = array('Sighting.org_id' => $org_id);
+            $this->loadModel('Organisation');
+            $org_id = $this->Toolbox->findIdByUuid($this->Organisation, $org_id);
         }
-        $sightings = $this->Sighting->find('all', array(
-            'conditions' => $conditions,
-            'recursive' => -1,
-            'contain' => array('Organisation.name'),
-            'order' => array('Sighting.date_sighting DESC')
-        ));
-        if (!empty($sightings) && empty(Configure::read('Plugin.Sightings_policy')) && !$this->_isSiteAdmin()) {
-            $eventOwnerOrgIdList = array();
-            foreach ($sightings as $k => $sighting) {
-                if (empty($eventOwnerOrgIdList[$sighting['Sighting']['event_id']])) {
-                    $temp_event = $this->Event->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('Event.id' => $sighting['Sighting']['event_id']),
-                        'fields' => array('Event.id', 'Event.orgc_id')
-                    ));
-                    $eventOwnerOrgIdList[$temp_event['Event']['id']] = $temp_event['Event']['orgc_id'];
-                }
-                if (empty($eventOwnerOrgIdList[$sighting['Sighting']['event_id']]) || $eventOwnerOrgIdList[$sighting['Sighting']['event_id']] !== $this->Auth->user('org_id')) {
-                    unset($sightings[$k]);
-                }
-            }
-            $sightings = array_values($sightings);
-        } else if (!empty($sightings) && Configure::read('Plugin.Sightings_policy') == 1 && !$this->_isSiteAdmin()) {
-            $eventsWithOwnSightings = array();
-            foreach ($sightings as $k => $sighting) {
-                if (empty($eventsWithOwnSightings[$sighting['Sighting']['event_id']])) {
-                    $eventsWithOwnSightings[$sighting['Sighting']['event_id']] = false;
-                    $sighting_temp = $this->Sighting->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array(
-                            'Sighting.event_id' => $sighting['Sighting']['event_id'],
-                            'Sighting.org_id' => $this->Auth->user('org_id')
-                        )
-                    ));
-                    if (empty($sighting_temp)) {
-                        $temp_event = $this->Event->find('first', array(
-                            'recursive' => -1,
-                            'conditions' => array(
-                                'Event.id' => $sighting['Sighting']['event_id'],
-                                'Event.orgc_id' => $this->Auth->user('org_id')
-                            ),
-                            'fields' => array('Event.id', 'Event.orgc_id')
-                        ));
-                        $eventsWithOwnSightings[$sighting['Sighting']['event_id']] = !empty($temp_event);
-                    } else {
-                        $eventsWithOwnSightings[$sighting['Sighting']['event_id']] = true;
-                    }
-                }
-                if (!$eventsWithOwnSightings[$sighting['Sighting']['event_id']]) {
-                    unset($sightings[$k]);
-                }
-            }
-            $sightings = array_values($sightings);
-        }
+        $sightings = $this->Sighting->listSightings($this->Auth->user(), $id, $context, $org_id);
         $this->set('org_id', $org_id);
         $this->set('rawId', $rawId);
         $this->set('context', $context);

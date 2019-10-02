@@ -19,7 +19,7 @@ if ($object['value'] == 'MERGE') debug($object);
     $tr_class .= ' row_' . h($k);
   }
 ?>
-<tr id = "Attribute_<?php echo h($object['uuid']); ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
+<tr id="Attribute_<?php echo h($object['uuid']); ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
     <td class="short">
       <?php echo date('Y-m-d', $object['timestamp']); ?>
     </td>
@@ -27,7 +27,7 @@ if ($object['value'] == 'MERGE') debug($object);
       <?php echo $this->element('/Servers/View/seen_field', array('object' => $object)); ?>
     </td>
     <td class="short">
-      <div id = "Attribute_<?php echo $object['uuid']; ?>_category_solid" class="inline-field-solid">
+      <div id="Attribute_<?php echo $object['uuid']; ?>_category_solid" class="inline-field-solid">
         <?php echo h($object['category']); ?>
       </div>
     </td>
@@ -40,12 +40,12 @@ if ($object['value'] == 'MERGE') debug($object);
         endif;
       ?>
       <div></div>
-      <div id = "Attribute_<?php echo $object['uuid']; ?>_type_solid" class="inline-field-solid">
+      <div id="Attribute_<?php echo $object['uuid']; ?>_type_solid" class="inline-field-solid">
         <?php echo h($object['type']); ?>
       </div>
     </td>
     <td id="Attribute_<?php echo h($object['uuid']); ?>_container" class="showspaces limitedWidth shortish">
-      <div id = "Attribute_<?php echo $object['uuid']; ?>_value_solid" class="inline-field-solid">
+      <div id="Attribute_<?php echo $object['uuid']; ?>_value_solid" class="inline-field-solid">
         <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="Attribute" data-object-id="' . h($object['uuid']) . '"'?>>
           <?php
             echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
@@ -75,7 +75,7 @@ if ($object['value'] == 'MERGE') debug($object);
       </div>
     </td>
     <td class="showspaces bitwider">
-      <div id = "Attribute_<?php echo $object['uuid']; ?>_comment_solid" class="inline-field-solid">
+      <div id="Attribute_<?php echo $object['uuid']; ?>_comment_solid" class="inline-field-solid">
         <?php echo nl2br(h($object['comment'])); ?>&nbsp;
       </div>
     </td>
@@ -86,7 +86,7 @@ if ($object['value'] == 'MERGE') debug($object);
       &nbsp;
     </td>
     <td class="short">
-      <div id = "Attribute_<?php echo $object['uuid']; ?>_to_ids_solid" class="inline-field-solid");">
+      <div id="Attribute_<?php echo $object['uuid']; ?>_to_ids_solid" class="inline-field-solid">
         <?php echo $object['to_ids'] ? __('Yes') : __('No'); ?>
       </div>
     </td>

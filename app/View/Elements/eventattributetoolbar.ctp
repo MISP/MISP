@@ -169,11 +169,29 @@
                         'requirement' => ($me['Role']['perm_sync'] || $event['Orgc']['id'] == $me['org_id'])
                     ),
                     array(
+                        'id' => 'show_attribute_decaying_score',
+                        'title' => __('Show attribute decaying score'),
+                        'fa-icon' => 'chart-line',
+                        'text' => __('Decay score'),
+                        'active' => $includeDecayScore,
+                        'onClick' => 'toggleBoolFilter',
+                        'onClickParams' => array($urlHere, 'includeDecayScore')
+                    ),
+                    array(
                         'id' => 'show_attribute_context',
                         'title' => __('Show attribute context fields'),
                         'fa-icon' => 'info-circle',
                         'text' => __('Context'),
                         'onClick' => 'toggleContextFields'
+                    ),
+                    array(
+                        'id' => 'show_related_tags',
+                        'title' => __('Show related tags'),
+                        'fa-icon' => 'project-diagram',
+                        'text' => __('Related Tags'),
+                        'active' => $includeRelatedTags,
+                        'onClick' => 'toggleBoolFilter',
+                        'onClickParams' => array($urlHere, 'includeRelatedTags')
                     ),
                     array(
                         'id' => 'advanced_filtering',

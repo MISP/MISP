@@ -202,8 +202,6 @@ ${PATH_TO_MISP}/venv/bin/pip install .
 
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd ${PATH_TO_MISP}/app
-php composer.phar require kamisama/cake-resque:4.1.2
-php composer.phar config vendor-dir Vendor
 php composer.phar install
 
 # Enable CakeResque with php-redis

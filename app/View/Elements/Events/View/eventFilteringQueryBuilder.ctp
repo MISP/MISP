@@ -127,6 +127,20 @@ function triggerEventFilteringTool(hide) {
                     "equal",
                 ],
                 "unique": true,
+                "id": "includeDecayScore",
+                "label": "Decay Score",
+                "values": {
+                    0: "No",
+                    1: "Yes"
+                }
+            },
+            {
+                "input": "radio",
+                "type": "integer",
+                "operators": [
+                    "equal",
+                ],
+                "unique": true,
                 "id": "toIDS",
                 "label": "IDS Flag",
                 "values": {
@@ -308,6 +322,13 @@ function triggerEventFilteringTool(hide) {
                     field: 'includeRelatedTags',
                     id: 'includeRelatedTags',
                     value: <?php echo isset($filters['includeRelatedTags']) ? h($filters['includeRelatedTags']) : 0; ?>
+                },
+                <?php endif; ?>
+                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['includeDecayScore'])): ?>
+                {
+                    field: 'includeDecayScore',
+                    id: 'includeDecayScore',
+                    value: <?php echo isset($filters['includeDecayScore']) ? h($filters['includeDecayScore']) : 0; ?>
                 },
                 <?php endif; ?>
                 <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['toIDS'])): ?>

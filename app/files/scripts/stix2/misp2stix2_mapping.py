@@ -279,6 +279,7 @@ network_traffic_dst_ref = "dst_ref.type = '{0}' AND network-traffic:dst_ref.valu
 objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                           'observable': {'type': 'autonomous-system'},
                           'pattern': "autonomous-system:{0} = '{1}' AND "},
+                  'attack-pattern': {'to_call': 'add_attack_pattern_object'},
                   'course-of-action': {'to_call': 'add_course_of_action_from_object'},
                   'credential': {'to_call': 'handle_usual_object_name',
                                  'observable': {'type': 'user-account'},
@@ -315,6 +316,8 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
 }
 
 asnObjectMapping = {'asn': 'number', 'description': 'name', 'subnet-announced': 'value'}
+
+attackPatternObjectMapping = {'name': 'name', 'summary': 'description'}
 
 credentialObjectMapping = {'password': 'credential', 'username': 'user_id'}
 

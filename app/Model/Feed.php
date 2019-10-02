@@ -49,8 +49,7 @@ class Feed extends AppModel
 
     public function urlOrExistingFilepath($fields)
     {
-        $input_source = empty($this->data['Feed']['input_source']) ? 'network' : $this->data['Feed']['input_source'];
-        if ($input_source == 'local') {
+        if ($this->isFeedLocal($this->data)) {
             if ($this->data['Feed']['source_format'] == 'misp') {
                 if (!is_dir($this->data['Feed']['url'])) {
                     return 'For MISP type local feeds, please specify the containing directory.';
@@ -77,29 +76,17 @@ class Feed extends AppModel
         return $result;
     }
 
-    // gets the event UUIDs from the feed by ID
-    // returns an array with the UUIDs of events that are new or that need updating
+    /**
+     * Gets the event UUIDs from the feed by ID
+     * Returns an array with the UUIDs of events that are new or that need updating
+     * @param array $feed
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
     public function getNewEventUuids($feed, $HttpSocket)
     {
-        $result = array();
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($feed['Feed']['url'] . '/manifest.json')) {
-                $data = file_get_contents($feed['Feed']['url'] . '/manifest.json');
-            }
-        } else {
-            $request = $this->__createFeedRequest($feed['Feed']['headers']);
-            $uri = $feed['Feed']['url'] . '/manifest.json';
-            $response = $HttpSocket->get($uri, '', $request);
-            if ($response->code != 200) {
-                return 1;
-            }
-            $data = $response->body;
-            unset($response);
-        }
-        $manifest = json_decode($data, true);
-        if (!$manifest) {
-            return 2;
-        }
+        $manifest = $this->downloadManifest($feed, $HttpSocket);
         $this->Event = ClassRegistry::init('Event');
         $events = $this->Event->find('all', array(
             'conditions' => array(
@@ -108,147 +95,119 @@ class Feed extends AppModel
             'recursive' => -1,
             'fields' => array('Event.id', 'Event.uuid', 'Event.timestamp')
         ));
+        $result = array('add' => array(), 'edit' => array());
         foreach ($events as $event) {
-            if ($event['Event']['timestamp'] < $manifest[$event['Event']['uuid']]['timestamp']) {
-                $result['edit'][] = array('uuid' => $event['Event']['uuid'], 'id' => $event['Event']['id']);
+            $eventUuid = $event['Event']['uuid'];
+            if ($event['Event']['timestamp'] < $manifest[$eventUuid]['timestamp']) {
+                $result['edit'][] = array('uuid' => $eventUuid, 'id' => $event['Event']['id']);
             } else {
-                $this->__cleanupFile($feed, '/' . $event['Event']['uuid'] . '.json');
+                $this->__cleanupFile($feed, '/' . $eventUuid . '.json');
             }
-            unset($manifest[$event['Event']['uuid']]);
+            unset($manifest[$eventUuid]);
         }
-        if (!empty($manifest)) {
-            $result['add'] = array_keys($manifest);
+        // Rest events in manifest does't exists, they will be added
+        $result['add'] = array_keys($manifest);
+        return $result;
+    }
+
+    /**
+     * @param array $feed
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
+    public function getCache($feed, $HttpSocket)
+    {
+        $uri = $feed['Feed']['url'] . '/hashes.csv';
+        $data = $this->feedGetUri($feed, $uri, $HttpSocket);
+
+        if (empty($data)) {
+            throw new Exception("File '$uri' with hashes for cache filling is empty.");
+        }
+
+        $data = trim($data);
+        $data = explode("\n", $data);
+        $result = array();
+        foreach ($data as $v) {
+            $result[] = explode(',', $v);
         }
         return $result;
     }
 
-    public function getCache($feed, $HttpSocket)
+    /**
+     * @param array $feed
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
+    private function downloadManifest($feed, $HttpSocket)
     {
-        $result = array();
-        $request = $this->__createFeedRequest($feed['Feed']['headers']);
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($feed['Feed']['url'] . '/hashes.csv')) {
-                $data = file_get_contents($feed['Feed']['url'] . '/hashes.csv');
-                if (empty($data)) {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        } else {
-            $uri = $feed['Feed']['url'] . '/hashes.csv';
-            try {
-                $response = $HttpSocket->get($uri, '', $request);
-            } catch (Exception $e) {
-                return false;
-            }
-            if ($response->code != 200) {
-                return false;
-            }
-            $data = $response->body;
-            unset($response);
+        $manifestUrl = $feed['Feed']['url'] . '/manifest.json';
+        $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket);
+
+        $manifest = json_decode($data, true);
+        if ($manifest === null) {
+            throw new Exception('Could not parse manifest JSON: ' . json_last_error_msg(), json_last_error());
         }
-        try {
-            $data = trim($data);
-            $data = explode("\n", $data);
-            foreach ($data as $k => $v) {
-                $data[$k] = explode(',', $v);
-            }
-        } catch (Exception $e) {
-            return false;
-        }
-        return $data;
+
+        return $manifest;
     }
 
-
+    /**
+     * @param array $feed
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
     public function getManifest($feed, $HttpSocket)
     {
-        $result = array();
-        $request = $this->__createFeedRequest($feed['Feed']['headers']);
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($feed['Feed']['url'] . '/manifest.json')) {
-                $data = file_get_contents($feed['Feed']['url'] . '/manifest.json');
-                if (empty($data)) {
-                    return false;
-                }
-            } else {
-                throw new NotFoundException('Invalid file.');
-            }
-        } else {
-            $uri = $feed['Feed']['url'] . '/manifest.json';
-            try {
-                $response = $HttpSocket->get($uri, '', $request);
-            } catch (Exception $e) {
-                return $e->getMessage();
-            }
-            if ($response->code != 200) {
-                return 'Fetching the manifest failed with error: ' . $response->code;
-            }
-            $data = $response->body;
-            unset($response);
-        }
-        try {
-            $events = json_decode($data, true);
-        } catch (Exception $e) {
-            return 'Invalid MISP JSON returned.';
-        }
+        $events = $this->downloadManifest($feed, $HttpSocket);
         $events = $this->__filterEventsIndex($events, $feed);
         return $events;
     }
 
-    private function __getRecursive($url, $query, $request, $iterations = 0)
-    {
-        if ($iterations == 5) {
-            return false;
-        }
-        $HttpSocket = $this->__setupHttpSocket(false);
-        $response = $HttpSocket->get($url, $query, $request);
-        if ($response->code == 302 || $response->code == 301) {
-            $response = $this->__getRecursive($response['header']['Location'], $query, $request, $iterations + 1);
-        }
-        return $response;
-    }
-
+    /**
+     * @param array $feed
+     * @param HttpSocket $HttpSocket
+     * @param string $type
+     * @param int|string $page
+     * @param int $limit
+     * @param array $params
+     * @return array|bool
+     * @throws Exception
+     */
     public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array())
     {
-        $result = array();
-        $data = '';
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($feed['Feed']['url'])) {
-                $data = file_get_contents($feed['Feed']['url']);
-            }
-        } else {
+        $isLocal = $this->isFeedLocal($feed);
+        $data = false;
+
+        if (!$isLocal) {
             $feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feed['Feed']['id']) . '.cache';
-            $doFetch = true;
             if (file_exists($feedCache)) {
                 $file = new File($feedCache);
                 if (time() - $file->lastChange() < 600) {
-                    $doFetch = false;
-                    $data = file_get_contents($feedCache);
-                }
-            }
-            if ($doFetch) {
-                $fetchIssue = false;
-                try {
-                    $request = $this->__createFeedRequest($feed['Feed']['headers']);
-                    $response = $this->__getRecursive($feed['Feed']['url'], '', $request);
-                    //$response = $HttpSocket->get($feed['Feed']['url'], '', array());
-                } catch (Exception $e) {
-                    return $e->getMessage();
-                }
-                if ($response->code == 200) {
-                    $redis = $this->setupRedis();
-                    if ($redis === false) {
-                        return 'Could not reach Redis.';
+                    $data = $file->read();
+                    if ($data === false) {
+                        throw new Exception("Could not read feed cache file '$feedCache'.");
                     }
-                    $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
-                    $data = $response->body;
-                    file_put_contents($feedCache, $data);
-                } else {
-                    return 'Invalid response code returned: ' . $response->code;
                 }
             }
         }
+
+        if ($data === false) {
+            $feedUrl = $feed['Feed']['url'];
+            $data = $this->feedGetUri($feed, $feedUrl, $HttpSocket, true);
+
+            if (!$isLocal) {
+                $redis = $this->setupRedis();
+                if ($redis === false) {
+                    throw new Exception('Could not reach Redis.');
+                }
+                $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
+                file_put_contents($feedCache, $data);
+            }
+        }
+
         App::uses('ComplexTypeTool', 'Tools');
         $complexTypeTool = new ComplexTypeTool();
         $this->Warninglist = ClassRegistry::init('Warninglist');
@@ -328,48 +287,22 @@ class Feed extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            if ($scope === 'Feed') {
-                $params = array(
-                    'recursive' => -1,
-                    'fields' => array('id', 'name', 'url', 'provider', 'source_format')
-                );
-                if (!$user['Role']['perm_site_admin']) {
-                    $params['conditions'] = array('Feed.lookup_visible' => 1);
-                }
-                $sources = $this->find('all', $params);
-            } else {
-                $params = array(
-                    'recursive' => -1,
-                    'fields' => array('id', 'name', 'url', 'caching_enabled')
-                );
-                if (!$user['Role']['perm_site_admin']) {
-                    $params['conditions'] = array('Server.caching_enabled' => 1);
-                }
-                $this->Server = ClassRegistry::init('Server');
-                $sources = $this->Server->find('all', $params);
-            }
-
-            $counter = 0;
-            $hashTable = array();
-            $sourceList = array();
             $pipe = $redis->multi(Redis::PIPELINE);
-            $objectsWithFeedHits = array();
             $hashTable = array();
-            $hitIds = array();
+            $cachePrefix = 'misp:' . strtolower($scope) . '_cache:';
+
             $this->Event = ClassRegistry::init('Event');
-            $objectKeys = array();
+            $compositeTypes = $this->Event->Attribute->getCompositeTypes();
+
             foreach ($objects as $k => $object) {
-                if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
+                if (in_array($object['type'], $compositeTypes)) {
                     $value = explode('|', $object['value']);
                     $hashTable[$k] = md5($value[0]);
-                    $objectKeys[] = $k;
                 } else {
                     $hashTable[$k] = md5($object['value']);
                 }
-                $redis->sismember('misp:' . strtolower($scope) . '_cache:combined', $hashTable[$k]);
-                $objectKeys[] = $k;
+                $redis->sismember($cachePrefix . 'combined', $hashTable[$k]);
             }
-            $results = array();
             $results = $pipe->exec();
             if (!$overrideLimit && count($objects) > 10000) {
                 foreach ($results as $k => $result) {
@@ -383,24 +316,48 @@ class Feed extends AppModel
                     }
                 }
             } else {
+                if ($scope === 'Feed') {
+                    $params = array(
+                        'recursive' => -1,
+                        'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+                    );
+                    if (!$user['Role']['perm_site_admin']) {
+                        $params['conditions'] = array('Feed.lookup_visible' => 1);
+                    }
+                    $sources = $this->find('all', $params);
+                } else {
+                    $params = array(
+                        'recursive' => -1,
+                        'fields' => array('id', 'name', 'url', 'caching_enabled')
+                    );
+                    if (!$user['Role']['perm_site_admin']) {
+                        $params['conditions'] = array('Server.caching_enabled' => 1);
+                    }
+                    $this->Server = ClassRegistry::init('Server');
+                    $sources = $this->Server->find('all', $params);
+                }
+
+                $hitIds = array();
                 foreach ($results as $k => $result) {
                     if ($result && empty($objects[$k]['disable_correlation'])) {
                         $hitIds[] = $k;
                     }
                 }
-                foreach ($sources as $k3 => $source) {
+                foreach ($sources as $source) {
+                    $sourceScopeId = $source[$scope]['id'];
+
                     $pipe = $redis->multi(Redis::PIPELINE);
-                    foreach ($hitIds as $k2 => $k) {
-                        $redis->sismember('misp:' . strtolower($scope) . '_cache:' . $source[$scope]['id'], $hashTable[$k]);
+                    foreach ($hitIds as $k) {
+                        $redis->sismember($cachePrefix . $sourceScopeId, $hashTable[$k]);
                     }
                     $sourceHits = $pipe->exec();
                     foreach ($sourceHits as $k4 => $hit) {
                         if ($hit) {
-                            if (!isset($event[$scope][$sources[$k3][$scope]['id']]['id'])) {
-                                if (!isset($event[$scope][$sources[$k3][$scope]['id']])) {
-                                    $event[$scope][$sources[$k3][$scope]['id']] = array();
+                            if (!isset($event[$scope][$sourceScopeId]['id'])) {
+                                if (!isset($event[$scope][$sourceScopeId])) {
+                                    $event[$scope][$sourceScopeId] = array();
                                 }
-                                $event[$scope][$sources[$k3][$scope]['id']] = array_merge($event[$scope][$sources[$k3][$scope]['id']], $source[$scope]);
+                                $event[$scope][$sourceScopeId] = array_merge($event[$scope][$sourceScopeId], $source[$scope]);
                             }
                             $objects[$hitIds[$k4]][$scope][] = $source[$scope];
                         }
@@ -415,11 +372,11 @@ class Feed extends AppModel
                                     if ($source[$scope]['id'] == $currentFeed['id']) {
                                         $eventUuidHitPosition[$i] = $k;
                                         $i++;
-                                        if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
+                                        if (in_array($object['type'], $compositeTypes)) {
                                             $value = explode('|', $object['value']);
-                                            $redis->smembers('misp:' . strtolower($scope) . '_cache:event_uuid_lookup:' . md5($value[0]));
+                                            $redis->smembers($cachePrefix . 'event_uuid_lookup:' . md5($value[0]));
                                         } else {
-                                            $redis->smembers('misp:' . strtolower($scope) . '_cache:event_uuid_lookup:' . md5($object['value']));
+                                            $redis->smembers($cachePrefix . 'event_uuid_lookup:' . md5($object['value']));
                                         }
                                     }
                                 }
@@ -428,13 +385,13 @@ class Feed extends AppModel
                         $mispFeedHits = $pipe->exec();
                         foreach ($mispFeedHits as $sourcehitPos => $f) {
                             foreach ($f as $url) {
-                                $urlParts = explode('/', $url);
-                                if (empty($event[$scope][$urlParts[0]]['event_uuids']) || !in_array($urlParts[1], $event[$scope][$urlParts[0]]['event_uuids'])) {
-                                    $event[$scope][$urlParts[0]]['event_uuids'][] = $urlParts[1];
+                                list($feedId, $eventUuid) = explode('/', $url);
+                                if (empty($event[$scope][$feedId]['event_uuids']) || !in_array($eventUuid, $event[$scope][$feedId]['event_uuids'])) {
+                                    $event[$scope][$feedId]['event_uuids'][] = $eventUuid;
                                 }
                                 foreach ($objects[$eventUuidHitPosition[$sourcehitPos]][$scope] as $tempKey => $tempFeed) {
-                                    if ($tempFeed['id'] == $urlParts[0]) {
-                                        $objects[$eventUuidHitPosition[$sourcehitPos]][$scope][$tempKey]['event_uuids'][] = $urlParts[1];
+                                    if ($tempFeed['id'] == $feedId) {
+                                        $objects[$eventUuidHitPosition[$sourcehitPos]][$scope][$tempKey]['event_uuids'][] = $eventUuid;
                                     }
                                 }
                             }
@@ -451,64 +408,48 @@ class Feed extends AppModel
 
     public function downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId = false)
     {
-        if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->read(null, $jobId);
-            $email = "Scheduled job";
-        }
-        $total = 0;
-        if (isset($actions['add']) && !empty($actions['add'])) {
-            $total += count($actions['add']);
-        }
-        if (isset($actions['edit']) && !empty($actions['edit'])) {
-            $total += count($actions['edit']);
-        }
+        $total = count($actions['add']) + count($actions['edit']);
         $currentItem = 0;
         $this->Event = ClassRegistry::init('Event');
         $results = array();
-        $filterRules = false;
-        if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
-            $filterRules = json_decode($feed['Feed']['rules'], true);
-        }
-        if (isset($actions['add']) && !empty($actions['add'])) {
-            foreach ($actions['add'] as $uuid) {
+        $filterRules = $this->__prepareFilterRules($feed);
+
+        foreach ($actions['add'] as $uuid) {
+            try {
                 $result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
-                $this->__cleanupFile($feed, '/' . $uuid . '.json');
-                if ($result === 'blocked') {
-                    continue;
-                }
-                if ($result === true) {
+                if ($result !== 'blocked') {
                     $results['add']['success'] = $uuid;
-                } else {
-                    $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $result);
                 }
-                if ($jobId) {
-                    $job->id = $jobId;
-                    $job->saveField('progress', 100 * (($currentItem + 1) / $total));
-                }
-                $currentItem++;
+
+            } catch (Exception $e) {
+                CakeLog::error($this->exceptionAsMessage("Could not add event '$uuid' from feed {$feed['Feed']['id']}.", $e));
+                $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
             }
+
+            $this->__cleanupFile($feed, '/' . $uuid . '.json');
+            $this->jobProgress($jobId, null, 100 * (($currentItem + 1) / $total));
+            $currentItem++;
         }
-        if (isset($actions['edit']) && !empty($actions['edit'])) {
-            foreach ($actions['edit'] as $editTarget) {
-                $uuid = $editTarget['uuid'];
-                $result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
-                if ($result === 'blocked') {
-                    continue;
-                }
-                $this->__cleanupFile($feed, '/' . $uuid . '.json');
-                if ($result === true) {
+
+        foreach ($actions['edit'] as $editTarget) {
+            $uuid = $editTarget['uuid'];
+            try {
+                $result = $this->__updateEventFromFeed($HttpSocket, $feed, $uuid, $editTarget['id'], $user, $filterRules);
+                if ($result !== 'blocked') {
                     $results['edit']['success'] = $uuid;
-                } else {
-                    $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $result);
                 }
-                if ($jobId && $currentItem % 10 == 0) {
-                    $job->id = $jobId;
-                    $job->saveField('progress', 100 * (($currentItem + 1) / $total));
-                }
-                $currentItem++;
+            } catch (Exception $e) {
+                CakeLog::error($this->exceptionAsMessage("Could not edit event '$uuid' from feed {$feed['Feed']['id']}.", $e));
+                $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
             }
+
+            $this->__cleanupFile($feed, '/' . $uuid . '.json');
+            if ($currentItem % 10 == 0) {
+                $this->jobProgress($jobId, null, 100 * (($currentItem + 1) / $total));
+            }
+            $currentItem++;
         }
+
         return $results;
     }
 
@@ -516,14 +457,11 @@ class Feed extends AppModel
     {
         $version = $this->checkMISPVersion();
         $version = implode('.', $version);
-        try {
-            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
-        } catch (Exception $e) {
-            $commit = false;
-        }
+        $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
+
         $result = array(
             'header' => array(
-                    'Accept' => 'application/json',
+                    'Accept' => array('application/json', 'text/plain'),
                     'Content-Type' => 'application/json',
                     'MISP-version' => $version,
                     'MISP-uuid' => Configure::read('MISP.uuid')
@@ -564,6 +502,7 @@ class Feed extends AppModel
                             foreach ($filterRules[$field][$prefix] as $temp) {
                                 if (stripos($object['name'], $temp) !== false) {
                                     $found = true;
+                                    break 2;
                                 }
                             }
                         }
@@ -577,17 +516,14 @@ class Feed extends AppModel
                 }
             }
         }
-        if (!$filterRules) {
-            return true;
-        }
         return true;
     }
 
     private function __filterEventsIndex($events, $feed)
     {
-        $filterRules = array();
-        if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
-            $filterRules = json_decode($feed['Feed']['rules'], true);
+        $filterRules = $this->__prepareFilterRules($feed);
+        if (!$filterRules) {
+            $filterRules = array();
         }
         foreach ($events as $k => $event) {
             if (isset($filterRules['orgs']['OR']) && !empty($filterRules['orgs']['OR']) && !in_array($event['Orgc']['name'], $filterRules['orgs']['OR'])) {
@@ -634,6 +570,13 @@ class Feed extends AppModel
         return $events;
     }
 
+    /**
+     * @param array $feed
+     * @param string $uuid
+     * @param $user Not used
+     * @return array|bool
+     * @throws Exception
+     */
     public function downloadAndSaveEventFromFeed($feed, $uuid, $user)
     {
         $event = $this->downloadEventFromFeed($feed, $uuid, $user);
@@ -643,24 +586,19 @@ class Feed extends AppModel
         return $this->__saveEvent($event, $user);
     }
 
+    /**
+     * @param array $feed
+     * @param string $uuid
+     * @param $user Not used
+     * @return bool|string|array
+     * @throws Exception
+     */
     public function downloadEventFromFeed($feed, $uuid, $user)
     {
-        $path = $feed['Feed']['url'] . '/' . $uuid . '.json';
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($path)) {
-                $data = file_get_contents($path);
-            }
-        } else {
-            $HttpSocket = $this->__setupHttpSocket($feed);
-            $request = $this->__createFeedRequest($feed['Feed']['headers']);
-            $response = $HttpSocket->get($path, '', $request);
-            if ($response->code != 200) {
-                return false;
-            }
-            $data = $response->body;
-            unset($response->body);
-        }
-        return $this->__prepareEvent($data, $feed);
+        $filerRules = $this->__prepareFilterRules($feed);
+        $HttpSocket = $this->isFeedLocal($feed) ? false : $this->__setupHttpSocket($feed);
+        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+        return $this->__prepareEvent($event, $feed, $filerRules);
     }
 
     private function __saveEvent($event, $user)
@@ -686,10 +624,8 @@ class Feed extends AppModel
         return $result;
     }
 
-    private function __prepareEvent($body, $feed)
+    private function __prepareEvent($event, $feed, $filterRules)
     {
-        $filterRules = $this->__prepareFilterRules($feed);
-        $event = json_decode($body, true);
         if (isset($event['response'])) {
             $event = $event['response'];
         }
@@ -697,7 +633,7 @@ class Feed extends AppModel
             $event = $event[0];
         }
         if (!isset($event['Event']['uuid'])) {
-            return false;
+            throw new Exception("Event uuid field missing.");
         }
         $event['Event']['distribution'] = $feed['Feed']['distribution'];
         $event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
@@ -711,11 +647,10 @@ class Feed extends AppModel
                 $event['Event']['Tag'] = array();
             }
             $found = false;
-            if (!empty($event['Event']['Tag'])) {
-                foreach ($event['Event']['Tag'] as $tag) {
-                    if (strtolower($tag['name']) === strtolower($feed['Tag']['name'])) {
-                        $found = true;
-                    }
+            foreach ($event['Event']['Tag'] as $tag) {
+                if (strtolower($tag['name']) === strtolower($feed['Tag']['name'])) {
+                    $found = true;
+                    break;
                 }
             }
             if (!$found) {
@@ -744,11 +679,19 @@ class Feed extends AppModel
         return $event;
     }
 
+    /**
+     * @param array $feed
+     * @return bool|mixed
+     * @throws Exception
+     */
     private function __prepareFilterRules($feed)
     {
         $filterRules = false;
         if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
             $filterRules = json_decode($feed['Feed']['rules'], true);
+            if ($filterRules === null) {
+                throw new Exception('Could not parse feed filter rules JSON: ' . json_last_error_msg(), json_last_error());
+            }
         }
         return $filterRules;
     }
@@ -760,26 +703,19 @@ class Feed extends AppModel
         return ($syncTool->setupHttpSocketFeed($feed));
     }
 
+    /**
+     * @param HttpSocket $HttpSocket
+     * @param array $feed
+     * @param string $uuid
+     * @param $user
+     * @param array|bool $filterRules
+     * @return array|bool|string
+     * @throws Exception
+     */
     private function __addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules)
     {
-        if (!Validation::uuid($uuid)) {
-            return false;
-        }
-        $path = $feed['Feed']['url'] . '/' . $uuid . '.json';
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($path)) {
-                $data = file_get_contents($path);
-            }
-        } else {
-            $request = $this->__createFeedRequest($feed['Feed']['headers']);
-            $response = $HttpSocket->get($path, '', $request);
-            if ($response->code != 200) {
-                return false;
-            }
-            $data = $response->body;
-            unset($response);
-        }
-        $event = $this->__prepareEvent($data, $feed);
+        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+        $event = $this->__prepareEvent($event, $feed, $filterRules);
         if (is_array($event)) {
             $this->Event = ClassRegistry::init('Event');
             return $this->Event->_add($event, true, $user);
@@ -788,24 +724,20 @@ class Feed extends AppModel
         }
     }
 
+    /**
+     * @param HttpSocket $HttpSocket
+     * @param array $feed
+     * @param string $uuid
+     * @param int $eventId
+     * @param $user
+     * @param array|bool $filterRules
+     * @return mixed
+     * @throws Exception
+     */
     private function __updateEventFromFeed($HttpSocket, $feed, $uuid, $eventId, $user, $filterRules)
     {
-        if (!Validation::uuid($uuid)) {
-            return false;
-        }
-        $path = $feed['Feed']['url'] . '/' . $uuid . '.json';
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-            if (file_exists($path)) {
-                $data = file_get_contents($path);
-            }
-        } else {
-            $request = $this->__createFeedRequest($feed['Feed']['headers']);
-            $response = $HttpSocket->get($path, '', $request);
-            if ($response->code != 200) {
-                return false;
-            }
-        }
-        $event = $this->__prepareEvent($response->body, $feed);
+        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+        $event = $this->__prepareEvent($event, $feed, $filterRules);
         $this->Event = ClassRegistry::init('Event');
         return $this->Event->_edit($event, $user, $uuid, $jobId = null);
     }
@@ -837,82 +769,70 @@ class Feed extends AppModel
     public function downloadFromFeedInitiator($feedId, $user, $jobId = false)
     {
         $this->id = $feedId;
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $job = ClassRegistry::init('Job');
         $this->read();
         if (isset($this->data['Feed']['settings']) && !empty($this->data['Feed']['settings'])) {
             $this->data['Feed']['settings'] = json_decode($this->data['Feed']['settings'], true);
         }
-        if (isset($this->data['Feed']['input_source']) && $this->data['Feed']['input_source'] == 'local') {
-            $HttpSocket = false;
-        } else {
-            $HttpSocket = $syncTool->setupHttpSocketFeed($this->data);
-        }
+
+        $HttpSocket = $this->isFeedLocal($this->data) ? false : $this->__setupHttpSocket($this->data);
         if ($this->data['Feed']['source_format'] == 'misp') {
-            if ($jobId) {
-                $job->id = $jobId;
-                $job->saveField('message', 'Fetching event manifest.');
+            $this->jobProgress($jobId, 'Fetching event manifest.');
+            try {
+                $actions = $this->getNewEventUuids($this->data, $HttpSocket);
+            } catch (Exception $e) {
+                CakeLog::error($this->exceptionAsMessage("Could not get new event uuids for feed $feedId.", $e));
+                $this->jobProgress($jobId, 'Could not fetch event manifest. See log for more details.');
+                return false;
             }
-            $actions = $this->getNewEventUuids($this->data, $HttpSocket);
-            if ($jobId) {
-                $job->id = $jobId;
-                $job->saveField('message', 'Fetching events.');
-            }
-            if (empty($actions)) {
-                if ($jobId) {
-                    $job->id = $jobId;
-                    $job->saveField('message', 'Job complete.');
-                }
+
+            if (empty($actions['add']) && empty($actions['edit'])) {
                 return true;
             }
+
+            $total = count($actions['add']) + count($actions['edit']);
+            $this->jobProgress($jobId, "Fetching $total events.");
             $result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
             $this->__cleanupFile($this->data, '/manifest.json');
-            if ($jobId) {
-                $job->id = $jobId;
-                $job->saveField('message', 'Job complete.');
-            }
         } else {
-            if ($jobId) {
-                $job->id = $jobId;
-                $job->saveField('message', 'Fetching data.');
+            $this->jobProgress($jobId, 'Fetching data.');
+            try {
+                $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
+            } catch (Exception $e) {
+                CakeLog::error($this->exceptionAsMessage("Could not get freetext feed $feedId", $e));
+                $this->jobProgress($jobId, 'Could not fetch freetext feed. See log for more details.');
+                return false;
             }
-            $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
+
             $data = array();
-            if (!empty($temp)) {
-                foreach ($temp as $key => $value) {
-                    $data[] = array(
-                        'category' => $value['category'],
-                        'type' => $value['default_type'],
-                        'value' => $value['value'],
-                        'to_ids' => $value['to_ids']
-                    );
-                }
-            }
-            if ($jobId) {
-                $job->saveField('progress', 50);
-                $job->saveField('message', 'Saving data.');
+            foreach ($temp as $value) {
+                $data[] = array(
+                    'category' => $value['category'],
+                    'type' => $value['default_type'],
+                    'value' => $value['value'],
+                    'to_ids' => $value['to_ids']
+                );
             }
             if (empty($data)) {
                 return true;
             }
-            $result = $this->saveFreetextFeedData($this->data, $data, $user);
-            $message = 'Job complete.';
-            if ($result !== true) {
+
+            $this->jobProgress($jobId, 'Saving data.', 50);
+
+            try {
+                $result = $this->saveFreetextFeedData($this->data, $data, $user);
+            } catch (Exception $e) {
+                CakeLog::error($this->exceptionAsMessage("Could not save freetext feed data for feed $feedId.", $e));
                 return false;
             }
+
             $this->__cleanupFile($this->data, '');
-            if ($jobId) {
-                $job->saveField('progress', '100');
-                $job->saveField('message', 'Job complete.');
-            }
         }
         return $result;
     }
 
     private function __cleanupFile($feed, $file)
     {
-        if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
+        if ($this->isFeedLocal($feed)) {
             if (isset($feed['Feed']['delete_local_file']) && $feed['Feed']['delete_local_file']) {
                 if (file_exists($feed['Feed']['url'] . $file)) {
                     unlink($feed['Feed']['url'] . $file);
@@ -922,17 +842,24 @@ class Feed extends AppModel
         return true;
     }
 
+    /**
+     * @param array $feed
+     * @param array $data
+     * @param array $user
+     * @param int|bool $jobId
+     * @return bool
+     * @throws Exception
+     */
     public function saveFreetextFeedData($feed, $data, $user, $jobId = false)
     {
         $this->Event = ClassRegistry::init('Event');
-        $event = false;
+
         if ($feed['Feed']['fixed_event'] && $feed['Feed']['event_id']) {
             $event = $this->Event->find('first', array('conditions' => array('Event.id' => $feed['Feed']['event_id']), 'recursive' => -1));
             if (empty($event)) {
-                return 'The target event is no longer valid. Make sure that the target event exists.';
+                throw new Exception("The target event is no longer valid. Make sure that the target event {$feed['Feed']['event_id']} exists.");
             }
-        }
-        if (!$event) {
+        } else {
             $this->Event->create();
             $event = array(
                     'info' => $feed['Feed']['name'] . ' feed',
@@ -947,11 +874,11 @@ class Feed extends AppModel
             );
             $result = $this->Event->save($event);
             if (!$result) {
-                return 'Something went wrong while creating a new event.';
+                throw new Exception('Something went wrong while creating a new event.');
             }
             $event = $this->Event->find('first', array('conditions' => array('Event.id' => $this->Event->id), 'recursive' => -1));
             if (empty($event)) {
-                return 'The newly created event is no longer valid. Make sure that the target event exists.';
+                throw new Exception("The newly created event is no longer valid. Make sure that the target event {$this->Event->id} exists.");
             }
             if ($feed['Feed']['fixed_event']) {
                 $feed['Feed']['event_id'] = $event['Event']['id'];
@@ -971,16 +898,15 @@ class Feed extends AppModel
                 'fields' => array('id', 'value1', 'value2')
             ));
             $event['Attribute'] = array();
-            foreach ($temp as $k => $t) {
+            foreach ($temp as $t) {
                 if (!empty($t['Attribute']['value2'])) {
-                    $t['Attribute']['value'] = $t['Attribute']['value1'] . '|' . $t['Attribute']['value2'];
+                    $value = $t['Attribute']['value1'] . '|' . $t['Attribute']['value2'];
                 } else {
-                    $t['Attribute']['value'] = $t['Attribute']['value1'];
+                    $value = $t['Attribute']['value1'];
                 }
-                $event['Attribute'][$t['Attribute']['id']] = $t['Attribute']['value'];
+                $event['Attribute'][$t['Attribute']['id']] = $value;
             }
             unset($temp);
-            $to_delete = array();
             foreach ($data as $k => $dataPoint) {
                 $finder = array_search($dataPoint['value'], $event['Attribute']);
                 if ($finder !== false) {
@@ -989,40 +915,35 @@ class Feed extends AppModel
                 }
             }
             if ($feed['Feed']['delta_merge']) {
-                foreach ($event['Attribute'] as $k => $attribute) {
-                    $to_delete[] = $k;
-                }
+                $to_delete = array_keys($event['Attribute']);
                 if (!empty($to_delete)) {
                     $this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete, 'Attribute.deleted' => 0));
                 }
             }
         }
-        $data = array_values($data);
         if (empty($data)) {
             return true;
         }
+
+        $data = array_values($data);
         $uniqueValues = array();
         foreach ($data as $key => $value) {
-            if (in_array($value['value'], $uniqueValues)) {
+            if (isset($uniqueValues[$value['value']])) {
                 unset($data[$key]);
                 continue;
             }
             $data[$key]['event_id'] = $event['Event']['id'];
             $data[$key]['distribution'] = $feed['Feed']['distribution'];
             $data[$key]['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
-            $data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $data[$key]['to_ids'];
-            $uniqueValues[] = $data[$key]['value'];
+            $data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $value['to_ids'];
+            $uniqueValues[$value['value']] = true;
         }
         $data = array_values($data);
-        if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->id = $jobId;
-        }
         foreach ($data as $k => $chunk) {
             $this->Event->Attribute->create();
             $this->Event->Attribute->save($chunk);
-            if ($jobId && $k % 100 == 0) {
-                $job->saveField('progress', 50 + round((50 * ((($k + 1) * 100) / count($data)))));
+            if ($k % 100 == 0) {
+                $this->jobProgress($jobId, null, 50 + round((50 * ((($k + 1) * 100) / count($data)))));
             }
         }
         if (!empty($data)) {
@@ -1039,6 +960,13 @@ class Feed extends AppModel
         return true;
     }
 
+    /**
+     * @param $user Not used
+     * @param int|bool $jobId
+     * @param string $scope
+     * @return bool Returns true if at least one feed was cached sucessfully.
+     * @throws Exception
+     */
     public function cacheFeedInitiator($user, $jobId = false, $scope = 'freetext')
     {
         $params = array(
@@ -1048,7 +976,7 @@ class Feed extends AppModel
         );
         $redis = $this->setupRedis();
         if ($redis === false) {
-            return 'Redis not reachable.';
+            throw new Exception('Could not reach Redis.');
         }
         if ($scope !== 'all') {
             if (is_numeric($scope)) {
@@ -1058,27 +986,26 @@ class Feed extends AppModel
             } elseif ($scope == 'misp') {
                 $redis->del('misp:feed_cache:event_uuid_lookup:');
                 $params['conditions']['source_format'] = 'misp';
+            } else {
+                throw new InvalidArgumentException("Invalid value for scope, it must be integer or 'freetext', 'csv', 'misp' or 'all' string.");
             }
         } else {
             $redis->del('misp:feed_cache:combined');
             $redis->del('misp:feed_cache:event_uuid_lookup:');
         }
         $feeds = $this->find('all', $params);
-        if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->id = $jobId;
-            if (!$job->exists()) {
-                $jobId = false;
-            }
-        }
+        $atLeastOneSuccess = false;
         foreach ($feeds as $k => $feed) {
-            $this->__cacheFeed($feed, $redis, $jobId);
-            if ($jobId) {
-                $job->saveField('progress', 100 * $k / count($feeds));
-                $job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ' cached.');
+            if ($this->__cacheFeed($feed, $redis, $jobId)) {
+                $message = 'Feed ' . $feed['Feed']['id'] . ' cached.';
+                $atLeastOneSuccess = true;
+            } else {
+                $message = 'Failed to cache feed ' . $feed['Feed']['id'] . '. See logs for more details.';
             }
+
+            $this->jobProgress($jobId, $message, 100 * $k / count($feeds));
         }
-        return true;
+        return $atLeastOneSuccess;
     }
 
     public function attachFeedCacheTimestamps($data)
@@ -1095,11 +1022,7 @@ class Feed extends AppModel
 
     private function __cacheFeed($feed, $redis, $jobId = false)
     {
-        if ($feed['Feed']['input_source'] == 'local') {
-            $HttpSocket = false;
-        } else {
-            $HttpSocket = $this->__setupHttpSocket($feed);
-        }
+        $HttpSocket = $this->isFeedLocal($feed) ? false : $this->__setupHttpSocket($feed);
         if ($feed['Feed']['source_format'] == 'misp') {
             return $this->__cacheMISPFeed($feed, $redis, $HttpSocket, $jobId);
         } else {
@@ -1109,90 +1032,74 @@ class Feed extends AppModel
 
     private function __cacheFreetextFeed($feed, $redis, $HttpSocket, $jobId = false)
     {
-        if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->id = $jobId;
-            if (!$job->exists()) {
-                $jobId = false;
+        $feedId = $feed['Feed']['id'];
+
+        try {
+            $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
+        } catch (Exception $e) {
+            CakeLog::error($this->exceptionAsMessage("Could not get freetext feed $feedId", $e));
+            $this->jobProgress($jobId, 'Could not fetch freetext feed. See log for more details.');
+            return false;
+        }
+
+        foreach ($values as $k => $value) {
+            $redis->sAdd('misp:feed_cache:' . $feedId, md5($value['value']));
+            $redis->sAdd('misp:feed_cache:combined', md5($value['value']));
+            if ($k % 1000 == 0) {
+                $this->jobProgress($jobId, "Feed $feedId: $k/" . count($values) . " values cached.");
             }
         }
-        $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
-        if (!empty($values)) {
-            foreach ($values as $k => $value) {
-                $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value['value']));
-                $redis->sAdd('misp:feed_cache:combined', md5($value['value']));
-                if ($jobId && ($k % 1000 == 0)) {
-                    $job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' values cached.');
-                }
-            }
-            $redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
-            return true;
-        }
-        return false;
+        $redis->set('misp:feed_cache_timestamp:' . $feedId, time());
+        return true;
     }
 
     private function __cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId = false)
     {
+        $feedId = $feed['Feed']['id'];
         $this->Attribute = ClassRegistry::init('Attribute');
-        $manifest = $this->getManifest($feed, $HttpSocket);
-        if (!empty($manifest)) {
-            $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
-        } else {
+        try {
+            $manifest = $this->getManifest($feed, $HttpSocket);
+        } catch (Exception $e) {
+            CakeLog::error($this->exceptionAsMessage("Could not get manifest for feed $feedId.", $e));
             return false;
         }
+
+        $redis->del('misp:feed_cache:' . $feedId);
+
         $k = 0;
-        if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->id = $jobId;
-        }
         foreach ($manifest as $uuid => $event) {
-            $data = false;
-            $path = $feed['Feed']['url'] . '/' . $uuid . '.json';
-            if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
-                if (file_exists($path)) {
-                    $data = file_get_contents($path);
-                }
-            } else {
-                $HttpSocket = $this->__setupHttpSocket($feed);
-                $request = $this->__createFeedRequest($feed['Feed']['headers']);
-                $fetchIssue = false;
-                try {
-                    $response = $HttpSocket->get($path, '', $request);
-                } catch (Exception $e) {
-                    $fetchIssue = true;
-                }
-                if ($fetchIssue || $response->code != 200) {
-                    return false;
-                }
-                $data = $response->body;
+            try {
+                $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+            } catch (Exception $e) {
+                CakeLog::error($this->exceptionAsMessage("Could not get and parse event '$uuid' for feed $feedId.", $e));
+                return false;
             }
-            if ($data) {
-                $event = json_decode($data, true);
-                if (!empty($event['Event']['Attribute'])) {
-                    $pipe = $redis->multi(Redis::PIPELINE);
-                    foreach ($event['Event']['Attribute'] as $attribute) {
-                        if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
-                            if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
-                                $value = explode('|', $attribute['value']);
-                                $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[0]));
-                                $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[1]));
-                                $redis->sAdd('misp:feed_cache:combined', md5($value[0]));
-                                $redis->sAdd('misp:feed_cache:combined', md5($value[1]));
-                                $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[0]), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
-                                $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[1]), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
-                            } else {
-                                $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($attribute['value']));
-                                $redis->sAdd('misp:feed_cache:combined', md5($attribute['value']));
-                                $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($attribute['value']), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
-                            }
+
+            if (!empty($event['Event']['Attribute'])) {
+                $pipe = $redis->multi(Redis::PIPELINE);
+                foreach ($event['Event']['Attribute'] as $attribute) {
+                    if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
+                        if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
+                            $value = explode('|', $attribute['value']);
+                            $redis->sAdd('misp:feed_cache:' . $feedId, md5($value[0]));
+                            $redis->sAdd('misp:feed_cache:' . $feedId, md5($value[1]));
+                            $redis->sAdd('misp:feed_cache:combined', md5($value[0]));
+                            $redis->sAdd('misp:feed_cache:combined', md5($value[1]));
+                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[0]), $feedId . '/' . $event['Event']['uuid']);
+                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[1]), $feedId . '/' . $event['Event']['uuid']);
+                        } else {
+                            $redis->sAdd('misp:feed_cache:' . $feedId, md5($attribute['value']));
+                            $redis->sAdd('misp:feed_cache:combined', md5($attribute['value']));
+                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($attribute['value']), $feedId . '/' . $event['Event']['uuid']);
                         }
                     }
-                    $pipe->exec();
                 }
+                $pipe->exec();
             }
+
             $k++;
-            if ($jobId && ($k % 10 == 0)) {
-                $job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' events cached.');
+            if ($k % 10 == 0) {
+                $this->jobProgress($jobId, "Feed $feedId: $k/" . count($manifest) . " events cached.");
             }
         }
         return true;
@@ -1200,40 +1107,36 @@ class Feed extends AppModel
 
     private function __cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId = false)
     {
-        $cache = $this->getCache($feed, $HttpSocket);
-        if (empty($cache)) {
+        $feedId = $feed['Feed']['id'];
+
+        try {
+            $cache = $this->getCache($feed, $HttpSocket);
+        } catch (Exception $e) {
+            CakeLog::notice($this->exceptionAsMessage("Could not get cache file for $feedId.", $e));
             return false;
         }
+
         $pipe = $redis->multi(Redis::PIPELINE);
-        $events = array();
-        foreach ($cache as $k => $v) {
-            $redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], $v[0]);
+        foreach ($cache as $v) {
+            $redis->sAdd('misp:feed_cache:' . $feedId, $v[0]);
             $redis->sAdd('misp:feed_cache:combined', $v[0]);
-            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . $v[0], $feed['Feed']['id'] . '/' . $v[1]);
+            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . $v[0], $feedId . '/' . $v[1]);
         }
         $pipe->exec();
-        if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->id = $jobId;
-            $job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': cached via quick cache.');
-        }
+        $this->jobProgress($jobId, "Feed $feedId: cached via quick cache.");
         return true;
     }
 
     private function __cacheMISPFeed($feed, $redis, $HttpSocket, $jobId = false)
     {
-        if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->id = $jobId;
-            if (!$job->exists()) {
-                $jobId = false;
-            }
-        }
+        $result = true;
         if (!$this->__cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId)) {
-            $this->__cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId);
+            $result = $this->__cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId);
         };
-        $redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
-        return true;
+        if ($result) {
+            $redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
+        }
+        return $result;
     }
 
     public function compareFeeds($id = false)
@@ -1597,5 +1500,192 @@ class Feed extends AppModel
             }
         }
         return $hits;
+    }
+
+    /**
+     * Download and parse event from feed.
+     * @param array $feed
+     * @param string $eventUuid
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
+    private function downloadAndParseEventFromFeed($feed, $eventUuid, $HttpSocket)
+    {
+        if (!Validation::uuid($eventUuid)) {
+            throw new InvalidArgumentException("Given event UUID '$eventUuid' is invalid.");
+        }
+
+        $path = $feed['Feed']['url'] . '/' . $eventUuid . '.json';
+        $data = $this->feedGetUri($feed, $path, $HttpSocket);
+        $event = json_decode($data, true);
+        if ($event === null) {
+            throw new Exception('Could not parse event JSON: ' . json_last_error_msg(), json_last_error());
+        }
+
+        return $event;
+    }
+
+    /**
+     * @param array $feed
+     * @param string $uri
+     * @param HttpSocket $HttpSocket
+     * @param bool $followRedirect
+     * @return string
+     * @throws Exception
+     */
+    private function feedGetUri($feed, $uri, $HttpSocket, $followRedirect = false)
+    {
+        if ($this->isFeedLocal($feed)) {
+            if (file_exists($uri)) {
+                $data = file_get_contents($uri);
+                if ($data === false) {
+                    throw new Exception("Could not read local file '$uri'.");
+                }
+            } else {
+                throw new Exception("Local file '$uri' doesn't exists.");
+            }
+        } else {
+            $request = $this->__createFeedRequest($feed['Feed']['headers']);
+
+            if ($followRedirect) {
+                $response = $this->getFollowRedirect($HttpSocket, $uri, $request);
+            } else {
+                $response = $HttpSocket->get($uri, array(), $request);
+            }
+
+            if ($response === false) {
+                throw new Exception("Could not reach '$uri'.");
+            } else if ($response->code != 200) { // intentionally !=
+                throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+            }
+            $data = $response->body;
+        }
+
+        return $data;
+    }
+
+    /**
+     * It should be possible to use 'redirect' $request attribute, but because HttpSocket contains bug that require
+     * certificate for first domain even when redirect to another domain, we need to use own solution.
+     *
+     * @param HttpSocket $HttpSocket
+     * @param string $url
+     * @param array $request
+     * @param int $iterations
+     * @return false|HttpSocketResponse
+     * @throws Exception
+     */
+    private function getFollowRedirect(HttpSocket $HttpSocket, $url, $request, $iterations = 5)
+    {
+        for ($i = 0; $i < $iterations; $i++) {
+            $response = $HttpSocket->get($url, array(), $request);
+            if ($response->isRedirect()) {
+                $HttpSocket = $this->__setupHttpSocket(null); // Replace $HttpSocket with fresh instance
+                $url = trim($response->getHeader('Location'), '=');
+            } else {
+                return $response;
+            }
+        }
+
+        throw new Exception("Maximum number of iteration reached.");
+    }
+
+    /**
+     * @param array $feed
+     * @return bool
+     */
+    private function isFeedLocal($feed)
+    {
+        return isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local';
+    }
+
+    /**
+     * @param int|null $jobId
+     * @param string|null $message
+     * @param int|null $progress
+     */
+    private function jobProgress($jobId = null, $message = null, $progress = null)
+    {
+        if ($jobId) {
+            $job = ClassRegistry::init('Job');
+
+            $jobData = array($job->primaryKey => $jobId);
+            if ($message) {
+                $jobData['message'] = $message;
+            }
+            if ($progress) {
+                $jobData['progress'] = $progress;
+            }
+            try {
+                $job->save($jobData);
+            } catch (Exception $e) {
+                // ignore error during saving information about job
+            }
+        }
+    }
+
+    /**
+     * @param string $message
+     * @param Exception $exception
+     * @return string
+     */
+    private function exceptionAsMessage($message, $exception)
+    {
+        $message = sprintf("%s\n[%s] %s",
+            $message,
+            get_class($exception),
+            $exception->getMessage()
+        );
+        $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+        return $message;
+    }
+
+    /**
+     * remove all events tied to a feed. Returns int on success, error message
+     * as string on failure
+     */
+    public function cleanupFeedEvents($user_id, $id)
+    {
+        $feed = $this->find('first', array(
+            'conditions' => array('Feed.id' => $id),
+            'recursive' => -1
+        ));
+        if (empty($feed)) {
+            return __('Invalid feed id.');
+        }
+        if (!in_array($feed['Feed']['source_format'], array('csv', 'freetext'))) {
+            return __('Feed has to be either a CSV or a freetext feed for the purging to work.');
+        }
+        $this->User = ClassRegistry::init('User');
+        $user = $this->User->getAuthUser($user_id);
+        if (empty($user)) {
+            return __('Invalid user id.');
+        }
+        $conditions = array('Event.info' => $feed['Feed']['name'] . ' feed');
+        $this->Event = ClassRegistry::init('Event');
+        $events = $this->Event->find('list', array(
+            'conditions' => $conditions,
+            'fields' => array('Event.id', 'Event.id')
+        ));
+        $count = count($events);
+        foreach ($events as $event_id) {
+            $this->Event->delete($event_id);
+        }
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'Feed',
+                'model_id' => $id,
+                'email' => $user['email'],
+                'action' => 'purge_events',
+                'title' => __('Events related to feed %s purged.', $id),
+                'change' => null,
+        ));
+        $feed['Feed']['fixed_event'] = 1;
+        $feed['Feed']['event_id'] = 0;
+        $this->save($feed);
+        return $count;
     }
 }

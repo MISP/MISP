@@ -73,6 +73,9 @@ MISPvars () {
   MISP_USER='misp'
   MISP_PASSWORD="$(openssl rand -hex 32)"
 
+  # MISP configuration variables
+  PATH_TO_MISP='/var/www/MISP'
+
   # The web server user
   # RHEL/CentOS
   if [[ -f "/etc/redhat-release" ]]; then
@@ -83,13 +86,15 @@ MISPvars () {
   # OpenBSD
   elif [[ "$(uname -s)" == "OpenBSD" ]]; then
     WWW_USER="www"
+    PATH_TO_MISP="/var/www/htdocs/MISP"
+  # NetBSD
+  elif [[ "$(uname -s)" == "NetBSD" ]]; then
+    WWW_USER="www"
+    PATH_TO_MISP="/usr/pkg/share/httpd/htdocs/MISP"
   else
-  # I am feeling lucky
+    # I am feeling lucky
     WWW_USER="www-data"
   fi
-
-  # MISP configuration variables
-  PATH_TO_MISP='/var/www/MISP'
 
   if [ -z "$FQDN" ]; then
     FQDN="misp.local"
@@ -137,7 +142,7 @@ MISPvars () {
   upload_max_filesize=50M
   post_max_size=50M
   max_execution_time=300
-  memory_limit=512M
+  memory_limit=2048M
 
   CAKE="$PATH_TO_MISP/app/Console/cake"
 
@@ -758,7 +763,6 @@ installDepsPhp70 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 
@@ -780,7 +784,6 @@ installDepsPhp73 () {
   php7.3 php7.3-cli \
   php7.3-dev \
   php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 }
@@ -940,8 +943,6 @@ alias composer70='composer72'
 composer72 () {
   cd $PATH_TO_MISP/app
   mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 }
 
@@ -958,8 +959,6 @@ composer73 () {
   checkFail "composer.phar checksum failed, please investigate manually. " $?
   $SUDO_WWW php composer-setup.php
   $SUDO_WWW php -r "unlink('composer-setup.php');"
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 }
 
@@ -986,8 +985,8 @@ genRCLOCAL () {
 
 # Run PyMISP tests
 runTests () {
-  sudo sed -i -E "s~url\ =\ (.*)~url\ =\ '${MISP_BASEURL}'~g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
-  sudo sed -i -E "s/key\ =\ (.*)/key\ =\ '${AUTH_KEY}'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
+  echo "url = ${MISP_BASEURL}
+key = ${AUTH_KEY}" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
   sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
@@ -1091,8 +1090,10 @@ checkSudoKeeper () {
     su -c "apt install etckeeper -y"
     echo "Please enter your root password below to install sudo"
     su -c "apt install sudo -y"
+    echo "Please enter your root password below to install sudo"
+    su -c "apt install curl -y"
     echo "Please enter your root password below to add ${MISP_USER} to sudo group"
-    su -c "adduser ${MISP_USER} sudo"
+    su -c "/usr/sbin/adduser ${MISP_USER} sudo"
     echo "We added ${MISP_USER} to group sudo and now we need to log out and in again."
     exit
   else
@@ -1104,7 +1105,7 @@ checkSudoKeeper () {
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 -qy
+  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 moreutils -qy
 
   # Install MariaDB (a MySQL fork/alternative)
   sudo apt-get install mariadb-client mariadb-server -qy
@@ -1130,7 +1131,6 @@ installDepsPhp73 () {
   php7.3 php7.3-cli \
   php7.3-dev \
   php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 }
@@ -1146,7 +1146,6 @@ installDepsPhp72 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 
@@ -1167,7 +1166,6 @@ installDepsPhp70 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 
@@ -1317,10 +1315,6 @@ installCore () {
 
   # install plyara
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
-
-  # Install Crypt_GPG and Console_CommandLine
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 }
 
 installCake () {
@@ -1331,8 +1325,6 @@ installCake () {
   # Make composer cache happy
   # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
   sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 
   # Enable CakeResque with php-redis
@@ -1922,7 +1914,7 @@ generateInstaller () {
   cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
+  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
     xsnippet . ../../docs/${f}
   done
 
@@ -1976,7 +1968,7 @@ generateInstaller () {
 # Simple debug function with message
 
 # Make sure no alias exists
-if [[ $(type -t debug) == "alias" ]]; then unalias debug; fi
+[[ $(type -t debug) == "alias" ]] && unalias debug
 debug () {
   echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}" > /dev/tty
   if [ ! -z $DEBUG ]; then
@@ -2471,6 +2463,7 @@ x86_64-fedora-30
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
+x86_64-kali-2019.2
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-debian-jessie

@@ -717,7 +717,7 @@ class EventGraph {
                         code: that.get_FA_icon(node['meta-category']),
                     }
                 };
-                dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
+                dataHandler.mapping_value_to_nodeID.set(label, node.id);
             } else if (node.node_type == 'tag') {
                 var tag_color = node.tagContent.colour;
                 group =  'tag';
@@ -742,7 +742,7 @@ class EventGraph {
                         borderRadius: 6
                     }
                 };
-                dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
+                dataHandler.mapping_value_to_nodeID.set(label, node.id);
             } else if (node.node_type == 'keyType') {
                 group = 'keyType';
                 label = that.scope_keyType + ": " + node.label;
@@ -753,7 +753,7 @@ class EventGraph {
                     title: label,
                     group: group
                 };
-                dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
+                dataHandler.mapping_value_to_nodeID.set(label, node.id);
             } else {
                 group =  'attribute';
                 label = node.type + ': ' + node.label;
@@ -772,7 +772,7 @@ class EventGraph {
                     node_conf.size = $('#slider_display_picture_size').val();
                     node_conf.image = baseurl + '/attributes/viewPicture/' + node.id + '/1';
                 }
-                dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
+                dataHandler.mapping_value_to_nodeID.set(label, node.id);
             }
 
             newNodes.push(node_conf);
@@ -1025,7 +1025,7 @@ class EventGraph {
                         node.image = baseurl + '/attributes/viewPicture/' + attr.id + '/1';
                     }
                     newNodes.push(node);
-                    dataHandler.mapping_obj_relation_value_to_nodeID.set(striped_value, node.id);
+                    dataHandler.mapping_obj_relation_value_to_nodeID.set(attr.value, node.id);
 
                     var rel = {
                         from: parent_id,
@@ -2090,18 +2090,11 @@ function enable_interactive_graph() {
             });
         });
 
-        $('#network-typeahead').typeahead(typeaheadOption);
 
         dataHandler = new DataHandler();
         eventGraph = new EventGraph(network_options, nodes, edges);
 
         $(document).on("keydown", function(evt) {
-            if($('#network-typeahead').is(":focus")) {
-                if (evt.keyCode == 27) { // <ESC>
-                    $('#network-typeahead').blur();
-                }
-                return;
-            }
             if (evt.target !== undefined && $(evt.target).is('input')) {
                 return;
             }
@@ -2189,7 +2182,38 @@ $(document).on("keyup", function(evt) {
 });
 
 eventGraph.update_scope();
-dataHandler.fetch_data_and_update();
+dataHandler.fetch_data_and_update(true, function() {
+    var $select = $('#network-typeahead');
+    dataHandler.get_typeaheadData_search().forEach(function(element) {
+        var $option = $('<option></option>');
+        $option.text(element);
+        $option.attr('value', $option.text());
+        $select.append($option);
+    });
+    $('#network-typeahead').chosen(chosen_options).on('change', function(evt, params) {
+        var value = params.selected;
+        var nodeID = dataHandler.mapping_value_to_nodeID.get(value);
+        // in case we searched for an object relation
+        nodeID = nodeID === undefined ? dataHandler.mapping_obj_relation_value_to_nodeID.get(value) : nodeID;
+        // check if node in cluster
+        nested_length = eventGraph.network.findNode(nodeID).length;
+        if (nested_length > 1) { // Node is in cluster
+            // As vis.js cannot supply a way to uncluster a single node, we remove it and add it again
+            searched_node = eventGraph.nodes.get(nodeID);
+            // Remove old node and edges
+            eventGraph.nodes.remove(nodeID);
+            eventGraph.nodes.add(searched_node);
+            /* don't need to re-add the edge as it is the same */
+            eventGraph.focus_on_stabilized(nodeID);
+        } else {
+            // set focus to the network
+            eventGraph.network.focus(nodeID, {animation: true, scale: 1});
+        }
+        // select node and focus on it
+        eventGraph.network.selectNodes([nodeID]);
+        $("#network-typeahead").blur();
+    });
+});
 }, 1);
 }
 
@@ -2408,37 +2432,9 @@ var network_options = {
     }
 };
 var default_layout_option = $.extend(true, {}, network_options);
-
-var typeaheadOption = {
-    source: function (query, process) {
-        if (typeaheadDataSearch === undefined) { // caching
-            typeaheadDataSearch = dataHandler.get_typeaheadData_search();
-        }
-        process(typeaheadDataSearch);
-    },
-    updater: function(value) {
-        var nodeID = dataHandler.mapping_value_to_nodeID.get(value);
-        // in case we searched for an object relation
-        nodeID = nodeID === undefined ? dataHandler.mapping_obj_relation_value_to_nodeID.get(value) : nodeID;
-        // check if node in cluster
-        nested_length = eventGraph.network.findNode(nodeID).length;
-        if (nested_length > 1) { // Node is in cluster
-            // As vis.js cannot supply a way to uncluster a single node, we remove it and add it again
-            searched_node = eventGraph.nodes.get(nodeID);
-            // Remove old node and edges
-            eventGraph.nodes.remove(nodeID);
-            eventGraph.nodes.add(searched_node);
-            /* don't need to re-add the edge as it is the same */
-            eventGraph.focus_on_stabilized(nodeID);
-        } else {
-            // set focus to the network
-            eventGraph.network.focus(nodeID, {animation: true, scale: 1});
-        }
-        // select node and focus on it
-        eventGraph.network.selectNodes([nodeID]);
-        $("#network-typeahead").blur();
-    },
-    autoSelect: true
+var chosen_options = {
+    max_shown_results: 20,
+    inherit_select_classes: true
 }
 var max_displayed_char = 32;
 var progressbar_length = 3; // divided by 100

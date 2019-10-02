@@ -41,4 +41,21 @@ class ObjectTemplateElement extends AppModel
         }
         return true;
     }
+
+
+    public function getAllAvailableTypes() {
+        $temp = $this->find('all', array(
+            'recursive' => -1,
+            'fields' => array('object_relation as type', 'description AS desc', 'categories'),
+            'group' => 'type'
+        ));
+        $res = array();
+        foreach ($temp as $type) {
+            $res[$type['ObjectTemplateElement']['type']] = array(
+                'desc' => $type['ObjectTemplateElement']['desc'],
+                'category' => $type['ObjectTemplateElement']['categories']
+            );
+        }
+        return $res;
+    }
 }

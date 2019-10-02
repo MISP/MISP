@@ -605,7 +605,6 @@ installDepsPhp70 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 
@@ -629,7 +628,6 @@ installDepsPhp73 () {
   php7.3 php7.3-cli \
   php7.3-dev \
   php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 }
@@ -790,8 +788,6 @@ alias composer70='composer72'
 composer72 () {
   cd $PATH_TO_MISP/app
   mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 }
 
@@ -808,8 +804,6 @@ composer73 () {
   checkFail "composer.phar checksum failed, please investigate manually. " $?
   $SUDO_WWW php composer-setup.php
   $SUDO_WWW php -r "unlink('composer-setup.php');"
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 }
 
@@ -836,8 +830,8 @@ genRCLOCAL () {
 
 # Run PyMISP tests
 runTests () {
-  sudo sed -i -E "s~url\ =\ (.*)~url\ =\ '${MISP_BASEURL}'~g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
-  sudo sed -i -E "s/key\ =\ (.*)/key\ =\ '${AUTH_KEY}'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
+  echo "url = ${MISP_BASEURL}
+key = ${AUTH_KEY}" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
   sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"

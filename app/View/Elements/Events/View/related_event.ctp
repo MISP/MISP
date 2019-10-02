@@ -20,7 +20,7 @@
                     <td style="line-height: 14px; padding-left: 2px;">
                         <i><?php echo h($related['date']); ?></i>
                         <?php if (isset($relatedEventCorrelationCount[$related['id']])): ?>
-                            <b style="margin-left: 5px; float: right; cursor: help;" title="<?php echo __(sprintf('This related event contains %s unique correlation(s)', h($relatedEventCorrelationCount[$related['id']]))); ?>"> <?php echo h($relatedEventCorrelationCount[$related['id']]) ?></b>
+                            <b style="margin-left: 5px; float: right; cursor: help;" title="<?php echo sprintf(__('This related event contains %s unique correlation(s)'), h($relatedEventCorrelationCount[$related['id']])); ?>"> <?php echo h($relatedEventCorrelationCount[$related['id']]) ?></b>
                         <?php endif; ?>
                     </td>
                 </tr>

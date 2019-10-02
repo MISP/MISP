@@ -40,6 +40,7 @@
 <body>
     <div id="popover_form" class="ajax_popover_form"></div>
     <div id="popover_form_large" class="ajax_popover_form ajax_popover_form_large"></div>
+    <div id="popover_form_x_large" class="ajax_popover_form ajax_popover_form_x_large"></div>
     <div id="popover_matrix" class="ajax_popover_form ajax_popover_matrix"></div>
     <div id="popover_box" class="popover_box"></div>
     <div id="screenshot_box" class="screenshot_box"></div>

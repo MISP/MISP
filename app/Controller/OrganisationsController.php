@@ -150,6 +150,13 @@ class OrganisationsController extends AppController
 
     public function admin_edit($id)
     {
+        if (Validation::uuid($id)) {
+            $temp = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('Organisation.id'), 'conditions' => array('Organisation.uuid' => $id)));
+            if (empty($temp)) {
+                throw new NotFoundException(__('Invalid organisation.'));
+            }
+            $id = $temp['Organisation']['id'];
+        }
         $this->Organisation->id = $id;
         if (!$this->Organisation->exists()) {
             throw new NotFoundException(__('Invalid organisation'));
@@ -228,6 +235,13 @@ class OrganisationsController extends AppController
     {
         if (!$this->request->is('post') && !$this->request->is('delete')) {
             throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
+        }
+        if (Validation::uuid($id)) {
+            $temp = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('Organisation.id'), 'conditions' => array('Organisation.uuid' => $id)));
+            if (empty($temp)) {
+                throw new NotFoundException(__('Invalid organisation'));
+            }
+            $id = $temp['Organisation']['id'];
         }
         $this->Organisation->id = $id;
         if (!$this->Organisation->exists()) {

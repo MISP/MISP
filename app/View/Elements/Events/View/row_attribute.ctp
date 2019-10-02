@@ -157,7 +157,7 @@
         ?>
       </div>
     </td>
-    <td class="shortish">
+    <td class="short">
       <div class="attributeTagContainer" id="#Attribute_<?php echo h($object['id']);?>_tr .attributeTagContainer">
         <?php echo $this->element('ajaxTags', array('attributeId' => $object['id'], 'tags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']), 'context' => $context, 'scope' => 'attribute')); ?>
       </div>
@@ -351,6 +351,13 @@
       'page' => $page
     ));
   ?>
+  <?php if (!empty($includeDecayScore)): ?>
+    <td class="decayingScoreField">
+          <div id = "Attribute_<?php echo h($object['id']); ?>_score_solid" class="inline-field-solid">
+            <?php echo $this->element('DecayingModels/View/attribute_decay_score', array('scope' => 'object', 'object' => $object, 'uselink' => true)); ?>
+          </div>
+    </td>
+  <?php endif; ?>
   <td class="short action-links">
     <?php
         if ($object['deleted']):
