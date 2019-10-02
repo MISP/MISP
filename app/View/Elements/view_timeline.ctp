@@ -17,7 +17,7 @@
     </div>
 
 
-    <div id="event_timeline" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>" data-extended="<?php echo $extended; ?>">
+    <div id="event_timeline" style="min-height: 100px;" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>" data-extended="<?php echo $extended; ?>">
         <div class="loadingTimeline">
             <div class="spinner"></div>
             <div class="loadingText"><?php echo __('Loading');?></div>
