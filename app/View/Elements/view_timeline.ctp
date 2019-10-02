@@ -12,8 +12,8 @@
             <span class="useCursorPointer fa fa-list-alt" style="margin-right: 3px;"></span><?php echo __('Display')?>
             <span id="timeline-display-badge" class="badge"></span>
         </label>
-
-        <input type="text" id="timeline-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
+        <select id="timeline-typeahead" class="center-in-network-header network-typeahead flushright position-absolute max-width-400" style="display:none" data-provide="typeahead" size="20" placeholder="Search for an item">
+        </select>
     </div>
 
 

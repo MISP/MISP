@@ -77,21 +77,6 @@ var options = {
         }
     }
 };
-var timeline_typeaheadDataSearch;
-var timeline_typeaheadOption = {
-    source: function (query, process) {
-        if (timeline_typeaheadDataSearch === undefined) { // caching
-            timeline_typeaheadDataSearch = Array.from(mapping_text_to_id.keys());
-        }
-        process(timeline_typeaheadDataSearch);
-    },
-    updater: function(value) {
-        var id = mapping_text_to_id.get(value);
-        eventTimeline.focus(id);
-        $("#timeline-typeahead").blur();
-    },
-    autoSelect: true
-}
 
 function isDefined(element) {
     return element !== undefined && element !== null;
@@ -424,8 +409,10 @@ function enable_timeline() {
 
     init_popover();
 
-    $('#timeline-typeahead').typeahead(timeline_typeaheadOption);
-
+    var chosen_options_timeline = {
+        max_shown_results: 20,
+        inherit_select_classes: true
+    };
     var payload = {scope: map_scope($('#select_timeline_scope').val())};
     $.ajax({
         url: "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
@@ -479,6 +466,21 @@ function enable_timeline() {
                     event: { target: $('span[data-itemID="'+data.items[0]+'"]')},
                     items: data.items
                 });
+            });
+
+            var $selectTypeahead = $('#timeline-typeahead');
+            Array.from(mapping_text_to_id.keys()).forEach(function(element) {
+                var value = mapping_text_to_id[element];
+                var $option = $('<option></option>');
+                $option.text(element);
+                $option.attr('value', value);
+                $selectTypeahead.append($option);
+            });
+            $selectTypeahead.css('display', '').chosen(chosen_options_timeline).on('change', function(evt, params) {
+                var value = params.selected;
+                var id = mapping_text_to_id.get(value);
+                eventTimeline.focus(id);
+                $("#timeline-typeahead").blur();
             });
         },
         error: function( jqXhr, textStatus, errorThrown ){

@@ -1,4 +1,5 @@
 .info_container_eventtimeline {
+	position: relative;
 	margin-top:10px;
 	border: 1px solid #0088cc;
 	border-radius: 7px;
