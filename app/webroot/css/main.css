@@ -301,13 +301,13 @@ td.highlight3 {
 
 }
 
-table.table-striped > tbody > tr > td.objectAddField {
+table.table-striped > tbody > tr > td > span.objectAddField {
     padding: 0px;
     line-height: normal;
     display: inline-block;
     position: relative;
-    top: -13px;
-    left: -4px;
+    top: -19px;
+    left: -10px;
     color: white;
     background-color: #1369a0;
     border: 0px;
@@ -317,14 +317,14 @@ table.table-striped > tbody > tr > td.objectAddField {
     text-align: center;
 }
 
-table.table-striped > tbody > tr > td.objectAddField:before {
+table.table-striped > tbody > tr > td > span.objectAddField:before {
     left: 2px;
     height: 12px;
     width: 12px;
     line-height: 16px;
 }
 
-.table-striped tbody > tr > td.objectAddField:hover {
+.table-striped tbody > tr > td > span.objectAddField:hover {
     transform: scale(1.7);
     cursor: pointer;
 }
