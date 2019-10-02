@@ -505,6 +505,9 @@ class FeedsController extends AppController
                 }
             }
         }
+        if (!isset($message)) {
+            $message = __('No feed enabled.');
+        }
         $this->Flash->success($message);
         $this->redirect(array('action' => 'index'));
     }
