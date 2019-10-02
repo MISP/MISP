@@ -537,46 +537,45 @@ class ObjectsController extends AppController
             // we pre-validate the attributes before we create an object at this point
             // This allows us to stop the process and return an error (API) or return
             //  to the add form
-            if (empty($error)) {
-                if ($this->_isRest()) {
-                    if (is_numeric($objectToSave)) {
-                        $objectToSave = $this->MispObject->find('first', array(
-                            'recursive' => -1,
-                            'conditions' => array('Object.id' => $id),
-                            'contain' => array(
-                                'Attribute' => array(
-                                    'fields' => $this->MispObject->Attribute->defaultFields
-                                )
+            if ($this->_isRest()) {
+                if (is_numeric($objectToSave)) {
+                    $objectToSave = $this->MispObject->find('first', array(
+                        'recursive' => -1,
+                        'conditions' => array('Object.id' => $id),
+                        'contain' => array(
+                            'Attribute' => array(
+                                'fields' => $this->MispObject->Attribute->defaultFields
                             )
-                        ));
-                        if (!empty($objectToSave)) {
-                            $objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
-                            unset($objectToSave['Attribute']);
-                        }
-                        $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
-                        return $this->RestResponse->viewData($objectToSave, $this->response->type());
-                    } else {
-                        return $this->RestResponse->saveFailResponse('Objects', 'add', false, $id, false);
+                        )
+                    ));
+                    if (!empty($objectToSave)) {
+                        $objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
+                        unset($objectToSave['Attribute']);
                     }
+                    $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
+                    return $this->RestResponse->viewData($objectToSave, $this->response->type());
                 } else {
-                    $message = __('Object attributes saved.');
-                    $error_message = __('Object attributes could not be saved.');
-                    if ($this->request->is('ajax')) {
-                         $this->autoRender = false;
-                         if (is_numeric($objectToSave)) {
-                            return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type('application/json'), $message);
-                        } else {
-                            return $this->RestResponse->saveFailResponse('Objects', 'edit', $id, $error_message, $this->response->type('application/json'));
-                        }
-                    }  else {
-                        if (is_numeric($objectToSave)) {
-                            $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
-                            $this->Flash->success($message);
-                        } else {
-                            $this->Flash->error($error_message);
-                        }
-                        $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+                    return $this->RestResponse->saveFailResponse('Objects', 'add', false, $id, false);
+                }
+            } else {
+                $message = __('Object attributes saved.');
+                $error_message = __('Object attributes could not be saved.');
+                if ($this->request->is('ajax')) {
+                        $this->autoRender = false;
+                    if (is_numeric($objectToSave)) {
+                        $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+                    } else {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $error_message)), 'status'=>200, 'type' => 'json'));
                     }
+                }  else {
+                    if (is_numeric($objectToSave)) {
+                        $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
+                        $this->Flash->success($message);
+                    } else {
+                        $this->Flash->error($error_message);
+                    }
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
                 }
             }
         } else {

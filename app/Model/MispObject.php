@@ -770,7 +770,8 @@ class MispObject extends AppModel
                         $newAttribute['distribution'] = 5;
                     }
                 }
-                $this->Attribute->saveAttributes(array($newAttribute));
+                $saveAttributeResult = $this->Attribute->saveAttributes(array($newAttribute));
+                return $saveAttributeResult ? $this->id : $this->validationErrors;
             }
         }
         return $this->id;

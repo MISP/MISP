@@ -3562,6 +3562,7 @@ class Attribute extends AppModel
                 $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
             }
         }
+        $saveResult = true;
         foreach ($attributes as $k => $attribute) {
             if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
                 $attribute = $this->onDemandEncrypt($attribute);
@@ -3571,9 +3572,9 @@ class Attribute extends AppModel
             }
             unset($attribute['Attachment']);
             $this->create();
-            $this->save($attribute);
+            $saveResult = $saveResult && $this->save($attribute);
         }
-        return true;
+        return $saveResult;
     }
 
     public function onDemandEncrypt($attribute)

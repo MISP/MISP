@@ -1253,7 +1253,15 @@ function submitPopoverForm(context_id, referer, update_context_id, popover_dissm
                     $('#sightingsListAllToggle').removeClass('btn-inverse');
                     $('#sightingsListAllToggle').addClass('btn-primary');
                 }
-                if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')) eventUnpublish();
+                if (
+                    (
+                        context == 'event' &&
+                        (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')
+                    ) || 
+                    referer == 'quickAddAttributeForm'
+                ){
+                    eventUnpublish();
+                }
                 $(".loading").hide();
             },
             type:"post",
