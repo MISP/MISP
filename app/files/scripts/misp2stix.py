@@ -135,23 +135,28 @@ class StixBuilder(object):
             self.json_event = json.loads(f.read())
 
     def generateEventPackages(self):
-        return_type_to_package = {'json': ('to_json', {}),
-                                  'xml': ('to_xml', {'include_namespaces': False, 'include_schemalocs': False, 'encoding': 'utf8'})}
-        to_call, args = return_type_to_package[self.return_type]
-        separator = None
-        if self.json_event.get('response'):
-            from misp_framing import stix_framing
-            _, separator, _ = stix_framing(self.baseurl, self.orgname, self.return_type)
-            stix_packages = [getattr(self.generate_package(event['Event']), to_call)(**args) for event in self.json_event['response']]
-        else:
-            stix_packages = [getattr(self.generate_package(self.json_event['Event']), to_call)(**args)]
-        if self.return_type == 'xml':
-            stix_packages = [s.decode() for s in stix_packages]
-            stix_packages = ['\n            '.join(s.split('\n')[:-1]).replace('stix:STIX_Package', 'stix:Package') for s in stix_packages]
-            stix_packages = ['            {}\n'.format(s) for s in stix_packages]
-        else:
-            stix_packages = ['{"package": %s}' % s for s in stix_packages]
-        self.stix_package = separator.join(stix_packages) if len(stix_packages) > 1 else stix_packages[0]
+        try
+            return_type_to_package = {'json': ('to_json', {}),
+                                      'xml': ('to_xml', {'include_namespaces': False, 'include_schemalocs': False, 'encoding': 'utf8'})}
+            to_call, args = return_type_to_package[self.return_type]
+            separator = None
+            if self.json_event.get('response'):
+                from misp_framing import stix_framing
+                _, separator, _ = stix_framing(self.baseurl, self.orgname, self.return_type)
+                stix_packages = [getattr(self.generate_package(event['Event']), to_call)(**args) for event in self.json_event['response']]
+            else:
+                stix_packages = [getattr(self.generate_package(self.json_event['Event']), to_call)(**args)]
+            if self.return_type == 'xml':
+                stix_packages = [s.decode() for s in stix_packages]
+                stix_packages = ['\n            '.join(s.split('\n')[:-1]).replace('stix:STIX_Package', 'stix:Package') for s in stix_packages]
+                stix_packages = ['            {}\n'.format(s) for s in stix_packages]
+            else:
+                stix_packages = ['{"package": %s}' % s for s in stix_packages]
+            self.stix_package = separator.join(stix_packages) if len(stix_packages) > 1 else stix_packages[0]
+            self.saveFile()
+            print(json.dumps({'success': 1}))
+        except Exception as e:
+            print(json.dumps({'error': e.__str__()}))
 
     def generate_package(self, event):
         self.objects_to_parse = defaultdict(dict)
@@ -1803,8 +1808,6 @@ def main(args):
     stix_builder = StixBuilder(args)
     stix_builder.loadEvent()
     stix_builder.generateEventPackages()
-    stix_builder.saveFile()
-    print(json.dumps({'success': 1, 'message': ''}))
 
 if __name__ == "__main__":
     main(sys.argv)
