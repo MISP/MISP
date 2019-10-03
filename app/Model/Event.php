@@ -1067,12 +1067,12 @@ class Event extends AppModel
         return true;
     }
 
-    public function uploadEventToServer($event, $server, $HttpSocket = null)
+   public function uploadEventToServer(array $event, array $server, $HttpSocket = null)
     {
         $this->Server = ClassRegistry::init('Server');
         $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
         if (empty($push['canPush'])) {
-            return 'The remote user is not a sync user - the upload of the event has been blocked.';
+            throw new Exception('The remote user is not a sync user - the upload of the event has been blocked.');
         }
         if (!empty($server['Server']['unpublish_event'])) {
             $event['Event']['published'] = 0;
@@ -1081,22 +1081,19 @@ class Event extends AppModel
         $newLocation = $newTextBody = '';
         $result = $this->__executeRestfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
         if ($result !== true) {
-            return $result;
+            throw new Exception($result); // TODO
         }
         if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
             $result = $this->__executeRestfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
             if ($result !== true) {
-                return $result;
+                throw new Exception($result); // TODO
             }
         }
-        $uploadFailed = false;
-        try {
-            $json = json_decode($newTextBody, true);
-        } catch (Exception $e) {
-            $uploadFailed = true;
-        }
-        if (!is_array($json) || $uploadFailed) {
-            return $this->__logUploadResult($server, $event, $newTextBody);
+
+        $json = json_decode($newTextBody, true);
+        if (!is_array($json)) {
+            $this->__logUploadResult($server, $event, $newTextBody);
+            throw new Exception("Could not parse upload result JSON: " . json_last_error_msg());
         }
         return 'Success';
     }
