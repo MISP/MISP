@@ -981,14 +981,14 @@ class TagsController extends AppController
             $date = new DateTime();
             $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
             $this->$objectType->save($tempObject);
-            if ($objectType === 'Attribute') {
-                $this->$objectType->Event->unpublishEvent($object['Event']['id']);
-            } else if ($objectType === 'Event') {
-                $this->Event->unpublishEvent($object['Event']['id']);
-            }
             if($local) {
                 $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
             } else {
+                if ($objectType === 'Attribute') {
+                    $this->$objectType->Event->unpublishEvent($object['Event']['id']);
+                } else if ($objectType === 'Event') {
+                    $this->Event->unpublishEvent($object['Event']['id']);
+                }
                 $message = 'Global tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
             }
             return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $message);

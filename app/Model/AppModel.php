@@ -75,7 +75,8 @@ class AppModel extends Model
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
-        33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false
+        33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
+        39 => false, 40 => false
     );
 
     public $advanced_updates_description = array(
@@ -1246,6 +1247,23 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE servers ADD  priority int(11) NOT NULL DEFAULT 0;";
                 $indexArray[] = array('servers', 'priority');
                 break;
+            case 39:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS user_settings (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `value` text,
+                    `user_id` int(11) NOT NULL,
+                    `timestamp` int(11) NOT NULL,
+                    PRIMARY KEY (id),
+                    INDEX `key` (`key`),
+                    INDEX `user_id` (`user_id`),
+                    INDEX `timestamp` (`timestamp`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                break;
+            case 40:
+                $sqlArray[] = "ALTER TABLE `user_settings` ADD `timestamp` int(11) NOT NULL;";
+                $indexArray[] = array('user_settings', 'timestamp');
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1514,6 +1532,17 @@ class AppModel extends Model
         return ucfirst($field) . ' cannot be empty.';
     }
 
+    public function valueIsJson($value)
+    {
+        $field = array_keys($value);
+        $field = $field[0];
+        $json_decoded = json_decode($value[$field]);
+        if ($json_decoded === null) {
+            return __('Invalid JSON.');
+        }
+        return true;
+    }
+
     public function valueIsID($value)
     {
         $field = array_keys($value);
@@ -1766,44 +1795,47 @@ class AppModel extends Model
         return $updates;
     }
 
-
-    public function populateNotifications($user)
+    public function populateNotifications($user, $mode = 'full')
     {
         $notifications = array();
-        $proposalCount = $this->_getProposalCount($user);
-        $notifications['total'] = 0;
-        $notifications['proposalCount'] = $proposalCount[0];
-        $notifications['total'] += $proposalCount[0];
-        $notifications['proposalEventCount'] = $proposalCount[1];
+        list($notifications['proposalCount'], $notifications['proposalEventCount']) = $this->_getProposalCount($user, $mode);
+        $notifications['total'] = $notifications['proposalCount'];
         if (Configure::read('MISP.delegation')) {
-            $delegationCount = $this->_getDelegationCount($user);
-            $notifications['total'] += $delegationCount;
-            $notifications['delegationCount'] = $delegationCount;
+            $notifications['delegationCount'] = $this->_getDelegationCount($user);
+            $notifications['total'] += $notifications['delegationCount'];
         }
         return $notifications;
     }
 
-
-    private function _getProposalCount($user)
+    // if not using $mode === 'full', simply check if an entry exists. We really don't care about the real count for the top menu.
+    private function _getProposalCount($user, $mode = 'full')
     {
         $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
-        $this->ShadowAttribute->recursive = -1;
-        $shadowAttributes = $this->ShadowAttribute->find('all', array(
+        $results[0] = $this->ShadowAttribute->find(
+            'count',
+            array(
                 'recursive' => -1,
-                'fields' => array('event_id', 'event_org_id'),
                 'conditions' => array(
                         'ShadowAttribute.event_org_id' => $user['org_id'],
                         'ShadowAttribute.deleted' => 0,
-                )));
-        $results = array();
-        $eventIds = array();
-        $results[0] = count($shadowAttributes);
-        foreach ($shadowAttributes as $sa) {
-            if (!in_array($sa['ShadowAttribute']['event_id'], $eventIds)) {
-                $eventIds[] = $sa['ShadowAttribute']['event_id'];
-            }
+                )
+            )
+        );
+        if ($mode === 'full') {
+            $results[1] = $this->ShadowAttribute->find(
+                'count',
+                array(
+                    'recursive' => -1,
+                    'conditions' => array(
+                            'ShadowAttribute.event_org_id' => $user['org_id'],
+                            'ShadowAttribute.deleted' => 0,
+                    ),
+                    'fields' => 'distinct event_id'
+                )
+            );
+        } else {
+            $results[1] = $results[0];
         }
-        $results[1] = count($eventIds);
         return $results;
     }
 
@@ -1811,10 +1843,8 @@ class AppModel extends Model
     {
         $this->EventDelegation = ClassRegistry::init('EventDelegation');
         $delegations = $this->EventDelegation->find('count', array(
-                'recursive' => -1,
-                'conditions' => array(
-                        'EventDelegation.org_id' => $user['org_id']
-                )
+            'recursive' => -1,
+            'conditions' => array('EventDelegation.org_id' => $user['org_id'])
         ));
         return $delegations;
     }
@@ -2386,5 +2416,22 @@ class AppModel extends Model
                 $this->Server->save($server);
             }
         }
+    }
+    
+    /**
+     * @param string $message
+     * @param Exception $exception
+     * @param int $type
+     * @return bool
+     */
+    protected function logException($message, Exception $exception, $type = LOG_ERR)
+    {
+        $message = sprintf("%s\n[%s] %s",
+            $message,
+            get_class($exception),
+            $exception->getMessage()
+        );
+        $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+        return $this->log($message, $type);
     }
 }

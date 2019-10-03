@@ -202,7 +202,8 @@ class User extends AppModel
             'finderQuery' => '',
             'counterQuery' => ''
         ),
-        'Post'
+        'Post',
+        'UserSetting'
     );
 
     public $actsAs = array(
@@ -605,7 +606,7 @@ class User extends AppModel
     public function getAuthUser($id)
     {
         if (empty($id)) {
-            throw new Exception('Invalid user ID.');
+            throw new NotFoundException('Invalid user ID.');
         }
         $conditions = array('User.id' => $id);
         $user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
