@@ -60,7 +60,6 @@
             echo $this->Form->input('malware', array(
                     'type' => 'checkbox',
                     'checked' => false,
-                    'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
                     'label' => __('Is a malware sample (encrypt and hash)')
             ));
         ?>
@@ -69,7 +68,7 @@
             echo $this->Form->input('advanced', array(
                     'type' => 'checkbox',
                     'checked' => false,
-                    'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
+                    'div' => array('id' => 'advanced_input', 'style' => 'display:none'),
                     'label' => __('Advanced extraction (if installed)'),
             ));
         ?>
@@ -134,6 +133,7 @@ $(document).ready(function() {
     initPopoverContent('Attribute');
     $('#AttributeCategory').change(function() {
         malwareCheckboxSetter("Attribute");
+        $("#AttributeMalware").change();
     });
     $('#AttributeDistribution').change(function() {
         if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
@@ -142,6 +142,14 @@ $(document).ready(function() {
 
     $("#AttributeCategory, #AttributeDistribution").change(function() {
         initPopoverContent('Attribute');
+    });
+    
+    $("#AttributeMalware").change(function () {
+        if (this.checked) {
+            $('#advanced_input').show();
+        } else {
+            $('#advanced_input').hide();
+        }
     });
 });
 
