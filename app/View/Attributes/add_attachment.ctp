@@ -114,22 +114,6 @@ var formZipTypeValues = new Array();
     }
 ?>
 
-var formAttTypeValues = new Array();
-<?php
-    foreach ($categoryDefinitions as $category => $def) {
-        $types = $def['types'];
-        $alreadySet = false;
-        foreach ($types as $type) {
-            if (in_array($type, $uploadDefinitions) && !$alreadySet) {
-                $alreadySet = true;
-                echo "formAttTypeValues['$category'] = \"true\";\n";
-            }
-        }
-        if (!$alreadySet) {
-            echo "formAttTypeValues['$category'] = \"false\";\n";
-        }
-    }
-?>
 $(document).ready(function() {
     initPopoverContent('Attribute');
     $('#AttributeCategory').change(function() {
