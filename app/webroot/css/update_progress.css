@@ -74,3 +74,63 @@ table.updateProgressTable .small-state-text-in-td {
     50% {left: calc(95%);}
     100% {left: 0;}
 }
+
+.toggle-switch-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 30px;
+    height: 16px;
+}
+.toggle-switch-wrapper > input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.toggle-switch-label {
+    margin-bottom: 0px;
+}
+.toggle-switch-label > span {
+    margin-left:4px;
+    font-weight: bold;
+    font-size: 12px;
+}
+.toggle-switch {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 18px;
+    margin-bottom: 0px;
+}
+.toggle-switch:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 1px;
+    bottom: 1px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 50%;
+}
+.toggle-switch:after {
+
+}
+.toggle-switch-wrapper > input:checked + .toggle-switch {
+    background-color: #2196F3;
+}
+.toggle-switch-wrapper > input:focus + .toggle-switch {
+    box-shadow: 0 0 1px #2196F3;
+}
+.toggle-switch-wrapper > input:checked + .toggle-switch:before {
+    -webkit-transform: translateX(calc(1em));
+    -ms-transform: translateX(calc(1em));
+    transform: translateX(calc(1em));
+}

@@ -13,10 +13,13 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
     $percentageFail = 100;
 }
 ?>
+
+<?php if (!$ajaxHtml): ?>
 <div class="servers form">
+<?php endif; ?>
     <div style="width: 50%;margin: 0 auto;">
         <?php if (count($updateProgress['commands']) > 0): ?>
-            <h2><?php echo(__('Database Update progress'));?></h2>
+            <h2><?php echo(sprintf(__('Database Update progress for update %s'), h($updateProgress['db_version'])));?></h2>
             <div class="" style="max-width: 1000px;">
 
                 <div>
@@ -36,7 +39,18 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
                     <thead>
                         <tr>
                             <th></th>
-                            <th>Update command</th>
+                            <th>
+                                Update command
+                                <span style="float:right; display:flex; align-items:center;">
+                                    <div class="toggle-switch-wrapper">
+                                        <input type="checkbox" style="display:none" id="followUpdateSwitch" checked="checked">
+                                        <label class="toggle-switch" for="followUpdateSwitch"></label>
+                                    </div>
+                                    <label class="toggle-switch-label" for="followUpdateSwitch">
+                                        <span><?php echo __('Follow updates'); ?></span>
+                                    </label>
+                                </span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -145,16 +159,21 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
             <h2><?php echo __('No update in progress'); ?></h2>
         <?php endif; ?>
     </div>
+<?php if (!$ajaxHtml): ?>
 </div>
 <?php echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'updateProgress')); ?>
+<?php endif; ?>
 
 <script>
     var updateProgress = <?php echo json_encode($updateProgress); ?>;
     var urlGetProgress = "<?php echo $baseurl; ?>/servers/updateProgress";
+    var current_db_version = "<?php echo h($updateProgress['db_version']); ?>";
 </script>
 <?php
+if (!$ajaxHtml) {
     echo $this->element('genericElements/assetLoader', array(
         'css' => array('update_progress'),
         'js' => array('update_progress')
     ));
+}
 ?>

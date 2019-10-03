@@ -1681,12 +1681,15 @@ class ServersController extends AppController
         $this->set('updateLocked', $this->Server->isUpdateLocked());
     }
 
-    public function updateProgress()
+    public function updateProgress($ajaxHtml=false)
     {
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $db_version = $this->AdminSetting->getSetting('db_version');
         $update_progress = $this->Server->getUpdateProgress();
+        $update_progress['db_version'] = $db_version;
         $current_index = $update_progress['current'];
         $current_command = !isset($update_progress['commands'][$current_index]) ? '' : $update_progress['commands'][$current_index];
         $lookup_string = preg_replace('/\s{2,}/', '', substr($current_command, 0, -1));
@@ -1707,7 +1710,11 @@ class ServersController extends AppController
             $update_progress['process_list']['STAGE'] = isset($sql_info['STAGE']) ? $sql_info['STAGE'] : 0;
             $update_progress['process_list']['MAX_STAGE'] = isset($sql_info['MAX_STAGE']) ? $sql_info['MAX_STAGE'] : 0;
         }
-        if ($this->request->is('ajax')) {
+        $this->set('ajaxHtml', $ajaxHtml);
+        if ($this->request->is('ajax') && $ajaxHtml) {
+            $this->set('updateProgress', $update_progress);
+            $this->layout = false;
+        } elseif ($this->request->is('ajax')) {
             return $this->RestResponse->viewData(h($update_progress), $this->response->type());
         } else {
             $this->set('updateProgress', $update_progress);
