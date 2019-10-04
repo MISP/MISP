@@ -2908,8 +2908,8 @@ class AttributesController extends AppController
             if (isset($result['results']['Attribute'])) {
                 if (!empty($result['results']['Attribute'])) {
                     $attributes = array();
-                    foreach($result['results']['Attribute'] as $attribute) {
-                        array_push($attributes, array('type' => $attribute['type'], 'value' => $attribute['value']));
+                    foreach($result['results']['Attribute'] as $result_attribute) {
+                        $attributes[] = array('type' => $result_attribute['type'], 'value' => $result_attribute['value']);
                     }
                     $current_result['Attribute'] = $attributes;
                 }
