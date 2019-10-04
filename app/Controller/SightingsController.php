@@ -298,6 +298,9 @@ class SightingsController extends AppController
         }
         $filters['context'] = $context;
 
+        if (!isset($returnFormat)) {
+            $returnFormat = 'json';
+        }
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
         }

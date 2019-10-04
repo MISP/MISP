@@ -1679,7 +1679,7 @@ class ServersController extends AppController
         if (empty($sql_info)) {
             $update_progress['process_list'] = array();
         } else {
-            // retreive current update process
+            // retrieve current update process
             foreach($sql_info as $row) {
                 if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookup_string) {
                     $sql_info = $row['PROCESSLIST'];
