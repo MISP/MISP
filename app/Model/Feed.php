@@ -964,7 +964,7 @@ class Feed extends AppModel
      * @param $user Not used
      * @param int|bool $jobId
      * @param string $scope
-     * @return bool Returns true if at least one feed was cached sucessfully.
+     * @return bool Returns true if at least one feed was cached successfully.
      * @throws Exception
      */
     public function cacheFeedInitiator($user, $jobId = false, $scope = 'freetext')
