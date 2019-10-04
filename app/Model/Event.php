@@ -1301,7 +1301,7 @@ class Event extends AppModel
         if (!$server['Server']['internal'] && $object['distribution'] == 2) {
             $object['distribution'] = 1;
         }
-        // If the object has a sharing group attached, make sure it can be transfered
+        // If the object has a sharing group attached, make sure it can be transferred
         if ($object['distribution'] == 4) {
             if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Object' => $object), $server, 'Object') === false) {
                 return false;
@@ -1344,7 +1344,7 @@ class Event extends AppModel
             $attribute['distribution'] = 1;
         }
 
-        // If the attribute has a sharing group attached, make sure it can be transfered
+        // If the attribute has a sharing group attached, make sure it can be transferred
         if ($attribute['distribution'] == 4) {
             if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
                 return false;
@@ -5090,7 +5090,7 @@ class Event extends AppModel
                 $object['image'] = $object['data'];
             } else {
                 if (extension_loaded('gd')) {
-                    // if extention is loaded, the data is not passed to the view because it is asynchronously fetched
+                    // if extension is loaded, the data is not passed to the view because it is asynchronously fetched
                     $object['image'] = true; // tell the view that it is an image despite not having the actual data
                 } else {
                     if ($object['objectType'] === 'proposal') {
