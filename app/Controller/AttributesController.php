@@ -2996,9 +2996,15 @@ class AttributesController extends AppController
         $RearrangeTool = new RequestRearrangeTool();
         $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
         if ($id === false) {
+            if (!isset($this->request->data['attribute'])) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
             $id = $this->request->data['attribute'];
         }
         if ($id === 'selected') {
+            if (!isset($this->request->data['attribute_ids'])) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
             $idList = json_decode($this->request->data['attribute_ids'], true);
         }
         $local = empty($this->params['named']['local']) ? 0 : 1;
@@ -3011,6 +3017,9 @@ class AttributesController extends AppController
             $this->render('/Events/add_tag');
         } else {
             if ($tag_id === false) {
+                if (!isset($this->request->data['tag'])) {
+                    throw new NotFoundException(__('Invalid tag'));
+                }
                 $tag_id = $this->request->data['tag'];
             }
             if (!is_numeric($tag_id)) {
@@ -3192,9 +3201,15 @@ class AttributesController extends AppController
             $RearrangeTool = new RequestRearrangeTool();
             $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
             if ($id === false) {
+                if (!isset($this->request->data['attribute'])) {
+                    throw new NotFoundException(__('Invalid attribute'));
+                }
                 $id = $this->request->data['attribute'];
             }
             if ($tag_id === false) {
+                if (!isset($this->request->data['tag'])) {
+                    throw new NotFoundException(__('Invalid tag'));
+                }
                 $tag_id = $this->request->data['tag'];
             }
             $this->Attribute->id = $id;
