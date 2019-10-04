@@ -119,10 +119,14 @@ $(document).ready(function() {
         malwareCheckboxSetter("Attribute");
         $("#AttributeMalware").change();
     });
+
     $('#AttributeDistribution').change(function() {
-        if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
-        else $('#SGContainer').hide();
-    });
+        if ($(this).val() == 4) {
+            $('#SGContainer').show();
+        } else {
+            $('#SGContainer').hide();
+        }
+    }).change();
 
     $("#AttributeCategory, #AttributeDistribution").change(function() {
         initPopoverContent('Attribute');
@@ -134,7 +138,7 @@ $(document).ready(function() {
         } else {
             $('#advanced_input').hide();
         }
-    });
+    }).change();
 });
 
 </script>
