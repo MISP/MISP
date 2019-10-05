@@ -5,6 +5,7 @@ App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FinancialTool', 'Tools');
 App::uses('RandomTool', 'Tools');
+App::uses('MalwareTool', 'Tools');
 
 class Attribute extends AppModel
 {
@@ -3494,64 +3495,20 @@ class Attribute extends AppModel
         if (!is_numeric($event_id)) {
             throw new Exception(__('Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample.'));
         }
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->getDefaultAttachments_dir();
+
+        $content = base64_decode($base64);
+
+        $malwareTool = new MalwareTool();
+        $hashes = $malwareTool->computeHashes($content, $hash_types);
+        try {
+            $encrypted = $malwareTool->encrypt($original_filename, $content, $hashes['md5']);
+        } catch (Exception $e) {
+            $this->logException("Could not create encrypted malware sample.", $e);
+            return array('success' => false);
         }
 
-        // If we've set attachments to S3, we can't write there
-        if ($this->attachmentDirIsS3()) {
-            $attachments_dir = Configure::read('MISP.tmpdir');
-            // Sometimes it's not set?
-            if (empty($attachments_dir)) {
-                // Get a default tmpdir
-                $attachments_dir = $this->getDefaultTmp_dir();
-            }
-        }
-
-        if ($proposal) {
-            $dir = new Folder($attachments_dir . DS . $event_id . DS . 'shadow', true);
-        } else {
-            $dir = new Folder($attachments_dir . DS . $event_id, true);
-        }
-        $tmpFile = new File($dir->path . DS . $this->generateRandomFileName(), true, 0600);
-        $tmpFile->write(base64_decode($base64));
-        $hashes = array();
-        foreach ($hash_types as $hash) {
-            $hashes[$hash] = $this->__hashRouter($hash, $tmpFile->path);
-        }
-        $contentsFile = new File($dir->path . DS . $hashes['md5']);
-        rename($tmpFile->path, $contentsFile->path);
-        $fileNameFile = new File($dir->path . DS . $hashes['md5'] . '.filename.txt');
-        $fileNameFile->write($original_filename);
-        $fileNameFile->close();
-        $zipFile = new File($dir->path . DS . $hashes['md5'] . '.zip');
-        exec('zip -j -P infected ' . escapeshellarg($zipFile->path) . ' ' . escapeshellarg($contentsFile->path) . ' ' . escapeshellarg($fileNameFile->path), $execOutput, $execRetval);
-        if ($execRetval != 0) {
-            $result = array('success' => false);
-        } else {
-            $result = array_merge(array('data' => base64_encode($zipFile->read()), 'success' => true), $hashes);
-        }
-        $fileNameFile->delete();
-        $zipFile->delete();
-        $contentsFile->delete();
+        $result = array_merge(array('data' => base64_encode($encrypted), 'success' => true), $hashes);
         return $result;
-    }
-
-    private function __hashRouter($hashType, $file)
-    {
-        $validHashes = array('md5', 'sha1', 'sha256');
-        if (!in_array($hashType, $validHashes)) {
-            return false;
-        }
-        switch ($hashType) {
-            case 'md5':
-            case 'sha1':
-            case 'sha256':
-                return hash_file($hashType, $file);
-                break;
-        }
-        return false;
     }
 
     public function resolveHashType($hash)
@@ -3897,7 +3854,7 @@ class Attribute extends AppModel
             'event_id' => $event_id,
             'comment' => !empty($attribute_settings['comment']) ? $attribute_settings['comment'] : ''
         );
-        $result = $this->Event->Attribute->handleMaliciousBase64($event_id, $filename, base64_encode($tmpfile->read()), $hashes);
+        $result = $this->handleMaliciousBase64($event_id, $filename, base64_encode($tmpfile->read()), $hashes);
         foreach ($attributes as $k => $v) {
             $attribute = array(
                 'distribution' => 5,
@@ -3928,33 +3885,34 @@ class Attribute extends AppModel
 
     public function advancedAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile)
     {
-        $execRetval = '';
-        $execOutput = array();
-        $result = shell_exec($this->getPythonVersion() . ' ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
-        if (!empty($result)) {
-            $result = json_decode($result, true);
-            if (isset($result['objects'])) {
-                $result['Object'] = $result['objects'];
-                unset($result['objects']);
-            }
-            if (isset($result['references'])) {
-                $result['ObjectReference'] = $result['references'];
-                unset($result['references']);
-            }
-            foreach ($result['Object'] as $k => $object) {
-                $result['Object'][$k]['distribution'] = $attribute_settings['distribution'];
-                $result['Object'][$k]['sharing_group_id'] = isset($attribute_settings['distribution']) ? $attribute_settings['distribution'] : 0;
-                if (!empty($result['Object'][$k]['Attribute'])) {
-                    foreach ($result['Object'][$k]['Attribute'] as $k2 => $attribute) {
-                        if ($attribute['value'] == $tmpfile->name) {
-                            $result['Object'][$k]['Attribute'][$k2]['value'] = $filename;
-                        }
+        $malwareTool = new MalwareTool();
+        try {
+            $result = $malwareTool->advancedExtraction($this->getPythonVersion(), $tmpfile->path);
+        } catch (Exception $e) {
+            $this->logException("Could not finish advanced extraction", $e);
+            return $this->simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile);
+        }
+
+        if (isset($result['objects'])) {
+            $result['Object'] = $result['objects'];
+            unset($result['objects']);
+        }
+        if (isset($result['references'])) {
+            $result['ObjectReference'] = $result['references'];
+            unset($result['references']);
+        }
+        foreach ($result['Object'] as $k => $object) {
+            $result['Object'][$k]['distribution'] = $attribute_settings['distribution'];
+            $result['Object'][$k]['sharing_group_id'] = isset($attribute_settings['distribution']) ? $attribute_settings['distribution'] : 0;
+            if (!empty($result['Object'][$k]['Attribute'])) {
+                foreach ($result['Object'][$k]['Attribute'] as $k2 => $attribute) {
+                    if ($attribute['value'] == $tmpfile->name) {
+                        $result['Object'][$k]['Attribute'][$k2]['value'] = $filename;
                     }
                 }
             }
-        } else {
-            $result = $this->simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile);
         }
+
         return $result;
     }
 
