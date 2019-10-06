@@ -3511,6 +3511,27 @@ class Attribute extends AppModel
         return $result;
     }
 
+    /**
+     * @return bool Return true if at least one advanced extraction tool is available
+     */
+    public function isAdvancedExtractionAvailable()
+    {
+        $malwareTool = new MalwareTool();
+        try {
+            $types = $malwareTool->checkAdvancedExtractionStatus($this->getPythonVersion());
+        } catch (Exception $e) {
+            return false;
+        }
+
+        foreach ($types as $type => $missing) {
+            if ($missing === false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function resolveHashType($hash)
     {
         $hashTypes = $this->hashTypes;

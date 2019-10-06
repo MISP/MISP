@@ -3,6 +3,9 @@ App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
+/**
+ * @property Attribute $Attribute
+ */
 class AttributesController extends AppController
 {
     public $components = array('Security', 'RequestHandler', 'Cidr');
@@ -424,7 +427,7 @@ class AttributesController extends AppController
             $fails = array();
             $success = 0;
 
-            foreach ($this->request->data['Attribute']['values'] as $k => $value) {
+            foreach ($this->request->data['Attribute']['values'] as $value) {
                 // Check if there were problems with the file upload
                 // only keep the last part of the filename, this should prevent directory attacks
                 $filename = basename($value['name']);
@@ -464,8 +467,8 @@ class AttributesController extends AppController
                     }
 
                     if (!empty($result)) {
+                        $this->loadModel('MispObject');
                         foreach ($result['Object'] as $object) {
-                            $this->loadModel('MispObject');
                             $object['distribution'] = $this->request->data['Attribute']['distribution'];
                             if (!empty($this->request->data['sharing_group_id'])) {
                                 $object['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
@@ -530,8 +533,8 @@ class AttributesController extends AppController
             $this->request->data['Attribute']['event_id'] = $eventId;
         }
 
-        $events = $this->Event->findById($eventId);
-        if (empty($events)) {
+        $event = $this->Event->findById($eventId);
+        if (empty($event)) {
             throw new NotFoundException(__('Invalid Event.'));
         }
 
@@ -554,6 +557,7 @@ class AttributesController extends AppController
 
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('zippedDefinitions', $this->Attribute->zippedDefinitions);
+        $this->set('advancedExtractionAvailable', $this->Attribute->isAdvancedExtractionAvailable());
 
         // combobox for distribution
         $this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
@@ -563,8 +567,8 @@ class AttributesController extends AppController
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
 
-        $this->set('currentDist', $events['Event']['distribution']);
-        $this->set('published', $events['Event']['published']);
+        $this->set('currentDist', $event['Event']['distribution']);
+        $this->set('published', $event['Event']['published']);
     }
 
 

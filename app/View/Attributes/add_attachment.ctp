@@ -68,8 +68,10 @@
             echo $this->Form->input('advanced', array(
                     'type' => 'checkbox',
                     'checked' => false,
+                    'disabled' => !$advancedExtractionAvailable,
+                    'data-disabled-reason' => !$advancedExtractionAvailable ? __('Advanced extraction is not installed') : '',
                     'div' => array('id' => 'advanced_input', 'style' => 'display:none'),
-                    'label' => __('Advanced extraction (if installed)'),
+                    'label' => __('Advanced extraction'),
             ));
         ?>
     </fieldset>

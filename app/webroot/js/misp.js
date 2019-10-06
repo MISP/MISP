@@ -4414,6 +4414,16 @@ function checkNoticeList(type) {
 }
 
 $(document).ready(function() {
+    // Show popover for disabled input that contains `data-disabled-reason`.
+    $('input:disabled[data-disabled-reason]').popover("destroy").popover({
+        placement: 'right',
+        html: 'true',
+        trigger: 'hover',
+        content: function () {
+            return $(this).data('disabled-reason');
+        }
+    });
+
     $('#quickFilterField').bind("enterKey",function(e){
         $('#quickFilterButton').trigger("click");
     });
