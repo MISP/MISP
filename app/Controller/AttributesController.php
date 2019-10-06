@@ -409,9 +409,9 @@ class AttributesController extends AppController
 
     public function add_attachment($eventId = null)
     {
+        $this->loadModel('Event');
+
         if ($this->request->is('post')) {
-            $hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
-            $this->loadModel('Event');
             $this->Event->id = $this->request->data['Attribute']['event_id'];
             $this->Event->recursive = -1;
             $event = $this->Event->read();
@@ -421,7 +421,6 @@ class AttributesController extends AppController
             if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
                 throw new UnauthorizedException(__('You do not have permission to do that.'));
             }
-            $partialFails = array();
             $fails = array();
             $success = 0;
 
@@ -449,11 +448,6 @@ class AttributesController extends AppController
                             $filename,
                             $tmpfile
                         );
-                        if ($result) {
-                            $success++;
-                        } else {
-                            $fails[] = $filename;
-                        }
                     } else {
                         $result = $this->Attribute->simpleAddMalwareSample(
                             $eventId,
@@ -461,12 +455,14 @@ class AttributesController extends AppController
                             $filename,
                             $tmpfile
                         );
-                        if ($result) {
-                            $success++;
-                        } else {
-                            $fails[] = $filename;
-                        }
                     }
+
+                    if ($result) {
+                        $success++;
+                    } else {
+                        $fails[] = $filename;
+                    }
+
                     if (!empty($result)) {
                         foreach ($result['Object'] as $object) {
                             $this->loadModel('MispObject');
@@ -509,15 +505,12 @@ class AttributesController extends AppController
                 }
             }
             $message = 'The attachment(s) have been uploaded.';
-            if (!empty($partialFails)) {
-                $message .= ' Some of the attributes however could not be created.';
-            }
             if (!empty($fails)) {
                 $message = 'Some of the attachments failed to upload. The failed files were: ' . implode(', ', $fails) . ' - This can be caused by the attachments already existing in the event.';
             }
             if (empty($success)) {
                 if (empty($fails)) {
-                    $message = 'The attachment(s) could not be saved. please contact your administrator.';
+                    $message = 'The attachment(s) could not be saved. Please contact your administrator.';
                 }
             } else {
                 $this->Event->id = $this->request->data['Attribute']['event_id'];
@@ -536,55 +529,40 @@ class AttributesController extends AppController
             // set the event_id in the form
             $this->request->data['Attribute']['event_id'] = $eventId;
         }
+
+        $events = $this->Event->findById($eventId);
+        if (empty($events)) {
+            throw new NotFoundException(__('Invalid Event.'));
+        }
+
         if (!$this->_isRest()) {
             $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
         }
-        // combobox for categories
-        $categories = array_keys($this->Attribute->categoryDefinitions);
-        // just get them with attachments..
+
+        // Filter categories that contains attachment type
         $selectedCategories = array();
-        foreach ($categories as $category) {
-            $types = $this->Attribute->categoryDefinitions[$category]['types'];
-            $alreadySet = false;
-            foreach ($types as $type) {
-                if ($this->Attribute->typeIsAttachment($type) && !$alreadySet) {
-                    // add to the whole..
+        foreach ($this->Attribute->categoryDefinitions as $category => $values) {
+            foreach ($values['types'] as $type) {
+                if ($this->Attribute->typeIsAttachment($type)) {
                     $selectedCategories[] = $category;
-                    $alreadySet = true;
-                    continue;
+                    continue 2;
                 }
             }
         }
         $categories = $this->_arrayToValuesIndexArray($selectedCategories);
         $this->set('categories', $categories);
 
-        $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-        $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-
         $this->set('zippedDefinitions', $this->Attribute->zippedDefinitions);
-        $this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
 
         // combobox for distribution
-        $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
-
-        foreach ($this->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($this->Event->Attribute->distributionLevels as $key => $value) {
-            $info['distribution'][$key] = array('key' => $value, 'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']);
-        }
-        $this->set('info', $info);
+        $this->set('info', $this->getInfo());
 
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
 
-        $events = $this->Event->findById($eventId);
-        if (empty($events)) {
-            throw new NotFoundException(__('Invalid Event.'));
-        }
         $this->set('currentDist', $events['Event']['distribution']);
         $this->set('published', $events['Event']['published']);
     }
@@ -3209,5 +3187,29 @@ class AttributesController extends AppController
             $responseType = $this->Attribute->validFormats[$type][0];
             return $this->RestResponse->viewData($final, $responseType, false, true, 'search.' . $type . '.' . $responseType);
         }
+    }
+    
+    private function getInfo()
+    {
+        $info = array('category' => array(), 'type' => array(), 'distribution' => array());
+        foreach ($this->Attribute->categoryDefinitions as $key => $value) {
+            $info['category'][$key] = array(
+                'key' => $key,
+                'desc' => isset($value['formdesc']) ? $value['formdesc'] : $value['desc']
+            );
+        }
+        foreach ($this->Attribute->typeDefinitions as $key => $value) {
+            $info['type'][$key] = array(
+                'key' => $key,
+                'desc' => isset($value['formdesc']) ? $value['formdesc'] : $value['desc']
+            );
+        }
+        foreach ($this->Attribute->distributionLevels as $key => $value) {
+            $info['distribution'][$key] = array(
+                'key' => $value,
+                'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']
+            );
+        }
+        return $info;
     }
 }
