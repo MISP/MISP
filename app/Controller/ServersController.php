@@ -1690,6 +1690,8 @@ class ServersController extends AppController
         $db_version = $this->AdminSetting->getSetting('db_version');
         $update_progress = $this->Server->getUpdateProgress();
         $update_progress['db_version'] = $db_version;
+        $max_update_number = max(array_keys($this->Server->db_changes));
+        $update_progress['complete_update_remaining'] = $max_update_number - $db_version;
         $current_index = $update_progress['current'];
         $current_command = !isset($update_progress['commands'][$current_index]) ? '' : $update_progress['commands'][$current_index];
         $lookup_string = preg_replace('/\s{2,}/', '', substr($current_command, 0, -1));

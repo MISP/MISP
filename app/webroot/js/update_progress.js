@@ -84,6 +84,9 @@ function update_state(hard_reload) {
             if ((current+1) >= total || failArray.indexOf(current) != -1) {
                 pooler.throttle();
                 $('.single-update-progress').hide();
+                if (parseInt(data['complete_update_remaining']) === 0) {
+                    $('.completeUpdateRemainingContainer').remove();
+                }
             } else {
                 pooler.unthrottle();
             }

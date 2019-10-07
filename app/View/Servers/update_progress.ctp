@@ -1,5 +1,6 @@
 <?php
 if (!$isSiteAdmin) exit();
+$completeUpdateRemaining = $updateProgress['complete_update_remaining'];
 if ($updateProgress['total'] !== 0 ) {
     $percentageFail = floor(count($updateProgress['failed_num']) / $updateProgress['total']*100);
     $percentage = floor(($updateProgress['current']) / $updateProgress['total']*100);
@@ -17,9 +18,18 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 <?php if (!$ajaxHtml): ?>
 <div class="servers form">
 <?php endif; ?>
-    <div style="width: 50%;margin: 0 auto;">
+<?php if ($completeUpdateRemaining != 0): ?>
+    <div style="width: 55%;margin: 20px auto;background-color: white;" class="panel-container completeUpdateRemainingContainer">
+        <h3>
+            <?php echo(__('Complete update progression'));?>
+            <span style="float: right;font-size: smaller;"><?php echo(sprintf(__('%s remaining'), $completeUpdateRemaining));?></span>
+        </h3>
+    </div>
+<?php endif; ?>
+
+    <div style="width: 55%;margin: 0 auto;">
         <?php if (count($updateProgress['commands']) > 0): ?>
-            <h2><?php echo(sprintf(__('Database Update progress for update %s'), h($updateProgress['toward_db_version'])));?></h2>
+            <h3><?php echo(sprintf(__('Database Update progress for update %s'), h($updateProgress['toward_db_version'])));?></h3>
             <div class="" style="max-width: 1000px;">
 
                 <div>
