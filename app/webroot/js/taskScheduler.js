@@ -89,6 +89,7 @@
         stop: function() {
             if (this.taskRunning) {
                 this.taskRunning = false;
+                this._removeAnimation();
                 clearInterval(this.interval);
             }
         },
@@ -205,6 +206,11 @@
                     that.timer_node.classList.remove('toggle-switch-animate-time-remaining');
                 });
             }
+        },
+
+        _removeAnimation: function() {
+            this.label_node.classList.remove('toggle-switch-animate-execution');
+            this.timer_node.classList.remove('toggle-switch-animate-time-remaining');
         },
 
         genRandom: function() {
