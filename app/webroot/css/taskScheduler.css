@@ -17,6 +17,7 @@
     margin-left:4px;
     font-weight: bold;
     font-size: 12px;
+    user-select: none;
 }
 .toggle-switch {
     position: absolute;
