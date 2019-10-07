@@ -61,6 +61,9 @@
         start: function(arrayParameters) {
             var that = this;
             if (!this.taskRunning) {
+                if (!this.checkbox.checked) {
+                    this.checkbox.checked = true;
+                }
                 this.taskRunning = true;
                 that._start(arrayParameters);
                 this.taskScheduled = true;
@@ -77,6 +80,7 @@
                 return;
             }
             this.animate();
+            this.adaptTimeAnimationDuration(false);
             if (arrayParameters !== undefined) {
                 this.backup_parameters = arrayParameters;
                 this.task.apply(null, arrayParameters);
@@ -88,8 +92,12 @@
 
         stop: function() {
             if (this.taskRunning) {
+                if (this.checkbox.checked) {
+                    this.checkbox.checked = false;
+                }
                 this.taskRunning = false;
                 this._removeAnimation();
+                this.adaptTimeAnimationDuration(true);
                 clearInterval(this.interval);
             }
         },
@@ -183,10 +191,14 @@
             this.adaptTimeAnimationDuration();
         },
 
-        adaptTimeAnimationDuration: function() {
-            // 200ms offset applied to try to avoid race condition with the class removal
-            this.timer_node.style['animation-duration'] = ((this.config.interval-200) / 1000).toFixed(2) + 's';
-            this.timer_node.title = 'Executing task every ' + ((this.config.interval) / 1000).toFixed(2) + 's';
+        adaptTimeAnimationDuration: function(disabled) {
+            if (disabled === true) {
+                this.label_node.title = 'Task not scheduled';
+            } else {
+                // 200ms offset applied to try to avoid race condition with the class removal
+                this.timer_node.style['animation-duration'] = ((this.config.interval-200) / 1000).toFixed(2) + 's';
+                this.label_node.title = 'Executing task every ' + ((this.config.interval) / 1000).toFixed(2) + 's';
+            }
         },
 
         animate: function() {
