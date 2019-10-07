@@ -18,7 +18,8 @@
             checkboxLabel: '', // The label accompanying the switch
             animation: {
                 onExecution: true,
-                remainingTime: true
+                remainingTime: true,
+                noAnimThreshold: 700 //  Animation with interval lower thatn this threshold will not be played 
             }
         };
         this.config = $.extend(true, {}, default_config, config);
@@ -175,6 +176,9 @@
 
         animate: function() {
             var that = this;
+            if (this.config.interval < this.config.animation.noAnimThreshold) {
+                return;
+            }
             if (this.config.animation.onExecution) {
                 this.label_node.classList.add('toggle-switch-animate-execution');
                 this.prefixedEventListener(this.label_node, "AnimationEnd", function() {
