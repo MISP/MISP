@@ -62,7 +62,10 @@ class UsersController extends AppController
         if ($this->_isRest()) {
             unset($user['User']['server_id']);
             $user['User']['password'] = '*****';
-            return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
+            return $this->RestResponse->viewData(array(
+                'User' => $user['User'],
+                'Role' => $user['Role']
+            ), $this->response->type());
         } else {
             $this->set('user', $user);
         }
