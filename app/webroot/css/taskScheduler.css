@@ -32,6 +32,7 @@
     border-radius: 18px;
     margin-bottom: 0px;
 
+    transform: rotateZ(360deg);
     background-image: linear-gradient(90deg, #2196F3, #1db6ff, #2196F3);
     background-position: 0% 50%;
     background-repeat: no-repeat;
@@ -54,6 +55,8 @@
     width: 12px;
     top: 1px;
     left: 1px;
+
+    transform: rotateZ(360deg);
     background: linear-gradient(#daeff9, #daeff9);
     background-position: 0% 100%;
     background-repeat: no-repeat;

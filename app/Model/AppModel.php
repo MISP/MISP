@@ -1215,11 +1215,9 @@ class AppModel extends Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_decaying` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "UPDATE `roles` SET `perm_decaying`=1 WHERE `perm_sighting`=1;";
-                $sqlArray[] = "SELECT SLEEP(5);";
                 break;
             case 38:
                 $sqlArray[] = "ALTER TABLE servers ADD  priority int(11) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "SELECT SLEEP(5);";
                 $indexArray[] = array('servers', 'priority');
                 break;
             case 39:
@@ -1234,11 +1232,9 @@ class AppModel extends Model
                     INDEX `user_id` (`user_id`),
                     INDEX `timestamp` (`timestamp`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-                $sqlArray[] = "SELECT SLEEP(5);";
                 break;
             case 40:
                 $sqlArray[] = "ALTER TABLE `user_settings` ADD `timestamp` int(11) NOT NULL;";
-                $sqlArray[] = "SELECT SLEEP(5);";
                 $indexArray[] = array('user_settings', 'timestamp');
                 break;
             case 'fixNonEmptySharingGroupID':
@@ -1302,7 +1298,6 @@ class AppModel extends Model
             foreach ($sqlArray as $i => $sql) {
                 try {
                     $this->__setUpdateProgress($i, false);
-                    sleep(3);
                     $this->query($sql);
                     $this->Log->create();
                     $this->Log->save(array(
@@ -1682,7 +1677,6 @@ class AppModel extends Model
 
                 $update_done = 0;
                 foreach ($updates as $update => $temp) {
-                    sleep(3);
                     if ($verbose) {
                         echo str_pad('Executing ' . $update, 30, '.');
                     }

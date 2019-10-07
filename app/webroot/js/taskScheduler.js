@@ -26,6 +26,8 @@
         this.task = task;
         this.interval;
         this.taskRunning = false;
+        this.taskScheduled = false;
+        this.cancelRequested = false;
         this.backup_parameters = false;
         this.checkbox = false;
         this.init();
@@ -59,15 +61,21 @@
         start: function(arrayParameters) {
             var that = this;
             if (!this.taskRunning) {
-                that._start(arrayParameters);
                 this.taskRunning = true;
+                that._start(arrayParameters);
+                this.taskScheduled = true;
                 this.interval = setInterval(function() {
+                    this.taskScheduled = false;
                     that._start(arrayParameters);
                 }, this.config.interval);
             }
         },
 
         _start: function(arrayParameters) {
+            if (this.cancelRequested) {
+                this.cancelRequested = false;
+                return;
+            }
             this.animate();
             if (arrayParameters !== undefined) {
                 this.backup_parameters = arrayParameters;
@@ -82,6 +90,12 @@
             if (this.taskRunning) {
                 this.taskRunning = false;
                 clearInterval(this.interval);
+            }
+        },
+
+        cancel: function() {
+            if (this.taskScheduled) {
+                this.cancelRequested = true;
             }
         },
 

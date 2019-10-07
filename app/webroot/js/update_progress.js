@@ -30,19 +30,24 @@ $(document).ready(function() {
 
 function update_state(hard_reload) {
     if (hard_reload) {
+        pooler.cancel();
+        pooler.stop();
         $.ajax({
             url: urlGetProgress+'/1',
             dataType: 'html',
             success: function( html, textStatus, jQxhr ) {
                 $('div.servers.form').html(html);
+                pooler.start();
                 pooler.unthrottle();
                 pooler.createSwitch();
             }
         });
     } else {
         $.getJSON(urlGetProgress, function(data) {
-            if (data['db_version'] != current_db_version) {
+            var toward_db_version = parseInt($('table.updateProgressTable').data('towarddbversion'));
+            if (parseInt(data['toward_db_version']) != toward_db_version) {
                 update_state(true);
+                return;
             }
             var total = parseInt(data['total']);
             var current = parseInt(data['current']);

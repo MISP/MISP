@@ -19,7 +19,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 <?php endif; ?>
     <div style="width: 50%;margin: 0 auto;">
         <?php if (count($updateProgress['commands']) > 0): ?>
-            <h2><?php echo(sprintf(__('Database Update progress for update %s'), h($updateProgress['db_version'])));?></h2>
+            <h2><?php echo(sprintf(__('Database Update progress for update %s'), h($updateProgress['toward_db_version'])));?></h2>
             <div class="" style="max-width: 1000px;">
 
                 <div>
@@ -35,7 +35,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
                     <div id="pb-fail" class="bar" style="width: <?php echo h($percentageFail);?>%; background-color: #ee5f5b;"></div>
                 </div>
 
-                <table class="table table-bordered table-stripped updateProgressTable">
+                <table class="table table-bordered table-stripped updateProgressTable" data-towarddbversion="<?php echo h($updateProgress['toward_db_version']); ?>">
                     <thead>
                         <tr>
                             <th></th>
@@ -137,7 +137,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 
                                     <div id="single-update-progress-<?php echo $i;?>" class="single-update-progress hidden">
                                         <div class="small-pb-in-td">
-                                            <div id="single-update-pb-<?php echo $i;?>" style="height: 100%; background: #149bdf; transition: width 0.6s ease;"></div>
+                                            <div id="single-update-pb-<?php echo $i;?>" class="single-update-pb"></div>
                                         </div>
 
                                         <div id="small-state-text-<?php echo $i;?>" class="small-state-text-in-td badge" class="badge">Filling schema table</div>
@@ -170,7 +170,6 @@ if (!$ajaxHtml) {
 <script>
     var updateProgress = <?php echo json_encode($updateProgress); ?>;
     var urlGetProgress = "<?php echo $baseurl; ?>/servers/updateProgress";
-    var current_db_version = "<?php echo h($updateProgress['db_version']); ?>";
     var checkboxLabel = "<?php echo __('Follow updates'); ?>";
     // pooler = new TaskScheduler(update_state, { container: 'followUpdateSwitchContainer', checkboxLabel: checkboxLabel});
     // pooler.start();
