@@ -61,7 +61,7 @@ class StixParser():
     ##            LOADING & UTILITY FUNCTIONS USED BY BOTH SUBCLASSES.            ##
     ################################################################################
 
-    # Load data from STIX document, and other usefull data
+    # Load data from STIX document, and other useful data
     def load_event(self, args, filename, from_misp, stix_version):
         self.outputname = '{}.json'.format(filename)
         try:

@@ -456,7 +456,7 @@ class Galaxy extends AppModel
         $matrixData['tabs'] = $cols;
 
         $this->sortMatrixByScore($matrixData['tabs'], $scores);
-        // #FIXME temporary fix: retreive tag name of deprecated mitre galaxies (for the stats)
+        // #FIXME temporary fix: retrieve tag name of deprecated mitre galaxies (for the stats)
         if ($galaxy['Galaxy']['id'] == $this->getMitreAttackGalaxyId()) {
             $names = array('Enterprise Attack - Attack Pattern', 'Pre Attack - Attack Pattern', 'Mobile Attack - Attack Pattern');
             $tag_names = array();
