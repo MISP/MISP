@@ -36,6 +36,7 @@ function update_state(hard_reload) {
             success: function( html, textStatus, jQxhr ) {
                 $('div.servers.form').html(html);
                 pooler.unthrottle();
+                pooler.createSwitch();
             }
         });
     } else {

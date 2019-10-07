@@ -37,7 +37,7 @@
         init: function() {
 
             if (this.config.container !== false) {
-                this.addCheckbox();
+                this.createSwitch();
             }
 
             if (this.config.checkboxLink !== false) {
@@ -144,7 +144,7 @@
             return false;
         },
 
-        addCheckbox: function() {
+        createSwitch: function() {
             this.container = document.getElementById(this.config.container);
             var temp = document.createElement('div');
             this.config.checkboxLink = this.genRandom();
