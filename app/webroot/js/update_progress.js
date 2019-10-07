@@ -23,91 +23,65 @@ function toggleVisiblity(termId, auto, show) {
 }
 
 var pooler;
-var slowPooler;
-var poolerInterval = 300;
 $(document).ready(function() {
-    pooler = setInterval(function() { update_state(); }, poolerInterval);
-    $('#followUpdateSwitch').change(function() {
-        if ($('#followUpdateSwitch').prop('checked')) {
-            pooler = setInterval(function() { update_state(); }, poolerInterval);
-        } else {
-            clearInterval(pooler);
-        }
-    });
+    pooler = new TaskScheduler(update_state, { container: 'followUpdateSwitchContainer', checkboxLabel: checkboxLabel});
+    pooler.start();
 });
 
-function initPoolerSlowdown() {
-    clearInterval(pooler);
-    slowPooler = setInterval(function() { 
-        if (!$('#followUpdateSwitch').prop('checked')) {
-            clearInterval(slowPooler);
-        } else {
-            $.getJSON(urlGetProgress, function(data) {
-                if (data['toward_db_version'] != current_db_version) {
-                    clearInterval(slowPooler);
-                    pooler = setInterval(function() { update_state(); }, poolerInterval);
-                }
-            })
-        }
-    }, poolerInterval*10);
-}
-
-
 function update_state(hard_reload) {
-    if (!$('#followUpdateSwitch').prop('checked')) {
-        clearInterval(pooler);
+    if (hard_reload) {
+        $.ajax({
+            url: urlGetProgress+'/1',
+            dataType: 'html',
+            success: function( html, textStatus, jQxhr ) {
+                $('div.servers.form').html(html);
+                pooler.unthrottle();
+            }
+        });
     } else {
-        if (hard_reload) {
-            $.ajax({
-                url: urlGetProgress+'/1',
-                dataType: 'html',
-                success: function( html, textStatus, jQxhr ) {
-                    $('div.servers.form').html(html);
-                }
-            });
-        } else {
-            $.getJSON(urlGetProgress, function(data) {
-                if (data['db_version'] != current_db_version) {
-                    update_state(true);
-                }
-                var total = parseInt(data['total']);
-                var current = parseInt(data['current']);
-                var failArray = data['failed_num'];
-                for (var i=0; i<total; i++) {
-                    var term = $('div[data-terminalid='+i+']')
-                    toggleVisiblity(i, true, false);
-                    if (i < current) {
-                        if (failArray.indexOf(String(i)) != -1) {
-                            update_row_state(i, 2);
-                        } else {
-                            update_row_state(i, 0);
-                        }
-                    } else if (i == current) {
-                        if (failArray.indexOf(String(i)) != -1) {
-                            update_row_state(i, 2);
-                            toggleVisiblity(i, true, true);
-                        } else {
-                            update_row_state(i, 1);
-                            toggleVisiblity(i-1, true, true);
-                        }
-                        update_single_update_progress(i, data);
+        $.getJSON(urlGetProgress, function(data) {
+            if (data['db_version'] != current_db_version) {
+                update_state(true);
+            }
+            var total = parseInt(data['total']);
+            var current = parseInt(data['current']);
+            var failArray = data['failed_num'];
+            for (var i=0; i<total; i++) {
+                var term = $('div[data-terminalid='+i+']')
+                toggleVisiblity(i, true, false);
+                if (i < current) {
+                    if (failArray.indexOf(String(i)) != -1) {
+                        update_row_state(i, 2);
                     } else {
-                        update_row_state(i, 3);
+                        update_row_state(i, 0);
                     }
+                } else if (i == current) {
+                    if (failArray.indexOf(String(i)) != -1) {
+                        update_row_state(i, 2);
+                        toggleVisiblity(i, true, true);
+                    } else {
+                        update_row_state(i, 1);
+                        toggleVisiblity(i-1, true, true);
+                    }
+                    update_single_update_progress(i, data);
+                } else {
+                    update_row_state(i, 3);
                 }
-                update_messages(data);
-                if (total > 0) {
-                    var percFail = Math.round(failArray.length/total*100);
-                    var perc = Math.round(current/total*100);
-                    update_pb(perc, percFail);
-                }
-    
-                if ((current+1) >= total || failArray.indexOf(current) != -1) {
-                    initPoolerSlowdown();
-                    $('.single-update-progress').hide();
-                }
-            });
-        }
+            }
+            update_messages(data);
+            if (total > 0) {
+                var percFail = Math.round(failArray.length/total*100);
+                var perc = Math.round(current/total*100);
+                update_pb(perc, percFail);
+            }
+
+            if ((current+1) >= total || failArray.indexOf(current) != -1) {
+                pooler.throttle();
+                $('.single-update-progress').hide();
+            } else {
+                pooler.unthrottle();
+            }
+        });
     }
 }
 

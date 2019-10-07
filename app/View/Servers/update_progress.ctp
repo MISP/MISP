@@ -41,14 +41,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
                             <th></th>
                             <th>
                                 Update command
-                                <span style="float:right; display:flex; align-items:center;">
-                                    <div class="toggle-switch-wrapper">
-                                        <input type="checkbox" style="display:none" id="followUpdateSwitch" checked="checked">
-                                        <label class="toggle-switch" for="followUpdateSwitch"></label>
-                                    </div>
-                                    <label class="toggle-switch-label" for="followUpdateSwitch">
-                                        <span><?php echo __('Follow updates'); ?></span>
-                                    </label>
+                                <span id="followUpdateSwitchContainer" style="float:right; display:flex; align-items:center;">
                                 </span>
                             </th>
                         </tr>
@@ -161,19 +154,32 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
     </div>
 <?php if (!$ajaxHtml): ?>
 </div>
-<?php echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'updateProgress')); ?>
-<?php endif; ?>
+<?php 
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'updateProgress'));
+    echo $this->element('genericElements/assetLoader', array(
+        'css' => array('update_progress', 'taskScheduler'),
+        'js' => array('update_progress', 'taskScheduler')
+    ));
+endif; ?>
+
+<?php
+if (!$ajaxHtml) {
+}
+?>
 
 <script>
     var updateProgress = <?php echo json_encode($updateProgress); ?>;
     var urlGetProgress = "<?php echo $baseurl; ?>/servers/updateProgress";
     var current_db_version = "<?php echo h($updateProgress['db_version']); ?>";
+    var checkboxLabel = "<?php echo __('Follow updates'); ?>";
+    // pooler = new TaskScheduler(update_state, { container: 'followUpdateSwitchContainer', checkboxLabel: checkboxLabel});
+    // pooler.start();
+    // if (pooler !== undefined) {
+
+    //     // Need to fix this! redraw probably?
+    //     // Also, animation is not playing with fast timer 
+    //     pooler.stop();
+    //     pooler = new TaskScheduler(update_state, { container: 'followUpdateSwitchContainer', checkboxLabel: checkboxLabel});
+    //     pooler.start();
+    // }
 </script>
-<?php
-if (!$ajaxHtml) {
-    echo $this->element('genericElements/assetLoader', array(
-        'css' => array('update_progress'),
-        'js' => array('update_progress')
-    ));
-}
-?>
