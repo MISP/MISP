@@ -18,7 +18,7 @@
             checkboxLabel: '', // The label accompanying the switch
             animation: {
                 onExecution: true,
-                remainingTime: true,
+                remainingTime: false,
                 noAnimThreshold: 700 //  Animation with interval lower thatn this threshold will not be played 
             }
         };
