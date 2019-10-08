@@ -126,7 +126,7 @@ class Attribute extends AppModel
             'Financial fraud' => array(
                     'desc' => __('Financial Fraud indicators'),
                     'formdesc' => __('Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.'),
-                    'types' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex', 'anonymised'),
+                    'types' => array('btc', 'dash', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex', 'anonymised'),
                     ),
             'Support Tool' => array(
                     'desc' => __('Tools supporting analysis or detection of the event'),
@@ -211,6 +211,7 @@ class Attribute extends AppModel
             'target-location' => array('desc' => __('Attack Targets Physical Location(s)'), 'default_category' => 'Targeting data', 'to_ids' => 0),
             'target-external' => array('desc' => __('External Target Organizations Affected by this Attack'), 'default_category' => 'Targeting data', 'to_ids' => 0),
             'btc' => array('desc' => __('Bitcoin Address'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
+            'dash' => array('desc' => __('Dash Address'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
             'xmr' => array('desc' => __('Monero Address'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
             'iban' => array('desc' => __('International Bank Account Number'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
             'bic' => array('desc' => __('Bank Identifier Code Number also known as SWIFT-BIC, SWIFT code or ISO 9362 code'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
@@ -270,9 +271,9 @@ class Attribute extends AppModel
             'datetime' => array('desc' => __('Datetime in the ISO 8601 format'), 'default_category' => 'Other', 'to_ids' => 0),
             'cpe' => array('desc' => __('Common platform enumeration'), 'default_category' => 'Other', 'to_ids' => 0),
             'port' => array('desc' => __('Port number'), 'default_category' => 'Network activity', 'to_ids' => 0),
-            'ip-dst|port' => array('desc' => __('IP destination and port number seperated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
-            'ip-src|port' => array('desc' => __('IP source and port number seperated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
-            'hostname|port' => array('desc' => __('Hostname and port number seperated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'ip-dst|port' => array('desc' => __('IP destination and port number separated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'ip-src|port' => array('desc' => __('IP source and port number separated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'hostname|port' => array('desc' => __('Hostname and port number separated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
             'mac-address' => array('desc' => __('Mac address'), 'default_category' => 'Network activity', 'to_ids' => 0),
             'mac-eui-64' => array('desc' => __('Mac EUI-64 address'), 'default_category' => 'Network activity', 'to_ids' => 0),
             // verify IDS flag defaults for these
@@ -1372,6 +1373,7 @@ class Attribute extends AppModel
             case 'iban':
             case 'bic':
             case 'btc':
+            case 'dash':
             case 'xmr':
                 if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
                     $returnValue = true;
@@ -4306,6 +4308,9 @@ class Attribute extends AppModel
         }
         if (isset($filters['limit'])) {
             $params['limit'] = $filters['limit'];
+            if (!isset($filters['page'])) {
+                $filters['page'] = 1;
+            }
         }
         if (isset($filters['page'])) {
             $params['page'] = $filters['page'];

@@ -38,21 +38,24 @@ class Taxonomy extends AppModel
     public function update()
     {
         $directories = glob(APP . 'files' . DS . 'taxonomies' . DS . '*', GLOB_ONLYDIR);
-        foreach ($directories as $k => $dir) {
-            $dir = str_replace(APP . 'files' . DS . 'taxonomies' . DS, '', $dir);
-            if ($dir === 'tools') {
-                unset($directories[$k]);
-            } else {
-                $directories[$k] = $dir;
-            }
-        }
         $updated = array();
         foreach ($directories as $dir) {
-            if (!file_exists(APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json')) {
+            $dir = basename($dir);
+            if ($dir === 'tools') {
                 continue;
             }
+
             $file = new File(APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json');
+            if (!$file->exists()) {
+                continue;
+            }
             $vocab = json_decode($file->read(), true);
+            $file->close();
+            if ($vocab === null) {
+                $updated['fails'][] = array('namespace' => $dir, 'fail' => "File machinetag.json is not valid JSON.");
+                continue;
+            }
+
             if (isset($vocab['type'])) {
                 if (is_array($vocab['type'])) {
                     if (!in_array('event', $vocab['type'])) {
@@ -64,7 +67,7 @@ class Taxonomy extends AppModel
                     }
                 }
             }
-            $file->close();
+
             if (!isset($vocab['version'])) {
                 $vocab['version'] = 1;
             }

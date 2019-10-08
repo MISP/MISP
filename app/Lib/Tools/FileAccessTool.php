@@ -2,7 +2,7 @@
 
 class FileAccessTool
 {
-    private $__fileErrorMsgPrefix = 'An error has occured while attempting to ';
+    private $__fileErrorMsgPrefix = 'An error has occurred while attempting to ';
 
     public function createTempFile($dir, $prefix = 'MISP')
     {

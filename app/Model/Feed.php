@@ -964,7 +964,7 @@ class Feed extends AppModel
      * @param $user Not used
      * @param int|bool $jobId
      * @param string $scope
-     * @return bool Returns true if at least one feed was cached sucessfully.
+     * @return bool Returns true if at least one feed was cached successfully.
      * @throws Exception
      */
     public function cacheFeedInitiator($user, $jobId = false, $scope = 'freetext')
@@ -1231,8 +1231,10 @@ class Feed extends AppModel
 
     public function importFeeds($feeds, $user, $default = false)
     {
-        $feeds = json_decode($feeds, true);
-        if (!isset($feeds[0])) {
+        if (is_string($feeds)) {
+            $feeds = json_decode($feeds, true);
+        }
+        if ($feeds && !isset($feeds[0])) {
             $feeds = array($feeds);
         }
         $results = array('successes' => 0, 'fails' => 0);
