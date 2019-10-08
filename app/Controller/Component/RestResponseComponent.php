@@ -4,6 +4,8 @@ class RestResponseComponent extends Component
 {
     public $components = array('ACL');
 
+    public $headers = array();
+
     private $__convertActionToMessage = array(
         'SharingGroup' => array(
             'addOrg' => 'add Organisation to',
@@ -455,13 +457,16 @@ class RestResponseComponent extends Component
             $headers["Access-Control-Allow-Origin"] = explode(',', Configure::read('Security.cors_origins'));
             $headers["Access-Control-Expose-Headers"] = ["X-Result-Count"];
         }
-
+        if (!empty($this->headers)) {
+            foreach ($this->headers as $key => $value) {
+                $cakeResponse->header($key, $value);
+            }
+        }
         if (!empty($headers)) {
             foreach ($headers as $key => $value) {
                 $cakeResponse->header($key, $value);
             }
         }
-
         if ($download) {
             $cakeResponse->download($download);
         }
@@ -503,14 +508,19 @@ class RestResponseComponent extends Component
         return $cakeResponse;
     }
 
-    public function throwException($code, $message, $url = '', $format = false, $raw = false)
+    public function throwException($code, $message, $url = '', $format = false, $raw = false, $headers = array())
     {
         $message = array(
             'name' => $message,
             'message' => $message,
             'url' => $url
         );
-        return $this->__sendResponse($message, $code, $format, $raw);
+        return $this->__sendResponse($message, $code, $format, $raw, false, $headers);
+    }
+
+    public function setHeader($header, $value)
+    {
+        $this->headers[$header] = $value;
     }
 
     public function describe($controller, $action, $id = false, $format = false)

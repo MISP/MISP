@@ -1322,7 +1322,7 @@ class User extends AppModel
             if ($jobId) {
                 if ($k % 100 == 0) {
                     $job->id =  $jobId;
-                    $job->saveField('progress', 100 * (($k + 1) / count($user_count)));
+                    $job->saveField('progress', 100 * (($k + 1) / $user_count));
                     $job->saveField('message', __('Reset in progress - %s/%s.', $k, $user_count));
                 }
             }

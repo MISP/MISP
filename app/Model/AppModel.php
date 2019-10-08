@@ -1298,6 +1298,10 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `user_settings` ADD `timestamp` int(11) NOT NULL;";
                 $indexArray[] = array('user_settings', 'timestamp');
                 break;
+            case 41:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `enforce_rate_limit` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `roles` ADD `rate_limit_count` int(11) NOT NULL DEFAULT 0;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2538,7 +2542,7 @@ class AppModel extends Model
             }
         }
     }
-    
+
     /**
      * @param string $message
      * @param Exception $exception
