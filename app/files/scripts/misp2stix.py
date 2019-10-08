@@ -135,7 +135,7 @@ class StixBuilder(object):
             self.json_event = json.loads(f.read())
 
     def generateEventPackages(self):
-        try
+        try:
             return_type_to_package = {'json': ('to_json', {}),
                                       'xml': ('to_xml', {'include_namespaces': False, 'include_schemalocs': False, 'encoding': 'utf8'})}
             to_call, args = return_type_to_package[self.return_type]
