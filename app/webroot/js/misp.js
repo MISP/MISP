@@ -57,12 +57,21 @@ function fetchAddSightingForm(type, attribute_id, page, onvalue) {
 }
 
 function flexibleAddSighting(clicked, type, attribute_id, event_id, value, page, placement) {
-    $clicked = $(clicked);
-    var html = '<div>'
-        + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">This attribute</button>'
-        + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">Global value</button>'
-        + '</div>';
-    openPopover(clicked, html, true, placement);
+    var $clicked = $(clicked);
+    var hoverbroken = false;
+    $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
+        hoverbroken = true;
+    });
+    setTimeout(function() {
+        $clicked.off('mouseleave.temp');
+        if ($clicked.is(":hover") && !hoverbroken) {
+            var html = '<div>'
+                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">This attribute</button>'
+                + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">Global value</button>'
+                + '</div>';
+            openPopover(clicked, html, true, placement);
+        }
+    }, 1000);
 }
 
 function publishPopup(id, type) {
@@ -1531,7 +1540,7 @@ function openPopover(clicked, data, hover, placement, callback) {
     var randomId = $clicked.attr('data-dismissid') !== undefined ? $clicked.attr('data-dismissid') : Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
     var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
     $clicked.attr('data-dismissid', randomId);
-    var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'destroy\');">×</button>';
+    var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'hide\');">×</button>';
 
     if (!$clicked.data('popover')) {
         $clicked.addClass('have-a-popover');
