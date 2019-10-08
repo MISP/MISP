@@ -1186,6 +1186,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
             break;
     }
     if (url !== null) {
+        url = baseurl + url;
         $.ajax({
             beforeSend: function (XMLHttpRequest) {
                 $(".loading").show();
@@ -4511,6 +4512,14 @@ function moveIndexRow(id, direction, endpoint) {
             handleGenericAjaxResponse({'saved':false, 'errors':['Something went wrong, could not change the priority as requested.']});
         }
     });
+}
+
+function checkRoleEnforceRateLimit() {
+    if ($("#RoleEnforceRateLimit").is(':checked')) {
+        $('#rateLimitCountContainer').show();
+    } else {
+        $('#rateLimitCountContainer').hide();
+    }
 }
 
 (function(){
