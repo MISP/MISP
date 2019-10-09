@@ -58,7 +58,7 @@ switch ($object['type']) {
         } else {
             $sigDisplay = str_replace("\r", '', h($sigDisplay));
             $sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
-            echo h($sigDisplay);
+            echo $sigDisplay;
         }
         break;
 
