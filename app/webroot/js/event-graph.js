@@ -155,7 +155,7 @@ class EventGraph {
             $("#select_graph_scope").val(value);
         }
 
-        if (value == "Rotation key") {
+        if (value == "Pivot key") {
             $("#network-scope-badge").text(value + ": " + eventGraph.scope_keyType);
         } else {
             $("#network-scope-badge").text(value);
@@ -176,30 +176,30 @@ class EventGraph {
             label: "Scope",
             tooltip: "The scope represented by the network",
             event: function(value) {
-                if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected  for Rotation key scope
+                if (value == "Pivot key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected  for Pivot key scope
                     return;
                 } else {
                     eventGraph.update_scope(value);
                     dataHandler.fetch_data_and_update();
                 }
             },
-            options: ["Reference", "Tag", "Rotation key"],
+            options: ["Reference", "Tag", "Pivot key"],
             default: "Reference"
         });
         menu_scope.add_select({
             id: "input_graph_scope_jsonkey",
-            label: "Rotation key",
+            label: "Pivot key",
             tooltip: "The key around which the network will be constructed",
             event: function(value) {
-                if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected for Rotation key scope
+                if (value == "Pivot key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected for Pivot key scope
                     return;
                 } else {
                     eventGraph.scope_keyType = value;
-                    eventGraph.update_scope("Rotation key");
+                    eventGraph.update_scope("Pivot key");
                     dataHandler.fetch_data_and_update();
                 }
             },
-            options: dataHandler.available_rotation_key ? dataHandler.available_rotation_key : [],
+            options: dataHandler.available_pivot_key ? dataHandler.available_pivot_key : [],
             default: ""
         });
         return menu_scope;
@@ -298,7 +298,8 @@ class EventGraph {
                 for(var nodeId of objectIds) {
                     eventGraph.expand_node(nodeId);
                 }
-            }
+            },
+            title: "Expanding all nodes may takes some time"
         });
         menu_display.add_button({
             label: "Collapse all nodes",
@@ -310,7 +311,8 @@ class EventGraph {
                 for(var nodeId of objectIds) {
                     eventGraph.collapse_node(nodeId);
                 }
-            }
+            },
+            title: "Collapsing all nodes may takes some time"
         });
         menu_display.add_slider({
             id: 'slider_display_max_char_num',
@@ -1399,7 +1401,7 @@ class DataHandler {
         eventGraph.menu_filter.items["table_attr_value"].add_options("table_control_select_attr_value", available_object_references);
     }
 
-    fetch_data_and_update(stabilize, callback) {
+    fetch_data_and_update(stabilize, updateOnly, callback) {
         eventGraph.network_loading(true, loadingText_fetching);
         $.when(this.fetch_objects_template()).done(function() {
             var filtering_rules = eventGraph.get_filtering_rules();
@@ -1417,7 +1419,9 @@ class DataHandler {
                 data: JSON.stringify( payload ),
                 processData: false,
                 success: function( data, textStatus, jQxhr ){
-                    eventGraph.reset_graphs(true);
+                    if (updateOnly === undefined || updateOnly === false) {
+                        eventGraph.reset_graphs(true);
+                    }
                     eventGraph.is_filtered = (filtering_rules.presence.length > 0 || filtering_rules.value.length > 0);
                     eventGraph.first_draw = true;
                     // update object state
@@ -1427,8 +1431,8 @@ class DataHandler {
                         return [[index, value]];
                     });
                     dataHandler.update_filtering_selectors(available_object_references, available_tags);
-                    dataHandler.available_rotation_key = data.available_rotation_key;
-                    eventGraph.menu_scope.add_options("input_graph_scope_jsonkey", dataHandler.available_rotation_key);
+                    dataHandler.available_pivot_key = data.available_pivot_key;
+                    eventGraph.menu_scope.add_options("input_graph_scope_jsonkey", dataHandler.available_pivot_key);
                     if (data.items.length < nodes_ask_threshold) {
                         eventGraph.update_graph(data);
                     } else if (data.items.length > nodes_ask_threshold && confirm("The network contains a lot of nodes, displaying it may slow down your browser. Continue?")) {
@@ -1861,7 +1865,7 @@ function genericPopupCallback(result) {
     // sucess and eventgraph is enabled
     if (result == "success" && dataHandler !== undefined) {
         mispInteraction.apply_callback();
-        dataHandler.fetch_data_and_update(false);
+        dataHandler.fetch_data_and_update(false, true);
     }
 }
 
@@ -1958,7 +1962,7 @@ function import_graph_from_json(data) {
         $('#checkbox_physics_enable').prop('checked', data.physics.enabled);
 
         // update data
-        dataHandler.fetch_data_and_update(false, function() {
+        dataHandler.fetch_data_and_update(false, false, function() {
             eventGraph.nodes.update(data.nodes);
             eventGraph.expand_previous_expansion(data.nodes);
             eventGraph.hiddenNode.clear();
@@ -2180,7 +2184,7 @@ $(document).on("keyup", function(evt) {
 });
 
 eventGraph.update_scope();
-dataHandler.fetch_data_and_update(true, function() {
+dataHandler.fetch_data_and_update(true, false, function() {
     var $select = $('#network-typeahead');
     dataHandler.get_typeaheadData_search().forEach(function(element) {
         var $option = $('<option></option>');
