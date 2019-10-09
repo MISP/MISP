@@ -115,7 +115,7 @@ class StixParser():
 
     def build_from_STIX_without_report(self):
         for object_type, objects in self.event.items():
-            for _, _object in objects.items():
+            for _object in objects.values():
                 self.parsing_process(_object, object_type)
         self.misp_event.info = "Imported with MISP import script for {}.".format(self.stix_version)
 
