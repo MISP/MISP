@@ -24,4 +24,3 @@ class Polynomial extends DecayingModelBase
         return $threshold > $score;
     }
 }
-?>

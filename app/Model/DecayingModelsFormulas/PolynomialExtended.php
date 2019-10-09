@@ -51,4 +51,3 @@ class PolynomialExtended extends Polynomial
         return parent::isDecayed($model, $attribute, $score);
     }
 }
-?>
