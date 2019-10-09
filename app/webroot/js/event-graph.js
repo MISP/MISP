@@ -1576,7 +1576,8 @@ class MispInteraction {
         if (!that.can_create_reference(edgeData.from) || !that.can_be_referenced(edgeData.to)) {
             return;
         }
-        genericPopup('/objectReferences/add/'+edgeData.from, '#popover_form', function() {
+        var edgeFromId = edgeData.from.startsWith('o-') ? edgeData.from.substr(2) : edgeData.from;
+        genericPopup('/objectReferences/add/'+edgeFromId, '#popover_form', function() {
             $('#ObjectReferenceReferencedUuid').val(uuid);
             objectReferenceInput();
         });
@@ -1641,6 +1642,7 @@ class MispInteraction {
         var selected_nodes = nodeData.nodes;
         for (var nodeID of selected_nodes) {
             var node = this.nodes.get(nodeID)
+            nodeID = nodeID.startsWith('o-') ? nodeID.substr(2) : nodeID;
             if (node.group.slice(0, 9) == "attribute") {
                 deleteObject('attributes', 'delete', nodeID, scope_id);
             } else if (node.group == "object") {
@@ -1653,6 +1655,7 @@ class MispInteraction {
         var that = mispInteraction;
         var id = nodeData.id
         var group = nodes.get(id).group;
+        id = id.startsWith('o-') ? id.substr(2) : id;
         if (group.slice(0, 9) == 'attribute') {
             simplePopup('/attributes/edit/'+id);
         } else if (group == 'object') {
