@@ -180,29 +180,6 @@ class EventShell extends AppShell
         }
     }
 
-    private function __recursiveEcho($array) {
-        $text = "";
-        foreach ($array as $k => $v) {
-            if (is_array($v)) {
-                if (empty($v)) $text .= '<' . $k . '/>';
-                else {
-                    foreach ($v as $element) {
-                        $text .= '<' . $k . '>';
-                        $text .= $this->__recursiveEcho($element);
-                        $text .= '</' . $k . '>';
-                    }
-                }
-            } else {
-                if ($v === false) $v = 0;
-                if ($v === "" || $v === null) $text .= '<' . $k . '/>';
-                else {
-                    $text .= '<' . $k . '>' . $v . '</' . $k . '>';
-                }
-            }
-        }
-        return $text;
-    }
-
     public function cachehids() {
         $timeStart = time();
         $userId = $this->args[0];

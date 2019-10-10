@@ -247,7 +247,7 @@ class ActionTable {
 		var td = document.createElement('td');
 		var btn = document.createElement('button');
 		btn.classList.add("btn", "btn-danger");
-		btn.innerHTML = '<span class="fa fa-trash-o"></span>';
+		btn.innerHTML = '<span class="fa fa-trash"></span>';
 		btn.type = "button";
 		btn.setAttribute('rowID', tr.id);
 		if (that.row_action_button_style.tooltip !== undefined) {
