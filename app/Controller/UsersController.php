@@ -48,12 +48,18 @@ class UsersController extends AppController
             ));
             $id = $userid['User']['id'];
         }
-        $this->User->id = $id;
-        $this->User->recursive = 0;
-        if (!$this->User->exists()) {
+        $user = $this->User->read(null, $id);
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $id),
+            'contain' => array(
+                'UserSetting',
+                'Role'
+            )
+        ));
+        if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
         }
-        $user = $this->User->read(null, $id);
         if (!empty($user['User']['gpgkey'])) {
             $pgpDetails = $this->User->verifySingleGPG($user);
             $user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
@@ -62,9 +68,15 @@ class UsersController extends AppController
         if ($this->_isRest()) {
             unset($user['User']['server_id']);
             $user['User']['password'] = '*****';
+            $temp = array();
+            foreach ($user['UserSetting'] as $k => $v) {
+                $temp[$v['setting']] = $v['value'];
+            }
+            $user['UserSetting'] = $temp;
             return $this->RestResponse->viewData(array(
                 'User' => $user['User'],
-                'Role' => $user['Role']
+                'Role' => $user['Role'],
+                'UserSetting' => $user['UserSetting']
             ), $this->response->type());
         } else {
             $this->set('user', $user);
@@ -465,11 +477,17 @@ class UsersController extends AppController
 
     public function admin_view($id = null)
     {
-        $this->User->id = $id;
-        if (!$this->User->exists()) {
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $id),
+            'contain' => array(
+                'UserSetting',
+                'Role'
+            )
+        ));
+        if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
         }
-        $user = $this->User->read(null, $id);
         if (!empty($user['User']['gpgkey'])) {
             $pgpDetails = $this->User->verifySingleGPG($user);
             $user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
@@ -485,6 +503,16 @@ class UsersController extends AppController
         }
         if ($this->_isRest()) {
             $user['User']['password'] = '*****';
+            $temp = array();
+            foreach ($user['UserSetting'] as $k => $v) {
+                $temp[$v['setting']] = $v['value'];
+            }
+            $user['UserSetting'] = $temp;
+            return $this->RestResponse->viewData(array(
+                'User' => $user['User'],
+                'Role' => $user['Role'],
+                'UserSetting' => $user['UserSetting']
+            ), $this->response->type());
             return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
         } else {
             $temp = $this->User->data['User']['invited_by'];

@@ -19,7 +19,9 @@
                 array(
                     'div' => 'clear',
                     'class' => 'input input-xxlarge',
-                    'options' => array_combine(array_keys($validSettings), array_keys($validSettings))
+                    'options' => array_combine(array_keys($validSettings), array_keys($validSettings)),
+                    'default' => $setting,
+                    'disabled' => (boolean)$setting
                 )
             ),
             $this->Form->input(
