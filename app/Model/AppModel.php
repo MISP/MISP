@@ -1696,6 +1696,9 @@ class AppModel extends Model
                     if ($db_update_success) {
                         $db_version['AdminSetting']['value'] = $update;
                         $this->AdminSetting->save($db_version);
+                        $this->__resetUpdateFailNumber();
+                    } else {
+                        $this->__increaseUpdateFailNumber();
                     }
                     if ($verbose) {
                         echo "\033[32mDone\033[0m" . PHP_EOL;
@@ -1705,7 +1708,10 @@ class AppModel extends Model
                 if (!empty($job)) {
                     $job['Job']['message'] = __('Update done');
                 }
-                $this->__changeLockState(false);
+                $fail_number = $this->__getUpdateFailNumber();
+                if ($fail_number < 3) { // Do not release the lock if update failed more than 3 time
+                    $this->__changeLockState(false);
+                }
                 $this->__queueCleanDB();
             } else {
                 if (!empty($job)) {
@@ -1852,6 +1858,26 @@ class AppModel extends Model
     {
         $remainingTime = $this->getLockRemainingTime();
         return $remainingTime > 0;
+    }
+
+    public function getUpdateFailNumber()
+    {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $update_fail_number = $this->AdminSetting->getSetting('update_fail_number');
+        return ($update_fail_number !== false && $update_fail_number !== '') ? $update_fail_number : 0;
+    }
+
+    public function resetUpdateFailNumber()
+    {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $this->AdminSetting->changeSetting('update_fail_number', 0);
+    }
+
+    public function increaseUpdateFailNumber()
+    {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $update_fail_number = $this->AdminSetting->getSetting('update_fail_number');
+        $this->AdminSetting->changeSetting('update_fail_number', $update_fail_number+1);
     }
 
     private function __queueCleanDB()
