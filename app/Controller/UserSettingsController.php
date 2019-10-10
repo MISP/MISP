@@ -103,7 +103,15 @@ class UserSettingsController extends AppController
             return $this->RestResponse->viewData($userSettings, $this->response->type());
         } else {
             $this->paginate['conditions'] = $conditions;
-            $this->set('data', $this->paginate());
+            $data = $this->paginate();
+            foreach ($data as $k => $v) {
+                if (!empty($this->UserSetting->validSettings[$v['UserSetting']['setting']])) {
+                    $data[$k]['UserSetting']['restricted'] = empty($this->UserSetting->validSettings[$v['UserSetting']['setting']]['restricted']) ? '' : $this->UserSetting->validSettings[$v['UserSetting']['setting']]['restricted'];
+                } else {
+                    $data[$k]['UserSetting']['restricted'] = array();
+                }
+            }
+            $this->set('data', $data);
             $this->set('context', empty($context) ? 'null' : $context);
         }
     }
@@ -138,6 +146,15 @@ class UserSettingsController extends AppController
 
     public function setSetting($user_id = false, $setting = false)
     {
+        if (!empty($setting)) {
+            if (!$this->UserSetting->checkSettingValidity($setting)) {
+                throw new MethodNotAllowedException(__('Invalid setting.'));
+            }
+            $settingPermCheck = $this->UserSetting->checkSettingAccess($this->Auth->user(), $setting);
+            if ($settingPermCheck !== true) {
+                throw new MethodNotAllowedException(__('This setting is restricted and requires the following permission(s): %s', $settingPermCheck));
+            }
+        }
         // handle POST requests
         if ($this->request->is('post')) {
             // massage the request to allow for unencapsulated POST requests via the API
@@ -168,16 +185,22 @@ class UserSettingsController extends AppController
                     $userSetting['user_id'] = $this->request->data['UserSetting']['user_id'];
                 }
             }
-            if (empty($this->request->data['UserSetting']['setting'])) {
+            if (empty($this->request->data['UserSetting']['setting']) || !isset($this->request->data['UserSetting']['setting'])) {
                 throw new MethodNotAllowedException(__('This endpoint expects both a setting and a value to be set.'));
-            } else {
-                if (!$this->UserSetting->checkSettingValidity($this->request->data['UserSetting']['setting'])) {
-                    throw new MethodNotAllowedException(__('Invalid setting.'));
-                }
-                $userSetting['setting'] = $this->request->data['UserSetting']['setting'];
             }
-            $userSetting['value'] = empty($this->request->data['UserSetting']['value']) ? '' :
-                json_encode(json_decode($this->request->data['UserSetting']['value'], true));
+            if (!$this->UserSetting->checkSettingValidity($this->request->data['UserSetting']['setting'])) {
+                throw new MethodNotAllowedException(__('Invalid setting.'));
+            }
+            $settingPermCheck = $this->UserSetting->checkSettingAccess($this->Auth->user(), $this->request->data['UserSetting']['setting']);
+            if ($settingPermCheck !== true) {
+                throw new MethodNotAllowedException(__('This setting is restricted and requires the following permission(s): %s', $settingPermCheck));
+            }
+            $userSetting['setting'] = $this->request->data['UserSetting']['setting'];
+            if ($this->request->data['UserSetting']['value'] !== '') {
+                $userSetting['value'] = json_encode(json_decode($this->request->data['UserSetting']['value'], true));
+            } else {
+                $userSetting['value'] = '';
+            }
             $existingSetting = $this->UserSetting->find('first', array(
                 'recursive' => -1,
                 'conditions' => array(
@@ -243,6 +266,7 @@ class UserSettingsController extends AppController
             if (!empty($user_id) && $this->request->is('get')) {
                 $this->request->data['UserSetting']['user_id'] = $user_id;
             }
+            $this->set('setting', $setting);
             $this->set('users', $users);
             $this->set('validSettings', $validSettings);
         }
@@ -300,6 +324,10 @@ class UserSettingsController extends AppController
         $checkAccess = $this->UserSetting->checkAccess($this->Auth->user(), $userSetting);
         if (!$checkAccess) {
             throw new NotFoundException(__('Invalid user setting.'));
+        }
+        $settingPermCheck = $this->UserSetting->checkSettingAccess($this->Auth->user(), $userSetting['UserSetting']['setting']);
+        if ($settingPermCheck !== true) {
+            throw new MethodNotAllowedException(__('This setting is restricted and requires the following permission(s): %s', $settingPermCheck));
         }
         if ($this->request->is('post') || $this->request->is('delete')) {
             // Delete the setting that we were after.
