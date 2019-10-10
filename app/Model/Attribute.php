@@ -1660,28 +1660,65 @@ class Attribute extends AppModel
         }
     }
 
-    public function getAttachment($attribute, $path_suffix='')
+    /**
+     * @param array $attribute
+     * @param string $path_suffix
+     * @return string
+     * @throws Exception
+     */
+    public function getAttachment(array $attribute, $path_suffix='')
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->getDefaultAttachments_dir();
-        }
-
         if ($this->attachmentDirIsS3()) {
             // S3 - we have to first get the object then we can encode it
             $s3 = $this->getS3Client();
             // This will return the content of the object
             $content = $s3->download($attribute['event_id'] . DS . $attribute['id'] . $path_suffix);
         } else {
-            // Standard filesystem
-            $filepath = $attachments_dir . DS . $attribute['event_id'] . DS . $attribute['id'] . $path_suffix;
-            $file = new File($filepath);
-            if (!$file->readable()) {
+            // For standard filesystem, we can use 'getAttachmentFile' method
+            try {
+                $file = $this->getAttachmentFile($attribute, $path_suffix);
+            } catch (NotFoundException $e) {
                 return '';
             }
             $content = $file->read();
         }
         return $content;
+    }
+
+    /**
+     * Get File object for attribute. When S3 storage is active, this method will create tmp file,
+     * but deletion will not be handled by this method.
+     *
+     * @param array $attribute
+     * @param string $pathSuffix
+     * @return File
+     * @throws Exception
+     */
+    public function getAttachmentFile(array $attribute, $pathSuffix = '')
+    {
+        if ($this->attachmentDirIsS3()) {
+            $s3 = $this->getS3Client();
+            $content = $s3->download($attribute['event_id'] . DS . $attribute['id'] . $pathSuffix);
+
+            $tmpDir = Configure::read('MISP.tmpdir') ?: $this->getDefaultTmp_dir();
+            $file = new File($tmpDir . DS . $attribute['uuid'], true, 0600);
+            if (!$file->write($content)) {
+                throw new Exception("Could not write temporary file {$file->path}.");
+            }
+
+        } else {
+            $attachmentsDir = Configure::read('MISP.attachments_dir') ?: $this->getDefaultAttachments_dir();
+            $filepath = $attachmentsDir . DS . $attribute['event_id'] . DS . $attribute['id'] . $pathSuffix;
+            $file = new File($filepath);
+            if (!$file->exists()) {
+                throw new NotFoundException("File '$filepath' does not exists.");
+            }
+            if (!$file->readable()) {
+                throw new Exception("File '$filepath' is not readable.");
+            }
+        }
+
+        return $file;
     }
 
     public function saveAttachment($attribute, $path_suffix='')

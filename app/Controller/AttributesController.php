@@ -365,36 +365,7 @@ class AttributesController extends AppController
 
     private function __downloadAttachment($attribute)
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->Attribute->getDefaultAttachments_dir();
-        }
-
-        $is_s3 = substr($attachments_dir, 0, 2) === "s3";
-
-        if ($is_s3) {
-            // We have to download it!
-            App::uses('AWSS3Client', 'Tools');
-            $client = new AWSS3Client();
-            $client->initTool();
-            // Use tmpdir as opposed to attachments dir since we can't write to s3://
-            $attachments_dir = Configure::read('MISP.tmpdir');
-            if (empty($attachments_dir)) {
-                $this->loadModel('Server');
-                $attachments_dir = $this->Server->getDefaultTmp_dir();
-            }
-            // Now download the file
-            $resp = $client->download($attribute['event_id'] . DS . $attribute['id']);
-            // Save to a tmpfile
-            $tmpFile = new File($attachments_dir . DS . $attribute['uuid'], true, 0600);
-            $tmpFile->write($resp);
-            $tmpFile->close();
-            $path = $attachments_dir . DS;
-            $file = $attribute['uuid'];
-        } else {
-            $path = $attachments_dir . DS . $attribute['event_id'] . DS;
-            $file = $attribute['id'];
-        }
+        $file = $this->Attribute->getAttachmentFile($attribute);
 
         if ('attachment' == $attribute['type']) {
             $filename = $attribute['value'];
@@ -410,7 +381,7 @@ class AttributesController extends AppController
         $this->autoRender = false;
         $this->response->type($fileExt);
         $download_attachments_on_load = Configure::check('MISP.download_attachments_on_load') ? Configure::read('MISP.download_attachments_on_load') : true;
-        $this->response->file($path . $file, array('download' => $download_attachments_on_load, 'name' => $filename . '.' . $fileExt));
+        $this->response->file($file->path, array('download' => $download_attachments_on_load, 'name' => $filename . '.' . $fileExt));
     }
 
     public function add_attachment($eventId = null)
