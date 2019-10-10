@@ -54,7 +54,8 @@ class UsersController extends AppController
             'conditions' => array('User.id' => $id),
             'contain' => array(
                 'UserSetting',
-                'Role'
+                'Role',
+                'Organisation'
             )
         ));
         if (empty($user)) {
