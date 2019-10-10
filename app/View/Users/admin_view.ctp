@@ -59,8 +59,8 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     $table_data[] = array('key' => __('Password change'), 'boolean' => $user['User']['change_pw']);
     $table_data[] = array(
         'key' => __('GnuPG key'),
-        'class_value' => "quickSelect " . $user['User']['gpgkey'] ? 'green' : 'bold red',
-        'html' => $user['User']['gpgkey'] ? nl2br(h($user['User']['gpgkey'])) : __("N/A")
+        'element' => 'genericElements/key',
+        'element_params' => array('key' => $user['User']['gpgkey']),
     );
     if (!empty($user['User']['gpgkey'])) {
         $table_data[] = array(
@@ -76,9 +76,9 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     }
     if (Configure::read('SMIME.enabled')) {
         $table_data[] = array(
-            'key' => __('SMIME Public certificate'),
-            'class_value' => "red quickSelect",
-            'html' => (h($user['User']['certif_public'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['certif_public']))) : "N/A"
+            'key' => __('S/MIME Public certificate'),
+            'element' => 'genericElements/key',
+            'element_params' => array('key' => $user['User']['certif_public']),
         );
     }
     $table_data[] = array('key' => __('Newsread'), 'html' => $user['User']['newsread'] ? date('Y/m/d H:i:s', h($user['User']['newsread'])) : __('N/A'));

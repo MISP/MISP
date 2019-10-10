@@ -447,6 +447,16 @@
                         'text' => __('My Profile')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'user_settings_index_me',
+                        'url' => '/user_settings/index/user_id:me',
+                        'text' => __('My Settings')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'user_settings_set',
+                        'url' => '/user_settings/setSetting',
+                        'text' => __('Set Setting')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/users/dashboard',
                         'text' => __('Dashboard')
                     ));
@@ -545,7 +555,7 @@
                             'url' => sprintf(
                                 '/servers/pull/%s/%s',
                                 h($server['Server']['id']),
-                                h($server['Event']['id'])
+                                h($event['Event']['id'])
                             ),
                             'text' => __('Fetch This Event'),
                             'message' => __('Are you sure you want to fetch and save this event on your instance?')
@@ -668,6 +678,16 @@
                         ));
                     }
                     if ($isAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'user_settings_index',
+                            'url' => '/user_settings/index/user_id:all',
+                            'text' => __('User settings')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'user_settings_set',
+                            'url' => '/user_settings/setSetting',
+                            'text' => __('Set Setting')
+                        ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'contact',
                             'url' => '/admin/users/email',
@@ -913,7 +933,6 @@
                         }
                     }
                     break;
-
                 case 'decayingModel':
                     if ($isAdmin) {
                         if ($isSiteAdmin && ($menuItem === 'view' || $menuItem === 'index')) {

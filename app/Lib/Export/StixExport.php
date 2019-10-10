@@ -34,7 +34,7 @@ class StixExport
             $this->__empty_file = false;
         } else {
             if ($attributes_count > $this->__attributes_limit) {
-                $randomFileName = $this->generateRandomFileName();
+                $randomFileName = $this->__generateRandomFileName();
                 $tmpFile = new File($this->__tmp_dir . $randomFileName, true, 0644);
                 $tmpFile->write($event);
                 $tmpFile->close();
@@ -55,7 +55,7 @@ class StixExport
     {
         $this->__return_type = $options['returnFormat'];
         $framing_cmd = $this->initiate_framing_params();
-        $randomFileName = $this->generateRandomFileName();
+        $randomFileName = $this->__generateRandomFileName();
         $this->__tmp_dir = $this->__scripts_dir . 'tmp/';
         $this->__framing = json_decode(shell_exec($framing_cmd), true);
         $this->__stix_file = new File($this->__tmp_dir . $randomFileName . '.' . $this->__return_type);
@@ -75,11 +75,12 @@ class StixExport
             $this->__tmp_file->close();
             array_push($this->__filenames, $this->__current_filename);
         }
-        foreach ($this->__filenames as $filename) {
+        foreach ($this->__filenames as $f => $filename) {
             $result = $this->__parse_misp_events($filename);
             $decoded = json_decode($result, true);
             if (!isset($decoded['success']) || !$decoded['success']) {
-                return '';
+                $this->__delete_temporary_files($f);
+                return 'Error while processing your query: ' . $decoded['error'];
             }
             $file = new File($this->__tmp_dir . $filename . '.out');
             $stix_event = ($this->__return_type == 'stix') ? $file->read() : substr($file->read(), 1, -1);
@@ -104,14 +105,25 @@ class StixExport
 
     private function __initialize_misp_file()
     {
-        $this->__current_filename = $this->generateRandomFileName();
+        $this->__current_filename = $this->__generateRandomFileName();
         $this->__tmp_file = new File($this->__tmp_dir . $this->__current_filename, true, 0644);
         $this->__tmp_file->write('{"response": [');
         $this->__empty_file = true;
     }
 
-    public function generateRandomFileName()
+    private function __generateRandomFileName()
     {
         return (new RandomTool())->random_str(false, 12);
+    }
+
+    private function __delete_temporary_files($index)
+    {
+        foreach ($this->__filenames as $f => $filename) {
+            if ($index >= $f) {
+                unlink($this->__tmp_dir . $filename);
+            }
+        }
+        $this->__stix_file->close();
+        $this->__stix_file->delete();
     }
 }

@@ -522,6 +522,9 @@ class StixFromMISPParser(StixParser):
         self.object_from_refs = {'course-of-action': self.parse_MISP_course_of_action, 'vulnerability': self.parse_vulnerability,
                                  'x-misp-object': self.parse_custom}
         self.object_from_refs.update(dict.fromkeys(['indicator', 'observed-data'], self.parse_usual_object))
+        self.attributes_fetcher_mapping = {'indicator': self.fetch_attributes_from_indicator,
+                                           'observed-data': self.fetch_attributes_from_observable,
+                                           'vulnerability': self.fetch_attributes_from_vulnerability}
 
     def handler(self):
         self.general_handler()
@@ -544,11 +547,13 @@ class StixFromMISPParser(StixParser):
         name = self.get_misp_type(labels)
         tag = labels[1]
         galaxy_type, value = tag.split(':')[1].split('=')
-        galaxy_description, cluster_description = o.get('description').split('|')
+        galaxy_desc, cluster_desc = o['description'].split(' | ') if ' | ' in o['description'] else ('', o['description'])
         _, uuid = o.get('id').split('--')
-        galaxy = {'type': galaxy_type, 'name': name, 'description': galaxy_description,
+        galaxy = {'type': galaxy_type, 'name': name,
                   'GalaxyCluster': [{'type': galaxy_type, 'value':value, 'tag_name': tag,
-                                     'description': cluster_description, 'collection_uuid': uuid}]}
+                                     'description': cluster_desc, 'collection_uuid': uuid}]}
+        if galaxy_desc:
+            galaxy['description'] = galaxy_desc
         return galaxy
 
     def parse_MISP_course_of_action(self, o, _):
@@ -605,14 +610,11 @@ class StixFromMISPParser(StixParser):
         uuid = o.id.split('--')[1]
         misp_object.uuid = uuid
         misp_object['meta-category'] = object_category
-        if stix_type == 'indicator':
-            pattern = o.pattern.replace('\\\\', '\\').split(' AND ')
-            pattern[0] = pattern[0][1:]
-            pattern[-1] = pattern[-1][:-1]
-            attributes = self.objects_mapping[object_type]['pattern'](pattern)
-        if stix_type == 'observed-data':
-            observable = o.objects
-            attributes = self.objects_mapping[object_type]['observable'](observable)
+        try:
+            attributes = self.attributes_fetcher_mapping[stix_type](o, object_type)
+        except KeyError:
+            print("Unable to map {} object:\n{}".format(stix_type, o), file=sys.stderr)
+            return
         if isinstance(attributes, tuple):
             attributes, pe_uuid = attributes
             misp_object.add_reference(pe_uuid, 'includes')
@@ -622,6 +624,28 @@ class StixFromMISPParser(StixParser):
         if uuid in self.relationship:
             self.handle_object_relationship(misp_object, uuid)
         self.misp_event.add_object(**misp_object)
+
+    def fetch_attributes_from_indicator(self, indicator, object_type):
+        pattern = indicator.pattern.replace('\\\\', '\\').split(' AND ')
+        pattern[0] = pattern[0][1:]
+        pattern[-1] = pattern[-1][:-1]
+        return self.objects_mapping[object_type]['pattern'](pattern)
+
+    def fetch_attributes_from_observable(self, observable, object_type):
+        observable = observable.objects
+        return self.objects_mapping[object_type]['observable'](observable)
+
+    def fetch_attributes_from_vulnerability(self, vulnerability, _):
+        attributes = []
+        if vulnerability.get('name'):
+            attributes.append({'type': 'text', 'object_relation': 'id', 'value': vulnerability['name']})
+        if vulnerability.get('description'):
+            attributes.append({'type': 'text', 'object_relation': 'summary', 'value': vulnerability['description']})
+        if vulnerability.get('external_references'):
+            for reference in vulnerability['external_references']:
+                if reference['source_name'] == 'url':
+                    attributes.append({'type': 'link', 'object_relation': 'references', 'value': reference['url']})
+        return attributes
 
     def parse_attribute(self, o, labels):
         attribute_uuid = o.id.split('--')[1]

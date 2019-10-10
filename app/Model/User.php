@@ -202,7 +202,8 @@ class User extends AppModel
             'finderQuery' => '',
             'counterQuery' => ''
         ),
-        'Post'
+        'Post',
+        'UserSetting'
     );
 
     public $actsAs = array(
@@ -605,7 +606,7 @@ class User extends AppModel
     public function getAuthUser($id)
     {
         if (empty($id)) {
-            throw new Exception('Invalid user ID.');
+            throw new NotFoundException('Invalid user ID.');
         }
         $conditions = array('User.id' => $id);
         $user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
@@ -723,11 +724,12 @@ class User extends AppModel
         $Email = new CakeEmail();
         $recipient = array('User' => array('email' => $params['to']));
         $failed = false;
+        $mock = false;
         if (!empty($params['gpgkey'])) {
             $recipient['User']['gpgkey'] = $params['gpgkey'];
             $encryptionResult = $this->__encryptUsingGPG($Email, $params['body'], $params['subject'], $recipient);
             if (isset($encryptionResult['failed'])) {
-                $failed = true;
+                $mock = true;
             }
             if (isset($encryptionResult['failureReason'])) {
                 $failureReason = $encryptionResult['failureReason'];
@@ -754,8 +756,7 @@ class User extends AppModel
                 }
             }
             $Email->attachments($attachments);
-            $mock = false;
-            if (Configure::read('MISP.disable_emailing') || !empty($params['mock'])) {
+            if (!empty(Configure::read('MISP.disable_emailing')) || !empty($params['mock'])) {
                 $Email->transport('Debug');
                 $mock = true;
             }
@@ -1321,7 +1322,7 @@ class User extends AppModel
             if ($jobId) {
                 if ($k % 100 == 0) {
                     $job->id =  $jobId;
-                    $job->saveField('progress', 100 * (($k + 1) / count($user_count)));
+                    $job->saveField('progress', 100 * (($k + 1) / $user_count));
                     $job->saveField('message', __('Reset in progress - %s/%s.', $k, $user_count));
                 }
             }

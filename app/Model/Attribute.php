@@ -70,7 +70,7 @@ class Attribute extends AppModel
 
         //
         // NOTE WHEN MODIFYING: please ensure to run the script 'tools/gen_misp_types_categories.py' to update the new definitions everywhere. (docu, website, RFC, ...)
-        //  
+        //
         $this->categoryDefinitions = array(
             'Internal reference' => array(
                     'desc' => __('Reference used by the publishing party (e.g. ticket number)'),
@@ -126,7 +126,7 @@ class Attribute extends AppModel
             'Financial fraud' => array(
                     'desc' => __('Financial Fraud indicators'),
                     'formdesc' => __('Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.'),
-                    'types' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex', 'anonymised'),
+                    'types' => array('btc', 'dash', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex', 'anonymised'),
                     ),
             'Support Tool' => array(
                     'desc' => __('Tools supporting analysis or detection of the event'),
@@ -149,7 +149,7 @@ class Attribute extends AppModel
 
         //
         // NOTE WHEN MODIFYING: please ensure to run the script 'tools/gen_misp_types_categories.py' to update the new definitions everywhere. (docu, website, RFC, ...)
-        //  
+        //
         $this->typeDefinitions = array(
             'md5' => array('desc' => __('A checksum in md5 format'), 'formdesc' => __("You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'sha1' => array('desc' => __('A checksum in sha1 format'), 'formdesc' => __("You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -211,6 +211,7 @@ class Attribute extends AppModel
             'target-location' => array('desc' => __('Attack Targets Physical Location(s)'), 'default_category' => 'Targeting data', 'to_ids' => 0),
             'target-external' => array('desc' => __('External Target Organizations Affected by this Attack'), 'default_category' => 'Targeting data', 'to_ids' => 0),
             'btc' => array('desc' => __('Bitcoin Address'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
+            'dash' => array('desc' => __('Dash Address'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
             'xmr' => array('desc' => __('Monero Address'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
             'iban' => array('desc' => __('International Bank Account Number'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
             'bic' => array('desc' => __('Bank Identifier Code Number also known as SWIFT-BIC, SWIFT code or ISO 9362 code'), 'default_category' => 'Financial fraud', 'to_ids' => 1),
@@ -270,9 +271,9 @@ class Attribute extends AppModel
             'datetime' => array('desc' => __('Datetime in the ISO 8601 format'), 'default_category' => 'Other', 'to_ids' => 0),
             'cpe' => array('desc' => __('Common platform enumeration'), 'default_category' => 'Other', 'to_ids' => 0),
             'port' => array('desc' => __('Port number'), 'default_category' => 'Network activity', 'to_ids' => 0),
-            'ip-dst|port' => array('desc' => __('IP destination and port number seperated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
-            'ip-src|port' => array('desc' => __('IP source and port number seperated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
-            'hostname|port' => array('desc' => __('Hostname and port number seperated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'ip-dst|port' => array('desc' => __('IP destination and port number separated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'ip-src|port' => array('desc' => __('IP source and port number separated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'hostname|port' => array('desc' => __('Hostname and port number separated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
             'mac-address' => array('desc' => __('Mac address'), 'default_category' => 'Network activity', 'to_ids' => 0),
             'mac-eui-64' => array('desc' => __('Mac EUI-64 address'), 'default_category' => 'Network activity', 'to_ids' => 0),
             // verify IDS flag defaults for these
@@ -405,7 +406,8 @@ class Attribute extends AppModel
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'cache' => array('txt', 'CacheExport', 'cache'),
-        'attack-sightings' => array('json', 'AttackSightingsExport', 'json')
+        'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
+        'netfilter' => array('txt', 'NetfilterExport', 'sh')
     );
 
     // FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
@@ -605,6 +607,14 @@ class Attribute extends AppModel
 
     public function beforeSave($options = array())
     {
+        if (!empty($this->data['Attribute']['id'])) {
+            $this->old = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Attribute.id' => $this->data['Attribute']['id'])
+            ));
+        } else {
+            $this->old = false;
+        }
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
         if (!empty($this->data['Attribute']['type'])) {
@@ -621,11 +631,6 @@ class Attribute extends AppModel
                 $this->data['Attribute']['value1'] = $this->data['Attribute']['value'];
                 $this->data['Attribute']['value2'] = '';
             }
-        }
-
-        // update correlation... (only needed here if there's an update)
-        if ($this->id || !empty($this->data['Attribute']['id'])) {
-            $this->__beforeSaveCorrelation($this->data['Attribute']);
         }
         // always return true after a beforeSave()
         return true;
@@ -669,7 +674,26 @@ class Attribute extends AppModel
                 $this->__alterAttributeCount($this->data['Attribute']['event_id'], false, $passedEvent);
             }
         } else {
-            $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+            /*
+             * Only recorrelate if:
+             * - We are dealing with a new attribute OR
+             * - The existing attribute's previous state is known AND
+             *   value, type or disable correlation have changed
+             * This will avoid recorrelations when it's not really needed, such as adding a tag
+             */
+            if (!$created) {
+                if (
+                    empty($this->old) ||
+                    $this->data['Attribute']['value'] != $this->old['Attribute']['value'] ||
+                    $this->data['Attribute']['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
+                    $this->data['Attribute']['type'] != $this->old['Attribute']['type']
+                ) {
+                    $this->__beforeSaveCorrelation($this->data['Attribute']);
+                    $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+                }
+            } else {
+                $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+            }
         }
         $result = true;
         // if the 'data' field is set on the $this->data then save the data to the correct file
@@ -797,7 +821,6 @@ class Attribute extends AppModel
         App::uses('ComplexTypeTool', 'Tools');
         $this->complexTypeTool = new ComplexTypeTool();
         $this->data['Attribute']['value'] = $this->complexTypeTool->refangValue($this->data['Attribute']['value'], $this->data['Attribute']['type']);
-
 
         if (!empty($this->data['Attribute']['object_id']) && empty($this->data['Attribute']['object_relation'])) {
             return false;
@@ -1350,6 +1373,7 @@ class Attribute extends AppModel
             case 'iban':
             case 'bic':
             case 'btc':
+            case 'dash':
             case 'xmr':
                 if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
                     $returnValue = true;
@@ -3102,7 +3126,10 @@ class Attribute extends AppModel
         if (!empty($options['includeGalaxy'])) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         }
-        if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
+        if (
+            Configure::read('MISP.proposals_block_attributes') &&
+            !empty($options['allow_proposal_blocking'])
+        ) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
                     'ShadowAttribute' => array(
@@ -4235,6 +4262,7 @@ class Attribute extends AppModel
             if (!isset($filters['published'])) {
                 $filters['published'] = 1;
             }
+            $filters['allow_proposal_blocking'] = 1;
         }
         if (!empty($filters['quickFilter'])) {
             $filters['searchall'] = $filters['quickFilter'];
@@ -4269,7 +4297,8 @@ class Attribute extends AppModel
                 'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
                 'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
                 'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
-                'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0
+                'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
+                'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0
         );
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];
@@ -4279,6 +4308,9 @@ class Attribute extends AppModel
         }
         if (isset($filters['limit'])) {
             $params['limit'] = $filters['limit'];
+            if (!isset($filters['page'])) {
+                $filters['page'] = 1;
+            }
         }
         if (isset($filters['page'])) {
             $params['page'] = $filters['page'];
@@ -4313,7 +4345,10 @@ class Attribute extends AppModel
             'filters' => $filters
         );
         if (!empty($exportTool->additional_params)) {
-            $params = array_merge($params, $exportTool->additional_params);
+            $params = array_merge_recursive(
+                $params,
+                $exportTool->additional_params
+            );
         }
         $tmpfile = tmpfile();
         fwrite($tmpfile, $exportTool->header($exportToolParams));

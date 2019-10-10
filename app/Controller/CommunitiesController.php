@@ -159,7 +159,10 @@ Thank you in advance!',
             $params['gpgkey'] = $community['pgp_key'];
             $params['body'] = $body;
             $params['subject'] = '[' . $community['name'] . '] Requesting MISP access';
-            $params['mock'] = !empty($this->request->data['Server']['mock']);
+            $params['mock'] = !empty($this->request->data['Server']['mock']) ? $this->request->data['Server']['mock'] : 0;
+            if (!empty(Configure::read('MISP.disable_emailing'))) {
+                $params['mock'] = 1;
+            }
             $result = $this->User->sendEmailExternal($this->Auth->user(), $params);
             $message = $result ? __('Request sent.') : __('Something went wrong and the request could not be sent.');
             if ($this->_isRest()) {
@@ -176,6 +179,9 @@ Thank you in advance!',
                     $this->redirect(array('controller' => 'communities', 'action' => 'view', $id));
                 } elseif ($result) {
                     $this->set('result', $result);
+                    if (empty($this->request->data['Server']['mock'])) {
+                        $this->Flash->error(__('The message could not be sent (either because e-mailing is disabled or because encryption is misconfigured), however, you can view the e-mail that would have been sent below. Feel free to send it manually.'));
+                    }
                     $this->render('request_access_email');
                 } else {
                     $this->Flash->error($message);

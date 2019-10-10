@@ -36,7 +36,7 @@
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data['top_bar']));
     }
     $rows = '';
-    $row_element = $data['row_element'] ?: 'row';
+    $row_element = isset($data['row_element']) ? $data['row_element'] : 'row';
     $options = isset($data['options']) ? $data['options'] : array();
     $actions = isset($data['actions']) ? $data['actions'] : array();
     foreach ($data['data'] as $k => $data_row) {

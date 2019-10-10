@@ -41,7 +41,16 @@
         <div id="ServerExternalContainer" class="input select hiddenField" style="display:none;">
             <label for="ServerExternal"><?php echo __('External Organisation');?></label>
             <select id="ServerExternal">
-                <?php foreach ($externalOrganisations as $k => $v) echo '<option value="' . $k . '">' . h($v) . '</option>'; ?>
+                <?php
+                    foreach ($externalOrganisations as $k => $v) {
+                        echo sprintf(
+                            '<option value="%s" %s>%s</option>',
+                            h($k),
+                            (!empty($this->request->data['Server']['remote_org_id']) && $k == $this->request->data['Server']['remote_org_id']) ? 'selected' : '',
+                            h($v)
+                        );
+                    }
+                ?>
             </select>
         </div>
         <div id="ServerLocalContainer" class="input select hiddenField" style="display:none;">

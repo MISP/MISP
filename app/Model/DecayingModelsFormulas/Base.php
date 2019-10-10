@@ -124,5 +124,3 @@ abstract class DecayingModelBase
     // Return a True if the attribute should be marked as decayed
     abstract public function isDecayed($model, $attribute, $score);
 }
-
-?>

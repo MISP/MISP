@@ -56,12 +56,15 @@ class StixBuilder():
         self.load_galaxy_mapping()
 
     def buildEvent(self):
-        self.initialize_misp_types()
-        stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event['Event'])] if self.json_event.get('response') else self.handler(self.json_event['Event'])
-        outputfile = "{}.out".format(self.filename)
-        with open(outputfile, 'wt', encoding='utf-8') as f:
-            f.write(json.dumps(stix_packages, cls=base.STIXJSONEncoder))
-        print(json.dumps({'success': 1}))
+        try:
+            self.initialize_misp_types()
+            stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event['Event'])] if self.json_event.get('response') else self.handler(self.json_event['Event'])
+            outputfile = "{}.out".format(self.filename)
+            with open(outputfile, 'wt', encoding='utf-8') as f:
+                f.write(json.dumps(stix_packages, cls=base.STIXJSONEncoder))
+            print(json.dumps({'success': 1}))
+        except Exception as e:
+            print(json.dumps({'error': e.__str__()}))
 
     def eventReport(self):
         if not self.object_refs and self.links:
@@ -96,8 +99,7 @@ class StixBuilder():
         return {'source_name': source, 'url': url}
 
     def add_all_markings(self):
-        for marking_args in self.markings.values():
-            marking = MarkingDefinition(**marking_args)
+        for marking in self.markings.values():
             self.append_object(marking)
 
     def add_all_relationships(self):
@@ -123,8 +125,8 @@ class StixBuilder():
                     target = '{}--{}'.format(self.ids[target_uuid], target_uuid)
                 except KeyError:
                     continue
-                relationship = Relationship(source_ref=source, relationship_type=relationship_type,
-                                            target_ref=target, interoperability=True)
+                relationship = Relationship(source_ref=source, target_ref=target, interoperability=True,
+                                            relationship_type=relationship_type.strip())
                 self.append_object(relationship, id_mapping=False)
 
     def __set_identity(self):
@@ -670,11 +672,15 @@ class StixBuilder():
 
     def add_object_vulnerability(self, misp_object, to_ids):
         vulnerability_id = 'vulnerability--{}'.format(misp_object['uuid'])
-        name = self.fetch_vulnerability_name(misp_object['Attribute'])
-        labels = self.create_object_labels(name, misp_object.get('meta-category'), to_ids)
+        name, description, references = self.fetch_vulnerability_fields(misp_object['Attribute'])
+        labels = self.create_object_labels(misp_object['name'], misp_object['meta-category'], to_ids)
         vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
                               'name': name, 'created_by_ref': self.identity_id,
                               'labels': labels, 'interoperability': True}
+        if description:
+            vulnerability_args['description'] = description
+        if references:
+            vulnerability_args['external_references'] = references
         vulnerability = Vulnerability(**vulnerability_args)
         self.append_object(vulnerability)
 
@@ -709,16 +715,18 @@ class StixBuilder():
                 'from_object']
 
     def create_marking(self, tag):
-        try:
+        if tag in tlp_markings:
             marking_definition = globals()[tlp_markings[tag]]
-            id = marking_definition.id
-        except KeyError:
-            id = 'marking-definition--%s' % uuid.uuid4()
-            definition_type, definition = tag.split(':')
-            marking_definition = {'type': 'marking-definition', 'id': id, 'definition_type': definition_type,
-                                  'definition': {definition_type: definition}}
-        self.markings[tag] = marking_definition
-        return id
+            return marking_definition.id
+        marking_id = 'marking-definition--%s' % uuid.uuid4()
+        definition_type, definition = tag.split(':')
+        marking_definition = {'type': 'marking-definition', 'id': marking_id, 'definition_type': definition_type,
+                              'definition': {definition_type: definition}}
+        try:
+            self.markings[tag] = MarkingDefinition(**marking_definition)
+        except exceptions.TLPMarkingDefinitionError:
+            return
+        return marking_id
 
     @staticmethod
     def _parse_tag(namespace, predicate):
@@ -759,14 +767,27 @@ class StixBuilder():
         return False
 
     @staticmethod
-    def fetch_vulnerability_name(attributes):
+    def fetch_vulnerability_fields(attributes):
+        name = "Undefined name"
+        description = ""
+        references = []
         for attribute in attributes:
-            if attribute['type'] == 'vulnerability':
-                return attribute['value']
-        return "Undefined name"
+            if attribute['object_relation'] == 'id':
+                name = attribute['value']
+                references.append({'source_name': 'cve', 'external_id': name})
+            elif attribute['object_relation'] == 'summary':
+                description = attribute['value']
+            elif attribute['object_relation'] == 'references':
+                references.append({'source_name': 'url', 'url': attribute['value']})
+        return name, description, references
 
     def handle_tags(self, tags):
-        return [self.markings[tag]['id'] if tag in self.markings else self.create_marking(tag) for tag in tags]
+        marking_ids = []
+        for tag in tags:
+            marking_id = self.markings[tag]['id'] if tag in self.markings else self.create_marking(tag)
+            if marking_id:
+                marking_ids.append(marking_id)
+        return marking_ids
 
     def resolve_asn_observable(self, attributes, object_id):
         asn = objectsMapping['asn']['observable']

@@ -57,12 +57,21 @@ function fetchAddSightingForm(type, attribute_id, page, onvalue) {
 }
 
 function flexibleAddSighting(clicked, type, attribute_id, event_id, value, page, placement) {
-    $clicked = $(clicked);
-    var html = '<div>'
-        + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">This attribute</button>'
-        + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">Global value</button>'
-        + '</div>';
-    openPopover(clicked, html, true, placement);
+    var $clicked = $(clicked);
+    var hoverbroken = false;
+    $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
+        hoverbroken = true;
+    });
+    setTimeout(function() {
+        $clicked.off('mouseleave.temp');
+        if ($clicked.is(":hover") && !hoverbroken) {
+            var html = '<div>'
+                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">This attribute</button>'
+                + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">Global value</button>'
+                + '</div>';
+            openPopover(clicked, html, true, placement);
+        }
+    }, 1000);
 }
 
 function publishPopup(id, type) {
@@ -1177,6 +1186,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
             break;
     }
     if (url !== null) {
+        url = baseurl + url;
         $.ajax({
             beforeSend: function (XMLHttpRequest) {
                 $(".loading").show();
@@ -1202,10 +1212,15 @@ function submitPopoverForm(context_id, referer, update_context_id) {
                     $('#sightingsListAllToggle').addClass('btn-primary');
                 }
                 if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')) eventUnpublish();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                showMessage('fail', textStatus + ": " + errorThrown);
+            },
+            complete: function () {
                 $(".loading").hide();
             },
-            type:"post",
-            url:url
+            type: "post",
+            url: url,
         });
     }
 
@@ -1526,7 +1541,7 @@ function openPopover(clicked, data, hover, placement, callback) {
     var randomId = $clicked.attr('data-dismissid') !== undefined ? $clicked.attr('data-dismissid') : Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
     var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
     $clicked.attr('data-dismissid', randomId);
-    var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'destroy\');">×</button>';
+    var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'hide\');">×</button>';
 
     if (!$clicked.data('popover')) {
         $clicked.addClass('have-a-popover');
@@ -4257,8 +4272,6 @@ function checkIfLoggedIn() {
             if (data.slice(-2) !== 'OK') {
                 window.location.replace(baseurl + "/users/login");
             }
-        }).fail(function() {
-                window.location.replace(baseurl + "/users/login");
         });
     }
     setTimeout(function() { checkIfLoggedIn(); }, 5000);
@@ -4275,7 +4288,7 @@ function insertHTMLRestResponse() {
 }
 
 function insertJSONRestResponse() {
-    $('#rest-response-container').append('<p id="json-response-container" style="border: 1px solid blue; padding:5px;" />');
+    $('#rest-response-container').append('<p id="json-response-container" style="border: 1px solid blue; padding:5px; overflow-wrap: break-word;" />');
     var parsedJson = syntaxHighlightJson($('#rest-response-hidden-container').text());
     $('#json-response-container').html(parsedJson);
 }
@@ -4287,7 +4300,7 @@ function syntaxHighlightJson(json, indent) {
     if (typeof json == 'string') {
         json = JSON.parse(json);
     }
-    json = JSON.stringify(json, undefined, 2);
+    json = JSON.stringify(json, undefined, indent);
     json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/(?:\r\n|\r|\n)/g, '<br>').replace(/ /g, '&nbsp;');
     return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
             var cls = 'json_number';
@@ -4499,6 +4512,14 @@ function moveIndexRow(id, direction, endpoint) {
             handleGenericAjaxResponse({'saved':false, 'errors':['Something went wrong, could not change the priority as requested.']});
         }
     });
+}
+
+function checkRoleEnforceRateLimit() {
+    if ($("#RoleEnforceRateLimit").is(':checked')) {
+        $('#rateLimitCountContainer').show();
+    } else {
+        $('#rateLimitCountContainer').hide();
+    }
 }
 
 (function(){

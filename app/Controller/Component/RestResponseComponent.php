@@ -4,6 +4,8 @@ class RestResponseComponent extends Component
 {
     public $components = array('ACL');
 
+    public $headers = array();
+
     private $__convertActionToMessage = array(
         'SharingGroup' => array(
             'addOrg' => 'add Organisation to',
@@ -30,22 +32,13 @@ class RestResponseComponent extends Component
                 'params' => array('attribute_id')
             ),
             'deleteSelected' => array(
-                'description' => "POST a list of attribute IDs in JSON format to this API
-                    to delete the given attributes. This API also expects an event ID passed via
-                    the URL or via the event_id key. The id key also takes 'all' as a parameter
-                    for a wildcard search to mass delete attributes. If you want the function to
-                    also hard-delete already soft-deleted attributes, pass the allow_hard_delete
-                    key.",
+                'description' => "POST a list of attribute IDs in JSON format to this API to delete the given attributes. This API also expects an event ID passed via the URL or via the event_id key. The id key also takes 'all' as a parameter for a wildcard search to mass delete attributes. If you want the function to also hard-delete already soft-deleted attributes, pass the allow_hard_delete key.",
                 'mandatory' => array('id'),
                 'optional' => array('event_id', 'allow_hard_delete'),
                 'params' => array('event_id')
             ),
             'restSearch' => array(
-                'description' => "Search MISP using a list of filter parameters and return the data
-                    in the selected format. The search is available on an event and an attribute level,
-                    just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
-                    Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
-                    This API allows pagination via the page and limit parameters.",
+                'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score'),
                 'params' => array()
@@ -77,11 +70,7 @@ class RestResponseComponent extends Component
                 'optional' => array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal')
             ),
             'restSearch' => array(
-                'description' => "Search MISP using a list of filter parameters and return the data
-                    in the selected format. The search is available on an event and an attribute level,
-                    just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
-                    Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
-                    This API allows pagination via the page and limit parameters.",
+                'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags'),
                 'params' => array()
@@ -199,10 +188,7 @@ class RestResponseComponent extends Component
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time')
             ),
             'restSearch' => array(
-                'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format.
-                    The search is available on an event, attribute or instance level,
-                    just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/).
-                    id MUST be provided if context is set.",
+                'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id MUST be provided if context is set.",
                 'mandatory' => array('returnFormat'),
                 'optional' => array('id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
                 'params' => array('context')
@@ -263,6 +249,17 @@ class RestResponseComponent extends Component
                 'description' => 'Simply GET the url endpoint to view the API output of the statistics API. Additional statistics are available via the following tab-options similar to the UI: data, orgs, users, tags, attributehistogram, sightings, attackMatrix',
                 'params' => array('tab'),
                 'http_method' => 'GET'
+            )
+        ),
+        'UserSetting' => array(
+            'setSetting' => array(
+                'description' => "POST a User setting object in JSON format to this API to create a new setting or update the equivalent existing setting. Admins/site admins can specify a user ID besides their own.",
+                'mandatory' => array('setting', 'value'),
+                'optional' => array('user_id')
+            ),
+            'delete' => array(
+                'description' => "POST or DELETE to this API to delete an existing setting.",
+                'params' => array('id')
             )
         ),
         'Warninglist' => array(
@@ -380,7 +377,7 @@ class RestResponseComponent extends Component
             if (empty($temp)) {
                 return '[]';
             }
-            return json_encode(array('api_info' => $temp));
+            return json_encode(array('api_info' => $temp), JSON_PRETTY_PRINT);
         }
         return '[]';
     }
@@ -457,13 +454,16 @@ class RestResponseComponent extends Component
             $headers["Access-Control-Allow-Origin"] = explode(',', Configure::read('Security.cors_origins'));
             $headers["Access-Control-Expose-Headers"] = ["X-Result-Count"];
         }
-
+        if (!empty($this->headers)) {
+            foreach ($this->headers as $key => $value) {
+                $cakeResponse->header($key, $value);
+            }
+        }
         if (!empty($headers)) {
             foreach ($headers as $key => $value) {
                 $cakeResponse->header($key, $value);
             }
         }
-
         if ($download) {
             $cakeResponse->download($download);
         }
@@ -505,14 +505,19 @@ class RestResponseComponent extends Component
         return $cakeResponse;
     }
 
-    public function throwException($code, $message, $url = '', $format = false, $raw = false)
+    public function throwException($code, $message, $url = '', $format = false, $raw = false, $headers = array())
     {
         $message = array(
             'name' => $message,
             'message' => $message,
             'url' => $url
         );
-        return $this->__sendResponse($message, $code, $format, $raw);
+        return $this->__sendResponse($message, $code, $format, $raw, false, $headers);
+    }
+
+    public function setHeader($header, $value)
+    {
+        $this->headers[$header] = $value;
     }
 
     public function describe($controller, $action, $id = false, $format = false)
@@ -1564,10 +1569,12 @@ class RestResponseComponent extends Component
                                         $fieldsConstraint[$sf]['label'] = $label;
                                     }
                                 } else {
-                                    $fieldsConstraint[$field] = $this->__fieldsConstraint[$field];
-                                    $label = $scope . '.' . $field;
-                                    $fieldsConstraint[$field]['id'] = $label;
-                                    $fieldsConstraint[$field]['label'] = $label;
+                                    if (!empty($this->__fieldsConstraint[$field])) {
+                                        $fieldsConstraint[$field] = $this->__fieldsConstraint[$field];
+                                        $label = $scope . '.' . $field;
+                                        $fieldsConstraint[$field]['id'] = $label;
+                                        $fieldsConstraint[$field]['label'] = $label;
+                                    }
                                 }
 
                                 // add dynamic data and overwrite name collisions

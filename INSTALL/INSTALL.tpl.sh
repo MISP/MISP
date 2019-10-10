@@ -182,7 +182,7 @@ generateInstaller () {
 # Simple debug function with message
 
 # Make sure no alias exists
-if [[ $(type -t debug) == "alias" ]]; then unalias debug; fi
+[[ $(type -t debug) == "alias" ]] && unalias debug
 debug () {
   echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}" > /dev/tty
   if [ ! -z $DEBUG ]; then

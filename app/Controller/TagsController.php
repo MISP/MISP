@@ -463,15 +463,15 @@ class TagsController extends AppController
             throw new MethodNotAllowedException('Invalid event.');
         }
         $this->loadModel('GalaxyCluster');
-        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')));
+        $cluster_names = $this->GalaxyCluster->find('list', array(
+            'fields' => array('GalaxyCluster.tag_name'),
+            'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')
+        ));
         $this->helpers[] = 'TextColour';
         $conditions = array(
                 'event_id' => $id,
                 'Tag.name !=' => $cluster_names
         );
-        if (empty($this->Auth->user()['Role']['perm_sync'])) {
-            $conditions['EventTag.local'] = false;
-        }
         $tags = $this->EventTag->find('all', array(
                 'conditions' => $conditions,
                 'contain' => array('Tag'),
@@ -505,9 +505,6 @@ class TagsController extends AppController
         $eventId = $this->Tag->AttributeTag->Attribute->data['Attribute']['event_id'];
 
         $conditions = array('attribute_id' => $id);
-        if (empty($this->Auth->user()['Role']['perm_sync'])) {
-            $conditions['AttributeTag.local'] = false;
-        }
         $attributeTags = $this->AttributeTag->find('all', array(
             'conditions' => $conditions,
             'contain' => array('Tag'),
@@ -897,7 +894,7 @@ class TagsController extends AppController
         return $object;
     }
 
-    public function attachTagToObject($uuid = false, $tag = false)
+    public function attachTagToObject($uuid = false, $tag = false, $local = false)
     {
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This method is only accessible via POST requests.');
@@ -923,6 +920,14 @@ class TagsController extends AppController
             $conditions = array('Tag.id' => $tag);
         } else {
             $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
+        }
+        if (empty($local)) {
+            if (!empty($this->request->data['local'])) {
+                $local = $this->request->data['local'];
+            }
+        }
+        if (!is_bool($local)) {
+            throw new InvalidArgumentException('Invalid local flag');
         }
         $objectType = '';
         $object = $this->__findObjectByUuid($uuid, $objectType);
@@ -951,23 +956,18 @@ class TagsController extends AppController
         $connectorObject = $objectType . 'Tag';
         $conditions = array(
             strtolower($objectType) . '_id' => $object[$objectType]['id'],
-            'tag_id' => $existingTag['Tag']['id']
+            'tag_id' => $existingTag['Tag']['id'],
+            'local' => ($local ? 1 : 0)
         );
         $existingAssociation = $this->$objectType->$connectorObject->find('first', array(
-            'conditions' => array(
-                strtolower($objectType) . '_id' => $object[$objectType]['id'],
-                'tag_id' => $existingTag['Tag']['id']
-            )
+            'conditions' => $conditions
         ));
         if (!empty($existingAssociation)) {
             return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $objectType . ' already has the requested tag attached, no changes had to be made.');
         }
         $this->$objectType->$connectorObject->create();
         $data = array(
-            $connectorObject => array(
-                strtolower($objectType) . '_id' => $object[$objectType]['id'],
-                'tag_id' => $existingTag['Tag']['id']
-            )
+            $connectorObject => $conditions
         );
         if ($objectType == 'Attribute') {
             $data[$connectorObject]['event_id'] = $object['Event']['id'];
@@ -981,12 +981,16 @@ class TagsController extends AppController
             $date = new DateTime();
             $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
             $this->$objectType->save($tempObject);
-            if ($objectType === 'Attribute') {
-                $this->$objectType->Event->unpublishEvent($object['Event']['id']);
-            } else if ($objectType === 'Event') {
-                $this->Event->unpublishEvent($object['Event']['id']);
+            if($local) {
+                $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
+            } else {
+                if ($objectType === 'Attribute') {
+                    $this->$objectType->Event->unpublishEvent($object['Event']['id']);
+                } else if ($objectType === 'Event') {
+                    $this->Event->unpublishEvent($object['Event']['id']);
+                }
+                $message = 'Global tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
             }
-            $message = 'Tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
             return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $message);
         } else {
             return $this->RestResponse->saveFailResponse('Tags', 'attachTagToObject', false, 'Failed to attach tag to object.', $this->response->type());

@@ -310,6 +310,7 @@ class ServersController extends AppController
                                 $this->request->data['Server']['external_uuid'] = $json['uuid'];
                             } else {
                                 $this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+                                $this->request->data['Server']['organisation_type'] = 1;
                             }
                         }
                     }
@@ -906,7 +907,7 @@ class ServersController extends AppController
             );
             $writeableErrors = array(0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable'));
             $readableErrors = array(0 => __('OK'), 1 => __('not readable'));
-            $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: encrypt failed'));
+            $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
             $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
             $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
             $stixOperational = array(0 => __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.'), 1 => __('OK'));
@@ -1052,6 +1053,8 @@ class ServersController extends AppController
                 // get the DB diagnostics
                 $dbDiagnostics = $this->Server->dbSpaceUsage();
 
+                $redisInfo = $this->Server->redisInfo();
+
                 $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
                 foreach ($moduleTypes as $type) {
                     $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
@@ -1062,7 +1065,7 @@ class ServersController extends AppController
                 $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
                 $this->set('sessionCount', $sessionCount);
 
-                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics');
+                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'redisInfo');
             }
             // check whether the files are writeable
             $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
@@ -1676,7 +1679,7 @@ class ServersController extends AppController
         if (empty($sql_info)) {
             $update_progress['process_list'] = array();
         } else {
-            // retreive current update process
+            // retrieve current update process
             foreach($sql_info as $row) {
                 if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookup_string) {
                     $sql_info = $row['PROCESSLIST'];
@@ -1835,6 +1838,17 @@ class ServersController extends AppController
                 $python = $this->__generatePythonScript($request, $url);
             }
             $response = $HttpSocket->post($url, $request['body'], array('header' => $request['header']));
+        } elseif (
+            !empty($request['method']) &&
+            $request['method'] === 'DELETE'
+        ) {
+            if ($curl !== false) {
+                $curl = $this->__generateCurlQuery('delete', $request, $url);
+            }
+            if ($python !== false) {
+                $python = $this->__generatePythonScript($request, $url);
+            }
+            $response = $HttpSocket->delete($url, false, array('header' => $request['header']));
         } else {
             return false;
         }
@@ -1936,7 +1950,7 @@ misp.direct_call(relative_path, body)
         $relative_path = $this->request->data['url'];
         $result = $this->RestResponse->getApiInfo($relative_path);
         if ($this->_isRest()) {
-            return $result;
+            return $this->RestResponse->viewData($result, $this->response->type(), false, true);
         } else {
             $result = json_decode($result, true);
             if (empty($result)) {

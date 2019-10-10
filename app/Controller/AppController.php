@@ -46,7 +46,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '86';
+    private $__queryVersion = '90';
     public $pyMispVersion = '2.4.114';
     public $phpmin = '7.0';
     public $phprec = '7.2';
@@ -89,7 +89,8 @@ class AppController extends Controller
             'ACL',
             'RestResponse',
             'Flash',
-            'Toolbox'
+            'Toolbox',
+            'RateLimit'
             //,'DebugKit.Toolbar'
     );
 
@@ -124,17 +125,9 @@ class AppController extends Controller
         if (!empty($this->params['named']['sql'])) {
             $this->sql_dump = 1;
         }
-        // check for a supported datasource configuration
-        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-        if (!isset($dataSourceConfig['encoding'])) {
-            $db = ConnectionManager::getDataSource('default');
-            $db->setConfig(array('encoding' => 'utf8'));
-            ConnectionManager::create('default', $db->config);
-        }
-        $dataSource = $dataSourceConfig['datasource'];
-        if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
-            throw new Exception('datasource not supported: ' . $dataSource);
-        }
+
+        $this->_setupDatabaseConnection();
+        $this->_setupDebugMode();
 
         $this->set('ajax', $this->request->is('ajax'));
         $this->set('queryVersion', $this->__queryVersion);
@@ -177,19 +170,7 @@ class AppController extends Controller
         }
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
-        // Let us access $baseurl from all views
-        $baseurl = Configure::read('MISP.baseurl');
-        if (substr($baseurl, -1) == '/') {
-            // if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
-            $baseurl = rtrim($baseurl, '/');
-            $this->loadModel('Server');
-            $this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
-        }
-        if (trim($baseurl) == 'http://') {
-            $this->Server->serverSettingsSaveValue('MISP.baseurl', '');
-        }
-        $this->baseurl = $baseurl;
-        $this->set('baseurl', h($baseurl));
+        $this->_setupBaseurl();
 
         // send users away that are using ancient versions of IE
         // Make sure to update this if IE 20 comes out :)
@@ -287,28 +268,14 @@ class AppController extends Controller
                     throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                 }
             } elseif (!$this->Session->read(AuthComponent::$sessionKey)) {
-                // load authentication plugins from Configure::read('Security.auth')
-                $auth = Configure::read('Security.auth');
-                if ($auth) {
-                    $this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
-                    if ($this->Auth->startup($this)) {
-                        $user = $this->Auth->user();
-                        if ($user) {
-                            // User found in the db, add the user info to the session
-                            $this->Session->renew();
-                            $this->Session->write(AuthComponent::$sessionKey, $user);
-                        }
-                        unset($user);
-                    }
-                }
-                unset($auth);
+                $this->_loadAuthenticationPlugins();
             }
         }
         $this->set('externalAuthUser', $userLoggedIn);
         // user must accept terms
         //
         // grab the base path from our base url for use in the following checks
-        $base_dir = parse_url($baseurl, PHP_URL_PATH);
+        $base_dir = parse_url($this->baseurl, PHP_URL_PATH);
 
         // if MISP is running out of the web root already, just set this variable to blank so we don't wind up with '//' in the following if statements
         if ($base_dir == '/') {
@@ -342,7 +309,7 @@ class AppController extends Controller
                     throw new ForbiddenException('Authentication failed. Your user account has been disabled.');
                 } else {
                     $this->Flash->error('Your user account has been disabled.', array('key' => 'error'));
-                    $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+                    $this->_redirectToLogin();
                 }
             }
             $this->set('default_memory_limit', ini_get('memory_limit'));
@@ -362,7 +329,7 @@ class AppController extends Controller
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
-                $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+                $this->_redirectToLogin();
             }
         }
 
@@ -383,7 +350,7 @@ class AppController extends Controller
                 $this->Auth->logout();
                 throw new MethodNotAllowedException($message);//todo this should pb be removed?
             } else {
-                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
+                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $this->baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
             }
         }
         if ($this->Session->check(AuthComponent::$sessionKey)) {
@@ -392,7 +359,7 @@ class AppController extends Controller
                 if (!$this->User->exists()) {
                     $message = __('Something went wrong. Your user account that you are authenticated with doesn\'t exist anymore.');
                     if ($this->_isRest) {
-                        $this->RestResponse->throwException(
+                        echo $this->RestResponse->throwException(
                             401,
                             $message
                         );
@@ -400,7 +367,7 @@ class AppController extends Controller
                         $this->Flash->info($message);
                     }
                     $this->Auth->logout();
-                    $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+                    $this->_redirectToLogin();
                 }
                 if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login', $base_dir.'/users/downloadTerms')))) {
                     //if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
@@ -460,7 +427,7 @@ class AppController extends Controller
                 $this->Log->create();
                 $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
                 if (($this->request->is('post') || $this->request->is('put')) && !empty(Configure::read('MISP.log_paranoid_include_post_body'))) {
-                    $payload = $this->request->data;
+                    $payload = $this->request->input();
                     if (!empty($payload['_Token'])) {
                         unset($payload['_Token']);
                     }
@@ -496,15 +463,43 @@ class AppController extends Controller
             }
         }
 
-        $this->debugMode = 'debugOff';
-        if (Configure::read('debug') > 1) {
-            $this->debugMode = 'debugOn';
-        }
         $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-        $this->set('debugMode', $this->debugMode);
-        $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+        if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
+            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+        } else {
+            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+        }
         $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
+        $this->__rateLimitCheck();
+    }
+
+    private function __rateLimitCheck()
+    {
+        $info = array();
+        $rateLimitCheck = $this->RateLimit->check(
+            $this->Auth->user(),
+            $this->request->params['controller'],
+            $this->action,
+            $this->{$this->modelClass},
+            $info,
+            $this->response->type()
+        );
+        if (!empty($info)) {
+            $this->RestResponse->setHeader('X-Rate-Limit-Limit', $info['limit']);
+            $this->RestResponse->setHeader('X-Rate-Limit-Remaining', $info['remaining']);
+            $this->RestResponse->setHeader('X-Rate-Limit-Reset', $info['reset']);
+        }
+        if ($rateLimitCheck !== true) {
+            $this->response->header('X-Rate-Limit-Limit', $info['limit']);
+            $this->response->header('X-Rate-Limit-Remaining', $info['remaining']);
+            $this->response->header('X-Rate-Limit-Reset', $info['reset']);
+            $this->response->body($rateLimitCheck);
+            $this->response->statusCode(429);
+            $this->response->send();
+            $this->_stop();
+        }
+        return true;
     }
 
     public function afterFilter()
@@ -530,6 +525,50 @@ class AppController extends Controller
         $this->set('flags', JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         $this->response->type('json');
         $this->render('/Servers/json/simple');
+    }
+
+    /*
+     * Configure the debugMode view parameter
+     */
+    protected function _setupDebugMode() {
+        $this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
+    }
+
+    /*
+     * Setup & validate the database connection configuration
+     * @throws Exception if the configured database is not supported.
+     */
+    protected function _setupDatabaseConnection() {
+        // check for a supported datasource configuration
+        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+        if (!isset($dataSourceConfig['encoding'])) {
+            $db = ConnectionManager::getDataSource('default');
+            $db->setConfig(array('encoding' => 'utf8'));
+            ConnectionManager::create('default', $db->config);
+        }
+        $dataSource = $dataSourceConfig['datasource'];
+        if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
+            throw new Exception('datasource not supported: ' . $dataSource);
+        }
+    }
+
+    /*
+     * Sanitize the configured `MISP.baseurl` and expose it to the view as `baseurl`.
+     */
+    protected function _setupBaseurl() {
+        // Let us access $baseurl from all views
+        $baseurl = Configure::read('MISP.baseurl');
+        if (substr($baseurl, -1) == '/') {
+            // if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
+            $baseurl = rtrim($baseurl, '/');
+            $this->loadModel('Server');
+            $this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
+        }
+        if (trim($baseurl) == 'http://') {
+            $this->Server->serverSettingsSaveValue('MISP.baseurl', '');
+        }
+        $this->baseurl = $baseurl;
+        $this->set('baseurl', h($baseurl));
     }
 
     private function __convertEmailToName($email)
@@ -916,7 +955,6 @@ class AppController extends Controller
 
     private function __preAuthException($message)
     {
-        $this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
         $this->set('me', array());
         throw new ForbiddenException($message);
     }
@@ -1027,4 +1065,28 @@ class AppController extends Controller
             Configure::write('Session', $session);
         }
     }
+
+    private function _redirectToLogin() {
+        $targetRoute = $this->Auth->loginAction;
+        $targetRoute['admin'] = false;
+        $this->redirect($targetRoute);
+    }
+
+    protected function _loadAuthenticationPlugins() {
+        // load authentication plugins from Configure::read('Security.auth')
+        $auth = Configure::read('Security.auth');
+
+        if (!$auth) return;
+
+        $this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+        if ($this->Auth->startup($this)) {
+            $user = $this->Auth->user();
+            if ($user) {
+                // User found in the db, add the user info to the session
+                $this->Session->renew();
+                $this->Session->write(AuthComponent::$sessionKey, $user);
+            }
+        }
+    }
+
 }

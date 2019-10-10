@@ -148,6 +148,14 @@
                         'url' => '/users/view/me'
                     ),
                     array(
+                        'text' => __('My Settings'),
+                        'url' => '/user_settings/index/user_id:me'
+                    ),
+                    array(
+                        'text' => __('Set Setting'),
+                        'url' => '/user_settings/setSetting'
+                    ),
+                    array(
                         'text' => __('Dashboard'),
                         'url' => '/users/dashboard'
                     ),
@@ -188,7 +196,7 @@
                         'requirement' => $isAdmin
                     ),
                     array(
-                        'text' => __('Decaying Models'),
+                        'text' => __('List Decaying Models'),
                         'url' => '/decayingModel/index',
                     ),
                     array(
@@ -269,6 +277,14 @@
                     array(
                         'text' => __('List Users'),
                         'url' => '/admin/users/index'
+                    ),
+                    array(
+                        'text' => __('List User Settings'),
+                        'url' => '/user_settings/index/user_id:all'
+                    ),
+                    array(
+                        'text' => __('Set User Setting'),
+                        'url' => '/user_settings/setSetting'
                     ),
                     array(
                         'text' => __('Add User'),
