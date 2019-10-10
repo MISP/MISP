@@ -21,4 +21,3 @@ App::uses('AppHelper', 'View/Helper');
             return '';
         }
     }
-?>
