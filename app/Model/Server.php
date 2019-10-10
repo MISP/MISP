@@ -2671,11 +2671,11 @@ class Server extends AppModel
         } elseif ("incremental" == $technique) {
             $eventid_conditions_key = 'Event.id >';
             $eventid_conditions_value = $this->data['Server']['lastpushedid'];
-        } elseif (true == $technique) {
+        } elseif (intval($technique) !== 0) {
             $eventid_conditions_key = 'Event.id';
             $eventid_conditions_value = intval($technique);
         } else {
-            $this->redirect(array('action' => 'index'));
+            throw new InvalidArgumentException("Technique parameter must be 'full', 'incremental' or event ID.");
         }
         $sgs = $this->Event->SharingGroup->find('all', array(
             'recursive' => -1,
@@ -2683,13 +2683,11 @@ class Server extends AppModel
         ));
         $sgIds = array();
         foreach ($sgs as $k => $sg) {
-            if (!$this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
-                unset($sgs[$k]);
-                continue;
+            if ($this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
+                $sgIds[] = $sg['SharingGroup']['id'];
             }
-            $sgIds[] = $sg['SharingGroup']['id'];
         }
-        if (!isset($sgIds) || empty($sgIds)) {
+        if (empty($sgIds)) {
             $sgIds = array(-1);
         }
         $findParams = array(
