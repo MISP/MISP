@@ -1,6 +1,10 @@
 <?php
 if (!$isSiteAdmin) exit();
 $completeUpdateRemaining = $updateProgress['complete_update_remaining'];
+$towardDbVersion = $updateProgress['toward_db_version'];
+$updateLocked = $updateProgress['update_locked'];
+$lockRemainingTime = $updateProgress['lock_remaining_time'];
+$updateFailNumberReached = $updateProgress['update_fail_number_reached'];
 if ($updateProgress['total'] !== 0 ) {
     $percentageFail = floor(count($updateProgress['failed_num']) / $updateProgress['total']*100);
     $percentage = floor(($updateProgress['current']) / $updateProgress['total']*100);
@@ -18,6 +22,28 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 <?php if (!$ajaxHtml): ?>
 <div class="servers form">
 <?php endif; ?>
+
+<?php if ($updateLocked && $updateFailNumberReached): ?>
+    <div style="width: 55%;margin: 20px auto" class="alert alert-danger">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        <div style="display:flex;flex-direction: row;justify-content: space-between;">
+            <span>
+                <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Update are locked due to to many update fails'); ?></h5>
+                <i>(<?php echo sprintf(__('unlock in %smin %ssec'), '<span id="unlock_remaining_time_min">-</span>', '<span id="unlock_remaining_time_sec">-</span>'); ?>)</i>
+            </span>
+            <span>
+                <?php 
+                    echo $this->Form->postButton('<i class="fa fa-lock-open"></i> ' . __('Release update lock'), $baseurl . '/servers/releaseUpdateLock', array(
+                        'style' => 'margin: 0px 0px;',
+                        'class' => 'btn btn-danger',
+                        'escape' => false
+                    ));
+                ?>
+            </span>
+        </div>
+    </div>
+<?php endif; ?>
+
 <?php if ($completeUpdateRemaining != 0): ?>
     <div style="width: 55%;margin: 20px auto;background-color: white;" class="panel-container completeUpdateRemainingContainer">
         <h3>
@@ -29,7 +55,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 
     <div style="width: 55%;margin: 0 auto;">
         <?php if (count($updateProgress['commands']) > 0): ?>
-            <h3><?php echo(sprintf(__('Database Update progress for update %s'), h($updateProgress['toward_db_version'])));?></h3>
+            <h3><?php echo(sprintf(__('Database Update progress for update %s'), h($towardDbVersion)));?></h3>
             <div class="" style="max-width: 1000px;">
 
                 <div>
@@ -45,7 +71,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
                     <div id="pb-fail" class="bar" style="width: <?php echo h($percentageFail);?>%; background-color: #ee5f5b;"></div>
                 </div>
 
-                <table class="table table-bordered table-stripped updateProgressTable" data-towarddbversion="<?php echo h($updateProgress['toward_db_version']); ?>">
+                <table class="table table-bordered table-stripped updateProgressTable" data-towarddbversion="<?php echo h($towardDbVersion); ?>">
                     <thead>
                         <tr>
                             <th></th>
@@ -181,14 +207,22 @@ if (!$ajaxHtml) {
     var updateProgress = <?php echo json_encode($updateProgress); ?>;
     var urlGetProgress = "<?php echo $baseurl; ?>/servers/updateProgress";
     var checkboxLabel = "<?php echo __('Follow updates'); ?>";
-    // pooler = new TaskScheduler(update_state, { container: 'followUpdateSwitchContainer', checkboxLabel: checkboxLabel});
-    // pooler.start();
-    // if (pooler !== undefined) {
+    $(document).ready(function() {
+        var lockRemainingTimeSeconds = "<?php echo h($lockRemainingTime); ?>";
+        var timer = setInterval(function() {
+            lockRemainingTimeSeconds--;
+            var parsedTime = parseRemainingTime(lockRemainingTimeSeconds)
+            $('#unlock_remaining_time_min').text(parsedTime.mins);
+            $('#unlock_remaining_time_sec').text(parsedTime.secs);
+        }, 1000);
+    });
 
-    //     // Need to fix this! redraw probably?
-    //     // Also, animation is not playing with fast timer 
-    //     pooler.stop();
-    //     pooler = new TaskScheduler(update_state, { container: 'followUpdateSwitchContainer', checkboxLabel: checkboxLabel});
-    //     pooler.start();
-    // }
+    function parseRemainingTime(seconds) {
+        return {
+            days : Math.floor(seconds / (60 * 60 * 24)),
+            hours: Math.floor((seconds % (60 * 60 * 24)) / (60 * 60)),
+            mins : Math.floor((seconds % (60 * 60)) / (60)),
+            secs : Math.floor((seconds % (60))),
+        }
+    }
 </script>

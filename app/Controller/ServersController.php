@@ -1692,6 +1692,9 @@ class ServersController extends AppController
         $update_progress['db_version'] = $db_version;
         $max_update_number = max(array_keys($this->Server->db_changes));
         $update_progress['complete_update_remaining'] = $max_update_number - $db_version;
+        $update_progress['update_locked'] = $this->Server->isUpdateLocked();
+        $update_progress['lock_remaining_time'] = $this->Server->getLockRemainingTime();
+        $update_progress['update_fail_number_reached'] = $this->Server->UpdateFailNumberReached();
         $current_index = $update_progress['current'];
         $current_command = !isset($update_progress['commands'][$current_index]) ? '' : $update_progress['commands'][$current_index];
         $lookup_string = preg_replace('/\s{2,}/', '', substr($current_command, 0, -1));
@@ -2167,5 +2170,17 @@ misp.direct_call(relative_path, body)
             $message = __('Priority could not be changed.');
             return $this->RestResponse->saveFailResponse('Servers', 'changePriority', $id, $message, $this->response->type());
         }
+    }
+
+    public function releaseUpdateLock()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint expects POST requests.'));
+        }
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(__('Site admin accounts cannot be used to release the update lock.'));
+        }
+        $this->Server->changeLockState(false);
+        $this->redirect(array('action' => 'updateProgress'));
     }
 }

@@ -2394,3 +2394,7 @@ table tr:hover .down-expand-button {
 #notice_message {
    margin: 10px;
 }
+
+.alert form {
+    margin: 0 0;
+}

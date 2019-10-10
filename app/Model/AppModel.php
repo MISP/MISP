@@ -91,6 +91,11 @@ class AppModel extends Model
             'title' => 'Database Cleanup Scripts',
             'description' => 'If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.',
             'url' => '/logs/pruneUpdateLogs/'
+        ),
+        'releaseUpdateLock' => array(
+            'title' => 'Release update lock',
+            'description' => 'If your your database is locked and is not updating, unlock it here.',
+            'url' => '/servers/releaseUpdateLock/'
         )
     );
 
@@ -1677,7 +1682,7 @@ class AppModel extends Model
                     }
                     return true;
                 }
-                $this->__changeLockState(time());
+                $this->changeLockState(time());
 
                 $update_done = 0;
                 foreach ($updates as $update => $temp) {
@@ -1708,10 +1713,7 @@ class AppModel extends Model
                 if (!empty($job)) {
                     $job['Job']['message'] = __('Update done');
                 }
-                $fail_number = $this->__getUpdateFailNumber();
-                if ($fail_number < 3) { // Do not release the lock if update failed more than 3 time
-                    $this->__changeLockState(false);
-                }
+                $this->changeLockState(false);
                 $this->__queueCleanDB();
             } else {
                 if (!empty($job)) {
@@ -1820,7 +1822,7 @@ class AppModel extends Model
         $this->AdminSetting->changeSetting('update_progress', $data);
     }
 
-    private function __changeLockState($locked)
+    public function changeLockState($locked)
     {
         $this->AdminSetting->changeSetting('update_locked', $locked);
     }
@@ -1857,7 +1859,8 @@ class AppModel extends Model
     public function isUpdateLocked()
     {
         $remainingTime = $this->getLockRemainingTime();
-        return $remainingTime > 0;
+        $failThresholdReached = $this->UpdateFailNumberReached();
+        return $remainingTime > 0 || $failThresholdReached;
     }
 
     public function getUpdateFailNumber()
@@ -1867,17 +1870,22 @@ class AppModel extends Model
         return ($update_fail_number !== false && $update_fail_number !== '') ? $update_fail_number : 0;
     }
 
-    public function resetUpdateFailNumber()
+    public function __resetUpdateFailNumber()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->AdminSetting->changeSetting('update_fail_number', 0);
     }
 
-    public function increaseUpdateFailNumber()
+    public function __increaseUpdateFailNumber()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $update_fail_number = $this->AdminSetting->getSetting('update_fail_number');
         $this->AdminSetting->changeSetting('update_fail_number', $update_fail_number+1);
+    }
+
+    public function UpdateFailNumberReached()
+    {
+        return $this->getUpdateFailNumber() > 3;
     }
 
     private function __queueCleanDB()
