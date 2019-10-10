@@ -471,7 +471,9 @@ class AppController extends Controller
         }
         $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
-        $this->__rateLimitCheck();
+        if ($this->_isRest()) {
+            $this->__rateLimitCheck();
+        }
     }
 
     private function __rateLimitCheck()
