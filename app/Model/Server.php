@@ -4694,23 +4694,16 @@ class Server extends AppModel
         return 2;
     }
 
-
-    /* returns an array with the events
-     * error codes:
-     * 1: received non json response
-     * 2: no route to host
-     * 3: empty result set
+    /**
+     * Returns an array with the events
+     * @param int $id
+     * @param $user - not used
+     * @param array $passedArgs
+     * @return array
+     * @throws Exception
      */
-    public function previewIndex($id, $user, $passedArgs, &$total_count = 0)
+    public function previewIndex($id, $user, array $passedArgs)
     {
-        $server = $this->find('first', array(
-            'conditions' => array('Server.id' => $id),
-        ));
-        if (empty($server)) {
-            return 2;
-        }
-        $HttpSocket = $this->setupHttpSocket($server);
-        $request = $this->setupSyncRequest($server);
         $validArgs = array_merge(array('sort', 'direction', 'page', 'limit'), $this->validEventIndexFilters);
         $urlParams = '';
         foreach ($validArgs as $v) {
@@ -4718,80 +4711,56 @@ class Server extends AppModel
                 $urlParams .= '/' . $v . ':' . $passedArgs[$v];
             }
         }
-        $uri = $server['Server']['url'] . '/events/index' . $urlParams;
-        $response = $HttpSocket->get($uri, $data = '', $request);
-        if (!empty($response->headers['X-Result-Count'])) {
-            $temp = $response->headers['X-Result-Count'];
-            $total_count = $temp;
-        }
-        if ($response->code == 200) {
-            try {
-                $events = json_decode($response->body, true);
-            } catch (Exception $e) {
-                return 1;
+
+        $relativeUri = '/events/index' . $urlParams;
+        list($events, $response) = $this->serverGetRequest($id, $relativeUri);
+        $totalCount = $response->getHeader('X-Result-Count') ?: 0;
+
+        foreach ($events as $k => $event) {
+            if (!isset($event['Orgc'])) {
+                $event['Orgc']['name'] = $event['orgc'];
             }
-            if (!empty($events)) {
-                foreach ($events as $k => $event) {
-                    if (!isset($event['Orgc'])) {
-                        $event['Orgc']['name'] = $event['orgc'];
-                    }
-                    if (!isset($event['Org'])) {
-                        $event['Org']['name'] = $event['org'];
-                    }
-                    if (!isset($event['EventTag'])) {
-                        $event['EventTag'] = array();
-                    }
-                    $events[$k] = array('Event' => $event);
-                }
-            } else {
-                return 3;
+            if (!isset($event['Org'])) {
+                $event['Org']['name'] = $event['org'];
             }
-            return $events;
+            if (!isset($event['EventTag'])) {
+                $event['EventTag'] = array();
+            }
+            $events[$k] = array('Event' => $event);
         }
-        return 2;
+
+        return array($events, $totalCount);
     }
 
-    /* returns an array with the events
-     * error codes:
-     * 1: received non-json response
-     * 2: no route to host
+    /**
+     * Returns an array with the event.
+     * @param int $serverId
+     * @param int $eventId
+     * @return array
+     * @throws Exception
      */
     public function previewEvent($serverId, $eventId)
     {
-        $server = $this->find('first', array(
-                'conditions' => array('Server.id' => $serverId),
-        ));
-        if (empty($server)) {
-            return 2;
+        $relativeUri =  '/events/' . $eventId;
+        list($event) = $this->serverGetRequest($serverId, $relativeUri);
+
+        if (!isset($event['Event']['Orgc'])) {
+            $event['Event']['Orgc']['name'] = $event['Event']['orgc'];
         }
-        $HttpSocket = $this->setupHttpSocket($server);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/events/' . $eventId;
-        $response = $HttpSocket->get($uri, $data = '', $request);
-        if ($response->code == 200) {
-            try {
-                $event = json_decode($response->body, true);
-            } catch (Exception $e) {
-                return 1;
-            }
-            if (!isset($event['Event']['Orgc'])) {
-                $event['Event']['Orgc']['name'] = $event['Event']['orgc'];
-            }
-            if (isset($event['Event']['Orgc'][0])) {
-                $event['Event']['Orgc'] = $event['Event']['Orgc'][0];
-            }
-            if (!isset($event['Event']['Org'])) {
-                $event['Event']['Org']['name'] = $event['Event']['org'];
-            }
-            if (isset($event['Event']['Org'][0])) {
-                $event['Event']['Org'] = $event['Event']['Org'][0];
-            }
-            if (!isset($event['Event']['EventTag'])) {
-                $event['Event']['EventTag'] = array();
-            }
-            return $event;
+        if (isset($event['Event']['Orgc'][0])) {
+            $event['Event']['Orgc'] = $event['Event']['Orgc'][0];
         }
-        return 2;
+        if (!isset($event['Event']['Org'])) {
+            $event['Event']['Org']['name'] = $event['Event']['org'];
+        }
+        if (isset($event['Event']['Org'][0])) {
+            $event['Event']['Org'] = $event['Event']['Org'][0];
+        }
+        if (!isset($event['Event']['EventTag'])) {
+            $event['Event']['EventTag'] = array();
+        }
+
+        return $event;
     }
 
     // Loops through all servers and checks which servers' push rules don't conflict with the given event.
@@ -5350,5 +5319,52 @@ class Server extends AppModel
             $success = $success && $result;
         }
         return $success;
+    }
+
+    /**
+     * @param int $serverId
+     * @param string $relativeUri
+     * @param HttpSocket|null $HttpSocket
+     * @return array
+     * @throws Exception
+     */
+    private function serverGetRequest($serverId, $relativeUri, HttpSocket $HttpSocket = null)
+    {
+        $server = $this->find('first', array(
+            'conditions' => array('Server.id' => $serverId),
+        ));
+        if ($server === null) {
+            throw new Exception("Server with ID '$serverId' not found.");
+        }
+
+        if (!$HttpSocket) {
+            $HttpSocket = $this->setupHttpSocket($server);
+        }
+        $request = $this->setupSyncRequest($server);
+
+        $uri = $server['Server']['url'] . $relativeUri;
+        $response = $HttpSocket->get($uri, array(), $request);
+
+        if ($response === false) {
+            throw new Exception("Could not reach '$uri'.");
+        } else if ($response->code == 404) { // intentional !=
+            throw new NotFoundException("Fetching the '$uri' failed with HTTP error 404: Not Found");
+        } else if ($response->code == 405) { // intentional !=
+            $responseText = json_decode($response->body, true);
+            if ($responseText !== null) {
+                throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$responseText['message']}");
+            }
+        }
+
+        if ($response->code != 200) { // intentional !=
+            throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+        }
+
+        $data = json_decode($response->body, true);
+        if ($data === null) {
+            throw new Exception('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
+        }
+
+        return array($data, $response);
     }
 }
