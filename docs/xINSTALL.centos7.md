@@ -117,9 +117,10 @@ sudo systemctl enable --now redis.service
 ------------
 ```bash
 # Download MISP using git in the /var/www/ directory.
-sudo mkdir $PATH_TO_MISP
-sudo chown ${WWW_USER}:${WWW_USER} $PATH_TO_MISP
-cd /var/www
+PATH_TO_MISP="/var/www/MISP"
+sudo mkdir -p $(dirname $PATH_TO_MISP)
+sudo chown ${WWW_USER}:${WWW_USER} ($dirname $PATH_TO_MISP)
+cd $(dirname $PATH_TO_MISP)
 $SUDO_WWW git clone https://github.com/MISP/MISP.git
 cd $PATH_TO_MISP
 ##$SUDO_WWW git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
@@ -181,7 +182,7 @@ $SUDO_WWW scl enable devtoolset-7 'bash -c "cmake3 \
 -DCMAKE_INSTALL_PREFIX=$LIEF_INSTALL \
 -DCMAKE_BUILD_TYPE=Release \
 -DPYTHON_VERSION=3.6 \
--DPYTHON_EXECUTABLE=/var/www/MISP/venv/bin/python \
+-DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
 .."'
 $SUDO_WWW make -j3
 sudo make install
@@ -535,7 +536,7 @@ then
 fi
 
 # TODO: Fix static path with PATH_TO_MISP
-sudo sed -i -e '$i \su -s /bin/bash apache -c "scl enable rh-php72 /var/www/MISP/app/Console/worker/start.sh" > /tmp/worker_start_rc.local.log\n' /etc/rc.local
+sudo sed -i -e '$i \su -s /bin/bash apache -c "scl enable rh-php72 $PATH_TO_MISP/app/Console/worker/start.sh" > /tmp/worker_start_rc.local.log\n' /etc/rc.local
 # Make sure it will execute
 sudo chmod +x /etc/rc.local
 
@@ -566,7 +567,7 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/py
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 
 # TODO: Fix static path with PATH_TO_MISP
-sudo sed -i -e '$i \sudo -u apache /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u apache $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
 ```
 
 {!generic/misp-dashboard-centos.md!}

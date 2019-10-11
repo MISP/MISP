@@ -197,10 +197,11 @@ sudo systemctl enable --now haveged.service
 ```bash
 # <snippet-begin 1_mispCoreInstall_RHEL.sh>
 installCoreRHEL () {
-  # Download MISP using git in the /var/www/ directory.
-  sudo mkdir $PATH_TO_MISP
-  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP
-  cd /var/www
+  # Download MISP using git in the $PATH_TO_MISP directory.
+  PATH_TO_MISP="/var/www/MISP"
+  sudo mkdir -p $(dirname $PATH_TO_MISP)
+  sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
+  cd $(dirname $PATH_TO_MISP)
   $SUDO_WWW git clone https://github.com/MISP/MISP.git
   cd $PATH_TO_MISP
   ##$SUDO_WWW git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
@@ -283,7 +284,7 @@ installCoreRHEL () {
   fi
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
-  echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
+  echo $PATH_TO_MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee $PATH_TO_MISP/venv/lib/python3.6/site-packages/lief.pth
 
   # install magic, pydeep
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
@@ -361,10 +362,10 @@ installCake_RHEL ()
 # Main function to fix permissions to something sane
 permissions_RHEL () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
-  ## ? chown -R root:$WWW_USER /var/www/MISP
+  ## ? chown -R root:$WWW_USER $PATH_TO_MISP
   sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
   sudo chmod -R g+r,o= $PATH_TO_MISP
-  ## **Note :** For updates through the web interface to work, apache must own the /var/www/MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
+  ## **Note :** For updates through the web interface to work, apache must own the $PATH_TO_MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
   sudo chmod -R 750 $PATH_TO_MISP
   sudo chmod -R g+xws $PATH_TO_MISP/app/tmp
   sudo chmod -R g+ws $PATH_TO_MISP/app/files
@@ -530,7 +531,7 @@ firewall_RHEL () {
 
 ### 8/ Log Rotation
 ## 8.01/ Enable log rotation
-MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
+MISP saves the stdout and stderr of its workers in $PATH_TO_MISP/app/tmp/logs
 To rotate these logs install the supplied logrotate script:
 
 FIXME: The below does not work
@@ -546,12 +547,12 @@ logRotation_RHEL () {
 
   # Now make logrotate work under SELinux as well
   # Allow logrotate to modify the log files
-  sudo semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/MISP(/.*)?"
+  sudo semanage fcontext -a -t httpd_sys_rw_content_t "$PATH_TO_MISP(/.*)?"
   sudo semanage fcontext -a -t httpd_log_t "$PATH_TO_MISP/app/tmp/logs(/.*)?"
   sudo chcon -R -t httpd_log_t $PATH_TO_MISP/app/tmp/logs
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp/logs
   # Impact of the following: ?!?!?!!?111
-  ##sudo restorecon -R /var/www/MISP/
+  ##sudo restorecon -R $PATH_TO_MISP
 
   # Allow logrotate to read /var/www
   sudo checkmodule -M -m -o /tmp/misplogrotate.mod $PATH_TO_MISP/INSTALL/misplogrotate.te
@@ -670,14 +671,14 @@ configWorkersRHEL () {
   Type=forking
   User=$WWW_USER
   Group=$WWW_USER
-  ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh
+  ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb102 $PATH_TO_MISP/app/Console/worker/start.sh
   Restart=always
   RestartSec=10
 
   [Install]
   WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-workers.service
 
-  sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
+  sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
   sudo systemctl daemon-reload
 
   sudo systemctl enable --now misp-workers.service
