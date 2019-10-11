@@ -42,10 +42,10 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 ```bash
 # <snippet-begin 0_RHEL_PHP_INI.sh>
 # RHEL/CentOS Specific
-RUN_PHP='/usr/bin/scl enable rh-php72'
-SUDO_WWW='sudo -H -u apache'
-WWW_USER='apache'
+WWW_USER="apache"
+SUDO_WWW="sudo -H -u $WWW_USER"
 
+RUN_PHP='/usr/bin/scl enable rh-php72'
 PHP_INI=/etc/opt/rh/rh-php72/php.ini
 # <snippet-end 0_RHEL_PHP_INI.sh>
 ```

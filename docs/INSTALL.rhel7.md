@@ -158,6 +158,8 @@ yumInstallCoreDeps () {
   # Enable and start redis
   sudo systemctl enable --now rh-redis32-redis.service
 
+  WWW_USER="apache"
+  SUDO_WWW="sudo -H -u $WWW_USER"
   RUN_PHP="/usr/bin/scl enable rh-php72"
   PHP_INI="/etc/opt/rh/rh-php72/php.ini"
   # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
@@ -359,7 +361,7 @@ installCake_RHEL ()
 # Main function to fix permissions to something sane
 permissions_RHEL () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
-  ## ? chown -R root:apache /var/www/MISP
+  ## ? chown -R root:$WWW_USER /var/www/MISP
   sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
   sudo chmod -R g+r,o= $PATH_TO_MISP
   ## **Note :** For updates through the web interface to work, apache must own the /var/www/MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
@@ -665,8 +667,8 @@ configWorkersRHEL () {
 
   [Service]
   Type=forking
-  User=apache
-  Group=apache
+  User=$WWW_USER
+  Group=$WWW_USER
   ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh
   Restart=always
   RestartSec=10
