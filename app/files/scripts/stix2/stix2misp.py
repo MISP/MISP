@@ -99,8 +99,11 @@ class StixParser():
             for ref in report.object_refs:
                 object_type, uuid = ref.split('--')
                 if object_type not in special_parsing and object_type not in galaxy_types:
-                    object2parse = self.event[object_type][uuid]
-                    self.parsing_process(object2parse, object_type)
+                    try:
+                        object2parse = self.event[object_type][uuid]
+                        self.parsing_process(object2parse, object_type)
+                    except KeyError:
+                        continue
         if len(report_attributes['orgs']) == 1:
             identity = self.event['identity'][report_attributes['orgs'].pop()]
             self.misp_event['Org'] = {'name': identity['name']}
