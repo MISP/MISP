@@ -4308,6 +4308,9 @@ class Attribute extends AppModel
         }
         if (isset($filters['limit'])) {
             $params['limit'] = $filters['limit'];
+            if (!isset($filters['page'])) {
+                $filters['page'] = 1;
+            }
         }
         if (isset($filters['page'])) {
             $params['page'] = $filters['page'];

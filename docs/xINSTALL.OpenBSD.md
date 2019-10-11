@@ -250,18 +250,8 @@ doas virtualenv -ppython3 /usr/local/virtualenvs/MISP
 ```
 
 #### Install ssdeep
-```
-doas mkdir /usr/local/src
-doas chown misp:misp /usr/local/src
-cd /usr/local/src
-doas -u misp git clone https://github.com/ssdeep-project/ssdeep.git
-cd ssdeep
-export AUTOMAKE_VERSION=1.16
-export AUTOCONF_VERSION=2.69
-doas -u misp ./bootstrap
-doas -u misp ./configure --prefix=/usr
-doas -u misp make
-doas make install
+```bash
+doas pkg_add -v ssdeep
 ```
 
 #### Apache2 only
