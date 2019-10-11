@@ -439,6 +439,7 @@ class AppController extends Controller
             $this->set('mispVersionFull', $this->mispVersion);
             $role = $this->getActions();
             $this->set('me', $this->Auth->user());
+            $this->set('loggedInUserName', $this->loggedInUserName($this->Auth->user()));
             $this->set('isAdmin', $role['perm_admin']);
             $this->set('isSiteAdmin', $role['perm_site_admin']);
             $this->set('hostOrgUser', $this->Auth->user('org_id') == Configure::read('MISP.host_org_id'));
@@ -504,7 +505,6 @@ class AppController extends Controller
             }
         }
 
-        $this->set('loggedInUserName', $this->loggedInUserName($this->Auth->user('email')));
         if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
             $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
         } else {
@@ -623,7 +623,7 @@ class AppController extends Controller
         $this->set('baseurl', h($baseurl));
     }
 
-    private function loggedInUserName($user)
+    private function loggedInUserName(array $user)
     {
         if (Configure::read('LdapAuth.enabled') && !empty($user['ldap_dn'])) {
             return ldap_explode_dn($user['ldap_dn'], 1)[0];
