@@ -39,13 +39,16 @@ function update_state(hard_reload) {
                 $('div.servers.form').html(html);
                 pooler.start();
                 pooler.unthrottle();
-                pooler.createSwitch();
+                pooler.createSwitch(); // previous switch was destroyed by .html()
             }
         });
     } else {
         $.getJSON(urlGetProgress, function(data) {
             var toward_db_version = parseInt($('table.updateProgressTable').data('towarddbversion'));
-            if (parseInt(data['toward_db_version']) != toward_db_version) {
+            if (data['toward_db_version'] === undefined) {
+                pooler.throttle();
+                return;
+            } else if (parseInt(data['toward_db_version']) != toward_db_version) {
                 update_state(true);
                 return;
             }

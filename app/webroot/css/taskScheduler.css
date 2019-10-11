@@ -69,9 +69,9 @@
     box-shadow: 0 0 1px #2196F3;
 }
 .toggle-switch-wrapper > input:checked + label > .toggle-switch-handle {
-    -webkit-transform: translateX(calc(1em));
-    -ms-transform: translateX(calc(1em));
-    transform: translateX(calc(1em));
+    -webkit-transform: translateX(1em);
+    -ms-transform: translateX(1em);
+    transform: translateX(1em);
 }
 .toggle-switch-animate-execution {
     animation-name: toggleSwitchAnimateExecution;

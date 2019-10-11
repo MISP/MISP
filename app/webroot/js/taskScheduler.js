@@ -15,7 +15,7 @@
         var default_config = {
             interval: 300,                  // Interval between each task execution
             slowInterval: 3000,             // Interval between each task execution when the task is throttled
-            autoThrottle: true,            // If the task fails (i.e. return false), engage a slow throtlle - WIP
+            autoThrottle: false,            // If the task fails (i.e. return false), engage a slow throtlle - WIP
             checkboxLink: false,            // Link the provided checkbox to the task. The link is done if jQuery object or ID is provided
             container: false,               // Insert an HTML switch and link it to the task
             checkboxLabel: '',              // The label accompanying the switch
@@ -57,14 +57,17 @@
             this.backup_interval = this.config.interval;
         },
 
-        start: function(arrayParameters) {
+        start: function(arrayParameters, immediate) {
+            immediate = immediate === undefined ? true  : immediate;
             var that = this;
             if (!this.taskRunning) {
                 if (!this.checkbox.checked) {
                     this.checkbox.checked = true;
                 }
                 this.taskRunning = true;
-                that._start(arrayParameters);
+                if (immediate) {
+                    that._start(arrayParameters);
+                }
                 this.taskScheduled = true;
                 this.interval = setInterval(function() {
                     this.taskScheduled = false;
@@ -88,6 +91,13 @@
                 this.backup_parameters = false;
                 taskResult = this.task();
             }
+            if (this.config.autoThrottle) {
+                if (taskResult === false) {
+                    this.throttle();
+                } else if (taskResult === true) {
+                    this.unthrottle();
+                }
+            }
         },
 
         stop: function() {
@@ -108,12 +118,13 @@
             }
         },
 
-        restartTask: function() {
+        restartTask: function(immediate) {
+            immediate = immediate === undefined ? true  : immediate;
             this.stop();
             if (this.backup_parameters !== false) {
-                this.start(this.backup_parameters);
+                this.start(this.backup_parameters, immediate);
             } else {
-                this.start();
+                this.start(undefined, immediate);
             }
         },
 
@@ -151,7 +162,7 @@
         setConfig: function(newConfig) {
             if (this.configHasChanged(newConfig)) {
                 this.config = $.extend(true, {}, this.config, newConfig);
-                this.restartTask();
+                this.restartTask(false);
             }
         },
 
