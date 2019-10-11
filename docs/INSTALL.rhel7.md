@@ -325,19 +325,16 @@ installCake_RHEL ()
   ## sudo yum install php-redis -y
   sudo scl enable rh-php72 'pecl channel-update pecl.php.net'
   sudo scl enable rh-php72 'yes no|pecl install redis'
-  echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
-  sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
+  echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-redis.ini
 
   # Install gnupg extension
   sudo yum install gpgme-devel -y
   sudo scl enable rh-php72 'pecl install gnupg'
-  echo "extension=gnupg.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/gnupg.ini
-  sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/gnupg.ini /etc/opt/rh/rh-php72/php.d/99-gnupg.ini
+  echo "extension=gnupg.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-gnupg.ini
   sudo systemctl restart rh-php72-php-fpm.service
 
   # If you have not yet set a timezone in php.ini
-  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/timezone.ini
-  sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php72/php.d/99-timezone.ini
+  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/rh/rh-php72/php.d/timezone.ini
 
   # Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
   # max_execution_time = 300

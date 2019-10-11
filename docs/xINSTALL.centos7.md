@@ -232,8 +232,7 @@ sudo yum install php-redis -y
 sudo systemctl restart rh-php72-php-fpm.service
 
 # If you have not yet set a timezone in php.ini
-echo 'date.timezone = "Europe/Luxembourg"' |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/timezone.ini
-sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php72/php.d/99-timezone.ini
+echo 'date.timezone = "Europe/Luxembourg"' |sudo tee /etc/opt/rh/rh-php72/php.d/99-timezone.ini
 
 # Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
 # max_execution_time = 300
