@@ -378,20 +378,18 @@ cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.cr
 sudo systemctl restart httpd.service
 
 # Since SELinux is enabled, we need to allow httpd to write to certain directories
-sudo chcon -t usr_t $PATH_TO_MISP/venv
+sudo chcon -t bin_t $PATH_TO_MISP/venv/bin/*
+find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
 sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files
 sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/terms
 sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/tmp
 sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Plugin/CakeResque/tmp
 sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/cake
-sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/start.sh
-sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmq.py
-sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmqtest.py
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/ps
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/grep
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/awk
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/gpg
-sudo chcon -R -t usr_t $PATH_TO_MISP/venv
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/*.sh
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+# Only run these if you want to be able to update MISP from the web interface
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Lib
