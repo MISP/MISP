@@ -169,10 +169,8 @@ yumInstallCoreDeps () {
                    rh-php72-php-opcache \
                    rh-php72-php-gd -y
 
-  # Install Python 3.6 from SCL, see
-  # https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
-  RUN_PYTHON='/usr/bin/scl enable rh-python36'
-  sudo yum install rh-python36 -y
+  # Python 3.6 is now available in RHEL 7.7 base
+  sudo yum install python3 python3-devel -y
 
   sudo systemctl enable --now rh-php72-php-fpm.service
 }
@@ -217,7 +215,8 @@ installCoreRHEL () {
   $SUDO_WWW git config core.filemode false
 
   # Create a python3 virtualenv
-  $SUDO_WWW $RUN_PYTHON -- virtualenv -p python3 $PATH_TO_MISP/venv
+  sudo pip3 install virtualenv
+  $SUDO_WWW python3 -- virtualenv -p python3 $PATH_TO_MISP/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
@@ -259,7 +258,7 @@ installCoreRHEL () {
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW mkdir build
   cd build
-  $SUDO_WWW scl enable devtoolset-7 rh-python36 "bash -c 'cmake3 \
+  $SUDO_WWW scl enable devtoolset-7 "bash -c 'cmake3 \
   -DLIEF_PYTHON_API=on \
   -DPYTHON_VERSION=3.6 \
   -DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
@@ -291,19 +290,13 @@ installCoreRHEL () {
   cd $PATH_TO_MISP/PyMISP
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
 
-  # Enable python3 for php-fpm
-  echo 'source scl_source enable rh-python36' | sudo tee -a /etc/opt/rh/rh-php72/sysconfig/php-fpm
-  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
-  sudo systemctl restart rh-php72-php-fpm.service
-
-  umask $UMASK
-
   # Enable dependencies detection in the diagnostics page
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
-  # The LD_LIBRARY_PATH setting is needed for rh-git218 to work, one might think to install httpd24 and not just httpd ...
-  echo "env[PATH] = /opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
-  echo "env[LD_LIBRARY_PATH] = /opt/rh/httpd24/root/usr/lib64/" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+  # The LD_LIBRARY_PATH setting is needed for rh-git218 to work
+  echo "env[PATH] = /opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
   sudo systemctl restart rh-php72-php-fpm.service
+  umask $UMASK
 }
 # <snippet-end 1_mispCoreInstall_RHEL.sh>
 ```

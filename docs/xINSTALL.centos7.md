@@ -43,7 +43,6 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 # <snippet-begin 0_RHEL_PHP_INI.sh>
 # RHEL/CentOS Specific
 RUN_PHP='/usr/bin/scl enable rh-php72'
-RUN_PYTHON='/usr/bin/scl enable rh-python36'
 SUDO_WWW='sudo -H -u apache'
 WWW_USER='apache'
 
@@ -96,9 +95,8 @@ sudo yum install gcc git zip \
 # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
 sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache rh-php72-php-gd -y
 
-# Install Python 3.6 from SCL, see
-# https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
-sudo yum install rh-python36 -y
+# Python 3.6 in now available in CentOS 7.7 base
+sudo yum install python3 python3-devel -y
 
 sudo systemctl enable --now rh-php72-php-fpm.service
 ```
@@ -138,7 +136,8 @@ $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 $SUDO_WWW git config core.filemode false
 
 # Create a python3 virtualenv
-$SUDO_WWW $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
+sudo pip3 install virtualenv
+$SUDO_WWW python3 "virtualenv -p python3 $PATH_TO_MISP/venv"
 sudo mkdir /usr/share/httpd/.cache
 sudo chown ${WWW_USER}:${WWW_USER} /usr/share/httpd/.cache
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
@@ -176,7 +175,7 @@ sudo yum install devtoolset-7 cmake3 -y
 cd $PATH_TO_MISP/app/files/scripts/lief
 $SUDO_WWW mkdir build
 cd build
-$SUDO_WWW scl enable devtoolset-7 rh-python36 'bash -c "cmake3 \
+$SUDO_WWW scl enable devtoolset-7 'bash -c "cmake3 \
 -DLIEF_PYTHON_API=on \
 -DLIEF_DOC=off \
 -DCMAKE_INSTALL_PREFIX=$LIEF_INSTALL \
@@ -204,17 +203,13 @@ $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 cd $PATH_TO_MISP/PyMISP
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
-# Enable python3 for php-fpm
-echo 'source scl_source enable rh-python36' | sudo tee -a /etc/opt/rh/rh-php72/sysconfig/php-fpm
+# Enable dependencies detection in the diagnostics page
+# This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
+echo "env[PATH] =/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
 sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
 sudo systemctl restart rh-php72-php-fpm.service
 
 umask $UMASK
-
-# Enable dependencies detection in the diagnostics page
-# This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
-echo "env[PATH] =/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
-sudo systemctl restart rh-php72-php-fpm.service
 ```
 
 ### 4/ CakePHP
