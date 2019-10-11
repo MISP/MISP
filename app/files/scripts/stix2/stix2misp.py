@@ -1442,7 +1442,10 @@ class ExternalStixParser(StixParser):
             try:
                 type_, value = p.split('=')
             except ValueError:
-                type_, value = p.split(' = ')
+                try:
+                    type_, value = p.split(' = ')
+                except ValueError:
+                    type_, value = p.split(' = \'')
             types.append(type_.strip())
             values.append(value.strip().strip('\''))
         return types, values
