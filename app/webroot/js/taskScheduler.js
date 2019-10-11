@@ -4,22 +4,25 @@
 *
 */
 
+// ! Checkbox do not exists anymore due to page reload
+// Why doesnt the task stop
+
 (function(){
     if (window.TaskScheduler !== undefined) {
         return; // already defined
     }
     window.TaskScheduler = function(task, config) {
         var default_config = {
-            interval: 300, // Interval between each task execution
-            slowInterval: 3000, // Interval between each task execution when the task is throttled
-            autoThrottle: false, // If the task fails, engage a slow throtlle
-            checkboxLink: false, // Link the provided checkbox to the task. The link is done if jQuery object or ID is provided
-            container: false, // Insert an HTML switch and link it to the task
-            checkboxLabel: '', // The label accompanying the switch
+            interval: 300,                  // Interval between each task execution
+            slowInterval: 3000,             // Interval between each task execution when the task is throttled
+            autoThrottle: true,            // If the task fails (i.e. return false), engage a slow throtlle - WIP
+            checkboxLink: false,            // Link the provided checkbox to the task. The link is done if jQuery object or ID is provided
+            container: false,               // Insert an HTML switch and link it to the task
+            checkboxLabel: '',              // The label accompanying the switch
             animation: {
-                onExecution: true,
-                remainingTime: false,
-                noAnimThreshold: 700 //  Animation with interval lower thatn this threshold will not be played 
+                onExecution: true,          // Perform an animation whenever the task is being run
+                remainingTime: false,       // Perfim an animation showing how much time is needed for the next task run
+                noAnimThreshold: 700        //  Animation with interval lower thatn this threshold will not be played 
             }
         };
         this.config = $.extend(true, {}, default_config, config);
@@ -44,16 +47,12 @@
             }
 
             if (this.config.checkboxLink !== false) {
-                var that = this;
                 if (this.config.checkboxLink instanceof jQuery) {
                     var checkbox = this.config.checkboxLink[0];
                 } else {
                     var checkbox = document.getElementById(this.config.checkboxLink);
                 }
-                this.checkbox = checkbox;
-                checkbox.addEventListener('change', function() {
-                    that.toggle(this.checked);
-                });
+                this.registerListeners();
             }
             this.backup_interval = this.config.interval;
         },
@@ -81,12 +80,13 @@
             }
             this.animate();
             this.adaptTimeAnimationDuration(false);
+            var taskResult = true;
             if (arrayParameters !== undefined) {
                 this.backup_parameters = arrayParameters;
-                this.task.apply(null, arrayParameters);
+                taskResult = this.task.apply(null, arrayParameters);
             } else {
                 this.backup_parameters = false;
-                this.task();
+                taskResult = this.task();
             }
         },
 
@@ -169,12 +169,13 @@
         },
 
         createSwitch: function() {
+            var checked = this.taskScheduled;
             this.container = document.getElementById(this.config.container);
             var temp = document.createElement('div');
             this.config.checkboxLink = this.genRandom();
             var label_id = 'label_' + this.config.checkboxLink;
             var htmlString = '<div class="toggle-switch-wrapper"> \
-                                <input type="checkbox" style="display:none" id="' + this.config.checkboxLink + '" checked="checked"> \
+                                <input type="checkbox" style="display:none" id="' + this.config.checkboxLink + '" ' + (checked ? 'checked="checked"' : '') + '> \
                                 <label id="' + label_id + '" class="toggle-switch" for="' + this.config.checkboxLink + '"> \
                                     <span class="toggle-switch-handle"><span id="switchTimeRemainig" class="toggle-switch-handle toggle-switch-handle-timer"></span></span> \
                                 </label> \
@@ -188,7 +189,16 @@
             }
             this.label_node = document.getElementById(label_id);
             this.timer_node = this.label_node.getElementsByClassName('toggle-switch-handle-timer')[0];
+            this.checkbox = document.getElementById(this.config.checkboxLink);
             this.adaptTimeAnimationDuration();
+            this.registerListeners();
+        },
+
+        registerListeners: function() {
+            var that = this;
+            this.checkbox.addEventListener('change', function() {
+                that.toggle(this.checked);
+            });
         },
 
         adaptTimeAnimationDuration: function(disabled) {
