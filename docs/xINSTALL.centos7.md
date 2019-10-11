@@ -437,7 +437,6 @@ sudo chmod 0640 /etc/logrotate.d/misp
 # Allow logrotate to modify the log files
 sudo semanage fcontext -a -t httpd_log_t "$PATH_TO_MISP/app/tmp/logs(/.*)?"
 sudo chcon -R -t httpd_log_t $PATH_TO_MISP/app/tmp/logs
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp/logs
 
 # Allow logrotate to read /var/www
 sudo checkmodule -M -m -o /tmp/misplogrotate.mod $PATH_TO_MISP/INSTALL/misplogrotate.te

@@ -550,7 +550,6 @@ logRotation_RHEL () {
   sudo semanage fcontext -a -t httpd_sys_rw_content_t "$PATH_TO_MISP(/.*)?"
   sudo semanage fcontext -a -t httpd_log_t "$PATH_TO_MISP/app/tmp/logs(/.*)?"
   sudo chcon -R -t httpd_log_t $PATH_TO_MISP/app/tmp/logs
-  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp/logs
   # Impact of the following: ?!?!?!!?111
   ##sudo restorecon -R $PATH_TO_MISP
 
