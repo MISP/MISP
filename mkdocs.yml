@@ -71,7 +71,7 @@ nav:
       - 'Ubuntu 18.04': 'INSTALL.ubuntu1804.md'
       - 'Kali Linux': 'INSTALL.kali.md'
       - 'RHEL7/CentOS7': 'INSTALL.rhel7.md'
-      - 'RHEL8': 'INSTALL.rhel8.md'
+      - 'RHEL8/CentOS8': 'INSTALL.rhel8.md'
     - xInstall Guides: 
       - 'Warning': 'xINSTALL.md'
       - 'Centos 6': 'xINSTALL.centos6.md'
