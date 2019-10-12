@@ -5085,7 +5085,7 @@ class Event extends AppModel
         if (!$this->__fTool) {
             $this->__fTool = new FinancialTool();
         }
-        if ($object['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $object['value'])) {
+        if ($this->Attribute->isImage($object)) {
             if (!empty($object['data'])) {
                 $object['image'] = $object['data'];
             } else {

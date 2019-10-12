@@ -1727,6 +1727,17 @@ class Attribute extends AppModel
         return $this->saveAttachment($attribute);
     }
 
+    /**
+     * Currently, as image are considered files with JPG (JPEG), PNG or GIF extension.
+     * @param array $attribute
+     * @return bool
+     */
+    public function isImage(array $attribute)
+    {
+        return $attribute['type'] === 'attachment' &&
+            Validation::extension($attribute['value'], array('jpg', 'jpeg', 'png', 'gif'));
+    }
+
     public function getPictureData($attribute, $thumbnail=false, $width=200, $height=200)
     {
         $extension = explode('.', $attribute['Attribute']['value']);
