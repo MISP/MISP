@@ -1776,6 +1776,16 @@ class AttributesController extends AppController
         $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
         $this->loadModel('Sighting');
         foreach ($attributes as $k => $attribute) {
+            if ($this->Attribute->isImage($attribute['Attribute'])) {
+                if (extension_loaded('gd')) {
+                    // if extension is loaded, the data is not passed to the view because it is asynchronously fetched
+                    $attribute['Attribute']['image'] = true; // tell the view that it is an image despite not having the actual data
+                } else {
+                    $attribute['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
+                }
+                $attributes[$k] = $attribute;
+            }
+
             $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
             $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
             unset($attributes[$k]['AttributeTag']);
