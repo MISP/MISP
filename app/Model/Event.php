@@ -1301,7 +1301,7 @@ class Event extends AppModel
         if (!$server['Server']['internal'] && $object['distribution'] == 2) {
             $object['distribution'] = 1;
         }
-        // If the object has a sharing group attached, make sure it can be transfered
+        // If the object has a sharing group attached, make sure it can be transferred
         if ($object['distribution'] == 4) {
             if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Object' => $object), $server, 'Object') === false) {
                 return false;
@@ -1344,7 +1344,7 @@ class Event extends AppModel
             $attribute['distribution'] = 1;
         }
 
-        // If the attribute has a sharing group attached, make sure it can be transfered
+        // If the attribute has a sharing group attached, make sure it can be transferred
         if ($attribute['distribution'] == 4) {
             if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
                 return false;
@@ -2159,6 +2159,8 @@ class Event extends AppModel
                 }
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
                 $event['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Attribute'], $sharingGroupData);
+                // move all object attributes to a temporary container
+                $tempObjectAttributeContainer = array();
                 foreach ($event['Attribute'] as $key => $attribute) {
                     if ($options['enforceWarninglist']) {
                         if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
@@ -2223,12 +2225,7 @@ class Event extends AppModel
                         }
                     }
                     if (!$flatten && $event['Attribute'][$key]['object_id'] != 0) {
-                        foreach ($event['Object'] as $objectKey => $object) {
-                            if ($object['id'] == $event['Attribute'][$key]['object_id']) {
-                                $event['Object'][$objectKey]['Attribute'][] = $event['Attribute'][$key];
-                                break;
-                            }
-                        }
+                        $tempObjectAttributeContainer[$event['Attribute'][$key]['object_id']][] = $event['Attribute'][$key];
                         unset($event['Attribute'][$key]);
                     }
                 }
@@ -2237,13 +2234,9 @@ class Event extends AppModel
             if (!empty($event['Object'])) {
                 $event['Object'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'], $sharingGroupData);
                 foreach ($event['Object'] as $objectKey => $objectValue) {
-                    if (!empty($event['Object'][$objectKey]['Attribute'])) {
-                        $event['Object'][$objectKey]['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'][$objectKey]['Attribute'], $sharingGroupData);
-                        foreach ($event['Object'][$objectKey]['Attribute'] as $akey => $adata) {
-                            if ($adata['category'] === 'Financial fraud') {
-                                $event['Object'][$objectKey]['Attribute'][$akey] = $this->Attribute->attachValidationWarnings($adata);
-                            }
-                        }
+                    if (!empty($tempObjectAttributeContainer[$objectValue['id']])) {
+                        $event['Object'][$objectKey]['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
+                        unset($tempObjectAttributeContainer[$objectValue['id']]);
                     }
                 }
             }
@@ -4174,9 +4167,10 @@ class Event extends AppModel
     // Performs all the actions required to publish an event
     public function publish($id, $passAlong = null, $jobId = null)
     {
-        $this->id = $id;
-        $this->recursive = 0;
-        $event = $this->read(null, $id);
+        $event = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Event.id' => $id)
+        ));
         if (empty($event)) {
             return false;
         }
@@ -5096,7 +5090,7 @@ class Event extends AppModel
                 $object['image'] = $object['data'];
             } else {
                 if (extension_loaded('gd')) {
-                    // if extention is loaded, the data is not passed to the view because it is asynchronously fetched
+                    // if extension is loaded, the data is not passed to the view because it is asynchronously fetched
                     $object['image'] = true; // tell the view that it is an image despite not having the actual data
                 } else {
                     if ($object['objectType'] === 'proposal') {

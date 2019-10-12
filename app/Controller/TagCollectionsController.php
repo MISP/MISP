@@ -237,6 +237,9 @@ class TagCollectionsController extends AppController
         $RearrangeTool = new RequestRearrangeTool();
         $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
         if ($id === false) {
+            if (!isset($this->request->data['tag_collection'])) {
+                throw new NotFoundException(__('Invalid tag collection'));
+            }
             $id = $this->request->data['tag_collection'];
         }
         if (!$this->request->is('post')) {
@@ -247,6 +250,9 @@ class TagCollectionsController extends AppController
             $this->render('/Events/add_tag');
         } else {
             if ($tag_id === false) {
+                if (!isset($this->request->data['tag'])) {
+                    throw new NotFoundException(__('Invalid tag'));
+                }
                 $tag_id = $this->request->data['tag'];
             }
             $conditions = array();

@@ -217,6 +217,16 @@ class Server extends AppModel
                                 'type' => 'string',
                                 'cli_only' => 1
                         ),
+                        'ca_path' => array(
+                                'level' => 1,
+                                'description' => __('MISP will default to the bundled mozilla certificate bundle shipped with the framework, which is rather stale. If you wish to use an alternate bundle, just set this setting using the path to the bundle to use. This setting can only be modified via the CLI.'),
+                                'value' => APP . 'Lib/cakephp/lib/Cake/Config/cacert.pem',
+                                'errorMessage' => '',
+                                'null' => true,
+                                'test' => 'testForCABundle',
+                                'type' => 'string',
+                                'cli_only' => 1
+                        ),
                         'disable_auto_logout' => array(
                                 'level' => 1,
                                 'description' => __('In some cases, a heavily used MISP instance can generate unwanted blackhole errors due to a high number of requests hitting the server. Disable the auto logout functionality to ease the burden on the system.'),
@@ -2661,11 +2671,11 @@ class Server extends AppModel
         } elseif ("incremental" == $technique) {
             $eventid_conditions_key = 'Event.id >';
             $eventid_conditions_value = $this->data['Server']['lastpushedid'];
-        } elseif (true == $technique) {
+        } elseif (intval($technique) !== 0) {
             $eventid_conditions_key = 'Event.id';
             $eventid_conditions_value = intval($technique);
         } else {
-            $this->redirect(array('action' => 'index'));
+            throw new InvalidArgumentException("Technique parameter must be 'full', 'incremental' or event ID.");
         }
         $sgs = $this->Event->SharingGroup->find('all', array(
             'recursive' => -1,
@@ -2673,13 +2683,11 @@ class Server extends AppModel
         ));
         $sgIds = array();
         foreach ($sgs as $k => $sg) {
-            if (!$this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
-                unset($sgs[$k]);
-                continue;
+            if ($this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
+                $sgIds[] = $sg['SharingGroup']['id'];
             }
-            $sgIds[] = $sg['SharingGroup']['id'];
         }
-        if (!isset($sgIds) || empty($sgIds)) {
+        if (empty($sgIds)) {
             $sgIds = array(-1);
         }
         $findParams = array(
@@ -3379,6 +3387,17 @@ class Server extends AppModel
     public function testForTermsFile($value)
     {
         return $this->__testForFile($value, APP . 'files' . DS . 'terms');
+    }
+
+    public function testForCABundle($value)
+    {
+        $file = new File($value);
+        if (!$file->exists()) {
+            return __('Invalid file path or file not accessible.');
+        }
+        if ($file->ext() !== 'pem') {
+            return __('File has to be in .pem format.');
+        }
     }
 
     public function testForStyleFile($value)

@@ -56,12 +56,15 @@ class StixBuilder():
         self.load_galaxy_mapping()
 
     def buildEvent(self):
-        self.initialize_misp_types()
-        stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event['Event'])] if self.json_event.get('response') else self.handler(self.json_event['Event'])
-        outputfile = "{}.out".format(self.filename)
-        with open(outputfile, 'wt', encoding='utf-8') as f:
-            f.write(json.dumps(stix_packages, cls=base.STIXJSONEncoder))
-        print(json.dumps({'success': 1}))
+        try:
+            self.initialize_misp_types()
+            stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event['Event'])] if self.json_event.get('response') else self.handler(self.json_event['Event'])
+            outputfile = "{}.out".format(self.filename)
+            with open(outputfile, 'wt', encoding='utf-8') as f:
+                f.write(json.dumps(stix_packages, cls=base.STIXJSONEncoder))
+            print(json.dumps({'success': 1}))
+        except Exception as e:
+            print(json.dumps({'error': e.__str__()}))
 
     def eventReport(self):
         if not self.object_refs and self.links:

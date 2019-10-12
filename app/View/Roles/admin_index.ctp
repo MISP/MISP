@@ -32,6 +32,7 @@
             ?>
             <th><?php echo $this->Paginator->sort('memory_limit', __('Memory limit'));?></th>
             <th><?php echo $this->Paginator->sort('max_execution_time', __('Max execution time'));?></th>
+            <th><?php echo $this->Paginator->sort('rate_limit_count', __('Searches / 15 mins'));?></th>
             <th class="actions"><?php echo __('Actions');?></th>
     </tr><?php
 foreach ($list as $item): ?>
@@ -47,7 +48,7 @@ foreach ($list as $item): ?>
                 echo sprintf(
                     '<td class="short"><span class="%s" role="img" aria-label="%s" title="%s"></span>&nbsp;</td>',
                     ($item['Role'][$k]) ? 'icon-ok' : '',
-                    ($item['Role'][$k]) ? __('Yes') : __('No'),		    
+                    ($item['Role'][$k]) ? __('Yes') : __('No'),
                     sprintf(
                         __('%s permission %s'),
                         h($flagName),
@@ -72,6 +73,15 @@ foreach ($list as $item): ?>
                     echo h($default_max_execution_time);
                 } else {
                     echo h($item['Role']['max_execution_time']);
+                }
+            ?>
+        </td>
+        <td class="short">
+            <?php
+                if (empty($item['Role']['rate_limit_count']) || empty($item['Role']['enforce_rate_limit'])) {
+                    echo 'N/A';
+                } else {
+                    echo h(intval($item['Role']['rate_limit_count']));
                 }
             ?>
         </td>

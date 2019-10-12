@@ -46,8 +46,8 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '88';
-    public $pyMispVersion = '2.4.114';
+    private $__queryVersion = '90';
+    public $pyMispVersion = '2.4.117';
     public $phpmin = '7.0';
     public $phprec = '7.2';
     public $isApiAuthed = false;
@@ -89,7 +89,8 @@ class AppController extends Controller
             'ACL',
             'RestResponse',
             'Flash',
-            'Toolbox'
+            'Toolbox',
+            'RateLimit'
             //,'DebugKit.Toolbar'
     );
 
@@ -358,7 +359,7 @@ class AppController extends Controller
                 if (!$this->User->exists()) {
                     $message = __('Something went wrong. Your user account that you are authenticated with doesn\'t exist anymore.');
                     if ($this->_isRest) {
-                        $this->RestResponse->throwException(
+                        echo $this->RestResponse->throwException(
                             401,
                             $message
                         );
@@ -463,9 +464,44 @@ class AppController extends Controller
         }
 
         $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-        $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+        if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
+            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+        } else {
+            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+        }
         $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
+        if ($this->_isRest()) {
+            $this->__rateLimitCheck();
+        }
+    }
+
+    private function __rateLimitCheck()
+    {
+        $info = array();
+        $rateLimitCheck = $this->RateLimit->check(
+            $this->Auth->user(),
+            $this->request->params['controller'],
+            $this->action,
+            $this->{$this->modelClass},
+            $info,
+            $this->response->type()
+        );
+        if (!empty($info)) {
+            $this->RestResponse->setHeader('X-Rate-Limit-Limit', $info['limit']);
+            $this->RestResponse->setHeader('X-Rate-Limit-Remaining', $info['remaining']);
+            $this->RestResponse->setHeader('X-Rate-Limit-Reset', $info['reset']);
+        }
+        if ($rateLimitCheck !== true) {
+            $this->response->header('X-Rate-Limit-Limit', $info['limit']);
+            $this->response->header('X-Rate-Limit-Remaining', $info['remaining']);
+            $this->response->header('X-Rate-Limit-Reset', $info['reset']);
+            $this->response->body($rateLimitCheck);
+            $this->response->statusCode(429);
+            $this->response->send();
+            $this->_stop();
+        }
+        return true;
     }
 
     public function afterFilter()

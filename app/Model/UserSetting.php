@@ -45,6 +45,10 @@ class UserSetting extends AppModel
                     )
                 )
             )
+        ),
+        'dashboard_access' => array(
+            'placeholder' => 1,
+            'restricted' => 'perm_site_admin'
         )
     );
 
@@ -56,7 +60,11 @@ class UserSetting extends AppModel
         if (empty($this->data['UserSetting']['timestamp'])) {
             $this->data['UserSetting']['timestamp'] = time();
         }
-        if (!empty($this->data['UserSetting']['value']) && $this->data['UserSetting']['value'] !== 'null') {
+        if (
+            isset($this->data['UserSetting']['value']) &&
+            $this->data['UserSetting']['value'] !== '' &&
+            $this->data['UserSetting']['value'] !== 'null'
+        ) {
             if (is_array($this->data['UserSetting']['value'])) {
                 $this->data['UserSetting']['value'] = json_encode($this->data['UserSetting']['value']);
             }
@@ -78,6 +86,29 @@ class UserSetting extends AppModel
     public function checkSettingValidity($setting)
     {
         return isset($this->validSettings[$setting]);
+    }
+
+    public function checkSettingAccess($user, $setting)
+    {
+        if (!empty($this->validSettings[$setting]['restricted'])) {
+            $role_check = $this->validSettings[$setting]['restricted'];
+            if (!is_array($role_check)) {
+                $role_check = array($role_check);
+            }
+            $userHasValidRole = false;
+            foreach ($role_check as $role) {
+                if (!empty($user['Role'][$role])) {
+                    return true;
+                }
+            }
+            if (!$userHasValidRole) {
+                foreach ($role_check as &$role) {
+                    $role = substr($role, 5);
+                }
+                return implode(', ', $role_check);
+            }
+        }
+        return true;
     }
 
     /*

@@ -10,6 +10,8 @@ class ShadowAttribute extends AppModel
 
     public $name = 'ShadowAttribute';               // TODO general
 
+    public $recursive = -1;
+
     public $actsAs = array(
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
@@ -508,7 +510,12 @@ class ShadowAttribute extends AppModel
 
     public function getEventContributors($id)
     {
-        $orgs = $this->find('all', array('fields' => array('DISTINCT(org_id)'), 'conditions' => array('event_id' => $id), 'order' => false));
+        $orgs = $this->find('all', array('fields' => array(
+            'DISTINCT(ShadowAttribute.org_id)'),
+            'conditions' => array('event_id' => $id),
+            'recursive' => -1,
+            'order' => false
+        ));
         $org_ids = array();
         $this->Organisation = ClassRegistry::init('Organisation');
         foreach ($orgs as $org) {

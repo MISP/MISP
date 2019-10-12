@@ -80,8 +80,7 @@ class StixExport
             $decoded = json_decode($result, true);
             if (!isset($decoded['success']) || !$decoded['success']) {
                 $this->__delete_temporary_files($f);
-                // TODO: return an exception from the python script instead of empty string
-                return '';
+                return 'Error while processing your query: ' . $decoded['error'];
             }
             $file = new File($this->__tmp_dir . $filename . '.out');
             $stix_event = ($this->__return_type == 'stix') ? $file->read() : substr($file->read(), 1, -1);

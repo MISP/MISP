@@ -99,8 +99,11 @@ class StixParser():
             for ref in report.object_refs:
                 object_type, uuid = ref.split('--')
                 if object_type not in special_parsing and object_type not in galaxy_types:
-                    object2parse = self.event[object_type][uuid]
-                    self.parsing_process(object2parse, object_type)
+                    try:
+                        object2parse = self.event[object_type][uuid]
+                        self.parsing_process(object2parse, object_type)
+                    except KeyError:
+                        continue
         if len(report_attributes['orgs']) == 1:
             identity = self.event['identity'][report_attributes['orgs'].pop()]
             self.misp_event['Org'] = {'name': identity['name']}
@@ -115,7 +118,7 @@ class StixParser():
 
     def build_from_STIX_without_report(self):
         for object_type, objects in self.event.items():
-            for _, _object in objects.items():
+            for _object in objects.values():
                 self.parsing_process(_object, object_type)
         self.misp_event.info = "Imported with MISP import script for {}.".format(self.stix_version)
 
@@ -1439,7 +1442,10 @@ class ExternalStixParser(StixParser):
             try:
                 type_, value = p.split('=')
             except ValueError:
-                type_, value = p.split(' = ')
+                try:
+                    type_, value = p.split(' = ')
+                except ValueError:
+                    type_, value = p.split(' = \'')
             types.append(type_.strip())
             values.append(value.strip().strip('\''))
         return types, values

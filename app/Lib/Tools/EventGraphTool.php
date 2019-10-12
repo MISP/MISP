@@ -40,7 +40,7 @@
 
         private function __get_event($id)
         {
-            $this->__json['available_rotation_key'] = $this->__authorized_JSON_key;
+            $this->__json['available_pivot_key'] = $this->__authorized_JSON_key;
 
             $fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'extended' => $this->__extended_view));
             $event = array();
@@ -108,7 +108,7 @@
                 }
             }
 
-            // value rule - search in the object's atribute value
+            // value rule - search in the object's attribute value
             $valueMatch = true;
             if (isset($obj['Attribute'])) {
                 foreach ($obj['Attribute'] as $attr) {
@@ -265,7 +265,7 @@
 
             foreach ($object as $obj) {
                 $toPush = array(
-                    'id' => $obj['id'],
+                    'id' => sprintf('o-%s', $obj['id']),
                     'uuid' => $obj['uuid'],
                     'type' => $obj['name'],
                     'label' => '',
@@ -290,8 +290,8 @@
                     $toPush = array(
                         'id' => $rel['id'],
                         'uuid' => $rel['uuid'],
-                        'from' => $obj['id'],
-                        'to' => $rel['referenced_id'],
+                        'from' => sprintf('o-%s', $obj['id']),
+                        'to' => $rel['referenced_type'] == 1 ? sprintf('o-%s', $rel['referenced_id']) : $rel['referenced_id'],
                         'type' => $rel['relationship_type'],
                         'comment' => $rel['comment'],
                         'event_id' => $rel['event_id'],
@@ -356,7 +356,7 @@
 
             foreach ($object as $obj) {
                 $toPush = array(
-                    'id' => $obj['id'],
+                    'id' => sprintf('o-%s', $obj['id']),
                     'uuid' => $obj['uuid'],
                     'type' => $obj['name'],
                     'Attribute' => $obj['Attribute'],
@@ -382,7 +382,7 @@
                         if (!in_array($tag['name'], $added_value)) {
                             $toPush = array(
                                 'id' => "tag_edge_id_" . $i,
-                                'from' => $obj['id'],
+                                'from' => sprintf('o-%s', $obj['id']),
                                 'to' => $tag['name'],
                             );
                             $tagSet[$tag['name']] = $tag;
@@ -466,7 +466,7 @@
 
             foreach ($object as $obj) {
                 $toPush = array(
-                    'id' => $obj['id'],
+                    'id' => sprintf('o-%s', $obj['id']),
                     'uuid' => $obj['uuid'],
                     'type' => $obj['name'],
                     'Attribute' => $obj['Attribute'],
@@ -491,7 +491,7 @@
                     if (!in_array($keyVal, $added_value)) {
                         $toPush = array(
                             'id' => "keyType_edge_id_" . $i,
-                            'from' => $obj['id'],
+                            'from' => sprintf('o-%s', $obj['id']),
                             'to' => "keyType_" . $keyVal,
                         );
                         array_push($added_value, $keyVal);

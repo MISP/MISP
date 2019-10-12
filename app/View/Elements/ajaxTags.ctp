@@ -152,7 +152,12 @@
             '<i class="fas fa-user"></i> +'
         );
     }
-    $tagData .= implode(' ', $buttonData);
+    if (!empty($buttonData)) {
+        $tagData .= sprintf(
+            '<span style="white-space:nowrap;">%s</span>',
+            implode(' ', $buttonData)
+        );
+    }
     echo sprintf(
         '<span class="tag-list-container">%s</span>',
         $tagData
