@@ -29,7 +29,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 
 !!! notice
     Maintenance for CentOS 7 will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
-    CentOS 7.6-1810 [NetInstallURL](http://mirror.centos.org/centos/7.6.1810/os/x86_64/)
+    CentOS 7-1908 [NetInstallURL](http://mirror.centos.org/centos/7/os/x86_64/)
 
 This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x) and CentOS 7.x.
 At time of this writing it was tested on versions 7.6 for both.
