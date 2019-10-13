@@ -7,7 +7,7 @@
         $checked = '';
         if ($extend) $checked = 'checked';
 ?>
-    <td id="orgExtend<?php echo $id;?>"><input title="<?php echo __('Mark organisation as sharing group extender');?>" id="orgExtendInput<?php echo $id;?>" type="checkbox" onClick="sharingGroupExtendOrg(<?php echo $id;?>)" <?php echo h($checked);?>></input></td>
+    <td id="orgExtend<?php echo $id;?>"><input title="<?php echo __('Mark organisation as sharing group extender');?>" id="orgExtendInput<?php echo $id;?>" type="checkbox" onClick="sharingGroupExtendOrg(<?php echo $id;?>)" <?php echo h($checked);?>></td>
 <?php else: ?>
     <td id="orgExtend<?php echo $id;?>" ><span id="orgExtendSpan<?php echo $id;?>" class="icon-ok"></span></td>
 <?php endif; ?>

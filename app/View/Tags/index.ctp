@@ -54,7 +54,7 @@
         <?php endif;?>
         <span style="border-right:0px !important;">
             <span id="quickFilterButton" role="button" tabindex="0" aria-label="<?php echo __('Filter user tags');?>" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/tags/index'; ?>');"><?php echo __('Filter');?></span>
-            <input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+            <input class="tabMenuFilterField" type="text" id="quickFilterField">
         </span>
     </div>
     <table class="table table-striped table-hover table-condensed">
