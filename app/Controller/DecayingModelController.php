@@ -639,24 +639,14 @@ class DecayingModelController extends AppController
 
             // attach sightings and massage tags
             $sightingsData = array();
-            if (!empty($options['overrideLimit'])) {
-                $overrideLimit = true;
-            } else {
-                $overrideLimit = false;
-            }
-            $this->loadModel('GalaxyCluster');
-            $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
             $this->loadModel('Sighting');
-            $eventTags = array();
             foreach ($attributes as $k => $attribute) {
                 $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
                 $attributes[$k]['Attribute'] = $this->User->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
                 unset($attributes[$k]['AttributeTag']);
-                foreach ($attributes[$k]['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
-                    if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                        unset($attributes[$k]['Attribute']['AttributeTag'][$k2]);
-                    }
-                }
+
+                $this->User->Event->Attribute->removeGalaxyClusterTags($attributes[$k]['Attribute']);
+
                 $sightingsData = array_merge(
                     $sightingsData,
                     $this->Sighting->attachToEvent($attribute, $this->Auth->user(), $attributes[$k]['Attribute']['id'], $extraConditions = false)
