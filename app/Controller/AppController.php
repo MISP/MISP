@@ -164,10 +164,10 @@ class AppController extends Controller
         } else {
             $this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
         }
-        $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         if (!empty($this->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
         }
+        $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
         $this->_setupBaseurl();
@@ -394,10 +394,8 @@ class AppController extends Controller
         // instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
         // getActions returns all the flags in a single SQL query
         if ($this->Auth->user()) {
-            $versionArray = $this->{$this->modelClass}->checkMISPVersion();
-            $this->mispVersionFull = implode('.', array_values($versionArray));
             $this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
-            $this->set('mispVersionFull', $this->mispVersionFull);
+            $this->set('mispVersionFull', $this->mispVersion);
             $role = $this->getActions();
             $this->set('me', $this->Auth->user());
             $this->set('isAdmin', $role['perm_admin']);
