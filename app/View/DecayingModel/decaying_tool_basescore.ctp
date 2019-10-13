@@ -1,11 +1,11 @@
 <div id="basescore_configurator" class="row">
     <div class="span8" class="taxonomyTableContainer">
-        <input id="table_taxonomy_search" class="input" style="width: 250px; margin: 0px;" type="text" placeholder="<?php echo __('Search Taxonomy'); ?>"></input>
+        <input id="table_taxonomy_search" class="input" style="width: 250px; margin: 0px;" type="text" placeholder="<?php echo __('Search Taxonomy'); ?>">
         <i class="fa fa-times useCursorPointer" title="<?php echo __('Clear search field'); ?>" onclick="$('#table_taxonomy_search').val('').trigger('input');"></i>
         <span style="float: right; margin-top: 6px;" class="badge badge-info"><b><?php echo h($taxonomies_not_having_numerical_value); ?></b><?php echo __(' not having numerical value'); ?></span>
         <div class="input-prepend" style="margin: 4px;">
             <span class="add-on"><?php echo __('Default basescore') ?></span>
-            <input id="base_score_default_value" type="number" min=0 max=100 class="input-mini" value="0" placeholder="0"></input>
+            <input id="base_score_default_value" type="number" min=0 max=100 class="input-mini" value="0" placeholder="0">
         </div>
         <table id="tableTaxonomy" class="table table-striped table-bordered table-condensed">
             <thead>
@@ -49,8 +49,8 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <input id="slider_<?php echo h($name) ?>" data-taxonomyname="<?php echo sprintf('%s:%s', h($name), h($predicate['value'])); ?>" type="range" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" onchange="sliderChanged(this);" oninput="sliderChanged(this);"></input>
-                                    <input type="number" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" class="taxonomySlider" data-taxonomyname="<?php echo sprintf('%s:%s', h($name), h($predicate['value'])); ?>" onchange="inputChanged(this);" oninput="inputChanged(this);"></input>
+                                    <input id="slider_<?php echo h($name) ?>" data-taxonomyname="<?php echo sprintf('%s:%s', h($name), h($predicate['value'])); ?>" type="range" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" onchange="sliderChanged(this);" oninput="sliderChanged(this);">
+                                    <input type="number" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" class="taxonomySlider" data-taxonomyname="<?php echo sprintf('%s:%s', h($name), h($predicate['value'])); ?>" onchange="inputChanged(this);" oninput="inputChanged(this);">
                                 </td>
                             </tr>
                         <?php else: // numerical_value on predicate ?>
@@ -77,8 +77,8 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <input id="slider_<?php echo h($name) ?>" data-taxonomyname="<?php echo h($name); ?>" type="range" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" onchange="sliderChanged(this);" oninput="sliderChanged(this);"></input>
-                                    <input type="number" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" class="taxonomySlider" data-taxonomyname="<?php echo h($name); ?>" onchange="inputChanged(this);" oninput="inputChanged(this);"></input>
+                                    <input id="slider_<?php echo h($name) ?>" data-taxonomyname="<?php echo h($name); ?>" type="range" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" onchange="sliderChanged(this);" oninput="sliderChanged(this);">
+                                    <input type="number" min=0 max=100 step=1 value="<?php echo isset($taxonomy['value']) ? h($taxonomy['value']) : 0 ?>" class="taxonomySlider" data-taxonomyname="<?php echo h($name); ?>" onchange="inputChanged(this);" oninput="inputChanged(this);">
                                 </td>
                             </tr>
                             <?php break; ?>

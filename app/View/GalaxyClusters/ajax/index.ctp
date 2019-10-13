@@ -38,7 +38,7 @@
     <span style="border-right:0px !important;">
         <span id="quickFilterButton" role="button" tabindex="0" aria-label="Filter value galaxie cluster" class="tabMenuFilterFieldButton useCursorPointer"
             onClick="quickFilter('', '<?php echo $baseurl . '/galaxies/view/' . $galaxy_id; ?>');"><?php echo __('Filter');?></span>
-        <input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+        <input class="tabMenuFilterField" type="text" id="quickFilterField">
     </span>
 </div>
 <table class="table table-striped table-hover table-condensed">

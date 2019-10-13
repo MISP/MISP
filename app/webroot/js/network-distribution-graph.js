@@ -258,7 +258,7 @@
                 var $div = '<div id="sharingNetworkWrapper" class="fixedRightPanel hidden">'
                     + '<div class="eventgraph_header" style="border-radius: 5px; display: flex;">'
                     + '<it class="fa fa-circle-o" style="margin: auto 10px; font-size: x-large"></it>'
-                    + '<input type="text" id="sharingNetworkTargetId" class="center-in-network-header network-typeahead" style="width: 200px;" disabled></input>';
+                    + '<input type="text" id="sharingNetworkTargetId" class="center-in-network-header network-typeahead" style="width: 200px;" disabled>';
                 if (allow_interactive_picking) {
                     $div += '<div class="form-group" style="margin: auto 10px;"><div class="checkbox">'
                         + '<label style="user-select: none;"><input id="interactive_picking_mode" type="checkbox" title="Click on a element to see how it is distributed" style="margin-top: 4px;">Enable interactive picking mode</label>'
