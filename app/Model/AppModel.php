@@ -95,6 +95,7 @@ class AppModel extends Model
         'releaseUpdateLock' => array(
             'title' => 'Release update lock',
             'description' => 'If your your database is locked and is not updating, unlock it here.',
+            'ignore_disabled' => true,
             'url' => '/servers/releaseUpdateLock/'
         )
     );
@@ -1809,7 +1810,9 @@ class AppModel extends Model
         }
         foreach($updateProgress as $setting => $value) {
             if (!is_array($value)) {
-                $value = $value !== false && $value !== '' ? intval($value) : 0;
+                if (is_numeric($value)) {
+                    $value = intval($value);
+                }
             }
             $updateProgress[$setting] = $value;
         }

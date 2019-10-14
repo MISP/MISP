@@ -1719,7 +1719,7 @@ class ServersController extends AppController
         if ($this->request->is('ajax') && $ajaxHtml) {
             $this->set('updateProgress', $update_progress);
             $this->layout = false;
-        } elseif ($this->request->is('ajax')) {
+        } elseif ($this->request->is('ajax') || $this->_isRest()) {
             return $this->RestResponse->viewData(h($update_progress), $this->response->type());
         } else {
             $this->set('updateProgress', $update_progress);

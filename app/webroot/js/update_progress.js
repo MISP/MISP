@@ -44,11 +44,11 @@ function update_state(hard_reload) {
         });
     } else {
         $.getJSON(urlGetProgress, function(data) {
-            var toward_db_version = parseInt($('table.updateProgressTable').data('towarddbversion'));
+            var toward_db_version = $('table.updateProgressTable').data('towarddbversion');
             if (data['toward_db_version'] === undefined) {
                 pooler.throttle();
                 return;
-            } else if (parseInt(data['toward_db_version']) != toward_db_version) {
+            } else if (data['toward_db_version'] !== toward_db_version) {
                 update_state(true);
                 return;
             }
