@@ -48,7 +48,7 @@ function update_state(hard_reload) {
             if (data['toward_db_version'] === undefined) {
                 pooler.throttle();
                 return;
-            } else if (data['toward_db_version'] !== toward_db_version) {
+            } else if (data['toward_db_version'] != toward_db_version) {
                 update_state(true);
                 return;
             }
