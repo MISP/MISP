@@ -108,6 +108,27 @@ class AppModel extends Model
         return true;
     }
 
+    public function isAcceptedDatabaseError($error_message, $dataSource)
+    {
+        $is_accepted = false;
+        if ($dataSource == 'Database/Mysql') {
+            $error_duplicate_column = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';
+            $error_duplicate_index = 'SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name';
+            $error_drop_index = "/SQLSTATE\[42000\]: Syntax error or access violation: 1091 Can't DROP '[\w]+'; check that column\/key exists/";
+            $is_accepted = substr($error_message, 0, strlen($error_duplicate_column)) === $error_duplicate_column ||
+                            substr($error_message, 0, strlen($error_duplicate_index)) === $error_duplicate_index ||
+                            preg_match($error_drop_index, $error_message) !== 0;
+        } elseif ($dataSource == 'Database/Postgres') {
+            $error_duplicate_column = '/ERROR:  column "[\w]+" specified more than once/';
+            $error_duplicate_index = '/ERROR: relation "[\w]+" already exists/';
+            $error_drop_index = '/ERROR: index "[\w]+" does not exist/';
+            $is_accepted = preg_match($error_duplicate_column, $error_message) !== 0 ||
+                            preg_match($error_duplicate_index, $error_message) !== 0 ||
+                            preg_match($error_drop_index, $error_message) !== 0;
+        }
+        return $is_accepted;
+    }
+
     // Generic update script
     // add special cases where the upgrade does more than just update the DB
     // this could become useful in the future
@@ -1335,12 +1356,7 @@ class AppModel extends Model
                         'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $error_message
                     );
                     $this->__setUpdateResMessages($i, sprintf(__('Issues executing the SQL query for `%s`. The returned error is: ' . PHP_EOL . '%s'), $command, $error_message));
-                    $error_duplicate_column = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';
-                    $error_duplicate_index = 'SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name';
-                    if (
-                        substr($error_message, 0, strlen($error_duplicate_column)) !== $error_duplicate_column &&
-                        substr($error_message, 0, strlen($error_duplicate_index)) !== $error_duplicate_index
-                    ) {
+                    if (!$this->isAcceptedDatabaseError($error_message, $dataSource)) {
                         $this->__setUpdateError($i);
                         $error_count++;
                         if ($exitOnError) {
