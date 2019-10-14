@@ -48,9 +48,9 @@
 
             if (this.config.checkboxLink !== false) {
                 if (this.config.checkboxLink instanceof jQuery) {
-                    var checkbox = this.config.checkboxLink[0];
+                    this.checkbox = this.config.checkboxLink[0];
                 } else {
-                    var checkbox = document.getElementById(this.config.checkboxLink);
+                    this.checkbox = document.getElementById(this.config.checkboxLink);
                 }
                 this.registerListeners();
             }
@@ -168,7 +168,6 @@
 
         configHasChanged: function(newConfig) {
             var keys = Object.keys(newConfig);
-            var value = newConfig[key];
             for (var i = 0; i < keys.length; i++) {
                 var key = keys[i];
                 var value = newConfig[key];
