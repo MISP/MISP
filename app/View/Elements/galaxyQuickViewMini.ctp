@@ -146,9 +146,5 @@ $(document).ready(function () {
             $(this).children('span').html('+');
         }
     });
-    $('.delete-cluster').click(function() {
-        var tagName = $(this).data('tag-name');
-        removeTag($id = false, $tag_id = false, $galaxy = false);
-    });
 });
 </script>
