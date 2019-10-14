@@ -95,7 +95,7 @@ install:
     # Get authkey
     - sudo usermod -a -G www-data $USER
     - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
-    - sudo -E su $USER -c 'app/Console/cake Admin updateDatabase'
+    - sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "/usr/bin/python3"'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.timeout" 600'

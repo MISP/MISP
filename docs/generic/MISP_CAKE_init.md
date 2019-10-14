@@ -12,7 +12,7 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE userInit -q
 
   # This makes sure all Database upgrades are done, without logging in.
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin updateDatabase
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin runUpdates
 
   # The default install is Python >=3.6 in a virtualenv, setting accordingly
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
