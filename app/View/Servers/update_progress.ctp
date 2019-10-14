@@ -61,7 +61,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
                 <div>
                     <h5 style='display: inline-block'>Pre update test status:</h5>
                     <?php
-                        $icon = isset($updateProgress['preTestSuccess']) ? ($updateProgress['preTestSuccess'] ? 'fa-check' : 'fa-times') : 'fa-question-circle ';
+                        $icon = isset($updateProgress['preTestSuccess']) ? ($updateProgress['preTestSuccess'] ? 'fa-check' : 'fa-times') : 'fa-check ';
                     ?>
                         <i class='fa <?php echo($icon); ?>' style="font-size: x-large"></i>
                 </div>
