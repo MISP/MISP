@@ -89,6 +89,9 @@ function update_state(hard_reload) {
                 $('.single-update-progress').hide();
                 if (parseInt(data['complete_update_remaining']) === 0) {
                     $('.completeUpdateRemainingContainer').remove();
+                    if (!data['update_locked']) {
+                        $('.UpdateLockedContainer').remove();
+                    }
                 }
             } else {
                 pooler.unthrottle();

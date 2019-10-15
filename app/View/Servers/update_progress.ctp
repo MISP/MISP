@@ -24,7 +24,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 <?php endif; ?>
 
 <?php if ($updateLocked): ?>
-    <div style="width: 55%;margin: 20px auto;max-width: 1000px;" class="alert alert-danger">
+    <div style="width: 55%;margin: 20px auto;max-width: 1000px;" class="alert alert-danger UpdateLockedContainer">
         <button type="button" class="close" data-dismiss="alert">&times;</button>
         <div style="display:flex;flex-direction: row;justify-content: space-between;">
             <span>
