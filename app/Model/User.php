@@ -609,7 +609,19 @@ class User extends AppModel
             throw new NotFoundException('Invalid user ID.');
         }
         $conditions = array('User.id' => $id);
-        $user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
+        $user = $this->find(
+            'first',
+            array(
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'contain' => array(
+                    'Organisation',
+                    'Role',
+                    'Server',
+                    'UserSetting'
+                )
+            )
+        );
         if (empty($user)) {
             return $user;
         }
@@ -617,6 +629,7 @@ class User extends AppModel
         $user['User']['Role'] = $user['Role'];
         $user['User']['Organisation'] = $user['Organisation'];
         $user['User']['Server'] = $user['Server'];
+        $user['User']['UserSetting'] = $user['UserSetting'];
         unset($user['Organisation'], $user['Role'], $user['Server']);
         return $user['User'];
     }
