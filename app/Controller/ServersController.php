@@ -2181,6 +2181,7 @@ misp.direct_call(relative_path, body)
             throw new MethodNotAllowedException(__('Site admin accounts cannot be used to release the update lock.'));
         }
         $this->Server->changeLockState(false);
+        $this->Server->resetUpdateFailNumber();
         $this->redirect(array('action' => 'updateProgress'));
     }
 }

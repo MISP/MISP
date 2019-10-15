@@ -30,7 +30,6 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
             <span>
                 <?php if ($updateFailNumberReached): ?>
                     <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Update are locked due to to many update fails'); ?></h5>
-                    <i>(<?php echo sprintf(__('unlock in %smin %ssec'), '<span id="unlock_remaining_time_min">-</span>', '<span id="unlock_remaining_time_sec">-</span>'); ?>)</i>
                 <?php else: ?>
                     <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Update are locked due to an ongoing update process. Release lock only if you know what you are doing'); ?></h5>
                     <i>(<?php echo sprintf(__('automatically unlock in %smin %ssec'), '<span id="unlock_remaining_time_min">-</span>', '<span id="unlock_remaining_time_sec">-</span>'); ?>)</i>
