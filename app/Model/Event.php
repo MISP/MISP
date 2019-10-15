@@ -121,7 +121,15 @@ class Event extends AppModel
                     'scope' => 'Event',
                     'requiresPublished' => 1,
                     'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
-                    'description' => 'Click this to download an a STIX document containing the STIX version of all events and attributes that you have access to.'
+                    'description' => 'Click this to download a STIX document containing the STIX version of all events and attributes that you have access to.'
+            ),
+            'stix-json' => array(
+                    'extension' => '.json',
+                    'type' => 'STIX',
+                    'scope' => 'Event',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
+                    'description' => 'Click this to download a STIX document containing the STIX version of all events and attributes that you have access to.'
             ),
             'stix2' => array(
                     'extension' => '.json',
@@ -129,7 +137,7 @@ class Event extends AppModel
                     'scope' => 'Event',
                     'requiresPublished' => 1,
                     'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
-                    'description' => 'Click this to download an a STIX2 document containing the STIX2 version of all events and attributes that you have access to.'
+                    'description' => 'Click this to download a STIX2 document containing the STIX2 version of all events and attributes that you have access to.'
             ),
             'rpz' => array(
                     'extension' => '.txt',
@@ -175,6 +183,7 @@ class Event extends AppModel
         'text' => array('text', 'TextExport', 'txt'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
+        'stix-json' => array('json', 'Stix1Export', 'json'),
         'stix2' => array('json', 'Stix2Export', 'json'),
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json'),
