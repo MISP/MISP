@@ -1629,7 +1629,7 @@ class AppModel extends Model
                             'model' => 'Server',
                             'model_id' => 0,
                             'email' => 'SYSTEM',
-                            'action' => 'update_database',
+                            'action' => 'update_database_worker',
                             'user_id' => 0,
                             'title' => __('Issues executing run_updates'),
                             'change' => __('Database updates are locked. Worker not spawned')
@@ -1687,7 +1687,7 @@ class AppModel extends Model
                             'model' => 'Server',
                             'model_id' => 0,
                             'email' => 'SYSTEM',
-                            'action' => 'update_database',
+                            'action' => 'update_database_worker',
                             'user_id' => 0,
                             'title' => __('Issues executing run_updates'),
                             'change' => __('Updates are locked. Stopping worker gracefully')
