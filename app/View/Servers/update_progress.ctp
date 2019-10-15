@@ -24,7 +24,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 <?php endif; ?>
 
 <?php if ($updateLocked && $updateFailNumberReached): ?>
-    <div style="width: 55%;margin: 20px auto" class="alert alert-danger">
+    <div style="width: 55%;margin: 20px auto;max-width: 1000px;" class="alert alert-danger">
         <button type="button" class="close" data-dismiss="alert">&times;</button>
         <div style="display:flex;flex-direction: row;justify-content: space-between;">
             <span>
@@ -45,7 +45,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 <?php endif; ?>
 
 <?php if ($completeUpdateRemaining != 0): ?>
-    <div style="width: 55%;margin: 20px auto;background-color: white;" class="panel-container completeUpdateRemainingContainer">
+    <div style="width: 55%;margin: 20px auto;background-color: white;max-width: 1000px;" class="panel-container completeUpdateRemainingContainer">
         <h3>
             <?php echo(__('Complete update progression'));?>
             <span style="float: right;font-size: smaller;"><?php echo(sprintf(__('%s remaining'), $completeUpdateRemaining));?></span>
@@ -53,7 +53,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
     </div>
 <?php endif; ?>
 
-    <div style="width: 55%;margin: 0 auto;">
+    <div style="width: 55%;margin: 0 auto;max-width: 1000px;">
         <?php if (count($updateProgress['commands']) > 0): ?>
             <h3><?php echo(sprintf(__('Database Update progress for update %s'), h($towardDbVersion)));?></h3>
             <div class="" style="max-width: 1000px;">
@@ -223,6 +223,6 @@ if (!$ajaxHtml) {
             hours: Math.floor((seconds % (60 * 60 * 24)) / (60 * 60)),
             mins : Math.floor((seconds % (60 * 60)) / (60)),
             secs : Math.floor((seconds % (60))),
-        }
+        };
     }
 </script>
