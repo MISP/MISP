@@ -4267,7 +4267,9 @@ class Server extends AppModel
             'diagnostic' => array(),
             'expected_db_version' => '?',
             'error' => '',
-            'remaining_lock_time' => $this->getLockRemainingTime()
+            'update_locked' => $this->isUpdateLocked(),
+            'remaining_lock_time' => $this->getLockRemainingTime(),
+            'update_fail_number_reached' => $this->UpdateFailNumberReached()
         );
         if ($data_source == 'Database/Mysql') {
             $db_actual_schema = $this->getActualDBSchema();

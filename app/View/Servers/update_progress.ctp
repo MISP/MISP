@@ -23,16 +23,21 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 <div class="servers form">
 <?php endif; ?>
 
-<?php if ($updateLocked && $updateFailNumberReached): ?>
+<?php if ($updateLocked): ?>
     <div style="width: 55%;margin: 20px auto;max-width: 1000px;" class="alert alert-danger">
         <button type="button" class="close" data-dismiss="alert">&times;</button>
         <div style="display:flex;flex-direction: row;justify-content: space-between;">
             <span>
-                <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Update are locked due to to many update fails'); ?></h5>
-                <i>(<?php echo sprintf(__('unlock in %smin %ssec'), '<span id="unlock_remaining_time_min">-</span>', '<span id="unlock_remaining_time_sec">-</span>'); ?>)</i>
+                <?php if ($updateFailNumberReached): ?>
+                    <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Update are locked due to to many update fails'); ?></h5>
+                    <i>(<?php echo sprintf(__('unlock in %smin %ssec'), '<span id="unlock_remaining_time_min">-</span>', '<span id="unlock_remaining_time_sec">-</span>'); ?>)</i>
+                <?php else: ?>
+                    <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Update are locked due to an ongoing update process. Release lock only if you know what you are doing'); ?></h5>
+                    <i>(<?php echo sprintf(__('automatically unlock in %smin %ssec'), '<span id="unlock_remaining_time_min">-</span>', '<span id="unlock_remaining_time_sec">-</span>'); ?>)</i>
+                <?php endif; ?>
             </span>
             <span>
-                <?php 
+                <?php
                     echo $this->Form->postButton('<i class="fa fa-lock-open"></i> ' . __('Release update lock'), $baseurl . '/servers/releaseUpdateLock', array(
                         'style' => 'margin: 0px 0px;',
                         'class' => 'btn btn-danger',
