@@ -1969,5 +1969,41 @@
             "force_to_ids": false,
             "cache_timestamp": "1568901075"
         }
+    },
+    {
+        "Feed": {
+            "id": "115",
+            "name": "Metasploit exploits with CVE assigned",
+            "provider": "eCrimeLabs",
+            "url": "https:\/\/feeds.ecrimelabs.net\/data\/metasploit-cve",
+            "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+            "enabled": true,
+            "distribution": "0",
+            "sharing_group_id": "0",
+            "tag_id": "0",
+            "default": false,
+            "source_format": "csv",
+            "fixed_event": true,
+            "delta_merge": true,
+            "event_id": "",
+            "publish": true,
+            "override_ids": false,
+            "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+            "input_source": "network",
+            "delete_local_file": false,
+            "lookup_visible": true,
+            "headers": "",
+            "caching_enabled": true,
+            "force_to_ids": false,
+            "cache_timestamp": "1571206806"
+        },
+        "Tag": {
+          "id": "615",
+          "name": "osint:source-type=\"block-or-filter-list\"",
+          "colour": "#004577",
+          "exportable": true,
+          "org_id": "0",
+          "hide_tag": false
+        }
     }
 ]
