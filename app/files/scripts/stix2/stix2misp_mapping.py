@@ -257,13 +257,13 @@ process_mapping = {'name': process_name_mapping,
                    'process:child_refs': {'type': 'text', 'relation': 'child-pid'}}
 
 regkey_mapping = {'data': data_attribute_mapping,
-                  'windows-registry-key:data': data_attribute_mapping,
+                  'windows-registry-key:values.data': data_attribute_mapping,
                   'data_type': data_type_attribute_mapping,
-                  'windows-registry-key:data_type': data_type_attribute_mapping,
+                  'windows-registry-key:values.data_type': data_type_attribute_mapping,
                   'modified': modified_attribute_mapping,
                   'windows-registry-key:modified': modified_attribute_mapping,
                   'name': regkey_name_attribute_mapping,
-                  'windows-registry-key:name': regkey_name_attribute_mapping,
+                  'windows-registry-key:values.name': regkey_name_attribute_mapping,
                   'key': key_attribute_mapping,
                   'windows-registry-key:key': key_attribute_mapping,
                   'windows-registry-key:value': {'type': 'text', 'relation': 'hive'}
