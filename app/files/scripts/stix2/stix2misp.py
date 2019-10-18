@@ -341,11 +341,13 @@ class StixParser():
         return attributes
 
     @staticmethod
-    def extract_data_from_file(objects):
+    def split_file_observable(objects):
         data = None
         for value in objects.values():
             if isinstance(value, stix2.Artifact):
                 data = value.payload_bin
+            elif isinstance(value, stix2.Directory):
+                data = value
             elif isinstance(value, stix2.File):
                 file = value
         return file, data
@@ -776,7 +778,7 @@ class StixFromMISPParser(StixParser):
 
     def observable_file(self, observable):
         if len(observable) > 1:
-            file, data = self.extract_data_from_file(observable)
+            file, data = self.split_file_observable(observable)
             if data is not None:
                 return self.attributes_from_file_observable(file, data)
         return self.attributes_from_file_observable(observable['0'])
@@ -1066,6 +1068,7 @@ class ExternalStixParser(StixParser):
                                    ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): self.parse_ip_port_or_network_socket_observable,
                                    ('domain-name', 'network-traffic'): self.parse_network_socket_observable,
                                    ('domain-name', 'network-traffic', 'url'): self.parse_url_object_observable,
+                                   ('email-addr',): self.parse_email_address_observable,
                                    ('email-addr', 'email-message'): self.parse_email_observable,
                                    ('email-addr', 'email-message', 'file'): self.parse_email_observable,
                                    ('email-message',): self.parse_email_observable,
@@ -1081,9 +1084,11 @@ class ExternalStixParser(StixParser):
                                    ('url',): self.parse_url_observable,
                                    ('user-account',): self.parse_user_account_observable,
                                    ('windows-registry-key',): self.parse_regkey_observable}
-        self.pattern_mapping = {('domain-name',): self.parse_domain_ip_port_pattern,
+        self.pattern_mapping = {('directory', 'file'): self.parse_file_pattern,
+                                ('domain-name',): self.parse_domain_ip_port_pattern,
                                 ('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('domain-name', 'ipv6-addr', 'url'): self.parse_domain_ip_port_pattern,
+                                ('email-addr',): self.parse_email_address_pattern,
                                 ('file',): self.parse_file_pattern,
                                 ('ipv4-addr',): self.parse_ip_address_pattern,
                                 ('ipv6-addr',): self.parse_ip_address_pattern,
@@ -1286,9 +1291,23 @@ class ExternalStixParser(StixParser):
                 attributes.append(self.append_email_attribute(m_key, m_value, to_ids))
         self.handle_import_case(attributes, 'email', marking, uuid)
 
+    def parse_email_address_observable(self, objects, marking, uuid):
+        mapping = to_attribute_mapping
+        attributes = [{'type': 'email-dst', 'object_relation': 'to', 'to_ids': True, 'value': _object.value} for _object in objects.values()]
+        self.handle_import_case(attributes, 'email', marking, uuid)
+
+    def parse_email_address_pattern(self, pattern, marking=None, uuid=None):
+        pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
+        attributes = self.fill_pattern_attributes(pattern_types, pattern_values, email_mapping)
+        self.handle_import_case(attributes, 'email', marking, uuid)
+
     def parse_file_observable(self, objects, marking, uuid):
-        _object = objects['0']
-        attributes = self.attributes_from_file_observable(_object)
+        file, directory = self.split_file_observable(objects)
+        attributes = self.attributes_from_file_observable(file)
+        if directory is not None and directory.path:
+            mapping = file_mapping['path']
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': directory.path, 'to_ids': False})
         if hasattr(_object, 'extensions') and 'windows-pebinary-ext' in _object.extensions:
             self.handle_pe_case(_object.extensions['windows-pebinary-ext'], attributes, uuid)
         else:
@@ -1300,7 +1319,7 @@ class ExternalStixParser(StixParser):
         self.handle_import_case(attributes, 'file', marking, uuid)
 
     def parse_file_object_observable(self, objects, marking, uuid):
-        file, data = self.extract_data_from_file(objects)
+        file, data = self.split_file_observable(objects)
         attributes = self.attributes_from_file_observable(file, data)
         if hasattr(file, 'extensions') and 'windows-pebinary-ext' in file.extensions:
             self.handle_pe_case(file.extensions['windows-pebinary-ext'], attributes, uuid)

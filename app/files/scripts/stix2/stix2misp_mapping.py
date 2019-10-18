@@ -143,6 +143,7 @@ mime_type_attribute_mapping = {'type': 'mime-type', 'relation': 'mimetype'}
 modified_attribute_mapping = {'type': 'datetime', 'relation': 'last-modified'}
 number_sections_mapping = {'type': 'counter', 'relation': 'number-sections'}
 password_mapping = {'type': 'text', 'relation': 'password'}
+path_attribute_mapping = {'type': 'text', 'relation': 'path'}
 pe_type_mapping = {'type': 'text', 'relation': 'type'}
 pid_attribute_mapping = {'type': 'text', 'relation': 'pid'}
 process_command_line_mapping = {'type': 'text', 'relation': 'command-line'}
@@ -204,12 +205,15 @@ email_mapping = {'date': email_date_attribute_mapping,
                  'from_ref': from_attribute_mapping,
                  'email-message:from_ref': from_attribute_mapping,
                  'body_multipart': body_multipart_mapping,
-                 'email-message:body_multipart[*].body_raw_ref.name': body_multipart_mapping}
+                 'email-message:body_multipart[*].body_raw_ref.name': body_multipart_mapping,
+                 'email-addr:value': to_attribute_mapping}
 
 file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'file:mime_type': mime_type_attribute_mapping,
                 'name': filename_attribute_mapping,
                 'file:name': filename_attribute_mapping,
+                'path': path_attribute_mapping,
+                'directory:path': path_attribute_mapping,
                 'size': size_attribute_mapping,
                 'file:size': size_attribute_mapping}
 
