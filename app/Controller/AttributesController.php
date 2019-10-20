@@ -1637,25 +1637,6 @@ class AttributesController extends AppController
         }
     }
 
-    // Deletes this specific attribute from all remote servers
-    private function __deleteAttributeFromServers($uuid)
-    {
-        // get a list of the servers with push active
-        $this->loadModel('Server');
-        $servers = $this->Server->find('all', array('conditions' => array('push' => 1)));
-
-        // iterate over the servers and upload the attribute
-        if (empty($servers)) {
-            return;
-        }
-        App::uses('SyncTool', 'Tools');
-        foreach ($servers as $server) {
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-            $this->Attribute->deleteAttributeFromServer($uuid, $server, $HttpSocket);
-        }
-    }
-
     public function search($continue = false)
     {
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
