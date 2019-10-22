@@ -197,7 +197,7 @@
         );
         $table_data[] = array(
             'key' => __('First recorded change'),
-            'value' => date('Y-m-d H:i:s', $oldest_timestamp)
+            'value' => (!$oldest_timestamp) ? '' : date('Y-m-d H:i:s', $oldest_timestamp)
         );
         $table_data[] = array(
             'key' => __('Last change'),
