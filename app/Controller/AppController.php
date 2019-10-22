@@ -152,7 +152,8 @@ class AppController extends Controller
         }
         // check if Apache provides kerberos authentication data
         $envvar = Configure::read('ApacheSecureAuth.apacheEnv');
-        if (isset($_SERVER[$envvar])) {
+        if  (isset($_SERVER['PHP_AUTH_USER']))  {
+            $_SERVER[$envvar]=$_SERVER['PHP_AUTH_USER'];
             $this->Auth->className = 'ApacheSecureAuth';
             $this->Auth->authenticate = array(
                 'Apache' => array(
