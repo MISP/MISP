@@ -1,12 +1,12 @@
 # INSTALLATION INSTRUCTIONS
-## for Debian 10 "buster"
+## for Debian 10.1 "buster"
 
 ### 0/ MISP debian stable install - Status
 ------------------------------------
 
 !!! notice
     This is mostly the install [@SteveClement](https://twitter.com/SteveClement) uses for testing, qc and random development.
-    Maintained and tested by @SteveClement on 20190707
+    Maintained and tested by @SteveClement on 20191016
 
 !!! warning
     PHP 7.3.4-2 is not working at the moment with the packaged composer.phar<br />
