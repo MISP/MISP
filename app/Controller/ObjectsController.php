@@ -630,7 +630,11 @@ class ObjectsController extends AppController
         if ((!$this->request->is('post') && !$this->request->is('put'))) {
             throw new MethodNotAllowedException(__('This function can only be accessed via POST or PUT'));
         }
-        $object = $this->MispObject->find('first', array('contain' => 'Event', 'recursive' => -1));
+        $object = $this->MispObject->find('first', array(
+            'conditions' => array('Object.id' => $id),
+            'contain' => 'Event',
+            'recursive' => -1
+        ));
         if (empty($object)) {
             return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid object');
         }
@@ -664,12 +668,15 @@ class ObjectsController extends AppController
             $object['Object'][$changedKey] = $changedField;
             $changed = true;
         }
+        $forcedSeenOnElements = array();
         if (!$changed) {
             return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, false, 'nochange');
+        } elseif ($seen_changed) {
+            $forcedSeenOnElements[$changedKey] = $changedField;
         }
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
-        $this->MispObject->setObjectSeenMetaFromAttribute($object, false);
+        $object = $this->MispObject->syncObjectAndAttributeSeen($object, $forcedSeenOnElements);
         if ($this->MispObject->save($object)) {
             $event = $this->MispObject->Event->find('first', array(
                 'recursive' => -1,
@@ -680,20 +687,7 @@ class ObjectsController extends AppController
             $event['Event']['timestamp'] = $date->getTimestamp();
             $event['Event']['published'] = 0;
             if ($seen_changed) {
-                // Set seen of object at attribute level
-                $attributes = $this->MispObject->find('first', array(
-                    'conditions' => array('id' => $object['Object']['id']),
-                    'contain' => array('Attribute')
-                ))['Attribute'];
-                foreach ($attributes as $k => $attribute) {
-                    if (is_null($attribute['first_seen']) && !is_null($object['Object']['first_seen'])) {
-                        $attributes[$k]['first_seen'] = $object['Object']['first_seen'];
-                    }
-                    if (is_null($attribute['last_seen']) && !is_null($object['Object']['last_seen'])) {
-                        $attributes[$k]['last_seen'] = $object['Object']['last_seen'];
-                    }
-                }
-                $this->MispObject->Attribute->saveAttributes($attributes);
+                $this->MispObject->Attribute->saveAttributes($object['Attribute']);
             }
             $this->MispObject->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
             return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, false, 'Field updated');

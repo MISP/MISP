@@ -178,6 +178,19 @@ function build_object_template(obj) {
     return html;
 }
 
+function contain_seen_attribute(obj) {
+    if (obj['Attribute'] === undefined) {
+        return false;
+    }
+    for (var i = 0; i < obj['Attribute'].length; i++) {
+        var attribute = obj['Attribute'][i];
+        if (attribute['contentType'] == 'first-seen' || attribute['contentType'] == 'last-seen') {
+            return true;
+        }
+    }
+    return false;
+}
+
 function reflect_change(onIndex, itemType, itemId, item) {
     if (onIndex) {
         updateIndex(scope_id, 'event'); // MISP function
@@ -254,7 +267,11 @@ function fetch_form_and_submit(itemType, item, seenType, value, reflect, callbac
                 cache: false,
                 success:function (data, textStatus) {
                     if (reflect) {
-                        reflect_change(false, itemType, item.id, item);
+                        if (contain_seen_attribute(item)) {
+                            reflect_change(true, itemType, item.id, item);
+                        } else {
+                            reflect_change(false, itemType, item.id, item);
+                        }
                     }
                     form.remove()
                 },
