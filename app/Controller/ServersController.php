@@ -1686,43 +1686,44 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
+
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $db_version = $this->AdminSetting->getSetting('db_version');
-        $update_progress = $this->Server->getUpdateProgress();
-        $update_progress['db_version'] = $db_version;
-        $max_update_number = max(array_keys($this->Server->db_changes));
-        $update_progress['complete_update_remaining'] = max($max_update_number - $db_version, 0);
-        $update_progress['update_locked'] = $this->Server->isUpdateLocked();
-        $update_progress['lock_remaining_time'] = $this->Server->getLockRemainingTime();
-        $update_progress['update_fail_number_reached'] = $this->Server->UpdateFailNumberReached();
-        $current_index = $update_progress['current'];
-        $current_command = !isset($update_progress['commands'][$current_index]) ? '' : $update_progress['commands'][$current_index];
-        $lookup_string = preg_replace('/\s{2,}/', '', substr($current_command, 0, -1));
-        $sql_info = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
-        if (empty($sql_info)) {
-            $update_progress['process_list'] = array();
+        $dbVersion = $this->AdminSetting->getSetting('db_version');
+        $updateProgress = $this->Server->getUpdateProgress();
+        $updateProgress['db_version'] = $dbVersion;
+        $maxUpdateNumber = max(array_keys($this->Server->db_changes));
+        $updateProgress['complete_update_remaining'] = max($maxUpdateNumber - $dbVersion, 0);
+        $updateProgress['update_locked'] = $this->Server->isUpdateLocked();
+        $updateProgress['lock_remaining_time'] = $this->Server->getLockRemainingTime();
+        $updateProgress['update_fail_number_reached'] = $this->Server->UpdateFailNumberReached();
+        $currentIndex = $updateProgress['current'];
+        $currentCommand = !isset($updateProgress['commands'][$currentIndex]) ? '' : $updateProgress['commands'][$currentIndex];
+        $lookupString = preg_replace('/\s{2,}/', '', substr($currentCommand, 0, -1));
+        $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
+        if (empty($sqlInfo)) {
+            $updateProgress['process_list'] = array();
         } else {
             // retrieve current update process
-            foreach($sql_info as $row) {
-                if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookup_string) {
-                    $sql_info = $row['PROCESSLIST'];
+            foreach($sqlInfo as $row) {
+                if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookupString) {
+                    $sqlInfo = $row['PROCESSLIST'];
                     break;
                 }
             }
-            $update_progress['process_list'] = array();
-            $update_progress['process_list']['STATE'] = isset($sql_info['STATE']) ? $sql_info['STATE'] : '';
-            $update_progress['process_list']['PROGRESS'] = isset($sql_info['PROGRESS']) ? $sql_info['PROGRESS'] : 0;
-            $update_progress['process_list']['STAGE'] = isset($sql_info['STAGE']) ? $sql_info['STAGE'] : 0;
-            $update_progress['process_list']['MAX_STAGE'] = isset($sql_info['MAX_STAGE']) ? $sql_info['MAX_STAGE'] : 0;
+            $updateProgress['process_list'] = array();
+            $updateProgress['process_list']['STATE'] = isset($sqlInfo['STATE']) ? $sqlInfo['STATE'] : '';
+            $updateProgress['process_list']['PROGRESS'] = isset($sqlInfo['PROGRESS']) ? $sqlInfo['PROGRESS'] : 0;
+            $updateProgress['process_list']['STAGE'] = isset($sqlInfo['STAGE']) ? $sqlInfo['STAGE'] : 0;
+            $updateProgress['process_list']['MAX_STAGE'] = isset($sqlInfo['MAX_STAGE']) ? $sqlInfo['MAX_STAGE'] : 0;
         }
         $this->set('ajaxHtml', $ajaxHtml);
         if ($this->request->is('ajax') && $ajaxHtml) {
-            $this->set('updateProgress', $update_progress);
+            $this->set('updateProgress', $updateProgress);
             $this->layout = false;
         } elseif ($this->request->is('ajax') || $this->_isRest()) {
-            return $this->RestResponse->viewData(h($update_progress), $this->response->type());
+            return $this->RestResponse->viewData(h($updateProgress), $this->response->type());
         } else {
-            $this->set('updateProgress', $update_progress);
+            $this->set('updateProgress', $updateProgress);
         }
     }
 

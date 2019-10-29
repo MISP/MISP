@@ -4257,12 +4257,12 @@ class Server extends AppModel
 
     public function dbSchemaDiagnostic()
     {
-        $actual_db_version = $this->AdminSetting->find('first', array(
+        $actualDbVersion = $this->AdminSetting->find('first', array(
             'conditions' => array('setting' => 'db_version')
         ))['AdminSetting']['value'];
-        $data_source = $this->getDataSource()->config['datasource'];
-        $schema_diagnostic = array(
-            'actual_db_version' => $actual_db_version,
+        $dataSource = $this->getDataSource()->config['datasource'];
+        $schemaDiagnostic = array(
+            'actual_db_version' => $actualDbVersion,
             'checked_table_column' => array(),
             'diagnostic' => array(),
             'expected_db_version' => '?',
@@ -4271,31 +4271,31 @@ class Server extends AppModel
             'remaining_lock_time' => $this->getLockRemainingTime(),
             'update_fail_number_reached' => $this->UpdateFailNumberReached()
         );
-        if ($data_source == 'Database/Mysql') {
-            $db_actual_schema = $this->getActualDBSchema();
-            $db_expected_schema = $this->getExpectedDBSchema();
-            if ($db_expected_schema !== false) {
-                $db_schema_comparison = $this->compareDBSchema($db_actual_schema['schema'], $db_expected_schema['schema']);
-                $schema_diagnostic['checked_table_column'] = $db_actual_schema['column'];
-                $schema_diagnostic['diagnostic'] = $db_schema_comparison;
-                $schema_diagnostic['expected_db_version'] = $db_expected_schema['db_version'];
+        if ($dataSource == 'Database/Mysql') {
+            $dbActualSchema = $this->getActualDBSchema();
+            $dbExpectedSchema = $this->getExpectedDBSchema();
+            if ($dbExpectedSchema !== false) {
+                $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
+                $schemaDiagnostic['checked_table_column'] = $dbActualSchema['column'];
+                $schemaDiagnostic['diagnostic'] = $db_schema_comparison;
+                $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
             } else {
-                $schema_diagnostic['error'] = sprintf('Diagnostic not available as the expected schema file could not be loaded');
+                $schemaDiagnostic['error'] = sprintf('Diagnostic not available as the expected schema file could not be loaded');
             }
         } else {
-            $schema_diagnostic['error'] = sprintf('Diagnostic not available for DataSource `%s`', $data_source);
+            $schemaDiagnostic['error'] = sprintf('Diagnostic not available for DataSource `%s`', $dataSource);
         }
-        return $schema_diagnostic;
+        return $schemaDiagnostic;
     }
 
     public function getExpectedDBSchema()
     {
         App::uses('Folder', 'Utility');
         $file = new File(ROOT . DS . 'db_schema.json', true);
-        $db_expected_schema = json_decode($file->read(), true);
+        $dbExpectedSchema = json_decode($file->read(), true);
         $file->close();
-        if (!is_null($db_expected_schema)) {
-            return $db_expected_schema;
+        if (!is_null($dbExpectedSchema)) {
+            return $dbExpectedSchema;
         } else {
             return false;
         }
@@ -4316,7 +4316,7 @@ class Server extends AppModel
 
     */
     public function getActualDBSchema(
-        $table_column_names = array(
+        $tableColumnNames = array(
             'column_name',
             'is_nullable',
             'data_type',
@@ -4326,77 +4326,77 @@ class Server extends AppModel
             'collation_name'
         )
     ){
-        $db_actual_schema = array();
-        $data_source = $this->getDataSource()->config['datasource'];
-        if ($data_source == 'Database/Mysql') {
-            $sql_get_table = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
-            $sql_result = $this->query($sql_get_table);
-            $tables = HASH::extract($sql_result, '{n}.tables.table_name');
+        $dbActualSchema = array();
+        $dataSource = $this->getDataSource()->config['datasource'];
+        if ($dataSource == 'Database/Mysql') {
+            $sqlGetTable = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
+            $sqlResult = $this->query($sqlGetTable);
+            $tables = HASH::extract($sqlResult, '{n}.tables.table_name');
             foreach ($tables as $table) {
-                $sql_schema = sprintf(
+                $sqlSchema = sprintf(
                     "SELECT %s
                     FROM information_schema.columns
-                    WHERE table_schema = '%s' AND table_name = '%s'", implode(',', $table_column_names), $this->getDataSource()->config['database'], $table);
-                $sql_result = $this->query($sql_schema);
-                foreach ($sql_result as $column_schema) {
-                    $db_actual_schema[$table][] = array_values($column_schema['columns']);
+                    WHERE table_schema = '%s' AND table_name = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
+                $sqlResult = $this->query($sqlSchema);
+                foreach ($sqlResult as $column_schema) {
+                    $dbActualSchema[$table][] = array_values($column_schema['columns']);
                 }
             }
         }
-        else if ($data_source == 'Database/Postgres') {
+        else if ($dataSource == 'Database/Postgres') {
             return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
-        return array('schema' => $db_actual_schema, 'column' => $table_column_names);
+        return array('schema' => $dbActualSchema, 'column' => $tableColumnNames);
     }
 
-    public function compareDBSchema($db_actual_schema, $db_expected_schema)
+    public function compareDBSchema($dbActualSchema, $dbExpectedSchema)
     {
-        $db_diff = array();
+        $dbDiff = array();
         // perform schema comparison for tables
-        foreach($db_expected_schema as $table_name => $columns) {
-            if (!array_key_exists($table_name, $db_actual_schema)) {
-                $db_diff[$table_name][] = array(
-                    'description' => sprintf(__('Table `%s` does not exist'), $table_name),
-                    'column_name' => $table_name,
+        foreach($dbExpectedSchema as $tableName => $columns) {
+            if (!array_key_exists($tableName, $dbActualSchema)) {
+                $dbDiff[$tableName][] = array(
+                    'description' => sprintf(__('Table `%s` does not exist'), $tableName),
+                    'column_name' => $tableName,
                 );
             } else {
                 // perform schema comparison for table's columns
-                $expected_column_keys = array();
-                $keyed_expected_column = array();
+                $expectedColumnKeys = array();
+                $keyedExpectedColumn = array();
                 foreach($columns as $column) {
-                    $expected_column_keys[] = $column[0];
-                    $keyed_expected_column[$column[0]] = $column;
+                    $expectedColumnKeys[] = $column[0];
+                    $keyedExpectedColumn[$column[0]] = $column;
                 }
-                $existing_column_keys = array();
-                $keyed_actual_column = array();
-                foreach($db_actual_schema[$table_name] as $column) {
-                    $existing_column_keys[] = $column[0];
-                    $keyed_actual_column[$column[0]] = $column;
+                $existingColumnKeys = array();
+                $keyedActualColumn = array();
+                foreach($dbActualSchema[$tableName] as $column) {
+                    $existingColumnKeys[] = $column[0];
+                    $keyedActualColumn[$column[0]] = $column;
                 }
 
-                $additional_keys_in_actual_schema = array_diff($existing_column_keys, $expected_column_keys);
-                foreach($additional_keys_in_actual_schema as $additional_keys) {
-                    $db_diff[$table_name][] = array(
-                        'description' => sprintf(__('Column `%s` exists but should not'), $additional_keys),
-                        'column_name' => $additional_keys
+                $additionalKeysInActualSchema = array_diff($existingColumnKeys, $expectedColumnKeys);
+                foreach($additionalKeysInActualSchema as $additionalKeys) {
+                    $dbDiff[$tableName][] = array(
+                        'description' => sprintf(__('Column `%s` exists but should not'), $additionalKeys),
+                        'column_name' => $additionalKeys
                     );
                 }
 
-                foreach ($keyed_expected_column as $column_name => $column) {
-                    if (isset($keyed_actual_column[$column_name])) {
-                        $col_diff = array_diff($column, $keyed_actual_column[$column_name]);
-                        if (count($col_diff) > 0) {
-                            $db_diff[$table_name][] = array(
-                                'description' => sprintf(__('Column `%s` is different'), $column_name),
+                foreach ($keyedExpectedColumn as $columnName => $column) {
+                    if (isset($keyedActualColumn[$columnName])) {
+                        $colDiff = array_diff($column, $keyedActualColumn[$columnName]);
+                        if (count($colDiff) > 0) {
+                            $dbDiff[$tableName][] = array(
+                                'description' => sprintf(__('Column `%s` is different'), $columnName),
                                 'column_name' => $column[0],
-                                'actual' => $keyed_actual_column[$column_name],
+                                'actual' => $keyedActualColumn[$columnName],
                                 'expected' => $column
                             );
                         }
                     } else {
-                        $db_diff[$table_name][] = array(
-                            'description' => sprintf(__('Column `%s` does not exist but should'), $column_name),
-                            'column_name' => $column_name,
+                        $dbDiff[$tableName][] = array(
+                            'description' => sprintf(__('Column `%s` does not exist but should'), $columnName),
+                            'column_name' => $columnName,
                             'actual' => array(),
                             'expected' => $column
                         );
@@ -4404,13 +4404,13 @@ class Server extends AppModel
                 }
             }
         }
-        foreach(array_diff(array_keys($db_actual_schema), array_keys($db_expected_schema)) as $additional_table) {
-            $db_diff[$additional_table][] = array(
-                'description' => sprintf(__('Table `%s` is an additional table'), $additional_table),
-                'column_name' => $additional_table,
+        foreach(array_diff(array_keys($dbActualSchema), array_keys($dbExpectedSchema)) as $additionalTable) {
+            $dbDiff[$additionalTable][] = array(
+                'description' => sprintf(__('Table `%s` is an additional table'), $additionalTable),
+                'column_name' => $additionalTable,
             );
         }
-        return $db_diff;
+        return $dbDiff;
     }
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)

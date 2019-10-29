@@ -25,21 +25,21 @@
 
 
 
-    function highlightAndSanitize($dirty, $to_highlight, $color_type = 'success')
+    function highlightAndSanitize($dirty, $toHighlight, $colorType = 'success')
     {
         if (is_array($dirty)) {
-            $array_sane = array();
+            $arraySane = array();
             foreach ($dirty as $i => $item) {
-                if (in_array($item, $to_highlight)) {
-                    $array_sane[] = sprintf('<span class="label label-%s">', $color_type) . h($item) . '</span>';
+                if (in_array($item, $toHighlight)) {
+                    $arraySane[] = sprintf('<span class="label label-%s">', $colorType) . h($item) . '</span>';
                 } else {
-                    $array_sane[] = h($item);
+                    $arraySane[] = h($item);
                 }
             }
-            return $array_sane;
+            return $arraySane;
         } else {
             $sane = h($dirty);
-            $sane = str_replace($to_highlight, sprintf('<span class="label label-%s">', $color_type)  . h($to_highlight) . '</span>', $sane);
+            $sane = str_replace($toHighlight, sprintf('<span class="label label-%s">', $colorType)  . h($toHighlight) . '</span>', $sane);
             return $sane;
         }
     }
@@ -61,31 +61,31 @@
             '<tbody>'
         );
         $rows = '';
-        foreach ($dbSchemaDiagnostics as $table_name => $table_diagnostic) {
+        foreach ($dbSchemaDiagnostics as $tableName => $tableDiagnostic) {
             $rows .= '<tr>';
-                $rows .= sprintf('<td rowspan="%s" colspan="0" class="bold">%s</td>', count($table_diagnostic)+1, h($table_name));
+                $rows .= sprintf('<td rowspan="%s" colspan="0" class="bold">%s</td>', count($tableDiagnostic)+1, h($tableName));
             $rows .= '</tr>';
 
-            foreach ($table_diagnostic as $i => $column_diagnostic) {
-                $column_diagnostic['expected'] = isset($column_diagnostic['expected']) ? $column_diagnostic['expected'] : array();
-                $column_diagnostic['actual'] = isset($column_diagnostic['actual']) ? $column_diagnostic['actual'] : array();
-                $column_diagnostic['description'] = isset($column_diagnostic['expected']) ? $column_diagnostic['description'] : '';
-                $column_diagnostic['column_name'] = isset($column_diagnostic['column_name']) ? $column_diagnostic['column_name'] : '';
+            foreach ($tableDiagnostic as $i => $columnDiagnostic) {
+                $columnDiagnostic['expected'] = isset($columnDiagnostic['expected']) ? $columnDiagnostic['expected'] : array();
+                $columnDiagnostic['actual'] = isset($columnDiagnostic['actual']) ? $columnDiagnostic['actual'] : array();
+                $columnDiagnostic['description'] = isset($columnDiagnostic['expected']) ? $columnDiagnostic['description'] : '';
+                $columnDiagnostic['column_name'] = isset($columnDiagnostic['column_name']) ? $columnDiagnostic['column_name'] : '';
 
-                $intersect = array_intersect($column_diagnostic['expected'], $column_diagnostic['actual']);
-                $diff_expected = array_diff($column_diagnostic['expected'], $intersect);
-                $diff_actual = array_diff($column_diagnostic['actual'], $intersect);
+                $intersect = array_intersect($columnDiagnostic['expected'], $columnDiagnostic['actual']);
+                $diffExpected = array_diff($columnDiagnostic['expected'], $intersect);
+                $diffActual = array_diff($columnDiagnostic['actual'], $intersect);
 
-                $sane_description = highlightAndSanitize($column_diagnostic['description'], $column_diagnostic['column_name'], '');
-                $sane_expected = highlightAndSanitize($column_diagnostic['expected'], $diff_expected);
-                $sane_actual = highlightAndSanitize($column_diagnostic['actual'], $diff_actual, 'important');
-                $unique_row = empty($sane_expected) && empty($sane_actual);
+                $saneDescription = highlightAndSanitize($columnDiagnostic['description'], $columnDiagnostic['column_name'], '');
+                $saneExpected = highlightAndSanitize($columnDiagnostic['expected'], $diffExpected);
+                $saneActual = highlightAndSanitize($columnDiagnostic['actual'], $diffActual, 'important');
+                $uniqueRow = empty($saneExpected) && empty($saneActual);
 
                 $rows .= '<tr>';
-                    $rows .= sprintf('<td %s>%s</td>', $unique_row ? 'colspan=3' : '', $sane_description);
-                    if (!$unique_row) {
-                        $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($table_name), h($i), implode(' ', $sane_expected));
-                        $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($table_name), h($i), implode(' ', $sane_actual));
+                    $rows .= sprintf('<td %s>%s</td>', $uniqueRow ? 'colspan=3' : '', $saneDescription);
+                    if (!$uniqueRow) {
+                        $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i), implode(' ', $saneExpected));
+                        $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i), implode(' ', $saneActual));
                     }
                 $rows .= '</tr>';
             }
@@ -132,24 +132,24 @@
     )
 ?>
 <script>
-var db_schema_diagnostics = <?php echo json_encode($dbSchemaDiagnostics); ?>;
-var db_schema_diagnostics_columns = <?php echo json_encode($checkedTableColumn); ?>;
+var dbSchemaDiagnostics = <?php echo json_encode($dbSchemaDiagnostics); ?>;
+var dbSchemaDiagnosticsColumns = <?php echo json_encode($checkedTableColumn); ?>;
 
 $(document).ready(function() {
-    var popover_diagnostic = $('td.dbColumnDiagnosticRow').popover({
+    var popoverDiagnostic = $('td.dbColumnDiagnosticRow').popover({
         title: '<?php echo __('Column diagnostic'); ?>',
         content: function() {
             var $row = $(this);
             var tableName = $row.data('table');
-            var column_id = $row.data('index');
-            var popover_html = arrayToNestedTable(
-                db_schema_diagnostics_columns,
+            var columnId = $row.data('index');
+            var popoverHtml = arrayToNestedTable(
+                dbSchemaDiagnosticsColumns,
                 [
-                    db_schema_diagnostics[tableName][column_id].expected,
-                    db_schema_diagnostics[tableName][column_id].actual,
+                    dbSchemaDiagnostics[tableName][columnId].expected,
+                    dbSchemaDiagnostics[tableName][columnId].actual,
                 ]
             );
-            return popover_html;
+            return popoverHtml;
         },
         html: true,
         placement: function(context, src) {

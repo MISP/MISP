@@ -24,8 +24,8 @@
     if (!empty($data['html'])) {
         echo sprintf('<p>%s</p>', $data['html']);
     }
-    $skip_pagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
-    if (!$skip_pagination) {
+    $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
+    if (!$skipPagination) {
         $paginationData = array();
         if (!empty($data['paginationBaseurl'])) {
             $paginationData['paginationBaseurl'] = $data['paginationBaseurl'];
@@ -66,7 +66,7 @@
             $tbody
         );
     echo '</div>';
-    if (!$skip_pagination) {
+    if (!$skipPagination) {
         echo $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
         echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
     }

@@ -108,25 +108,25 @@ class AppModel extends Model
         return true;
     }
 
-    public function isAcceptedDatabaseError($error_message, $dataSource)
+    public function isAcceptedDatabaseError($errorMessage, $dataSource)
     {
-        $is_accepted = false;
+        $isAccepted = false;
         if ($dataSource == 'Database/Mysql') {
-            $error_duplicate_column = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';
-            $error_duplicate_index = 'SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name';
-            $error_drop_index = "/SQLSTATE\[42000\]: Syntax error or access violation: 1091 Can't DROP '[\w]+'; check that column\/key exists/";
-            $is_accepted = substr($error_message, 0, strlen($error_duplicate_column)) === $error_duplicate_column ||
-                            substr($error_message, 0, strlen($error_duplicate_index)) === $error_duplicate_index ||
-                            preg_match($error_drop_index, $error_message) !== 0;
+            $errorDuplicateColumn = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';
+            $errorDuplicateIndex = 'SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name';
+            $errorDropIndex = "/SQLSTATE\[42000\]: Syntax error or access violation: 1091 Can't DROP '[\w]+'; check that column\/key exists/";
+            $isAccepted = substr($errorMessage, 0, strlen($errorDuplicateColumn)) === $errorDuplicateColumn ||
+                            substr($errorMessage, 0, strlen($errorDuplicateIndex)) === $errorDuplicateIndex ||
+                            preg_match($errorDropIndex, $errorMessage) !== 0;
         } elseif ($dataSource == 'Database/Postgres') {
-            $error_duplicate_column = '/ERROR:  column "[\w]+" specified more than once/';
-            $error_duplicate_index = '/ERROR: relation "[\w]+" already exists/';
-            $error_drop_index = '/ERROR: index "[\w]+" does not exist/';
-            $is_accepted = preg_match($error_duplicate_column, $error_message) !== 0 ||
-                            preg_match($error_duplicate_index, $error_message) !== 0 ||
-                            preg_match($error_drop_index, $error_message) !== 0;
+            $errorDuplicateColumn = '/ERROR:  column "[\w]+" specified more than once/';
+            $errorDuplicateIndex = '/ERROR: relation "[\w]+" already exists/';
+            $errorDropIndex = '/ERROR: index "[\w]+" does not exist/';
+            $isAccepted = preg_match($errorDuplicateColumn, $errorMessage) !== 0 ||
+                            preg_match($errorDuplicateIndex, $errorMessage) !== 0 ||
+                            preg_match($errorDropIndex, $errorMessage) !== 0;
         }
-        return $is_accepted;
+        return $isAccepted;
     }
 
     // Generic update script
@@ -134,15 +134,15 @@ class AppModel extends Model
     // this could become useful in the future
     public function updateMISP($command)
     {
-        $db_update_success = false;
+        $dbUpdateSuccess = false;
         switch ($command) {
             case '2.4.20':
-                $db_update_success = $this->updateDatabase($command);
+                $dbUpdateSuccess = $this->updateDatabase($command);
                 $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
                 $this->ShadowAttribute->upgradeToProposalCorrelation();
                 break;
             case '2.4.25':
-                $db_update_success = $this->updateDatabase($command);
+                $dbUpdateSuccess = $this->updateDatabase($command);
                 $newFeeds = array(
                     array('provider' => 'CIRCL', 'name' => 'CIRCL OSINT Feed', 'url' => 'https://www.circl.lu/doc/misp/feed-osint', 'enabled' => 0),
                 );
@@ -155,22 +155,22 @@ class AppModel extends Model
                 $this->__addNewFeeds($newFeeds);
                 break;
             case '2.4.49':
-                $db_update_success = $this->updateDatabase($command);
+                $dbUpdateSuccess = $this->updateDatabase($command);
                 $this->SharingGroup = ClassRegistry::init('SharingGroup');
                 $this->SharingGroup->correctSyncedSharingGroups();
                 $this->SharingGroup->updateRoaming();
                 break;
             case '2.4.55':
-                $db_update_success = $this->updateDatabase('addSightings');
+                $dbUpdateSuccess = $this->updateDatabase('addSightings');
                 break;
             case '2.4.66':
-                $db_update_success = $this->updateDatabase('2.4.66');
+                $dbUpdateSuccess = $this->updateDatabase('2.4.66');
                 $this->cleanCacheFiles();
                 $this->Sighting = Classregistry::init('Sighting');
                 $this->Sighting->addUuids();
                 break;
             case '2.4.67':
-                $db_update_success = $this->updateDatabase('2.4.67');
+                $dbUpdateSuccess = $this->updateDatabase('2.4.67');
                 $this->Sighting = Classregistry::init('Sighting');
                 $this->Sighting->addUuids();
                 $this->Sighting->deleteAll(array('NOT' => array('Sighting.type' => array(0, 1, 2))));
@@ -188,15 +188,15 @@ class AppModel extends Model
                         $this->OrgBlacklist->save($value);
                     }
                 }
-                $db_update_success = $this->updateDatabase($command);
+                $dbUpdateSuccess = $this->updateDatabase($command);
                 break;
             case '2.4.86':
                 $this->MispObject = Classregistry::init('MispObject');
                 $this->MispObject->removeOrphanedObjects();
-                $db_update_success = $this->updateDatabase($command);
+                $dbUpdateSuccess = $this->updateDatabase($command);
                 break;
             case 5:
-                $db_update_success = $this->updateDatabase($command);
+                $dbUpdateSuccess = $this->updateDatabase($command);
                 $this->Feed = Classregistry::init('Feed');
                 $this->Feed->setEnableFeedCachingDefaults();
                 break;
@@ -205,7 +205,7 @@ class AppModel extends Model
                 $this->Server->restartWorkers();
                 break;
             case 10:
-                $db_update_success = $this->updateDatabase($command);
+                $dbUpdateSuccess = $this->updateDatabase($command);
                 $this->Role = Classregistry::init('Role');
                 $this->Role->setPublishZmq();
                 break;
@@ -219,14 +219,14 @@ class AppModel extends Model
                 $this->__fixServerPullPushRules();
                 break;
             case 38:
-                $db_update_success = $this->updateDatabase($command);
+                $dbUpdateSuccess = $this->updateDatabase($command);
                 $this->__addServerPriority();
                 break;
             default:
-                $db_update_success = $this->updateDatabase($command);
+                $dbUpdateSuccess = $this->updateDatabase($command);
                 break;
         }
-        return $db_update_success;
+        return $dbUpdateSuccess;
     }
 
     private function __addServerPriority()
@@ -1305,8 +1305,8 @@ class AppModel extends Model
             $str_index_array[] = __('Indexing ') . implode($toIndex, '->');
         }
         $this->__setUpdateCmdMessages(array_merge($sqlArray, $str_index_array));
-        $flag_stop = false;
-        $error_count = 0;
+        $flagStop = false;
+        $errorCount = 0;
 
         // execute test before update. Exit if it fails
         if (isset($this->advanced_updates_description[$command]['preUpdate'])) {
@@ -1318,13 +1318,13 @@ class AppModel extends Model
                 $this->__setUpdateProgress(0, false);
                 $this->__setUpdateResMessages(0, sprintf(__('Issues executing the pre-update test `%s`. The returned error is: %s'), $function_name, $e->getMessage()) . PHP_EOL);
                 $this->__setUpdateError(0);
-                $error_count++;
+                $errorCount++;
                 $exitOnError = true;
-                $flag_stop = true;
+                $flagStop = true;
             }
         }
 
-        if (!$flag_stop) {
+        if (!$flagStop) {
             $this->__setPreUpdateTestState(true);
             foreach ($sqlArray as $i => $sql) {
                 try {
@@ -1343,9 +1343,9 @@ class AppModel extends Model
                     ));
                     $this->__setUpdateResMessages($i, sprintf(__('Successfuly executed the SQL query for %s'), $command));
                 } catch (Exception $e) {
-                    $error_message = $e->getMessage();
+                    $errorMessage = $e->getMessage();
                     $this->Log->create();
-                    $log_message = array(
+                    $logMessage = array(
                         'org' => 'SYSTEM',
                         'model' => 'Server',
                         'model_id' => 0,
@@ -1353,24 +1353,24 @@ class AppModel extends Model
                         'action' => 'update_database',
                         'user_id' => 0,
                         'title' => sprintf(__('Issues executing the SQL query for %s'), $command),
-                        'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $error_message
+                        'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $errorMessage
                     );
-                    $this->__setUpdateResMessages($i, sprintf(__('Issues executing the SQL query for `%s`. The returned error is: ' . PHP_EOL . '%s'), $command, $error_message));
-                    if (!$this->isAcceptedDatabaseError($error_message, $dataSource)) {
+                    $this->__setUpdateResMessages($i, sprintf(__('Issues executing the SQL query for `%s`. The returned error is: ' . PHP_EOL . '%s'), $command, $errorMessage));
+                    if (!$this->isAcceptedDatabaseError($errorMessage, $dataSource)) {
                         $this->__setUpdateError($i);
-                        $error_count++;
+                        $errorCount++;
                         if ($exitOnError) {
-                            $flag_stop = true;
+                            $flagStop = true;
                             break;
                         }
                     } else {
-                        $log_message['change'] = $log_message['change'] . PHP_EOL . __('However, as this error is whitelisted, the update went through.');
+                        $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is whitelisted, the update went through.');
                     }
-                    $this->Log->save($log_message);
+                    $this->Log->save($logMessage);
                 }
             }
         }
-        if (!$flag_stop) {
+        if (!$flagStop) {
             if (!empty($indexArray)) {
                 if ($clean) {
                     $this->cleanCacheFiles();
@@ -1394,10 +1394,10 @@ class AppModel extends Model
             $liveSetting = 'MISP.live';
             $this->Server->serverSettingsSaveValue($liveSetting, true);
         }
-        if (!$flag_stop && $error_count == 0) {
+        if (!$flagStop && $errorCount == 0) {
             $this->__postUpdate($command);
         }
-        if ($flag_stop && $error_count > 0) {
+        if ($flagStop && $errorCount > 0) {
             $this->Log->create();
             $this->Log->save(array(
                     'org' => 'SYSTEM',
@@ -1667,13 +1667,13 @@ class AppModel extends Model
                     );
                     $this->Job->save($data);
                     $jobId = $this->Job->id;
-                    $process_id = CakeResque::enqueue(
+                    $processId = CakeResque::enqueue(
                             'prio',
                             'AdminShell',
                             array('runUpdates', $jobId),
                             true
                     );
-                    $this->Job->saveField('process_id', $process_id);
+                    $this->Job->saveField('process_id', $processId);
                     return true;
                 }
 
@@ -1711,11 +1711,11 @@ class AppModel extends Model
                         $job['Job']['message'] = sprintf(__('Running update %s'), $update);
                         $this->Job->save($job);
                     }
-                    $db_update_success = $this->updateMISP($update);
+                    $dbUpdateSuccess = $this->updateMISP($update);
                     if ($temp) {
                         $requiresLogout = true;
                     }
-                    if ($db_update_success) {
+                    if ($dbUpdateSuccess) {
                         $db_version['AdminSetting']['value'] = $update;
                         $this->AdminSetting->save($db_version);
                         $this->resetUpdateFailNumber();
@@ -1885,8 +1885,8 @@ class AppModel extends Model
     public function getUpdateFailNumber()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $update_fail_number = $this->AdminSetting->getSetting('update_fail_number');
-        return ($update_fail_number !== false && $update_fail_number !== '') ? $update_fail_number : 0;
+        $updateFailNumber = $this->AdminSetting->getSetting('update_fail_number');
+        return ($updateFailNumber !== false && $updateFailNumber !== '') ? $updateFailNumber : 0;
     }
 
     public function resetUpdateFailNumber()
@@ -1898,8 +1898,8 @@ class AppModel extends Model
     public function __increaseUpdateFailNumber()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $update_fail_number = $this->AdminSetting->getSetting('update_fail_number');
-        $this->AdminSetting->changeSetting('update_fail_number', $update_fail_number+1);
+        $updateFailNumber = $this->AdminSetting->getSetting('update_fail_number');
+        $this->AdminSetting->changeSetting('update_fail_number', $updateFailNumber+1);
     }
 
     public function UpdateFailNumberReached()
