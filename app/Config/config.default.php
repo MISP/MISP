@@ -141,7 +141,7 @@ $config = array(
 	/*
 	'ApacheSecureAuth' => // Configuration for kerberos authentication
 		array(
-			'apacheEnv'          => 'REMOTE_USER',           // If proxy variable = HTTP_REMOTE_USER
+			'apacheEnv'          => 'REMOTE_USER',           // If proxy variable = HTTP_REMOTE_USER, If BasicAuth ldap = PHP_AUTH_USER
 			'ldapServer'         => 'ldap://example.com',   // FQDN or IP
 			'ldapProtocol'       => 3,
 			'ldapNetworkTimeout' => -1,  // use -1 for unlimited network timeout

@@ -5,7 +5,7 @@ switch ($object['type']) {
     case 'attachment':
     case 'malware-sample':
         if ($object['type'] === 'attachment' && isset($object['image'])) {
-            if (extension_loaded('gd')) {
+            if ($object['image'] === true) {
                 $img = '<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>';
                 $img .= '<img class="screenshot screenshot-collapsed useCursorPointer img-rounded hidden" src="' . $baseurl . '/attributes/viewPicture/' . h($object['id']) . '/1' . '" title="' . h($object['value']) . '" onload="$(this).show(200); $(this).parent().find(\'.fa-spinner\').remove();"/>';
                 echo $img;
@@ -58,7 +58,7 @@ switch ($object['type']) {
         } else {
             $sigDisplay = str_replace("\r", '', h($sigDisplay));
             $sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
-            echo h($sigDisplay);
+            echo $sigDisplay;
         }
         break;
 

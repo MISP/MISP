@@ -80,18 +80,10 @@ class AttributesController extends AppController
             return $this->RestResponse->viewData($attributes, $this->response->type());
         }
         $org_ids = array();
-        $tag_ids = array();
         $orgs = $this->Attribute->Event->Orgc->find('list', array(
                 'conditions' => array('Orgc.id' => $org_ids),
                 'fields' => array('Orgc.id', 'Orgc.name')
         ));
-        if (!empty($tag_ids)) {
-            $tags = $this->Attribute->AttributeTag->Tag->find('all', array(
-                'conditions' => array('Tag.id' => $tag_ids),
-                'recursive' => -1,
-                'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
-            ));
-        }
         if (!$this->_isRest()) {
             $temp = $this->__searchUI($attributes);
             $this->loadModel('Galaxy');
@@ -1642,25 +1634,6 @@ class AttributesController extends AppController
                 ),
             ));
             $this->render('ajax/attributeEditMassForm');
-        }
-    }
-
-    // Deletes this specific attribute from all remote servers
-    private function __deleteAttributeFromServers($uuid)
-    {
-        // get a list of the servers with push active
-        $this->loadModel('Server');
-        $servers = $this->Server->find('all', array('conditions' => array('push' => 1)));
-
-        // iterate over the servers and upload the attribute
-        if (empty($servers)) {
-            return;
-        }
-        App::uses('SyncTool', 'Tools');
-        foreach ($servers as $server) {
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-            $this->Attribute->deleteAttributeFromServer($uuid, $server, $HttpSocket);
         }
     }
 

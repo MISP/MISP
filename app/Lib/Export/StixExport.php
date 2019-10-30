@@ -2,6 +2,11 @@
 
 class StixExport
 {
+    public $additional_params = array(
+        'includeEventTags' => 1,
+        'includeGalaxy' => 1
+    );
+    protected $__return_format = 'json';
     protected $__scripts_dir = APP . 'files/scripts/';
     protected $__end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
     protected $__return_type = null;
@@ -54,6 +59,11 @@ class StixExport
     public function header($options = array())
     {
         $this->__return_type = $options['returnFormat'];
+        if ($this->__return_type == 'stix-json') {
+            $this->__return_type = 'stix';
+        } else if ($this->__return_type == 'stix') {
+            $this->__return_format = 'xml';
+        }
         $framing_cmd = $this->initiate_framing_params();
         $randomFileName = $this->__generateRandomFileName();
         $this->__tmp_dir = $this->__scripts_dir . 'tmp/';

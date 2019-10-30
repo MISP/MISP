@@ -4456,12 +4456,12 @@ class EventsController extends AppController
                     'checkbox_set' => '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1'
             ),
             'stix_json' => array(
-                    'url' => '/events/restSearch/stix/eventid:' . $id . '.json',
+                    'url' => '/events/restSearch/stix-json/eventid:' . $id,
                     'text' => 'STIX JSON (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix/withAttachments:1/eventid:' . $id . '.json'
+                    'checkbox_set' => '/events/restSearch/stix-json/withAttachments:1/eventid:' . $id
             ),
             'stix2_json' => array(
                     'url' => '/events/restSearch/stix2/eventid:' . $id,
