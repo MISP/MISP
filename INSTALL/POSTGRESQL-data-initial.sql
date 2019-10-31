@@ -118,7 +118,7 @@ COPY public.favourite_tags (id, tag_id, user_id) FROM stdin;
 
 COPY public.feeds (id, name, provider, url, rules, enabled, distribution, sharing_group_id, tag_id, "default", source_format, fixed_event, delta_merge, event_id, publish, override_ids, settings, input_source, delete_local_file, lookup_visible, headers, caching_enabled) FROM stdin;
 1	CIRCL OSINT Feed	CIRCL	https://www.circl.lu/doc/misp/feed-osint	\N	f	3	0	0	t	misp	f	f	0	f	f	\N	network	f	f	\N	f
-2	The Botvrij.eu Data	Botvrij.eu	http://www.botvrij.eu/data/feed-osint	\N	f	3	0	0	t	misp	f	f	0	f	f	\N	network	f	f	\N	f
+2	The Botvrij.eu Data	Botvrij.eu	https://www.botvrij.eu/data/feed-osint	\N	f	3	0	0	t	misp	f	f	0	f	f	\N	network	f	f	\N	f
 \.
 
 
