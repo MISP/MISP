@@ -110,7 +110,6 @@ $config = array(
 	'ApacheShibbAuth'  =>                      // Configuration for shibboleth authentication
 		array(
 			'apacheEnv'         => 'REMOTE_USER',        // If proxy variable = HTTP_REMOTE_USER
-			'ssoAuth'           => 'AUTH_TYPE',
 			'MailTag'           => 'EMAIL_TAG',
 			'OrgTag'            => 'FEDERATION_TAG',
 			'GroupTag'          => 'GROUP_TAG',
