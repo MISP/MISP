@@ -488,7 +488,7 @@ class TagsController extends AppController
                 'conditions' => array('Event.id' => $id)
         ));
         $this->set('required_taxonomies', $this->EventTag->Event->getRequiredTaxonomies());
-        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies(Hash::extract($tags, '{n}.Tag.name'));
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($tags);
         $this->set('tagConflicts', $tagConflicts);
         $this->set('event', $event);
         $this->layout = 'ajax';
@@ -499,6 +499,7 @@ class TagsController extends AppController
     {
         $this->helpers[] = 'TextColour';
         $this->loadModel('AttributeTag');
+        $this->loadModel('Taxonomy');
 
         $this->Tag->AttributeTag->Attribute->id = $id;
         if (!$this->Tag->AttributeTag->Attribute->exists()) {
@@ -531,6 +532,8 @@ class TagsController extends AppController
         $this->set('event', $event);
         $this->set('attributeTags', $attributeTags);
         $this->set('attributeId', $id);
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attributeTags);
+        $this->set('tagConflicts', $tagConflicts);
         $this->layout = 'ajax';
         $this->render('/Attributes/ajax/ajaxAttributeTags');
     }

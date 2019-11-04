@@ -2959,6 +2959,7 @@ class AttributesController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
+        $this->Taxonomy = $log = ClassRegistry::init('Taxonomy');
         $rearrangeRules = array(
             'request' => false,
             'Attribute' => false,
@@ -3096,6 +3097,20 @@ class AttributesController extends AppController
                     ));
                     $this->autoRender = false;
                     if (!empty($found)) {
+                        $fails++;
+                        continue;
+                    }
+                    $tagsOnAttribute = $this->Attribute->AttributeTag->find('all', array(
+                        'conditions' => array(
+                            'AttributeTag.attribute_id' => $id,
+                            'AttributeTag.local' => $local
+                        ),
+                        'contain' => 'Tag',
+                        'fields' => array('Tag.name'),
+                        'recursive' => -1
+                    ));
+                    $exclusive_test_passed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnAttribute, '{n}.Tag.name'));
+                    if (!$exclusive_test_passed) {
                         $fails++;
                         continue;
                     }
