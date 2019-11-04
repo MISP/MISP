@@ -6944,11 +6944,4 @@ class Event extends AppModel
         }
         return true;
     }
-
-    public function checkIfTagAllowedByTaxonomy($tagName)
-    {
-        $this->Taxonomy = ClassRegistry::init('Taxonomy');
-        // $taxonomy 
-        $taxonomy = $this->Taxonomy->getTaxonomyForTag($tag['Tag']['name']);
-    }
 }

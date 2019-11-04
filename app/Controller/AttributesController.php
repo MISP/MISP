@@ -3109,8 +3109,8 @@ class AttributesController extends AppController
                         'fields' => array('Tag.name'),
                         'recursive' => -1
                     ));
-                    $exclusive_test_passed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnAttribute, '{n}.Tag.name'));
-                    if (!$exclusive_test_passed) {
+                    $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnAttribute, '{n}.Tag.name'));
+                    if (!$exclusiveTestPassed) {
                         $fails++;
                         continue;
                     }

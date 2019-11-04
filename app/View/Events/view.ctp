@@ -332,12 +332,12 @@
         </div>
         <div class="related span4">
 
-            <?php if (!empty($warningTagConflict)): ?>
+            <?php if (!empty($warningTagConflicts)): ?>
                 <div class="warning_container" style="width:80%;">
                     <h4 class="red"><?php echo __('Warning: Taxonomy inconsistencies');?></h4>
                     <?php echo '<ul>'; ?>
                     <?php
-                        foreach ($warningTagConflict as $taxonomy) {
+                        foreach ($warningTagConflicts as $taxonomy) {
                             echo sprintf('<li><a href="%s/taxonomies/view/%s" title="">%s</a></li>', $baseurl, h($taxonomy['Taxonomy']['id']), h($taxonomy['Taxonomy']['namespace']), h($taxonomy['Taxonomy']['description']));
                             echo '<ul>';
                             if ($taxonomy['Taxonomy']['exclusive']) {

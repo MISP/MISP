@@ -239,25 +239,6 @@ class TaxonomiesController extends AppController
         }
     }
 
-    public function testExclusive()
-    {
-        $res = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy('tlp:green', array('tlp:white1'));
-        $res2 = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy('tlp:green', array('tlp:white'));
-        $res3 = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy('estimative-language:confidence-in-analytic-judgment="high"', array('estimative-language:confidence-in-analytic-judgment="low"'));
-        return $this->RestResponse->viewData([$res, $res2, $res3], 'html');
-    }
-    public function testInconsistencies()
-    {
-        $res = $this->Taxonomy->checkIfTagInconsistencies(array('tlp:green', 'tlp:white1'));
-        $res2 = $this->Taxonomy->checkIfTagInconsistencies(array('estimative-language:confidence-in-analytic-judgment="low"', 'estimative-language:confidence-in-analytic-judgment="high"'));
-        $res3 = $this->Taxonomy->checkIfTagInconsistencies(array(
-            'fr-classif:classifiees-defense="CONFIDENTIEL_DEFENSE"',
-            'fr-classif:classifiees-defense="TRES_SECRET_DEFENSE"',
-            'fr-classif:non-classifiees-defense="CONFIDENTIEL"'
-        ));
-        return $this->RestResponse->viewData([$res, $res2, $res3], 'html');
-    }
-
     public function addTag($taxonomy_id = false)
     {
         if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) {

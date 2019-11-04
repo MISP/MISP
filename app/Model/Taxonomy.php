@@ -564,9 +564,9 @@ class Taxonomy extends AppModel
         if (!$prefixIsFree) {
             // at this point, we have a duplicated namespace(-predicate)
             $taxonomy = $this->getTaxonomyForTag($newTagName);
-            if (isset($taxonomy['Taxonomy']['exclusive']) && $taxonomy['Taxonomy']['exclusive']) {
+            if (!empty($taxonomy['Taxonomy']['exclusive'])) {
                 return false; // only one tag of this taxonomy is allowed
-            } elseif (isset($taxonomy['TaxonomyPredicate'][0]['exclusive']) && $taxonomy['TaxonomyPredicate'][0]['exclusive']) {
+            } elseif (!empty($taxonomy['TaxonomyPredicate'][0]['exclusive'])) {
                 return false; // only one tag belonging to this predicate is allowed
             }
         }
