@@ -162,4 +162,16 @@
         '<span class="tag-list-container">%s</span>',
         $tagData
     );
+    $tagConflictData = '<span>';
+    if (!empty($tagConflicts)) {
+        foreach ($tagConflicts as $tagConflict) {
+            $tagConflictData .= sprintf(
+                '<div class="alert alert-error tag-conflict-notice" style="margin: 5px 0px;"><strong>%s</strong> | %s</div>',
+                h(implode(', ', $tagConflict['tags'])),
+                h($tagConflict['conflict'])
+            );
+        }
+    }
+    $tagConflictData .= '</span>';
+    echo $tagConflictData;
 ?>

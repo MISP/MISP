@@ -459,6 +459,7 @@ class TagsController extends AppController
     public function showEventTag($id)
     {
         $this->loadModel('EventTag');
+        $this->loadModel('Taxonomy');
         if (!$this->EventTag->Event->checkIfAuthorised($this->Auth->user(), $id)) {
             throw new MethodNotAllowedException('Invalid event.');
         }
@@ -487,6 +488,8 @@ class TagsController extends AppController
                 'conditions' => array('Event.id' => $id)
         ));
         $this->set('required_taxonomies', $this->EventTag->Event->getRequiredTaxonomies());
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies(Hash::extract($tags, '{n}.Tag.name'));
+        $this->set('tagConflicts', $tagConflicts);
         $this->set('event', $event);
         $this->layout = 'ajax';
         $this->render('/Events/ajax/ajaxTags');

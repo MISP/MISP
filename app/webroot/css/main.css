@@ -2394,3 +2394,12 @@ table tr:hover .down-expand-button {
 #notice_message {
    margin: 10px;
 }
+
+.tag-conflict-notice {
+    margin: 5px 0px;
+}
+
+.attributeTagContainer .tag-conflict-notice {
+    max-width: 350px;
+    overflow: auto;
+}
