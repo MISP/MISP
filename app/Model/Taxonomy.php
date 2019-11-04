@@ -622,9 +622,8 @@ class Taxonomy extends AppModel
                         'tags' => $potTaxonomy['tagNames'],
                         'taxonomy' => $taxonomy,
                         'conflict' => sprintf(
-                            __('Predicate `%s` is exclusive from Taxonomy `%s` is exclusive'),
-                            $taxonomy['TaxonomyPredicate'][0]['value'],
-                            $taxonomy['Taxonomy']['namespace']
+                            __('Predicate `%s` is exclusive'),
+                            $taxonomy['TaxonomyPredicate'][0]['value']
                         )
                     );
                 }
