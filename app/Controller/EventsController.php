@@ -1270,6 +1270,7 @@ class EventsController extends AppController
             'named_params' => $this->params['named']
         );
         $exception = false;
+        $warningTagConflict = array();
         $filters = $this->_harvestParameters($filterData, $exception);
 
         $this->loadModel('GalaxyCluster');
@@ -1372,6 +1373,9 @@ class EventsController extends AppController
         }
 
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies(Hash::extract($event['EventTag'], '{n}.Tag.name'));
+        foreach ($tagConflicts as $tagConflict) {
+            $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        }
         $this->set('tagConflicts', $tagConflicts);
 
         $startDate = null;
@@ -1391,6 +1395,9 @@ class EventsController extends AppController
                 }
             }
             $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies(Hash::extract($attribute['AttributeTag'], '{n}.Tag.name'));
+            foreach ($tagConflicts as $tagConflict) {
+                $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
             $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event, 'both');
@@ -1418,10 +1425,14 @@ class EventsController extends AppController
                         }
                     }
                     $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies(Hash::extract($attribute['AttributeTag'], '{n}.Tag.name'));
+                    foreach ($tagConflicts as $tagConflict) {
+                        $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
                     $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
         }
+        $this->set('warningTagConflict', $warningTagConflict);
         $filters['sort'] = 'timestamp';
         $filters['direction'] = 'desc';
         if (isset($filters['distribution'])) {

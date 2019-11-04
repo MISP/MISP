@@ -2403,3 +2403,8 @@ table tr:hover .down-expand-button {
     max-width: 350px;
     overflow: auto;
 }
+
+.tag-conflict-notice .apply_css_arrow {
+    display: inline-block;
+    padding: 0px 6px;
+}

@@ -162,16 +162,19 @@
         '<span class="tag-list-container">%s</span>',
         $tagData
     );
-    $tagConflictData = '<span>';
+    $tagConflictData = '';
     if (!empty($tagConflicts)) {
+        $tagConflictData .= '<div><div class="alert alert-error tag-conflict-notice">';
         foreach ($tagConflicts as $tagConflict) {
             $tagConflictData .= sprintf(
-                '<div class="alert alert-error tag-conflict-notice" style="margin: 5px 0px;"><strong>%s</strong> | %s</div>',
-                h(implode(', ', $tagConflict['tags'])),
+                '<strong>%s</strong></br>',
                 h($tagConflict['conflict'])
             );
+            foreach ($tagConflict['tags'] as $tag) {
+                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span></br>', h($tag));
+            }
         }
+        $tagConflictData .= '</div></span>';
     }
-    $tagConflictData .= '</span>';
     echo $tagConflictData;
 ?>

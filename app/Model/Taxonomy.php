@@ -595,11 +595,13 @@ class Taxonomy extends AppModel
                 if (isset($taxonomy['Taxonomy']['exclusive']) && $taxonomy['Taxonomy']['exclusive']) {
                     $conflictingTaxonomy[] = array(
                         'tags' => $potTaxonomy['tagNames'],
+                        'taxonomy' => $taxonomy,
                         'conflict' => sprintf(__('Taxonomy `%s` is an exclusive Taxonomy'), $taxonomy['Taxonomy']['namespace'])
                     );
                 } elseif (isset($taxonomy['TaxonomyPredicate'][0]['exclusive']) && $taxonomy['TaxonomyPredicate'][0]['exclusive']) {
                     $conflictingTaxonomy[] = array(
                         'tags' => $potTaxonomy['tagNames'],
+                        'taxonomy' => $taxonomy,
                         'conflict' => sprintf(
                             __('Predicate `%s` is exclusive from Taxonomy `%s` is exclusive'),
                             $taxonomy['TaxonomyPredicate'][0]['value'],
