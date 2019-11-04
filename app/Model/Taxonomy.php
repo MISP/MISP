@@ -573,7 +573,26 @@ class Taxonomy extends AppModel
         return true;
     }
 
-    public function checkIfTagInconsistencies($tagNameList)
+    public function checkIfTagInconsistencies($tagList)
+    {
+        $eventTags = array();
+        $localEventTags = array();
+        foreach($tagList as $tag) {
+            if ($tag['local'] == 0) {
+                $eventTags[] = $tag['Tag']['name'];
+            } else {
+                $localEventTags[] = $tag['Tag']['name'];
+            }
+        }
+        $tagConflicts = $this->getTagConflicts($eventTags);
+        $localTagConflicts = $this->getTagConflicts($localEventTags);
+        return array(
+            'global' => $tagConflicts,
+            'local' => $localTagConflicts
+        );
+    }
+
+    public function getTagConflicts($tagNameList)
     {
         $potentiallyConflictingTaxonomy = array();
         $conflictingTaxonomy = array();

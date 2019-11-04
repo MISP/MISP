@@ -1160,7 +1160,13 @@ class EventsController extends AppController
                             unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
                         }
                     }
-                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies(Hash::extract($attribute['AttributeTag'], '{n}.Tag.name'));
+                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                    foreach ($tagConflicts['global'] as $tagConflict) {
+                        $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    foreach ($tagConflicts['local'] as $tagConflict) {
+                        $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
                     $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
@@ -1171,7 +1177,13 @@ class EventsController extends AppController
                     unset($event['Attribute'][$k]['AttributeTag'][$k2]);
                 }
             }
-            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies(Hash::extract($attribute['AttributeTag'], '{n}.Tag.name'));
+            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+            foreach ($tagConflicts['global'] as $tagConflict) {
+                $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            foreach ($tagConflicts['local'] as $tagConflict) {
+                $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
             $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         if (empty($this->passedArgs['sort'])) {
@@ -1372,8 +1384,11 @@ class EventsController extends AppController
             }
         }
 
-        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies(Hash::extract($event['EventTag'], '{n}.Tag.name'));
-        foreach ($tagConflicts as $tagConflict) {
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
+        foreach ($tagConflicts['global'] as $tagConflict) {
+            $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        }
+        foreach ($tagConflicts['local'] as $tagConflict) {
             $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
         }
         $this->set('tagConflicts', $tagConflicts);
@@ -1394,8 +1409,11 @@ class EventsController extends AppController
                     unset($event['Attribute'][$k]['AttributeTag'][$k2]);
                 }
             }
-            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies(Hash::extract($attribute['AttributeTag'], '{n}.Tag.name'));
-            foreach ($tagConflicts as $tagConflict) {
+            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+            foreach ($tagConflicts['global'] as $tagConflict) {
+                $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            foreach ($tagConflicts['local'] as $tagConflict) {
                 $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
             }
             $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
@@ -1424,8 +1442,11 @@ class EventsController extends AppController
                             unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
                         }
                     }
-                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies(Hash::extract($attribute['AttributeTag'], '{n}.Tag.name'));
-                    foreach ($tagConflicts as $tagConflict) {
+                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                    foreach ($tagConflicts['global'] as $tagConflict) {
+                        $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    foreach ($tagConflicts['local'] as $tagConflict) {
                         $warningTagConflict[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
                     }
                     $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
@@ -3857,15 +3878,15 @@ class EventsController extends AppController
                 }
                 $tagsOnEvent = $this->Event->EventTag->find('all', array(
                     'conditions' => array(
-                        'Tag.id' => $tag_id,
-                        'EventTag.event_id' => $id
+                        'EventTag.event_id' => $id,
+                        'EventTag.local' => $local
                     ),
                     'contain' => 'Tag',
                     'fields' => array('Tag.name'),
                     'recursive' => -1
                 ));
-                $exclusive_test_passed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], $tagsOnEvent);
-                if (!empty($exclusive_test_passed)) {
+                $exclusive_test_passed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnEvent, '{n}.Tag.name'));
+                if (!$exclusive_test_passed) {
                     $fail = __('Tag is not allowed due to taxonomy exclusivity settings');
                     continue;
                 }
