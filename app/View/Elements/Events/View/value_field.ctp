@@ -24,7 +24,8 @@ switch ($object['type']) {
                 $filename = $filenameHash[0];
             }
 
-            $url = array('controller' => 'attributes', 'action' => 'download', $object['id']);
+            $controller = isset($object['objectType']) && $object['objectType'] === 'proposal' ? 'shadow_attributes' : 'attributes';
+            $url = array('controller' => $controller, 'action' => 'download', $object['id']);
             echo $this->Html->link($filename, $url, array('class' => $linkClass));
             if (isset($filenameHash[1])) {
                 echo '<br />' . $filenameHash[1];

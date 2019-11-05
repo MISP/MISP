@@ -29,7 +29,7 @@
       "id": "2",
       "name": "The Botvrij.eu Data",
       "provider": "Botvrij.eu",
-      "url": "http://www.botvrij.eu/data/feed-osint",
+      "url": "https://www.botvrij.eu/data/feed-osint",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "3",
