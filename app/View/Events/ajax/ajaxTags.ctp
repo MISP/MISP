@@ -6,6 +6,7 @@
     echo $this->element('ajaxTags', array(
         'event' => $event,
         'tags' => $tags,
-        'tagAccess' => ($isSiteAdmin || $mayModify)
+        'tagAccess' => ($isSiteAdmin || $mayModify),
+        'tagConflicts' => $tagConflicts
     ));
 ?>
