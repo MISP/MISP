@@ -100,7 +100,7 @@
                         'id' => 'multi-accept-button',
                         'title' => __('Accept selected Proposals'),
                         'class' => 'mass-proposal-select hidden',
-                        'fa-icon' => 'check-circl',
+                        'fa-icon' => 'check-circle',
                         'onClick' => 'multiSelectAction',
                         'onClickParams' => array($event['Event']['id'], 'acceptProposals')
                     ),

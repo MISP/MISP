@@ -142,7 +142,7 @@ class AppModel extends Model
                 break;
             case '2.4.27':
                 $newFeeds = array(
-                    array('provider' => 'Botvrij.eu', 'name' => 'The Botvrij.eu Data','url' => 'http://www.botvrij.eu/data/feed-osint', 'enabled' => 0)
+                    array('provider' => 'Botvrij.eu', 'name' => 'The Botvrij.eu Data','url' => 'https://www.botvrij.eu/data/feed-osint', 'enabled' => 0)
                 );
                 $this->__addNewFeeds($newFeeds);
                 break;

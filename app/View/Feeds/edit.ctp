@@ -48,11 +48,11 @@
                         <fieldset>
                             <div class="input">
                                 <label for="BasicAuthUsername"><?php echo __('Username');?></label>
-                                <input class="form-control" type="text" id="BasicAuthUsername"></input><br />
+                                <input class="form-control" type="text" id="BasicAuthUsername"><br />
                             </div>
                             <div class="input">
                                 <label for ="BasicAuthPassword"><?php echo __('Password');?></label>
-                                <input class="form-control" type="text" id="BasicAuthPassword"></input><br />
+                                <input class="form-control" type="text" id="BasicAuthPassword"><br />
                             </div>
                         </fieldset>
                         <span class="btn-inverse btn" onClick="add_basic_auth();" style="line-height:10px; padding: 4px 4px;"><?php echo __('Add basic auth header'); ?></span>

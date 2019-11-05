@@ -1358,7 +1358,7 @@ INSERT INTO `admin_settings` (`id`, `setting`, `value`) VALUES
 
 INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`, `enabled`) VALUES
 (1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint', 3, 1, 0),
-(2, 'Botvrij.eu', 'The Botvrij.eu Data', 'http://www.botvrij.eu/data/feed-osint', 3, 1, 0);
+(2, 'Botvrij.eu', 'The Botvrij.eu Data', 'https://www.botvrij.eu/data/feed-osint', 3, 1, 0);
 
  INSERT INTO `regexp` (`id`, `regexp`, `replacement`, `type`) VALUES
  (1, '/.:.ProgramData./i', '%ALLUSERSPROFILE%\\\\', 'ALL'),

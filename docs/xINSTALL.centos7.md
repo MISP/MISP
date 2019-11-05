@@ -42,11 +42,10 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 ```bash
 # <snippet-begin 0_RHEL_PHP_INI.sh>
 # RHEL/CentOS Specific
-RUN_PHP='/usr/bin/scl enable rh-php72'
-RUN_PYTHON='/usr/bin/scl enable rh-python36'
-SUDO_WWW='sudo -H -u apache'
-WWW_USER='apache'
+WWW_USER="apache"
+SUDO_WWW="sudo -H -u $WWW_USER"
 
+RUN_PHP='/usr/bin/scl enable rh-php72'
 PHP_INI=/etc/opt/rh/rh-php72/php.ini
 # <snippet-end 0_RHEL_PHP_INI.sh>
 ```
@@ -96,9 +95,8 @@ sudo yum install gcc git zip \
 # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
 sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache rh-php72-php-gd -y
 
-# Install Python 3.6 from SCL, see
-# https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
-sudo yum install rh-python36 -y
+# Python 3.6 in now available in CentOS 7.7 base
+sudo yum install python3 python3-devel -y
 
 sudo systemctl enable --now rh-php72-php-fpm.service
 ```
@@ -119,9 +117,10 @@ sudo systemctl enable --now redis.service
 ------------
 ```bash
 # Download MISP using git in the /var/www/ directory.
-sudo mkdir $PATH_TO_MISP
-sudo chown ${WWW_USER}:${WWW_USER} $PATH_TO_MISP
-cd /var/www
+PATH_TO_MISP="/var/www/MISP"
+sudo mkdir -p $(dirname $PATH_TO_MISP)
+sudo chown ${WWW_USER}:${WWW_USER} ($dirname $PATH_TO_MISP)
+cd $(dirname $PATH_TO_MISP)
 $SUDO_WWW git clone https://github.com/MISP/MISP.git
 cd $PATH_TO_MISP
 ##$SUDO_WWW git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
@@ -138,7 +137,8 @@ $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 $SUDO_WWW git config core.filemode false
 
 # Create a python3 virtualenv
-$SUDO_WWW $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
+sudo pip3 install virtualenv
+$SUDO_WWW python3 "virtualenv -p python3 $PATH_TO_MISP/venv"
 sudo mkdir /usr/share/httpd/.cache
 sudo chown ${WWW_USER}:${WWW_USER} /usr/share/httpd/.cache
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
@@ -176,13 +176,13 @@ sudo yum install devtoolset-7 cmake3 -y
 cd $PATH_TO_MISP/app/files/scripts/lief
 $SUDO_WWW mkdir build
 cd build
-$SUDO_WWW scl enable devtoolset-7 rh-python36 'bash -c "cmake3 \
+$SUDO_WWW scl enable devtoolset-7 'bash -c "cmake3 \
 -DLIEF_PYTHON_API=on \
 -DLIEF_DOC=off \
 -DCMAKE_INSTALL_PREFIX=$LIEF_INSTALL \
 -DCMAKE_BUILD_TYPE=Release \
 -DPYTHON_VERSION=3.6 \
--DPYTHON_EXECUTABLE=/var/www/MISP/venv/bin/python \
+-DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
 .."'
 $SUDO_WWW make -j3
 sudo make install
@@ -204,17 +204,13 @@ $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 cd $PATH_TO_MISP/PyMISP
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
-# Enable python3 for php-fpm
-echo 'source scl_source enable rh-python36' | sudo tee -a /etc/opt/rh/rh-php72/sysconfig/php-fpm
+# Enable dependencies detection in the diagnostics page
+# This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
+echo "env[PATH] =/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
 sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
 sudo systemctl restart rh-php72-php-fpm.service
 
 umask $UMASK
-
-# Enable dependencies detection in the diagnostics page
-# This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
-echo "env[PATH] =/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
-sudo systemctl restart rh-php72-php-fpm.service
 ```
 
 ### 4/ CakePHP
@@ -237,8 +233,7 @@ sudo yum install php-redis -y
 sudo systemctl restart rh-php72-php-fpm.service
 
 # If you have not yet set a timezone in php.ini
-echo 'date.timezone = "Europe/Luxembourg"' |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/timezone.ini
-sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php72/php.d/99-timezone.ini
+echo 'date.timezone = "Europe/Luxembourg"' |sudo tee /etc/opt/rh/rh-php72/php.d/99-timezone.ini
 
 # Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
 # max_execution_time = 300
@@ -384,20 +379,18 @@ cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.cr
 sudo systemctl restart httpd.service
 
 # Since SELinux is enabled, we need to allow httpd to write to certain directories
-sudo chcon -t usr_t $PATH_TO_MISP/venv
+sudo chcon -t bin_t $PATH_TO_MISP/venv/bin/*
+find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
 sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files
 sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/terms
 sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/tmp
 sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Plugin/CakeResque/tmp
 sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/cake
-sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/start.sh
-sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmq.py
-sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmqtest.py
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/ps
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/grep
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/awk
-sudo chcon -t httpd_sys_script_exec_t /usr/bin/gpg
-sudo chcon -R -t usr_t $PATH_TO_MISP/venv
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/*.sh
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+# Only run these if you want to be able to update MISP from the web interface
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Lib
@@ -444,7 +437,6 @@ sudo chmod 0640 /etc/logrotate.d/misp
 # Allow logrotate to modify the log files
 sudo semanage fcontext -a -t httpd_log_t "$PATH_TO_MISP/app/tmp/logs(/.*)?"
 sudo chcon -R -t httpd_log_t $PATH_TO_MISP/app/tmp/logs
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp/logs
 
 # Allow logrotate to read /var/www
 sudo checkmodule -M -m -o /tmp/misplogrotate.mod $PATH_TO_MISP/INSTALL/misplogrotate.te
@@ -543,7 +535,7 @@ then
 fi
 
 # TODO: Fix static path with PATH_TO_MISP
-sudo sed -i -e '$i \su -s /bin/bash apache -c "scl enable rh-php72 /var/www/MISP/app/Console/worker/start.sh" > /tmp/worker_start_rc.local.log\n' /etc/rc.local
+sudo sed -i -e '$i \su -s /bin/bash apache -c "scl enable rh-php72 $PATH_TO_MISP/app/Console/worker/start.sh" > /tmp/worker_start_rc.local.log\n' /etc/rc.local
 # Make sure it will execute
 sudo chmod +x /etc/rc.local
 
@@ -574,7 +566,7 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/py
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 
 # TODO: Fix static path with PATH_TO_MISP
-sudo sed -i -e '$i \sudo -u apache /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u apache $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
 ```
 
 {!generic/misp-dashboard-centos.md!}

@@ -229,7 +229,7 @@ function processString(text)
         }
         $("#individualLines").find('tbody')
             .append($('<tr>')
-                .append($('<td>').html('<input type="checkbox" class="select"></input>'))
+                .append($('<td>').html('<input type="checkbox" class="select">'))
                 .append($('<td>').text(filepath))
                 .append($('<td>').text(size))
                 .append($('<td>').text(activity))

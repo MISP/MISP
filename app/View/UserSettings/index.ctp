@@ -69,6 +69,11 @@
                     'sort' => 'type',
                     'element' => 'json',
                     'data_path' => 'UserSetting.value'
+                ),
+                array(
+                    'name' => __('Restricted to'),
+                    'sort' => 'type',
+                    'data_path' => 'UserSetting.restricted'
                 )
             ),
             'title' => __('User settings management'),

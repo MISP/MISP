@@ -159,7 +159,7 @@
     </td>
     <td class="short">
       <div class="attributeTagContainer" id="#Attribute_<?php echo h($object['id']);?>_tr .attributeTagContainer">
-        <?php echo $this->element('ajaxTags', array('attributeId' => $object['id'], 'tags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']), 'context' => $context, 'scope' => 'attribute')); ?>
+        <?php echo $this->element('ajaxTags', array('attributeId' => $object['id'], 'tags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']), 'context' => $context, 'scope' => 'attribute', 'tagConflicts' => isset($object['tagConflicts']) ? $object['tagConflicts'] : array())); ?>
       </div>
     </td>
     <?php
@@ -323,7 +323,7 @@
     <td class="short">
       <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_placeholder" class = "inline-field-placeholder"></div>
       <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_solid" class="inline-field-solid">
-        <input type="checkbox" class="toids-toggle" id="toids_toggle_<?php echo h($object['id']); ?>" data-attribute-id="<?php echo h($object['id']); ?>" aria-label="<?php echo __('Toggle IDS flag');?>" title="<?php echo __('Toggle IDS flag');?>" <?php echo $object['to_ids'] ? 'checked' : ''; ?> ></input>
+        <input type="checkbox" class="toids-toggle" id="toids_toggle_<?php echo h($object['id']); ?>" data-attribute-id="<?php echo h($object['id']); ?>" aria-label="<?php echo __('Toggle IDS flag');?>" title="<?php echo __('Toggle IDS flag');?>" <?php echo $object['to_ids'] ? 'checked' : ''; ?> >
       </div>
     </td>
     <td class="short" onmouseenter="quickEditHover(this, '<?php echo $editScope; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">

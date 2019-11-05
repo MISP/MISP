@@ -6,6 +6,32 @@ class ServerShell extends AppShell
 {
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
 
+    public function list() {
+        $res = ['servers'=>[]];
+
+        $servers = $this->Server->find('all', [
+            'fields' => ['Server.id', 'Server.name', 'Server.url'],
+            'recursive' => 0
+        ]);
+        foreach ($servers as $server)
+            $res['servers'][] = $server['Server'];
+
+        echo json_encode($res) . PHP_EOL;
+    }
+
+    public function test() {
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Test'] . PHP_EOL);
+        }
+
+        $serverId = intval($this->args[0]);
+        $res = @$this->Server->runConnectionTest($serverId);
+        if (!empty($res['message']))
+            $res['message'] = json_decode($res['message']);
+
+        echo json_encode($res) . PHP_EOL;
+    }
+
     public function pull() {
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['pull'] . PHP_EOL);

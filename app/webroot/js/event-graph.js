@@ -1401,7 +1401,7 @@ class DataHandler {
         eventGraph.menu_filter.items["table_attr_value"].add_options("table_control_select_attr_value", available_object_references);
     }
 
-    fetch_data_and_update(stabilize, callback) {
+    fetch_data_and_update(stabilize, updateOnly, callback) {
         eventGraph.network_loading(true, loadingText_fetching);
         $.when(this.fetch_objects_template()).done(function() {
             var filtering_rules = eventGraph.get_filtering_rules();
@@ -1419,7 +1419,9 @@ class DataHandler {
                 data: JSON.stringify( payload ),
                 processData: false,
                 success: function( data, textStatus, jQxhr ){
-                    eventGraph.reset_graphs(true);
+                    if (updateOnly === undefined || updateOnly === false) {
+                        eventGraph.reset_graphs(true);
+                    }
                     eventGraph.is_filtered = (filtering_rules.presence.length > 0 || filtering_rules.value.length > 0);
                     eventGraph.first_draw = true;
                     // update object state
@@ -1574,7 +1576,8 @@ class MispInteraction {
         if (!that.can_create_reference(edgeData.from) || !that.can_be_referenced(edgeData.to)) {
             return;
         }
-        genericPopup('/objectReferences/add/'+edgeData.from, '#popover_form', function() {
+        var edgeFromId = edgeData.from.startsWith('o-') ? edgeData.from.substr(2) : edgeData.from;
+        genericPopup('/objectReferences/add/'+edgeFromId, '#popover_form', function() {
             $('#ObjectReferenceReferencedUuid').val(uuid);
             objectReferenceInput();
         });
@@ -1639,6 +1642,7 @@ class MispInteraction {
         var selected_nodes = nodeData.nodes;
         for (var nodeID of selected_nodes) {
             var node = this.nodes.get(nodeID)
+            nodeID = nodeID.startsWith('o-') ? nodeID.substr(2) : nodeID;
             if (node.group.slice(0, 9) == "attribute") {
                 deleteObject('attributes', 'delete', nodeID, scope_id);
             } else if (node.group == "object") {
@@ -1651,6 +1655,7 @@ class MispInteraction {
         var that = mispInteraction;
         var id = nodeData.id
         var group = nodes.get(id).group;
+        id = id.startsWith('o-') ? id.substr(2) : id;
         if (group.slice(0, 9) == 'attribute') {
             simplePopup('/attributes/edit/'+id);
         } else if (group == 'object') {
@@ -1863,7 +1868,7 @@ function genericPopupCallback(result) {
     // sucess and eventgraph is enabled
     if (result == "success" && dataHandler !== undefined) {
         mispInteraction.apply_callback();
-        dataHandler.fetch_data_and_update(false);
+        dataHandler.fetch_data_and_update(false, true);
     }
 }
 
@@ -1960,7 +1965,7 @@ function import_graph_from_json(data) {
         $('#checkbox_physics_enable').prop('checked', data.physics.enabled);
 
         // update data
-        dataHandler.fetch_data_and_update(false, function() {
+        dataHandler.fetch_data_and_update(false, false, function() {
             eventGraph.nodes.update(data.nodes);
             eventGraph.expand_previous_expansion(data.nodes);
             eventGraph.hiddenNode.clear();
@@ -2182,7 +2187,7 @@ $(document).on("keyup", function(evt) {
 });
 
 eventGraph.update_scope();
-dataHandler.fetch_data_and_update(true, function() {
+dataHandler.fetch_data_and_update(true, false, function() {
     var $select = $('#network-typeahead');
     dataHandler.get_typeaheadData_search().forEach(function(element) {
         var $option = $('<option></option>');
