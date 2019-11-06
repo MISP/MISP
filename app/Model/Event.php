@@ -6744,7 +6744,6 @@ class Event extends AppModel
         }
 
         $subqueryElements = $this->harvestSubqueryElements($filters);
-
         if (!empty($subqueryElements['galaxy'])) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
             $tagsFromGalaxyMeta = $this->GalaxyCluster->getClusterTagsFromMeta($subqueryElements['galaxy']);
