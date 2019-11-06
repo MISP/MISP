@@ -1857,6 +1857,14 @@ class Server extends AppModel
                             'test' => 'testForNumeric',
                             'type' => 'numeric'
                         ),
+                        'Sightings_sighting_db_enable' => array(
+                            'level' => 1,
+                            'description' => __('Enable SightingDB integration.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
                         'CustomAuth_enable' => array(
                                 'level' => 2,
                                 'description' => __('Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header.'),

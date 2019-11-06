@@ -112,19 +112,24 @@
   </td>
   <td>&nbsp;</td>
   <td>&nbsp;</td>
-  <?php if (!empty($includeDecayScore)): ?>
-    <td class="decayingScoreField">&nbsp;</td>
-  <?php endif; ?>
+  <?php
+    $paddedFields = array('includeSightingdb', 'includeDecayScore');
+    foreach ($paddedFields as $paddedField) {
+        if (!empty(${$paddedField})) {
+            echo '<td>&nbsp;</td>';
+        }
+    }
+  ?>
   <td class="short action-links">
     <?php
       if ($mayModify && empty($object['deleted'])) {
         echo sprintf(
-          '<a href="%s/objects/edit/%s" title="Edit" aria-label="Edit" class="fa fa-edit icon-white useCursorPointer"></a>',
+          '<a href="%s/objects/edit/%s" title="Edit" aria-label="Edit" class="fa fa-edit white useCursorPointer"></a>',
           $baseurl,
           h($object['id'])
         );
         echo sprintf(
-          '<span class="fa fa-trash icon-white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
+          '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
           (empty($event['Event']['publish_timestamp']) ? __('Permanently delete object') : __('Soft delete object')),
           sprintf(
             'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',

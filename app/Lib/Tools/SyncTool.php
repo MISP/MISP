@@ -35,7 +35,7 @@ class SyncTool
      * @return HttpSocket
      * @throws Exception
      */
-    private function createHttpSocket($params = array())
+    public function createHttpSocket($params = array())
     {
         // Use own CA PEM file
         $caPath = Configure::read('MISP.ca_path');
