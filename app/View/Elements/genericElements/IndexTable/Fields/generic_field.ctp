@@ -4,7 +4,11 @@
         if (count($data) > 1) {
             $data = implode(', ', $data);
         } else {
-            $data = $data[0];
+            if (count($data) > 0) {
+                $data = $data[0];
+            } else {
+                $data = '';
+            }
         }
     }
     echo h($data);
