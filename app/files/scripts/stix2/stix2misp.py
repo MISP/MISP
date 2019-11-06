@@ -1133,7 +1133,8 @@ class ExternalStixParser(StixParser):
                                    ('url',): self.parse_url_observable,
                                    ('user-account',): self.parse_user_account_observable,
                                    ('windows-registry-key',): self.parse_regkey_observable}
-        self.pattern_mapping = {('directory', 'file'): self.parse_file_pattern,
+        self.pattern_mapping = {('directory',): self.parse_file_pattern,
+                                ('directory', 'file'): self.parse_file_pattern,
                                 ('domain-name',): self.parse_domain_ip_port_pattern,
                                 ('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('domain-name', 'ipv6-addr', 'url'): self.parse_domain_ip_port_pattern,
@@ -1365,7 +1366,10 @@ class ExternalStixParser(StixParser):
     def parse_file_pattern(self, pattern, marking=None, uuid=None):
         pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
         attributes = self.attributes_from_file_pattern(pattern_types, pattern_values)
-        self.handle_import_case(attributes, 'file', marking, uuid)
+        if any((attribute['object_relation'] == 'path' for attribute in attributes)):
+            self.object_case_import(attributes, 'file', uuid)
+        else:
+            self.handle_import_case(attributes, 'file', marking, uuid)
 
     def parse_file_object_observable(self, objects, marking, uuid):
         file, data = self.split_file_observable(objects)

@@ -134,7 +134,9 @@ class Server extends AppModel
                     'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
-                    'Run enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
+                    'Run enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]',
+                    'Test' => 'MISP/app/Console/cake Server test [server_id]',
+                    'List' => 'MISP/app/Console/cake Server list'
                 ),
                 'description' => __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.'),
                 'header' => __('Automating certain console tasks')
@@ -428,7 +430,7 @@ class Server extends AppModel
                         'email_subject_TLP_string' => array(
                                 'level' => 2,
                                 'description' => __('This is the TLP string for e-mails when email_subject_tag is not found.'),
-                                'value' => 'TLP Amber',
+                                'value' => 'tlp:amber',
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
                                 'type' => 'string',
@@ -4344,7 +4346,7 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '>1.2.0.6', 'cybox' => '>2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '1.2.0', 'pymisp' => '>2.4.93');
+        $expected = array('stix' => '>1.2.0.6', 'cybox' => '>2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>1.2.0', 'pymisp' => '>2.4.93');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);

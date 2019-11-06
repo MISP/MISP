@@ -198,7 +198,6 @@ sudo systemctl enable --now haveged.service
 # <snippet-begin 1_mispCoreInstall_RHEL.sh>
 installCoreRHEL () {
   # Download MISP using git in the $PATH_TO_MISP directory.
-  PATH_TO_MISP="/var/www/MISP"
   sudo mkdir -p $(dirname $PATH_TO_MISP)
   sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
   cd $(dirname $PATH_TO_MISP)
@@ -257,7 +256,6 @@ installCoreRHEL () {
   # lief needs manual compilation
   sudo yum install devtoolset-7 cmake3 cppcheck -y
 
-  # FIXME: This does not work!
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW mkdir build
   cd build

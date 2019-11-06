@@ -1153,6 +1153,7 @@ class EventsController extends AppController
 
         // remove galaxies tags
         $this->loadModel('GalaxyCluster');
+        $this->loadModel('Taxonomy');
         $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
         foreach ($event['Object'] as $k => $object) {
             if (isset($object['Attribute'])) {
@@ -1162,6 +1163,14 @@ class EventsController extends AppController
                             unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
                         }
                     }
+                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                    foreach ($tagConflicts['global'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    foreach ($tagConflicts['local'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
         }
@@ -1171,6 +1180,14 @@ class EventsController extends AppController
                     unset($event['Attribute'][$k]['AttributeTag'][$k2]);
                 }
             }
+            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+            foreach ($tagConflicts['global'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            foreach ($tagConflicts['local'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         if (empty($this->passedArgs['sort'])) {
             $filters['sort'] = 'timestamp';
@@ -1269,12 +1286,14 @@ class EventsController extends AppController
 
     private function __viewUI($event, $continue, $fromEvent)
     {
+        $this->loadModel('Taxonomy');
         $filterData = array(
             'request' => $this->request,
             'paramArray' => $this->acceptedFilteringNamedParams,
             'named_params' => $this->params['named']
         );
         $exception = false;
+        $warningTagConflicts = array();
         $filters = $this->_harvestParameters($filterData, $exception);
 
         $this->loadModel('GalaxyCluster');
@@ -1375,6 +1394,16 @@ class EventsController extends AppController
                 unset($event['EventTag'][$k]);
             }
         }
+
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
+        foreach ($tagConflicts['global'] as $tagConflict) {
+            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        }
+        foreach ($tagConflicts['local'] as $tagConflict) {
+            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        }
+        $this->set('tagConflicts', $tagConflicts);
+
         $startDate = null;
         $modificationMap = array();
         foreach ($event['Attribute'] as $k => $attribute) {
@@ -1391,6 +1420,14 @@ class EventsController extends AppController
                     unset($event['Attribute'][$k]['AttributeTag'][$k2]);
                 }
             }
+            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+            foreach ($tagConflicts['global'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            foreach ($tagConflicts['local'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event, 'both');
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
@@ -1416,9 +1453,18 @@ class EventsController extends AppController
                             unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
                         }
                     }
+                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                    foreach ($tagConflicts['global'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    foreach ($tagConflicts['local'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
         }
+        $this->set('warningTagConflicts', $warningTagConflicts);
         $filters['sort'] = 'timestamp';
         $filters['direction'] = 'desc';
         if (isset($filters['distribution'])) {
@@ -3734,6 +3780,7 @@ class EventsController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
+        $this->loadModel('Taxonomy');
         $rearrangeRules = array(
                 'request' => false,
                 'Event' => false,
@@ -3846,6 +3893,20 @@ class EventsController extends AppController
                 ));
                 if (!empty($found)) {
                     $error = __('Tag is already attached to this event.');
+                    continue;
+                }
+                $tagsOnEvent = $this->Event->EventTag->find('all', array(
+                    'conditions' => array(
+                        'EventTag.event_id' => $id,
+                        'EventTag.local' => $local
+                    ),
+                    'contain' => 'Tag',
+                    'fields' => array('Tag.name'),
+                    'recursive' => -1
+                ));
+                $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnEvent, '{n}.Tag.name'));
+                if (!$exclusiveTestPassed) {
+                    $fail = __('Tag is not allowed due to taxonomy exclusivity settings');
                     continue;
                 }
                 $this->Event->EventTag->create();

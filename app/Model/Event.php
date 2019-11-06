@@ -3178,7 +3178,7 @@ class Event extends AppModel
             $bodyevent = $temp[0];
             $body = $temp[1];
             $result = true;
-            $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+            $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "tlp:amber";
             $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
             $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
         }

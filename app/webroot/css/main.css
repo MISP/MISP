@@ -2398,3 +2398,33 @@ table tr:hover .down-expand-button {
 #notice_message {
    margin: 10px;
 }
+
+.tag-conflict-notice {
+    margin: 5px 0px;
+    padding-right: 14px;
+    position: relative;
+}
+
+.tag-conflict-notice div.text-container {
+    overflow: auto;
+}
+
+.attributeTagContainer .tag-conflict-notice {
+    max-width: 350px;
+    overflow: auto;
+}
+
+.tag-conflict-notice .apply_css_arrow {
+    display: inline-block;
+    padding: 0px 6px;
+}
+
+.tag-conflict-notice i.icon {
+    position: absolute;
+    padding: 3px;
+    right: 0px;
+    top: 0px;
+    background-color: #3b3b3b;
+    color: white;
+    border-radius: 3px;
+}
