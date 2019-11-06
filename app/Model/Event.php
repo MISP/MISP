@@ -6742,6 +6742,16 @@ class Event extends AppModel
                 $filters['wildcard'] = $filters['searchall'];
             }
         }
+
+        $subqueryElements = $this->harvestSubqueryElements($filters);
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $tagsFromGalaxyMeta = $this->GalaxyCluster->getClusterTagsFromMeta($subqueryElements['galaxy']);
+        if (!empty($filters['tags'])) {
+            $filters['tags'][] = $tagsFromGalaxyMeta;
+        } else {
+            $filters['tags'] = $tagsFromGalaxyMeta;
+        }
+
         $filters['include_attribute_count'] = 1;
         $eventid = $this->filterEventIds($user, $filters, $elementCounter);
         $eventCount = count($eventid);
@@ -6943,5 +6953,34 @@ class Event extends AppModel
             }
         }
         return true;
+    }
+
+    public function harvestSubqueryElements($options)
+    {
+        $acceptedRules = array(
+            'galaxy' => 1,
+            'orgc' => array('sector', 'local', 'nationality'),
+            'taxonomy' => 1
+        );
+        $subqueryElement = array(
+            'galaxy' => array(),
+            'orgc' => array(),
+            'taxonomy' => array(),
+        );
+        foreach($options as $rule => $value) {
+            $split = explode(".", $rule, 2);
+            if (count($split) > 1) {
+                $scope = $split[0];
+                $element = $split[1];
+                if (isset($acceptedRules[$scope])) {
+                    if (is_array($acceptedRules[$scope]) && !in_array($element, $acceptedRules[$scope])) {
+                        continue;
+                    } else {
+                        $subqueryElement[$scope][$element] = $value;
+                    }
+                }
+            }
+        }
+        return $subqueryElement;
     }
 }
