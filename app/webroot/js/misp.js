@@ -3000,6 +3000,58 @@ function sharingGroupPopulateFromJson() {
     $('#SharingGroupDescription').text(jsonparsed.sharingGroup.description);
 }
 
+function runOnDemandAction(element, url, target, postFormField) {
+    var elementContainer = '#' + target;
+    var type = 'GET';
+    var data = '';
+    if (postFormField !== '') {
+        type = 'POST';
+        data = $('#' + postFormField).val();
+        data = {value: data}
+    }
+    $.ajax({
+        url: url,
+        type: type,
+        data: data,
+        beforeSend: function (XMLHttpRequest) {
+            $(elementContainer).html('Running...');
+        },
+        error: function(response) {
+            var result = JSON.parse(response.responseText);
+            $(elementContainer).empty();
+            $(elementContainer)
+            .append(
+                $('<div>')
+                .attr('class', 'bold red')
+                .text('Error ' + response.status + ':')
+            )
+            .append(
+                $('<div>')
+                .attr('class', 'bold')
+                .text(result.errors)
+            );
+        },
+        success: function(response) {
+            var result = JSON.parse(response);
+            $(elementContainer).empty();
+            for (var key in result) {
+                $(elementContainer).append(
+                    $('<div>')
+                    .append(
+                        $('<span>')
+                        .attr('class', 'bold')
+                        .text(key + ': ')
+                    ).append(
+                        $('<span>')
+                        .attr('class', 'bold blue')
+                        .text(result[key])
+                    )
+                );
+            }
+        }
+    })
+}
+
 function testConnection(id) {
     $.ajax({
         url: '/servers/testConnection/' + id,
@@ -3378,7 +3430,6 @@ function toggleBoolFilter(url, param) {
 
     url += buildFilterURL(res);
     url = url.replace(/view\//i, 'viewEventAttributes/');
-
     $.ajax({
         type:"get",
         url:url,

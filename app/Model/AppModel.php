@@ -76,7 +76,7 @@ class AppModel extends Model
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
-        39 => false, 40 => false, 41 => false
+        39 => false, 40 => false, 41 => false, 42 => false
     );
 
     public $advanced_updates_description = array(
@@ -1267,6 +1267,33 @@ class AppModel extends Model
             case 41:
                 $sqlArray[] = "ALTER TABLE `roles` ADD `enforce_rate_limit` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `roles` ADD `rate_limit_count` int(11) NOT NULL DEFAULT 0;";
+                break;
+            case 42:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS sightingdbs (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `name` varchar(255) NOT NULL,
+                    `description` text,
+                    `owner` varchar(255) DEFAULT '',
+                    `host` varchar(255) DEFAULT 'http://localhost',
+                    `port` int(11) DEFAULT 9999,
+                    `timestamp` int(11) NOT NULL,
+                    `enabled` tinyint(1) NOT NULL DEFAULT 0,
+                    `skip_proxy` tinyint(1) NOT NULL DEFAULT 0,
+                    `ssl_skip_verification` tinyint(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (id),
+                    INDEX `name` (`name`),
+                    INDEX `owner` (`owner`),
+                    INDEX `host` (`host`),
+                    INDEX `port` (`port`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS sightingdb_orgs (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `sightingdb_id` int(11) NOT NULL,
+                    `org_id` int(11) NOT NULL,
+                    PRIMARY KEY (id),
+                    INDEX `sightingdb_id` (`sightingdb_id`),
+                    INDEX `org_id` (`org_id`)
+                ) ENGINE=InnoDB;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
