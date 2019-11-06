@@ -6744,12 +6744,23 @@ class Event extends AppModel
         }
 
         $subqueryElements = $this->harvestSubqueryElements($filters);
-        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        $tagsFromGalaxyMeta = $this->GalaxyCluster->getClusterTagsFromMeta($subqueryElements['galaxy']);
-        if (!empty($filters['tags'])) {
-            $filters['tags'][] = $tagsFromGalaxyMeta;
-        } else {
-            $filters['tags'] = $tagsFromGalaxyMeta;
+
+        if (!empty($subqueryElements['galaxy'])) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $tagsFromGalaxyMeta = $this->GalaxyCluster->getClusterTagsFromMeta($subqueryElements['galaxy']);
+            if (!empty($filters['tags'])) {
+                $filters['tags'][] = $tagsFromGalaxyMeta;
+            } else {
+                $filters['tags'] = $tagsFromGalaxyMeta;
+            }
+        }
+        if (!empty($subqueryElements['orgc'])) {
+            $orgcIdsFromMeta = $this->Orgc->getOrgIdsFromMeta($subqueryElements['orgc']);
+            if (!empty($filters['org'])) {
+                $filters['org'][] = $orgcIdsFromMeta;
+            } else {
+                $filters['org'] = $orgcIdsFromMeta;
+            }
         }
 
         $filters['include_attribute_count'] = 1;
@@ -6959,13 +6970,11 @@ class Event extends AppModel
     {
         $acceptedRules = array(
             'galaxy' => 1,
-            'orgc' => array('sector', 'local', 'nationality'),
-            'taxonomy' => 1
+            'orgc' => array('sector', 'local', 'nationality')
         );
         $subqueryElement = array(
             'galaxy' => array(),
             'orgc' => array(),
-            'taxonomy' => array(),
         );
         foreach($options as $rule => $value) {
             $split = explode(".", $rule, 2);

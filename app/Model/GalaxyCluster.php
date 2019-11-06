@@ -210,21 +210,6 @@ class GalaxyCluster extends AppModel
 
     public function getClusterTagsFromMeta($galaxyElements)
     {
-        // OR operator between cluster metas
-        // $conditions = array();
-        // foreach ($galaxyElements as $galaxyElementKey => $galaxyElementValue) {
-        //     $conditions['OR'][]['AND'] = array(
-        //         'GalaxyElement.key' => $galaxyElementKey,
-        //         'GalaxyElement.value' => $galaxyElementValue,
-        //     );
-        // }
-        // $clusterTags = $this->GalaxyElement->find('list', array(
-        //     'conditions' => $conditions,
-        //     'fields' => array('GalaxyCluster.tag_name', 'GalaxyElement.value'),
-        //     'contain' => array('GalaxyCluster'),
-        //     'recursive' => -1
-        // ));
-
         // AND operator between cluster metas
         $tmpResults = array();
         foreach ($galaxyElements as $galaxyElementKey => $galaxyElementValue) {
