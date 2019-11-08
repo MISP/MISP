@@ -74,7 +74,7 @@ class SightingdbController extends AppController
             if (empty($this->request->data['Sightingdb'])) {
                 $this->request->data = array('Sightingdb' => $this->request->data);
             }
-            $keys = array('host', 'port', 'description', 'name', 'owner', 'enabled', 'skip_proxy', 'ssl_skip_verification');
+            $keys = array('host', 'port', 'description', 'name', 'owner', 'enabled', 'skip_proxy', 'ssl_skip_verification', 'namespace');
             foreach ($keys as $key) {
                 if (!empty($this->request->data['Sightingdb'][$key])) {
                     $existingEntry['Sightingdb'][$key] = $this->request->data['Sightingdb'][$key];

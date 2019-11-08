@@ -68,6 +68,11 @@
                     'data_path' => 'Sightingdb.port'
                 ),
                 array(
+                    'name' => __('Namespace'),
+                    'sort' => 'namespace',
+                    'data_path' => 'Sightingdb.namespace'
+                ),
+                array(
                     'name' => __('Skip Proxy'),
                     'class' => 'short',
                     'element' => 'boolean',

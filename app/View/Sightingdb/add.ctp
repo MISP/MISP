@@ -25,6 +25,10 @@
                     'class' => 'input'
                 ),
                 array(
+                    'field' => 'namespace',
+                    'class' => 'input-xxlarge'
+                ),
+                array(
                     'field' => 'owner',
                     'class' => 'input-xxlarge'
                 ),

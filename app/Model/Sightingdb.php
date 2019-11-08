@@ -237,28 +237,48 @@ class Sightingdb extends AppModel
             'skip_proxy' => !empty($sightingdb['Sightingdb']['skip_proxy'])
         );
         $HttpSocket = $syncTool->createHttpSocket($params);
+        $payload = array('items' => array());
+        $namespace = empty($sightingdb['Sightingdb']['namespace']) ? 'all' : $sightingdb['Sightingdb']['namespace'];
+        $valueLookup = array();
         foreach ($values as $k => $value) {
-            try {
-                $response = $HttpSocket->get(
-                    sprintf(
-                        '%s:%s/r/all?val=%s',
-                        $host,
-                        $port,
-                        hash('sha256', $k)
-                    )
-                );
-            } catch (Exception $e) {
-                return $values;
-            }
-            if ($response->code == 200) {
-                $responseData = json_decode($response->body, true);
-                if ($responseData !== false && empty($responseData['error'])) {
-                    $values[$k][$sightingdb['Sightingdb']['id']] = array(
-                        'first_seen' => $responseData['first_seen'],
-                        'last_seen' => $responseData['last_seen'],
-                        'count' => $responseData['count'],
-                        'sightingdb_id' => $sightingdb['Sightingdb']['id']
-                    );
+            $hashedValue = hash('sha256', $k);
+            $payload['items'][] = array(
+                'namespace' => $namespace,
+                'value' => $hashedValue
+            );
+            $valueLookup[$hashedValue] = $k;
+        }
+        $request = array(
+            'header' => array(
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json'
+            )
+        );
+        try {
+            $response = $HttpSocket->post(
+                sprintf(
+                    '%s:%s/rb',
+                    $host,
+                    $port
+                ),
+                json_encode($payload),
+                $request
+            );
+        } catch (Exception $e) {
+            return $values;
+        }
+        if ($response->code == 200) {
+            $responseData = json_decode($response->body, true);
+            if ($responseData !== false && empty($responseData['error'])) {
+                foreach ($responseData['items'] as $k => $item) {
+                    if (empty($item['error'])) {
+                        $values[$valueLookup[$item['value']]][$sightingdb['Sightingdb']['id']] = array(
+                            'first_seen' => $item['first_seen'],
+                            'last_seen' => $item['last_seen'],
+                            'count' => $item['count'],
+                            'sightingdb_id' => $sightingdb['Sightingdb']['id']
+                        );
+                    }
                 }
             }
         }
