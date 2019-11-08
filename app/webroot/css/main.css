@@ -2399,6 +2399,10 @@ table tr:hover .down-expand-button {
    margin: 10px;
 }
 
+.alert form {
+    margin: 0 0;
+}
+
 .tag-conflict-notice {
     margin: 5px 0px;
     padding-right: 14px;

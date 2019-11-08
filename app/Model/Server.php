@@ -4263,6 +4263,164 @@ class Server extends AppModel
         return $output;
     }
 
+    public function dbSchemaDiagnostic()
+    {
+        $actualDbVersion = $this->AdminSetting->find('first', array(
+            'conditions' => array('setting' => 'db_version')
+        ))['AdminSetting']['value'];
+        $dataSource = $this->getDataSource()->config['datasource'];
+        $schemaDiagnostic = array(
+            'actual_db_version' => $actualDbVersion,
+            'checked_table_column' => array(),
+            'diagnostic' => array(),
+            'expected_db_version' => '?',
+            'error' => '',
+            'update_locked' => $this->isUpdateLocked(),
+            'remaining_lock_time' => $this->getLockRemainingTime(),
+            'update_fail_number_reached' => $this->UpdateFailNumberReached()
+        );
+        if ($dataSource == 'Database/Mysql') {
+            $dbActualSchema = $this->getActualDBSchema();
+            $dbExpectedSchema = $this->getExpectedDBSchema();
+            if ($dbExpectedSchema !== false) {
+                $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
+                $schemaDiagnostic['checked_table_column'] = $dbActualSchema['column'];
+                $schemaDiagnostic['diagnostic'] = $db_schema_comparison;
+                $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
+            } else {
+                $schemaDiagnostic['error'] = sprintf('Diagnostic not available as the expected schema file could not be loaded');
+            }
+        } else {
+            $schemaDiagnostic['error'] = sprintf('Diagnostic not available for DataSource `%s`', $dataSource);
+        }
+        return $schemaDiagnostic;
+    }
+
+    public function getExpectedDBSchema()
+    {
+        App::uses('Folder', 'Utility');
+        $file = new File(ROOT . DS . 'db_schema.json', true);
+        $dbExpectedSchema = json_decode($file->read(), true);
+        $file->close();
+        if (!is_null($dbExpectedSchema)) {
+            return $dbExpectedSchema;
+        } else {
+            return false;
+        }
+    }
+
+    // TODO: Use CakePHP 3.X's Schema System
+    /*
+        $db = ConnectionManager::get('default');
+
+        // Create a schema collection.
+        $collection = $db->schemaCollection();
+
+        // Get the table names
+        $tables = $collection->listTables();
+
+        // Get a single table (instance of Schema\TableSchema)
+        $tableSchema = $collection->describe('posts');
+
+    */
+    public function getActualDBSchema(
+        $tableColumnNames = array(
+            'column_name',
+            'is_nullable',
+            'data_type',
+            'character_maximum_length',
+            'numeric_precision',
+            'datetime_precision',
+            'collation_name'
+        )
+    ){
+        $dbActualSchema = array();
+        $dataSource = $this->getDataSource()->config['datasource'];
+        if ($dataSource == 'Database/Mysql') {
+            $sqlGetTable = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
+            $sqlResult = $this->query($sqlGetTable);
+            $tables = HASH::extract($sqlResult, '{n}.tables.table_name');
+            foreach ($tables as $table) {
+                $sqlSchema = sprintf(
+                    "SELECT %s
+                    FROM information_schema.columns
+                    WHERE table_schema = '%s' AND table_name = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
+                $sqlResult = $this->query($sqlSchema);
+                foreach ($sqlResult as $column_schema) {
+                    $dbActualSchema[$table][] = array_values($column_schema['columns']);
+                }
+            }
+        }
+        else if ($dataSource == 'Database/Postgres') {
+            return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
+        }
+        return array('schema' => $dbActualSchema, 'column' => $tableColumnNames);
+    }
+
+    public function compareDBSchema($dbActualSchema, $dbExpectedSchema)
+    {
+        $dbDiff = array();
+        // perform schema comparison for tables
+        foreach($dbExpectedSchema as $tableName => $columns) {
+            if (!array_key_exists($tableName, $dbActualSchema)) {
+                $dbDiff[$tableName][] = array(
+                    'description' => sprintf(__('Table `%s` does not exist'), $tableName),
+                    'column_name' => $tableName,
+                );
+            } else {
+                // perform schema comparison for table's columns
+                $expectedColumnKeys = array();
+                $keyedExpectedColumn = array();
+                foreach($columns as $column) {
+                    $expectedColumnKeys[] = $column[0];
+                    $keyedExpectedColumn[$column[0]] = $column;
+                }
+                $existingColumnKeys = array();
+                $keyedActualColumn = array();
+                foreach($dbActualSchema[$tableName] as $column) {
+                    $existingColumnKeys[] = $column[0];
+                    $keyedActualColumn[$column[0]] = $column;
+                }
+
+                $additionalKeysInActualSchema = array_diff($existingColumnKeys, $expectedColumnKeys);
+                foreach($additionalKeysInActualSchema as $additionalKeys) {
+                    $dbDiff[$tableName][] = array(
+                        'description' => sprintf(__('Column `%s` exists but should not'), $additionalKeys),
+                        'column_name' => $additionalKeys
+                    );
+                }
+
+                foreach ($keyedExpectedColumn as $columnName => $column) {
+                    if (isset($keyedActualColumn[$columnName])) {
+                        $colDiff = array_diff($column, $keyedActualColumn[$columnName]);
+                        if (count($colDiff) > 0) {
+                            $dbDiff[$tableName][] = array(
+                                'description' => sprintf(__('Column `%s` is different'), $columnName),
+                                'column_name' => $column[0],
+                                'actual' => $keyedActualColumn[$columnName],
+                                'expected' => $column
+                            );
+                        }
+                    } else {
+                        $dbDiff[$tableName][] = array(
+                            'description' => sprintf(__('Column `%s` does not exist but should'), $columnName),
+                            'column_name' => $columnName,
+                            'actual' => array(),
+                            'expected' => $column
+                        );
+                    }
+                }
+            }
+        }
+        foreach(array_diff(array_keys($dbActualSchema), array_keys($dbExpectedSchema)) as $additionalTable) {
+            $dbDiff[$additionalTable][] = array(
+                'description' => sprintf(__('Table `%s` is an additional table'), $additionalTable),
+                'column_name' => $additionalTable,
+            );
+        }
+        return $dbDiff;
+    }
+
     public function writeableDirsDiagnostics(&$diagnostic_errors)
     {
         App::uses('File', 'Utility');
@@ -4516,6 +4674,7 @@ class Server extends AppModel
                     'default' => array('ok' => false),
                     'email' => array('ok' => false),
                     'prio' => array('ok' => false),
+                    'update' => array('ok' => false),
                     'scheduler' => array('ok' => false)
             );
         }
@@ -4531,6 +4690,7 @@ class Server extends AppModel
                 'default' => array('ok' => true),
                 'email' => array('ok' => true),
                 'prio' => array('ok' => true),
+                'update' => array('ok' => true),
                 'scheduler' => array('ok' => true)
         );
         $procAccessible = file_exists('/proc');
@@ -5142,7 +5302,7 @@ class Server extends AppModel
 
     public function startWorker($queue)
     {
-        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio');
+        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
         if (!in_array($queue, $validTypes)) {
             return __('Invalid worker type.');
         }

@@ -46,7 +46,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '90';
+    private $__queryVersion = '91';
     public $pyMispVersion = '2.4.117';
     public $phpmin = '7.0';
     public $phprec = '7.2';
@@ -351,7 +351,7 @@ class AppController extends Controller
                 $this->Auth->logout();
                 throw new MethodNotAllowedException($message);//todo this should pb be removed?
             } else {
-                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $this->baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
+                $this->Flash->error(__('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ') , array('params' => array('url' => $this->baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
             }
         }
         if ($this->Session->check(AuthComponent::$sessionKey)) {

@@ -200,6 +200,7 @@
             'data' => array(
                 'data' => $dbDiagnostics,
                 'skip_pagination' => 1,
+                'max_height' => '400px',
                 'fields' => array(
                     array(
                         'name' => __('Table'),
@@ -225,6 +226,19 @@
         ));
         echo '</div>';
     ?>
+        <h4><?php echo __('Schema status');?></h4>
+        <div style="width: 70vw; padding-left: 10px;">
+            <?php echo $this->element('/healthElements/db_schema_status', array(
+                'checkedTableColumn' => $dbSchemaDiagnostics['checked_table_column'],
+                'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'],
+                'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
+                'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version'],
+                'error' => $dbSchemaDiagnostics['error'],
+                'remainingLockTime' => $dbSchemaDiagnostics['remaining_lock_time'],
+                'updateFailNumberReached' => $dbSchemaDiagnostics['update_fail_number_reached'],
+                'updateLocked' => $dbSchemaDiagnostics['update_locked']
+            )); ?>
+        </div>
     <h3><?= __("Redis info") ?></h3>
     <div style="background-color:#f7f7f9;width:400px;">
         <b><?= __('PHP extension version') ?>:</b> <?= $redisInfo['extensionVersion'] ?: ('<span class="red bold">' . __('Not installed.') . '</span>') ?><br>
