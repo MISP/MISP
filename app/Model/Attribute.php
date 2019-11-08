@@ -4281,6 +4281,10 @@ class Attribute extends AppModel
                 $filters['wildcard'] = $filters['searchall'];
             }
         }
+
+        $subqueryElements = $this->Event->harvestSubqueryElements($filters);
+        $filters = $this->Event>addFiltersFromSubqueryElements($filters, $subqueryElements);
+
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
                 'conditions' => $conditions,
