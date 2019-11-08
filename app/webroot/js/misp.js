@@ -4319,13 +4319,16 @@ function queryEventLock(event_id, user_org_id) {
 
 function checkIfLoggedIn() {
     if (tabIsActive) {
-        $.get("/users/checkIfLoggedIn.json", function(data) {
-            if (data.slice(-2) !== 'OK') {
-                window.location.replace(baseurl + "/users/login");
-            }
-        });
+        $.get("/users/checkIfLoggedIn.json")
+            .fail(function (xhr) {
+                if (xhr.status === 403) {
+                    window.location.replace(baseurl + "/users/login");
+                }
+            });
     }
-    setTimeout(function() { checkIfLoggedIn(); }, 5000);
+    setTimeout(function () {
+        checkIfLoggedIn();
+    }, 5000);
 }
 
 function insertRawRestResponse() {
