@@ -423,6 +423,9 @@ class Organisation extends AppModel
             'fields' => array('id'),
             'recursive' => -1
         ));
+        if (empty($orgIds)) {
+            return array(-1);
+        }
         return array_values($orgIds);
     }
 }
