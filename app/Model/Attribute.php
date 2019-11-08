@@ -4315,6 +4315,7 @@ class Attribute extends AppModel
                 'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
                 'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
                 'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
+                'includeSightingdb' => !empty($filters['includeSightingdb']) ? $filters['includeSightingdb'] : 0,
                 'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
                 'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
                 'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
@@ -4398,6 +4399,10 @@ class Attribute extends AppModel
         while ($continue) {
             $this->Whitelist = ClassRegistry::init('Whitelist');
             $results = $this->fetchAttributes($user, $params, $continue);
+            if ($params['includeSightingdb']) {
+                $this->Sightingdb = ClassRegistry::init('Sightingdb');
+                $results = $this->Sightingdb->attachToAttributes($results, $user);
+            }
             $params['page'] += 1;
             $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
             $results = array_values($results);

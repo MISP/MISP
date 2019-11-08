@@ -442,6 +442,14 @@ class ACLComponent extends Component
                     'viewSightings' => array('*'),
                     'quickAdd' => array('perm_sighting')
             ),
+            'sightingdb' => array(
+                    'add' => array(),
+                    'edit' => array(),
+                    'delete' => array(),
+                    'index' => array(),
+                    'requestStatus' => array(),
+                    'search' => array()
+            ),
             'tagCollections' => array(
                     'add' => array('perm_tag_editor'),
                     'addTag' => array('perm_tag_editor'),

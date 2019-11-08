@@ -1123,6 +1123,27 @@
                         ));
                     }
                     break;
+
+                case 'sightingdb':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/sightingdb/add',
+                        'text' => __('Add SightingDB connection')
+                    ));
+                    if ($isSiteAdmin) {
+                        if ($menuItem === 'edit') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => '/sightingdb/edit/' . $id,
+                                'element_id' => 'editSightingDB',
+                                'class' => 'active',
+                                'text' => __('Edit SightingDB connection')
+                            ));
+                        }
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/sightingdb/index',
+                            'text' => __('List SightingDB connections')
+                        ));
+                    }
+                    break;
             }
         ?>
     </ul>

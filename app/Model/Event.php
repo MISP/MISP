@@ -1827,7 +1827,8 @@ class Event extends AppModel
             'excludeGalaxy',
             'includeRelatedTags',
             'excludeLocalTags',
-            'includeDecayScore'
+            'includeDecayScore',
+            'includeSightingdb'
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -2270,6 +2271,10 @@ class Event extends AppModel
                 $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
             }
             $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+            if ($options['includeSightingdb']) {
+                $this->Sightingdb = ClassRegistry::init('Sightingdb');
+                $event = $this->Sightingdb->attachToEvent($event, $user);
+            }
             // remove proposals to attributes that we cannot see
             // if the shadow attribute wasn't moved within an attribute before, this is the case
             if (isset($event['ShadowAttribute'])) {
