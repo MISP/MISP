@@ -2185,4 +2185,12 @@ misp.direct_call(relative_path, body)
         $this->Server->resetUpdateFailNumber();
         $this->redirect(array('action' => 'updateProgress'));
     }
+
+    public function dbSchemaDiagnostic()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(__('Only site admin accounts get the DB schema diagnostic.'));
+        }
+        return $this->RestResponse->viewData($this->Server->dbSchemaDiagnostic(), $this->response->type());
+    }
 }

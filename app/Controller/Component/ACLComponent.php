@@ -356,6 +356,7 @@ class ACLComponent extends Component
             ),
             'servers' => array(
                     'add' => array(),
+                    'dbSchemaDiagnostic' => array(),
                     'cache' => array(),
                     'changePriority' => array(),
                     'checkout' => array(),
