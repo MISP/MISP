@@ -17,6 +17,10 @@ button .full-width {
   width:100%;
 }
 
+.buttonResultField {
+    padding-bottom:10px;
+}
+
 .bottom-buffer {
     margin-bottom:10px;
 }

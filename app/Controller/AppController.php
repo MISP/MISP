@@ -90,7 +90,8 @@ class AppController extends Controller
             'RestResponse',
             'Flash',
             'Toolbox',
-            'RateLimit'
+            'RateLimit',
+            'IndexFilter'
             //,'DebugKit.Toolbar'
     );
 

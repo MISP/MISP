@@ -20,6 +20,9 @@ class SyncTool
                     $params['ssl_verify_peer'] = false;
                 }
             }
+            if (!empty($server['Server']['skip_proxy'])) {
+                $params['skip_proxy'] = 1;
+            }
         }
 
         return $this->createHttpSocket($params);
@@ -35,7 +38,7 @@ class SyncTool
      * @return HttpSocket
      * @throws Exception
      */
-    private function createHttpSocket($params = array())
+    public function createHttpSocket($params = array())
     {
         // Use own CA PEM file
         $caPath = Configure::read('MISP.ca_path');
@@ -49,7 +52,7 @@ class SyncTool
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket($params);
         $proxy = Configure::read('Proxy');
-        if (isset($proxy['host']) && !empty($proxy['host'])) {
+        if (empty($params['skip_proxy']) && isset($proxy['host']) && !empty($proxy['host'])) {
             $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
         }
         return $HttpSocket;
