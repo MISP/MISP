@@ -309,7 +309,7 @@ function installMISPonTsurugi() {
   chown www-data:www-data misp-dashboard
   $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git
   cd misp-dashboard
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install zmq
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install zmq redis
   /var/www/misp-dashboard/install_dependencies.sh
   sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
   sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
