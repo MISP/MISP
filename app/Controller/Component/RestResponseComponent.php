@@ -278,6 +278,7 @@ class RestResponseComponent extends Component
 
     public function initialize(Controller $controller) {
         $this->__configureFieldConstraints();
+        $this->Controller = $controller;
     }
 
     public function getAllApisFieldsConstraint($user)
@@ -443,7 +444,20 @@ class RestResponseComponent extends Component
                 if (is_string($response)) {
                     $response = array('message' => $response);
                 }
+                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                    $this->Log = ClassRegistry::init('Log');
+                    $response['sql_dump'] = json_encode($this->Log->getDataSource()->getLog(false, false));
+                }
                 $response = json_encode($response, JSON_PRETTY_PRINT);
+            } else {
+                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                    $this->Log = ClassRegistry::init('Log');
+                    $response = substr_replace(
+                        $response,
+                        sprintf(', "sql_dump": %s}', json_encode($this->Log->getDataSource()->getLog(false, false))),
+                        -2
+                    );
+                }
             }
         }
         $cakeResponse = new CakeResponse(array('body'=> $response, 'status' => $code, 'type' => $type));
