@@ -26,12 +26,12 @@
         $('#<?php echo h($field['field']); ?>InfoPopover').popover({
             html: true,
             content: function() {
-                var $tempSelector = $('#<?php echo h($modelForForm . Inflector::camelize($field['field'])); ?>');
-                if ($tempSelector[0].nodeName === "SELECT" && fieldDesc.length > 1) {
+                var tempSelector = '#<?php echo h($modelForForm . Inflector::camelize($field['field'])); ?>';
+                if ($(tempSelector)[0].nodeName === "SELECT" && Object.keys(fieldDesc).length > 1) {
                     return $('<div>').append(
-                        $('<span>').attr('class', 'blue bold').text($tempSelector.val())
+                        $('<span>').attr('class', 'blue bold').text($(tempSelector +" option:selected").text())
                     ).append(
-                        $('<span>').text(': ' + fieldDesc[$tempSelector.val()])
+                        $('<span>').text(': ' + fieldDesc[$(tempSelector).val()])
                     );
                 } else {
                     return $('<div>').append(
