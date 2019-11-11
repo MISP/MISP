@@ -40,7 +40,7 @@ class RestResponseComponent extends Component
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score'),
+                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score'),
                 'params' => array()
             )
         ),
@@ -842,7 +842,14 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'operators' => array('equal', 'not_equal'),
                 'validation' => array('min' => 0, 'step' => 1),
-                'help' => __('The timestamp at which the event was published')
+                'help' => __('The timestamp at which the event was last modified')
+            ),
+            'attribute_timestamp' => array(
+                'input' => 'number',
+                'type' => 'integer',
+                'operators' => array('equal', 'not_equal'),
+                'validation' => array('min' => 0, 'step' => 1),
+                'help' => __('The timestamp at which the attribute was last modified')
             ),
             'eventid' => array(
                 'input' => 'number',
