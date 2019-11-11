@@ -944,7 +944,10 @@ class TagsController extends AppController
                     throw new MethodNotAllowedException('Tag not found and insufficient privileges to create it.');
                 }
                 $this->Tag->create();
-                $this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
+                $result = $this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
+                if (!$result) {
+                    return $this->RestResponse->saveFailResponse('Tags', 'attachTagToObject', false, __('Unable to create tag. Reason: ' . json_encode($this->Tag->validationErrors)), $this->response->type());
+                }
                 $existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
             } else {
                 throw new NotFoundException('Invalid Tag.');
