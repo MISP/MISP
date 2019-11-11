@@ -475,6 +475,7 @@ class AppController extends Controller
         if ($this->_isRest()) {
             $this->__rateLimitCheck();
         }
+        $this->components['RestResponse']['sql_dump'] = $this->sql_dump;
     }
 
     private function __rateLimitCheck()
@@ -507,10 +508,6 @@ class AppController extends Controller
 
     public function afterFilter()
     {
-        if (Configure::read('debug') > 1 && !empty($this->sql_dump) && $this->_isRest()) {
-            $this->Log = ClassRegistry::init('Log');
-            echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
-        }
         if ($this->isApiAuthed && $this->_isRest()) {
             $this->Session->destroy();
         }
