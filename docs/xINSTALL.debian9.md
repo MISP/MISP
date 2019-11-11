@@ -198,7 +198,7 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/py
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
 
 # install zmq needed by mispzmq
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq redis
 
 # install python-magic
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
