@@ -446,17 +446,25 @@ class RestResponseComponent extends Component
                 }
                 if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
                     $this->Log = ClassRegistry::init('Log');
-                    $response['sql_dump'] = json_encode($this->Log->getDataSource()->getLog(false, false));
+                    if ($this->Content->sql_dump === 2) {
+                        $response = array('sql_dump' => $this->Log->getDataSource()->getLog(false, false));
+                    } else {
+                        $response['sql_dump'] = $this->Log->getDataSource()->getLog(false, false);
+                    }
                 }
                 $response = json_encode($response, JSON_PRETTY_PRINT);
             } else {
                 if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
                     $this->Log = ClassRegistry::init('Log');
-                    $response = substr_replace(
-                        $response,
-                        sprintf(', "sql_dump": %s}', json_encode($this->Log->getDataSource()->getLog(false, false))),
-                        -2
-                    );
+                    if ($this->Controller->sql_dump === 2) {
+                        $response = json_encode(array('sql_dump' => $this->Log->getDataSource()->getLog(false, false)));
+                    } else {
+                        $response = substr_replace(
+                            $response,
+                            sprintf(', "sql_dump": %s}', json_encode($this->Log->getDataSource()->getLog(false, false))),
+                            -2
+                        );
+                    }
                 }
             }
         }

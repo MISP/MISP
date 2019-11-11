@@ -124,7 +124,7 @@ class AppController extends Controller
         }
 
         if (!empty($this->params['named']['sql'])) {
-            $this->sql_dump = 1;
+            $this->sql_dump = intval($this->params['named']['sql']);
         }
 
         $this->_setupDatabaseConnection();
