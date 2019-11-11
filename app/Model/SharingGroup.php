@@ -181,14 +181,17 @@ class SharingGroup extends AppModel
                 'fields' => $fieldsSharingGroup[$permissionTree]['fields'],
                 'order' => 'SharingGroup.name ASC'
             ));
-            foreach ($sgs as &$sg) {
-                if (!isset($this->__sgoCache[$sg['SharingGroup']['org_id']])) {
-                    $this->__sgoCache[$sg['SharingGroup']['org_id']] = $this->Organisation->find('first', array(
-                        'recursive' => -1,
-                        'fields' => $fieldsOrg,
-                        'conditions' => array('id' => $sg['SharingGroup']['org_id'])
-                    ));
+            if (empty($this->__sgoCache)) {
+                $temp = $this->Organisation->find('all', array(
+                    'recursive' => -1,
+                    'fields' => $fieldsOrg
+                ));
+                $this->__sgoCache = array();
+                foreach ($temp as $o) {
+                    $this->__sgoCache[$o['Organisation']['id']] = $o;
                 }
+            }
+            foreach ($sgs as &$sg) {
                 if(isset($this->__sgoCache[$sg['SharingGroup']['org_id']]['Organisation'])) {
                         $sg['Organisation'] = $this->__sgoCache[$sg['SharingGroup']['org_id']]['Organisation'];
                 } else {
@@ -196,13 +199,6 @@ class SharingGroup extends AppModel
                 }
                 if (!empty($sg['SharingGroupOrg'])) {
                     foreach ($sg['SharingGroupOrg'] as &$sgo) {
-                        if (!isset($this->__sgoCache[$sgo['org_id']])) {
-                            $this->__sgoCache[$sgo['org_id']] = $this->Organisation->find('first', array(
-                                'recursive' => -1,
-                                'fields' => $fieldsOrg,
-                                'conditions' => array('id' => $sgo['org_id'])
-                            ));
-                        }
                         if (!empty($this->__sgoCache[$sgo['org_id']]['Organisation'])) {
                             $sgo['Organisation'] = $this->__sgoCache[$sgo['org_id']]['Organisation'];
                         }
