@@ -1535,9 +1535,11 @@ class EventsController extends AppController
                 $delegationConditions['OR'] = array('EventDelegation.org_id' => $this->Auth->user('org_id'),
                                                     'EventDelegation.requester_org_id' => $this->Auth->user('org_id'));
             }
-            $this->set('delegationRequest', $this->EventDelegation->find('first', array('conditions' => $delegationConditions,
-                                                                                        'recursive' => -1,
-                                                                                        'contain' => array('Org', 'RequesterOrg'))));
+            $this->set('delegationRequest', $this->EventDelegation->find('first', array(
+                'conditions' => $delegationConditions,
+                'recursive' => -1,
+                'contain' => array('Org', 'RequesterOrg')
+            )));
         }
         if (Configure::read('Plugin.Enrichment_services_enable')) {
             $this->loadModel('Module');
