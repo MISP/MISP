@@ -955,10 +955,10 @@ class TagsController extends AppController
         }
         if (!$this->_isSiteAdmin()) {
             if (!in_array($existingTag['Tag']['org_id'], array(0, $this->Auth->user('org_id')))) {
-                throw new MethodNotAllowedException('Invalid Tag.');
+                throw new MethodNotAllowedException('Invalid Tag. This tag can only be set by a fixed organisation.');
             }
             if (!in_array($existingTag['Tag']['user_id'], array(0, $this->Auth->user('id')))) {
-                throw new MethodNotAllowedException('Invalid Tag.');
+                throw new MethodNotAllowedException('Invalid Tag. This tag can only be set by a fixed user.');
             }
         }
         $this->loadModel($objectType);
