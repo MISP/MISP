@@ -2,7 +2,6 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::uses('RandomTool', 'Tools');
-Configure::load('config'); // This is needed to load GnuPG.bodyonlyencrypted
 
 class Event extends AppModel
 {
