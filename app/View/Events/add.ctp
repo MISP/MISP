@@ -72,7 +72,6 @@
     });
 
     $(document).ready(function() {
-        console.log($('#EventDistribution').val());
         checkSharingGroup('Event');
         previewEventBasedOnUuids();
     });
