@@ -2395,32 +2395,31 @@ class EventsController extends AppController
         $this->set('sharingGroups', $sgs);
 
         // tooltip for distribution
-        $info = array();
+        $fieldDesc = array();
         $distributionLevels = $this->Event->distributionLevels;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
         }
         $this->set('distributionLevels', $distributionLevels);
         foreach ($distributionLevels as $key => $value) {
-            $info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
+            $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
         }
 
         // combobox for risks
         $threat_levels = $this->Event->ThreatLevel->find('all');
         $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-        foreach ($threat_levels as $key => $threat_level) {
-            $info['threat_level'][$threat_level['ThreatLevel']['id']] = array('key' => $threat_level['ThreatLevel']['name'], 'desc' => $threat_level['ThreatLevel']['form_description']);
-        }
+        $fieldDesc['threat_level'] = Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.description');
 
         // combobox for analysis
         $this->set('sharingGroups', $sgs);
         // tooltip for analysis
-        foreach ($this->Event->analysisLevels as $key => $value) {
-            $info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
+        $analysisLevels = $this->Event->analysisLevels;
+        foreach ($analysisLevels as $key => $value) {
+            $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
-        $this->set('analysisLevels', $this->Event->analysisLevels);
+        $this->set('analysisLevels', $analysisLevels);
 
-        $this->set('info', $info);
+        $this->set('fieldDesc', $fieldDesc);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('event', $this->Event->data);
     }
