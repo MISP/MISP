@@ -3654,11 +3654,11 @@ function initPopoverContent(context) {
 
 function checkSharingGroup(context) {
     if ($('#' + context + 'Distribution').val() == 4) {
-        $('#' + context + 'SharingGroup').show();
-        $('#' + context + 'SharingGroup').closest("div").show();
+        $('#' + context + 'SharingGroupId').show();
+        $('#' + context + 'SharingGroupId').closest("div").show();
     } else {
-        $('#' + context + 'SharingGroup').hide();
-        $('#' + context + 'SharingGroup').closest("div").hide();
+        $('#' + context + 'SharingGroupId').hide();
+        $('#' + context + 'SharingGroupId').closest("div").hide();
     }
 }
 

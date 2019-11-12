@@ -24,14 +24,16 @@
                     'default' => $initialDistribution
                 ),
                 array(
-                    'field' => 'sharing_group',
+                    'field' => 'sharing_group_id',
                     'class' => 'input',
                     'options' => $sharingGroups,
+                    'label' => __("Sharing Group")
                 ),
                 array(
-                    'field' => 'threat_level',
+                    'field' => 'threat_level_id',
                     'class' => 'input',
-                    'options' => $threatLevels
+                    'options' => $threatLevels,
+                    'label' => __("Threat Level")
                 ),
                 array(
                     'field' => 'analysis',
