@@ -1545,7 +1545,6 @@ class AppModel extends Model
 
     public function checkMISPVersion()
     {
-        App::uses('Folder', 'Utility');
         $file = new File(ROOT . DS . 'VERSION.json', true);
         $version_array = json_decode($file->read(), true);
         $file->close();
