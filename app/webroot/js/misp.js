@@ -3652,6 +3652,16 @@ function initPopoverContent(context) {
     }
 }
 
+function checkSharingGroup(context) {
+    if ($('#' + context + 'Distribution').val() == 4) {
+        $('#' + context + 'SharingGroupId').show();
+        $('#' + context + 'SharingGroupId').closest("div").show();
+    } else {
+        $('#' + context + 'SharingGroupId').hide();
+        $('#' + context + 'SharingGroupId').closest("div").hide();
+    }
+}
+
 function getFormInfoContent(property, field) {
     var content = window[property + 'FormInfoValues'][$(field).val()];
     if (content === undefined || content === null) {
