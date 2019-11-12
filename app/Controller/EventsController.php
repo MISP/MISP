@@ -2065,7 +2065,8 @@ class EventsController extends AppController
         // combobox for risks
         $threat_levels = $this->Event->ThreatLevel->find('all');
         $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-        $fieldDesc['threat_level'] = Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.description');
+        $fieldDesc['threat_level_id'] = Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.description');
+
         // combobox for analysis
         $this->set('sharingGroups', $sgs);
         // tooltip for analysis
@@ -2408,7 +2409,7 @@ class EventsController extends AppController
         // combobox for risks
         $threat_levels = $this->Event->ThreatLevel->find('all');
         $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-        $fieldDesc['threat_level'] = Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.description');
+        $fieldDesc['threat_level_id'] = Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.description');
 
         // combobox for analysis
         $this->set('sharingGroups', $sgs);
