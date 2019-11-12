@@ -4,7 +4,7 @@
         'form' => $this->Form,
         'data' => array(
             'title' => __('Add Event'),
-            'model' => 'Event',
+            'model' => $modelForForm,
             'fields' => array(
                 array(
                     'field' => 'org_id',
@@ -42,7 +42,7 @@
                 ),
                 array(
                     'field' => 'info',
-                    'label' => __('Event info'),
+                    'label' => __('Event Info'),
                     'class' => 'input-xxlarge',
                     'type' => 'text',
                     'placeholder' => __('Quick Event Description or Tracking Info')
@@ -50,7 +50,8 @@
                 array(
                     'field' => 'extends_uuid',
                     'class' => 'input-xxlarge',
-                    'placeholder' => __('Event UUID or ID. Leave blank if not applicable.')
+                    'placeholder' => __('Event UUID or ID. Leave blank if not applicable.'),
+                    'label' => __("Extends Event")
                 )
             ),
             'submit' => array(
@@ -58,17 +59,13 @@
             )
         )
     ));
-?>
-<?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'add'));
 ?>
 
 <script type="text/javascript">
-
     $('#EventDistribution').change(function() {
         checkSharingGroup('Event');
     });
-
 
     $("#EventExtendsUuid").keyup(function() {
         previewEventBasedOnUuids();
