@@ -142,11 +142,17 @@ $(document).ready(function() {
             var $row = $(this);
             var tableName = $row.data('table');
             var columnId = $row.data('index');
+            var expectedArray = [];
+            var actualArray = [];
+            dbSchemaDiagnosticsColumns.forEach(function(columnName) {
+                expectedArray.push(dbSchemaDiagnostics[tableName][columnId].expected[columnName]);
+                actualArray.push(dbSchemaDiagnostics[tableName][columnId].actual[columnName]);
+            });
             var popoverHtml = arrayToNestedTable(
                 dbSchemaDiagnosticsColumns,
                 [
-                    dbSchemaDiagnostics[tableName][columnId].expected,
-                    dbSchemaDiagnostics[tableName][columnId].actual,
+                    expectedArray,
+                    actualArray,
                 ]
             );
             return popoverHtml;
