@@ -4330,7 +4330,7 @@ class Server extends AppModel
             'data_type',
             'character_maximum_length',
             'numeric_precision',
-            'datetime_precision',
+            // 'datetime_precision',    -- Only available on MySQL 5.6+
             'collation_name'
         )
     ){
