@@ -4330,7 +4330,7 @@ class Server extends AppModel
             'data_type',
             'character_maximum_length',
             'numeric_precision',
-            //'datetime_precision',
+            'datetime_precision',
             'collation_name'
         )
     ){
@@ -4347,7 +4347,7 @@ class Server extends AppModel
                     WHERE table_schema = '%s' AND table_name = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
                 $sqlResult = $this->query($sqlSchema);
                 foreach ($sqlResult as $column_schema) {
-                    $dbActualSchema[$table][] = array_values($column_schema['columns']);
+                    $dbActualSchema[$table][] = $column_schema['columns'];
                 }
             }
         }
@@ -4371,15 +4371,15 @@ class Server extends AppModel
                 // perform schema comparison for table's columns
                 $expectedColumnKeys = array();
                 $keyedExpectedColumn = array();
-                foreach($columns as $columnName => $column) {
-                    $expectedColumnKeys[] = $column[0];
-                    $keyedExpectedColumn[$column[0]] = $column;
+                foreach($columns as $column) {
+                    $expectedColumnKeys[] = $column['column_name'];
+                    $keyedExpectedColumn[$column['column_name']] = $column;
                 }
                 $existingColumnKeys = array();
                 $keyedActualColumn = array();
                 foreach($dbActualSchema[$tableName] as $column) {
-                    $existingColumnKeys[] = $column[0];
-                    $keyedActualColumn[$column[0]] = $column;
+                    $existingColumnKeys[] = $column['column_name'];
+                    $keyedActualColumn[$column['column_name']] = $column;
                 }
 
                 $additionalKeysInActualSchema = array_diff($existingColumnKeys, $expectedColumnKeys);
@@ -4389,19 +4389,13 @@ class Server extends AppModel
                         'column_name' => $additionalKeys
                     );
                 }
-                /*dirty fix*/
-                foreach ($keyedExpectedColumn as $k => $v) {
-                    unset($keyedExpectedColumn[$k][5]);
-                    $keyedExpectedColumn[$k] = array_values($keyedExpectedColumn[$k]);
-                }
-                /*dirty fix*/
                 foreach ($keyedExpectedColumn as $columnName => $column) {
                     if (isset($keyedActualColumn[$columnName])) {
-                        $colDiff = array_diff($column, $keyedActualColumn[$columnName]);
+                        $colDiff = array_diff_assoc($column, $keyedActualColumn[$columnName]);
                         if (count($colDiff) > 0) {
                             $dbDiff[$tableName][] = array(
                                 'description' => sprintf(__('Column `%s` is different'), $columnName),
-                                'column_name' => $column[0],
+                                'column_name' => $column['column_name'],
                                 'actual' => $keyedActualColumn[$columnName],
                                 'expected' => $column
                             );
