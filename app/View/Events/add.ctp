@@ -15,13 +15,15 @@
                 array(
                     'field' => 'date',
                     'class' => 'datepicker',
-                    'type' => 'text'
+                    'type' => 'text',
+                    'stayInLine' => 1
                 ),
                 array(
                     'field' => 'distribution',
                     'class' => 'input',
                     'options' => $distributionLevels,
-                    'default' => $initialDistribution
+                    'default' => isset($event['Event']['distribution']) ? $event['Event']['distribution'] : $initialDistribution,
+                    'stayInLine' => 1
                 ),
                 array(
                     'field' => 'sharing_group_id',
@@ -33,7 +35,8 @@
                     'field' => 'threat_level_id',
                     'class' => 'input',
                     'options' => $threatLevels,
-                    'label' => __("Threat Level")
+                    'label' => __("Threat Level"),
+                    'stayInLine' => 1
                 ),
                 array(
                     'field' => 'analysis',
@@ -43,13 +46,13 @@
                 array(
                     'field' => 'info',
                     'label' => __('Event Info'),
-                    'class' => 'input-xxlarge',
+                    'class' => 'input span6',
                     'type' => 'text',
                     'placeholder' => __('Quick Event Description or Tracking Info')
                 ),
                 array(
                     'field' => 'extends_uuid',
-                    'class' => 'input-xxlarge',
+                    'class' => 'input span6',
                     'placeholder' => __('Event UUID or ID. Leave blank if not applicable.'),
                     'label' => __("Extends Event")
                 )
@@ -59,7 +62,7 @@
             )
         )
     ));
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'add'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $this->action === 'add' ? 'add' : 'editEvent'));
 ?>
 
 <script type="text/javascript">

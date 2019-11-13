@@ -58,7 +58,9 @@
             } else {
                 $fieldsString .= $fieldData;
             }
-            $fieldsString .= '<div class="clear"></div>';
+            if (empty($fieldData['stayInLine'])) {
+                $fieldsString .= '<div class="clear"></div>';
+            }
         }
     }
     $metaFieldString = '';

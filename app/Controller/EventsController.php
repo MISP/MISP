@@ -2423,6 +2423,7 @@ class EventsController extends AppController
         $this->set('fieldDesc', $fieldDesc);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('event', $this->Event->data);
+        $this->render('add');
     }
 
     public function delete($id = null)
