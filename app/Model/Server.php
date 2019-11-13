@@ -4330,7 +4330,7 @@ class Server extends AppModel
             'data_type',
             'character_maximum_length',
             'numeric_precision',
-            'datetime_precision',
+            //'datetime_precision',
             'collation_name'
         )
     ){
@@ -4371,7 +4371,7 @@ class Server extends AppModel
                 // perform schema comparison for table's columns
                 $expectedColumnKeys = array();
                 $keyedExpectedColumn = array();
-                foreach($columns as $column) {
+                foreach($columns as $columnName => $column) {
                     $expectedColumnKeys[] = $column[0];
                     $keyedExpectedColumn[$column[0]] = $column;
                 }
@@ -4389,7 +4389,12 @@ class Server extends AppModel
                         'column_name' => $additionalKeys
                     );
                 }
-
+                /*dirty fix*/
+                foreach ($keyedExpectedColumn as $k => $v) {
+                    unset($keyedExpectedColumn[$k][5]);
+                    $keyedExpectedColumn[$k] = array_values($keyedExpectedColumn[$k]);
+                }
+                /*dirty fix*/
                 foreach ($keyedExpectedColumn as $columnName => $column) {
                     if (isset($keyedActualColumn[$columnName])) {
                         $colDiff = array_diff($column, $keyedActualColumn[$columnName]);
