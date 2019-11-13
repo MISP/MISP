@@ -4359,6 +4359,11 @@ class Server extends AppModel
 
     public function compareDBSchema($dbActualSchema, $dbExpectedSchema)
     {
+        // Column that should be ignored while performing the comparison
+        $whiteListFields = array(
+            'users' => array('external_auth_required', 'external_auth_key'),
+        );
+        $nonCriticalColumnElements = array('is_nullable', 'collation_name');
         $dbDiff = array();
         // perform schema comparison for tables
         foreach($dbExpectedSchema as $tableName => $columns) {
@@ -4366,6 +4371,7 @@ class Server extends AppModel
                 $dbDiff[$tableName][] = array(
                     'description' => sprintf(__('Table `%s` does not exist'), $tableName),
                     'column_name' => $tableName,
+                    'is_critical' => true
                 );
             } else {
                 // perform schema comparison for table's columns
@@ -4384,20 +4390,36 @@ class Server extends AppModel
 
                 $additionalKeysInActualSchema = array_diff($existingColumnKeys, $expectedColumnKeys);
                 foreach($additionalKeysInActualSchema as $additionalKeys) {
+                    if (isset($whiteListFields[$tableName]) && in_array($additionalKeys, $whiteListFields[$tableName])) {
+                        continue; // column is whitelisted
+                    }
                     $dbDiff[$tableName][] = array(
                         'description' => sprintf(__('Column `%s` exists but should not'), $additionalKeys),
-                        'column_name' => $additionalKeys
+                        'column_name' => $additionalKeys,
+                        'is_critical' => false
                     );
                 }
                 foreach ($keyedExpectedColumn as $columnName => $column) {
+                    if (isset($whiteListFields[$tableName]) && in_array($columnName, $whiteListFields[$tableName])) {
+                        continue; // column is whitelisted
+                    }
                     if (isset($keyedActualColumn[$columnName])) {
                         $colDiff = array_diff_assoc($column, $keyedActualColumn[$columnName]);
                         if (count($colDiff) > 0) {
+                            $colElementDiffs = array_keys(array_diff_assoc($column, $keyedActualColumn[$columnName]));
+                            $isCritical = false;
+                            foreach($colElementDiffs as $colElementDiff) {
+                                if(!in_array($colElementDiff, $nonCriticalColumnElements)) {
+                                    $isCritical = true;
+                                    break;
+                                }
+                            }
                             $dbDiff[$tableName][] = array(
                                 'description' => sprintf(__('Column `%s` is different'), $columnName),
                                 'column_name' => $column['column_name'],
                                 'actual' => $keyedActualColumn[$columnName],
-                                'expected' => $column
+                                'expected' => $column,
+                                'is_critical' => $isCritical
                             );
                         }
                     } else {
@@ -4405,7 +4427,8 @@ class Server extends AppModel
                             'description' => sprintf(__('Column `%s` does not exist but should'), $columnName),
                             'column_name' => $columnName,
                             'actual' => array(),
-                            'expected' => $column
+                            'expected' => $column,
+                            'is_critical' => true
                         );
                     }
                 }
@@ -4415,6 +4438,7 @@ class Server extends AppModel
             $dbDiff[$additionalTable][] = array(
                 'description' => sprintf(__('Table `%s` is an additional table'), $additionalTable),
                 'column_name' => $additionalTable,
+                'is_critical' => false
             );
         }
         return $dbDiff;
