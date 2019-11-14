@@ -272,6 +272,71 @@ class Sighting extends AppModel
         return $sightings;
     }
 
+    /*
+     * Loop through all attributes of an event, including those in objects
+     * and pass each value to SightingDB. If there's a hit, append the data
+     * directly to the attributes
+     */
+    public function attachSightingDB($event, $user)
+    {
+        if (!empty(Configure::read('Plugin.Sightings_sighting_db_enable'))) {
+            $host = empty(Configure::read('Plugin.Sightings_sighting_db_host')) ? 'localhost' : Configure::read('Plugin.Sightings_sighting_db_host');
+            $port = empty(Configure::read('Plugin.Sightings_sighting_db_port')) ? 9999 : Configure::read('Plugin.Sightings_sighting_db_port');
+            App::uses('SyncTool', 'Tools');
+            $syncTool = new SyncTool();
+            $params = array(
+                'ssl_verify_peer' => false,
+                'ssl_verify_peer_name' => false,
+                'ssl_verify_host' => false
+            );
+            $HttpSocket = $syncTool->createHttpSocket($params);
+            if (!empty($event['Attribute'])) {
+                $event['Attribute'] = $this->__attachSightingDBToAttribute($event['Attribute'], $user, $host, $port, $HttpSocket);
+            }
+            if (!empty($event['Object'])) {
+                foreach ($event['Object'] as &$object) {
+                    if (!empty($object['Attribute'])) {
+                        $object['Attribute'] = $this->__attachSightingDBToAttribute($object['Attribute'], $user, $host, $port, $HttpSocket);
+                    }
+                }
+            }
+        }
+        return $event;
+    }
+
+    private function __attachSightingDBToAttribute($attributes, $user, $host, $port, $HttpSocket = false)
+    {
+        if (empty($HttpSocket)) {
+            App::uses('SyncTool', 'Tools');
+            $syncTool = new SyncTool();
+            $params = array(
+                'ssl_allow_self_signed' => true,
+                'ssl_verify_peer' => false
+            );
+            $HttpSocket = $syncTool->createHttpSocket($params);
+        }
+        foreach($attributes as &$attribute) {
+            $response = $HttpSocket->get(
+                sprintf(
+                    '%s:%s/r/all/%s?val=%s',
+                    $host,
+                    $port,
+                    $attribute['type'],
+                    rtrim(str_replace('/', '_', str_replace('+', '-', base64_encode($attribute['value']))), '=')
+                )
+            );
+            if ($response->code == 200) {
+                $responseData = json_decode($response->body, true);
+                if ($responseData !== false) {
+                    if (!isset($responseData['error'])) {
+                        $attribute['SightingDB'] = $responseData;
+                    }
+                }
+            }
+        }
+        return $attributes;
+    }
+
     public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false)
     {
         $conditions = array();

@@ -313,48 +313,17 @@ class AdminShell extends AppShell
         }
     }
 
-    public function updateDatabase() {
+    public function runUpdates() {
         $whoami = exec('whoami');
         if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
-            $this->Server->runUpdates(true);
+            $processId = $this->args[0];
+            $this->Server->runUpdates(true, false, $processId);
             echo 'All updates completed.' . PHP_EOL;
         } else {
             die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
         }
     }
-
-    public function updateApp() {
-        $whoami = exec('whoami');
-        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
-            $command = $this->args[0];
-            if (!empty($this->args[1])) {
-                $processId = $this->args[1];
-                $job = $this->Job->read(null, $processId);
-            } else { // create worker
-                $this->Job->create();
-                $job_data = array(
-                    'worker' => 'prio',
-                    'job_type' => 'update_app',
-                    'job_input' => 'command: ' . $command,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => '',
-                    'org' => '',
-                    'message' => 'Updating.',
-                );
-                $this->Job->save($job_data);
-                $job = $this->Job->read(null, $this->Job->id);
-            }
-            $result = $this->Server->updateDatabase($command, false);
-            $job['Job']['progress'] = 100;
-            $job['Job']['message'] = 'Update done';
-            $this->Job->save($job);
-        } else {
-            die('This OS user is not allowed to run this command.' . PHP_EOL . 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
-        }
-    }
-
 
     public function getAuthkey() {
         if (empty($this->args[0])) {
@@ -548,6 +517,27 @@ class AdminShell extends AppShell
             } else {
                 echo __("%s events purged.\n", $result);
             }
+        }
+    }
+
+    public function dumpCurrentDatabaseSchema()
+    {
+        $dbActualSchema = $this->Server->getActualDBSchema()['schema'];
+        $dbVersion = $this->AdminSetting->find('first', array(
+            'conditions' => array('setting' => 'db_version')
+        ));
+        if (!empty($dbVersion) && !empty($dbActualSchema)) {
+            $dbVersion = $dbVersion['AdminSetting']['value'];
+            $data = array(
+                'schema' => $dbActualSchema,
+                'db_version' => $dbVersion
+            );
+            $file = new File(ROOT . DS . 'db_schema.json', true);
+            $file->write(json_encode($data));
+            $file->close();
+            echo __("> Database schema dumped on disk") . PHP_EOL;
+        } else {
+            echo __("Something went wrong. Could not find the existing db version or fetch the current database schema.") . PHP_EOL;
         }
     }
 }

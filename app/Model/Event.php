@@ -2,7 +2,6 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::uses('RandomTool', 'Tools');
-Configure::load('config'); // This is needed to load GnuPG.bodyonlyencrypted
 
 class Event extends AppModel
 {
@@ -1827,7 +1826,8 @@ class Event extends AppModel
             'excludeGalaxy',
             'includeRelatedTags',
             'excludeLocalTags',
-            'includeDecayScore'
+            'includeDecayScore',
+            'includeSightingdb'
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -2270,6 +2270,10 @@ class Event extends AppModel
                 $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
             }
             $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+            if ($options['includeSightingdb']) {
+                $this->Sightingdb = ClassRegistry::init('Sightingdb');
+                $event = $this->Sightingdb->attachToEvent($event, $user);
+            }
             // remove proposals to attributes that we cannot see
             // if the shadow attribute wasn't moved within an attribute before, this is the case
             if (isset($event['ShadowAttribute'])) {
@@ -2687,7 +2691,10 @@ class Event extends AppModel
                 ),
                 'event_timestamp' => array(
                     'Event.timestamp'
-                )
+                ),
+                'attribute_timestamp' => array(
+                    'Attribute.timestamp'
+                ),
             );
             foreach ($filters[$options['filter']] as $f) {
                 $conditions = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, $f);
@@ -3173,7 +3180,7 @@ class Event extends AppModel
             $bodyevent = $temp[0];
             $body = $temp[1];
             $result = true;
-            $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+            $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "tlp:amber";
             $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
             $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
         }
@@ -6742,6 +6749,10 @@ class Event extends AppModel
                 $filters['wildcard'] = $filters['searchall'];
             }
         }
+
+        $subqueryElements = $this->harvestSubqueryElements($filters);
+        $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements);
+
         $filters['include_attribute_count'] = 1;
         $eventid = $this->filterEventIds($user, $filters, $elementCounter);
         $eventCount = count($eventid);
@@ -6943,5 +6954,58 @@ class Event extends AppModel
             }
         }
         return true;
+    }
+
+    public function harvestSubqueryElements($options)
+    {
+        $acceptedRules = array(
+            'galaxy' => 1,
+            'org' => array('sector', 'local', 'nationality')
+        );
+        $subqueryElement = array(
+            'galaxy' => array(),
+            'org' => array(),
+        );
+        foreach($options as $rule => $value) {
+            $split = explode(".", $rule, 2);
+            if (count($split) > 1) {
+                $scope = $split[0];
+                $element = $split[1];
+                if (isset($acceptedRules[$scope])) {
+                    if (is_array($acceptedRules[$scope]) && !in_array($element, $acceptedRules[$scope])) {
+                        continue;
+                    } else {
+                        $subqueryElement[$scope][$element] = $value;
+                    }
+                }
+            }
+        }
+        return $subqueryElement;
+    }
+
+    public function addFiltersFromSubqueryElements($filters, $subqueryElements)
+    {
+        if (!empty($subqueryElements['galaxy'])) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $tagsFromGalaxyMeta = $this->GalaxyCluster->getClusterTagsFromMeta($subqueryElements['galaxy']);
+            if (empty($tagsFromGalaxyMeta)) {
+                $filters['eventid'] = -1;
+            }
+            if (!empty($filters['tags'])) {
+                $filters['tags'][] = $tagsFromGalaxyMeta;
+            } else {
+                $filters['tags'] = $tagsFromGalaxyMeta;
+            }
+        }
+        if (!empty($subqueryElements['org'])) {
+            $Organisation = ClassRegistry::init('Organisation');
+            $orgcIdsFromMeta = $Organisation->getOrgIdsFromMeta($subqueryElements['org']);
+            if (!empty($filters['org'])) {
+                $filters['org'][] = $orgcIdsFromMeta;
+            } else {
+                $filters['org'] = $orgcIdsFromMeta;
+            }
+        }
+        return $filters;
     }
 }

@@ -327,10 +327,16 @@ class Tag extends AppModel
         } else {
             if (
                 !$user['Role']['perm_site_admin'] &&
-                $existingTag['Tag']['org_id'] != 0 &&
-                $existingTag['Tag']['org_id'] != $user['org_id'] &&
-                $existingTag['Tag']['user_id'] != 0 &&
-                $existingTag['Tag']['user_id'] != $user['id']
+                (
+                    (
+                        $existingTag['Tag']['org_id'] != 0 &&
+                        $existingTag['Tag']['org_id'] != $user['org_id']
+                    ) ||
+                    (
+                        $existingTag['Tag']['user_id'] != 0 &&
+                        $existingTag['Tag']['user_id'] != $user['id']
+                    )
+                )
             ) {
                 return false;
             }

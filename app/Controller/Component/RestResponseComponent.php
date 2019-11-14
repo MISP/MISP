@@ -40,7 +40,7 @@ class RestResponseComponent extends Component
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score'),
+                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score'),
                 'params' => array()
             )
         ),
@@ -278,6 +278,7 @@ class RestResponseComponent extends Component
 
     public function initialize(Controller $controller) {
         $this->__configureFieldConstraints();
+        $this->Controller = $controller;
     }
 
     public function getAllApisFieldsConstraint($user)
@@ -443,7 +444,28 @@ class RestResponseComponent extends Component
                 if (is_string($response)) {
                     $response = array('message' => $response);
                 }
+                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                    $this->Log = ClassRegistry::init('Log');
+                    if ($this->Content->sql_dump === 2) {
+                        $response = array('sql_dump' => $this->Log->getDataSource()->getLog(false, false));
+                    } else {
+                        $response['sql_dump'] = $this->Log->getDataSource()->getLog(false, false);
+                    }
+                }
                 $response = json_encode($response, JSON_PRETTY_PRINT);
+            } else {
+                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                    $this->Log = ClassRegistry::init('Log');
+                    if ($this->Controller->sql_dump === 2) {
+                        $response = json_encode(array('sql_dump' => $this->Log->getDataSource()->getLog(false, false)));
+                    } else {
+                        $response = substr_replace(
+                            $response,
+                            sprintf(', "sql_dump": %s}', json_encode($this->Log->getDataSource()->getLog(false, false))),
+                            -2
+                        );
+                    }
+                }
             }
         }
         $cakeResponse = new CakeResponse(array('body'=> $response, 'status' => $code, 'type' => $type));
@@ -820,7 +842,14 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'operators' => array('equal', 'not_equal'),
                 'validation' => array('min' => 0, 'step' => 1),
-                'help' => __('The timestamp at which the event was published')
+                'help' => __('The timestamp at which the event was last modified')
+            ),
+            'attribute_timestamp' => array(
+                'input' => 'number',
+                'type' => 'integer',
+                'operators' => array('equal', 'not_equal'),
+                'validation' => array('min' => 0, 'step' => 1),
+                'help' => __('The timestamp at which the attribute was last modified')
             ),
             'eventid' => array(
                 'input' => 'number',

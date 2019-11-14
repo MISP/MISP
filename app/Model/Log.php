@@ -56,6 +56,7 @@ class Log extends AppModel
                             'undelete',
                             'update',
                             'update_database',
+                            'update_database_worker',
                             'upgrade_24',
                             'upload_sample',
                             'version_warning',

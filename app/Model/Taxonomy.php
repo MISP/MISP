@@ -101,7 +101,7 @@ class Taxonomy extends AppModel
             }
             $this->deleteAll(array('Taxonomy.namespace' => $current['Taxonomy']['namespace']));
         }
-        $taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'enabled' => $enabled);
+        $taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'exclusive' => $vocab['exclusive'], 'enabled' => $enabled);
         $predicateLookup = array();
         foreach ($vocab['predicates'] as $k => $predicate) {
             $taxonomy['Taxonomy']['TaxonomyPredicate'][$k] = $predicate;
@@ -489,27 +489,29 @@ class Taxonomy extends AppModel
         return $taxonomies;
     }
 
-    public function getTaxonomyForTag($tagName, $metaOnly = false)
+    public function getTaxonomyForTag($tagName, $metaOnly = false, $fullTaxonomy = False)
     {
         if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
             $temp = explode(':', $tagName);
             $pieces = array_merge(array($temp[0]), explode('=', $temp[1]));
             $pieces[2] = trim($pieces[2], '"');
+            $contain = array(
+                'TaxonomyPredicate' => array(
+                    'TaxonomyEntry' => array()
+                )
+            );
+            if (!$fullTaxonomy) {
+                $contain['TaxonomyPredicate']['conditions'] = array(
+                    'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
+                );
+                $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = array(
+                    'LOWER(TaxonomyEntry.value)' => strtolower($pieces[2])
+                );
+            }
             $taxonomy = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
-                'contain' => array(
-                    'TaxonomyPredicate' => array(
-                        'conditions' => array(
-                            'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
-                        ),
-                        'TaxonomyEntry' => array(
-                            'conditions' => array(
-                                'LOWER(TaxonomyEntry.value)' => strtolower($pieces[2])
-                            )
-                        )
-                    )
-                )
+                'contain' => $contain
             ));
             if ($metaOnly && !empty($taxonomy)) {
                 return array('Taxonomy' => $taxonomy['Taxonomy']);
@@ -517,16 +519,16 @@ class Taxonomy extends AppModel
             return $taxonomy;
         } elseif (preg_match('/^[^:="]+:[^:="]+$/i', $tagName)) {
             $pieces = explode(':', $tagName);
+            $contain = array('TaxonomyPredicate' => array());
+            if (!$fullTaxonomy) {
+                $contain['TaxonomyPredicate']['conditions'] = array(
+                    'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
+                );
+            }
             $taxonomy = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
-                'contain' => array(
-                    'TaxonomyPredicate' => array(
-                        'conditions' => array(
-                            'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
-                        )
-                    )
-                )
+                'contain' => $contain
             ));
             if ($metaOnly && !empty($taxonomy)) {
                 return array('Taxonomy' => $taxonomy['Taxonomy']);
@@ -535,5 +537,98 @@ class Taxonomy extends AppModel
         } else {
             return false;
         }
+    }
+
+    // Remove the value for triple component tags or the predicate for double components tags
+    public function stripLastTagComponent($tagName)
+    {
+        $shortenedTag = '';
+        if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
+            $shortenedTag = explode('=', $tagName)[0];
+        } elseif (preg_match('/^[^:="]+:[^:="]+$/i', $tagName)) {
+            $shortenedTag = explode(':', $tagName)[0];
+        }
+        return $shortenedTag;
+    }
+
+    public function checkIfNewTagIsAllowedByTaxonomy($newTagName, $tagNameList=array())
+    {
+        $newTagShortened = $this->stripLastTagComponent($newTagName);
+        $prefixIsFree = true;
+        foreach ($tagNameList as $tagName) {
+            $tagShortened = $this->stripLastTagComponent($tagName);
+            if ($newTagShortened == $tagShortened) {
+                $prefixIsFree = false;
+            }
+        }
+        if (!$prefixIsFree) {
+            // at this point, we have a duplicated namespace(-predicate)
+            $taxonomy = $this->getTaxonomyForTag($newTagName);
+            if (!empty($taxonomy['Taxonomy']['exclusive'])) {
+                return false; // only one tag of this taxonomy is allowed
+            } elseif (!empty($taxonomy['TaxonomyPredicate'][0]['exclusive'])) {
+                return false; // only one tag belonging to this predicate is allowed
+            }
+        }
+        return true;
+    }
+
+    public function checkIfTagInconsistencies($tagList)
+    {
+        $eventTags = array();
+        $localEventTags = array();
+        foreach($tagList as $tag) {
+            if ($tag['local'] == 0) {
+                $eventTags[] = $tag['Tag']['name'];
+            } else {
+                $localEventTags[] = $tag['Tag']['name'];
+            }
+        }
+        $tagConflicts = $this->getTagConflicts($eventTags);
+        $localTagConflicts = $this->getTagConflicts($localEventTags);
+        return array(
+            'global' => $tagConflicts,
+            'local' => $localTagConflicts
+        );
+    }
+
+    public function getTagConflicts($tagNameList)
+    {
+        $potentiallyConflictingTaxonomy = array();
+        $conflictingTaxonomy = array();
+        foreach ($tagNameList as $tagName) {
+            $tagShortened = $this->stripLastTagComponent($tagName);
+            if (isset($potentiallyConflictingTaxonomy[$tagShortened])) {
+                $potentiallyConflictingTaxonomy[$tagShortened]['taxonomy'] = $this->getTaxonomyForTag($tagName);
+                $potentiallyConflictingTaxonomy[$tagShortened]['count']++;
+            } else {
+                $potentiallyConflictingTaxonomy[$tagShortened] = array(
+                    'count' => 1
+                );
+            }
+            $potentiallyConflictingTaxonomy[$tagShortened]['tagNames'][] = $tagName;
+        }
+        foreach ($potentiallyConflictingTaxonomy as $potTaxonomy) {
+            if ($potTaxonomy['count'] > 1) {
+                $taxonomy = $potTaxonomy['taxonomy'];
+                if (isset($taxonomy['Taxonomy']['exclusive']) && $taxonomy['Taxonomy']['exclusive']) {
+                    $conflictingTaxonomy[] = array(
+                        'tags' => $potTaxonomy['tagNames'],
+                        'taxonomy' => $taxonomy,
+                        'conflict' => sprintf(__('Taxonomy `%s` is an exclusive Taxonomy'), $taxonomy['Taxonomy']['namespace'])
+                    );
+                } elseif (isset($taxonomy['TaxonomyPredicate'][0]['exclusive']) && $taxonomy['TaxonomyPredicate'][0]['exclusive']) {
+                    $conflictingTaxonomy[] = array(
+                        'tags' => $potTaxonomy['tagNames'],
+                        'taxonomy' => $taxonomy,
+                        'conflict' => sprintf(
+                            __('Predicate `%s` is exclusive'),
+                            $taxonomy['TaxonomyPredicate'][0]['value']
+                        )
+                    );
+                }
+            }
+        }
+        return $conflictingTaxonomy;
     }
 }

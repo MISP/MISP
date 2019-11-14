@@ -134,7 +134,9 @@ class Server extends AppModel
                     'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
-                    'Run enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
+                    'Run enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]',
+                    'Test' => 'MISP/app/Console/cake Server test [server_id]',
+                    'List' => 'MISP/app/Console/cake Server list'
                 ),
                 'description' => __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.'),
                 'header' => __('Automating certain console tasks')
@@ -428,7 +430,7 @@ class Server extends AppModel
                         'email_subject_TLP_string' => array(
                                 'level' => 2,
                                 'description' => __('This is the TLP string for e-mails when email_subject_tag is not found.'),
-                                'value' => 'TLP Amber',
+                                'value' => 'tlp:amber',
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
                                 'type' => 'string',
@@ -1856,6 +1858,14 @@ class Server extends AppModel
                             'errorMessage' => '',
                             'test' => 'testForNumeric',
                             'type' => 'numeric'
+                        ),
+                        'Sightings_sighting_db_enable' => array(
+                            'level' => 1,
+                            'description' => __('Enable SightingDB integration.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
                         ),
                         'CustomAuth_enable' => array(
                                 'level' => 2,
@@ -4253,6 +4263,187 @@ class Server extends AppModel
         return $output;
     }
 
+    public function dbSchemaDiagnostic()
+    {
+        $actualDbVersion = $this->AdminSetting->find('first', array(
+            'conditions' => array('setting' => 'db_version')
+        ))['AdminSetting']['value'];
+        $dataSource = $this->getDataSource()->config['datasource'];
+        $schemaDiagnostic = array(
+            'actual_db_version' => $actualDbVersion,
+            'checked_table_column' => array(),
+            'diagnostic' => array(),
+            'expected_db_version' => '?',
+            'error' => '',
+            'update_locked' => $this->isUpdateLocked(),
+            'remaining_lock_time' => $this->getLockRemainingTime(),
+            'update_fail_number_reached' => $this->UpdateFailNumberReached()
+        );
+        if ($dataSource == 'Database/Mysql') {
+            $dbActualSchema = $this->getActualDBSchema();
+            $dbExpectedSchema = $this->getExpectedDBSchema();
+            if ($dbExpectedSchema !== false) {
+                $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
+                $schemaDiagnostic['checked_table_column'] = $dbActualSchema['column'];
+                $schemaDiagnostic['diagnostic'] = $db_schema_comparison;
+                $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
+            } else {
+                $schemaDiagnostic['error'] = sprintf('Diagnostic not available as the expected schema file could not be loaded');
+            }
+        } else {
+            $schemaDiagnostic['error'] = sprintf('Diagnostic not available for DataSource `%s`', $dataSource);
+        }
+        return $schemaDiagnostic;
+    }
+
+    public function getExpectedDBSchema()
+    {
+        App::uses('Folder', 'Utility');
+        $file = new File(ROOT . DS . 'db_schema.json', true);
+        $dbExpectedSchema = json_decode($file->read(), true);
+        $file->close();
+        if (!is_null($dbExpectedSchema)) {
+            return $dbExpectedSchema;
+        } else {
+            return false;
+        }
+    }
+
+    // TODO: Use CakePHP 3.X's Schema System
+    /*
+        $db = ConnectionManager::get('default');
+
+        // Create a schema collection.
+        $collection = $db->schemaCollection();
+
+        // Get the table names
+        $tables = $collection->listTables();
+
+        // Get a single table (instance of Schema\TableSchema)
+        $tableSchema = $collection->describe('posts');
+
+    */
+    public function getActualDBSchema(
+        $tableColumnNames = array(
+            'column_name',
+            'is_nullable',
+            'data_type',
+            'character_maximum_length',
+            'numeric_precision',
+            // 'datetime_precision',    -- Only available on MySQL 5.6+
+            'collation_name'
+        )
+    ){
+        $dbActualSchema = array();
+        $dataSource = $this->getDataSource()->config['datasource'];
+        if ($dataSource == 'Database/Mysql') {
+            $sqlGetTable = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
+            $sqlResult = $this->query($sqlGetTable);
+            $tables = HASH::extract($sqlResult, '{n}.tables.table_name');
+            foreach ($tables as $table) {
+                $sqlSchema = sprintf(
+                    "SELECT %s
+                    FROM information_schema.columns
+                    WHERE table_schema = '%s' AND table_name = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
+                $sqlResult = $this->query($sqlSchema);
+                foreach ($sqlResult as $column_schema) {
+                    $dbActualSchema[$table][] = $column_schema['columns'];
+                }
+            }
+        }
+        else if ($dataSource == 'Database/Postgres') {
+            return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
+        }
+        return array('schema' => $dbActualSchema, 'column' => $tableColumnNames);
+    }
+
+    public function compareDBSchema($dbActualSchema, $dbExpectedSchema)
+    {
+        // Column that should be ignored while performing the comparison
+        $whiteListFields = array(
+            'users' => array('external_auth_required', 'external_auth_key'),
+        );
+        $nonCriticalColumnElements = array('is_nullable', 'collation_name');
+        $dbDiff = array();
+        // perform schema comparison for tables
+        foreach($dbExpectedSchema as $tableName => $columns) {
+            if (!array_key_exists($tableName, $dbActualSchema)) {
+                $dbDiff[$tableName][] = array(
+                    'description' => sprintf(__('Table `%s` does not exist'), $tableName),
+                    'column_name' => $tableName,
+                    'is_critical' => true
+                );
+            } else {
+                // perform schema comparison for table's columns
+                $expectedColumnKeys = array();
+                $keyedExpectedColumn = array();
+                foreach($columns as $column) {
+                    $expectedColumnKeys[] = $column['column_name'];
+                    $keyedExpectedColumn[$column['column_name']] = $column;
+                }
+                $existingColumnKeys = array();
+                $keyedActualColumn = array();
+                foreach($dbActualSchema[$tableName] as $column) {
+                    $existingColumnKeys[] = $column['column_name'];
+                    $keyedActualColumn[$column['column_name']] = $column;
+                }
+
+                $additionalKeysInActualSchema = array_diff($existingColumnKeys, $expectedColumnKeys);
+                foreach($additionalKeysInActualSchema as $additionalKeys) {
+                    if (isset($whiteListFields[$tableName]) && in_array($additionalKeys, $whiteListFields[$tableName])) {
+                        continue; // column is whitelisted
+                    }
+                    $dbDiff[$tableName][] = array(
+                        'description' => sprintf(__('Column `%s` exists but should not'), $additionalKeys),
+                        'column_name' => $additionalKeys,
+                        'is_critical' => false
+                    );
+                }
+                foreach ($keyedExpectedColumn as $columnName => $column) {
+                    if (isset($whiteListFields[$tableName]) && in_array($columnName, $whiteListFields[$tableName])) {
+                        continue; // column is whitelisted
+                    }
+                    if (isset($keyedActualColumn[$columnName])) {
+                        $colDiff = array_diff_assoc($column, $keyedActualColumn[$columnName]);
+                        if (count($colDiff) > 0) {
+                            $colElementDiffs = array_keys(array_diff_assoc($column, $keyedActualColumn[$columnName]));
+                            $isCritical = false;
+                            foreach($colElementDiffs as $colElementDiff) {
+                                if(!in_array($colElementDiff, $nonCriticalColumnElements)) {
+                                    $isCritical = true;
+                                    break;
+                                }
+                            }
+                            $dbDiff[$tableName][] = array(
+                                'description' => sprintf(__('Column `%s` is different'), $columnName),
+                                'column_name' => $column['column_name'],
+                                'actual' => $keyedActualColumn[$columnName],
+                                'expected' => $column,
+                                'is_critical' => $isCritical
+                            );
+                        }
+                    } else {
+                        $dbDiff[$tableName][] = array(
+                            'description' => sprintf(__('Column `%s` does not exist but should'), $columnName),
+                            'column_name' => $columnName,
+                            'actual' => array(),
+                            'expected' => $column,
+                            'is_critical' => true
+                        );
+                    }
+                }
+            }
+        }
+        foreach(array_diff(array_keys($dbActualSchema), array_keys($dbExpectedSchema)) as $additionalTable) {
+            $dbDiff[$additionalTable][] = array(
+                'description' => sprintf(__('Table `%s` is an additional table'), $additionalTable),
+                'column_name' => $additionalTable,
+                'is_critical' => false
+            );
+        }
+        return $dbDiff;
+    }
+
     public function writeableDirsDiagnostics(&$diagnostic_errors)
     {
         App::uses('File', 'Utility');
@@ -4506,6 +4697,7 @@ class Server extends AppModel
                     'default' => array('ok' => false),
                     'email' => array('ok' => false),
                     'prio' => array('ok' => false),
+                    'update' => array('ok' => false),
                     'scheduler' => array('ok' => false)
             );
         }
@@ -4521,6 +4713,7 @@ class Server extends AppModel
                 'default' => array('ok' => true),
                 'email' => array('ok' => true),
                 'prio' => array('ok' => true),
+                'update' => array('ok' => true),
                 'scheduler' => array('ok' => true)
         );
         $procAccessible = file_exists('/proc');
@@ -5132,7 +5325,7 @@ class Server extends AppModel
 
     public function startWorker($queue)
     {
-        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio');
+        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
         if (!in_array($queue, $validTypes)) {
             return __('Invalid worker type.');
         }
@@ -5348,5 +5541,48 @@ class Server extends AppModel
             $success = $success && $result;
         }
         return $success;
+    }
+
+    public function getRemoteUser($id)
+    {
+        $server = $this->find('first', array(
+            'conditions' => array('Server.id' => $id),
+            'recursive' => -1
+        ));
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
+        $uri = $server['Server']['url'] . '/users/view/me.json';
+        try {
+            $response = $HttpSocket->get($uri, false, $request);
+        } catch (Exception $e) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $message = __('Could not reset fetch remote user account.');
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: ' . $message,
+            ));
+            return $message;
+        }
+        if ($response->isOk()) {
+            $user = json_decode($response->body, true);
+            if (!empty($user['User'])) {
+                $result = array(
+                    'Email' => $user['User']['email'],
+                    'Role name' => isset($user['Role']['name']) ? $user['Role']['name'] : 'Unknown, outdated instance',
+                    'Sync flag' => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? 1 : 0) : 'Unknown, outdated instance'
+                );
+                return $result;
+            } else {
+                return __('No user object received in response.');
+            }
+        } else {
+            return $response->code;
+        }
     }
 }

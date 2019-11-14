@@ -1868,7 +1868,7 @@ class AttributesController extends AppController
     {
         $paramArray = array(
             'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
-            'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
+            'timestamp', 'attribute_timestamp','enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
             'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
             'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'includeSightings', 'includeCorrelations', 'includeDecayScore',
             'decayingModel', 'excludeDecayed', 'modelOverrides', 'includeFullModel', 'score'
@@ -2959,6 +2959,7 @@ class AttributesController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
+        $this->Taxonomy = $log = ClassRegistry::init('Taxonomy');
         $rearrangeRules = array(
             'request' => false,
             'Attribute' => false,
@@ -2968,20 +2969,11 @@ class AttributesController extends AppController
         );
         $RearrangeTool = new RequestRearrangeTool();
         $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
-        if ($id === false) {
-            if (!isset($this->request->data['attribute'])) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            $id = $this->request->data['attribute'];
-        }
-        if ($id === 'selected') {
-            if (!isset($this->request->data['attribute_ids'])) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            $idList = json_decode($this->request->data['attribute_ids'], true);
-        }
         $local = empty($this->params['named']['local']) ? 0 : 1;
         if (!$this->request->is('post')) {
+            if ($id === false) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
             $this->set('local', $local);
             $this->set('object_id', $id);
             $this->set('scope', 'Attribute');
@@ -2989,6 +2981,18 @@ class AttributesController extends AppController
             $this->autoRender = false;
             $this->render('/Events/add_tag');
         } else {
+            if ($id === false) {
+                if (!isset($this->request->data['attribute'])) {
+                    throw new NotFoundException(__('Invalid attribute'));
+                }
+                $id = $this->request->data['attribute'];
+            }
+            if ($id === 'selected') {
+                if (!isset($this->request->data['attribute_ids'])) {
+                    throw new NotFoundException(__('Invalid attribute'));
+                }
+                $idList = json_decode($this->request->data['attribute_ids'], true);
+            }
             if ($tag_id === false) {
                 if (!isset($this->request->data['tag'])) {
                     throw new NotFoundException(__('Invalid tag'));
@@ -3096,6 +3100,20 @@ class AttributesController extends AppController
                     ));
                     $this->autoRender = false;
                     if (!empty($found)) {
+                        $fails++;
+                        continue;
+                    }
+                    $tagsOnAttribute = $this->Attribute->AttributeTag->find('all', array(
+                        'conditions' => array(
+                            'AttributeTag.attribute_id' => $id,
+                            'AttributeTag.local' => $local
+                        ),
+                        'contain' => 'Tag',
+                        'fields' => array('Tag.name'),
+                        'recursive' => -1
+                    ));
+                    $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnAttribute, '{n}.Tag.name'));
+                    if (!$exclusiveTestPassed) {
                         $fails++;
                         continue;
                     }
@@ -3248,15 +3266,17 @@ class AttributesController extends AppController
                 'fields' => array('Tag.name')
             ));
             if ($this->Attribute->AttributeTag->delete($attributeTag['AttributeTag']['id'])) {
-                $event['Event']['published'] = 0;
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->Event->save($event);
-                $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->save($this->Attribute->data);
+                if (empty($attributeTag['AttributeTag']['local'])) {
+                    $event['Event']['published'] = 0;
+                    $date = new DateTime();
+                    $event['Event']['timestamp'] = $date->getTimestamp();
+                    $this->Attribute->Event->save($event);
+                    $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+                    $this->Attribute->save($this->Attribute->data);
+                }
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => true)), 'status' => 200));
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => empty($attributeTag['AttributeTag']['local']))), 'status' => 200));
             } else {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')), 'status' => 200, 'type' => 'json'));
             }

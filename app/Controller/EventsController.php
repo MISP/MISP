@@ -25,8 +25,11 @@ class EventsController extends AppController
             )
     );
 
-    private $acceptedFilteringNamedParams = array('sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
-        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting'
+    private $acceptedFilteringNamedParams = array(
+        'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
+        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
+        'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit',
+        'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting', 'includeSightingdb'
     );
 
     public $defaultFilteringRules =  array(
@@ -1150,6 +1153,7 @@ class EventsController extends AppController
 
         // remove galaxies tags
         $this->loadModel('GalaxyCluster');
+        $this->loadModel('Taxonomy');
         $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
         foreach ($event['Object'] as $k => $object) {
             if (isset($object['Attribute'])) {
@@ -1159,6 +1163,14 @@ class EventsController extends AppController
                             unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
                         }
                     }
+                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                    foreach ($tagConflicts['global'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    foreach ($tagConflicts['local'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
         }
@@ -1168,6 +1180,14 @@ class EventsController extends AppController
                     unset($event['Attribute'][$k]['AttributeTag'][$k2]);
                 }
             }
+            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+            foreach ($tagConflicts['global'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            foreach ($tagConflicts['local'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         if (empty($this->passedArgs['sort'])) {
             $filters['sort'] = 'timestamp';
@@ -1176,6 +1196,10 @@ class EventsController extends AppController
         $sightingsData = $this->Event->getSightingData($event);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, $all, $sightingsData);
+        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+            $this->loadModel('Sightingdb');
+            $event = $this->Sightingdb->attachToEvent($event, $this->Auth->user());
+        }
         $this->params->params['paging'] = array($this->modelClass => $params);
         // workaround to get the event dates in to the attribute relations
         $relatedDates = array();
@@ -1229,6 +1253,7 @@ class EventsController extends AppController
         if (isset($filters['deleted'])) {
             $deleted = $filters['deleted'] == 2 ? 0 : 1;
         }
+        $this->set('includeSightingdb', (!empty($filters['includeSightingdb'] && Configure::read('Plugin.Sightings_sighting_db_enable'))));
         $this->set('deleted', $deleted);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
@@ -1250,6 +1275,9 @@ class EventsController extends AppController
             }
             $this->params->here = implode('/', $uriArray);
         }
+        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+            $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($this->Auth->user()));
+        }
         $this->set('sightingTypes', $this->Sighting->type);
         $this->set('currentUri', $this->params->here);
         $this->layout = false;
@@ -1258,12 +1286,14 @@ class EventsController extends AppController
 
     private function __viewUI($event, $continue, $fromEvent)
     {
+        $this->loadModel('Taxonomy');
         $filterData = array(
             'request' => $this->request,
             'paramArray' => $this->acceptedFilteringNamedParams,
             'named_params' => $this->params['named']
         );
         $exception = false;
+        $warningTagConflicts = array();
         $filters = $this->_harvestParameters($filterData, $exception);
 
         $this->loadModel('GalaxyCluster');
@@ -1364,6 +1394,16 @@ class EventsController extends AppController
                 unset($event['EventTag'][$k]);
             }
         }
+
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
+        foreach ($tagConflicts['global'] as $tagConflict) {
+            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        }
+        foreach ($tagConflicts['local'] as $tagConflict) {
+            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        }
+        $this->set('tagConflicts', $tagConflicts);
+
         $startDate = null;
         $modificationMap = array();
         foreach ($event['Attribute'] as $k => $attribute) {
@@ -1380,6 +1420,14 @@ class EventsController extends AppController
                     unset($event['Attribute'][$k]['AttributeTag'][$k2]);
                 }
             }
+            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+            foreach ($tagConflicts['global'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            foreach ($tagConflicts['local'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event, 'both');
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
@@ -1405,9 +1453,18 @@ class EventsController extends AppController
                             unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
                         }
                     }
+                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                    foreach ($tagConflicts['global'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    foreach ($tagConflicts['local'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
         }
+        $this->set('warningTagConflicts', $warningTagConflicts);
         $filters['sort'] = 'timestamp';
         $filters['direction'] = 'desc';
         if (isset($filters['distribution'])) {
@@ -1437,6 +1494,10 @@ class EventsController extends AppController
         $sightingsData = $this->Event->getSightingData($event);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, false, $sightingsData);
+        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+            $this->loadModel('Sightingdb');
+            $event = $this->Sightingdb->attachToEvent($event, $this->Auth->user());
+        }
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
         $dataForView = array(
@@ -1474,9 +1535,11 @@ class EventsController extends AppController
                 $delegationConditions['OR'] = array('EventDelegation.org_id' => $this->Auth->user('org_id'),
                                                     'EventDelegation.requester_org_id' => $this->Auth->user('org_id'));
             }
-            $this->set('delegationRequest', $this->EventDelegation->find('first', array('conditions' => $delegationConditions,
-                                                                                        'recursive' => -1,
-                                                                                        'contain' => array('Org', 'RequesterOrg'))));
+            $this->set('delegationRequest', $this->EventDelegation->find('first', array(
+                'conditions' => $delegationConditions,
+                'recursive' => -1,
+                'contain' => array('Org', 'RequesterOrg')
+            )));
         }
         if (Configure::read('Plugin.Enrichment_services_enable')) {
             $this->loadModel('Module');
@@ -1516,6 +1579,10 @@ class EventsController extends AppController
         $orgTable = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
+        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+            $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($this->Auth->user()));
+        }
+        $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('relatedEventCorrelationCount', $relatedEventCorrelationCount);
         $this->set('oldest_timestamp', $oldest_timestamp);
         $this->set('required_taxonomies', $this->Event->getRequiredTaxonomies());
@@ -1970,41 +2037,48 @@ class EventsController extends AppController
         }
 
         $this->request->data['Event']['date'] = date('Y-m-d');
+        if (isset($this->request->data['Event']['distribution'])) {
+            $initialDistribution = $this->request->data['Event']['distribution'];
+        } else {
+            $initialDistribution = 3;
+            if (Configure::read('MISP.default_event_distribution') != null) {
+                $initialDistribution = Configure::read('MISP.default_event_distribution');
+            }
+        }
+        $this->set('initialDistribution', $initialDistribution);
 
         // combobox for distribution
         $distributions = array_keys($this->Event->distributionDescriptions);
         $distributions = $this->_arrayToValuesIndexArray($distributions);
         $this->set('distributions', $distributions);
         // tooltip for distribution
-        $info = array();
+        $fieldDesc = array();
         $distributionLevels = $this->Event->distributionLevels;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
         }
         $this->set('distributionLevels', $distributionLevels);
         foreach ($distributionLevels as $key => $value) {
-            $info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
+            $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
         }
 
         // combobox for risks
         $threat_levels = $this->Event->ThreatLevel->find('all');
         $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-        foreach ($threat_levels as $key => $threat_level) {
-            $info['threat_level'][$threat_level['ThreatLevel']['id']] = array('key' => $threat_level['ThreatLevel']['name'], 'desc' => $threat_level['ThreatLevel']['form_description']);
-        }
+        $fieldDesc['threat_level_id'] = Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.description');
 
         // combobox for analysis
         $this->set('sharingGroups', $sgs);
         // tooltip for analysis
-        foreach ($this->Event->analysisLevels as $key => $value) {
-            $info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
+        $analysisLevels = $this->Event->analysisLevels;
+        $this->set('analysisLevels', $analysisLevels);
+        foreach ($analysisLevels as $key => $value) {
+            $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
         if (!$this->_isRest()) {
             $this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
         }
-        $this->set('info', $info);
-        $this->set('analysisDescriptions', $this->Event->analysisDescriptions);
-        $this->set('analysisLevels', $this->Event->analysisLevels);
+        $this->set('fieldDesc', $fieldDesc);
         if (isset($this->params['named']['extends'])) {
             $this->set('extends_uuid', $this->params['named']['extends']);
         }
@@ -2322,34 +2396,34 @@ class EventsController extends AppController
         $this->set('sharingGroups', $sgs);
 
         // tooltip for distribution
-        $info = array();
+        $fieldDesc = array();
         $distributionLevels = $this->Event->distributionLevels;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
         }
         $this->set('distributionLevels', $distributionLevels);
         foreach ($distributionLevels as $key => $value) {
-            $info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
+            $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
         }
 
         // combobox for risks
         $threat_levels = $this->Event->ThreatLevel->find('all');
         $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-        foreach ($threat_levels as $key => $threat_level) {
-            $info['threat_level'][$threat_level['ThreatLevel']['id']] = array('key' => $threat_level['ThreatLevel']['name'], 'desc' => $threat_level['ThreatLevel']['form_description']);
-        }
+        $fieldDesc['threat_level_id'] = Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.description');
 
         // combobox for analysis
         $this->set('sharingGroups', $sgs);
         // tooltip for analysis
-        foreach ($this->Event->analysisLevels as $key => $value) {
-            $info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
+        $analysisLevels = $this->Event->analysisLevels;
+        foreach ($analysisLevels as $key => $value) {
+            $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
-        $this->set('analysisLevels', $this->Event->analysisLevels);
+        $this->set('analysisLevels', $analysisLevels);
 
-        $this->set('info', $info);
+        $this->set('fieldDesc', $fieldDesc);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('event', $this->Event->data);
+        $this->render('add');
     }
 
     public function delete($id = null)
@@ -3417,7 +3491,7 @@ class EventsController extends AppController
             'value', 'type', 'category', 'object_relation', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
             'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'returnFormat',
             'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'deleted',
-            'excludeLocalTags', 'date'
+            'excludeLocalTags', 'date', 'includeSightingdb'
         );
         $filterData = array(
             'request' => $this->request,
@@ -3715,6 +3789,7 @@ class EventsController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
+        $this->loadModel('Taxonomy');
         $rearrangeRules = array(
                 'request' => false,
                 'Event' => false,
@@ -3827,6 +3902,20 @@ class EventsController extends AppController
                 ));
                 if (!empty($found)) {
                     $error = __('Tag is already attached to this event.');
+                    continue;
+                }
+                $tagsOnEvent = $this->Event->EventTag->find('all', array(
+                    'conditions' => array(
+                        'EventTag.event_id' => $id,
+                        'EventTag.local' => $local
+                    ),
+                    'contain' => 'Tag',
+                    'fields' => array('Tag.name'),
+                    'recursive' => -1
+                ));
+                $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnEvent, '{n}.Tag.name'));
+                if (!$exclusiveTestPassed) {
+                    $fail = __('Tag is not allowed due to taxonomy exclusivity settings');
                     continue;
                 }
                 $this->Event->EventTag->create();
@@ -3945,13 +4034,15 @@ class EventsController extends AppController
                 'fields' => array('Tag.name')
             ));
             if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
-                $event['Event']['published'] = 0;
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Event->save($event);
+                if (empty($eventTag['EventTag']['local'])) {
+                    $event['Event']['published'] = 0;
+                    $date = new DateTime();
+                    $event['Event']['timestamp'] = $date->getTimestamp();
+                    $this->Event->save($event);
+                }
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => empty($eventTag['EventTag']['local']))), 'status'=>200, 'type' => 'json'));
             } else {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')), 'status'=>200, 'type' => 'json'));
             }

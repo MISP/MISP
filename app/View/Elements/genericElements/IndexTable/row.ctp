@@ -1,14 +1,15 @@
 <?php
     $rowHtml = '';
-    foreach ($fields as $field) {
+    foreach ($fields as $column => $field) {
         if (empty($field['element'])) {
-            $valueField = $this->element('/genericElements/IndexTable/Fields/generic_field', array('field' => $field, 'row' => $row, 'data_path' => empty($field['data_path']) ? '' : $field['data_path'], 'k' => $k));
+            $valueField = $this->element('/genericElements/IndexTable/Fields/generic_field', array('field' => $field, 'row' => $row, 'data_path' => empty($field['data_path']) ? '' : $field['data_path'], 'k' => $k, 'column' => $column));
         } else {
             $valueField = $this->element(
                 '/genericElements/IndexTable/Fields/' . $field['element'],
                 array(
                     'field' => $field,
                     'row' => $row,
+                    'column' => $column,
                     'data_path' => empty($field['data_path']) ? '' : $field['data_path'], 'k' => $k
                 )
             );
@@ -30,7 +31,8 @@
             '/genericElements/IndexTable/Fields/actions',
             array(
                 'actions' => $actions,
-                'row' => $row
+                'row' => $row,
+                'column' => $column
             )
         );
     }
