@@ -1149,6 +1149,7 @@ class ExternalStixParser(StixParser):
                                 ('windows-registry-key',): self.parse_regkey_pattern,
                                 ('x509-certificate',): self.parse_x509_pattern}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
+        self.single_attribute_fields = ('type', 'value', 'to_ids')
 
     def handler(self):
         self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
@@ -1535,6 +1536,7 @@ class ExternalStixParser(StixParser):
     def handle_import_case(self, attributes, name, marking=None, uuid=None):
         if len(attributes) == 1:
             attribute = attributes[0]
+            attribute = {field: attribute[field] for field in self.single_attribute_fields if attribute.get(field)}
             attribute['uuid'] = uuid
             if marking:
                 attribute = self.add_tag_in_attribute(attribute, marking)
