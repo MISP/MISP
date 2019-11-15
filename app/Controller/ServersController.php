@@ -1941,9 +1941,9 @@ misp_verifycert = %s
 relative_path = \'%s\'
 body = %s
 
-from pymisp import PyMISP
+from pymisp import ExpandedPyMISP
 
-misp = PyMISP(misp_url, misp_key, misp_verifycert)
+misp = ExpandedPyMISP(misp_url, misp_key, misp_verifycert)
 misp.direct_call(relative_path, body)
 ',
             $baseurl,
