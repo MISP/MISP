@@ -1686,10 +1686,11 @@ function popoverPopup(clicked, id, context, target, admin) {
 }
 
 // create a confirm popover on the clicked html node.
-function popoverConfirm(clicked) {
+function popoverConfirm(clicked, message) {
     var $clicked = $(clicked);
     var popoverContent = '<div>';
-        popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" onclick=submitPopover(this)>Yes</button>';
+        popoverContent += message === undefined ? '' : '<p>' + message + '</p>';
+        popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" style="margin-right: 5px;" onclick=submitPopover(this)>Yes</button>';
         popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</button>';
     popoverContent += '</div>';
     openPopover($clicked, popoverContent);
@@ -1712,7 +1713,30 @@ function submitPopover(clicked) {
         var dismissid = $clicked.closest('div.popover').attr('data-dismissid');
         $form = $('[data-dismissid="' + dismissid + '"]').closest('form');
     }
-    $form.submit();
+    if ($form.data('ajax')) {
+        $.ajax({
+            data: $form.serialize(),
+            beforeSend: function (XMLHttpRequest) {
+                $(".loading").show();
+            },
+            success:function (data, textStatus) {
+                location.reload();
+            },
+            error:function() {
+                showMessage('fail', 'Could not perform query.');
+            },
+            complete:function() {
+                $(".loading").hide();
+                // $("#popover_form").fadeOut();
+                // $("#gray_out").fadeOut();
+                // $('#temp').remove();
+            },
+            type:"post",
+            url: $form.attr('action')
+        });
+    } else {
+        $form.submit();
+    }
 }
 
 function simplePopup(url) {

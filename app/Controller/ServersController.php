@@ -2193,4 +2193,21 @@ misp.direct_call(relative_path, body)
         }
         return $this->RestResponse->viewData($this->Server->dbSchemaDiagnostic(), $this->response->type());
     }
+
+    public function execSQLQuery() {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint expects POST requests.'));
+        }
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(__('Only site admin accounts are allowed to perform DB schema fixes.'));
+        }
+        $sqlQuery = $this->request->data['server']['sqlQuery'];
+        $errorMessage = '';
+        try {
+            $this->Server->query($sqlQuery);
+        } catch (Exception $e) {
+            $errorMessage = $e->getMessage();
+        }
+        return $this->RestResponse->viewData(array('success' => empty($errorMessage), 'error' => $errorMessage), $this->response->type());
+    }
 }

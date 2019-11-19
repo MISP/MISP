@@ -58,7 +58,7 @@
         );
         $table = sprintf('%s%s%s', 
             '<table class="table table-bordered table-condensed">',
-            sprintf('<thead><th>%s</th><th>%s</th><th>%s</th><th>%s</th></thead>', __('Table name'),  __('Description'), __('Expected schema'), __('Actual schema')),
+            sprintf('<thead><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th></th></thead>', __('Table name'),  __('Description'), __('Expected schema'), __('Actual schema')),
             '<tbody>'
         );
         $rows = '';
@@ -83,10 +83,21 @@
                 $uniqueRow = empty($saneExpected) && empty($saneActual);
 
                 $rows .= sprintf('<tr class="%s">', $columnDiagnostic['is_critical'] ? 'error' : '');
-                    $rows .= sprintf('<td %s>%s</td>', $uniqueRow ? 'colspan=3' : '', $saneDescription);
+                    $rows .= sprintf('<td %s>%s</td>', $uniqueRow ? 'colspan=4' : '', $saneDescription);
                     if (!$uniqueRow) {
                         $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i), implode(' ', $saneExpected));
                         $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i), implode(' ', $saneActual));
+                        $rows .= sprintf('<td class="" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i),
+                            empty($columnDiagnostic['SQLQueryFix']) ? '' :
+                                sprintf('%s%s%s%s',
+                                    $this->Form->create('server', array('url' => 'execSQLQuery', 'style' => "margin-bottom: 0px;", 'data-ajax' => true)),
+                                    // sprintf('<i class="fa fa-wrench useCursorPointer" onclick="submitSQLQueryFix(this)" title="%s" data-query="%s"></i>', __('Fix schema'), h($columnDiagnostic['SQLQueryFix'])),
+                                    sprintf('<i class="fa fa-wrench useCursorPointer" onclick="popoverConfirm(this, \'%s\')" title="%s" data-query="%s"></i>', h($columnDiagnostic['SQLQueryFix']),  __('Fix schema'), h($columnDiagnostic['SQLQueryFix'])),
+                                    $this->Form->input('sqlQuery', array('type' => 'hidden', 'value' => '123')),
+                                    $this->Form->end()
+                                )
+                            
+                        );
                     }
                 $rows .= '</tr>';
             }

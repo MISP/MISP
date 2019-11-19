@@ -4371,7 +4371,8 @@ class Server extends AppModel
                 $dbDiff[$tableName][] = array(
                     'description' => sprintf(__('Table `%s` does not exist'), $tableName),
                     'column_name' => $tableName,
-                    'is_critical' => true
+                    'is_critical' => true,
+                    'SQLQueryFix' => $this->generateSQLQueryFix($tableName, $column, 'CREATE')
                 );
             } else {
                 // perform schema comparison for table's columns
@@ -4419,17 +4420,21 @@ class Server extends AppModel
                                 'column_name' => $column['column_name'],
                                 'actual' => $keyedActualColumn[$columnName],
                                 'expected' => $column,
-                                'is_critical' => $isCritical
+                                'is_critical' => $isCritical,
+                                'SQLQueryFix' => $this->generateSQLQueryFix($tableName, $column, 'MODIFY')
                             );
                         }
+                        // ALTER TABLE test MODIFY COLUMN locationExpect VARCHAR(120);
                     } else {
                         $dbDiff[$tableName][] = array(
                             'description' => sprintf(__('Column `%s` does not exist but should'), $columnName),
                             'column_name' => $columnName,
                             'actual' => array(),
                             'expected' => $column,
-                            'is_critical' => true
+                            'is_critical' => true,
+                            'SQLQueryFix' => $this->generateSQLQueryFix($tableName, $column, 'ADD')
                         );
+                        
                     }
                 }
             }
@@ -4442,6 +4447,47 @@ class Server extends AppModel
             );
         }
         return $dbDiff;
+    }
+
+    public function generateSQLQueryFix($tableName, $expected, $type)
+    {
+        $query = '';
+        if ($type == 'ADD') {
+            $query .= sprintf('ALTER TABLE `%s` ADD COLUMN ', $tableName);
+        } elseif ($type == 'MODIFY') {
+            $query .= sprintf('ALTER TABLE `%s` MODIFY COLUMN ', $tableName);
+        } elseif ($type == 'CREATE') {
+            // $query .= sprintf('CREATE TABLE IF NOT EXISTS `%s` (%s)', $tableName);
+            // CREATE TABLE IF NOT EXISTS `taxonomies` (
+            //     `id` int(11) NOT NULL AUTO_INCREMENT,
+            //     `namespace` varchar(255) COLLATE utf8_bin NOT NULL,
+            // )
+        }
+
+        $query .= $this->generateSQLQueryFixCol($expected);
+        return $query;
+    }
+
+    public function generateSQLQueryFixCol($col)
+    {
+        $colQuery = array();
+        $colQuery[] = sprintf('`%s`', $col['column_name']);
+        $precision = null;
+        if (!is_null($col['character_maximum_length'])) {
+            $precision = $col['character_maximum_length'];
+        } elseif (!is_null($col['numeric_precision'])) {
+            $precision = $col['numeric_precision'];
+        }
+
+        $colQuery[] = $col['data_type'];
+        if (!is_null($precision)) {
+            $colQuery[] = sprintf('(%s)', $precision);
+        }
+        if (!is_null($col['collation_name'])) {
+            $colQuery[] = sprintf('COLLATE %s', $col['collation_name']);
+        }
+        $colQuery[] = sprintf('%s NULL', $col['is_nullable'] == 'NO' ? 'NOT' : '');
+        return implode(' ', $colQuery);
     }
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)
