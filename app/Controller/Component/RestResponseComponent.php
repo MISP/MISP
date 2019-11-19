@@ -22,13 +22,13 @@ class RestResponseComponent extends Component
             'add' => array(
                 'description' => "POST a MISP Attribute JSON to this API to create an Attribute.",
                 'mandatory' => array('value', 'type'),
-                'optional' => array('category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
+                'optional' => array('category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'data', 'encrypt'),
                 'params' => array('event_id')
             ),
             'edit' => array(
                 'description' => "POST a MISP Attribute JSON to this API to update an Attribute. If the timestamp is set, it has to be newer than the existing Attribute.",
                 'mandatory' => array(),
-                'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
+                'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'date', 'encrypt'),
                 'params' => array('attribute_id')
             ),
             'deleteSelected' => array(
@@ -721,6 +721,12 @@ class RestResponseComponent extends Component
                     'autoclose' => true
                 ),
             ),
+            'data' => array(
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => array('equal'),
+                'help' => __('Base64 encoded file contents')
+            ),
             'date' => array(
                 'type' => 'date',
                 'validation' => array( 'format' => 'YYYY-MM-DD' ),
@@ -819,6 +825,12 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' )
+            ),
+            'encrypt' => array(
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => array(1 => 'True', 0 => 'False' ),
+                'help' => __('When uploading malicious samples, set this flag to tell MISP to encrpyt the sample and extract the file hashes. This will create a MISP object with the appropriate attributes.')
             ),
             //'enforceWarningList' => array(
             //    'input' => 'radio',

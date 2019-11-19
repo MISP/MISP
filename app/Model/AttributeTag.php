@@ -172,6 +172,7 @@ class AttributeTag extends AppModel
         $attributes = $this->Attribute->fetchAttributes($user, array(
             'conditions' => $conditions,
             'flatten' => 1,
+            'includeAllTags' => 1
         ));
 
         if (empty($attributes)) {
