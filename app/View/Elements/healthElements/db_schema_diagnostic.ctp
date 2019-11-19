@@ -88,12 +88,11 @@
                         $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i), implode(' ', $saneExpected));
                         $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i), implode(' ', $saneActual));
                         $rows .= sprintf('<td class="" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i),
-                            empty($columnDiagnostic['SQLQueryFix']) ? '' :
+                            empty($columnDiagnostic['sql']) ? '' :
                                 sprintf('%s%s%s%s',
                                     $this->Form->create('server', array('url' => 'execSQLQuery', 'style' => "margin-bottom: 0px;", 'data-ajax' => true)),
-                                    // sprintf('<i class="fa fa-wrench useCursorPointer" onclick="submitSQLQueryFix(this)" title="%s" data-query="%s"></i>', __('Fix schema'), h($columnDiagnostic['SQLQueryFix'])),
-                                    sprintf('<i class="fa fa-wrench useCursorPointer" onclick="popoverConfirm(this, \'%s\')" title="%s" data-query="%s"></i>', h($columnDiagnostic['SQLQueryFix']),  __('Fix schema'), h($columnDiagnostic['SQLQueryFix'])),
-                                    $this->Form->input('sqlQuery', array('type' => 'hidden', 'value' => '123')),
+                                    sprintf('<i class="fa fa-wrench useCursorPointer" onclick="popoverConfirm(this, \'%s\', \'left\')" title="%s" data-query="%s"></i>', h($columnDiagnostic['sql']),  __('Fix schema'), h($columnDiagnostic['sql'])),
+                                    $this->Form->input('sqlQuery', array('type' => 'hidden', 'value' => $columnDiagnostic['sql'])),
                                     $this->Form->end()
                                 )
                             

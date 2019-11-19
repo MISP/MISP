@@ -4310,7 +4310,7 @@ class Server extends AppModel
      */
     private function __attachRecoveryQuery($field, $table)
     {
-        if ($field['is_critical']) {
+        if (isset($field['error_type'])) {
             $length = false;
             if (in_array($field['error_type'], array('missing_column', 'column_different'))) {
                 if ($field['expected']['data_type'] === 'int') {
@@ -4327,25 +4327,24 @@ class Server extends AppModel
                 switch($field['error_type']) {
                     case 'missing_column':
                         $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s;',
+                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s %s;',
                             $table,
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
-                            isset($field['expected']['default']) ? 'DEFAULT "' . $field['expected']['default'] . '"' : '',
+                            isset($field['expected']['column_default']) ? $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                             empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
                         );
                         break;
                     case 'column_different':
                         $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` CHANGE `%s` `%s` %s%s %s %s;',
+                            'ALTER TABLE `%s` MODIFY COLUMN `%s` %s%s %s %s %s;',
                             $table,
-                            $field['column_name'],
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
-                            isset($field['expected']['default']) ? 'DEFAULT "' . $field['expected']['default'] . '"' : '',
+                            isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                             empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
                         );
@@ -4391,7 +4390,8 @@ class Server extends AppModel
             'character_maximum_length',
             'numeric_precision',
             // 'datetime_precision',    -- Only available on MySQL 5.6+
-            'collation_name'
+            'collation_name',
+            'column_default'
         )
     ){
         $dbActualSchema = array();
@@ -4432,8 +4432,7 @@ class Server extends AppModel
                     'description' => sprintf(__('Table `%s` does not exist'), $tableName),
                     'error_type' => 'missing_table',
                     'column_name' => $tableName,
-                    'is_critical' => true,
-                    'SQLQueryFix' => $this->generateSQLQueryFix($tableName, $column, 'CREATE')
+                    'is_critical' => true
                 );
             } else {
                 // perform schema comparison for table's columns
@@ -4483,8 +4482,7 @@ class Server extends AppModel
                                 'error_type' => 'column_different',
                                 'actual' => $keyedActualColumn[$columnName],
                                 'expected' => $column,
-                                'is_critical' => $isCritical,
-                                'SQLQueryFix' => $this->generateSQLQueryFix($tableName, $column, 'MODIFY')
+                                'is_critical' => $isCritical
                             );
                         }
                         // ALTER TABLE test MODIFY COLUMN locationExpect VARCHAR(120);
@@ -4495,8 +4493,7 @@ class Server extends AppModel
                             'error_type' => 'missing_column',
                             'actual' => array(),
                             'expected' => $column,
-                            'is_critical' => true,
-                            'SQLQueryFix' => $this->generateSQLQueryFix($tableName, $column, 'ADD')
+                            'is_critical' => true
                         );
                         
                     }
@@ -4512,47 +4509,6 @@ class Server extends AppModel
             );
         }
         return $dbDiff;
-    }
-
-    public function generateSQLQueryFix($tableName, $expected, $type)
-    {
-        $query = '';
-        if ($type == 'ADD') {
-            $query .= sprintf('ALTER TABLE `%s` ADD COLUMN ', $tableName);
-        } elseif ($type == 'MODIFY') {
-            $query .= sprintf('ALTER TABLE `%s` MODIFY COLUMN ', $tableName);
-        } elseif ($type == 'CREATE') {
-            // $query .= sprintf('CREATE TABLE IF NOT EXISTS `%s` (%s)', $tableName);
-            // CREATE TABLE IF NOT EXISTS `taxonomies` (
-            //     `id` int(11) NOT NULL AUTO_INCREMENT,
-            //     `namespace` varchar(255) COLLATE utf8_bin NOT NULL,
-            // )
-        }
-
-        $query .= $this->generateSQLQueryFixCol($expected);
-        return $query;
-    }
-
-    public function generateSQLQueryFixCol($col)
-    {
-        $colQuery = array();
-        $colQuery[] = sprintf('`%s`', $col['column_name']);
-        $precision = null;
-        if (!is_null($col['character_maximum_length'])) {
-            $precision = $col['character_maximum_length'];
-        } elseif (!is_null($col['numeric_precision'])) {
-            $precision = $col['numeric_precision'];
-        }
-
-        $colQuery[] = $col['data_type'];
-        if (!is_null($precision)) {
-            $colQuery[] = sprintf('(%s)', $precision);
-        }
-        if (!is_null($col['collation_name'])) {
-            $colQuery[] = sprintf('COLLATE %s', $col['collation_name']);
-        }
-        $colQuery[] = sprintf('%s NULL', $col['is_nullable'] == 'NO' ? 'NOT' : '');
-        return implode(' ', $colQuery);
     }
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)

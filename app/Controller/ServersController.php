@@ -2205,7 +2205,21 @@ misp.direct_call(relative_path, body)
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException(__('Only site admin accounts get the DB schema diagnostic.'));
         }
-        return $this->RestResponse->viewData($this->Server->dbSchemaDiagnostic(), $this->response->type());
+        $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($dbSchemaDiagnostics, $this->response->type());
+        } else {
+            $this->set('checkedTableColumn', $dbSchemaDiagnostics['checked_table_column']);
+            $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics['diagnostic']);
+            $this->set('expectedDbVersion', $dbSchemaDiagnostics['expected_db_version']);
+            $this->set('actualDbVersion', $dbSchemaDiagnostics['actual_db_version']);
+            $this->set('error', $dbSchemaDiagnostics['error']);
+            $this->set('remainingLockTime', $dbSchemaDiagnostics['remaining_lock_time']);
+            $this->set('updateFailNumberReached', $dbSchemaDiagnostics['update_fail_number_reached']);
+            $this->set('updateLocked', $dbSchemaDiagnostics['update_locked']);
+            $this->render('/Elements/healthElements/db_schema_diagnostic');
+        }
+
     }
 
     public function execSQLQuery() {
@@ -2221,6 +2235,13 @@ misp.direct_call(relative_path, body)
             $this->Server->query($sqlQuery);
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
+        }
+        if (!$this->_isRest()) {
+            if (empty($errorMessage)) {
+                $this->Flash->success(__('Query executed successfully'));
+            } else {
+                $this->Flash->error($errorMessage);
+            }
         }
         return $this->RestResponse->viewData(array('success' => empty($errorMessage), 'error' => $errorMessage), $this->response->type());
     }

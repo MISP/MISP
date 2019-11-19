@@ -1686,14 +1686,15 @@ function popoverPopup(clicked, id, context, target, admin) {
 }
 
 // create a confirm popover on the clicked html node.
-function popoverConfirm(clicked, message) {
+function popoverConfirm(clicked, message, placement) {
     var $clicked = $(clicked);
     var popoverContent = '<div>';
         popoverContent += message === undefined ? '' : '<p>' + message + '</p>';
         popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" style="margin-right: 5px;" onclick=submitPopover(this)>Yes</button>';
         popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</button>';
     popoverContent += '</div>';
-    openPopover($clicked, popoverContent);
+    placement = placement === undefined ? 'auto' : placement;
+    openPopover($clicked, popoverContent, undefined, placement);
     $("#popoverConfirmOK")
     .focus()
     .bind("keydown", function(e) {
@@ -1727,9 +1728,9 @@ function submitPopover(clicked) {
             },
             complete:function() {
                 $(".loading").hide();
-                // $("#popover_form").fadeOut();
-                // $("#gray_out").fadeOut();
-                // $('#temp').remove();
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $('#temp').remove();
             },
             type:"post",
             url: $form.attr('action')

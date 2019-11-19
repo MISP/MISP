@@ -227,8 +227,8 @@
         echo '</div>';
     ?>
         <h4><?php echo __('Schema status');?></h4>
-        <div style="width: 70vw; padding-left: 10px;">
-            <?php echo $this->element('/healthElements/db_schema_status', array(
+        <div id="schemaStatusDiv" style="width: 70vw; padding-left: 10px;">
+            <?php echo $this->element('/healthElements/db_schema_diagnostic', array(
                 'checkedTableColumn' => $dbSchemaDiagnostics['checked_table_column'],
                 'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'],
                 'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
