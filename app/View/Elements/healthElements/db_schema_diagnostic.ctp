@@ -72,7 +72,7 @@
         } else {
             echo sprintf('<div class="alert alert-warning"><strong>%s</strong> %s <br/>%s</div>',
                 __('Warning'),
-                __('The MISP database state does not match the expected schema. Resolving these issues is recommanded.'),
+                __('The MISP database state does not match the expected schema. Resolving these issues is recommended.'),
                 __('⚠ This diagnostic tool is in experimental state - the highlighted issues may be benign. If you are unsure, please open an issue on with the issues identified over at https://github.com/MISP/MISP for clarification.')
             );
         }
