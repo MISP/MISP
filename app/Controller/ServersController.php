@@ -2236,6 +2236,7 @@ misp.direct_call(relative_path, body)
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
         }
+        $this->Server->cleanCacheFiles();
         if (!$this->_isRest()) {
             if (empty($errorMessage)) {
                 $this->Flash->success(__('Query executed successfully'));
