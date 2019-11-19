@@ -4350,6 +4350,34 @@ class Server extends AppModel
                         );
                         break;
                 }
+            } elseif($field['error_type'] == 'missing_table') {
+                $allFields = array();
+                foreach ($field['expected_table'] as $expectedField) {
+                    $length = false;
+                    if ($expectedField['data_type'] === 'int') {
+                        $length = 11;
+                    } elseif ($expectedField['data_type'] === 'tinyint') {
+                        $length = 1;
+                    } elseif ($expectedField['data_type'] === 'varchar') {
+                        $length = $expectedField['character_maximum_length'];
+                    } elseif ($expectedField['data_type'] === 'text') {
+                        $length = null;
+                    }
+                    $fieldSql = sprintf('`%s` %s%s %s %s %s',
+                        $expectedField['column_name'],
+                        $expectedField['data_type'],
+                        $length !== null ? sprintf('(%d)', $length) : '',
+                        isset($expectedField['column_default']) ? 'DEFAULT "' . $expectedField['column_default'] . '"' : '',
+                        $expectedField['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
+                        empty($expectedField['collation_name']) ? '' : 'COLLATE ' . $expectedField['collation_name']
+                    );
+                    $allFields[] = $fieldSql;
+                }
+                $field['sql'] = sprintf(
+                    "CREATE TABLE IF NOT EXISTS `%s` ( %s ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;",
+                        $table,
+                        implode(', ', $allFields)
+                );
             }
         }
         return $field;
@@ -4431,6 +4459,7 @@ class Server extends AppModel
                 $dbDiff[$tableName][] = array(
                     'description' => sprintf(__('Table `%s` does not exist'), $tableName),
                     'error_type' => 'missing_table',
+                    'expected_table' => $columns,
                     'column_name' => $tableName,
                     'is_critical' => true
                 );

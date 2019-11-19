@@ -46,16 +46,36 @@
 ?>
 
 <?php
+    $hasAtLeastOneCriticalWarning = false;
+    foreach ($dbSchemaDiagnostics as $tableName => $tableDiagnostic) {
+        foreach ($tableDiagnostic as $i => $columnDiagnostic) {
+            if ($columnDiagnostic['is_critical']) {
+                $hasAtLeastOneCriticalWarning = true;
+                break;
+            }
+        }
+        if ($hasAtLeastOneCriticalWarning) {
+            break;
+        }
+    }
     if (count($dbSchemaDiagnostics) > 0) {
         echo sprintf('<span  style="margin-bottom: 5px;" class="label label-important" title="%s">%s<i style="font-size: larger;" class="fas fa-times"></i></span>',
             __('The current database schema does not match the expected format.'),
             __('Database schema diagnostic: ')
         );
-        echo sprintf('<div class="alert alert-error"><strong>%s</strong> %s <br/>%s</div>',
-            __('Critical warning!'),
-            __('The MISP database seems to be in an inconsistent state. Immediate attention is required.'),
-            __('⚠ This diagnostic tool is in experimental state - the highlighted issues may be benign. If you are unsure, please open an issue on with the issues identified over at https://github.com/MISP/MISP for clarification.')
-        );
+        if ($hasAtLeastOneCriticalWarning) {
+            echo sprintf('<div class="alert alert-error"><strong>%s</strong> %s <br/>%s</div>',
+                __('Critical warning!'),
+                __('The MISP database seems to be in an inconsistent state. Immediate attention is required.'),
+                __('⚠ This diagnostic tool is in experimental state - the highlighted issues may be benign. If you are unsure, please open an issue on with the issues identified over at https://github.com/MISP/MISP for clarification.')
+            );
+        } else {
+            echo sprintf('<div class="alert alert-warning"><strong>%s</strong> %s <br/>%s</div>',
+                __('Warning'),
+                __('The MISP database state does not match the expected schema. Resolving these issues is recommanded.'),
+                __('⚠ This diagnostic tool is in experimental state - the highlighted issues may be benign. If you are unsure, please open an issue on with the issues identified over at https://github.com/MISP/MISP for clarification.')
+            );
+        }
         $table = sprintf('%s%s%s', 
             '<table class="table table-bordered table-condensed">',
             sprintf('<thead><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th></th></thead>', __('Table name'),  __('Description'), __('Expected schema'), __('Actual schema')),
@@ -83,21 +103,26 @@
                 $uniqueRow = empty($saneExpected) && empty($saneActual);
 
                 $rows .= sprintf('<tr class="%s">', $columnDiagnostic['is_critical'] ? 'error' : '');
-                    $rows .= sprintf('<td %s>%s</td>', $uniqueRow ? 'colspan=4' : '', $saneDescription);
+                    $rows .= sprintf('<td %s>%s</td>', $uniqueRow ? 'colspan=3' : '', $saneDescription);
                     if (!$uniqueRow) {
                         $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i), implode(' ', $saneExpected));
                         $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i), implode(' ', $saneActual));
-                        $rows .= sprintf('<td class="" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i),
-                            empty($columnDiagnostic['sql']) ? '' :
-                                sprintf('%s%s%s%s',
-                                    $this->Form->create('server', array('url' => 'execSQLQuery', 'style' => "margin-bottom: 0px;", 'data-ajax' => true)),
-                                    sprintf('<i class="fa fa-wrench useCursorPointer" onclick="popoverConfirm(this, \'%s\', \'left\')" title="%s" data-query="%s"></i>', h($columnDiagnostic['sql']),  __('Fix schema'), h($columnDiagnostic['sql'])),
-                                    $this->Form->input('sqlQuery', array('type' => 'hidden', 'value' => $columnDiagnostic['sql'])),
-                                    $this->Form->end()
-                                )
-                            
-                        );
                     }
+                    $rows .= sprintf('<td class="" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i),
+                        empty($columnDiagnostic['sql']) ? '' :
+                            sprintf('%s%s%s%s',
+                                $this->Form->create('server', array('url' => 'execSQLQuery', 'style' => "margin-bottom: 0px;", 'data-ajax' => true)),
+                                sprintf(
+                                    '<i class="fa fa-wrench useCursorPointer" onclick="popoverConfirm(this, \'%s\', \'left\')" title="%s" data-query="%s"></i>',
+                                    '<kbd>' . h($columnDiagnostic['sql']) . '</kbd>',
+                                     __('Fix schema'),
+                                     h($columnDiagnostic['sql'])
+                                ),
+                                $this->Form->input('sqlQuery', array('type' => 'hidden', 'value' => $columnDiagnostic['sql'])),
+                                $this->Form->end()
+                            )
+                        
+                    );
                 $rows .= '</tr>';
             }
         }
