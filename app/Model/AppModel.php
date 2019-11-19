@@ -1298,6 +1298,10 @@ class AppModel extends Model
             case 43:
                 $sqlArray[] = "ALTER TABLE sightingdbs ADD namespace varchar(255) DEFAULT '';";
                 break;
+            case 44:
+                $sqlArray[] = "ALTER TABLE object_template_elements CHANGE `disable_correlation` `disable_correlation` tinyint(1);";
+
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1658,7 +1662,7 @@ class AppModel extends Model
                             'model' => 'Server',
                             'model_id' => 0,
                             'email' => 'SYSTEM',
-                            'action' => 'update_database_worker',
+                            'action' => 'update_db_worker',
                             'user_id' => 0,
                             'title' => __('Issues executing run_updates'),
                             'change' => __('Database updates are locked. Worker not spawned')
@@ -1716,7 +1720,7 @@ class AppModel extends Model
                             'model' => 'Server',
                             'model_id' => 0,
                             'email' => 'SYSTEM',
-                            'action' => 'update_database_worker',
+                            'action' => 'update_db_worker',
                             'user_id' => 0,
                             'title' => __('Issues executing run_updates'),
                             'change' => __('Updates are locked. Stopping worker gracefully')

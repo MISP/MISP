@@ -1267,7 +1267,7 @@ class StixBuilder():
         return pattern
 
     @staticmethod
-    def resolve_stix2_pattern(attributes):
+    def resolve_stix2_pattern(attributes, _):
         for attribute in attributes:
             if attribute['object_relation'] == 'stix2-pattern':
                 return attribute['value']

@@ -22,6 +22,7 @@
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo __('Prio');?></th>
             <th><?php echo __('Connection test');?></th>
+            <th><?php echo __('Sync user');?></th>
             <th><?php echo __('Reset API key');?></th>
             <th><?php echo $this->Paginator->sort('internal');?></th>
             <th><?php echo $this->Paginator->sort('push');?></th>
@@ -85,7 +86,8 @@ foreach ($servers as $row_pos => $server):
         <td id="priority_<?php echo $server['Server']['id'];?>">
             <?php echo $arrows;?>
         </td>
-        <td id="connection_test_<?php echo $server['Server']['id'];?>"><span role="button" tabindex="0" aria-label="<?php echo __('Test the connection to the remote instance');?>" title="<?php echo __('Test the connection to the remote instance');?>" class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');"><?php echo __('Run');?></span></td>
+        <td class="short" id="connection_test_<?php echo $server['Server']['id'];?>"><span role="button" tabindex="0" aria-label="<?php echo __('Test the connection to the remote instance');?>" title="<?php echo __('Test the connection to the remote instance');?>" class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');"><?php echo __('Run');?></span></td>
+        <td class="short" id="sync_user_test_<?php echo $server['Server']['id'];?>"><span role="button" tabindex="0" aria-label="<?php echo __('View the sync user of the remote instance');?>" title="<?php echo __('View the sync user of the remote instance');?>" class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="getRemoteSyncUser('<?php echo $server['Server']['id'];?>');"><?php echo __('View');?></span></td>
         <td id="reset_api_key_<?php echo $server['Server']['id'];?>">
             <?php
                 echo $this->Form->postLink(

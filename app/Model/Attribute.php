@@ -813,9 +813,11 @@ class Attribute extends AppModel
     {
         parent::beforeValidate();
         if (!isset($this->data['Attribute']['type'])) {
+            $this->validationErrors['type'] = ['No type set.'];
             return false;
         }
         if (is_array($this->data['Attribute']['value'])) {
+            $this->validationErrors['type'] = ['Value is an array.'];
             return false;
         }
         App::uses('ComplexTypeTool', 'Tools');
@@ -823,6 +825,7 @@ class Attribute extends AppModel
         $this->data['Attribute']['value'] = $this->complexTypeTool->refangValue($this->data['Attribute']['value'], $this->data['Attribute']['type']);
 
         if (!empty($this->data['Attribute']['object_id']) && empty($this->data['Attribute']['object_relation'])) {
+            $this->validationErrors['type'] = ['Object attribute sent, but no object_relation set.'];
             return false;
         }
         // remove leading and trailing blanks
