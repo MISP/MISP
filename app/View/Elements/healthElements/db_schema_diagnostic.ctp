@@ -113,10 +113,10 @@
                             sprintf('%s%s%s%s',
                                 $this->Form->create('server', array('url' => 'execSQLQuery', 'style' => "margin-bottom: 0px;", 'data-ajax' => true)),
                                 sprintf(
-                                    '<i class="fa fa-wrench useCursorPointer" onclick="popoverConfirm(this, \'%s\', \'left\')" title="%s" data-query="%s"></i>',
-                                    '<kbd>' . h($columnDiagnostic['sql']) . '</kbd>',
-                                     __('Fix schema'),
-                                     h($columnDiagnostic['sql'])
+                                    '<i class="fa fa-wrench useCursorPointer" onclick="quickFixSchema(this, \'%s\')" title="%s" data-query="%s"></i>',
+                                    h($columnDiagnostic['sql']),
+                                    __('Fix Database schema'),
+                                    h($columnDiagnostic['sql'])
                                 ),
                                 $this->Form->input('sqlQuery', array('type' => 'hidden', 'value' => $columnDiagnostic['sql'])),
                                 $this->Form->end()
@@ -202,4 +202,10 @@ $(document).ready(function() {
         trigger: 'hover'
     });
 });
+
+function quickFixSchema(clicked, sqlQuery) {
+    var message = "<?php echo sprintf('<div class=\"alert alert-error\" style=\"margin-bottom: 5px;\"><h5>%s</h5> %s</div>', __('Warning'), __('Executing this query might take some time and may harm your database. Please review the query below or backup your database in case of doubt.')) ?>"
+    message += "<div class=\"well\"><kbd>" + sqlQuery + "</kbd></div>"
+    popoverConfirm(clicked, message, 'left')
+}
 </script>
