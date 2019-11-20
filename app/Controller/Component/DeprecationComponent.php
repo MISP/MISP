@@ -81,11 +81,11 @@ class DeprecationComponent extends Component
             if (!empty($result)) {
                 foreach ($result as $key => $value) {
                     $key_components = explode(':', $key);
-                    $rearranged[$key_components[0]][$key_components[1]][$key_components[2]] = intval($value);
+                    $rearranged[$key_components[0]][$key_components[1]][$key_components[2]] = (int)$value;
                     if (empty($rearranged[$key_components[0]][$key_components[1]]['total'])) {
-                        $rearranged[$key_components[0]][$key_components[1]]['total'] = intval($value);
+                        $rearranged[$key_components[0]][$key_components[1]]['total'] = (int)$value;
                     } else {
-                        $rearranged[$key_components[0]][$key_components[1]]['total'] += intval($value);
+                        $rearranged[$key_components[0]][$key_components[1]]['total'] += (int)$value;
                     }
                 }
             }
