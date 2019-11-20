@@ -15,7 +15,6 @@ class DeprecationComponent extends Component
     public function initialize(Controller $controller) {
         $this->deprecatedEndpoints = array(
             'attributes' => array(
-                'bro' => __('Use /attributes/restSearch to export in zeek format.'),
                 'rpz' => __('Use /attributes/restSearch to export RPZ rules.'),
                 'text' => __('Use /attributes/restSearch to export flat indicator lists.')
             ),
