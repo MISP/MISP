@@ -1,8 +1,19 @@
 ---
-name: Bug report
-about: Create a report to help us improve
+name: Feature request
+about: Suggest an idea for this project
 labels: feature request, needs triage
 
 ---
 
-# This template is meant for feature requests. Please be as explicit as possible so the reader of your request can understand what kind of feature you want to see.
+**Is your feature request related to a problem? Please describe.**
+A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+
+**Describe the solution you'd like**
+A clear and concise description of what you want to happen.
+
+**Describe alternatives you've considered**
+A clear and concise description of any alternative solutions or features you've considered.
+
+**Additional context**
+Add any other context or screenshots about the feature request here.
+
