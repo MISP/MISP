@@ -1,12 +1,12 @@
 # INSTALLATION INSTRUCTIONS
-## for Debian 10.1 "buster"
+## for Debian 10.2 "buster"
 
 ### 0/ MISP debian stable install - Status
 ------------------------------------
 
 !!! notice
     This is mostly the install [@SteveClement](https://twitter.com/SteveClement) uses for testing, qc and random development.
-    Maintained and tested by @SteveClement on 20191016
+    Maintained and tested by @SteveClement on 20191122
 
 !!! warning
     PHP 7.3.4-2 is not working at the moment with the packaged composer.phar<br />
@@ -202,6 +202,7 @@ $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'a5c698ffe4b
 $SUDO_WWW php composer-setup.php
 $SUDO_WWW php -r "unlink('composer-setup.php');"
 $SUDO_WWW php composer.phar install
+$SUDO_WWW php composer.phar update
 
 # Enable CakeResque with php-redis
 sudo phpenmod redis
