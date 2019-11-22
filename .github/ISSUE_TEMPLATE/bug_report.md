@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-labels: bug, needs triage
+labels: bug, potential-bug, needs triage
 
 ---
 
@@ -20,7 +20,7 @@ labels: bug, needs triage
 
 | Questions                 | Answers
 |---------------------------|--------------------
-| Type of issue             | Bug, Question, Feature Request, support...
+| Type of issue             | Bug
 | OS version (server)       | Debian, Ubuntu, CentOS, RedHat, ...
 | OS version (client)       | MacOS, Win10, Ubuntu, ...
 | PHP version               | 5.4, 5.5, 5.6, 7.0, 7.1...
