@@ -337,7 +337,7 @@ class Sighting extends AppModel
         return $attributes;
     }
 
-    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false)
+    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false)
     {
         $conditions = array();
         if ($id && $id !== 'stix') {
@@ -402,6 +402,9 @@ class Sighting extends AppModel
                 return json_encode($this->validationErrors);
             }
             $sightingsAdded += $result ? 1 : 0;
+            if ($publish) {
+                $this->Event->publishRouter($sighting['event_id'], null, $user, 'sightings');
+            }
         }
         if ($sightingsAdded == 0) {
             return 'There was nothing to add.';
@@ -755,5 +758,62 @@ class Sighting extends AppModel
         $final = fread($tmpfile, fstat($tmpfile)['size']);
         fclose($tmpfile);
         return $final;
+    }
+
+    // Bulk save sightings
+    public function bulkSaveSightings($eventId, $sightings, $user, $passAlong = null)
+    {
+        if (!is_numeric($eventId)) {
+             $eventId = $this->Event->field('id', array('uuid' => $eventId));
+        }
+        $event = $this->Event->fetchEvent($user, array(
+             'eventid' => $eventId,
+             'metadata' => 1,
+             'flatten' => true
+        ));
+        if (empty($event)) {
+            return 'Event not found or not accesible by this user.';
+        }
+        $saved = 0;
+        foreach ($sightings as $s) {
+            $result = $this->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid']);
+            if (is_numeric($result)) {
+                $saved += $result;
+            }
+        }
+        if ($saved > 0) {
+            $this->Event->publishRouter($eventId, $passAlong, $user, 'sightings');
+        }
+        return $saved;
+    }
+
+    public function pullSightings($user, $server)
+    {
+        $HttpSocket = $this->setupHttpSocket($server);
+        $this->Server = ClassRegistry::init('Server');
+        $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, false, 'sightings');
+        $saved = 0;
+        // now process the $eventIds to pull each of the events sequentially
+        if (!empty($eventIds)) {
+            // download each event and save sightings
+            foreach ($eventIds as $k => $eventId) {
+                $event = $this->Event->downloadEventFromServer($eventId, $server);
+                $sightings = array();
+                if(!empty($event) && !empty($event['Event']['Attribute'])) {
+                    foreach($event['Event']['Attribute'] as $attribute) {
+                        if(!empty($attribute['Sighting'])) {
+                            $sightings = array_merge($sightings, $attribute['Sighting']);
+                        }
+                    }
+                }
+                if(!empty($event) && !empty($sightings)) {
+                    $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
+                    if (is_numeric($result)) {
+                        $saved += $result;
+                    }
+                }
+            }
+        }
+        return $saved;
     }
 }

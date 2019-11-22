@@ -81,6 +81,16 @@ class Server extends AppModel
                 //'on' => 'create', // Limit validation to 'create' or 'update' operations
             ),
         ),
+        'push_sightings' => array(
+            'boolean' => array(
+                'rule' => array('boolean'),
+                //'message' => 'Your custom message here',
+                'allowEmpty' => true,
+                'required' => false,
+                //'last' => false, // Stop validation after this rule
+                //'on' => 'create', // Limit validation to 'create' or 'update' operations
+            ),
+        ),
         'lastpushedid' => array(
             'numeric' => array(
                 'rule' => array('numeric'),
@@ -2496,6 +2506,11 @@ class Server extends AppModel
         }
         $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
         if ($jobId) {
+            $job->saveField('progress', 75);
+            $job->saveField('message', 'Pulling sightings.');
+        }
+        $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
+        if ($jobId) {
             $job->saveField('progress', 100);
             $job->saveField('message', 'Pull completed.');
             $job->saveField('status', 4);
@@ -2511,13 +2526,14 @@ class Server extends AppModel
             'user_id' => $user['id'],
             'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
             'change' => sprintf(
-                '%s events and %s proposals pulled or updated. %s events failed or didn\'t need an update.',
+                '%s events, %s proposals and %s sightings pulled or updated. %s events failed or didn\'t need an update.',
                 count($successes),
                 $pulledProposals,
+                $pulledSightings,
                 count($fails)
             )
         ));
-        return array($successes, $fails, $pulledProposals);
+        return array($successes, $fails, $pulledProposals, $pulledSightings);
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -2549,7 +2565,7 @@ class Server extends AppModel
 
 
     // Get an array of event_ids that are present on the remote server
-    public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false)
+    public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false, $scope = 'events')
     {
         $url = $server['Server']['url'];
         if ($ignoreFilterRules) {
@@ -2576,8 +2592,21 @@ class Server extends AppModel
                 $eventIds = array();
                 if ($all) {
                     if (!empty($eventArray)) {
-                        foreach ($eventArray as $event) {
-                            $eventIds[] = $event['uuid'];
+                        if ($scope === 'sightings') {
+                            foreach ($eventArray as $event) {
+                                $localEvent = $this->Event->find('first', array(
+                                        'recursive' => -1,
+                                        'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
+                                        'conditions' => array('Event.uuid' => $event['uuid'])
+                                    ));
+                                if (!empty($localEvent) && $localEvent['Event']['sighting_timestamp'] > $event['sighting_timestamp']) {
+                                    $eventIds[] = $event['uuid'];
+                                }
+                            }
+                        } else {
+                            foreach ($eventArray as $event) {
+                                $eventIds[] = $event['uuid'];
+                            }
                         }
                     }
                 } else {
@@ -2617,7 +2646,7 @@ class Server extends AppModel
                             }
                         }
                     }
-                    $this->Event->removeOlder($eventArray);
+                    $this->Event->removeOlder($eventArray, $scope);
                     if (!empty($eventArray)) {
                         foreach ($eventArray as $event) {
                             if ($force_uuid) {
@@ -2722,7 +2751,7 @@ class Server extends AppModel
                 ), // array of conditions
                 'recursive' => -1, //int
                 'contain' => array('EventTag' => array('fields' => array('EventTag.tag_id'))),
-                'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
+                'fields' => array('Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
         );
         $eventIds = $this->Event->find('all', $findParams);
         $eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
@@ -2731,7 +2760,7 @@ class Server extends AppModel
         }
         if (!empty($eventUUIDsFiltered)) {
             $eventCount = count($eventUUIDsFiltered);
-            // now process the $eventIds to pull each of the events sequentially
+            // now process the $eventIds to push each of the events sequentially
             if (!empty($eventUUIDsFiltered)) {
                 $successes = array();
                 $fails = array();
@@ -2779,9 +2808,12 @@ class Server extends AppModel
         }
 
         $this->syncProposals($HttpSocket, $this->data, null, null, $this->Event);
+        $sightingSuccesses = $this->syncSightings($HttpSocket, $this->data, $user, $this->Event);
 
         if (!isset($successes)) {
-            $successes = array();
+            $successes = $sightingSuccesses;
+        } else {
+            $successes = array_merge($successes, $sightingSuccesses);
         }
         if (!isset($fails)) {
             $fails = array();
@@ -2832,6 +2864,33 @@ class Server extends AppModel
             return false;
         }
         return $uuidList;
+    }
+
+    public function syncSightings($HttpSocket, $server, $user, $eventModel)
+    {
+        $successes = array();
+        if (!$server['Server']['push_sightings']) {
+            return $successes;
+        }
+        $this->Sighting = ClassRegistry::init('Sighting');
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $eventIds = $this->getEventIdsFromServer($server, true, $HttpSocket, false, true, 'sightings');
+        // now process the $eventIds to push each of the events sequentially
+        if (!empty($eventIds)) {
+            // check each event and push sightings when needed
+            foreach ($eventIds as $k => $eventId) {
+                $event = $eventModel->fetchEvent($user, $options = array('event_uuid' => $eventId, 'metadata' => true));
+                if (!empty($event)) {
+                    $event = $event[0];
+                    $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+                    $result = $eventModel->uploadEventToServer($event, $server, $HttpSocket, 'sightings');
+                    if ($result === 'Success') {
+                        $successes[] = 'Sightings for event ' .  $event['Event']['id'];
+                    }
+                }
+            }
+        }
+        return $successes;
     }
 
     public function syncProposals($HttpSocket, $server, $sa_id = null, $event_id = null, $eventModel)
@@ -4114,6 +4173,7 @@ class Server extends AppModel
         }
         $remoteVersion = json_decode($response->body, true);
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
+        $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
             $this->Log = ClassRegistry::init('Log');
@@ -4175,7 +4235,7 @@ class Server extends AppModel
                     'title' => ucfirst($issueLevel) . ': ' . $response,
             ));
         }
-        return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'version' => $remoteVersion);
+        return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'canSight' => $canSight, 'version' => $remoteVersion);
     }
 
     public function isJson($string)

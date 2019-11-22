@@ -1063,9 +1063,9 @@ class Event extends AppModel
         return $error;
     }
 
-    private function __executeRestfulEventToServer($event, $server, $resourceId, &$newLocation, &$newTextBody, $HttpSocket)
+    private function __executeRestfulEventToServer($event, $server, $resourceId, &$newLocation, &$newTextBody, $HttpSocket, $scope)
     {
-        $result = $this->restfulEventToServer($event, $server, $resourceId, $newLocation, $newTextBody, $HttpSocket);
+        $result = $this->restfulEventToServer($event, $server, $resourceId, $newLocation, $newTextBody, $HttpSocket, $scope);
         if (is_numeric($result)) {
             $error = $this->__resolveErrorCode($result, $event, $server);
             if ($error) {
@@ -1075,24 +1075,26 @@ class Event extends AppModel
         return true;
     }
 
-    public function uploadEventToServer($event, $server, $HttpSocket = null)
+    public function uploadEventToServer($event, $server, $HttpSocket = null, $scope = 'events')
     {
         $this->Server = ClassRegistry::init('Server');
         $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
-        if (empty($push['canPush'])) {
+        if ($scope === 'events' && empty($push['canPush'])) {
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
+        } elseif ($scope === 'sightings' && empty($push['canPush']) && empty($push['canSight'])) {
+            return 'The remote user is not a sightings user - the upload of the sightings has been blocked.';
         }
         if (!empty($server['Server']['unpublish_event'])) {
             $event['Event']['published'] = 0;
         }
         $updated = null;
         $newLocation = $newTextBody = '';
-        $result = $this->__executeRestfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
+        $result = $this->__executeRestfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket, $scope);
         if ($result !== true) {
             return $result;
         }
         if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-            $result = $this->__executeRestfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
+            $result = $this->__executeRestfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket, $scope);
             if ($result !== true) {
                 return $result;
             }
@@ -1181,7 +1183,7 @@ class Event extends AppModel
     }
 
     // Uploads the event and the associated Attributes to another Server
-    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
+    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null, $scope)
     {
         $event = $this->__prepareForPushToServer($event, $server);
         if (is_numeric($event)) {
@@ -1190,7 +1192,11 @@ class Event extends AppModel
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
-        $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
+        if ($scope === 'sightings') {
+            $scope .= '/bulkSaveSightings';
+            $urlPath = $event['Event']['uuid'];
+        }
+        $uri = $url . '/' . $scope . $this->__getLastUrlPathComponent($urlPath);
         $data = json_encode($event);
         if (!empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
@@ -2095,6 +2101,7 @@ class Event extends AppModel
         if ($options['metadata']) {
             unset($params['contain']['Attribute']);
             unset($params['contain']['ShadowAttribute']);
+            unset($params['contain']['Object']);
         }
         if ($user['Role']['perm_site_admin']) {
             $params['contain']['User'] = array('fields' => 'email');
@@ -2104,7 +2111,6 @@ class Event extends AppModel
             return array();
         }
         // Do some refactoring with the event
-        $this->Sighting = ClassRegistry::init('Sighting');
         $userEmails = array();
         $fields = array(
             'common' => array('distribution', 'sharing_group_id', 'uuid'),
@@ -2269,7 +2275,10 @@ class Event extends AppModel
                 }
                 $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
             }
-            $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+            if (empty($options['metadata'])) {
+                $this->Sighting = ClassRegistry::init('Sighting');
+                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+            }
             if ($options['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $event = $this->Sightingdb->attachToEvent($event, $user);
@@ -4047,8 +4056,8 @@ class Event extends AppModel
         return true;
     }
 
-    // Uploads this specific event to all remote servers
-    public function uploadEventToServersRouter($id, $passAlong = null)
+    // Uploads this specific event or sightings to all remote servers
+    public function uploadEventToServersRouter($id, $passAlong = null, $scope = 'events')
     {
         $eventOrgcId = $this->find('first', array(
             'conditions' => array('Event.id' => $id),
@@ -4074,6 +4083,11 @@ class Event extends AppModel
         }
         $event = $event[0];
         $event['Event']['locked'] = 1;
+        // attach sightings if needed
+        if ($scope === 'sightings') {
+            $this->Sighting = ClassRegistry::init('Sighting');
+            $event['Sighting'] = $this->Sighting->attachToEvent($event, $elevatedUser);
+        }
         // get a list of the servers
         $this->Server = ClassRegistry::init('Server');
         $conditions = array('push' => 1);
@@ -4092,7 +4106,8 @@ class Event extends AppModel
         $failedServers = array();
         App::uses('SyncTool', 'Tools');
         foreach ($servers as &$server) {
-            if ((!isset($server['Server']['internal']) || !$server['Server']['internal']) && $event['Event']['distribution'] < 2) {
+            if (((!isset($server['Server']['internal']) || !$server['Server']['internal']) && $event['Event']['distribution'] < 2) ||
+                ((!isset($server['Server']['push_sightings']) || !$server['Server']['push_sightings'])) && $scope === 'sightings') {
                 continue;
             }
             $syncTool = new SyncTool();
@@ -4116,7 +4131,7 @@ class Event extends AppModel
                 $event = $this->fetchEvent($elevatedUser, $params);
                 $event = $event[0];
                 $event['Event']['locked'] = 1;
-                $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
+                $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket, $scope);
                 if (!$thisUploaded) {
                     $uploaded = !$uploaded ? $uploaded : $thisUploaded;
                     $failedServers[] = $server['Server']['url'];
@@ -4149,9 +4164,16 @@ class Event extends AppModel
         return $workerType;
     }
 
-    public function publishRouter($id, $passAlong = null, $user)
+    public function publishRouter($id, $passAlong = null, $user, $scope = 'events')
     {
         if (Configure::read('MISP.background_jobs')) {
+            $job_type = 'publish_' . $scope;
+            $function = 'publish';
+            $message = 'Publishing.';
+            if ($scope === 'sightings') {
+                $message = 'Publishing sightings.';
+                $function = 'publish_sightings';
+            }
             $job = ClassRegistry::init('Job');
             $job->create();
             $data = array(
@@ -4162,22 +4184,54 @@ class Event extends AppModel
                     'retries' => 0,
                     'org_id' => $user['org_id'],
                     'org' => $user['Organisation']['name'],
-                    'message' => 'Publishing.',
+                    'message' => $message
             );
             $job->save($data);
             $jobId = $job->id;
             $process_id = CakeResque::enqueue(
                     'prio',
                     'EventShell',
-                    array('publish', $id, $passAlong, $jobId, $user['id']),
+                    array($function, $id, $passAlong, $jobId, $user['id']),
                     true
             );
             $job->saveField('process_id', $process_id);
             return $process_id;
+        } elseif ($scope === 'sightings') {
+            $result = $this->publish_sightings($id, $passAlong);
+            return $result;
         } else {
             $result = $this->publish($id, $passAlong);
             return $result;
         }
+    }
+
+    public function publish_sightings($id, $passAlong = null, $jobId = null)
+    {
+        if (is_numeric($id)) {
+            $condition = array('Event.id' => $id);
+        } else {
+            $condition = array('Event.uuid' => $id);
+        }
+        $event = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => $condition
+        ));
+        if (empty($event)) {
+            return false;
+        }
+        if ($jobId) {
+            $this->Behaviors->unload('SysLogLogable.SysLogLogable');
+        } else {
+            // update the DB to set the sightings timestamp
+            // for background jobs, this should be done already
+            $fieldList = array('id', 'info', 'sighting_timestamp');
+            $event['Event']['sighting_timestamp'] = time();
+            $event['Event']['skip_zmq'] = 1;
+            $event['Event']['skip_kafka'] = 1;
+            $this->save($event, array('fieldList' => $fieldList));
+        }
+        $uploaded = $this->uploadEventToServersRouter($id, $passAlong, 'sightings');
+        return $uploaded;
     }
 
     // Performs all the actions required to publish an event
@@ -4450,19 +4504,27 @@ class Event extends AppModel
         return false;
     }
 
-    public function removeOlder(&$eventArray)
+    public function removeOlder(&$eventArray, $scope = 'events')
     {
+        if ($scope === 'sightings' ) {
+            $field = 'sighting_timestamp';
+        } else {
+            $field = 'timestamp';
+        }
         $uuidsToCheck = array();
         foreach ($eventArray as $k => &$event) {
             $uuidsToCheck[$event['uuid']] = $k;
         }
         $localEvents = array();
-        $temp = $this->find('all', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked')));
+        $temp = $this->find('all', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.' . $field, 'Event.locked')));
         foreach ($temp as $e) {
-            $localEvents[$e['Event']['uuid']] = array('timestamp' => $e['Event']['timestamp'], 'locked' => $e['Event']['locked']);
+            $localEvents[$e['Event']['uuid']] = array($field => $e['Event'][$field], 'locked' => $e['Event']['locked']);
         }
         foreach ($uuidsToCheck as $uuid => $eventArrayId) {
-            if (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $eventArray[$eventArrayId]['timestamp'] || !$localEvents[$uuid]['locked'])) {
+            if (isset($localEvents[$uuid])
+                  && ($localEvents[$uuid][$field] >= $eventArray[$eventArrayId][$field]
+                  || ($scope === 'events' && !$localEvents[$uuid]['locked'])))
+            {
                 unset($eventArray[$eventArrayId]);
             }
         }

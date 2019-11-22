@@ -444,6 +444,7 @@ class ACLComponent extends Component
                     'listSightings' => array('*'),
                     'quickDelete' => array('perm_sighting'),
                     'viewSightings' => array('*'),
+                    'bulkSaveSightings' => array('OR' => array('perm_sync', 'perm_sighting')),
                     'quickAdd' => array('perm_sighting')
             ),
             'sightingdb' => array(
