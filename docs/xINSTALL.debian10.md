@@ -202,6 +202,7 @@ $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'a5c698ffe4b
 $SUDO_WWW php composer-setup.php
 $SUDO_WWW php -r "unlink('composer-setup.php');"
 $SUDO_WWW php composer.phar install
+# The following is potentially not needed, but just here in case of Keyboard/Chair failures
 $SUDO_WWW php composer.phar update
 
 # Enable CakeResque with php-redis
