@@ -4656,6 +4656,19 @@ function checkRoleEnforceRateLimit() {
     }
 }
 
+function queryDeprecatedEndpointUsage() {
+    $.ajax({
+        url: baseurl + '/servers/viewDeprecatedFunctionUse',
+        type: 'GET',
+        success: function(data) {
+            $('#deprecationResults').html(data);
+        },
+        error: function(data) {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Could not query the deprecation statistics.']});
+        }
+    });
+}
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

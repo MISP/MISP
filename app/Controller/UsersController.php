@@ -483,7 +483,8 @@ class UsersController extends AppController
             'conditions' => array('User.id' => $id),
             'contain' => array(
                 'UserSetting',
-                'Role'
+                'Role',
+                'Organisation'
             )
         ));
         if (empty($user)) {
@@ -516,9 +517,9 @@ class UsersController extends AppController
             ), $this->response->type());
             return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
         } else {
-            $temp = $this->User->data['User']['invited_by'];
+            $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
             $this->set('id', $id);
-            $this->set('user2', $this->User->read(null, $temp));
+            $this->set('user2', $user2);
         }
     }
 

@@ -360,6 +360,7 @@ class ACLComponent extends Component
                     'cache' => array(),
                     'changePriority' => array(),
                     'checkout' => array(),
+                    'clearWorkerQueue' => array(),
                     'createSync' => array('perm_sync'),
                     'delete' => array(),
                     'deleteFile' => array(),
@@ -403,7 +404,7 @@ class ACLComponent extends Component
                     'updateProgress' => array(),
                     'updateSubmodule' => array(),
                     'uploadFile' => array(),
-                    'clearWorkerQueue' => array()
+                    'viewDeprecatedFunctionUse' => array()
             ),
             'shadowAttributes' => array(
                     'accept' => array('perm_add'),

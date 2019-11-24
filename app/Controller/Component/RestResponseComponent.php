@@ -486,6 +486,9 @@ class RestResponseComponent extends Component
                 $cakeResponse->header($key, $value);
             }
         }
+        if (!empty($deprecationWarnings)) {
+            $cakeResponse->header('X-Deprecation-Warning', $deprecationWarnings);
+        }
         if ($download) {
             $cakeResponse->download($download);
         }

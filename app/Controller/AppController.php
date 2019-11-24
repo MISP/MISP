@@ -91,7 +91,8 @@ class AppController extends Controller
             'Flash',
             'Toolbox',
             'RateLimit',
-            'IndexFilter'
+            'IndexFilter',
+            'Deprecation'
             //,'DebugKit.Toolbar'
     );
 
@@ -472,6 +473,18 @@ class AppController extends Controller
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
         if ($this->_isRest()) {
             $this->__rateLimitCheck();
+        }
+        if ($this->modelClass !== 'CakeError') {
+            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->action, $this->{$this->modelClass}, $this->Auth->user('id'));
+            if ($deprecationWarnings) {
+                $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
+                if ($this->_isRest()) {
+                    $this->response->header('X-Deprecation-Warning', $deprecationWarnings);
+                    $this->components['RestResponse']['deprecationWarnings'] = $deprecationWarnings;
+                } else {
+                    $this->Flash->warning($deprecationWarnings);
+                }
+            }
         }
         $this->components['RestResponse']['sql_dump'] = $this->sql_dump;
     }
