@@ -41,7 +41,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         'key' => __('Authkey'),
         'html' => $authkey_data
     );
-    $table_data[] = array('key' => __('Invited By'), 'value' => $user2['User']['email']);
+    $table_data[] = array('key' => __('Invited By'), 'value' => empty($user2['User']['email']) ? 'N/A' : $user2['User']['email']);
     $org_admin_data = array();
     foreach ($user['User']['orgAdmins'] as $orgAdminId => $orgAdminEmail) {
         $org_admin_data[] = sprintf(

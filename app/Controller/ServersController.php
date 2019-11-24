@@ -2207,4 +2207,15 @@ misp.direct_call(relative_path, body)
         }
         return $this->RestResponse->viewData($this->Server->dbSchemaDiagnostic(), $this->response->type());
     }
+
+    public function viewDeprecatedFunctionUse()
+    {
+        $data = $this->Deprecation->getDeprecatedAccessList($this->Server);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($data, $this->response->type());
+        } else {
+            $this->layout = false;
+            $this->set('data', $data);
+        }
+    }
 }

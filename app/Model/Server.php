@@ -4293,7 +4293,67 @@ class Server extends AppModel
         } else {
             $schemaDiagnostic['error'] = sprintf('Diagnostic not available for DataSource `%s`', $dataSource);
         }
+        if (!empty($schemaDiagnostic['diagnostic'])) {
+            foreach ($schemaDiagnostic['diagnostic'] as $table => &$fields) {
+                foreach ($fields as &$field) {
+                    $field = $this->__attachRecoveryQuery($field, $table);
+                }
+            }
+        }
         return $schemaDiagnostic;
+    }
+
+    /*
+     * Work in progress, still needs DEFAULT in the schema for it to work correctly
+     * Currently only works for missing_column and column_different
+     * Only currently supported field types are: int, tinyint, varchar, text
+     */
+    private function __attachRecoveryQuery($field, $table)
+    {
+        if ($field['is_critical']) {
+            $length = false;
+            if (in_array($field['error_type'], array('missing_column', 'column_different'))) {
+                if ($field['expected']['data_type'] === 'int') {
+                    $length = 11;
+                } elseif ($field['expected']['data_type'] === 'tinyint') {
+                    $length = 1;
+                } elseif ($field['expected']['data_type'] === 'varchar') {
+                    $length = $field['expected']['character_maximum_length'];
+                } elseif ($field['expected']['data_type'] === 'text') {
+                    $length = null;
+                }
+            }
+            if ($length !== false) {
+                switch($field['error_type']) {
+                    case 'missing_column':
+                        $field['sql'] = sprintf(
+                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s;',
+                            $table,
+                            $field['column_name'],
+                            $field['expected']['data_type'],
+                            $length !== null ? sprintf('(%d)', $length) : '',
+                            isset($field['expected']['default']) ? 'DEFAULT "' . $field['expected']['default'] . '"' : '',
+                            $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
+                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
+                        );
+                        break;
+                    case 'column_different':
+                        $field['sql'] = sprintf(
+                            'ALTER TABLE `%s` CHANGE `%s` `%s` %s%s %s %s;',
+                            $table,
+                            $field['column_name'],
+                            $field['column_name'],
+                            $field['expected']['data_type'],
+                            $length !== null ? sprintf('(%d)', $length) : '',
+                            isset($field['expected']['default']) ? 'DEFAULT "' . $field['expected']['default'] . '"' : '',
+                            $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
+                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
+                        );
+                        break;
+                }
+            }
+        }
+        return $field;
     }
 
     public function getExpectedDBSchema()
@@ -4370,6 +4430,7 @@ class Server extends AppModel
             if (!array_key_exists($tableName, $dbActualSchema)) {
                 $dbDiff[$tableName][] = array(
                     'description' => sprintf(__('Table `%s` does not exist'), $tableName),
+                    'error_type' => 'missing_table',
                     'column_name' => $tableName,
                     'is_critical' => true
                 );
@@ -4395,6 +4456,7 @@ class Server extends AppModel
                     }
                     $dbDiff[$tableName][] = array(
                         'description' => sprintf(__('Column `%s` exists but should not'), $additionalKeys),
+                        'error_type' => 'additional_column',
                         'column_name' => $additionalKeys,
                         'is_critical' => false
                     );
@@ -4417,6 +4479,7 @@ class Server extends AppModel
                             $dbDiff[$tableName][] = array(
                                 'description' => sprintf(__('Column `%s` is different'), $columnName),
                                 'column_name' => $column['column_name'],
+                                'error_type' => 'column_different',
                                 'actual' => $keyedActualColumn[$columnName],
                                 'expected' => $column,
                                 'is_critical' => $isCritical
@@ -4426,6 +4489,7 @@ class Server extends AppModel
                         $dbDiff[$tableName][] = array(
                             'description' => sprintf(__('Column `%s` does not exist but should'), $columnName),
                             'column_name' => $columnName,
+                            'error_type' => 'missing_column',
                             'actual' => array(),
                             'expected' => $column,
                             'is_critical' => true
@@ -4438,6 +4502,7 @@ class Server extends AppModel
             $dbDiff[$additionalTable][] = array(
                 'description' => sprintf(__('Table `%s` is an additional table'), $additionalTable),
                 'column_name' => $additionalTable,
+                'error_type' => 'additional_table',
                 'is_critical' => false
             );
         }

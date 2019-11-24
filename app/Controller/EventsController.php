@@ -3205,7 +3205,7 @@ class EventsController extends AppController
             'request' => $this->request,
             'named_params' => $this->params['named'],
             'paramArray' => $paramArray,
-            'ordered_url_params' => compact($paramArray)
+            'ordered_url_params' => @compact($paramArray)
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
@@ -3497,7 +3497,7 @@ class EventsController extends AppController
             'request' => $this->request,
             'named_params' => $this->params['named'],
             'paramArray' => $paramArray,
-            'ordered_url_params' => compact($paramArray)
+            'ordered_url_params' => @compact($paramArray)
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
@@ -3543,7 +3543,6 @@ class EventsController extends AppController
             $filename .= '.' . $responseType;
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
         }
-
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
