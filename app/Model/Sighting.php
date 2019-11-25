@@ -248,10 +248,9 @@ class Sighting extends AppModel
             return array();
         }
         $anonymise = Configure::read('Plugin.Sightings_anonymise');
-
         foreach ($sightings as $k => $sighting) {
             if (
-                $sighting['Sighting']['org_id'] == 0 && !empty($sighting['Organisation']) ||
+                ($sighting['Sighting']['org_id'] == 0 && !empty($sighting['Organisation'])) ||
                 $anonymise
             ) {
                 if ($sighting['Sighting']['org_id'] != $user['org_id']) {
@@ -337,7 +336,7 @@ class Sighting extends AppModel
         return $attributes;
     }
 
-    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false)
+    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false)
     {
         $conditions = array();
         if ($id && $id !== 'stix') {
@@ -379,7 +378,7 @@ class Sighting extends AppModel
             $sighting = array(
                     'attribute_id' => $attribute['Attribute']['id'],
                     'event_id' => $attribute['Attribute']['event_id'],
-                    'org_id' => $user['org_id'],
+                    'org_id' => ($saveOnBehalfOf === false) ? $user['org_id'] : $saveOnBehalfOf,
                     'date_sighting' => $timestamp,
                     'type' => $type,
                     'source' => $source
@@ -776,7 +775,17 @@ class Sighting extends AppModel
         }
         $saved = 0;
         foreach ($sightings as $s) {
-            $result = $this->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid']);
+            $saveOnBehalfOf = false;
+            if ($user['Role']['perm_sync']) {
+                if (isset($s['org_id'])) {
+                    if ($s['org_id'] != 0 && !empty($s['Organisation'])) {
+                        $saveOnBehalfOf = $this->Event->Orgc->captureOrg($s['Organisation'], $user);
+                    } else {
+                        $saveOnBehalfOf = 0;
+                    }
+                }
+            }
+            $result = $this->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid'], false, $saveOnBehalfOf);
             if (is_numeric($result)) {
                 $saved += $result;
             }

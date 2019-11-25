@@ -1075,6 +1075,26 @@ class Event extends AppModel
         return true;
     }
 
+    public function uploadSightingsToServer($sightings, $server, $event_uuid, $HttpSocket = null)
+    {
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $uri = $server['Server']['url'] . '/sightings/bulkSaveSightings/' . $event_uuid;
+        $data = json_encode($sightings);
+        if (!empty(Configure::read('Security.sync_audit'))) {
+            $pushLogEntry = sprintf(
+                "==============================================================\n\n[%s] Pushing Sightings for Event #%s to Server #%d:\n\n%s\n\n",
+                date("Y-m-d H:i:s"),
+                $event_uuid,
+                $server['Server']['id'],
+                $data
+            );
+            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
+        }
+        $response = $HttpSocket->post($uri, $data, $request);
+        return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
+    }
+
     public function uploadEventToServer($event, $server, $HttpSocket = null, $scope = 'events')
     {
         $this->Server = ClassRegistry::init('Server');
@@ -1208,6 +1228,7 @@ class Event extends AppModel
             );
             file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
         }
+        debug($data);
         $response = $HttpSocket->post($uri, $data, $request);
         return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
     }
@@ -4083,11 +4104,6 @@ class Event extends AppModel
         }
         $event = $event[0];
         $event['Event']['locked'] = 1;
-        // attach sightings if needed
-        if ($scope === 'sightings') {
-            $this->Sighting = ClassRegistry::init('Sighting');
-            $event['Sighting'] = $this->Sighting->attachToEvent($event, $elevatedUser);
-        }
         // get a list of the servers
         $this->Server = ClassRegistry::init('Server');
         $conditions = array('push' => 1);
@@ -4131,13 +4147,30 @@ class Event extends AppModel
                 $event = $this->fetchEvent($elevatedUser, $params);
                 $event = $event[0];
                 $event['Event']['locked'] = 1;
-                $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket, $scope);
+                // attach sightings if needed
+                if ($scope === 'sightings') {
+                    $this->Sighting = ClassRegistry::init('Sighting');
+                    $fakeSyncUser = array(
+                        'org_id' => $server['Server']['remote_org_id'],
+                        'Role' => array(
+                            'perm_site_admin' => 0
+                        )
+                    );
+                    $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser);
+                    if (!empty($sightings)) {
+                        $thisUploaded = $this->uploadSightingsToServer($sightings, $server, $event['Event']['uuid'], $HttpSocket);
+                    } else {
+                        $thisUploaded = true;
+                    }
+                } else {
+                    $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket, $scope);
+                    if (isset($this->data['ShadowAttribute'])) {
+                        $this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
+                    }
+                }
                 if (!$thisUploaded) {
                     $uploaded = !$uploaded ? $uploaded : $thisUploaded;
                     $failedServers[] = $server['Server']['url'];
-                }
-                if (isset($this->data['ShadowAttribute'])) {
-                    $this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
                 }
             }
         }

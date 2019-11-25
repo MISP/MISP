@@ -2575,7 +2575,7 @@ class EventsController extends AppController
     public function publishSightings($id = null)
     {
         $id = $this->Toolbox->findIdByUuid($this->Event, $id);
-        $event = fetchEvent(
+        $event = $this->Event->fetchEvent(
             $this->Auth->user(),
             array(
                 'eventid' => $id,
