@@ -1233,7 +1233,6 @@ class Event extends AppModel
             );
             file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
         }
-        debug($data);
         $response = $HttpSocket->post($uri, $data, $request);
         return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
     }
