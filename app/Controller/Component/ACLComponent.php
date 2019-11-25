@@ -161,6 +161,7 @@ class ACLComponent extends Component
                     'nids' => array('*'),
                     'proposalEventIndex' => array('*'),
                     'publish' => array('perm_publish'),
+                    'publishSightings' => array('perm_sighting'),
                     'pushEventToZMQ' => array('perm_publish_zmq'),
                     'pushEventToKafka' => array('perm_publish_kafka'),
                     'pushProposals' => array('perm_sync'),
