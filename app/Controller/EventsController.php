@@ -2620,7 +2620,7 @@ class EventsController extends AppController
             }
         } else {
             $this->set('id', $id);
-            $this->set('type', 'publish_sightings');
+            $this->set('type', 'publishSightings');
             $this->render('ajax/eventPublishConfirmationForm');
         }
     }

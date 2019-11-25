@@ -78,6 +78,7 @@ function publishPopup(id, type) {
     var action = "alert";
     if (type == "publish") action = "publish";
     if (type == "unpublish") action = "unpublish";
+    if (type == "sighting") action = "publishSightings";
     var destination = 'attributes';
     $.get( "/events/" + action + "/" + id, function(data) {
         $("#confirmation_box").html(data);
