@@ -733,7 +733,7 @@ class EventsController extends AppController
             if (!empty($passedArgs['searchminimal'])) {
                 unset($rules['contain']);
                 $rules['recursive'] = -1;
-                $rules['fields'] = array('id', 'timestamp', 'published', 'uuid');
+                $rules['fields'] = array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid');
                 $rules['contain'] = array('Orgc.uuid');
             }
             $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
@@ -2568,6 +2568,59 @@ class EventsController extends AppController
         } else {
             $this->set('id', $id);
             $this->set('type', 'unpublish');
+            $this->render('ajax/eventPublishConfirmationForm');
+        }
+    }
+
+    public function publishSightings($id = null)
+    {
+        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
+        $event = $this->Event->fetchEvent(
+            $this->Auth->user(),
+            array(
+                'eventid' => $id,
+                'metadata' => 1
+            )
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $result = $this->Event->publishRouter($id, null, $this->Auth->user(), 'sightings');
+            if (!Configure::read('MISP.background_jobs')) {
+                if (!is_array($result)) {
+                    // redirect to the view event page
+                    $message = 'Sightings published';
+                } else {
+                    $lastResult = array_pop($result);
+                    $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
+                    $errors['failed_servers'] = $result;
+                    $message = sprintf('Sightings published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString);
+                }
+            } else {
+                // update the DB to set the published flag
+                // for background jobs, this should be done already
+                $fieldList = array('id', 'info', 'sighting_timestamp');
+                $event['Event']['sighting_timestamp'] = time();
+                $this->Event->save($event, array('fieldList' => $fieldList));
+                $message = 'Job queued';
+            }
+            if ($this->_isRest()) {
+                $this->set('name', 'Publish Sightings');
+                $this->set('message', $message);
+                if (!empty($errors)) {
+                    $this->set('errors', $errors);
+                }
+                $this->set('url', '/events/publishSightings/' . $id);
+                $this->set('id', $id);
+                $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
+            } else {
+                $this->Flash->success($message);
+                $this->redirect(array('action' => 'view', $id));
+            }
+        } else {
+            $this->set('id', $id);
+            $this->set('type', 'publishSightings');
             $this->render('ajax/eventPublishConfirmationForm');
         }
     }

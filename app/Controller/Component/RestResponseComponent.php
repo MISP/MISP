@@ -171,11 +171,11 @@ class RestResponseComponent extends Component
             'add' => array(
                 'description' => "POST an Server object in JSON format to this API to add a server.",
                 'mandatory' => array('url', 'name', 'remote_org_id', 'authkey'),
-                'optional' => array('push', 'pull', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'json')
+                'optional' => array('push', 'pull', 'push_sightings', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'json')
             ),
             'edit' => array(
                 'description' => "POST an Server object in JSON format to this API to edit a server.",
-                'optional' => array('url', 'name', 'authkey', 'json', 'push', 'pull', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'remote_org_id')
+                'optional' => array('url', 'name', 'authkey', 'json', 'push', 'pull', 'push_sightings', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'remote_org_id')
             ),
             'serverSettings' => array(
                 'description' => "Send a GET request to this endpoint to get a full diagnostic along with all currently set settings of the current instance. This will also include the worker status"
@@ -1290,6 +1290,12 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('Allow the upload of events and their attribute to the server')
+            ),
+            'push_sightings' => array(
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => array(1 => 'True', 0 => 'False' ),
+                'help' => __('Allow the upload of sightings to the server')
             ),
             'releasability' => array(
                 'input' => 'text',
