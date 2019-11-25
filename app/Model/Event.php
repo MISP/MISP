@@ -1080,6 +1080,11 @@ class Event extends AppModel
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/sightings/bulkSaveSightings/' . $event_uuid;
+        foreach ($sightings as &$sighting) {
+            if (!isset($sighting['org_id'])) {
+                $sighting['org_id'] = '0';
+            }
+        }
         $data = json_encode($sightings);
         if (!empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
