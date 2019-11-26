@@ -4558,11 +4558,16 @@ class Event extends AppModel
             $localEvents[$e['Event']['uuid']] = array($field => $e['Event'][$field], 'locked' => $e['Event']['locked']);
         }
         foreach ($uuidsToCheck as $uuid => $eventArrayId) {
-            if (isset($localEvents[$uuid])
-                  && ($localEvents[$uuid][$field] >= $eventArray[$eventArrayId][$field]
-                  || ($scope === 'events' && !$localEvents[$uuid]['locked'])))
-            {
+            // remove all events for the sighting sync if the remote is not aware of the new field yet
+            if (!isset($eventArray[$eventArrayId][$field])) {
                 unset($eventArray[$eventArrayId]);
+            } else {
+                if (isset($localEvents[$uuid])
+                      && ($localEvents[$uuid][$field] >= $eventArray[$eventArrayId][$field]
+                      || ($scope === 'events' && !$localEvents[$uuid]['locked'])))
+                {
+                    unset($eventArray[$eventArrayId]);
+                }
             }
         }
     }
