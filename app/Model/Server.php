@@ -1166,6 +1166,15 @@ class Server extends AppModel
                 ),
                 'Security' => array(
                         'branch' => 1,
+                        'disable_form_security' => array(
+                            'level' => 0,
+                            'description' => __('Disabling this setting will remove all form tampering protection. Do not set this setting pretty much ever. You were warned.'),
+                            'value' => false,
+                            'errorMessage' => 'This setting leaves your users open to CSRF attacks. Do not please consider disabling this setting.',
+                            'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'salt' => array(
                                 'level' => 0,
                                 'description' => __('The salt used for the hashed passwords. You cannot reset this from the GUI, only manually from the settings.php file. Keep in mind, this will invalidate all passwords in the database.'),
