@@ -78,6 +78,7 @@ function publishPopup(id, type) {
     var action = "alert";
     if (type == "publish") action = "publish";
     if (type == "unpublish") action = "unpublish";
+    if (type == "sighting") action = "publishSightings";
     var destination = 'attributes';
     $.get( "/events/" + action + "/" + id, function(data) {
         $("#confirmation_box").html(data);
@@ -4654,6 +4655,19 @@ function checkRoleEnforceRateLimit() {
     } else {
         $('#rateLimitCountContainer').hide();
     }
+}
+
+function queryDeprecatedEndpointUsage() {
+    $.ajax({
+        url: baseurl + '/servers/viewDeprecatedFunctionUse',
+        type: 'GET',
+        success: function(data) {
+            $('#deprecationResults').html(data);
+        },
+        error: function(data) {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Could not query the deprecation statistics.']});
+        }
+    });
 }
 
 (function(){

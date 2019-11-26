@@ -197,24 +197,6 @@ class ShadowAttributesController extends AppController
         }
     }
 
-    // If we accept a proposed attachment, then the attachment itself needs to be moved from files/eventId/shadow/shadowId to files/eventId/attributeId
-    private function _moveFile($shadowId, $newId, $eventId)
-    {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->ShadowAttribute->getDefaultAttachments_dir();
-        }
-        $pathOld = $attachments_dir . DS . 'shadow' . DS . $shadowId;
-        $pathNew = $attachments_dir . DS . $newId;
-        if (rename($pathOld, $pathNew)) {
-            return true;
-        } else {
-            $this->Flash->error(__('Moving of the file that this attachment references failed.', true), 'default', array());
-            $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
-        }
-    }
-
-
     private function __discard($id)
     {
         $sa = $this->ShadowAttribute->find(

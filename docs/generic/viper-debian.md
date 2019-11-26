@@ -3,8 +3,10 @@
 
 ```bash
 # <snippet-begin 6_viper.sh>
+# viper-web is broken ATM
 # Main Viper install function
 viper () {
+  export PATH=$PATH:/home/misp/.local/bin
   debug "Installing Viper dependencies"
   cd /usr/local/src/
   sudo apt-get install \
@@ -17,29 +19,25 @@ viper () {
   fi
   echo "Cloning Viper"
   $SUDO_USER git clone https://github.com/viper-framework/viper.git
+  $SUDO_USER git clone https://github.com/viper-framework/viper-web.git
   sudo chown -R $MISP_USER:$MISP_USER viper
+  sudo chown -R $MISP_USER:$MISP_USER viper-web
   cd viper
   echo "Creating virtualenv"
   $SUDO_USER virtualenv -p python3 venv
   echo "Submodule update"
   # TODO: Check for current user install permissions
   $SUDO_USER git submodule update --init --recursive
-  ##$SUDO git submodule update --init --recursive
-  echo "Pip install deps"
-  $SUDO_USER ./venv/bin/pip install SQLAlchemy PrettyTable python-magic
-  echo "pip install scrapy"
-  $SUDO_USER ./venv/bin/pip install scrapy
-  echo "install lief"
-  $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-  echo "pip install reqs"
-  $SUDO_USER ./venv/bin/pip install -r requirements.txt
-  $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
+  echo "pip install deps"
+  $SUDO_USER ./venv/bin/pip install pefile olefile jbxapi Crypto pypdns pypssl r2pipe pdftools virustotal-api SQLAlchemy PrettyTable python-magic scrapy https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_USER ./venv/bin/pip install .
+  echo 'update-modules' |/usr/local/src/viper/venv/bin/viper
+  cd /usr/local/src/viper-web
   $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
-  echo "Launching viper-cli"
-  $SUDO_USER /usr/local/src/viper/viper-cli -h > /dev/null
+  $SUDO_USER /usr/local/src/viper/venv/bin/pip install -r requirements.txt
   echo "Launching viper-web"
-  $SUDO_USER /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
-  echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee /etc/environment
+  $SUDO_USER /usr/local/src/viper-web/viper-web -p 8888 -H 0.0.0.0 &
+  echo 'PATH="/home/misp/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
 
   # TODO: Perms, MISP_USER_HOME, nasty hack cuz Kali on R00t

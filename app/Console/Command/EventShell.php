@@ -508,6 +508,28 @@ class EventShell extends AppShell
         $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'published () => (1)');
     }
 
+    public function publish_sightings() {
+        $id = $this->args[0];
+        $passAlong = $this->args[1];
+        $jobId = $this->args[2];
+        $userId = $this->args[3];
+        $user = $this->User->getAuthUser($userId);
+        $job = $this->Job->read(null, $jobId);
+        $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
+        $result = $this->Event->publish_sightings($id, $passAlong);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        if ($result) {
+            $job['Job']['message'] = 'Sightings published.';
+        } else {
+            $job['Job']['message'] = 'Sightings published, but the upload to other instances may have failed.';
+        }
+        $this->Job->save($job);
+        $log = ClassRegistry::init('Log');
+        $log->create();
+        $log->createLogEntry($user, 'publish_sightings', 'Event', $id, 'Sightings for event (' . $id . '): published.', 'publish_sightings updated');
+    }
+
     public function enrichment() {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['enrichment'] . PHP_EOL);

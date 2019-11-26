@@ -1149,6 +1149,7 @@ class ExternalStixParser(StixParser):
                                 ('windows-registry-key',): self.parse_regkey_pattern,
                                 ('x509-certificate',): self.parse_x509_pattern}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
+        self.single_attribute_fields = ('type', 'value', 'to_ids')
 
     def handler(self):
         self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
@@ -1180,16 +1181,15 @@ class ExternalStixParser(StixParser):
 
     def parse_external_indicator(self, indicator):
         pattern = indicator.pattern
-        # Deeper analyse of patterns coming when we get examples
-        attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': pattern}
-        misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern',
-                       'Attribute': [self.version_attribute, attribute]}
-        self.misp_event.add_object(**misp_object)
         indicator_id = indicator.id.split('--')[1]
-        if hasattr(indicator, 'object_marking_refs'):
-            self.parse_external_pattern(pattern, indicator_id, marking=indicator.object_marking_refs)
-        else:
-            self.parse_external_pattern(pattern, indicator_id)
+        try:
+            if hasattr(indicator, 'object_marking_refs'):
+                self.parse_external_pattern(pattern, indicator_id, marking=indicator.object_marking_refs)
+            else:
+                self.parse_external_pattern(pattern, indicator_id)
+            # Deeper analyse of patterns coming when we get examples
+        except Exception:
+            self.add_stix2_pattern_object(pattern, indicator_id)
 
     def parse_external_observable(self, observable):
         objects = observable.objects
@@ -1225,6 +1225,7 @@ class ExternalStixParser(StixParser):
                         self.pattern_mapping[type_]([p.strip()], marking)
                     except KeyError:
                         print('{} not parsed at the moment'.format(type_), file=sys.stderr)
+                        raise Exception
             else:
                 pattern = [p.strip() for p in pattern.split(' AND ')]
                 types = self.parse_external_pattern_types(pattern)
@@ -1232,6 +1233,9 @@ class ExternalStixParser(StixParser):
                     self.pattern_mapping[types](pattern, marking, uuid=uuid)
                 except KeyError:
                     print('{} not parsed at the moment'.format(types), file=sys.stderr)
+                    raise Exception
+        else:
+            self.add_stix2_pattern_object(pattern, uuid)
 
     @staticmethod
     def parse_external_pattern_types(pattern):
@@ -1460,6 +1464,13 @@ class ExternalStixParser(StixParser):
     ##                             UTILITY FUNCTIONS.                             ##
     ################################################################################
 
+    def add_stix2_pattern_object(self, pattern, uuid):
+        attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': pattern}
+        misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern',
+                       'Attribute': [self.version_attribute, attribute],
+                       'uuid': uuid}
+        self.misp_event.add_object(**misp_object)
+
     @staticmethod
     def create_misp_object(attributes, name, uuid=None):
         misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
@@ -1525,6 +1536,7 @@ class ExternalStixParser(StixParser):
     def handle_import_case(self, attributes, name, marking=None, uuid=None):
         if len(attributes) == 1:
             attribute = attributes[0]
+            attribute = {field: attribute[field] for field in self.single_attribute_fields if attribute.get(field)}
             attribute['uuid'] = uuid
             if marking:
                 attribute = self.add_tag_in_attribute(attribute, marking)
