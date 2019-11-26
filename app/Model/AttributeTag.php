@@ -103,6 +103,26 @@ class AttributeTag extends AppModel
         return true;
     }
 
+    public function detachTagFromAttribute($attribute_id, $event_id, $tag_id)
+    {
+        $existingAssociation = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'tag_id' => $tag_id,
+                'event_id' => $event_id,
+                'attribute_id' => $attribute_id
+            )
+        ));
+
+        if (!empty($existingAssociation)) {
+            $result = $this->delete($existingAssociation['AttributeTag']['id']);
+            if ($result) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function countForTag($tag_id, $user)
     {
         return $this->find('count', array(
