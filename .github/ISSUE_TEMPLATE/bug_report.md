@@ -1,6 +1,11 @@
-# This template is meant for bug reports, if you have a feature request, please be as descriptive as possible and delete the template
+---
+name: Bug report
+about: Create a report to help us improve
+labels: bug, potential-bug, needs triage
 
+---
 
+# This template is meant for bug reports, if you have a feature request user the other template.
 
 
 
@@ -15,9 +20,9 @@
 
 | Questions                 | Answers
 |---------------------------|--------------------
-| Type of issue             | Bug, Question, Feature Request, support...
-| OS version (server)       | Debian, ubuntu, CentOS, RedHat, ...
-| OS version (client)       | XP, Seven, 10, Ubuntu, ...
+| Type of issue             | Bug
+| OS version (server)       | Debian, Ubuntu, CentOS, RedHat, ...
+| OS version (client)       | MacOS, Win10, Ubuntu, ...
 | PHP version               | 5.4, 5.5, 5.6, 7.0, 7.1...
 | MISP version / git hash   | 2.4.XX, hash of the commit
 | Browser                   | If applicable

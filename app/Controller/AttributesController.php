@@ -1662,7 +1662,7 @@ class AttributesController extends AppController
                 'request' => $this->request,
                 'named_params' => $this->params['named'],
                 'paramArray' => $paramArray,
-                'ordered_url_params' => compact($paramArray),
+                'ordered_url_params' => @compact($paramArray),
                 'additional_delimiters' => PHP_EOL
             );
             $exception = false;
@@ -1877,7 +1877,7 @@ class AttributesController extends AppController
             'request' => $this->request,
             'named_params' => $this->params['named'],
             'paramArray' => $paramArray,
-            'ordered_url_params' => compact($paramArray)
+            'ordered_url_params' => @compact($paramArray)
         );
         $validFormats = $this->Attribute->validFormats;
         $exception = false;
@@ -2969,20 +2969,11 @@ class AttributesController extends AppController
         );
         $RearrangeTool = new RequestRearrangeTool();
         $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
-        if ($id === false) {
-            if (!isset($this->request->data['attribute'])) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            $id = $this->request->data['attribute'];
-        }
-        if ($id === 'selected') {
-            if (!isset($this->request->data['attribute_ids'])) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            $idList = json_decode($this->request->data['attribute_ids'], true);
-        }
         $local = empty($this->params['named']['local']) ? 0 : 1;
         if (!$this->request->is('post')) {
+            if ($id === false) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
             $this->set('local', $local);
             $this->set('object_id', $id);
             $this->set('scope', 'Attribute');
@@ -2990,6 +2981,18 @@ class AttributesController extends AppController
             $this->autoRender = false;
             $this->render('/Events/add_tag');
         } else {
+            if ($id === false) {
+                if (!isset($this->request->data['attribute'])) {
+                    throw new NotFoundException(__('Invalid attribute'));
+                }
+                $id = $this->request->data['attribute'];
+            }
+            if ($id === 'selected') {
+                if (!isset($this->request->data['attribute_ids'])) {
+                    throw new NotFoundException(__('Invalid attribute'));
+                }
+                $idList = json_decode($this->request->data['attribute_ids'], true);
+            }
             if ($tag_id === false) {
                 if (!isset($this->request->data['tag'])) {
                     throw new NotFoundException(__('Invalid tag'));
@@ -3263,15 +3266,17 @@ class AttributesController extends AppController
                 'fields' => array('Tag.name')
             ));
             if ($this->Attribute->AttributeTag->delete($attributeTag['AttributeTag']['id'])) {
-                $event['Event']['published'] = 0;
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->Event->save($event);
-                $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->save($this->Attribute->data);
+                if (empty($attributeTag['AttributeTag']['local'])) {
+                    $event['Event']['published'] = 0;
+                    $date = new DateTime();
+                    $event['Event']['timestamp'] = $date->getTimestamp();
+                    $this->Attribute->Event->save($event);
+                    $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+                    $this->Attribute->save($this->Attribute->data);
+                }
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => true)), 'status' => 200));
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => empty($attributeTag['AttributeTag']['local']))), 'status' => 200));
             } else {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')), 'status' => 200, 'type' => 'json'));
             }

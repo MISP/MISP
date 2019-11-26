@@ -46,7 +46,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '91';
+    private $__queryVersion = '92';
     public $pyMispVersion = '2.4.117';
     public $phpmin = '7.0';
     public $phprec = '7.2';
@@ -91,7 +91,8 @@ class AppController extends Controller
             'Flash',
             'Toolbox',
             'RateLimit',
-            'IndexFilter'
+            'IndexFilter',
+            'Deprecation'
             //,'DebugKit.Toolbar'
     );
 
@@ -165,10 +166,10 @@ class AppController extends Controller
         } else {
             $this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
         }
-        $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         if (!empty($this->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
         }
+        $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
         $this->_setupBaseurl();
@@ -187,7 +188,9 @@ class AppController extends Controller
         if ($this->_isRest()) {
             $this->Security->unlockedActions = array($this->action);
         }
-
+        if (!empty(Configure::read('Security.disable_form_security'))) {
+            $this->Security->csrfCheck = false;
+        }
         if (!$userLoggedIn) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
@@ -395,10 +398,8 @@ class AppController extends Controller
         // instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
         // getActions returns all the flags in a single SQL query
         if ($this->Auth->user()) {
-            $versionArray = $this->{$this->modelClass}->checkMISPVersion();
-            $this->mispVersionFull = implode('.', array_values($versionArray));
             $this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
-            $this->set('mispVersionFull', $this->mispVersionFull);
+            $this->set('mispVersionFull', $this->mispVersion);
             $role = $this->getActions();
             $this->set('me', $this->Auth->user());
             $this->set('isAdmin', $role['perm_admin']);
@@ -474,6 +475,18 @@ class AppController extends Controller
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
         if ($this->_isRest()) {
             $this->__rateLimitCheck();
+        }
+        if ($this->modelClass !== 'CakeError') {
+            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->action, $this->{$this->modelClass}, $this->Auth->user('id'));
+            if ($deprecationWarnings) {
+                $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
+                if ($this->_isRest()) {
+                    $this->response->header('X-Deprecation-Warning', $deprecationWarnings);
+                    $this->components['RestResponse']['deprecationWarnings'] = $deprecationWarnings;
+                } else {
+                    $this->Flash->warning($deprecationWarnings);
+                }
+            }
         }
         $this->components['RestResponse']['sql_dump'] = $this->sql_dump;
     }

@@ -81,6 +81,16 @@ class Server extends AppModel
                 //'on' => 'create', // Limit validation to 'create' or 'update' operations
             ),
         ),
+        'push_sightings' => array(
+            'boolean' => array(
+                'rule' => array('boolean'),
+                //'message' => 'Your custom message here',
+                'allowEmpty' => true,
+                'required' => false,
+                //'last' => false, // Stop validation after this rule
+                //'on' => 'create', // Limit validation to 'create' or 'update' operations
+            ),
+        ),
         'lastpushedid' => array(
             'numeric' => array(
                 'rule' => array('numeric'),
@@ -1166,6 +1176,15 @@ class Server extends AppModel
                 ),
                 'Security' => array(
                         'branch' => 1,
+                        'disable_form_security' => array(
+                            'level' => 0,
+                            'description' => __('Disabling this setting will remove all form tampering protection. Do not set this setting pretty much ever. You were warned.'),
+                            'value' => false,
+                            'errorMessage' => 'This setting leaves your users open to CSRF attacks. Do not please consider disabling this setting.',
+                            'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'salt' => array(
                                 'level' => 0,
                                 'description' => __('The salt used for the hashed passwords. You cannot reset this from the GUI, only manually from the settings.php file. Keep in mind, this will invalidate all passwords in the database.'),
@@ -2496,6 +2515,11 @@ class Server extends AppModel
         }
         $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
         if ($jobId) {
+            $job->saveField('progress', 75);
+            $job->saveField('message', 'Pulling sightings.');
+        }
+        $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
+        if ($jobId) {
             $job->saveField('progress', 100);
             $job->saveField('message', 'Pull completed.');
             $job->saveField('status', 4);
@@ -2511,13 +2535,14 @@ class Server extends AppModel
             'user_id' => $user['id'],
             'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
             'change' => sprintf(
-                '%s events and %s proposals pulled or updated. %s events failed or didn\'t need an update.',
+                '%s events, %s proposals and %s sightings pulled or updated. %s events failed or didn\'t need an update.',
                 count($successes),
                 $pulledProposals,
+                $pulledSightings,
                 count($fails)
             )
         ));
-        return array($successes, $fails, $pulledProposals);
+        return array($successes, $fails, $pulledProposals, $pulledSightings);
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -2549,7 +2574,7 @@ class Server extends AppModel
 
 
     // Get an array of event_ids that are present on the remote server
-    public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false)
+    public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false, $scope = 'events')
     {
         $url = $server['Server']['url'];
         if ($ignoreFilterRules) {
@@ -2576,8 +2601,21 @@ class Server extends AppModel
                 $eventIds = array();
                 if ($all) {
                     if (!empty($eventArray)) {
-                        foreach ($eventArray as $event) {
-                            $eventIds[] = $event['uuid'];
+                        if ($scope === 'sightings') {
+                            foreach ($eventArray as $event) {
+                                $localEvent = $this->Event->find('first', array(
+                                        'recursive' => -1,
+                                        'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
+                                        'conditions' => array('Event.uuid' => $event['uuid'])
+                                    ));
+                                if (!empty($localEvent) && $localEvent['Event']['sighting_timestamp'] > $event['sighting_timestamp']) {
+                                    $eventIds[] = $event['uuid'];
+                                }
+                            }
+                        } else {
+                            foreach ($eventArray as $event) {
+                                $eventIds[] = $event['uuid'];
+                            }
                         }
                     }
                 } else {
@@ -2617,7 +2655,7 @@ class Server extends AppModel
                             }
                         }
                     }
-                    $this->Event->removeOlder($eventArray);
+                    $this->Event->removeOlder($eventArray, $scope);
                     if (!empty($eventArray)) {
                         foreach ($eventArray as $event) {
                             if ($force_uuid) {
@@ -2722,7 +2760,7 @@ class Server extends AppModel
                 ), // array of conditions
                 'recursive' => -1, //int
                 'contain' => array('EventTag' => array('fields' => array('EventTag.tag_id'))),
-                'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
+                'fields' => array('Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
         );
         $eventIds = $this->Event->find('all', $findParams);
         $eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
@@ -2731,7 +2769,7 @@ class Server extends AppModel
         }
         if (!empty($eventUUIDsFiltered)) {
             $eventCount = count($eventUUIDsFiltered);
-            // now process the $eventIds to pull each of the events sequentially
+            // now process the $eventIds to push each of the events sequentially
             if (!empty($eventUUIDsFiltered)) {
                 $successes = array();
                 $fails = array();
@@ -2779,9 +2817,12 @@ class Server extends AppModel
         }
 
         $this->syncProposals($HttpSocket, $this->data, null, null, $this->Event);
+        $sightingSuccesses = $this->syncSightings($HttpSocket, $this->data, $user, $this->Event);
 
         if (!isset($successes)) {
-            $successes = array();
+            $successes = $sightingSuccesses;
+        } else {
+            $successes = array_merge($successes, $sightingSuccesses);
         }
         if (!isset($fails)) {
             $fails = array();
@@ -2832,6 +2873,33 @@ class Server extends AppModel
             return false;
         }
         return $uuidList;
+    }
+
+    public function syncSightings($HttpSocket, $server, $user, $eventModel)
+    {
+        $successes = array();
+        if (!$server['Server']['push_sightings']) {
+            return $successes;
+        }
+        $this->Sighting = ClassRegistry::init('Sighting');
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $eventIds = $this->getEventIdsFromServer($server, true, $HttpSocket, false, true, 'sightings');
+        // now process the $eventIds to push each of the events sequentially
+        if (!empty($eventIds)) {
+            // check each event and push sightings when needed
+            foreach ($eventIds as $k => $eventId) {
+                $event = $eventModel->fetchEvent($user, $options = array('event_uuid' => $eventId, 'metadata' => true));
+                if (!empty($event)) {
+                    $event = $event[0];
+                    $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+                    $result = $eventModel->uploadEventToServer($event, $server, $HttpSocket, 'sightings');
+                    if ($result === 'Success') {
+                        $successes[] = 'Sightings for event ' .  $event['Event']['id'];
+                    }
+                }
+            }
+        }
+        return $successes;
     }
 
     public function syncProposals($HttpSocket, $server, $sa_id = null, $event_id = null, $eventModel)
@@ -4114,6 +4182,7 @@ class Server extends AppModel
         }
         $remoteVersion = json_decode($response->body, true);
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
+        $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
             $this->Log = ClassRegistry::init('Log');
@@ -4175,7 +4244,7 @@ class Server extends AppModel
                     'title' => ucfirst($issueLevel) . ': ' . $response,
             ));
         }
-        return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'version' => $remoteVersion);
+        return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'canSight' => $canSight, 'version' => $remoteVersion);
     }
 
     public function isJson($string)
@@ -4293,7 +4362,67 @@ class Server extends AppModel
         } else {
             $schemaDiagnostic['error'] = sprintf('Diagnostic not available for DataSource `%s`', $dataSource);
         }
+        if (!empty($schemaDiagnostic['diagnostic'])) {
+            foreach ($schemaDiagnostic['diagnostic'] as $table => &$fields) {
+                foreach ($fields as &$field) {
+                    $field = $this->__attachRecoveryQuery($field, $table);
+                }
+            }
+        }
         return $schemaDiagnostic;
+    }
+
+    /*
+     * Work in progress, still needs DEFAULT in the schema for it to work correctly
+     * Currently only works for missing_column and column_different
+     * Only currently supported field types are: int, tinyint, varchar, text
+     */
+    private function __attachRecoveryQuery($field, $table)
+    {
+        if ($field['is_critical']) {
+            $length = false;
+            if (in_array($field['error_type'], array('missing_column', 'column_different'))) {
+                if ($field['expected']['data_type'] === 'int') {
+                    $length = 11;
+                } elseif ($field['expected']['data_type'] === 'tinyint') {
+                    $length = 1;
+                } elseif ($field['expected']['data_type'] === 'varchar') {
+                    $length = $field['expected']['character_maximum_length'];
+                } elseif ($field['expected']['data_type'] === 'text') {
+                    $length = null;
+                }
+            }
+            if ($length !== false) {
+                switch($field['error_type']) {
+                    case 'missing_column':
+                        $field['sql'] = sprintf(
+                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s;',
+                            $table,
+                            $field['column_name'],
+                            $field['expected']['data_type'],
+                            $length !== null ? sprintf('(%d)', $length) : '',
+                            isset($field['expected']['default']) ? 'DEFAULT "' . $field['expected']['default'] . '"' : '',
+                            $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
+                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
+                        );
+                        break;
+                    case 'column_different':
+                        $field['sql'] = sprintf(
+                            'ALTER TABLE `%s` CHANGE `%s` `%s` %s%s %s %s;',
+                            $table,
+                            $field['column_name'],
+                            $field['column_name'],
+                            $field['expected']['data_type'],
+                            $length !== null ? sprintf('(%d)', $length) : '',
+                            isset($field['expected']['default']) ? 'DEFAULT "' . $field['expected']['default'] . '"' : '',
+                            $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
+                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
+                        );
+                        break;
+                }
+            }
+        }
+        return $field;
     }
 
     public function getExpectedDBSchema()
@@ -4330,7 +4459,7 @@ class Server extends AppModel
             'data_type',
             'character_maximum_length',
             'numeric_precision',
-            'datetime_precision',
+            // 'datetime_precision',    -- Only available on MySQL 5.6+
             'collation_name'
         )
     ){
@@ -4347,7 +4476,7 @@ class Server extends AppModel
                     WHERE table_schema = '%s' AND table_name = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
                 $sqlResult = $this->query($sqlSchema);
                 foreach ($sqlResult as $column_schema) {
-                    $dbActualSchema[$table][] = array_values($column_schema['columns']);
+                    $dbActualSchema[$table][] = $column_schema['columns'];
                 }
             }
         }
@@ -4359,54 +4488,80 @@ class Server extends AppModel
 
     public function compareDBSchema($dbActualSchema, $dbExpectedSchema)
     {
+        // Column that should be ignored while performing the comparison
+        $whiteListFields = array(
+            'users' => array('external_auth_required', 'external_auth_key'),
+        );
+        $nonCriticalColumnElements = array('is_nullable', 'collation_name');
         $dbDiff = array();
         // perform schema comparison for tables
         foreach($dbExpectedSchema as $tableName => $columns) {
             if (!array_key_exists($tableName, $dbActualSchema)) {
                 $dbDiff[$tableName][] = array(
                     'description' => sprintf(__('Table `%s` does not exist'), $tableName),
+                    'error_type' => 'missing_table',
                     'column_name' => $tableName,
+                    'is_critical' => true
                 );
             } else {
                 // perform schema comparison for table's columns
                 $expectedColumnKeys = array();
                 $keyedExpectedColumn = array();
                 foreach($columns as $column) {
-                    $expectedColumnKeys[] = $column[0];
-                    $keyedExpectedColumn[$column[0]] = $column;
+                    $expectedColumnKeys[] = $column['column_name'];
+                    $keyedExpectedColumn[$column['column_name']] = $column;
                 }
                 $existingColumnKeys = array();
                 $keyedActualColumn = array();
                 foreach($dbActualSchema[$tableName] as $column) {
-                    $existingColumnKeys[] = $column[0];
-                    $keyedActualColumn[$column[0]] = $column;
+                    $existingColumnKeys[] = $column['column_name'];
+                    $keyedActualColumn[$column['column_name']] = $column;
                 }
 
                 $additionalKeysInActualSchema = array_diff($existingColumnKeys, $expectedColumnKeys);
                 foreach($additionalKeysInActualSchema as $additionalKeys) {
+                    if (isset($whiteListFields[$tableName]) && in_array($additionalKeys, $whiteListFields[$tableName])) {
+                        continue; // column is whitelisted
+                    }
                     $dbDiff[$tableName][] = array(
                         'description' => sprintf(__('Column `%s` exists but should not'), $additionalKeys),
-                        'column_name' => $additionalKeys
+                        'error_type' => 'additional_column',
+                        'column_name' => $additionalKeys,
+                        'is_critical' => false
                     );
                 }
-
                 foreach ($keyedExpectedColumn as $columnName => $column) {
+                    if (isset($whiteListFields[$tableName]) && in_array($columnName, $whiteListFields[$tableName])) {
+                        continue; // column is whitelisted
+                    }
                     if (isset($keyedActualColumn[$columnName])) {
-                        $colDiff = array_diff($column, $keyedActualColumn[$columnName]);
+                        $colDiff = array_diff_assoc($column, $keyedActualColumn[$columnName]);
                         if (count($colDiff) > 0) {
+                            $colElementDiffs = array_keys(array_diff_assoc($column, $keyedActualColumn[$columnName]));
+                            $isCritical = false;
+                            foreach($colElementDiffs as $colElementDiff) {
+                                if(!in_array($colElementDiff, $nonCriticalColumnElements)) {
+                                    $isCritical = true;
+                                    break;
+                                }
+                            }
                             $dbDiff[$tableName][] = array(
                                 'description' => sprintf(__('Column `%s` is different'), $columnName),
-                                'column_name' => $column[0],
+                                'column_name' => $column['column_name'],
+                                'error_type' => 'column_different',
                                 'actual' => $keyedActualColumn[$columnName],
-                                'expected' => $column
+                                'expected' => $column,
+                                'is_critical' => $isCritical
                             );
                         }
                     } else {
                         $dbDiff[$tableName][] = array(
                             'description' => sprintf(__('Column `%s` does not exist but should'), $columnName),
                             'column_name' => $columnName,
+                            'error_type' => 'missing_column',
                             'actual' => array(),
-                            'expected' => $column
+                            'expected' => $column,
+                            'is_critical' => true
                         );
                     }
                 }
@@ -4416,6 +4571,8 @@ class Server extends AppModel
             $dbDiff[$additionalTable][] = array(
                 'description' => sprintf(__('Table `%s` is an additional table'), $additionalTable),
                 'column_name' => $additionalTable,
+                'error_type' => 'additional_table',
+                'is_critical' => false
             );
         }
         return $dbDiff;
@@ -4552,6 +4709,7 @@ class Server extends AppModel
                     'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg'
                 ));
             } catch (Exception $e) {
+                $this->logException("Error during initializing GPG.", $e, LOG_NOTICE);
                 $gpgStatus = 2;
                 $continue = false;
             }
@@ -4559,6 +4717,7 @@ class Server extends AppModel
                 try {
                     $key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
                 } catch (Exception $e) {
+                    $this->logException("Error during adding GPG signing key.", $e, LOG_NOTICE);
                     $gpgStatus = 3;
                     $continue = false;
                 }
@@ -4568,6 +4727,7 @@ class Server extends AppModel
                     $gpgStatus = 0;
                     $signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
                 } catch (Exception $e) {
+                    $this->logException("Error during GPG signing.", $e, LOG_NOTICE);
                     $gpgStatus = 4;
                 }
             }
@@ -5518,5 +5678,48 @@ class Server extends AppModel
             $success = $success && $result;
         }
         return $success;
+    }
+
+    public function getRemoteUser($id)
+    {
+        $server = $this->find('first', array(
+            'conditions' => array('Server.id' => $id),
+            'recursive' => -1
+        ));
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
+        $uri = $server['Server']['url'] . '/users/view/me.json';
+        try {
+            $response = $HttpSocket->get($uri, false, $request);
+        } catch (Exception $e) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $message = __('Could not reset fetch remote user account.');
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: ' . $message,
+            ));
+            return $message;
+        }
+        if ($response->isOk()) {
+            $user = json_decode($response->body, true);
+            if (!empty($user['User'])) {
+                $result = array(
+                    'Email' => $user['User']['email'],
+                    'Role name' => isset($user['Role']['name']) ? $user['Role']['name'] : 'Unknown, outdated instance',
+                    'Sync flag' => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? 1 : 0) : 'Unknown, outdated instance'
+                );
+                return $result;
+            } else {
+                return __('No user object received in response.');
+            }
+        } else {
+            return $response->code;
+        }
     }
 }

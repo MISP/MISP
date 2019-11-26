@@ -365,19 +365,12 @@ class Feed extends AppModel
                     if ($scope === 'Server' || $source[$scope]['source_format'] == 'misp') {
                         $pipe = $redis->multi(Redis::PIPELINE);
                         $eventUuidHitPosition = array();
-                        $i = 0;
                         foreach ($objects as $k => $object) {
                             if (isset($object[$scope])) {
                                 foreach ($object[$scope] as $currentFeed) {
                                     if ($source[$scope]['id'] == $currentFeed['id']) {
-                                        $eventUuidHitPosition[$i] = $k;
-                                        $i++;
-                                        if (in_array($object['type'], $compositeTypes)) {
-                                            $value = explode('|', $object['value']);
-                                            $redis->smembers($cachePrefix . 'event_uuid_lookup:' . md5($value[0]));
-                                        } else {
-                                            $redis->smembers($cachePrefix . 'event_uuid_lookup:' . md5($object['value']));
-                                        }
+                                        $eventUuidHitPosition[] = $k;
+                                        $redis->smembers($cachePrefix . 'event_uuid_lookup:' . $hashTable[$k]);
                                     }
                                 }
                             }

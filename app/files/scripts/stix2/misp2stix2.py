@@ -448,8 +448,9 @@ class StixBuilder():
         self.append_object(course_of_action)
 
     def add_custom(self, attribute):
-        custom_object_id = "x-misp-object--{}".format(attribute['uuid'])
-        custom_object_type = "x-misp-object-{}".format(attribute['type'].replace('|', '-').replace(' ', '-').lower())
+        attribute_type = attribute['type'].replace('|', '-').replace(' ', '-').lower()
+        custom_object_id = "x-misp-object-{}--{}".format(attribute_type, attribute['uuid'])
+        custom_object_type = "x-misp-object-{}".format(attribute_type)
         labels, markings = self.create_labels(attribute)
         custom_object_args = {'id': custom_object_id, 'x_misp_category': attribute['category'], 'labels': labels,
                               'x_misp_timestamp': self.get_datetime_from_timestamp(attribute['timestamp']),
@@ -586,8 +587,8 @@ class StixBuilder():
         self.append_object(vulnerability)
 
     def add_object_custom(self, misp_object, to_ids):
-        custom_object_id = 'x-misp-object--{}'.format(misp_object['uuid'])
         name = misp_object['name']
+        custom_object_id = 'x-misp-object-{}--{}'.format(name, misp_object['uuid'])
         custom_object_type = 'x-misp-object-{}'.format(name)
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, to_ids)
@@ -1267,7 +1268,7 @@ class StixBuilder():
         return pattern
 
     @staticmethod
-    def resolve_stix2_pattern(attributes):
+    def resolve_stix2_pattern(attributes, _):
         for attribute in attributes:
             if attribute['object_relation'] == 'stix2-pattern':
                 return attribute['value']

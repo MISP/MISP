@@ -161,6 +161,7 @@ class ACLComponent extends Component
                     'nids' => array('*'),
                     'proposalEventIndex' => array('*'),
                     'publish' => array('perm_publish'),
+                    'publishSightings' => array('perm_sighting'),
                     'pushEventToZMQ' => array('perm_publish_zmq'),
                     'pushEventToKafka' => array('perm_publish_kafka'),
                     'pushProposals' => array('perm_sync'),
@@ -360,6 +361,7 @@ class ACLComponent extends Component
                     'cache' => array(),
                     'changePriority' => array(),
                     'checkout' => array(),
+                    'clearWorkerQueue' => array(),
                     'createSync' => array('perm_sync'),
                     'delete' => array(),
                     'deleteFile' => array(),
@@ -370,6 +372,7 @@ class ACLComponent extends Component
                     'getGit' => array(),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
+                    'getRemoteUser' => array(),
                     'getSetting' => array(),
                     'getSubmodulesStatus' => array(),
                     'getSubmoduleQuickUpdateForm' => array(),
@@ -402,7 +405,7 @@ class ACLComponent extends Component
                     'updateProgress' => array(),
                     'updateSubmodule' => array(),
                     'uploadFile' => array(),
-                    'clearWorkerQueue' => array()
+                    'viewDeprecatedFunctionUse' => array()
             ),
             'shadowAttributes' => array(
                     'accept' => array('perm_add'),
@@ -442,6 +445,7 @@ class ACLComponent extends Component
                     'listSightings' => array('*'),
                     'quickDelete' => array('perm_sighting'),
                     'viewSightings' => array('*'),
+                    'bulkSaveSightings' => array('OR' => array('perm_sync', 'perm_sighting')),
                     'quickAdd' => array('perm_sighting')
             ),
             'sightingdb' => array(
