@@ -151,7 +151,6 @@ class UsersController extends AppController
                     }
                 }
             }
-
             if (!$abortPost && !$this->_isRest()) {
                 if (Configure::read('Security.require_password_confirmation')) {
                     if (!empty($this->request->data['User']['current_password'])) {
@@ -173,8 +172,11 @@ class UsersController extends AppController
                 if (!empty($this->request->data['User']['password'])) {
                     $fieldList[] = 'password';
                 }
+                foreach ($this->request->data['User'] as $k => $v) {
+                    $currentUser['User'][$k] = $v;
+                }
                 // Save the data
-                if ($this->User->save($this->request->data, true, $fieldList)) {
+                if ($this->User->save($currentUser, true, $fieldList)) {
                     if ($this->_isRest()) {
                         $user = $this->User->find('first', array(
                             'conditions' => array('User.id' => $id),
