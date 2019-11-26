@@ -84,14 +84,6 @@ class UsersController extends AppController
     {
         unset($user['User']['server_id']);
         $user['User']['password'] = '*****';
-        $temp = array();
-        if (!empty($user['UserSetting'])) {
-            foreach ($user['UserSetting'] as $k => $v) {
-                $temp[$v['setting']] = $v['value'];
-            }
-            $user['UserSetting'] = $temp;
-        }
-        $temp = array();
         $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
         foreach ($objectsToInclude as $objectToInclude) {
             if (!empty($user[$objectToInclude])) {
