@@ -1253,7 +1253,7 @@ class EventsController extends AppController
         if (isset($filters['deleted'])) {
             $deleted = $filters['deleted'] == 2 ? 0 : 1;
         }
-        $this->set('includeSightingdb', (!empty($filters['includeSightingdb'] && Configure::read('Plugin.Sightings_sighting_db_enable'))));
+        $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('deleted', $deleted);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
