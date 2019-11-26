@@ -128,6 +128,25 @@ class EventTag extends AppModel
         return true;
     }
 
+    public function detachTagFromEvent($event_id, $tag_id)
+    {
+        $existingAssociation = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'tag_id' => $tag_id,
+                'event_id' => $event_id
+            )
+        ));
+
+        if (!empty($existingAssociation)) {
+            $result = $this->delete($existingAssociation['EventTag']['id']);
+            if ($result) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function getSortedTagList($context = false)
     {
         $conditions = array();
