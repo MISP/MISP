@@ -3182,6 +3182,9 @@ function testConnection(id) {
             case 7:
                 $("#connection_test_" + id).html('<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>');
                 break;
+            case 8:
+                $("#connection_test_" + id).html('<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Syncing sightings only</span>');
+                break;
             }
         }
     })

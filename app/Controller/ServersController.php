@@ -1503,6 +1503,10 @@ class ServersController extends AppController
                 if (isset($version['perm_sync'])) {
                     $perm_sync = $version['perm_sync'];
                 }
+                $perm_sighting = false;
+                if (isset($version['perm_sighting'])) {
+                    $perm_sighting = $version['perm_sighting'];
+                }
                 App::uses('Folder', 'Utility');
                 $file = new File(ROOT . DS . 'VERSION.json', true);
                 $local_version = json_decode($file->read(), true);
@@ -1529,8 +1533,12 @@ class ServersController extends AppController
                 if (!$mismatch && $version[2] < 111) {
                     $mismatch = 'proposal';
                 }
-                if (!$perm_sync) {
+                if (!$perm_sync && !$perm_sighting) {
                     $result['status'] = 7;
+                    return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+                }
+                if (!$perm_sync && $perm_sighting) {
+                    $result['status'] = 8;
                     return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
                 }
                 return new CakeResponse(
@@ -1630,7 +1638,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('This action requires API access.');
         }
         $versionArray = $this->Server->checkMISPVersion();
-        $this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync']));
+        $this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync'], 'perm_sighting' => $this->userRole['perm_sighting']));
         $this->set('_serialize', 'response');
     }
 

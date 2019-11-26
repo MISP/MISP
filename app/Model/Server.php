@@ -2679,7 +2679,7 @@ class Server extends AppModel
         $this->read(null, $id);
         $url = $this->data['Server']['url'];
         $push = $this->checkVersionCompatibility($id, $user);
-        if (isset($push['canPush']) && !$push['canPush']) {
+        if (is_array($push) && !$push['canPush'] && !$push['canSight']) {
             $push = 'Remote instance is outdated or no permission to push.';
         }
         if (!is_array($push)) {
@@ -2704,111 +2704,119 @@ class Server extends AppModel
             }
             return $push;
         }
-        if ("full" == $technique) {
-            $eventid_conditions_key = 'Event.id >';
-            $eventid_conditions_value = 0;
-        } elseif ("incremental" == $technique) {
-            $eventid_conditions_key = 'Event.id >';
-            $eventid_conditions_value = $this->data['Server']['lastpushedid'];
-        } elseif (intval($technique) !== 0) {
-            $eventid_conditions_key = 'Event.id';
-            $eventid_conditions_value = intval($technique);
-        } else {
-            throw new InvalidArgumentException("Technique parameter must be 'full', 'incremental' or event ID.");
-        }
-        $sgs = $this->Event->SharingGroup->find('all', array(
-            'recursive' => -1,
-            'contain' => array('Organisation', 'SharingGroupOrg' => array('Organisation'), 'SharingGroupServer')
-        ));
-        $sgIds = array();
-        foreach ($sgs as $k => $sg) {
-            if ($this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
-                $sgIds[] = $sg['SharingGroup']['id'];
+
+        // sync events if user is capable
+        if ($push['canPush']) {
+            if ("full" == $technique) {
+                $eventid_conditions_key = 'Event.id >';
+                $eventid_conditions_value = 0;
+            } elseif ("incremental" == $technique) {
+                $eventid_conditions_key = 'Event.id >';
+                $eventid_conditions_value = $this->data['Server']['lastpushedid'];
+            } elseif (intval($technique) !== 0) {
+                $eventid_conditions_key = 'Event.id';
+                $eventid_conditions_value = intval($technique);
+            } else {
+                throw new InvalidArgumentException("Technique parameter must be 'full', 'incremental' or event ID.");
             }
-        }
-        if (empty($sgIds)) {
-            $sgIds = array(-1);
-        }
-        $findParams = array(
-                'conditions' => array(
-                        $eventid_conditions_key => $eventid_conditions_value,
-                        'Event.published' => 1,
-                        'Event.attribute_count >' => 0,
-                        'OR' => array(
-                            array(
-                                'AND' => array(
-                                    array('Event.distribution >' => 0),
-                                    array('Event.distribution <' => 4),
+            $sgs = $this->Event->SharingGroup->find('all', array(
+                'recursive' => -1,
+                'contain' => array('Organisation', 'SharingGroupOrg' => array('Organisation'), 'SharingGroupServer')
+            ));
+            $sgIds = array();
+            foreach ($sgs as $k => $sg) {
+                if ($this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
+                    $sgIds[] = $sg['SharingGroup']['id'];
+                }
+            }
+            if (empty($sgIds)) {
+                $sgIds = array(-1);
+            }
+            $findParams = array(
+                    'conditions' => array(
+                            $eventid_conditions_key => $eventid_conditions_value,
+                            'Event.published' => 1,
+                            'Event.attribute_count >' => 0,
+                            'OR' => array(
+                                array(
+                                    'AND' => array(
+                                        array('Event.distribution >' => 0),
+                                        array('Event.distribution <' => 4),
+                                    ),
                                 ),
-                            ),
-                            array(
-                                'AND' => array(
-                                    'Event.distribution' => 4,
-                                    'Event.sharing_group_id' => $sgIds
-                                ),
+                                array(
+                                    'AND' => array(
+                                        'Event.distribution' => 4,
+                                        'Event.sharing_group_id' => $sgIds
+                                    ),
+                                )
                             )
-                        )
-                ), // array of conditions
-                'recursive' => -1, //int
-                'contain' => array('EventTag' => array('fields' => array('EventTag.tag_id'))),
-                'fields' => array('Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
-        );
-        $eventIds = $this->Event->find('all', $findParams);
-        $eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
-        if ($eventUUIDsFiltered === false || empty($eventUUIDsFiltered)) {
-            $pushFailed = true;
-        }
-        if (!empty($eventUUIDsFiltered)) {
-            $eventCount = count($eventUUIDsFiltered);
-            // now process the $eventIds to push each of the events sequentially
+                    ), // array of conditions
+                    'recursive' => -1, //int
+                    'contain' => array('EventTag' => array('fields' => array('EventTag.tag_id'))),
+                    'fields' => array('Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
+            );
+            $eventIds = $this->Event->find('all', $findParams);
+            $eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
+            if ($eventUUIDsFiltered === false || empty($eventUUIDsFiltered)) {
+                $pushFailed = true;
+            }
             if (!empty($eventUUIDsFiltered)) {
-                $successes = array();
-                $fails = array();
-                $lowestfailedid = null;
-                foreach ($eventUUIDsFiltered as $k => $eventUuid) {
-                    $params = array();
-                    if (!empty($this->data['Server']['push_rules'])) {
-                        $push_rules = json_decode($this->data['Server']['push_rules'], true);
-                        if (!empty($push_rules['tags']['NOT'])) {
-                            $params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
+                $eventCount = count($eventUUIDsFiltered);
+                // now process the $eventIds to push each of the events sequentially
+                if (!empty($eventUUIDsFiltered)) {
+                    $successes = array();
+                    $fails = array();
+                    $lowestfailedid = null;
+                    foreach ($eventUUIDsFiltered as $k => $eventUuid) {
+                        $params = array();
+                        if (!empty($this->data['Server']['push_rules'])) {
+                            $push_rules = json_decode($this->data['Server']['push_rules'], true);
+                            if (!empty($push_rules['tags']['NOT'])) {
+                                $params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
+                            }
+                        }
+                        $params = array_merge($params, array(
+                            'event_uuid' => $eventUuid,
+                            'includeAttachments' => true,
+                            'includeAllTags' => true,
+                            'deleted' => array(0,1),
+                            'excludeGalaxy' => 1
+                        ));
+                        $event = $this->Event->fetchEvent($user, $params);
+                        $event = $event[0];
+                        $event['Event']['locked'] = 1;
+                        $result = $this->Event->uploadEventToServer($event, $this->data, $HttpSocket);
+                        if ('Success' === $result) {
+                            $successes[] = $event['Event']['id'];
+                        } else {
+                            $fails[$event['Event']['id']] = $result;
+                        }
+                        if ($jobId && $k%10 == 0) {
+                            $job->saveField('progress', 100 * $k / $eventCount);
                         }
                     }
-                    $params = array_merge($params, array(
-                        'event_uuid' => $eventUuid,
-                        'includeAttachments' => true,
-                        'includeAllTags' => true,
-                        'deleted' => array(0,1),
-                        'excludeGalaxy' => 1
-                    ));
-                    $event = $this->Event->fetchEvent($user, $params);
-                    $event = $event[0];
-                    $event['Event']['locked'] = 1;
-                    $result = $this->Event->uploadEventToServer($event, $this->data, $HttpSocket);
-                    if ('Success' === $result) {
-                        $successes[] = $event['Event']['id'];
+                    if (count($fails) > 0) {
+                        // there are fails, take the lowest fail
+                        $lastpushedid = min(array_keys($fails));
                     } else {
-                        $fails[$event['Event']['id']] = $result;
+                        // no fails, take the highest success
+                        $lastpushedid = max($successes);
                     }
-                    if ($jobId && $k%10 == 0) {
-                        $job->saveField('progress', 100 * $k / $eventCount);
-                    }
+                    // increment lastid based on the highest ID seen
+                    // Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
+                    $this->data['Server']['lastpushedid'] = $lastpushedid;
+                    $this->save($this->data);
                 }
-                if (count($fails) > 0) {
-                    // there are fails, take the lowest fail
-                    $lastpushedid = min(array_keys($fails));
-                } else {
-                    // no fails, take the highest success
-                    $lastpushedid = max($successes);
-                }
-                // increment lastid based on the highest ID seen
-                // Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
-                $this->data['Server']['lastpushedid'] = $lastpushedid;
-                $this->save($this->data);
             }
+            $this->syncProposals($HttpSocket, $this->data, null, null, $this->Event);
         }
 
-        $this->syncProposals($HttpSocket, $this->data, null, null, $this->Event);
-        $sightingSuccesses = $this->syncSightings($HttpSocket, $this->data, $user, $this->Event);
+        if ($push['canSight']) {
+            $sightingSuccesses = $this->syncSightings($HttpSocket, $this->data, $user, $this->Event);
+        } else {
+            $sightingSuccesses = array();
+        }
 
         if (!isset($successes)) {
             $successes = $sightingSuccesses;
