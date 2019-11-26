@@ -130,7 +130,7 @@ class ServerShell extends AppShell
 
     public function fetchFeed() {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['fetchFeed'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Fetch feeds as local data'] . PHP_EOL);
         }
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
@@ -256,7 +256,7 @@ class ServerShell extends AppShell
 
     public function cacheFeed() {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['cacheFeed'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Cache feeds for quick lookups'] . PHP_EOL);
         }
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
