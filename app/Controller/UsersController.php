@@ -86,7 +86,7 @@ class UsersController extends AppController
         $user['User']['password'] = '*****';
         $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
         foreach ($objectsToInclude as $objectToInclude) {
-            if (!empty($user[$objectToInclude])) {
+            if (isset($user[$objectToInclude])) {
                 $temp[$objectToInclude] = $user[$objectToInclude];
             }
         }
