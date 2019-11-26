@@ -1176,6 +1176,15 @@ class Server extends AppModel
                 ),
                 'Security' => array(
                         'branch' => 1,
+                        'disable_form_security' => array(
+                            'level' => 0,
+                            'description' => __('Disabling this setting will remove all form tampering protection. Do not set this setting pretty much ever. You were warned.'),
+                            'value' => false,
+                            'errorMessage' => 'This setting leaves your users open to CSRF attacks. Do not please consider disabling this setting.',
+                            'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'salt' => array(
                                 'level' => 0,
                                 'description' => __('The salt used for the hashed passwords. You cannot reset this from the GUI, only manually from the settings.php file. Keep in mind, this will invalidate all passwords in the database.'),
@@ -4700,6 +4709,7 @@ class Server extends AppModel
                     'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg'
                 ));
             } catch (Exception $e) {
+                $this->logException("Error during initializing GPG.", $e, LOG_NOTICE);
                 $gpgStatus = 2;
                 $continue = false;
             }
@@ -4707,6 +4717,7 @@ class Server extends AppModel
                 try {
                     $key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
                 } catch (Exception $e) {
+                    $this->logException("Error during adding GPG signing key.", $e, LOG_NOTICE);
                     $gpgStatus = 3;
                     $continue = false;
                 }
@@ -4716,6 +4727,7 @@ class Server extends AppModel
                     $gpgStatus = 0;
                     $signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
                 } catch (Exception $e) {
+                    $this->logException("Error during GPG signing.", $e, LOG_NOTICE);
                     $gpgStatus = 4;
                 }
             }

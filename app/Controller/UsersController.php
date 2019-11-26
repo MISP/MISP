@@ -1799,10 +1799,12 @@ class UsersController extends AppController
             'group' => 'Event.orgc_id',
             'conditions' => array('Event.orgc_id' => array_keys($orgs)),
             'recursive' => -1,
-            'fields' => array('Event.orgc_id', 'count(*)')
+            'fields' => array('Event.orgc_id', 'count(*)', 'sum(Event.attribute_count) as attributeCount')
         ));
         foreach ($events as $event) {
             $orgs[$event['Event']['orgc_id']]['eventCount'] = $event[0]['count(*)'];
+            $orgs[$event['Event']['orgc_id']]['attributeCount'] = $event[0]['attributeCount'];
+            $orgs[$event['Event']['orgc_id']]['orgActivity'] = $this->User->getOrgActivity($event['Event']['orgc_id'], array('event_timestamp' => '365d'));
         }
         unset($events);
         $orgs = Set::combine($orgs, '{n}.name', '{n}');

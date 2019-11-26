@@ -3581,11 +3581,6 @@ class Attribute extends AppModel
         return true;
     }
 
-    public function convertToOpenIOC($user, $attributes)
-    {
-        return $this->IOCExport->buildAll($user, $event);
-    }
-
     private function __createTagSubQuery($tag_id, $blocked = false, $scope = 'Event', $limitAttributeHitsTo = 'event')
     {
         $conditionKey = $blocked ? array('NOT' => array('EventTag.tag_id' => $tag_id)) : array('EventTag.tag_id' => $tag_id);

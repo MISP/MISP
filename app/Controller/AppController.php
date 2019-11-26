@@ -190,7 +190,9 @@ class AppController extends Controller
         if ($this->_isRest()) {
             $this->Security->unlockedActions = array($this->action);
         }
-
+        if (!empty(Configure::read('Security.disable_form_security'))) {
+            $this->Security->csrfCheck = false;
+        }
         if (!$userLoggedIn) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
