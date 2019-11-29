@@ -171,11 +171,17 @@ class UsersController extends AppController
                 $fieldList = array('email', 'autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
                 if (!empty($this->request->data['User']['password'])) {
                     $fieldList[] = 'password';
+                    $fieldList[] = 'confirm_password';
                 }
                 foreach ($this->request->data['User'] as $k => $v) {
                     $currentUser['User'][$k] = $v;
                 }
                 // Save the data
+                if ($this->_isRest()) {
+                    if (!empty($this->request->data['User']['password'])) {
+                        $currentUser['User']['confirm_password'] = $this->request->data['User']['password'];
+                    }
+                }
                 if ($this->User->save($currentUser, true, $fieldList)) {
                     if ($this->_isRest()) {
                         $user = $this->User->find('first', array(
