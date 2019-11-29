@@ -25,6 +25,7 @@ class ACLComponent extends Component
                     'pruneDuplicateUUIDs' => array(),
                     'queryACL' => array(),
                     'removeDuplicateEvents' => array(),
+                    'restSearch' => array('*'),
                     'updateDatabase' => array(),
                     'upgrade2324' => array(),
             ),
