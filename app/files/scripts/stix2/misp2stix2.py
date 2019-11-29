@@ -209,7 +209,7 @@ class StixBuilder():
                         'pattern': self.resolve_process_pattern},
             'registry-key': {'observable': self.resolve_regkey_observable,
                              'pattern': self.resolve_regkey_pattern},
-            'stix2': {'pattern': self.resolve_stix2_pattern},
+            'stix2-pattern': {'pattern': self.resolve_stix2_pattern},
             'url': {'observable': self.resolve_url_observable,
                     'pattern': self.resolve_url_pattern},
             'user-account': {'observable': self.resolve_user_account_observable,
