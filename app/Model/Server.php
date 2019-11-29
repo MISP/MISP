@@ -4514,7 +4514,6 @@ class Server extends AppModel
                                 'is_critical' => $isCritical
                             );
                         }
-                        // ALTER TABLE test MODIFY COLUMN locationExpect VARCHAR(120);
                     } else {
                         $dbDiff[$tableName][] = array(
                             'description' => sprintf(__('Column `%s` does not exist but should'), $columnName),
@@ -4524,7 +4523,6 @@ class Server extends AppModel
                             'expected' => $column,
                             'is_critical' => true
                         );
-                        
                     }
                 }
             }
