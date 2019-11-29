@@ -876,7 +876,7 @@ class TagsController extends AppController
             if (
                 $scope !== 'view' &&
                 !$this->_isSiteAdmin() &&
-                !$object['Event']['orgc_id'] != $this->Auth->user('org_id')
+                $object['Event']['orgc_id'] != $this->Auth->user('org_id')
             ) {
                 $message = __('Cannot alter the tags of this data, only the organisation that has created the data (orgc) can modify global tags.');
                 if ($this->Auth->user('org_id') === Configure::read('MISP.host_org_id')) {
@@ -900,7 +900,7 @@ class TagsController extends AppController
                 if (
                     $scope !== 'view' &&
                     !$this->_isSiteAdmin() &&
-                    !$object['Event']['orgc_id'] != $this->Auth->user('org_id')
+                    $object['Event']['orgc_id'] != $this->Auth->user('org_id')
                 ) {
                     $message = __('Cannot alter the tags of this data, only the organisation that has created the data (orgc) can modify global tags.');
                     if ($this->Auth->user('org_id') === Configure::read('MISP.host_org_id')) {
