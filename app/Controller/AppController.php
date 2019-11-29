@@ -62,6 +62,8 @@ class AppController extends Controller
         'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
     );
 
+    protected $_legacyParams = array();
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -91,7 +93,8 @@ class AppController extends Controller
             'Flash',
             'Toolbox',
             'RateLimit',
-            'IndexFilter'
+            'IndexFilter',
+            'Deprecation'
             //,'DebugKit.Toolbar'
     );
 
@@ -187,7 +190,9 @@ class AppController extends Controller
         if ($this->_isRest()) {
             $this->Security->unlockedActions = array($this->action);
         }
-
+        if (!empty(Configure::read('Security.disable_form_security'))) {
+            $this->Security->csrfCheck = false;
+        }
         if (!$userLoggedIn) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
@@ -473,6 +478,18 @@ class AppController extends Controller
         if ($this->_isRest()) {
             $this->__rateLimitCheck();
         }
+        if ($this->modelClass !== 'CakeError') {
+            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->action, $this->{$this->modelClass}, $this->Auth->user('id'));
+            if ($deprecationWarnings) {
+                $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
+                if ($this->_isRest()) {
+                    $this->response->header('X-Deprecation-Warning', $deprecationWarnings);
+                    $this->components['RestResponse']['deprecationWarnings'] = $deprecationWarnings;
+                } else {
+                    $this->Flash->warning($deprecationWarnings);
+                }
+            }
+        }
         $this->components['RestResponse']['sql_dump'] = $this->sql_dump;
     }
 
@@ -691,9 +708,8 @@ class AppController extends Controller
     }
 
     // generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
-    protected function _harvestParameters($options, &$exception)
+    protected function _harvestParameters($options, &$exception, $data = array())
     {
-        $data = array();
         if (!empty($options['request']->is('post'))) {
             if (empty($options['request']->data)) {
                 $exception = $this->RestResponse->throwException(
@@ -1085,6 +1101,48 @@ class AppController extends Controller
                 $this->Session->write(AuthComponent::$sessionKey, $user);
             }
         }
+    }
+
+    protected function _legacyAPIRemap($options = array())
+    {
+        if (!empty($options['key'])) {
+            $user = $this->_getApiAuthUser($key, $exception);
+        } else {
+            $user = $this->Auth->user();
+        }
+        if ($user === false) {
+            return $exception;
+        }
+        $ordered_url_params = array();
+        foreach ($options['paramArray'] as $k => $param) {
+            if (isset($options['ordered_url_params'][$k])) {
+                $ordered_url_params[$param] = $options['ordered_url_params'][$k];
+            } else {
+                $ordered_url_params[$param] = false;
+            }
+        }
+        $filterData = array(
+            'request' => $options['request'],
+            'named_params' => $options['named_params'],
+            'paramArray' => $options['paramArray'],
+            'ordered_url_params' => $ordered_url_params
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if (!empty($options['injectedParams'])) {
+            foreach ($options['injectedParams'] as $injectedParam => $injectedValue) {
+                $filters[$injectedParam] = $injectedValue;
+            }
+        }
+        if (!empty($options['alias'])) {
+            foreach ($options['alias'] as $from => $to) {
+                if (!empty($filters[$from])) {
+                    $filters[$to] = $filters[$from];
+                }
+            }
+        }
+        $this->_legacyParams = $filters;
+        return true;
     }
 
 }

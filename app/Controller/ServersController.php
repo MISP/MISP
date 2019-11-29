@@ -250,6 +250,7 @@ class ServersController extends AppController
                     $defaults = array(
                         'push' => 0,
                         'pull' => 0,
+                        'push_sightings' => 0,
                         'caching_enabled' => 0,
                         'json' => '[]',
                         'push_rules' => '[]',
@@ -444,7 +445,7 @@ class ServersController extends AppController
             }
             if (!$fail) {
                 // say what fields are to be updated
-                $fieldList = array('id', 'url', 'push', 'pull', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
+                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
                 $this->request->data['Server']['id'] = $id;
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
@@ -663,13 +664,14 @@ class ServersController extends AppController
             if (!Configure::read('MISP.background_jobs')) {
                 $result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
                 if (is_array($result)) {
-                    $success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled.', count($result[0]), count($result[1]), $result[2]));
+                    $success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled.', count($result[0]), count($result[1]), $result[2], $result[3]));
                 } else {
                     $error = $result;
                 }
                 $this->set('successes', $result[0]);
                 $this->set('fails', $result[1]);
                 $this->set('pulledProposals', $result[2]);
+                $this->set('pulledSightings', $result[3]);
             } else {
                 $this->loadModel('Job');
                 $this->Job->create();
@@ -1501,6 +1503,10 @@ class ServersController extends AppController
                 if (isset($version['perm_sync'])) {
                     $perm_sync = $version['perm_sync'];
                 }
+                $perm_sighting = false;
+                if (isset($version['perm_sighting'])) {
+                    $perm_sighting = $version['perm_sighting'];
+                }
                 App::uses('Folder', 'Utility');
                 $file = new File(ROOT . DS . 'VERSION.json', true);
                 $local_version = json_decode($file->read(), true);
@@ -1527,8 +1533,12 @@ class ServersController extends AppController
                 if (!$mismatch && $version[2] < 111) {
                     $mismatch = 'proposal';
                 }
-                if (!$perm_sync) {
+                if (!$perm_sync && !$perm_sighting) {
                     $result['status'] = 7;
+                    return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+                }
+                if (!$perm_sync && $perm_sighting) {
+                    $result['status'] = 8;
                     return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
                 }
                 return new CakeResponse(
@@ -1628,7 +1638,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('This action requires API access.');
         }
         $versionArray = $this->Server->checkMISPVersion();
-        $this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync']));
+        $this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync'], 'perm_sighting' => $this->userRole['perm_sighting']));
         $this->set('_serialize', 'response');
     }
 
@@ -1941,16 +1951,16 @@ misp_verifycert = %s
 relative_path = \'%s\'
 body = %s
 
-from pymisp import PyMISP
+from pymisp import ExpandedPyMISP
 
-misp = PyMISP(misp_url, misp_key, misp_verifycert)
+misp = ExpandedPyMISP(misp_url, misp_key, misp_verifycert)
 misp.direct_call(relative_path, body)
 ',
             $baseurl,
             $request['header']['Authorization'],
             $verifyCert,
             $relative,
-            (empty($request['body']) ? 'Null' : $request['body'])
+            (empty($request['body']) ? 'None' : $request['body'])
         );
         return $python_script;
     }
@@ -2206,5 +2216,16 @@ misp.direct_call(relative_path, body)
             throw new MethodNotAllowedException(__('Only site admin accounts get the DB schema diagnostic.'));
         }
         return $this->RestResponse->viewData($this->Server->dbSchemaDiagnostic(), $this->response->type());
+    }
+
+    public function viewDeprecatedFunctionUse()
+    {
+        $data = $this->Deprecation->getDeprecatedAccessList($this->Server);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($data, $this->response->type());
+        } else {
+            $this->layout = false;
+            $this->set('data', $data);
+        }
     }
 }

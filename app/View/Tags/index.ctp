@@ -72,7 +72,7 @@
             <th><?php echo __('Tagged attributes');?></th>
             <th><?php echo __('Activity');?></th>
             <th><?php echo __('Favourite');?></th>
-            <?php if ($isAclTagEditor): ?>
+            <?php if ($isSiteAdmin): ?>
             <th class="actions"><?php echo __('Actions');?></th>
             <?php endif; ?>
     </tr><?php
