@@ -4387,7 +4387,7 @@ class Server extends AppModel
      */
     private function __attachRecoveryQuery($field, $table)
     {
-        if ($field['is_critical']) {
+        if (isset($field['error_type'])) {
             $length = false;
             if (in_array($field['error_type'], array('missing_column', 'column_different'))) {
                 if ($field['expected']['data_type'] === 'int') {
@@ -4404,30 +4404,57 @@ class Server extends AppModel
                 switch($field['error_type']) {
                     case 'missing_column':
                         $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s;',
+                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s %s;',
                             $table,
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
-                            isset($field['expected']['default']) ? 'DEFAULT "' . $field['expected']['default'] . '"' : '',
+                            isset($field['expected']['column_default']) ? $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                             empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
                         );
                         break;
                     case 'column_different':
                         $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` CHANGE `%s` `%s` %s%s %s %s;',
+                            'ALTER TABLE `%s` MODIFY COLUMN `%s` %s%s %s %s %s;',
                             $table,
-                            $field['column_name'],
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
-                            isset($field['expected']['default']) ? 'DEFAULT "' . $field['expected']['default'] . '"' : '',
+                            isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                             empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
                         );
                         break;
                 }
+            } elseif($field['error_type'] == 'missing_table') {
+                $allFields = array();
+                foreach ($field['expected_table'] as $expectedField) {
+                    $length = false;
+                    if ($expectedField['data_type'] === 'int') {
+                        $length = 11;
+                    } elseif ($expectedField['data_type'] === 'tinyint') {
+                        $length = 1;
+                    } elseif ($expectedField['data_type'] === 'varchar') {
+                        $length = $expectedField['character_maximum_length'];
+                    } elseif ($expectedField['data_type'] === 'text') {
+                        $length = null;
+                    }
+                    $fieldSql = sprintf('`%s` %s%s %s %s %s',
+                        $expectedField['column_name'],
+                        $expectedField['data_type'],
+                        $length !== null ? sprintf('(%d)', $length) : '',
+                        isset($expectedField['column_default']) ? 'DEFAULT "' . $expectedField['column_default'] . '"' : '',
+                        $expectedField['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
+                        empty($expectedField['collation_name']) ? '' : 'COLLATE ' . $expectedField['collation_name']
+                    );
+                    $allFields[] = $fieldSql;
+                }
+                $field['sql'] = __("% The command below is a suggestion and might be incorrect. Please ask if you are not sure what you are doing.") . "</br></br>" . sprintf(
+                    "CREATE TABLE IF NOT EXISTS `%s` ( %s ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;",
+                        $table,
+                        implode(', ', $allFields)
+                );
             }
         }
         return $field;
@@ -4468,7 +4495,8 @@ class Server extends AppModel
             'character_maximum_length',
             'numeric_precision',
             // 'datetime_precision',    -- Only available on MySQL 5.6+
-            'collation_name'
+            'collation_name',
+            'column_default'
         )
     ){
         $dbActualSchema = array();
@@ -4508,6 +4536,7 @@ class Server extends AppModel
                 $dbDiff[$tableName][] = array(
                     'description' => sprintf(__('Table `%s` does not exist'), $tableName),
                     'error_type' => 'missing_table',
+                    'expected_table' => $columns,
                     'column_name' => $tableName,
                     'is_critical' => true
                 );
