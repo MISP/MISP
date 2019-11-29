@@ -179,7 +179,7 @@ class UsersController extends AppController
                 // Save the data
                 if ($this->_isRest()) {
                     if (!empty($this->request->data['User']['password'])) {
-                        if ($this->request->data['User']['password'] === '****') {
+                        if ($this->request->data['User']['password'] === '*****') {
                             unset($this->request->data['User']['password']);
                         } else {
                             $currentUser['User']['confirm_password'] = $this->request->data['User']['password'];
