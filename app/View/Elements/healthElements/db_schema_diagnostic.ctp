@@ -65,8 +65,8 @@
         );
         if ($hasAtLeastOneCriticalWarning) {
             echo sprintf('<div class="alert alert-error"><strong>%s</strong> %s <br/>%s</div>',
-                __('Critical warning!'),
-                __('The MISP database seems to be in an inconsistent state. Immediate attention is required.'),
+                __('Warning'),
+                __('The MISP database state does not match the expected schema. Resolving these issues is recommended.'),
                 __('⚠ This diagnostic tool is in experimental state - the highlighted issues may be benign. If you are unsure, please open an issue on with the issues identified over at https://github.com/MISP/MISP for clarification.')
             );
         } else {
@@ -110,18 +110,12 @@
                     }
                     $rows .= sprintf('<td class="" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i),
                         empty($columnDiagnostic['sql']) ? '' :
-                            sprintf('%s%s%s%s',
-                                $this->Form->create('server', array('url' => 'execSQLQuery', 'style' => "margin-bottom: 0px;", 'data-ajax' => true)),
-                                sprintf(
-                                    '<i class="fa fa-wrench useCursorPointer" onclick="quickFixSchema(this, \'%s\')" title="%s" data-query="%s"></i>',
-                                    h($columnDiagnostic['sql']),
-                                    __('Fix Database schema'),
-                                    h($columnDiagnostic['sql'])
-                                ),
-                                $this->Form->input('sqlQuery', array('type' => 'hidden', 'value' => $columnDiagnostic['sql'])),
-                                $this->Form->end()
+                            sprintf(
+                                '<i class="fa fa-wrench useCursorPointer" onclick="quickFixSchema(this, \'%s\')" title="%s" data-query="%s"></i>',
+                                h($columnDiagnostic['sql']),
+                                __('Fix Database schema'),
+                                h($columnDiagnostic['sql'])
                             )
-                        
                     );
                 $rows .= '</tr>';
             }
@@ -206,6 +200,6 @@ $(document).ready(function() {
 function quickFixSchema(clicked, sqlQuery) {
     var message = "<?php echo sprintf('<div class=\"alert alert-error\" style=\"margin-bottom: 5px;\"><h5>%s</h5> %s</div>', __('Warning'), __('Executing this query might take some time and may harm your database. Please review the query below or backup your database in case of doubt.')) ?>"
     message += "<div class=\"well\"><kbd>" + sqlQuery + "</kbd></div>"
-    popoverConfirm(clicked, message, 'left')
+    openPopover(clicked, message, undefined, 'left');
 }
 </script>

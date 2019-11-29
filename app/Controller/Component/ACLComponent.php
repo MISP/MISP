@@ -364,7 +364,6 @@ class ACLComponent extends Component
                     'delete' => array(),
                     'deleteFile' => array(),
                     'edit' => array(),
-                    'execSQLQuery' => array(),
                     'fetchServersForSG' => array('*'),
                     'filterEventIndex' => array(),
                     'getApiInfo' => array('*'),

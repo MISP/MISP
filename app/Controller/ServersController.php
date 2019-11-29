@@ -2221,29 +2221,4 @@ misp.direct_call(relative_path, body)
         }
 
     }
-
-    public function execSQLQuery() {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('This endpoint expects POST requests.'));
-        }
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException(__('Only site admin accounts are allowed to perform DB schema fixes.'));
-        }
-        $sqlQuery = $this->request->data['server']['sqlQuery'];
-        $errorMessage = '';
-        try {
-            $this->Server->query($sqlQuery);
-        } catch (Exception $e) {
-            $errorMessage = $e->getMessage();
-        }
-        $this->Server->cleanCacheFiles();
-        if (!$this->_isRest()) {
-            if (empty($errorMessage)) {
-                $this->Flash->success(__('Query executed successfully'));
-            } else {
-                $this->Flash->error($errorMessage);
-            }
-        }
-        return $this->RestResponse->viewData(array('success' => empty($errorMessage), 'error' => $errorMessage), $this->response->type());
-    }
 }
