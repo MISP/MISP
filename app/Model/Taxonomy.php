@@ -101,7 +101,7 @@ class Taxonomy extends AppModel
             }
             $this->deleteAll(array('Taxonomy.namespace' => $current['Taxonomy']['namespace']));
         }
-        $taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'exclusive' => $vocab['exclusive'], 'enabled' => $enabled);
+        $taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'exclusive' => !empty($vocab['exclusive']), 'enabled' => $enabled);
         $predicateLookup = array();
         foreach ($vocab['predicates'] as $k => $predicate) {
             $taxonomy['Taxonomy']['TaxonomyPredicate'][$k] = $predicate;
