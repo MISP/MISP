@@ -629,15 +629,16 @@ class Sighting extends AppModel
 
     public function restSearch($user, $returnFormat, $filters)
     {
-        $allowedContext = array(false, 'event', 'attribute');
+        $allowedContext = array('event', 'attribute');
         // validate context
-        if (!in_array($filters['context'], $allowedContext, true)) {
+        if (isset($filters['context']) && !in_array($filters['context'], $allowedContext, true)) {
             throw new MethodNotAllowedException(_('Invalid context.'));
         }
         // ensure that an id is provided if context is set
-        if ($filters['context'] !== false && !isset($filters['id'])) {
+        if (!empty($filters['context']) && !isset($filters['id'])) {
             throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
         }
+
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }
@@ -683,10 +684,12 @@ class Sighting extends AppModel
             $conditions['Sighting.source'] = $filters['source'];
         }
 
-        if ($filters['context'] === 'attribute') {
-            $conditions['Sighting.attribute_id'] = $filters['id'];
-        } elseif ($filters['context'] === 'event') {
-            $conditions['Sighting.event_id'] = $filters['id'];
+        if (!empty($filters['id'])) {
+            if ($filters['context'] === 'attribute') {
+                $conditions['Sighting.attribute_id'] = $filters['id'];
+            } elseif ($filters['context'] === 'event') {
+                $conditions['Sighting.event_id'] = $filters['id'];
+            }
         }
 
         // fetch sightings matching the query
@@ -721,7 +724,6 @@ class Sighting extends AppModel
                     $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
                     $additional_event_added = true;
                 }
-
                 if (!empty($sight)) {
                     array_push($allowedSightings, $sight);
                 }
