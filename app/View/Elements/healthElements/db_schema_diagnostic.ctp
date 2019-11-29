@@ -46,19 +46,39 @@
 ?>
 
 <?php
+    $hasAtLeastOneCriticalWarning = false;
+    foreach ($dbSchemaDiagnostics as $tableName => $tableDiagnostic) {
+        foreach ($tableDiagnostic as $i => $columnDiagnostic) {
+            if ($columnDiagnostic['is_critical']) {
+                $hasAtLeastOneCriticalWarning = true;
+                break;
+            }
+        }
+        if ($hasAtLeastOneCriticalWarning) {
+            break;
+        }
+    }
     if (count($dbSchemaDiagnostics) > 0) {
         echo sprintf('<span  style="margin-bottom: 5px;" class="label label-important" title="%s">%s<i style="font-size: larger;" class="fas fa-times"></i></span>',
             __('The current database schema does not match the expected format.'),
             __('Database schema diagnostic: ')
         );
-        echo sprintf('<div class="alert alert-error"><strong>%s</strong> %s <br/>%s</div>',
-            __('Critical warning!'),
-            __('The MISP database seems to be in an inconsistent state. Immediate attention is required.'),
-            __('⚠ This diagnostic tool is in experimental state - the highlighted issues may be benign. If you are unsure, please open an issue on with the issues identified over at https://github.com/MISP/MISP for clarification.')
-        );
+        if ($hasAtLeastOneCriticalWarning) {
+            echo sprintf('<div class="alert alert-error"><strong>%s</strong> %s <br/>%s</div>',
+                __('Warning'),
+                __('The MISP database state does not match the expected schema. Resolving these issues is recommended.'),
+                __('⚠ This diagnostic tool is in experimental state - the highlighted issues may be benign. If you are unsure, please open an issue on with the issues identified over at https://github.com/MISP/MISP for clarification.')
+            );
+        } else {
+            echo sprintf('<div class="alert alert-warning"><strong>%s</strong> %s <br/>%s</div>',
+                __('Warning'),
+                __('The MISP database state does not match the expected schema. Resolving these issues is recommended.'),
+                __('⚠ This diagnostic tool is in experimental state - the highlighted issues may be benign. If you are unsure, please open an issue on with the issues identified over at https://github.com/MISP/MISP for clarification.')
+            );
+        }
         $table = sprintf('%s%s%s', 
             '<table class="table table-bordered table-condensed">',
-            sprintf('<thead><th>%s</th><th>%s</th><th>%s</th><th>%s</th></thead>', __('Table name'),  __('Description'), __('Expected schema'), __('Actual schema')),
+            sprintf('<thead><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th></th></thead>', __('Table name'),  __('Description'), __('Expected schema'), __('Actual schema')),
             '<tbody>'
         );
         $rows = '';
@@ -88,6 +108,15 @@
                         $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i), implode(' ', $saneExpected));
                         $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i), implode(' ', $saneActual));
                     }
+                    $rows .= sprintf('<td class="" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i),
+                        empty($columnDiagnostic['sql']) ? '' :
+                            sprintf(
+                                '<i class="fa fa-wrench useCursorPointer" onclick="quickFixSchema(this, \'%s\')" title="%s" data-query="%s"></i>',
+                                h($columnDiagnostic['sql']),
+                                __('Fix Database schema'),
+                                h($columnDiagnostic['sql'])
+                            )
+                    );
                 $rows .= '</tr>';
             }
         }
@@ -167,4 +196,10 @@ $(document).ready(function() {
         trigger: 'hover'
     });
 });
+
+function quickFixSchema(clicked, sqlQuery) {
+    var message = "<?php echo sprintf('<div class=\"alert alert-error\" style=\"margin-bottom: 5px;\"><h5>%s</h5> %s</div>', __('Warning'), __('Executing this query might take some time and may harm your database. Please review the query below or backup your database in case of doubt.')) ?>"
+    message += "<div class=\"well\"><kbd>" + sqlQuery + "</kbd></div>"
+    openPopover(clicked, message, undefined, 'left');
+}
 </script>
