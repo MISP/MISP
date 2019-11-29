@@ -2821,7 +2821,7 @@ class Server extends AppModel
             $this->syncProposals($HttpSocket, $this->data, null, null, $this->Event);
         }
 
-        if ($push['canSight']) {
+        if ($push['canPush'] || $push['canSight']) {
             $sightingSuccesses = $this->syncSightings($HttpSocket, $this->data, $user, $this->Event);
         } else {
             $sightingSuccesses = array();
