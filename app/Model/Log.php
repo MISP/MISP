@@ -44,6 +44,7 @@ class Log extends AppModel
                     'merge',
                     'pruneUpdateLogs',
                     'publish',
+                    'publish_sightings',
                     'publish alert',
                     'pull',
                     'purge_events',

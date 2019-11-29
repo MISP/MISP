@@ -3977,7 +3977,11 @@ class Event extends AppModel
         $event['Event']['locked'] = 1;
         // get a list of the servers
         $this->Server = ClassRegistry::init('Server');
-        $conditions = array('push' => 1);
+        if ($scope === 'sightings') {
+            $conditions = array('push_sightings' => 1);
+        } else {
+            $conditions = array('push' => 1);
+        }
         if ($passAlong) {
             $conditions[] = array('Server.id !=' => $passAlong);
         }
@@ -4000,7 +4004,7 @@ class Event extends AppModel
             $syncTool = new SyncTool();
             $HttpSocket = $syncTool->setupHttpSocket($server);
             // Skip servers where the event has come from.
-            if (($passAlong != $server)) {
+            if (($passAlong != $server['Server']['id'])) {
                 $params = array();
                 if (!empty($server['Server']['push_rules'])) {
                     $push_rules = json_decode($server['Server']['push_rules'], true);
