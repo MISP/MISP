@@ -94,7 +94,8 @@ class AppController extends Controller
             'Toolbox',
             'RateLimit',
             'IndexFilter',
-            'Deprecation'
+            'Deprecation',
+            'RestSearch'
             //,'DebugKit.Toolbar'
     );
 
@@ -190,9 +191,7 @@ class AppController extends Controller
         if ($this->_isRest()) {
             $this->Security->unlockedActions = array($this->action);
         }
-        if (!empty(Configure::read('Security.disable_form_security'))) {
-            $this->Security->csrfCheck = false;
-        }
+
         if (!$userLoggedIn) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
@@ -720,11 +719,24 @@ class AppController extends Controller
                 return false;
             } else {
                 if (isset($options['request']->data['request'])) {
-                    $data = $options['request']->data['request'];
+                    $data = array_merge($data, $options['request']->data['request']);
                 } else {
-                    $data = $options['request']->data;
+                    $data = array_merge($data, $options['request']->data);
                 }
             }
+        }
+        /*
+         * If we simply capture ordered URL params with func_get_args(), reassociate them.
+         * We can easily detect this by having ordered_url_params passed as a list instead of a dict.
+         */
+        if (isset($options['ordered_url_params'][0])) {
+            $temp = array();
+            foreach ($options['ordered_url_params'] as $k => $url_param) {
+                if (!empty($options['paramArray'][$k])) {
+                    $temp[$options['paramArray'][$k]] = $url_param;
+                }
+            }
+            $options['ordered_url_params'] = $temp;
         }
         if (!empty($options['paramArray'])) {
             foreach ($options['paramArray'] as $p) {
@@ -1105,14 +1117,6 @@ class AppController extends Controller
 
     protected function _legacyAPIRemap($options = array())
     {
-        if (!empty($options['key'])) {
-            $user = $this->_getApiAuthUser($key, $exception);
-        } else {
-            $user = $this->Auth->user();
-        }
-        if ($user === false) {
-            return $exception;
-        }
         $ordered_url_params = array();
         foreach ($options['paramArray'] as $k => $param) {
             if (isset($options['ordered_url_params'][$k])) {
@@ -1145,4 +1149,59 @@ class AppController extends Controller
         return true;
     }
 
+    public function restSearch()
+    {
+        $ordered_url_params = func_get_args();
+        if (empty($this->RestSearch->paramArray[$this->modelClass])) {
+            throw new NotFoundException(__('RestSearch is not implemented (yet) for this scope.'));
+        }
+        $scope = empty($this->scopeOverride) ? $this->modelClass : $this->scopeOverride;
+        if (!isset($this->$scope)) {
+            $this->loadModel($scope);
+        }
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => $this->RestSearch->paramArray[$scope],
+            'ordered_url_params' => func_get_args()
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception, $this->_legacyParams);
+        if (empty($filters['returnFormat'])) {
+            $filters['returnFormat'] = 'json';
+        }
+        unset($filterData);
+        if ($filters === false) {
+            return $exception;
+        }
+        $list = array();
+        $key = empty($filters['key']) ? $filters['returnFormat'] : $filters['key'];
+        $user = $this->_getApiAuthUser($key, $exception);
+        if ($user === false) {
+            return $exception;
+        }
+        if (isset($filters['returnFormat'])) {
+            $returnFormat = $filters['returnFormat'];
+        } else {
+            $returnFormat = 'json';
+        }
+        if ($returnFormat === 'download') {
+            $returnFormat = 'json';
+        }
+        $elementCounter = 0;
+        $renderView = false;
+        $final = $this->$scope->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        if (!empty($renderView) && !empty($final)) {
+            $this->layout = false;
+            $final = json_decode($final, true);
+            foreach ($final as $key => $data) {
+                $this->set($key, $data);
+            }
+            $this->render('/Events/module_views/' . $renderView);
+        } else {
+            $responseType = $this->$scope->validFormats[$returnFormat][0];
+            $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
+            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        }
+    }
 }

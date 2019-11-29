@@ -401,6 +401,7 @@ class Attribute extends AppModel
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
         'text' => array('txt', 'TextExport', 'txt'),
+        'hashes' => array('txt', 'HashesExport', 'txt'),
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),

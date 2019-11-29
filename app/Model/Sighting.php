@@ -629,6 +629,15 @@ class Sighting extends AppModel
 
     public function restSearch($user, $returnFormat, $filters)
     {
+        $allowedContext = array(false, 'event', 'attribute');
+        // validate context
+        if (!in_array($filters['context'], $allowedContext, true)) {
+            throw new MethodNotAllowedException(_('Invalid context.'));
+        }
+        // ensure that an id is provided if context is set
+        if ($filters['context'] !== false && !isset($filters['id'])) {
+            throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
+        }
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }

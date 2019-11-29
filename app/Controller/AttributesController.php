@@ -1859,62 +1859,6 @@ class AttributesController extends AppController
         $this->set('fails', $this->Attribute->checkComposites());
     }
 
-    public function restSearch(
-        $returnFormat = false, $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false,
-        $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false,
-        $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false,
-        $threat_level_id = false
-    )
-    {
-        $paramArray = array(
-            'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
-            'timestamp', 'attribute_timestamp','enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
-            'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
-            'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'includeSightings', 'includeCorrelations', 'includeDecayScore',
-            'decayingModel', 'excludeDecayed', 'modelOverrides', 'includeFullModel', 'score'
-        );
-        $filterData = array(
-            'request' => $this->request,
-            'named_params' => $this->params['named'],
-            'paramArray' => $paramArray,
-            'ordered_url_params' => @compact($paramArray)
-        );
-        $validFormats = $this->Attribute->validFormats;
-        $exception = false;
-        $filters = $this->_harvestParameters($filterData, $exception);
-        unset($filterData);
-        if ($filters === false) {
-            return $exception;
-        }
-        $list = array();
-        $user = $this->_getApiAuthUser($returnFormat, $exception);
-        if ($user === false) {
-            return $exception;
-        }
-        if (isset($filters['returnFormat'])) {
-            $returnFormat = $filters['returnFormat'];
-        } else {
-            $returnFormat = 'json';
-        }
-        if ($returnFormat === 'download') {
-            $returnFormat = 'json';
-        }
-        $elementCounter = 0;
-        $renderView = '';
-        $final = $this->Attribute->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
-        if (!empty($renderView) && !empty($final)) {
-            $this->layout = false;
-            $final = json_decode($final, true);
-            foreach ($final as $key => $data) {
-                $this->set($key, $data);
-            }
-            $this->render('/Events/module_views/' . $renderView);
-        } else {
-            $responseType = $this->Attribute->validFormats[$returnFormat][0];
-            return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
-        }
-    }
-
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
     // Similar to the restSearch, this parameter can be chained with '&&' and negations are accepted too. For example filename&&!filename|md5 would return all filenames that don't have an md5
     // The usage of returnAttributes is the following: [MISP-url]/attributes/returnAttributes/<API-key>/<type>/<signature flag>
@@ -2060,165 +2004,50 @@ class AttributesController extends AppController
         $this->__downloadAttachment($this->Attribute->data['Attribute']);
     }
 
-    public function text($key='download', $type = 'all', $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $allowNotPublished = false)
+    public function text()
     {
-        $simpleFalse = array('eventId', 'allowNonIDS', 'tags', 'from', 'to', 'last', 'enforceWarninglist', 'allowNotPublished');
-        foreach ($simpleFalse as $sF) {
-            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
-                ${$sF} = false;
-            }
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'key', 'type', 'tags', 'eventId', 'allowNonIDS', 'from', 'to', 'last', 'enforceWarninglist', 'allowNotPublished'
+            ),
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'ordered_url_params' => func_get_args(),
+            'injectedParams' => array(
+                'returnFormat' => 'text'
+            ),
+            'alias' => array(
+                'eventId' => 'eventid'
+            )
+        ));
+        if (!empty($this->_legacyParams['allowNonIDS'])) {
+            $this->_legacyParams['to_ids'] = [0,1];
         }
-        if ($type === 'null' || $type === '0' || $type === 'false') {
-            $type = 'all';
+        if (!empty($this->_legacyParams['allowNotPublished'])) {
+            $this->_legacyParams['published'] = [0,1];
         }
-        if ($this->request->is('post')) {
-            $params = array('type', 'tags', 'eventId', 'allowNonIDS', 'from', 'to', 'last', 'enforceWarninglist', 'allowNotPublished');
-            foreach ($params as $param) {
-                if (isset($this->request->data[$param])) {
-                    ${$param} = $this->request->data[$param];
-                }
-            }
+        if (!empty($this->_legacyParams['type']) && $this->_legacyParams['type'] === 'all') {
+            unset($this->_legacyParams['type']);
         }
-        if ($from) {
-            $from = $this->Attribute->Event->dateFieldCheck($from);
-        }
-        if ($to) {
-            $to = $this->Attribute->Event->dateFieldCheck($to);
-        }
-        if ($last) {
-            $last = $this->Attribute->Event->resolveTimeDelta($last);
-        }
-        if ($key != 'download') {
-            // check if the key is valid -> search for users based on key
-            $user = $this->checkAuthUser($key);
-            if (!$user) {
-                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-            }
-        } else {
-            if (!$this->Auth->user('id')) {
-                throw new UnauthorizedException(__('You have to be logged in to do that.'));
-            }
-        }
-        $this->response->type('txt');    // set the content type
-        $this->header('Content-Disposition: download; filename="misp.' . (is_array($type) ? 'multi' : $type) . '.txt"');
-        $this->layout = 'text/default';
-        $attributes = $this->Attribute->text($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last, $enforceWarninglist, $allowNotPublished);
-        $this->loadModel('Whitelist');
-        $attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
-        $this->set('attributes', $attributes);
-        $this->render('/Attributes/text');
+        return $this->restSearch();
     }
 
-    public function rpz($key='download', $tags=false, $eventId=false, $from=false, $to=false, $policy=false, $walled_garden = false, $ns = false, $email = false, $serial = false, $refresh = false, $retry = false, $expiry = false, $minimum_ttl = false, $ttl = false, $enforceWarninglist = false, $ns_alt = false)
+    public function rpz()
     {
-        // request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
-        // The correct format for both is a "request" root element, as shown by the examples below:
-        // For Json: {"request":{"policy": "Local-Data","walled_garden":"my.stop.page.net"}}
-        // For XML: <request><policy>Local-Data</policy><walled_garden>my.stop.page.net</walled_garden></request>
-        // the response type is used to determine the parsing method (xml/json)
-        if ($this->request->is('post')) {
-            if ($this->request->input('json_decode', true)) {
-                $data = $this->request->input('json_decode', true);
-            } else {
-                $data = $this->request->data;
-            }
-            if (empty($data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type).'));
-            }
-            $paramArray = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl', 'enforceWarninglist', 'ns_alt');
-            foreach ($paramArray as $p) {
-                if (isset($data['request'][$p])) {
-                    ${$p} = $data['request'][$p];
-                } else {
-                    ${$p} = false;
-                }
-            }
-        }
-
-        $simpleFalse = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl', 'enforceWarninglist', 'ns_alt');
-        foreach ($simpleFalse as $sF) {
-            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
-                ${$sF} = false;
-            }
-        }
-        if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'Local-Data', 'PASSTHRU', 'TCP-only'))) {
-            $policy = false;
-        }
-        App::uses('RPZExport', 'Export');
-        $rpzExport = new RPZExport();
-        if ($policy) {
-            $policy = $rpzExport->getIdByPolicy($policy);
-        }
-
-        $this->loadModel('Server');
-        $rpzSettings = array();
-        $lookupData = array('policy', 'walled_garden', 'ns', 'ns_alt', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
-        foreach ($lookupData as $v) {
-            if (${$v} !== false) {
-                $rpzSettings[$v] = ${$v};
-            } else {
-                $tempSetting = Configure::read('Plugin.RPZ_' . $v);
-                if (isset($tempSetting)) {
-                    $rpzSettings[$v] = Configure::read('Plugin.RPZ_' . $v);
-                } else {
-                    $rpzSettings[$v] = $this->Server->serverSettings['Plugin']['RPZ_' . $v]['value'];
-                }
-            }
-        }
-        if ($from) {
-            $from = $this->Attribute->Event->dateFieldCheck($from);
-        }
-        if ($to) {
-            $to = $this->Attribute->Event->dateFieldCheck($to);
-        }
-        if ($key != 'download') {
-            // check if the key is valid -> search for users based on key
-            $user = $this->checkAuthUser($key);
-            if (!$user) {
-                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-            }
-        } else {
-            if (!$this->Auth->user('id')) {
-                throw new UnauthorizedException(__('You have to be logged in to do that.'));
-            }
-        }
-        if (false === $eventId || $eventId === null) {
-            $eventIds = $this->Attribute->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
-        } elseif (is_numeric($eventId)) {
-            $eventIds = array($eventId);
-        } else {
-            throw new MethodNotAllowedException(__('Invalid event ID format.'));
-        }
-        $values = array();
-        foreach ($eventIds as $k => $eventId) {
-            $values = array_merge_recursive($values, $this->Attribute->rpz($this->Auth->user(), $tags, $eventId, $from, $to, $enforceWarninglist));
-        }
-        $this->response->type('txt');    // set the content type
-        $file = '';
-        if ($tags) {
-            $file = 'filtered.';
-        }
-        if ($eventId) {
-            $file .= 'event-' . $eventId . '.';
-        }
-        if ($from) {
-            $file .= 'from-' . $from . '.';
-        }
-        if ($to) {
-            $file .= 'to-' . $to . '.';
-        }
-        if ($file == '') {
-            $file = 'all.';
-        }
-        $this->header('Content-Disposition: download; filename="misp.rpz.' . $file . 'txt"');
-        $this->layout = 'text/default';
-        $this->loadModel('Whitelist');
-        foreach ($values as $key => $value) {
-            $values[$key] = $this->Whitelist->removeWhitelistedValuesFromArray($value);
-        }
-        $this->set('values', $values);
-        $this->set('rpzSettings', $rpzSettings);
-        $this->render('/Attributes/rpz');
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'key', 'tags', 'eventid', 'from', 'to', 'policy', 'walled_garden', 'ns',
+                'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl',
+                'enforceWarninglist', 'ns_alt'
+            ),
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'ordered_url_params' => func_get_args(),
+            'injectedParams' => array(
+                'returnFormat' => 'rpz'
+            )
+        ));
+        return $this->restSearch();
     }
 
     public function bro($key = 'download', $type = 'all', $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false)
