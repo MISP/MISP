@@ -4373,7 +4373,7 @@ class Server extends AppModel
                     );
                     $allFields[] = $fieldSql;
                 }
-                $field['sql'] = sprintf(
+                $field['sql'] = __("% The command below is a suggestion and might be incorrect. Please ask if you are not sure what you are doing.") . "</br></br>" . sprintf(
                     "CREATE TABLE IF NOT EXISTS `%s` ( %s ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;",
                         $table,
                         implode(', ', $allFields)
