@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2019-09-30 01:23\n"
+"PO-Revision-Date: 2019-11-30 07:05\n"
 "Last-Translator: Steve Clement (SteveClement)\n"
 "Language-Team: Norwegian\n"
 "MIME-Version: 1.0\n"
