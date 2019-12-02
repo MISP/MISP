@@ -597,8 +597,10 @@ class MispObject extends AppModel
             $this->Event->unpublishEvent($eventId);
             $objectId = $this->id;
             $partialFails = array();
-            foreach ($object['Object']['Attribute'] as $attribute) {
-                $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
+            if (!empty($object['Object']['Attribute'])) {
+                foreach ($object['Object']['Attribute'] as $attribute) {
+                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
+                }
             }
             return true;
         } else {
