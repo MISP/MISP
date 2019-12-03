@@ -2105,7 +2105,7 @@ function enable_interactive_graph() {
         eventGraph = new EventGraph(network_options, nodes, edges);
 
         $(document).on("keydown", function(evt) {
-            if (evt.target !== undefined && $(evt.target).is('input')) {
+            if (evt.target !== undefined && ($(evt.target).is('input') || $(evt.target).is('textarea'))) {
                 return;
             }
             switch(evt.keyCode) {
