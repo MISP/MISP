@@ -1089,6 +1089,11 @@ class EventGraph {
 
                 // Do not link already connected nodes
                 if (that.network.getConnectedEdges(cur_id).length > 0) {
+                    if (nodeData['unreferenced'] !== undefined) {
+                        that.nodes.remove(nodeData.id);
+                        delete nodeData['unreferenced'];
+                        that.nodes.add(nodeData);
+                    }
                     return;
                 }
 
