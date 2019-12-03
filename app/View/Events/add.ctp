@@ -54,8 +54,10 @@
                     'field' => 'extends_uuid',
                     'class' => 'input span6',
                     'placeholder' => __('Event UUID or ID. Leave blank if not applicable.'),
-                    'label' => __("Extends Event")
-                )
+                    'label' => __("Extends Event"),
+                    'default' => isset($extends_uuid) ? $extends_uuid : ''
+                ),
+                '<div id="extended_event_preview" style="width:446px;"></div>'
             ),
             'submit' => array(
                 'action' => $this->request->params['action']
