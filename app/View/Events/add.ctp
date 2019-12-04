@@ -3,7 +3,7 @@
     echo $this->element('genericElements/Form/genericForm', array(
         'form' => $this->Form,
         'data' => array(
-            'title' => __('Add Event'),
+            'title' => $action === 'add' ? __('Add Event') : __('Edit Event'),
             'model' => $modelForForm,
             'fields' => array(
                 array(
@@ -54,8 +54,10 @@
                     'field' => 'extends_uuid',
                     'class' => 'input span6',
                     'placeholder' => __('Event UUID or ID. Leave blank if not applicable.'),
-                    'label' => __("Extends Event")
-                )
+                    'label' => __("Extends Event"),
+                    'default' => isset($extends_uuid) ? $extends_uuid : ''
+                ),
+                '<div id="extended_event_preview" style="width:446px;"></div>'
             ),
             'submit' => array(
                 'action' => $this->request->params['action']

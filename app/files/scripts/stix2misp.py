@@ -111,6 +111,7 @@ class StixParser():
             'FileObjectType': self.handle_file,
             'HostnameObjectType': self.handle_hostname,
             'HTTPSessionObjectType': self.handle_http,
+            'LinkObjectType': self.handle_link,
             'MutexObjectType': self.handle_mutex,
             'NetworkConnectionObjectType': self.handle_network_connection,
             'NetworkSocketObjectType': self.handle_network_socket,
@@ -412,6 +413,11 @@ class StixParser():
         elif client_request.http_request_line:
             value = client_request.http_request_line.http_method.value
             return "http-method", value, "method"
+
+    # Return type & value of a link attribute
+    @staticmethod
+    def handle_link(properties):
+        return "link", properties.value.value, "link"
 
     # Return type & value of a mutex attribute
     @staticmethod

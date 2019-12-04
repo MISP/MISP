@@ -1047,6 +1047,15 @@
                                 'url' => '/feeds/previewEvent/' . h($feed['Feed']['id']) . '/' . h($id),
                                 'text' => __('PreviewEvent')
                             ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                                'url' => sprintf(
+                                    '/feeds/getEvent/%s/%s',
+                                    h($feed['Feed']['id']),
+                                    h($event['Event']['uuid'])
+                                ),
+                                'text' => __('Fetch This Event'),
+                                'message' => __('Are you sure you want to fetch and save this event on your instance?')
+                            ));
                         }
                     }
                 break;
