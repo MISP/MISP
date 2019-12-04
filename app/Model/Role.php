@@ -220,6 +220,9 @@ class Role extends AppModel
                 $this->data['Role']['memory_limit'] = '';
             }
         }
+        if (empty($this->data['Role']['rate_limit_count'])) {
+            $this->data['Role']['rate_limit_count'] = 0;
+        }
         return true;
     }
 
