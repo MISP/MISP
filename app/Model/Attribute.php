@@ -4107,6 +4107,7 @@ class Attribute extends AppModel
         $result = $this->fetchAttributes($user, array(
             'conditions' => array('Attribute.id' => $id),
             'flatten' => 1,
+            'deleted' => [0,1],
             'recursive' => -1,
             'contain' => array('Event')
         ));
