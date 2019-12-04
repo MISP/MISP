@@ -6,7 +6,7 @@ abstract class DecayingModelBase
         return 'BONFIRE LIT';
     }
 
-    
+
     protected function __extractTagBasename($tagName) {
         $pieces = array();
         if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
