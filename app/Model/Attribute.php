@@ -4395,8 +4395,9 @@ class Attribute extends AppModel
             $temp = '';
             foreach ($results as $attribute) {
                 $elementCounter++;
-                $temp .= $exportTool->handler($attribute, $exportToolParams);
-                if ($temp !== '') {
+                $handlerResult = $exportTool->handler($attribute, $exportToolParams);
+                $temp .= $handlerResult;
+                if ($handlerResult !== '') {
                     if ($i != count($results) -1) {
                         $temp .= $exportTool->separator($exportToolParams);
                     }
