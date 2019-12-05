@@ -408,7 +408,8 @@ class Attribute extends AppModel
         'csv' => array('csv', 'CsvExport', 'csv'),
         'cache' => array('txt', 'CacheExport', 'cache'),
         'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
-        'netfilter' => array('txt', 'NetfilterExport', 'sh')
+        'netfilter' => array('txt', 'NetfilterExport', 'sh'),
+        'nibbler' => array('nibbler', 'NibblerExport', 'nibbler')
     );
 
     // FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
@@ -4395,8 +4396,9 @@ class Attribute extends AppModel
             $temp = '';
             foreach ($results as $attribute) {
                 $elementCounter++;
-                $temp .= $exportTool->handler($attribute, $exportToolParams);
-                if ($temp !== '') {
+                $handlerResult = $exportTool->handler($attribute, $exportToolParams);
+                $temp .= $handlerResult;
+                if ($handlerResult !== '') {
                     if ($i != count($results) -1) {
                         $temp .= $exportTool->separator($exportToolParams);
                     }

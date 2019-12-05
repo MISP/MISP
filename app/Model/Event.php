@@ -169,7 +169,7 @@ class Event extends AppModel
                     'requiresPublished' => 1,
                     'params' => array('returnFormat' => 'yara-json'),
                     'description' => 'Click this to download Yara rules generated from all relevant attributes. Rules are returned in a JSON format with information about origin (generated or parsed) and validity.'
-            ),
+            )
     );
 
     public $validFormats = array(
@@ -190,7 +190,8 @@ class Event extends AppModel
         'cache' => array('txt', 'CacheExport', 'cache'),
         'attack' => array('html', 'AttackExport', 'html'),
         'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
-        'netfilter' => array('txt', 'NetfilterExport', 'sh')
+        'netfilter' => array('txt', 'NetfilterExport', 'sh'),
+        'nibbler' => array('nibbler', 'NibblerExport', 'nibbler')
     );
 
     public $csv_event_context_fields_to_fetch = array(
