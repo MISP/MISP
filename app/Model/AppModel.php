@@ -77,10 +77,30 @@ class AppModel extends Model
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
-        45 => false
+        45 => false, 46 => false
     );
 
     public $advanced_updates_description = array(
+        'seenOnAttributeAndObject' => array(
+            'title' => 'First seen/Last seen Attribute table',
+            'description' => 'Update the Attribute table to support first_seen and last_seen feature, with a microsecond resolution.',
+            'liveOff' => true, # should the instance be offline for users other than site_admin
+            'recommendBackup' => true, # should the update recommend backup
+            'exitOnError' => false, # should the update exit on error
+            'requirements' => 'MySQL version must be >= 5.6', # message stating the requirements necessary for the update
+            'record' => false, # should the update success be saved in the admin_table
+            // 'preUpdate' => 'seenOnAttributeAndObjectPreUpdate', # Function to execute before the update. If it throws an error, it cancels the update
+            'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
+        ),
+        'testUpdate' => array(
+            'title' => 'Test Update',
+            'description' => 'Runs a test update',
+            'liveOff' => true,
+            'recommendBackup' => true,
+            'exitOnError' => true,
+            'preUpdate' => 'failingPreUpdate', # Function to execute before the update. If it returns false, cancel the update
+            'url' => '/servers/updateDatabase/testUpdate/'
+        )
     );
     public $actions_description = array(
         'verifyGnuPGkeys' => array(
@@ -222,6 +242,9 @@ class AppModel extends Model
             case 38:
                 $dbUpdateSuccess = $this->updateDatabase($command);
                 $this->__addServerPriority();
+                break;
+            case 46:
+                $dbUpdateSuccess = $this->updateDatabase('seenOnAttributeAndObject', true);
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -1323,6 +1346,66 @@ class AppModel extends Model
                 $sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
                 $sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
                 break;
+            case 'seenOnAttributeAndObject':
+                $sqlArray[] =
+                    "ALTER TABLE `attributes`
+                        DROP INDEX uuid,
+                        DROP INDEX event_id,
+                        DROP INDEX sharing_group_id,
+                        DROP INDEX type,
+                        DROP INDEX category,
+                        DROP INDEX value1,
+                        DROP INDEX value2,
+                        DROP INDEX object_id,
+                        DROP INDEX object_relation;
+                    ";
+                $sqlArray[] = "ALTER TABLE `attributes` DROP INDEX deleted"; // deleted index may not be present
+                $sqlArray[] = "ALTER TABLE `attributes` DROP INDEX comment"; // for replayability
+                $sqlArray[] = "ALTER TABLE `attributes` DROP INDEX first_seen"; // for replayability
+                $sqlArray[] = "ALTER TABLE `attributes` DROP INDEX last_seen"; // for replayability
+                $sqlArray[] =
+                    "ALTER TABLE `attributes`
+                        ADD COLUMN `first_seen` BIGINT(20) NULL DEFAULT NULL,
+                        ADD COLUMN `last_seen` BIGINT(20) NULL DEFAULT NULL,
+                        MODIFY comment TEXT COLLATE utf8_unicode_ci
+                    ;";
+                $indexArray[] = array('attributes', 'uuid');
+                $indexArray[] = array('attributes', 'event_id');
+                $indexArray[] = array('attributes', 'sharing_group_id');
+                $indexArray[] = array('attributes', 'type');
+                $indexArray[] = array('attributes', 'category');
+                $indexArray[] = array('attributes', 'value1');
+                $indexArray[] = array('attributes', 'value2');
+                $indexArray[] = array('attributes', 'object_id');
+                $indexArray[] = array('attributes', 'object_relation');
+                $indexArray[] = array('attributes', 'deleted');
+                $indexArray[] = array('attributes', 'comment', 767);  // https://dev.mysql.com/doc/refman/5.7/en/create-index.html
+                $indexArray[] = array('attributes', 'first_seen');
+                $indexArray[] = array('attributes', 'last_seen');
+                $sqlArray[] = "
+                    ALTER TABLE `objects`
+                        ADD `first_seen` BIGINT(20) NULL DEFAULT NULL,
+                        ADD `last_seen` BIGINT(20) NULL DEFAULT NULL,
+                        MODIFY comment TEXT COLLATE utf8_unicode_ci
+                    ;";
+                $indexArray[] = array('objects', 'first_seen');
+                $indexArray[] = array('objects', 'last_seen');
+                $indexArray[] = array('objects', 'comment', 767);
+                $sqlArray[] = "
+                    ALTER TABLE `shadow_attributes`
+                        ADD `first_seen` BIGINT(20) NULL DEFAULT NULL,
+                        ADD `last_seen` BIGINT(20) NULL DEFAULT NULL,
+                        MODIFY comment TEXT COLLATE utf8_unicode_ci
+                    ;";
+                $indexArray[] = array('shadow_attributes', 'first_seen');
+                $indexArray[] = array('shadow_attributes', 'last_seen');
+                $indexArray[] = array('shadow_attributes', 'comment', 767);
+                break;
+            case 'testUpdate':
+                $sqlArray[] = "SELECT SLEEP(10);";
+                $sqlArray[] = "SELECT SLEEP(4);";
+                $sqlArray[] = "SELECT SLEEP(12);";
+                break;
             default:
                 return false;
                 break;
@@ -1624,6 +1707,29 @@ class AppModel extends Model
         return true;
     }
 
+    // Try to create a table with a BIGINT(20)
+    public function seenOnAttributeAndObjectPreUpdate() {
+        $sqlArray[] = "CREATE TABLE IF NOT EXISTS testtable (
+            `testfield` BIGINT(6) NULL DEFAULT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+        try {
+            foreach($sqlArray as $i => $sql) {
+                $this->query($sql);
+            }
+        } catch (Exception $e) {
+            throw new Exception('Pre update test failed: ' . PHP_EOL . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage());
+        }
+        // clean up
+        $sqlArray[] = "DROP TABLE testtable;";
+        foreach($sqlArray as $i => $sql) {
+            $this->query($sql);
+        }
+    }
+
+    public function failingPreUpdate() {
+        throw new Exception('Yolo fail');
+    }
+
     public function runUpdates($verbose = false, $useWorker = true, $processId = false)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
@@ -1901,7 +2007,7 @@ class AppModel extends Model
 
     public function getLockRemainingTime()
     {
-        $lockState = $this->getUpdateLockState();
+        $lockState = $this->__getUpdateLockState();
         if ($lockState !== false && $lockState !== '') {
             // if lock is old, still allows the update
             // This can be useful if the update process crashes

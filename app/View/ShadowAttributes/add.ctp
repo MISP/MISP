@@ -40,6 +40,7 @@
             echo $this->Form->input('batch_import', array(
                     'type' => 'checkbox',
             ));
+            echo $this->element('form_seen_input');
         ?>
     </div>
     </fieldset>

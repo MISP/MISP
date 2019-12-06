@@ -33,6 +33,11 @@
                     'label' => __('Alternate Search Result (Events)')
             ));
         ?>
+        <div class="clear">
+        <h3><?php echo __('First seen and Last seen.'); ?></h3>
+        <p><?php echo __('Attributes not having first seen or last seen set might not appear in the search'); ?></p>
+    </div>
+        <?php echo $this->element('form_seen_input'); ?>
     </fieldset>
 <?php
     echo $this->Form->button(__('Search'), array('class' => 'btn btn-primary'));
