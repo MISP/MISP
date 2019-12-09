@@ -161,6 +161,6 @@
         'child' => $attrKey == $lastElement ? 'last' : true
       ));
     }
-    echo '<tr><td style="position:absolute"><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') .'" onclick="popoverPopup(this, ' . h($object['id']) . ', \'objects\', \'quickFetchTemplateWithValidObjectAttributes\')"></span></td></tr>';
+    echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') .'" onclick="popoverPopup(this, ' . h($object['id']) . ', \'objects\', \'quickFetchTemplateWithValidObjectAttributes\')"></span></td></tr>';
   }
 ?>

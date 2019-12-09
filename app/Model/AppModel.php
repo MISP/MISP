@@ -244,7 +244,7 @@ class AppModel extends Model
                 $this->__addServerPriority();
                 break;
             case 46:
-                $dbUpdateSuccess = $this->updateDatabase('seenOnAttributeAndObject', true);
+                $dbUpdateSuccess = $this->updateDatabase('seenOnAttributeAndObject');
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -2007,7 +2007,7 @@ class AppModel extends Model
 
     public function getLockRemainingTime()
     {
-        $lockState = $this->__getUpdateLockState();
+        $lockState = $this->getUpdateLockState();
         if ($lockState !== false && $lockState !== '') {
             // if lock is old, still allows the update
             // This can be useful if the update process crashes
