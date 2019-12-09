@@ -1738,8 +1738,22 @@ function popoverPopup(clicked, id, context, target, admin) {
                 $clicked.popover('show');
             }
         },
-        error:function() {
-            popover.options.content =  '<div class="alert alert-error" style="margin-bottom: 0px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>';
+        error:function(jqXHR, textStatus, errorThrown ) {
+            var errorJSON = '';
+            try {
+                errorJSON = JSON.parse(jqXHR.responseText);
+                errorJSON = errorJSON['errors'];
+                if (errorJSON === undefined) {
+                    errorJSON = '';
+                }
+            } catch (SyntaxError) {
+                // no error provided
+            }
+            var errorText = '<div class="alert alert-error" style="margin-bottom: 3px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>';
+            if (errorJSON !== '') {
+                errorText += '<div class="well"><strong>Returned error:</strong>' + $('<span/>').text(errorJSON).html() + '</div>';
+            }
+            popover.options.content = errorText;
             $clicked.popover('show');
         },
         url: url
