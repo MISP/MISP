@@ -4285,7 +4285,7 @@ class Server extends AppModel
         $dataSource = $this->getDataSource()->config['datasource'];
         if ($dataSource == 'Database/Mysql') {
             $sql = sprintf(
-                'select table_name, sum((data_length+index_length)/1024/1024) AS used, sum(data_free)/1024/1024 reclaimable from information_schema.tables where table_schema = %s group by table_name;',
+                'select table_name as table_name, sum((data_length+index_length)/1024/1024) AS used, sum(data_free)/1024/1024 reclaimable from information_schema.tables where table_schema = %s group by table_name;',
                 "'" . $this->getDataSource()->config['database'] . "'"
             );
             $sqlResult = $this->query($sql);
@@ -4503,7 +4503,7 @@ class Server extends AppModel
         $dbActualSchema = array();
         $dataSource = $this->getDataSource()->config['datasource'];
         if ($dataSource == 'Database/Mysql') {
-            $sqlGetTable = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
+            $sqlGetTable = sprintf('SELECT table_name as table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
             $sqlResult = $this->query($sqlGetTable);
             $tables = HASH::extract($sqlResult, '{n}.tables.table_name');
             foreach ($tables as $table) {
