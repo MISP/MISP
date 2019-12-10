@@ -159,6 +159,12 @@
                 __('Update are locked due to to many update fails') : sprintf(__('Update unlocked in %s'), h($humanReadableTime)))
             : __('Updates are not locked'),
         $updateLocked ? 'times' : 'check'
+        );
+    echo sprintf('<span class="label label-%s" title="%s" style="margin-left: 5px;">%s <i class="fas fa-%s"></i></span>',
+        $dataSource != 'Database/Mysql' ? 'important' : 'success',
+        $dataSource,
+        $dataSource,
+        $dataSource != 'Database/Mysql' ? 'times' : 'check'
     )
 ?>
 <script>

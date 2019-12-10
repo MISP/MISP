@@ -4347,6 +4347,7 @@ class Server extends AppModel
         ))['AdminSetting']['value'];
         $dataSource = $this->getDataSource()->config['datasource'];
         $schemaDiagnostic = array(
+            'dataSource' => $dataSource,
             'actual_db_version' => $actualDbVersion,
             'checked_table_column' => array(),
             'diagnostic' => array(),
