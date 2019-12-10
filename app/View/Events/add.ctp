@@ -60,7 +60,7 @@
                 '<div id="extended_event_preview" style="width:446px;"></div>'
             ),
             'submit' => array(
-                'action' => $this->request->params['action']
+                'action' => $action
             )
         )
     ));

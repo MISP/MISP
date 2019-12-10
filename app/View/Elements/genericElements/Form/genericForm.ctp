@@ -16,7 +16,7 @@
         h($data['model']);
     $fieldsString = '';
     $simpleFieldWhitelist = array(
-        'default', 'type', 'options', 'placeholder', 'label'
+        'default', 'type', 'options', 'placeholder', 'label', 'empty'
     );
     $formCreate = $this->Form->create($modelForForm);
     if (!empty($data['fields'])) {
