@@ -4579,8 +4579,19 @@ class Server extends AppModel
                             $isCritical = false;
                             foreach($colElementDiffs as $colElementDiff) {
                                 if(!in_array($colElementDiff, $nonCriticalColumnElements)) {
-                                    $isCritical = true;
-                                    break;
+                                    if ($colElementDiff == 'column_default') {
+                                        $expectedValue = $column['column_default'];
+                                        $actualValue = $keyedActualColumn[$columnName]['column_default'];
+                                        if (preg_match(sprintf('/(\'|")+%s(\1)+/', $expectedValue), $actualValue)) { // some version of mysql quote the default value
+                                            continue;
+                                        } else {
+                                            $isCritical = true;
+                                            break;
+                                        }
+                                    } else {
+                                        $isCritical = true;
+                                        break;
+                                    }
                                 }
                             }
                             $dbDiff[$tableName][] = array(
