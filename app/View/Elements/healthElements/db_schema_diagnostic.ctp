@@ -76,14 +76,17 @@
                 __('⚠ This diagnostic tool is in experimental state - the highlighted issues may be benign. If you are unsure, please open an issue on with the issues identified over at https://github.com/MISP/MISP for clarification.')
             );
         }
+
+        echo sprintf('<label class="checkbox"><input id="dbSchemaDiagnosticCheckbox" type="checkbox">%s</label>', __('Reveal benign deltas'));
+
         $table = sprintf('%s%s%s', 
-            '<table class="table table-bordered table-condensed">',
+            '<table id="dbSchemaDiagnosticTable" class="table table-bordered table-condensed">',
             sprintf('<thead><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th></th></thead>', __('Table name'),  __('Description'), __('Expected schema'), __('Actual schema')),
             '<tbody>'
         );
         $rows = '';
         foreach ($dbSchemaDiagnostics as $tableName => $tableDiagnostic) {
-            $rows .= '<tr>';
+            $rows .= sprintf('<tr data-tablename="%s">', $tableName);
                 $rows .= sprintf('<td rowspan="%s" colspan="0" class="bold">%s</td>', count($tableDiagnostic)+1, h($tableName));
             $rows .= '</tr>';
 
@@ -102,7 +105,7 @@
                 $saneActual = highlightAndSanitize($columnDiagnostic['actual'], $diffActual, 'important');
                 $uniqueRow = empty($saneExpected) && empty($saneActual);
 
-                $rows .= sprintf('<tr class="%s">', $columnDiagnostic['is_critical'] ? 'error' : '');
+                $rows .= sprintf('<tr class="%s" data-tablename="%s">', $columnDiagnostic['is_critical'] ? 'error critical' : 'noncritical', $tableName);
                     $rows .= sprintf('<td %s>%s</td>', $uniqueRow ? 'colspan=3' : '', $saneDescription);
                     if (!$uniqueRow) {
                         $rows .= sprintf('<td class="dbColumnDiagnosticRow" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i), implode(' ', $saneExpected));
@@ -171,7 +174,27 @@
 var dbSchemaDiagnostics = <?php echo json_encode($dbSchemaDiagnostics); ?>;
 var dbSchemaDiagnosticsColumns = <?php echo json_encode($checkedTableColumn); ?>;
 
+function adjustRowSpan() {
+    $('#dbSchemaDiagnosticTable td[rowspan]').each(function() {
+        var tableindex = $(this).parent().data('tablename');
+        var childrenCount = $('#dbSchemaDiagnosticTable').find('[data-tablename="' + tableindex + '"]:visible').length;
+        $(this).attr('rowspan', childrenCount);
+    })
+}
+
 $(document).ready(function() {
+    // hide non-critical issues
+    if ($('#dbSchemaDiagnosticCheckbox').prop('checked')) {
+        $('#dbSchemaDiagnosticTable').find('tr.noncritical').show();
+    } else {
+        $('#dbSchemaDiagnosticTable').find('tr.noncritical').hide();
+    }
+    adjustRowSpan();
+    $('#dbSchemaDiagnosticCheckbox').change(function() {
+        $('#dbSchemaDiagnosticTable').find('tr.noncritical').toggle();
+        adjustRowSpan();
+    });
+
     var popoverDiagnostic = $('td.dbColumnDiagnosticRow').popover({
         title: '<?php echo __('Column diagnostic'); ?>',
         content: function() {
