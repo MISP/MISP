@@ -221,7 +221,7 @@ class ServerShell extends AppShell
             $data = array(
                     'worker' => 'default',
                     'job_type' => 'cache_servers',
-                    'job_input' => 'Server: ' . $id,
+                    'job_input' => 'Server: ' . $scopeid,
                     'status' => 0,
                     'retries' => 0,
                     'org' => $user['Organisation']['name'],
