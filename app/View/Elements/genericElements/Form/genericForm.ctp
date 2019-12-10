@@ -73,12 +73,26 @@
     if (!empty($data['submit'])) {
         $submitButtonData = array_merge($submitButtonData, $data['submit']);
     }
+    if (!empty($data['ajaxSubmit'])) {
+        $submitButtonData['ajaxSubmit'] = $ajaxSubmit;
+    }
+    $ajaxFlashMessage = '';
+    if ($ajax) {
+        $ajaxFlashMessage = sprintf(
+            '<div id="flashContainer"><div id="main-view-container" class="container-fluid ">%s</div></div>',
+            $this->Flash->render()
+        );
+    }
     $formEnd = $this->Form->end();
     echo sprintf(
-        '<div class="form">%s<fieldset><legend>%s</legend>%s</fieldset>%s%s%s</div>',
+        '<div class="%s">%s<fieldset><legend>%s</legend>%s<div class="%s">%s</div></fieldset><div class="%s">%s%s%s</div></div>',
+        $ajax ? 'ajax' : 'form',
         $formCreate,
         empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title']),
+        $ajaxFlashMessage,
+        empty($ajax) ? '' : 'ajax_fieldset',
         $fieldsString,
+        empty($ajax) ? '' : 'ajax_fieldset',
         $formEnd,
         $metaFieldString,
         $this->element('genericElements/Form/submitButton', $submitButtonData)

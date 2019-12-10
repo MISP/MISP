@@ -1187,7 +1187,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
             break;
     }
     if (url !== null) {
-        url = baseurl + url;
+        url = baseurl + $("#submitButton").closest("form").attr('action');
         $.ajax({
             beforeSend: function (XMLHttpRequest) {
                 $(".loading").show();
