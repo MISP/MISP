@@ -165,8 +165,8 @@
         );
     echo sprintf('<span class="label label-%s" title="%s" style="margin-left: 5px;">%s <i class="fas fa-%s"></i></span>',
         $dataSource != 'Database/Mysql' ? 'important' : 'success',
-        $dataSource,
-        $dataSource,
+        __('DataSource: ') . h($dataSource),
+        __('DataSource: ') . h($dataSource),
         $dataSource != 'Database/Mysql' ? 'times' : 'check'
     )
 ?>
