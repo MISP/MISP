@@ -18,6 +18,7 @@
     $simpleFieldWhitelist = array(
         'default', 'type', 'options', 'placeholder', 'label', 'empty'
     );
+    $fieldsArrayForPersistence = array();
     $formCreate = $this->Form->create($modelForForm);
     if (!empty($data['fields'])) {
         foreach ($data['fields'] as $fieldData) {
@@ -51,6 +52,7 @@
                     }
                 }
                 $temp = $this->Form->input($fieldData['field'], $params);
+                $fieldsArrayForPersistence []= $modelForForm . Inflector::camelize($fieldData['field']);
                 if (!empty($fieldData['hidden'])) {
                     $temp = '<span class="hidden">' . $temp . '</span>';
                 }
@@ -99,6 +101,7 @@
     );
 ?>
 <script type="text/javascript">
+    var fieldsArray = <?php echo json_encode($fieldsArrayForPersistence); ?>;
     $(document).ready(function() {
         popoverStartup();
     });

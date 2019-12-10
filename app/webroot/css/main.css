@@ -882,10 +882,9 @@ a.proposal_link_red:hover {
 
 .ajax_popover_form {
     display:none;
-    max-width: 700px;
+    width: 700px;
     top:15%;
-    margin-left:auto;
-    margin-right:auto;
+    left:calc(50% - 350px);
     position: fixed;
     background-color:#f4f4f4;
     border-radius: 11px 11px 10px 10px;

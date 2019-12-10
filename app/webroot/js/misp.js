@@ -1268,6 +1268,7 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 
 //before we update the form (in case the action failed), we want to retrieve the data from every field, so that we can set the fields in the new form that we fetch
 function saveValuesForPersistance() {
+    console.log(fieldsArray);
     var formPersistanceArray = new Array();
     for (i = 0; i < fieldsArray.length; i++) {
         formPersistanceArray[fieldsArray[i]] = $('#' + fieldsArray[i]).val();

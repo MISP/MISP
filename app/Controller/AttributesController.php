@@ -262,8 +262,14 @@ class AttributesController extends AppController
                     $flashErrorMessage = implode('<br />', $flashErrorMessage);
                     $this->Session->write('flashErrorMessage', $flashErrorMessage);
                 }
+                if (empty($failed)) {
+                    $this->Flash->success($message);
+                } else {
+                    $this->Flash->error($message);
+                }
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
+                    $this->layout = false;
                     $errors = ($attributeCount > 1) ? $message : $this->Attribute->validationErrors;
                     if (!empty($successes)) {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)),'status' => 200, 'type' => 'json'));
@@ -271,11 +277,6 @@ class AttributesController extends AppController
                         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errors)),'status' => 200, 'type' => 'json'));
                     }
                 } else {
-                    if (empty($failed)) {
-                        $this->Flash->success($message);
-                    } else {
-                        $this->Flash->error($message);
-                    }
                     if ($successes > 0) {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                     }
