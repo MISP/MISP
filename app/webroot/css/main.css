@@ -942,7 +942,7 @@ a.proposal_link_red:hover {
     border-radius: 10px 10px 0px 0px;
     padding-left:10px;
     margin-bottom:0px;
-    width:690px;
+    width:calc(100% - 10px);
     background-color:black;
     color:white;
     font-size: 21px;
@@ -976,8 +976,9 @@ a.proposal_link_red:hover {
     height:120px !important;
 }
 
-.ajax_popover_form .add_attribute_fields {
+.ajax_fieldset, .ajax_popover_form .add_attribute_fields {
     padding-left:10px;
+    padding-right:10px;
 }
 
 .hover_enrichment_text {
