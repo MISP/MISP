@@ -3258,6 +3258,8 @@ class Attribute extends AppModel
                         if (empty($at['Tag'])) {
                             unset($results[$k]['AttributeTag'][$k2]);
                             $tagCulled = true;
+                        } else {
+                            $results[$k]['AttributeTag'][$k2]['Tag']['local'] = $results[$k]['AttributeTag'][$k2]['local'];
                         }
                     }
                     if ($tagCulled) {
@@ -3267,6 +3269,7 @@ class Attribute extends AppModel
                 if (isset($result['Event']['EventTag'])) {
                     $results[$k]['Event']['Tag'] = array();
                     foreach ($result['Event']['EventTag'] as $et) {
+                        $et['Tag']['local'] = $et['local'];
                         $results[$k]['Event']['Tag'][] = $et['Tag'];
                     }
                     unset($results[$k]['Event']['EventTag']);
