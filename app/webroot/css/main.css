@@ -880,6 +880,10 @@ a.proposal_link_red:hover {
     border: 0;
 }
 
+.modal-body-long {
+    max-height: 600px;
+}
+
 .ajax_popover_form {
     display:none;
     width: 700px;

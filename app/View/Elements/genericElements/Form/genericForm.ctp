@@ -81,24 +81,46 @@
     $ajaxFlashMessage = '';
     if ($ajax) {
         $ajaxFlashMessage = sprintf(
-            '<div id="flashContainer"><div id="main-view-container" class="container-fluid ">%s</div></div>',
+            '<div id="flashContainer"><div id="main-view-container">%s</div></div>',
             $this->Flash->render()
         );
     }
     $formEnd = $this->Form->end();
-    echo sprintf(
-        '<div class="%s">%s<fieldset><legend>%s</legend>%s<div class="%s">%s</div></fieldset><div class="%s">%s%s%s</div></div>',
-        $ajax ? 'ajax' : 'form',
-        $formCreate,
-        empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title']),
-        $ajaxFlashMessage,
-        empty($ajax) ? '' : 'ajax_fieldset',
-        $fieldsString,
-        empty($ajax) ? '' : 'ajax_fieldset',
-        $formEnd,
-        $metaFieldString,
-        $this->element('genericElements/Form/submitButton', $submitButtonData)
-    );
+    if (!empty($ajax)) {
+        echo sprintf(
+            '<div id="genericModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true">%s%s%s</div>',
+            sprintf(
+                '<div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button><h3 id="genericModalLabel">%s</h3></div>',
+                empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title'])
+            ),
+            sprintf(
+                '<div class="modal-body modal-body-long">%s</div>',
+                sprintf(
+                    '%s<fieldset>%s%s</fieldset>%s%s',
+                    $formCreate,
+                    $ajaxFlashMessage,
+                    $fieldsString,
+                    $formEnd,
+                    $metaFieldString
+                )
+            ),
+            sprintf(
+                '<div class="modal-footer">%s</div>',
+                $this->element('genericElements/Form/submitButton', $submitButtonData)
+            )
+        );
+    } else {
+        echo sprintf(
+            '<div class="form">%s<fieldset><legend>%s</legend>%s%s</fieldset>%s%s%s</div>',
+            $formCreate,
+            empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title']),
+            $ajaxFlashMessage,
+            $fieldsString,
+            $formEnd,
+            $metaFieldString,
+            $this->element('genericElements/Form/submitButton', $submitButtonData)
+        );
+    }
 ?>
 <script type="text/javascript">
     var fieldsArray = <?php echo json_encode($fieldsArrayForPersistence); ?>;
