@@ -103,6 +103,7 @@
         <tbody class='MISPObject'>
           <tr class='tableHighlightBorderTop borderBlue blueRow' tabindex='0'>
             <td colspan="7">
+              <input type="checkbox" class="ImportMISPObject" checked /> <span class="bold"><?php echo __('Import object');?></span><br />
               <?php if(!empty($object['id'])) { ?>
               <span class="bold"><?php echo __('ID: ');?></span><span class="ObjectID"><?php echo h($object['id']); ?></span><br />
               <?php } ?>
