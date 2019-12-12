@@ -886,9 +886,9 @@ class UsersController extends AppController
                         continue;
                     }
                     if ($field != 'confirm_password') {
-                        array_push($fieldsOldValues, $this->User->field($field));
+                        $fieldsOldValues[$field] = $this->User->field($field);
                     } else {
-                        array_push($fieldsOldValues, $this->User->field('password'));
+                        $fieldsOldValues[$field] = $this->User->field('password');
                     }
                 }
                 if (
@@ -929,31 +929,28 @@ class UsersController extends AppController
                                     }
                                     $cP++;
                                 }
-                                array_push($fieldsNewValues, $newValueStr);
+                                $fieldsNewValues[$field] = $newValueStr;
                             } else {
-                                array_push($fieldsNewValues, $newValue);
+                                $fieldsNewValues[$field] = $newValue;
                             }
                         } else {
-                            array_push($fieldsNewValues, $this->data['User']['password']);
+                            $fieldsNewValues[$field] = $this->data['User']['password'];
                         }
                     }
                     // compare
-                    $fieldsResultStr = '';
-                    $c = 0;
+                    $fieldsResult = array();
                     foreach ($fields as $field) {
-                        if (isset($fieldsOldValues[$c]) && $fieldsOldValues[$c] != $fieldsNewValues[$c]) {
+                        if (isset($fieldsOldValues[$field]) && $fieldsOldValues[$field] != $fieldsNewValues[$field]) {
                             if ($field != 'confirm_password' && $field != 'enable_password') {
-                                $fieldsResultStr = $fieldsResultStr . ', ' . $field . ' (' . $fieldsOldValues[$c] . ') => (' . $fieldsNewValues[$c] . ')';
+                                $fieldsResult[$field] = array($fieldsOldValues[$field], $fieldsNewValues[$field]);
                             }
                         }
-                        $c++;
                     }
-                    $fieldsResultStr = substr($fieldsResultStr, 2);
                     $user = $this->User->find('first', array(
                         'recursive' => -1,
                         'conditions' => array('User.id' => $this->User->id)
                     ));
-                    $this->User->extralog($this->Auth->user(), "edit", "user", $fieldsResultStr, $user);
+                    $this->User->extralog($this->Auth->user(), "edit", "user", $fieldsResult, $user);
                     if ($this->_isRest()) {
                         $user['User']['password'] = '******';
                         return $this->RestResponse->viewData($user, $this->response->type());
