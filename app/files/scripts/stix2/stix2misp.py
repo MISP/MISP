@@ -49,6 +49,7 @@ class StixParser():
         self.filename = filename
         self.stix_version = version
         self.event = defaultdict(dict)
+        self.relationship = defaultdict(list)
         self.event['relationship'] = defaultdict(list)
         mapping = {'custom_object': self.__load_custom,
                    'marking-definition': self.__load_marking,
@@ -100,11 +101,7 @@ class StixParser():
             self.marking_definition = {parsed_object['id'].split('--')[1]: {'object': parsed_object, 'used': False}}
 
     def __load_relationship(self, parsed_object):
-        try:
-            self.relationship[parsed_object.source_ref.split('--')[1]].append(parsed_object)
-        except AttributeError:
-            self.relationship = defaultdict(list)
-            self.relationship[parsed_object.source_ref.split('--')[1]].append(parsed_object)
+        self.relationship[parsed_object.source_ref.split('--')[1]].append(parsed_object)
 
     def __load_report(self, parsed_object):
         try:
