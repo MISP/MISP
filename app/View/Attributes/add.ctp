@@ -70,7 +70,7 @@
             'submit' => array(
                 'action' => $action,
                 'ajaxSubmit' => sprintf(
-                    'submitPopoverForm(%s, %s)',
+                    'submitPopoverForm(%s, %s, 0, 1)',
                     "'" . ($action == 'add' ? h($event_id) : h($attribute['Attribute']['id'])) . "'",
                     "'" . h($action) . "'"
                 )

@@ -2419,7 +2419,6 @@ class EventsController extends AppController
             $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
         $this->set('analysisLevels', $analysisLevels);
-
         $this->set('fieldDesc', $fieldDesc);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('event', $this->Event->data);
