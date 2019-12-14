@@ -1265,7 +1265,7 @@ class ExternalStixParser(StixParser):
     ##                             PARSING FUNCTIONS.                             ##
     ################################################################################
 
-    def add_attributes_from_observable(self, objects, attribute_type, identifier, marking, uuid):
+    def add_attributes_from_observable(self, objects, attribute_type, identifier, uuid, marking):
         attribute = {'to_ids': False}
         if len(objects) == 1:
             attribute['uuid'] = uuid
@@ -1318,11 +1318,11 @@ class ExternalStixParser(StixParser):
         file_object.add_reference(pe_uuid, 'includes')
         self.misp_event.add_object(**file_object)
 
-    def parse_asn_observable(self, objects, marking, uuid):
+    def parse_asn_observable(self, objects, uuid, marking=None):
         attributes = self.attributes_from_asn_observable(objects)
         self.handle_import_case(attributes, 'asn', marking, uuid)
 
-    def parse_domain_ip_observable(self, objects, marking, uuid):
+    def parse_domain_ip_observable(self, objects, uuid, marking=None):
         attributes = self.attributes_from_domain_ip_observable(objects)
         self.handle_import_case(attributes, 'domain-ip', marking, uuid)
 
@@ -1334,7 +1334,7 @@ class ExternalStixParser(StixParser):
         attributes = self.attributes_from_dict(values, domain_ip_mapping, True)
         self.handle_import_case(attributes, 'domain-ip', marking, uuid)
 
-    def parse_email_observable(self, objects, marking, uuid):
+    def parse_email_observable(self, objects, uuid, marking=None):
         to_ids = False
         attributes, message = self.parse_complex_fields_observable_email(objects, to_ids)
         for m_key, m_value in message.items():
@@ -1342,7 +1342,7 @@ class ExternalStixParser(StixParser):
                 attributes.append(self.append_email_attribute(m_key, m_value, to_ids))
         self.handle_import_case(attributes, 'email', marking, uuid)
 
-    def parse_email_address_observable(self, objects, marking, uuid):
+    def parse_email_address_observable(self, objects, uuid, marking=None):
         mapping = to_attribute_mapping
         attributes = [{'type': 'email-dst', 'object_relation': 'to', 'to_ids': True, 'value': _object.value} for _object in objects.values()]
         self.handle_import_case(attributes, 'email', marking, uuid)
@@ -1352,7 +1352,7 @@ class ExternalStixParser(StixParser):
         attributes = self.fill_pattern_attributes(pattern_types, pattern_values, email_mapping)
         self.handle_import_case(attributes, 'email', marking, uuid)
 
-    def parse_file_observable(self, objects, marking, uuid):
+    def parse_file_observable(self, objects, uuid, marking=None):
         file, directory = self.split_file_observable(objects)
         attributes = self.attributes_from_file_observable(file)
         if directory is not None and directory.path:
@@ -1372,7 +1372,7 @@ class ExternalStixParser(StixParser):
         else:
             self.handle_import_case(attributes, 'file', marking, uuid)
 
-    def parse_file_object_observable(self, objects, marking, uuid):
+    def parse_file_object_observable(self, objects, uuid, marking=None):
         file, data = self.split_file_observable(objects)
         attributes = self.attributes_from_file_observable(file, data)
         if hasattr(file, 'extensions') and 'windows-pebinary-ext' in file.extensions:
@@ -1380,27 +1380,27 @@ class ExternalStixParser(StixParser):
         else:
             self.handle_import_case(attributes, file._type, marking, uuid)
 
-    def parse_ip_address_observable(self, objects, marking, uuid):
-        self.add_attributes_from_observable(objects, 'ip-dst', 'value', marking, uuid)
+    def parse_ip_address_observable(self, objects, uuid, marking=None):
+        self.add_attributes_from_observable(objects, 'ip-dst', 'value', uuid, marking)
 
     def parse_ip_address_pattern(self, pattern, marking=None, uuid=None):
         self.add_attributes_from_pattern('ip-dst', pattern, marking, uuid)
 
-    def parse_ip_network_traffic_observable(self, objects, marking, uuid):
+    def parse_ip_network_traffic_observable(self, objects, uuid, marking=None):
         attributes, name = self.attributes_from_network_traffic(objects)
         self.handle_import_case(attributes, name, marking, uuid)
 
-    def parse_ip_port_or_network_socket_observable(self, objects, marking, uuid):
+    def parse_ip_port_or_network_socket_observable(self, objects, uuid, marking=None):
         attributes, name = self.attributes_from_network_traffic(objects)
         self.handle_import_case(attributes, name, marking, uuid)
 
-    def parse_mac_address_observable(self, objects, marking, uuid):
-        self.add_attributes_from_observable(objects, 'mac-address', 'value', marking, uuid)
+    def parse_mac_address_observable(self, objects, uuid, marking=None):
+        self.add_attributes_from_observable(objects, 'mac-address', 'value', uuid, marking)
 
-    def parse_mutex_observable(self, objects, marking, uuid):
-        self.add_attributes_from_observable(objects, 'mutex', 'name', marking, uuid)
+    def parse_mutex_observable(self, objects, uuid, marking=None):
+        self.add_attributes_from_observable(objects, 'mutex', 'name', uuid, marking)
 
-    def parse_network_socket_observable(self, objects, marking, uuid):
+    def parse_network_socket_observable(self, objects, uuid, marking=None):
         attributes, name = self.attributes_from_network_traffic(objects)
         self.handle_import_case(attributes, name, marking, uuid)
 
@@ -1409,7 +1409,7 @@ class ExternalStixParser(StixParser):
         attributes = self.fill_pattern_attributes(pattern_types, pattern_values, network_traffic_mapping)
         self.handle_import_case(attributes, 'ip-port', marking, uuid)
 
-    def parse_process_observable(self, objects, marking, uuid):
+    def parse_process_observable(self, objects, uuid, marking=None):
         attributes = self.attributes_from_process_observable(objects)
         self.handle_import_case(attributes, 'process', marking, uuid)
 
@@ -1418,7 +1418,7 @@ class ExternalStixParser(StixParser):
         attributes = self.fill_pattern_attributes(pattern_types, pattern_values, process_mapping)
         self.handle_import_case(attributes, 'process', marking, uuid)
 
-    def parse_regkey_observable(self, objects, marking, uuid):
+    def parse_regkey_observable(self, objects, uuid, marking=None):
         _object = objects['0']
         attributes = self.attributes_from_regkey_observable(_object)
         self.handle_import_case(attributes, 'registry-key', marking, uuid)
@@ -1428,17 +1428,17 @@ class ExternalStixParser(StixParser):
         attributes = self.fill_pattern_attributes(pattern_types, pattern_values, regkey_mapping)
         self.handle_import_case(attributes, 'registry-key', marking, uuid)
 
-    def parse_url_observable(self, objects, marking, uuid):
-        self.add_attributes_from_observable(objects, 'url', 'value', marking, uuid)
+    def parse_url_observable(self, objects, uuid, marking=None):
+        self.add_attributes_from_observable(objects, 'url', 'value', uuid, marking)
 
     def parse_url_pattern(self, pattern, marking=None, uuid=None):
         self.add_attributes_from_pattern('url', pattern, marking, uuid)
 
-    def parse_url_object_observable(self, objects, marking, uuid):
+    def parse_url_object_observable(self, objects, uuid, marking=None):
         attributes = self.attributes_from_url_observable(objects)
         self.handle_import_case(attributes, 'url', marking, uuid)
 
-    def parse_user_account_observable(self, observable, marking, uuid):
+    def parse_user_account_observable(self, observable, uuid, marking=None):
         attributes = self.attributes_from_user_account_observable(observable)
         name = self.__define_user_account_name(attributes)
         self.handle_import_case(attributes, name, marking, uuid)
@@ -1448,7 +1448,7 @@ class ExternalStixParser(StixParser):
         name = self.__define_user_account_name(attributes)
         self.handle_import_case(attributes, name, marking, uuid)
 
-    def parse_x509_observable(self, objects, marking, uuid):
+    def parse_x509_observable(self, objects, uuid, marking=None):
         attributes = self.attributes_from_x509_observable(objects)
         self.handle_import_case(attributes, 'x509', marking, uuid)
 
@@ -1530,7 +1530,7 @@ class ExternalStixParser(StixParser):
             values.append(value.strip().strip('\''))
         return types, values
 
-    def handle_import_case(self, attributes, name, marking=None, uuid=None):
+    def handle_import_case(self, attributes, name, marking, uuid):
         if len(attributes) == 1:
             attribute = attributes[0]
             attribute = {field: attribute[field] for field in self.single_attribute_fields if attribute.get(field)}
