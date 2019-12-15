@@ -51,12 +51,12 @@ class StixParser():
         self.event = defaultdict(dict)
         self.relationship = defaultdict(list)
         self.event['relationship'] = defaultdict(list)
-        mapping = {'custom_object': self.__load_custom,
-                   'marking-definition': self.__load_marking,
-                   'relationship': self.__load_relationship,
-                   'report': self.__load_report}
-        mapping.update({object_type: self.__load_usual_object for object_type in ('indicator', 'observed-data', 'vulnerability', 'course-of-action')})
-        mapping.update({galaxy_type: self.__load_galaxy for galaxy_type in galaxy_types})
+        mapping = {'custom_object': '_load_custom',
+                   'marking-definition': '_load_marking',
+                   'relationship': '_load_relationship',
+                   'report': '_load_report'}
+        mapping.update({object_type: '_load_usual_object' for object_type in ('indicator', 'observed-data', 'vulnerability', 'course-of-action')})
+        mapping.update({galaxy_type: '_load_galaxy' for galaxy_type in galaxy_types})
         for parsed_object in event.objects:
             try:
                 object_type = parsed_object._type
@@ -65,9 +65,9 @@ class StixParser():
             if object_type.startswith('x-misp-object'):
                 object_type = 'custom_object'
             try:
-                mapping[object_type](parsed_object)
+                getattr(self, mapping[object_type])(parsed_object)
             except KeyError:
-                self.__load_usual_object(parsed_object)
+                self._load_usual_object(parsed_object)
         try:
             event_distribution = args[0]
             if not isinstance(event_distribution, int):
@@ -85,31 +85,31 @@ class StixParser():
         self.misp_event.distribution = event_distribution
         self._attribute_distribution = attribute_distribution
 
-    def __load_custom(self, parsed_object):
+    def _load_custom(self, parsed_object):
         self.event['custom_object'][parsed_object['id'].split('--')[1]] = parsed_object
 
-    def __load_galaxy(self, parsed_object):
+    def _load_galaxy(self, parsed_object):
         try:
             self.galaxy[parsed_object['id'].split('--')[1]] = {'object': parsed_object, 'used': False}
         except AttributeError:
             self.galaxy = {parsed_object['id'].split('--')[1]: {'object': parsed_object, 'used': False}}
 
-    def __load_marking(self, parsed_object):
+    def _load_marking(self, parsed_object):
         try:
             self.marking_definition[parsed_object['id'].split('--')[1]] = {'object': parsed_object, 'used': False}
         except AttributeError:
             self.marking_definition = {parsed_object['id'].split('--')[1]: {'object': parsed_object, 'used': False}}
 
-    def __load_relationship(self, parsed_object):
+    def _load_relationship(self, parsed_object):
         self.relationship[parsed_object.source_ref.split('--')[1]].append(parsed_object)
 
-    def __load_report(self, parsed_object):
+    def _load_report(self, parsed_object):
         try:
             self.report[parsed_object['id'].split('--')[1]] = parsed_object
         except AttributeError:
             self.report = {parsed_object['id'].split('--')[1]: parsed_object}
 
-    def __load_usual_object(self, parsed_object):
+    def _load_usual_object(self, parsed_object):
         self.event[parsed_object._type][parsed_object['id'].split('--')[1]] = parsed_object
 
     def general_handler(self):
@@ -555,34 +555,34 @@ class StixParser():
 class StixFromMISPParser(StixParser):
     def __init__(self):
         super(StixFromMISPParser, self).__init__()
-        self.objects_mapping = {'asn': {'observable': self.attributes_from_asn_observable, 'pattern': self.pattern_asn},
-                                'credential': {'observable': self.observable_credential, 'pattern': self.pattern_credential},
-                                'domain-ip': {'observable': self.attributes_from_domain_ip_observable, 'pattern': self.pattern_domain_ip},
-                                'email': {'observable': self.observable_email, 'pattern': self.pattern_email},
-                                'file': {'observable': self.observable_file, 'pattern': self.pattern_file},
-                                'ip-port': {'observable': self.observable_ip_port, 'pattern': self.pattern_ip_port},
-                                'network-connection': {'observable': self.observable_connection, 'pattern': self.pattern_connection},
-                                'network-socket': {'observable': self.observable_socket, 'pattern': self.pattern_socket},
-                                'process': {'observable': self.attributes_from_process_observable, 'pattern': self.pattern_process},
-                                'registry-key': {'observable': self.attributes_from_regkey_observable, 'pattern': self.pattern_regkey},
-                                'url': {'observable': self.attributes_from_url_observable, 'pattern': self.pattern_url},
-                                'user-account': {'observable': self.attributes_from_user_account_observable,
-                                                 'pattern': self.attributes_from_user_account_pattern},
-                                'WindowsPEBinaryFile': {'observable': self.observable_pe, 'pattern': self.pattern_pe},
-                                'x509': {'observable': self.attributes_from_x509_observable, 'pattern': self.pattern_x509}}
-        self.object_from_refs = {'course-of-action': self.parse_MISP_course_of_action, 'vulnerability': self.parse_vulnerability,
-                                 'custom_object': self.parse_custom}
-        self.object_from_refs.update(dict.fromkeys(['indicator', 'observed-data'], self.parse_usual_object))
-        self.attributes_fetcher_mapping = {'indicator': self.fetch_attributes_from_indicator,
-                                           'observed-data': self.fetch_attributes_from_observable,
-                                           'vulnerability': self.fetch_attributes_from_vulnerability}
+        self.objects_mapping = {'asn': {'observable': 'attributes_from_asn_observable', 'pattern': 'pattern_asn'},
+                                'credential': {'observable': 'observable_credential', 'pattern': 'pattern_credential'},
+                                'domain-ip': {'observable': 'attributes_from_domain_ip_observable', 'pattern': 'pattern_domain_ip'},
+                                'email': {'observable': 'observable_email', 'pattern': 'pattern_email'},
+                                'file': {'observable': 'observable_file', 'pattern': 'pattern_file'},
+                                'ip-port': {'observable': 'observable_ip_port', 'pattern': 'pattern_ip_port'},
+                                'network-connection': {'observable': 'observable_connection', 'pattern': 'pattern_connection'},
+                                'network-socket': {'observable': 'observable_socket', 'pattern': 'pattern_socket'},
+                                'process': {'observable': 'attributes_from_process_observable', 'pattern': 'pattern_process'},
+                                'registry-key': {'observable': 'attributes_from_regkey_observable', 'pattern': 'pattern_regkey'},
+                                'url': {'observable': 'attributes_from_url_observable', 'pattern': 'pattern_url'},
+                                'user-account': {'observable': 'attributes_from_user_account_observable',
+                                                 'pattern': 'attributes_from_user_account_pattern'},
+                                'WindowsPEBinaryFile': {'observable': 'observable_pe', 'pattern': 'pattern_pe'},
+                                'x509': {'observable': 'attributes_from_x509_observable', 'pattern': 'pattern_x509'}}
+        self.object_from_refs = {'course-of-action': 'parse_MISP_course_of_action', 'vulnerability': 'parse_vulnerability',
+                                 'custom_object': 'parse_custom'}
+        self.object_from_refs.update(dict.fromkeys(['indicator', 'observed-data'], 'parse_usual_object'))
+        self.attributes_fetcher_mapping = {'indicator': 'fetch_attributes_from_indicator',
+                                           'observed-data': 'fetch_attributes_from_observable',
+                                           'vulnerability': 'fetch_attributes_from_vulnerability'}
 
     def handler(self):
         self.general_handler()
 
     def parsing_process(self, object2parse, object_type):
         labels = object2parse.get('labels')
-        self.object_from_refs[object_type](object2parse, labels)
+        getattr(self, self.object_from_refs[object_type])(object2parse, labels)
 
     ################################################################################
     ##                             PARSING FUNCTIONS.                             ##
@@ -662,7 +662,7 @@ class StixFromMISPParser(StixParser):
         misp_object.uuid = uuid
         misp_object['meta-category'] = object_category
         try:
-            attributes = self.attributes_fetcher_mapping[stix_type](o, object_type)
+            attributes = getattr(self, self.attributes_fetcher_mapping[stix_type])(o, object_type)
         except KeyError:
             print("Unable to map {} object:\n{}".format(stix_type, o), file=sys.stderr)
             return
@@ -680,11 +680,11 @@ class StixFromMISPParser(StixParser):
         pattern = indicator.pattern.replace('\\\\', '\\').split(' AND ')
         pattern[0] = pattern[0][1:]
         pattern[-1] = pattern[-1][:-1]
-        return self.objects_mapping[object_type]['pattern'](pattern)
+        return getattr(self, self.objects_mapping[object_type]['pattern'])(pattern)
 
     def fetch_attributes_from_observable(self, observable, object_type):
         observable = observable.objects
-        return self.objects_mapping[object_type]['observable'](observable)
+        return getattr(self, self.objects_mapping[object_type]['observable'])(observable)
 
     def fetch_attributes_from_vulnerability(self, vulnerability, _):
         attributes = []
@@ -1099,52 +1099,52 @@ class StixFromMISPParser(StixParser):
 class ExternalStixParser(StixParser):
     def __init__(self):
         super(ExternalStixParser, self).__init__()
-        self.object_from_refs = {'course-of-action': self.parse_course_of_action, 'vulnerability': self.parse_external_vulnerability,
-                                 'indicator': self.parse_external_indicator, 'observed-data': self.parse_external_observable}
-        self.observable_mapping = {('artifact', 'file'): self.parse_file_object_observable,
-                                   ('autonomous-system',): self.parse_asn_observable,
-                                   ('autonomous-system', 'ipv4-addr'): self.parse_asn_observable,
-                                   ('autonomous-system', 'ipv6-addr'): self.parse_asn_observable,
-                                   ('autonomous-system', 'ipv4-addr', 'ipv6-addr'): self.parse_asn_observable,
-                                   ('domain-name',): self.parse_domain_ip_observable,
-                                   ('domain-name', 'ipv4-addr'): self.parse_domain_ip_observable,
-                                   ('domain-name', 'ipv6-addr'): self.parse_domain_ip_observable,
-                                   ('domain-name', 'ipv4-addr', 'network-traffic'): self.parse_ip_port_or_network_socket_observable,
-                                   ('domain-name', 'ipv6-addr', 'network-traffic'): self.parse_ip_port_or_network_socket_observable,
-                                   ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): self.parse_ip_port_or_network_socket_observable,
-                                   ('domain-name', 'network-traffic'): self.parse_network_socket_observable,
-                                   ('domain-name', 'network-traffic', 'url'): self.parse_url_object_observable,
-                                   ('email-addr',): self.parse_email_address_observable,
-                                   ('email-addr', 'email-message'): self.parse_email_observable,
-                                   ('email-addr', 'email-message', 'file'): self.parse_email_observable,
-                                   ('email-message',): self.parse_email_observable,
-                                   ('file',): self.parse_file_observable,
-                                   ('ipv4-addr',): self.parse_ip_address_observable,
-                                   ('ipv6-addr',): self.parse_ip_address_observable,
-                                   ('ipv4-addr', 'network-traffic'): self.parse_ip_network_traffic_observable,
-                                   ('ipv6-addr', 'network-traffic'): self.parse_ip_network_traffic_observable,
-                                   ('mac-addr',): self.parse_mac_address_observable,
-                                   ('mutex',): self.parse_mutex_observable,
-                                   ('process',): self.parse_process_observable,
-                                   ('x509-certificate',): self.parse_x509_observable,
-                                   ('url',): self.parse_url_observable,
-                                   ('user-account',): self.parse_user_account_observable,
-                                   ('windows-registry-key',): self.parse_regkey_observable}
-        self.pattern_mapping = {('directory',): self.parse_file_pattern,
-                                ('directory', 'file'): self.parse_file_pattern,
-                                ('domain-name',): self.parse_domain_ip_port_pattern,
-                                ('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
-                                ('domain-name', 'ipv6-addr', 'url'): self.parse_domain_ip_port_pattern,
-                                ('email-addr',): self.parse_email_address_pattern,
-                                ('file',): self.parse_file_pattern,
-                                ('ipv4-addr',): self.parse_ip_address_pattern,
-                                ('ipv6-addr',): self.parse_ip_address_pattern,
-                                ('network-traffic',): self.parse_network_traffic_pattern,
-                                ('process',): self.parse_process_pattern,
-                                ('url',): self.parse_url_pattern,
-                                ('user-account',): self.parse_user_account_pattern,
-                                ('windows-registry-key',): self.parse_regkey_pattern,
-                                ('x509-certificate',): self.parse_x509_pattern}
+        self.object_from_refs = {'course-of-action': 'parse_course_of_action', 'vulnerability': 'parse_external_vulnerability',
+                                 'indicator': 'parse_external_indicator', 'observed-data': 'parse_external_observable'}
+        self.observable_mapping = {('artifact', 'file'): 'parse_file_object_observable',
+                                   ('autonomous-system',): 'parse_asn_observable',
+                                   ('autonomous-system', 'ipv4-addr'): 'parse_asn_observable',
+                                   ('autonomous-system', 'ipv6-addr'): 'parse_asn_observable',
+                                   ('autonomous-system', 'ipv4-addr', 'ipv6-addr'): 'parse_asn_observable',
+                                   ('domain-name',): 'parse_domain_ip_observable',
+                                   ('domain-name', 'ipv4-addr'): 'parse_domain_ip_observable',
+                                   ('domain-name', 'ipv6-addr'): 'parse_domain_ip_observable',
+                                   ('domain-name', 'ipv4-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
+                                   ('domain-name', 'ipv6-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
+                                   ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
+                                   ('domain-name', 'network-traffic'): 'parse_network_socket_observable',
+                                   ('domain-name', 'network-traffic', 'url'): 'parse_url_object_observable',
+                                   ('email-addr',): 'parse_email_address_observable',
+                                   ('email-addr', 'email-message'): 'parse_email_observable',
+                                   ('email-addr', 'email-message', 'file'): 'parse_email_observable',
+                                   ('email-message',): 'parse_email_observable',
+                                   ('file',): 'parse_file_observable',
+                                   ('ipv4-addr',): 'parse_ip_address_observable',
+                                   ('ipv6-addr',): 'parse_ip_address_observable',
+                                   ('ipv4-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
+                                   ('ipv6-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
+                                   ('mac-addr',): 'parse_mac_address_observable',
+                                   ('mutex',): 'parse_mutex_observable',
+                                   ('process',): 'parse_process_observable',
+                                   ('x509-certificate',): 'parse_x509_observable',
+                                   ('url',): 'parse_url_observable',
+                                   ('user-account',): 'parse_user_account_observable',
+                                   ('windows-registry-key',): 'parse_regkey_observable'}
+        self.pattern_mapping = {('directory',): 'parse_file_pattern',
+                                ('directory', 'file'): 'parse_file_pattern',
+                                ('domain-name',): 'parse_domain_ip_port_pattern',
+                                ('domain-name', 'ipv4-addr', 'url'): 'parse_domain_ip_port_pattern',
+                                ('domain-name', 'ipv6-addr', 'url'): 'parse_domain_ip_port_pattern',
+                                ('email-addr',): 'parse_email_address_pattern',
+                                ('file',): 'parse_file_pattern',
+                                ('ipv4-addr',): 'parse_ip_address_pattern',
+                                ('ipv6-addr',): 'parse_ip_address_pattern',
+                                ('network-traffic',): 'parse_network_traffic_pattern',
+                                ('process',): 'parse_process_pattern',
+                                ('url',): 'parse_url_pattern',
+                                ('user-account',): 'parse_user_account_pattern',
+                                ('windows-registry-key',): 'parse_regkey_pattern',
+                                ('x509-certificate',): 'parse_x509_pattern'}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
         self.single_attribute_fields = ('type', 'value', 'to_ids')
 
@@ -1154,7 +1154,7 @@ class ExternalStixParser(StixParser):
 
     def parsing_process(self, object2parse, object_type):
         try:
-            self.object_from_refs[object_type](object2parse)
+            getattr(self, self.object_from_refs[object_type])(object2parse)
         except KeyError:
             print("Unknown {} type: {}".format(self.stix_version, object_type), file=sys.stderr)
 
@@ -1195,9 +1195,9 @@ class ExternalStixParser(StixParser):
             to_call = self.observable_mapping[types]
             observable_id = observable.id.split('--')[1]
             if hasattr(observable, 'object_marking_refs'):
-                to_call(objects, observable_id, marking=observable.object_marking_refs)
+                getattr(self, to_call)(objects, observable_id, marking=observable.object_marking_refs)
             else:
-                to_call(objects, observable_id)
+                getattr(self, to_call)(objects, observable_id)
         except KeyError:
             print('{} not parsed at the moment'.format(types), file=sys.stderr)
         # deeper analyse to come, as well as for indicators
@@ -1219,7 +1219,7 @@ class ExternalStixParser(StixParser):
                 for p in pattern:
                     type_ = tuple([p.split(' = ')[0].split(':')[0]])
                     try:
-                        self.pattern_mapping[type_]([p.strip()], marking)
+                        getattr(self, self.pattern_mapping[type_])([p.strip()], marking)
                     except KeyError:
                         print('{} not parsed at the moment'.format(type_), file=sys.stderr)
                         raise Exception
@@ -1227,7 +1227,7 @@ class ExternalStixParser(StixParser):
                 pattern = [p.strip() for p in pattern.split(' AND ')]
                 types = self.parse_external_pattern_types(pattern)
                 try:
-                    self.pattern_mapping[types](pattern, marking, uuid=uuid)
+                    getattr(self, self.pattern_mapping[types])(pattern, marking, uuid=uuid)
                 except KeyError:
                     print('{} not parsed at the moment'.format(types), file=sys.stderr)
                     raise Exception
