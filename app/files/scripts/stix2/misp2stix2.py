@@ -189,43 +189,43 @@ class StixBuilder():
 
     def load_objects_mapping(self):
         self.objects_mapping = {
-            'asn': {'observable': self.resolve_asn_observable,
-                    'pattern': self.resolve_asn_pattern},
-            'credential': {'observable': self.resolve_credential_observable,
-                           'pattern': self.resolve_credential_pattern},
-            'domain-ip': {'observable': self.resolve_domain_ip_observable,
-                          'pattern': self.resolve_domain_ip_pattern},
-            'email': {'observable': self.resolve_email_object_observable,
-                      'pattern': self.resolve_email_object_pattern},
-            'file': {'observable': self.resolve_file_observable,
-                     'pattern': self.resolve_file_pattern},
-            'ip-port': {'observable': self.resolve_ip_port_observable,
-                        'pattern': self.resolve_ip_port_pattern},
-            'network-connection': {'observable': self.resolve_network_connection_observable,
-                                   'pattern': self.resolve_network_connection_pattern},
-            'network-socket': {'observable': self.resolve_network_socket_observable,
-                               'pattern': self.resolve_network_socket_pattern},
-            'process': {'observable': self.resolve_process_observable,
-                        'pattern': self.resolve_process_pattern},
-            'registry-key': {'observable': self.resolve_regkey_observable,
-                             'pattern': self.resolve_regkey_pattern},
-            'stix2-pattern': {'pattern': self.resolve_stix2_pattern},
-            'url': {'observable': self.resolve_url_observable,
-                    'pattern': self.resolve_url_pattern},
-            'user-account': {'observable': self.resolve_user_account_observable,
-                             'pattern': self.resolve_user_account_pattern},
-            'x509': {'observable': self.resolve_x509_observable,
-                     'pattern': self.resolve_x509_pattern}
+            'asn': {'observable': 'resolve_asn_observable',
+                    'pattern': 'resolve_asn_pattern'},
+            'credential': {'observable': 'resolve_credential_observable',
+                           'pattern': 'resolve_credential_pattern'},
+            'domain-ip': {'observable': 'resolve_domain_ip_observable',
+                          'pattern': 'resolve_domain_ip_pattern'},
+            'email': {'observable': 'resolve_email_object_observable',
+                      'pattern': 'resolve_email_object_pattern'},
+            'file': {'observable': 'resolve_file_observable',
+                     'pattern': 'resolve_file_pattern'},
+            'ip-port': {'observable': 'resolve_ip_port_observable',
+                        'pattern': 'resolve_ip_port_pattern'},
+            'network-connection': {'observable': 'resolve_network_connection_observable',
+                                   'pattern': 'resolve_network_connection_pattern'},
+            'network-socket': {'observable': 'resolve_network_socket_observable',
+                               'pattern': 'resolve_network_socket_pattern'},
+            'process': {'observable': 'resolve_process_observable',
+                        'pattern': 'resolve_process_pattern'},
+            'registry-key': {'observable': 'resolve_regkey_observable',
+                             'pattern': 'resolve_regkey_pattern'},
+            'stix2-pattern': {'pattern': 'resolve_stix2_pattern'},
+            'url': {'observable': 'resolve_url_observable',
+                    'pattern': 'resolve_url_pattern'},
+            'user-account': {'observable': 'resolve_user_account_observable',
+                             'pattern': 'resolve_user_account_pattern'},
+            'x509': {'observable': 'resolve_x509_observable',
+                     'pattern': 'resolve_x509_pattern'}
         }
 
     def load_galaxy_mapping(self):
-        self.galaxies_mapping = {'branded-vulnerability': ['vulnerability', self.add_vulnerability_from_galaxy]}
-        self.galaxies_mapping.update(dict.fromkeys(attack_pattern_galaxies_list, ['attack-pattern', self.add_attack_pattern]))
-        self.galaxies_mapping.update(dict.fromkeys(course_of_action_galaxies_list, ['course-of-action', self.add_course_of_action]))
-        self.galaxies_mapping.update(dict.fromkeys(intrusion_set_galaxies_list, ['intrusion-set', self.add_intrusion_set]))
-        self.galaxies_mapping.update(dict.fromkeys(malware_galaxies_list, ['malware', self.add_malware]))
-        self.galaxies_mapping.update(dict.fromkeys(threat_actor_galaxies_list, ['threat-actor', self.add_threat_actor]))
-        self.galaxies_mapping.update(dict.fromkeys(tool_galaxies_list, ['tool', self.add_tool]))
+        self.galaxies_mapping = {'branded-vulnerability': ['vulnerability', 'add_vulnerability_from_galaxy']}
+        self.galaxies_mapping.update(dict.fromkeys(attack_pattern_galaxies_list, ['attack-pattern', 'add_attack_pattern']))
+        self.galaxies_mapping.update(dict.fromkeys(course_of_action_galaxies_list, ['course-of-action', 'add_course_of_action']))
+        self.galaxies_mapping.update(dict.fromkeys(intrusion_set_galaxies_list, ['intrusion-set', 'add_intrusion_set']))
+        self.galaxies_mapping.update(dict.fromkeys(malware_galaxies_list, ['malware', 'add_malware']))
+        self.galaxies_mapping.update(dict.fromkeys(threat_actor_galaxies_list, ['threat-actor', 'add_threat_actor']))
+        self.galaxies_mapping.update(dict.fromkeys(tool_galaxies_list, ['tool', 'add_tool']))
 
     def get_object_by_uuid(self, uuid):
         for _object in self.misp_event['Object']:
@@ -373,7 +373,7 @@ class StixBuilder():
         except Exception:
             return
         if galaxy_uuid not in self.galaxies:
-            to_call(galaxy)
+            getattr(self, to_call)(galaxy)
             self.galaxies.append(galaxy_uuid)
         self.relationships['defined'][source_id].append("{}--{}".format(stix_type, galaxy_uuid))
 
@@ -619,7 +619,7 @@ class StixBuilder():
             pattern = pattern_arg
         else:
             name = misp_object['name']
-            pattern = self.objects_mapping[name]['pattern'](misp_object['Attribute'], indicator_id)
+            pattern = getattr(self, self.objects_mapping[name]['pattern'])(misp_object['Attribute'], indicator_id)
         category = misp_object.get('meta-category')
         killchain = self.create_killchain(category)
         labels = self.create_object_labels(name, category, True)
@@ -638,7 +638,7 @@ class StixBuilder():
             observable_objects = observable_arg
         else:
             name = misp_object['name']
-            observable_objects = self.objects_mapping[name]['observable'](misp_object['Attribute'], observed_data_id)
+            observable_objects = getattr(self, self.objects_mapping[name]['observable'])(misp_object['Attribute'], observed_data_id)
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, False)
         timestamp = self.get_datetime_from_timestamp(misp_object['timestamp'])
