@@ -159,7 +159,7 @@ class AdminShell extends AppShell
         }
     }
 
-    public function updateWarningLists() 
+    public function updateWarningLists()
     {
         $result = $this->Warninglist->update();
         $success = count($result['success']);
@@ -182,13 +182,7 @@ class AdminShell extends AppShell
             echo 'Usage: ' . APP . '/cake ' . 'Admin updateObjectTemplates [user_id]' . PHP_EOL;
         } else {
             $userId = $this->args[0];
-            $user = $this->User->find('first', array(
-                'recursive' => -1,
-                'conditions' => array(
-                    'User.id' => $userId,
-                ),
-                'fields' => array('User.id', 'User.org_id')
-            ));
+            $user = $this->User->getAuthUser($userId);
             # If the user_id passed does not exist, do a global update.
             if (empty($user)) {
                 echo 'User with ID: ' . $userId . ' not found' . PHP_EOL;
