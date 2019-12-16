@@ -189,24 +189,7 @@ class ShadowAttribute extends AppModel
         }
 
         // convert into utc and micro sec
-        if (!empty($this->data['ShadowAttribute']['first_seen'])) {
-            $d = new DateTime($this->data['ShadowAttribute']['first_seen']);
-            $d->setTimezone(new DateTimeZone('GMT'));
-            $fs_sec = $d->format('U');
-            $fs_micro = $d->format('u');
-            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
-            $fs = $fs_sec . $fs_micro;
-            $this->data['ShadowAttribute']['first_seen'] = $fs;
-        }
-        if (!empty($this->data['ShadowAttribute']['last_seen'])) {
-            $d = new DateTime($this->data['ShadowAttribute']['last_seen']);
-            $d->setTimezone(new DateTimeZone('GMT'));
-            $ls_sec = $d->format('U');
-            $ls_micro = $d->format('u');
-            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
-            $ls = $ls_sec . $ls_micro;
-            $this->data['ShadowAttribute']['last_seen'] = $ls;
-        }
+        $this->data = $this->Attribute->ISODatetimeToUTC($this->data, $this->alias);
         return true;
     }
 
@@ -391,22 +374,7 @@ class ShadowAttribute extends AppModel
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $v) {
-            if (!empty($v['ShadowAttribute']['first_seen'])) {
-                $fs = $results[$k]['ShadowAttribute']['first_seen'];
-                $fs_sec = intval($fs / 1000000); // $fs is in micro (10^6)
-                $fs_micro = $fs % 1000000;
-                $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
-                $fs = $fs_sec . '.' . $fs_micro;
-                $results[$k]['ShadowAttribute']['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
-            }
-            if (!empty($v['ShadowAttribute']['last_seen'])) {
-                $ls = $results[$k]['ShadowAttribute']['last_seen'];
-                $ls_sec = intval($ls / 1000000); // $ls is in micro (10^6)
-                $ls_micro = $ls % 1000000;
-                $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
-                $ls = $ls_sec . '.' . $ls_micro;
-                $results[$k]['ShadowAttribute']['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
-            }
+            $results[$k] = $this->Attribute->UTCToISODatetime($results[$k], $this->alias);
         }
         return $results;
     }

@@ -616,22 +616,7 @@ class Attribute extends AppModel
             if (isset($v['Attribute']['object_relation']) && $v['Attribute']['object_relation'] === null) {
                 $results[$k]['Attribute']['object_relation'] = '';
             }
-            if (!empty($v['Attribute']['first_seen'])) {
-                $fs = $results[$k]['Attribute']['first_seen'];
-                $fs_sec = intval($fs / 1000000); // $fs is in micro (10^6)
-                $fs_micro = $fs % 1000000;
-                $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
-                $fs = $fs_sec . '.' . $fs_micro;
-                $results[$k]['Attribute']['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
-            }
-            if (!empty($v['Attribute']['last_seen'])) {
-                $ls = $results[$k]['Attribute']['last_seen'];
-                $ls_sec = intval($ls / 1000000); // $ls is in micro (10^6)
-                $ls_micro = $ls % 1000000;
-                $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
-                $ls = $ls_sec . '.' . $ls_micro;
-                $results[$k]['Attribute']['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
-            }
+            $results[$k] = $this->UTCToISODatetime($results[$k], $this->alias);
         }
         return $results;
     }
@@ -664,26 +649,7 @@ class Attribute extends AppModel
             }
         }
 
-        // convert into utc and micro sec
-        if (!empty($this->data['Attribute']['first_seen'])) {
-            $d = new DateTime($this->data['Attribute']['first_seen']);
-            $d->setTimezone(new DateTimeZone('GMT'));
-            $fs_sec = $d->format('U');
-            $fs_micro = $d->format('u');
-            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
-            $fs = $fs_sec . $fs_micro;
-            $this->data['Attribute']['first_seen'] = $fs;
-        }
-        if (!empty($this->data['Attribute']['last_seen'])) {
-            $d = new DateTime($this->data['Attribute']['last_seen']);
-            $d->setTimezone(new DateTimeZone('GMT'));
-            $ls_sec = $d->format('U');
-            $ls_micro = $d->format('u');
-            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
-            $ls = $ls_sec . $ls_micro;
-            $this->data['Attribute']['last_seen'] = $ls;
-        }
-
+        $this->data = $this->ISODatetimeToUTC($this->data, $this->alias);
 
         // update correlation... (only needed here if there's an update)
         if ($this->id || !empty($this->data['Attribute']['id'])) {
@@ -2215,6 +2181,50 @@ class Attribute extends AppModel
         return $fails;
     }
 
+    public function ISODatetimeToUTC($data, $alias)
+    {
+        // convert into utc and micro sec
+        if (!empty($data[$alias]['first_seen'])) {
+            $d = new DateTime($data[$alias]['first_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $fs_sec = $d->format('U');
+            $fs_micro = $d->format('u');
+            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+            $fs = $fs_sec . $fs_micro;
+            $data[$alias]['first_seen'] = $fs;
+        }
+        if (!empty($data[$alias]['last_seen'])) {
+            $d = new DateTime($data[$alias]['last_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $ls_sec = $d->format('U');
+            $ls_micro = $d->format('u');
+            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+            $ls = $ls_sec . $ls_micro;
+            $data[$alias]['last_seen'] = $ls;
+        }
+        return $data;
+    }
+
+    public function UTCToISODatetime($data, $alias)
+    {
+        if (!empty($data[$alias]['first_seen'])) {
+            $fs = $data[$alias]['first_seen'];
+            $fs_sec = intval($fs / 1000000); // $fs is in micro (10^6)
+            $fs_micro = $fs % 1000000;
+            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+            $fs = $fs_sec . '.' . $fs_micro;
+            $data[$alias]['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
+        }
+        if (!empty($data[$alias]['last_seen'])) {
+            $ls = $data[$alias]['last_seen'];
+            $ls_sec = intval($ls / 1000000); // $ls is in micro (10^6)
+            $ls_micro = $ls % 1000000;
+            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+            $ls = $ls_sec . '.' . $ls_micro;
+            $data[$alias]['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
+        }
+        return $data;
+    }
 
     public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false, $enforceWarninglist = false)
     {
