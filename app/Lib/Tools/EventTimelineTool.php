@@ -89,7 +89,7 @@
                     'first_seen' => $attr['first_seen'],
                     'last_seen' => $attr['last_seen'],
                 );
-                array_push($this->__json['items'], $toPush);
+                $this->__json['items'][] = $toPush;
             }
 
             foreach ($object as $obj) {
@@ -128,9 +128,9 @@
                         'group' => 'object_attribute',
                         'timestamp' => $obj_attr['timestamp'],
                     );
-                    array_push($toPush_obj['Attribute'], $toPush_attr);
+                    $toPush_obj['Attribute'][] = $toPush_attr;
                 }
-                array_push($this->__json['items'], $toPush_obj);
+                $this->__json['items'][] = $toPush_obj;
             }
 
             return $this->__json;
