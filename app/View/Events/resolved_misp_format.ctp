@@ -86,10 +86,11 @@
     <table class='table table-striped table-condensed'>
       <tbody>
         <tr>
+          <th><?php echo __('Import');?></th>
           <th><?php echo __('Category');?></th>
           <th><?php echo __('Type');?></th>
           <th><?php echo __('Value');?></th>
-          <th><?php echo __('UUID');?></th>
+          <th class="hidden"><?php echo __('UUID');?></th>
           <th><?php echo __('Tags');?></th>
           <th><?php echo __('IDS');?></th>
           <th><?php echo __('Disable Correlation');?></th>
@@ -102,8 +103,10 @@
         ?>
         <tbody class='MISPObject'>
           <tr class='tableHighlightBorderTop borderBlue blueRow' tabindex='0'>
-            <td colspan="7">
-              <input type="checkbox" class="ImportMISPObject" checked /> <span class="bold"><?php echo __('Import object');?></span><br />
+            <td class="short" style="width:40px;text-align:center;">
+                <input type="checkbox" class="ImportMISPObject" checked />
+            </td>
+            <td colspan="6">
               <?php if(!empty($object['id'])) { ?>
               <span class="bold"><?php echo __('ID: ');?></span><span class="ObjectID"><?php echo h($object['id']); ?></span><br />
               <?php } ?>
@@ -197,6 +200,7 @@
                         $border_position = ($attribute == $last_attribute ? 'Bottom' : 'Center');
           ?>
           <tr class="ObjectAttribute tableHighlightBorder<?php echo $border_position; ?> borderBlue">
+            <td class="short" style="width:40px;text-align:center;"><input type="checkbox" class="ImportMISPObjectAttribute" checked /></td>
             <td class="ObjectCategory"><?php echo (isset($attribute['category']) ? h($attribute['category']) : ''); ?></td>
             <td class="short">
               <span class="ObjectRelation bold"><?php echo h($attribute['object_relation']); ?></span>:
@@ -213,7 +217,7 @@
                     }
                 }
             ?>
-            <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
+            <td class="AttributeUuid short hidden"><?php echo h($attribute['uuid']); ?></td>
             <td style="max-width:150px;width:10px;">
               <?php if (!empty($attribute['Tag'])) { ?>
               <span class="objectAttributeTagContainer">
@@ -277,10 +281,11 @@
         <table class='table table-striped table-condensed'>
           <tbody>
             <tr>
+              <th><?php echo __('Import');?></th>
               <th><?php echo __('Category');?></th>
               <th><?php echo __('Type');?></th>
               <th><?php echo __('Value');?></th>
-              <th><?php echo __('UUID');?></th>
+              <th class="hidden"><?php echo __('UUID');?></th>
               <th><?php echo __('Tags');?></th>
               <th><?php echo __('IDS');?></th>
               <th><?php echo __('Disable Correlation');?></th>
@@ -290,7 +295,10 @@
           <?php
             }
             foreach ($event['Attribute'] as $a => $attribute) {
-                echo '<tr class="MISPAttribute">';
+          ?>
+                <tr class="MISPAttribute">
+                <td class="short" style="width:40px;text-align:center;"><input type="checkbox" class="ImportMISPAttribute" checked /></td>
+          <?php
                 foreach (array('category', 'type') as $field) {
                     $field_header = 'class="Attribute' . ucfirst($field);
                     if (isset($attribute[$field])) {
@@ -319,7 +327,7 @@
                     }
                 }
           ?>
-          <td class="AttributeUuid short"><?php echo h($attribute['uuid']); ?></td>
+          <td class="AttributeUuid short hidden"><?php echo h($attribute['uuid']); ?></td>
           <td style="max-width:150px;width:10px;">
             <?php if (!empty($attribute['Tag'])) { ?>
             <span class="attributeTagContainer">
