@@ -96,7 +96,7 @@ class ShadowAttributesController extends AppController
                 $this->Attribute->delete($activeAttribute['Attribute']['id']);
             } else {
                 // Update the live attribute with the shadow data
-                $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids');
+                $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids', 'first_seen', 'last_seen');
                 foreach ($fieldsToUpdate as $f) {
                     $activeAttribute['Attribute'][$f] = $shadow[$f];
                 }

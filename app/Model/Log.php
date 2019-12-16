@@ -189,6 +189,7 @@ class Log extends AppModel
      * @param int $modelId
      * @param string $title
      * @param string|array $change
+     * @return array
      * @throws Exception
      */
     public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
@@ -227,6 +228,8 @@ class Log extends AppModel
         if (!$result) {
             throw new Exception("Cannot save log because of validation errors: " . json_encode($this->validationErrors));
         }
+
+        return $result;
     }
 
     // to combat a certain bug that causes the upgrade scripts to loop without being able to set the correct version

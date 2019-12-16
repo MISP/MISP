@@ -2082,7 +2082,6 @@ class EventsController extends AppController
         if (isset($this->params['named']['extends'])) {
             $this->set('extends_uuid', $this->params['named']['extends']);
         }
-        $this->set('action', 'add');
     }
 
     public function addIOC($id)
@@ -2420,11 +2419,9 @@ class EventsController extends AppController
             $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
         $this->set('analysisLevels', $analysisLevels);
-
         $this->set('fieldDesc', $fieldDesc);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('event', $this->Event->data);
-        $this->set('action', 'edit');
         $this->render('add');
     }
 

@@ -1170,62 +1170,56 @@ function clickCreateButton(event, type) {
     simplePopup("/" + destination + "/add/" + event);
 }
 
-function submitPopoverForm(context_id, referer, update_context_id, popover_dissmis_id_to_close) {
+function openGenericModal(url) {
+    $.ajax({
+        type: "get",
+        url: url,
+        success: function (data) {
+            $('#genericModal').remove();
+            $('body').append(data);
+            $('#genericModal').modal();
+        },
+        error: function (data, textStatus, errorThrown) {
+            showMessage('fail', textStatus + ": " + errorThrown);
+        }
+    });
+}
+
+// function submitPopoverForm(context_id, referer, update_context_id, popover_dissmis_id_to_close) {
+function submitPopoverForm(context_id, referer, update_context_id, modal) {
     var url = null;
     var context = 'event';
     var contextNamingConvention = 'Attribute';
     var closePopover = true;
     switch (referer) {
-        case 'add':
-            url = "/attributes/add/" + context_id;
-            break;
-        case 'edit':
-            url = "/attributes/edit/" + context_id;
-            break;
-        case 'propose':
-            url = "/shadow_attributes/add/" + context_id;
-            break;
-        case 'massEdit':
-            url = "/attributes/editSelected/" + context_id;
-            break;
         case 'addTextElement':
-            url = "/templateElements/add/text/" + context_id;
             context = 'template';
             contextNamingConvention = 'TemplateElementText';
             break;
         case 'editTextElement':
-            url = "/templateElements/edit/text/" + context_id;
             context = 'template';
             context_id = update_context_id;
             contextNamingConvention = 'TemplateElementText';
             break;
         case 'addAttributeElement':
-            url = "/templateElements/add/attribute/" + context_id;
             context = 'template';
             contextNamingConvention = 'TemplateElementAttribute';
             break;
         case 'editAttributeElement':
-            url = "/templateElements/edit/attribute/" + context_id;
             context = 'template';
             context_id = update_context_id;
             contextNamingConvention = 'TemplateElementAttribute';
             break;
         case 'addFileElement':
-            url = "/templateElements/add/file/" + context_id;
             context = 'template';
             contextNamingConvention = 'TemplateElementFile';
             break;
         case 'editFileElement':
-            url = "/templateElements/edit/file/" + context_id;
             context = 'template';
             context_id = update_context_id;
             contextNamingConvention = 'TemplateElementFile';
             break;
-        case 'replaceAttributes':
-            url = "/attributes/attributeReplace/" + context_id;
-            break;
         case 'addSighting':
-            url = "/sightings/add/" + context_id;
             closePopover = false;
             break;
         case 'addObjectReference':
@@ -1235,44 +1229,101 @@ function submitPopoverForm(context_id, referer, update_context_id, popover_dissm
            url = "/objects/quickAddAttributeForm/" + context_id;
            break;
     }
-    if (url !== null) {
-        url = baseurl + url;
-        $.ajax({
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
+    if ($("#submitButton").parent().hasClass('modal-footer')) {
+        var $form = $("#submitButton").parent().parent().find('.modal-body form');
+        url = baseurl + $form.attr('action');
+    } else {
+        var $form = $("#submitButton").closest("form");
+        url = baseurl + $form.attr('action');
+    }
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            if (modal) {
+                if (closePopover) {
+                    $('#genericModal').modal('hide');
+                }
+            } else {
                 if (closePopover) {
                     $("#gray_out").fadeOut();
                     $("#popover_form").fadeOut();
-                    if (popover_dissmis_id_to_close !== undefined) {
-                        $('[data-dismissid="' + popover_dissmis_id_to_close + '"]').popover('destroy');
-                    }
+                    // if (popover_dissmis_id_to_close !== undefined) {
+                    //     $('[data-dismissid="' + popover_dissmis_id_to_close + '"]').popover('destroy');
+                    // }
+                    $(".loading").show();
                 }
-            },
-            data: $("#submitButton").closest("form").serialize(),
-            success:function (data, textStatus) {
-                var result;
-                if (closePopover) {
+            }
+        },
+        data: $form.serialize(),
+        success:function (data, textStatus) {
+            var result;
+            if (closePopover) {
+                if (modal) {
+                    result = handleAjaxModalResponse(data, context_id, url, referer, context, contextNamingConvention);
+                } else {
                     result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
                 }
-                if (referer == 'addSighting') {
-                    updateIndex(update_context_id, 'event');
-                    $.get( "/sightings/listSightings/" + id + "/attribute", function(data) {
-                        $("#sightingsData").html(data);
-                    });
-                    $('.sightingsToggle').removeClass('btn-primary');
-                    $('.sightingsToggle').addClass('btn-inverse');
-                    $('#sightingsListAllToggle').removeClass('btn-inverse');
-                    $('#sightingsListAllToggle').addClass('btn-primary');
+            }
+            if (referer == 'addSighting') {
+                updateIndex(update_context_id, 'event');
+                $.get( "/sightings/listSightings/" + id + "/attribute", function(data) {
+                    $("#sightingsData").html(data);
+                });
+                $('.sightingsToggle').removeClass('btn-primary');
+                $('.sightingsToggle').addClass('btn-inverse');
+                $('#sightingsListAllToggle').removeClass('btn-inverse');
+                $('#sightingsListAllToggle').addClass('btn-primary');
+            }
+            if (
+                (
+                    context == 'event' &&
+                    (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')
+                ) || 
+                referer == 'quickAddAttributeForm' // FIXME: Why no inline with the others?
+            ){
+                eventUnpublish();
+            }
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            showMessage('fail', textStatus + ": " + errorThrown);
+        },
+        complete: function () {
+            $(".loading").hide();
+        },
+        type: "post",
+        url: url,
+    });
+    return false;
+};
+
+function handleAjaxModalResponse(response, context_id, url, referer, context, contextNamingConvention) {
+    responseArray = response;
+    var message = null;
+    var result = "fail";
+    if (responseArray.saved) {
+        updateIndex(context_id, context);
+        if (responseArray.success) {
+            showMessage("success", responseArray.success);
+            result = "success";
+        }
+        if (responseArray.errors) {
+            showMessage("fail", responseArray.errors);
+        }
+    } else {
+        var savedArray = saveValuesForPersistance();
+        $.ajax({
+            async:true,
+            dataType:"html",
+            success:function (data, textStatus) {
+                $('#genericModal').remove();
+                $('body').append(data);
+                $('#genericModal').modal();
+                var error_context = context.charAt(0).toUpperCase() + context.slice(1);
+                handleValidationErrors(responseArray.errors, context, contextNamingConvention);
+                result = "success";
+                if (!$.isEmptyObject(responseArray)) {
+                    result = "fail";
                 }
-                if (
-                    (
-                        context == 'event' &&
-                        (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')
-                    ) || 
-                    referer == 'quickAddAttributeForm'
-                ){
-                    eventUnpublish();
-                }
+                recoverValuesFromPersistance(savedArray);
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 showMessage('fail', textStatus + ": " + errorThrown);
@@ -1280,13 +1331,11 @@ function submitPopoverForm(context_id, referer, update_context_id, popover_dissm
             complete: function () {
                 $(".loading").hide();
             },
-            type: "post",
-            url: url,
+            url:url
         });
     }
-
-    return false;
-};
+    return result;
+}
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
     responseArray = response;

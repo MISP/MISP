@@ -1,5 +1,4 @@
 <?php
-if ($object['value'] == 'MERGE') debug($object);
   $tr_class = '';
   $linkClass = 'blue';
   $otherColour = 'blue';

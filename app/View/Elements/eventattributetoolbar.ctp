@@ -49,10 +49,11 @@
                 'children' => array(
                     array(
                         'id' => 'create-button',
-                        'title' => __('Add attribute'),
+                        'title' => $possibleAction === 'attribute' ? __('Add attribute') : __('Add proposal'),
                         'fa-icon' => 'plus',
-                        'onClick' => 'clickCreateButton',
-                        'onClickParams' => array($event['Event']['id'], $possibleAction)
+                        //'onClick' => 'clickCreateButton',
+                        'onClick' => 'openGenericModal',
+                        'onClickParams' => array('/' . $possibleAction . 's/add/' . h($event['Event']['id']))
                     ),
                     array(
                         'id' => 'multi-edit-button',

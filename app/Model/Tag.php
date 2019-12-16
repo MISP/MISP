@@ -413,11 +413,28 @@ class Tag extends AppModel
         return ($this->saveAll($tags));
     }
 
+    public function getTagsByName($tag_names, $containTagConnectors = true)
+    {
+        $contain = array('EventTag', 'AttributeTag');
+        $tag_params = array(
+                'recursive' => -1,
+                'conditions' => array('name' => $tag_names)
+        );
+        if ($containTagConnectors) {
+            $tag_params['contain'] = $contain;
+        }
+        $tags_temp = $this->find('all', $tag_params);
+        $tags = array();
+        foreach ($tags_temp as $temp) {
+            $tags[strtoupper($temp['Tag']['name'])] = $temp;
+        }
+        return $tags;
+    }
+
     public function getTagsForNamespace($namespace, $containTagConnectors = true)
     {
 
-        $contain = array('EventTag');
-        $contain[] = 'AttributeTag';
+        $contain = array('EventTag', 'AttributeTag');
         $tag_params = array(
                 'recursive' => -1,
                 'conditions' => array('UPPER(name) LIKE' => strtoupper($namespace) . '%'),

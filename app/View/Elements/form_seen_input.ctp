@@ -1,23 +1,5 @@
 <?php echo $this->Html->script('moment-with-locales'); ?>
 
-<div class="input-group">
-<?php
-    echo $this->Form->input('first_seen', array(
-            'type' => 'text',
-            'div' => 'input hidden',
-            'required' => false,
-            ));
-    echo $this->Form->input('last_seen', array(
-            'type' => 'text',
-            'div' => 'input hidden',
-            'required' => false,
-            ));
-?>
-</div>
-
-<div class="input clear"></div>
-
-
 <script>
 <?php
     $temp = explode('_', $this->params->controller);
@@ -304,27 +286,7 @@ function reflect_change_on_form() {
 }
 
 $(document).ready(function() {
-
-<?php if ($this->params->controller === 'attributes'): ?>
-    <?php if ($this->params->action === 'add'): ?>
-        var sliders_container = "<?php echo '#AttributeForm fieldset'; ?>"
-    <?php elseif ($this->params->action === 'search'): ?>
-        var sliders_container = "<?php echo '#AttributeSearchForm fieldset'; ?>"
-    <?php else: ?>
-        var sliders_container = "<?php echo '#AttributeForm fieldset'; ?>"
-    <?php endif; ?>
-<?php elseif ($this->params->controller === 'shadow_attributes'): ?>
-    <?php if ($this->params->action === 'add'): ?>
-        var sliders_container = "<?php echo '#ShadowAttributeAddForm fieldset'; ?>"
-    <?php elseif ($this->params->action === 'edit'): ?>
-        var sliders_container = "<?php echo '#ShadowAttributeEditForm fieldset'; ?>"
-    <?php else: ?>
-        var sliders_container = "<?php echo '#ShadowAttributeAddForm fieldset'; ?>"
-    <?php endif; ?>
-<?php else: ?>
-    var sliders_container = "<?php echo '#meta-div'; ?>"
-<?php endif; ?>
-
+    var sliders_container = "#bothSeenSliderContainer"
     var inputs_container = $('<div class="input-group input-daterange"></div>');
     // create separate date and time input
     var date_div_fs = $('<div class="input clear larger-input-field" style="margin-left: 10px;"></div>').append(
@@ -448,7 +410,7 @@ $(document).ready(function() {
         event.preventDefault();
     });
 
-    $('#date_fs').closest('form').submit(function( event ) {
+    $('#'+controller+'FirstSeen').closest('form').submit(function( event ) {
         reflect_change_on_form();
     });
 

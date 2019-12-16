@@ -3,6 +3,9 @@ App::uses('AppModel', 'Model');
 App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
 
+/**
+ * @property Log $Log
+ */
 class User extends AppModel
 {
     public $displayField = 'email';
@@ -1419,20 +1422,12 @@ class User extends AppModel
 
         // query
         $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        $this->Log->save(array(
-            'org' => $user['Organisation']['name'],
-            'model' => $model,
-            'model_id' => $modelId,
-            'email' => $user['email'],
-            'action' => $action,
-            'title' => $description,
-            'change' => isset($fieldsResult) ? $fieldsResult : ''));
+        $result = $this->Log->createLogEntry($user, $action, $model, $modelId, $description, $fieldsResult);
 
         // write to syslogd as well
         App::import('Lib', 'SysLog.SysLog');
         $syslog = new SysLog();
-        $syslog->write('notice', $description . ' -- ' . $action . (empty($fieldResult) ? '' : '-- ' . $fieldResult));
+        $syslog->write('notice', "$description -- $action" . (empty($fieldResult) ? '' : ' -- ' . $result['Log']['change']));
     }
 
     /**
@@ -1500,7 +1495,7 @@ class User extends AppModel
             $endDate = time();
         }
         $dates = array();
-        for ($d=$startDate; $d < $endDate; $d=$d+3600*24) { 
+        for ($d=$startDate; $d < $endDate; $d=$d+3600*24) {
             $dates[] = date('Y-m-d', $d);
         }
         $csv = 'Date,Close\n';

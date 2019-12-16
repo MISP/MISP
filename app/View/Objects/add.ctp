@@ -78,8 +78,18 @@
       ?>
     </dd>
     <?php
-        echo $this->element('form_seen_input');
+        echo $this->Form->input('first_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+                ));
+        echo $this->Form->input('last_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+                ));
     ?>
+    <div id="bothSeenSliderContainer"></div>
   </dl>
 </div>
 <?php
@@ -312,6 +322,7 @@
 
 
 <?php
+    echo $this->element('form_seen_input');
     if (!$ajax) {
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addObject', 'event' => $event));
     }

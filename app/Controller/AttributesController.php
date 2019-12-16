@@ -239,13 +239,8 @@ class AttributesController extends AppController
                         $failed = 1;
                         $message = sprintf('Attributes saved, however, %s attributes could not be saved. Click %s for more info', count($fails), '$flashErrorMessage');
                     } else {
-                        if (!empty($fails["attribute_0"])) {
-                            $failed = 1;
-                            $message = '0: ' . $v[0];
-                        } else {
-                            $failed = 1;
-                            $message = 'Attribute could not be saved.';
-                        }
+                        $failed = 1;
+                        $message = 'Attribute could not be saved.';
                     }
                 }
                 if (!empty($failKeys)) {
@@ -267,8 +262,14 @@ class AttributesController extends AppController
                     $flashErrorMessage = implode('<br />', $flashErrorMessage);
                     $this->Session->write('flashErrorMessage', $flashErrorMessage);
                 }
+                if (empty($failed)) {
+                    $this->Flash->success($message);
+                } else {
+                    $this->Flash->error($message);
+                }
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
+                    $this->layout = false;
                     $errors = ($attributeCount > 1) ? $message : $this->Attribute->validationErrors;
                     if (!empty($successes)) {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)),'status' => 200, 'type' => 'json'));
@@ -276,11 +277,6 @@ class AttributesController extends AppController
                         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errors)),'status' => 200, 'type' => 'json'));
                     }
                 } else {
-                    if (empty($failed)) {
-                        $this->Flash->success($message);
-                    } else {
-                        $this->Flash->error($message);
-                    }
                     if ($successes > 0) {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                     }
@@ -311,25 +307,31 @@ class AttributesController extends AppController
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
-        $info = array();
+        $initialDistribution = 5;
+        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
+        if ($configuredDistribution != null && $configuredDistribution != 'event') {
+            $initialDistribution = $configuredDistribution;
+        }
+        $this->set('initialDistribution', $initialDistribution);
+        $fieldDesc = array();
         $distributionLevels = $this->Attribute->distributionLevels;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
         }
         $this->set('distributionLevels', $distributionLevels);
+        foreach ($distributionLevels as $key => $value) {
+            $fieldDesc['distribution'][$key] = $this->Attribute->distributionDescriptions[$key]['formdesc'];
+        }
         foreach ($this->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
         }
         foreach ($this->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($distributionLevels as $key => $value) {
-            $info['distribution'][$key] = array('key' => $value, 'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']);
+            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
         }
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
         $this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
-        $this->set('info', $info);
+        $this->set('fieldDesc', $fieldDesc);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('published', $events['Event']['published']);

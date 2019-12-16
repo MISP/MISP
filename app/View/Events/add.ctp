@@ -1,5 +1,6 @@
 <?php
     $modelForForm = 'Event';
+    $action = $this->request->params['action'];
     echo $this->element('genericElements/Form/genericForm', array(
         'form' => $this->Form,
         'data' => array(
@@ -60,11 +61,11 @@
                 '<div id="extended_event_preview" style="width:446px;"></div>'
             ),
             'submit' => array(
-                'action' => $this->request->params['action']
+                'action' => $action
             )
         )
     ));
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $this->action === 'add' ? 'add' : 'editEvent'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $action === 'add' ? 'add' : 'editEvent'));
 ?>
 
 <script type="text/javascript">
