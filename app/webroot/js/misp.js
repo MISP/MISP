@@ -1185,8 +1185,7 @@ function openGenericModal(url) {
     });
 }
 
-// function submitPopoverForm(context_id, referer, update_context_id, popover_dissmis_id_to_close) {
-function submitPopoverForm(context_id, referer, update_context_id, modal) {
+function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dissmis_id_to_close) {
     var url = null;
     var context = 'event';
     var contextNamingConvention = 'Attribute';
@@ -1246,9 +1245,9 @@ function submitPopoverForm(context_id, referer, update_context_id, modal) {
                 if (closePopover) {
                     $("#gray_out").fadeOut();
                     $("#popover_form").fadeOut();
-                    // if (popover_dissmis_id_to_close !== undefined) {
-                    //     $('[data-dismissid="' + popover_dissmis_id_to_close + '"]').popover('destroy');
-                    // }
+                    if (popover_dissmis_id_to_close !== undefined) {
+                        $('[data-dismissid="' + popover_dissmis_id_to_close + '"]').popover('destroy');
+                    }
                     $(".loading").show();
                 }
             }
@@ -1276,9 +1275,8 @@ function submitPopoverForm(context_id, referer, update_context_id, modal) {
             if (
                 (
                     context == 'event' &&
-                    (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')
-                ) || 
-                referer == 'quickAddAttributeForm' // FIXME: Why no inline with the others?
+                    (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference' || referer == 'quickAddAttributeForm')
+                )
             ){
                 eventUnpublish();
             }
