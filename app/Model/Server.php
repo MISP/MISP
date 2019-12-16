@@ -4285,7 +4285,7 @@ class Server extends AppModel
         $dataSource = $this->getDataSource()->config['datasource'];
         if ($dataSource == 'Database/Mysql') {
             $sql = sprintf(
-                'select table_name, sum((data_length+index_length)/1024/1024) AS used, sum(data_free)/1024/1024 reclaimable from information_schema.tables where table_schema = %s group by table_name;',
+                'select TABLE_NAME, sum((DATA_LENGTH+INDEX_LENGTH)/1024/1024) AS used, sum(DATA_FREE)/1024/1024 AS reclaimable from information_schema.tables where table_schema = %s group by TABLE_NAME;',
                 "'" . $this->getDataSource()->config['database'] . "'"
             );
             $sqlResult = $this->query($sql);
@@ -4294,14 +4294,14 @@ class Server extends AppModel
                 foreach ($temp[0] as $k => $v) {
                     $temp[0][$k] = round($v, 2) . 'MB';
                 }
-                $temp[0]['table'] = $temp['tables']['table_name'];
+                $temp[0]['table'] = $temp['tables']['TABLE_NAME'];
                 $result[] = $temp[0];
             }
             return $result;
         }
         else if ($dataSource == 'Database/Postgres') {
             $sql = sprintf(
-                'select table_name as table, pg_total_relation_size(%s||%s||table_name) as used from information_schema.tables where table_schema = %s group by table_name;',
+                'select TABLE_NAME as table, pg_total_relation_size(%s||%s||TABLE_NAME) as used from information_schema.tables where table_schema = %s group by TABLE_NAME;',
                 "'" . $this->getDataSource()->config['database'] . "'",
                 "'.'",
                 "'" . $this->getDataSource()->config['database'] . "'"
@@ -4347,6 +4347,7 @@ class Server extends AppModel
         ))['AdminSetting']['value'];
         $dataSource = $this->getDataSource()->config['datasource'];
         $schemaDiagnostic = array(
+            'dataSource' => $dataSource,
             'actual_db_version' => $actualDbVersion,
             'checked_table_column' => array(),
             'diagnostic' => array(),
@@ -4502,14 +4503,14 @@ class Server extends AppModel
         $dbActualSchema = array();
         $dataSource = $this->getDataSource()->config['datasource'];
         if ($dataSource == 'Database/Mysql') {
-            $sqlGetTable = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
+            $sqlGetTable = sprintf('SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
             $sqlResult = $this->query($sqlGetTable);
-            $tables = HASH::extract($sqlResult, '{n}.tables.table_name');
+            $tables = HASH::extract($sqlResult, '{n}.tables.TABLE_NAME');
             foreach ($tables as $table) {
                 $sqlSchema = sprintf(
                     "SELECT %s
                     FROM information_schema.columns
-                    WHERE table_schema = '%s' AND table_name = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
+                    WHERE table_schema = '%s' AND TABLE_NAME = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
                 $sqlResult = $this->query($sqlSchema);
                 foreach ($sqlResult as $column_schema) {
                     $dbActualSchema[$table][] = $column_schema['columns'];
@@ -4578,8 +4579,19 @@ class Server extends AppModel
                             $isCritical = false;
                             foreach($colElementDiffs as $colElementDiff) {
                                 if(!in_array($colElementDiff, $nonCriticalColumnElements)) {
-                                    $isCritical = true;
-                                    break;
+                                    if ($colElementDiff == 'column_default') {
+                                        $expectedValue = $column['column_default'];
+                                        $actualValue = $keyedActualColumn[$columnName]['column_default'];
+                                        if (preg_match(sprintf('/(\'|")+%s(\1)+/', $expectedValue), $actualValue)) { // some version of mysql quote the default value
+                                            continue;
+                                        } else {
+                                            $isCritical = true;
+                                            break;
+                                        }
+                                    } else {
+                                        $isCritical = true;
+                                        break;
+                                    }
                                 }
                             }
                             $dbDiff[$tableName][] = array(
