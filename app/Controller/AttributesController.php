@@ -1758,34 +1758,26 @@ class AttributesController extends AppController
     private function __searchUI($attributes)
     {
         $sightingsData = array();
-        $sgids = $this->Attribute->Event->cacheSgids($this->Auth->user(), true);
         $this->Feed = ClassRegistry::init('Feed');
-        if (!empty($options['overrideLimit'])) {
-            $overrideLimit = true;
-        } else {
-            $overrideLimit = false;
-        }
-        $this->loadModel('GalaxyCluster');
-        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+
         $this->loadModel('Sighting');
+        $user = $this->Auth->user();
         foreach ($attributes as $k => $attribute) {
+            $attributeId = $attribute['Attribute']['id'];
+
             $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
-            $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
+            $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute', $excludeGalaxy = false, $cullGalaxyTags = true);
             unset($attributes[$k]['AttributeTag']);
-            foreach ($attributes[$k]['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
-                if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                    unset($attributes[$k]['Attribute']['AttributeTag'][$k2]);
-                }
-            }
+
             $sightingsData = array_merge(
                 $sightingsData,
-                $this->Sighting->attachToEvent($attribute, $this->Auth->user(), $attributes[$k]['Attribute']['id'], $extraConditions = false)
+                $this->Sighting->attachToEvent($attribute, $user, $attributeId, $extraConditions = false)
             );
-            $correlations = $this->Attribute->Event->getRelatedAttributes($this->Auth->user(), $attributes[$k]['Attribute']['id'], false, false, 'attribute');
+            $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeId, false, false, 'attribute');
             if (!empty($correlations)) {
-                $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attributes[$k]['Attribute']['id']];
+                $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attributeId];
             }
-            $temp = $this->Feed->attachFeedCorrelations(array($attributes[$k]['Attribute']), $this->Auth->user, $attributes[$k]['Event'], $overrideLimit);
+            $temp = $this->Feed->attachFeedCorrelations(array($attributes[$k]['Attribute']), $user, $attributes[$k]['Event']);
             if (!empty($temp)) {
                 $attributes[$k]['Attribute'] = $temp[0];
             }
