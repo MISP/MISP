@@ -545,6 +545,12 @@ class MispObject extends AppModel
                 $tmpfile->delete();
                 $tmpfile->close();
             }
+            if (!isset($attributes['Attribute'][$k]['first_seen'])) {
+                $attributes['Attribute'][$k]['first_seen'] = null;
+            }
+            if (!isset($attributes['Attribute'][$k]['last_seen'])) {
+                $attributes['Attribute'][$k]['last_seen'] = null;
+            }
             unset($attributes['Attribute'][$k]['save']);
         }
         return $attributes;
