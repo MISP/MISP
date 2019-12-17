@@ -2602,11 +2602,15 @@ function moduleResultsSubmit(id) {
             var object_uuid = $(this).find('.ObjectUUID').text();
             temp = {
                 uuid: object_uuid,
+                import_object: $(this).find('.ImportMISPObject')[0].checked,
                 name: $(this).find('.ObjectName').text(),
                 meta_category: $(this).find('.ObjectMetaCategory').text(),
                 distribution: $(this).find('.ObjectDistribution').val(),
                 sharing_group_id: $(this).find('.ObjectSharingGroup').val(),
                 comment: $(this).find('.ObjectComment').val()
+            }
+            if (!temp['import_object']) {
+                return true;
             }
             if (temp['distribution'] != '4') {
                 temp['sharing_group_id'] = '0';

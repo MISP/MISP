@@ -5157,8 +5157,9 @@ class EventsController extends AppController
                     $this->set('importComment', $importComment);
                     $this->render($render_name);
                 }
+            } else {
+                $this->Flash->error($fail);
             }
-            $this->Flash->error($fail);
         }
         $this->set('configTypes', $this->Module->configTypes);
         $this->set('module', $module);
