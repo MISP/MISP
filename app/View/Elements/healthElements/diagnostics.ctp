@@ -237,7 +237,9 @@
                 'remainingLockTime' => $dbSchemaDiagnostics['remaining_lock_time'],
                 'updateFailNumberReached' => $dbSchemaDiagnostics['update_fail_number_reached'],
                 'updateLocked' => $dbSchemaDiagnostics['update_locked'],
-                'dataSource' => $dbSchemaDiagnostics['dataSource']
+                'dataSource' => $dbSchemaDiagnostics['dataSource'],
+                'columnPerTable' => $dbSchemaDiagnostics['columnPerTable'],
+                'indexes' => $dbSchemaDiagnostics['indexes'],
             )); ?>
         </div>
     <h3><?= __("Redis info") ?></h3>

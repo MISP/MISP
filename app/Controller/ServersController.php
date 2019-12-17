@@ -2228,9 +2228,10 @@ misp.direct_call(relative_path, body)
             $this->set('updateFailNumberReached', $dbSchemaDiagnostics['update_fail_number_reached']);
             $this->set('updateLocked', $dbSchemaDiagnostics['update_locked']);
             $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
+            $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
+            $this->set('indexes', $dbSchemaDiagnostics['indexes']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
         }
-
     }
 
     public function viewDeprecatedFunctionUse()

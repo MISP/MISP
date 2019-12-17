@@ -24,7 +24,6 @@
     */
 
 
-
     function highlightAndSanitize($dirty, $toHighlight, $colorType = 'success')
     {
         if (is_array($dirty)) {
@@ -168,7 +167,11 @@
         __('DataSource: ') . h($dataSource),
         __('DataSource: ') . h($dataSource),
         $dataSource != 'Database/Mysql' ? 'times' : 'check'
-    )
+    );
+    echo $this->element('/healthElements/db_indexes_diagnostic', array(
+        'columnPerTable' => $columnPerTable,
+        'indexes' => $indexes
+    ));
 ?>
 <script>
 var dbSchemaDiagnostics = <?php echo json_encode($dbSchemaDiagnostics); ?>;

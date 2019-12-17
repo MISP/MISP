@@ -4355,7 +4355,8 @@ class Server extends AppModel
             'error' => '',
             'update_locked' => $this->isUpdateLocked(),
             'remaining_lock_time' => $this->getLockRemainingTime(),
-            'update_fail_number_reached' => $this->UpdateFailNumberReached()
+            'update_fail_number_reached' => $this->UpdateFailNumberReached(),
+            'indexes' => array()
         );
         if ($dataSource == 'Database/Mysql') {
             $dbActualSchema = $this->getActualDBSchema();
@@ -4365,6 +4366,12 @@ class Server extends AppModel
                 $schemaDiagnostic['checked_table_column'] = $dbActualSchema['column'];
                 $schemaDiagnostic['diagnostic'] = $db_schema_comparison;
                 $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
+                foreach($dbActualSchema['schema'] as $tableName => $tableMetas) {
+                    foreach($tableMetas as $tableMeta) {
+                        $schemaDiagnostic['columnPerTable'][$tableName][] = $tableMeta['column_name'];
+                    }
+                }
+                $schemaDiagnostic['indexes'] = $dbActualSchema['indexes'];
             } else {
                 $schemaDiagnostic['error'] = sprintf('Diagnostic not available as the expected schema file could not be loaded');
             }
@@ -4501,6 +4508,7 @@ class Server extends AppModel
         )
     ){
         $dbActualSchema = array();
+        $dbActualIndexes = array();
         $dataSource = $this->getDataSource()->config['datasource'];
         if ($dataSource == 'Database/Mysql') {
             $sqlGetTable = sprintf('SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
@@ -4515,12 +4523,13 @@ class Server extends AppModel
                 foreach ($sqlResult as $column_schema) {
                     $dbActualSchema[$table][] = $column_schema['columns'];
                 }
+                $dbActualIndexes[$table] = $this->getDatabaseIndexes($this->getDataSource()->config['database'], $table);
             }
         }
         else if ($dataSource == 'Database/Postgres') {
             return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
-        return array('schema' => $dbActualSchema, 'column' => $tableColumnNames);
+        return array('schema' => $dbActualSchema, 'column' => $tableColumnNames, 'indexes' => $dbActualIndexes);
     }
 
     public function compareDBSchema($dbActualSchema, $dbExpectedSchema)
@@ -4625,6 +4634,18 @@ class Server extends AppModel
             );
         }
         return $dbDiff;
+    }
+
+    public function getDatabaseIndexes($database, $table)
+    {
+        $sqlTableIndex = sprintf(
+            "SELECT DISTINCT TABLE_NAME, COLUMN_NAME FROM information_schema.statistics WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s';",
+            $database,
+            $table
+        );
+        $sqlTableIndexResult = $this->query($sqlTableIndex);
+        $tableIndex = Hash::extract($sqlTableIndexResult, '{n}.statistics.COLUMN_NAME');
+        return $tableIndex;
     }
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)
