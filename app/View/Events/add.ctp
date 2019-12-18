@@ -1,102 +1,76 @@
-<div class="events form">
-    <div class="message">
-        <?php echo __('The event created %s, but not synchronised to other MISP instances until it is published.', (Configure::read('MISP.unpublishedprivate') ? __('will be restricted to your organisation') : __('will be visible to the organisations having an account on this platform')));?>
-    </div>
-
-<?php echo $this->Form->create('', array('type' => 'file'));?>
-    <fieldset>
-        <legend><?php echo __('Add Event');?></legend>
-        <?php
-        echo $this->Form->input('date', array(
-                'type' => 'text',
-                'class' => 'datepicker'
-        ));
-        if (isset($this->request->data['Event']['distribution'])) {
-            $initialDistribution = $this->request->data['Event']['distribution'];
-        } else {
-            $initialDistribution = 3;
-            if (Configure::read('MISP.default_event_distribution') != null) {
-                $initialDistribution = Configure::read('MISP.default_event_distribution');
-            }
-        }
-        echo $this->Form->input('distribution', array(
-                'options' => array($distributionLevels),
-                'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
-                'selected' => $initialDistribution,
-            ));
-            $style = $initialDistribution == 4 ? '' : 'style="display:none"';
-        ?>
-            <div id="SGContainer" <?php echo $style; ?>>
-        <?php
-        if (!empty($sharingGroups)) {
-            echo $this->Form->input('sharing_group_id', array(
-                    'options' => array($sharingGroups),
-                    'label' => __('Sharing Group'),
-            ));
-        }
-        ?>
-            </div>
-        <?php
-        if (isset($this->request->data['Event']['threat_level_id'])) {
-            $selected = $this->request->data['Event']['threat_level_id'];
-        } else {
-            $selected = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : '4';
-        }
-
-        echo $this->Form->input('threat_level_id', array(
-                'div' => 'input clear',
-                'label' => __('Threat Level ') . $this->element('formInfo', array('type' => 'threat_level')),
-                'selected' => $selected,
-                ));
-        echo $this->Form->input('analysis', array(
-                'label' => __('Analysis ') . $this->element('formInfo', array('type' => 'analysis')),
-                'options' => array($analysisLevels),
-                ));
-        echo $this->Form->input('info', array(
-                    'label' => __('Event Info'),
-                    'div' => 'clear',
+<?php
+    $modelForForm = 'Event';
+    $action = $this->request->params['action'];
+    echo $this->element('genericElements/Form/genericForm', array(
+        'form' => $this->Form,
+        'data' => array(
+            'title' => $action === 'add' ? __('Add Event') : __('Edit Event'),
+            'model' => $modelForForm,
+            'fields' => array(
+                array(
+                    'field' => 'org_id',
+                    'class' => 'org-id-picker-hidden-field',
                     'type' => 'text',
-                    'class' => 'form-control span6',
+                    'hidden' => true
+                ),
+                array(
+                    'field' => 'date',
+                    'class' => 'datepicker',
+                    'type' => 'text',
+                    'stayInLine' => 1
+                ),
+                array(
+                    'field' => 'distribution',
+                    'class' => 'input',
+                    'options' => $distributionLevels,
+                    'default' => isset($event['Event']['distribution']) ? $event['Event']['distribution'] : $initialDistribution,
+                    'stayInLine' => 1
+                ),
+                array(
+                    'field' => 'sharing_group_id',
+                    'class' => 'input',
+                    'options' => $sharingGroups,
+                    'label' => __("Sharing Group")
+                ),
+                array(
+                    'field' => 'threat_level_id',
+                    'class' => 'input',
+                    'options' => $threatLevels,
+                    'label' => __("Threat Level"),
+                    'stayInLine' => 1
+                ),
+                array(
+                    'field' => 'analysis',
+                    'class' => 'input',
+                    'options' => $analysisLevels
+                ),
+                array(
+                    'field' => 'info',
+                    'label' => __('Event Info'),
+                    'class' => 'input span6',
+                    'type' => 'text',
                     'placeholder' => __('Quick Event Description or Tracking Info')
-                ));
-        echo $this->Form->input('extends_uuid', array(
-                    'label' => __('Extends event'),
-                    'div' => 'clear',
-                    'class' => 'form-control span6',
-                    'placeholder' => __('Event UUID or ID. Leave blank if not applicable.')
-                ));
-        ?>
-            <div id="extended_event_preview" style="width:446px;"></div>
-    </fieldset>
-<?php
-echo $this->Form->button(__('Add'), array('class' => 'btn btn-primary'));
-echo $this->Form->end();
-?>
-</div>
-<?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'add'));
+                ),
+                array(
+                    'field' => 'extends_uuid',
+                    'class' => 'input span6',
+                    'placeholder' => __('Event UUID or ID. Leave blank if not applicable.'),
+                    'label' => __("Extends Event"),
+                    'default' => isset($extends_uuid) ? $extends_uuid : ''
+                ),
+                '<div id="extended_event_preview" style="width:446px;"></div>'
+            ),
+            'submit' => array(
+                'action' => $action
+            )
+        )
+    ));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $action === 'add' ? 'add' : 'editEvent'));
 ?>
 
 <script type="text/javascript">
-    <?php
-        $formInfoTypes = array('distribution' => 'Distribution', 'analysis' => 'Analysis', 'threat_level' => 'ThreatLevelId');
-        echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
-        foreach ($formInfoTypes as $formInfoType => $humanisedName) {
-            echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
-            foreach ($info[$formInfoType] as $key => $formInfoData) {
-                echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
-            }
-            echo '}' . PHP_EOL;
-        }
-    ?>
-
     $('#EventDistribution').change(function() {
-        if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
-        else $('#SGContainer').hide();
-    });
-
-    $("#EventDistribution, #EventAnalysis, #EventThreatLevelId").change(function() {
-        initPopoverContent('Event');
+        checkSharingGroup('Event');
     });
 
     $("#EventExtendsUuid").keyup(function() {
@@ -104,9 +78,8 @@ echo $this->Form->end();
     });
 
     $(document).ready(function() {
-        if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
-        else $('#SGContainer').hide();
-        initPopoverContent('Event');
+        checkSharingGroup('Event');
+        previewEventBasedOnUuids();
     });
 </script>
 <?php echo $this->Js->writeBuffer();

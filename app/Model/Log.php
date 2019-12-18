@@ -16,47 +16,56 @@ class Log extends AppModel
     );
     public $validate = array(
             'action' => array(
-            'rule' => array('inList', array(
-                            'accept',
-                            'accept_delegation',
-                            'add',
-                            'admin_email',
-                            'auth',
-                            'auth_fail',
-                            'blacklisted',
-                            'change_pw',
-                            'delete',
-                            'disable',
-                            'discard',
-                            'edit',
-                            'email',
-                            'enable',
-                            'error',
-                            'export',
-                            'file_upload',
-                            'galaxy',
-                            'login',
-                            'login_fail',
-                            'logout',
-                            'merge',
-                            'pruneUpdateLogs',
-                            'publish',
-                            'publish alert',
-                            'pull',
-                            'push',
-                            'remove_dead_workers',
-                            'request_delegation',
-                            'reset_auth_key',
-                            'serverSettingsEdit',
-                            'tag',
-                            'undelete',
-                            'update',
-                            'update_database',
-                            'upgrade_24',
-                            'upload_sample',
-                            'version_warning',
-                            'warning'
-                        )),
+            'rule' => array(
+                'inList',
+                array( // ensure that the length of the rules is < 20 in length
+                    'accept',
+                    'accept_delegation',
+                    'add',
+                    'admin_email',
+                    'auth',
+                    'auth_fail',
+                    'blacklisted',
+                    'change_pw',
+                    'delete',
+                    'disable',
+                    'discard',
+                    'edit',
+                    'email',
+                    'enable',
+                    'error',
+                    'export',
+                    'file_upload',
+                    'galaxy',
+                    'include_formula',
+                    'login',
+                    'login_fail',
+                    'logout',
+                    'merge',
+                    'pruneUpdateLogs',
+                    'publish',
+                    'publish_sightings',
+                    'publish alert',
+                    'pull',
+                    'purge_events',
+                    'push',
+                    'remove_dead_workers',
+                    'request',
+                    'request_delegation',
+                    'reset_auth_key',
+                    'security',
+                    'serverSettingsEdit',
+                    'tag',
+                    'undelete',
+                    'update',
+                    'update_database',
+                    'update_db_worker',
+                    'upgrade_24',
+                    'upload_sample',
+                    'version_warning',
+                    'warning'
+                )
+            ),
             'message' => 'Options : ...'
         )
     );
@@ -89,10 +98,17 @@ class Log extends AppModel
         if (!isset($this->data['Log']['org']) || empty($this->data['Log']['org'])) {
             $this->data['Log']['org'] = 'SYSTEM';
         }
+        // truncate the description if it would exceed the allowed size in mysql
+        if (!empty($this->data['Log']['description'] && strlen($this->data['Log']['description']) > 65536)) {
+            $this->data['Log']['description'] = substr($this->data['Log']['description'], 0, 65535);
+        }
     }
 
     public function beforeSave($options = array())
     {
+        if (!empty(Configure::read('MISP.log_skip_db_logs_completely'))) {
+            return false;
+        }
         if (Configure::read('MISP.log_client_ip') && isset($_SERVER['REMOTE_ADDR'])) {
             $this->data['Log']['ip'] = $_SERVER['REMOTE_ADDR'];
         }
@@ -115,6 +131,9 @@ class Log extends AppModel
             }
         }
         $this->logData($this->data);
+        if ($this->data['Log']['action'] === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {
+            return false;
+        }
         return true;
     }
 
@@ -149,11 +168,11 @@ class Log extends AppModel
                 $condOrg = '';
             }
             $sql = 'SELECT DISTINCT EXTRACT(EPOCH FROM CAST(created AS DATE)) AS "Date",
-									COUNT(id) AS count
-					FROM logs
-					WHERE action NOT IN (' . $condnotinaction . ')
-					' . $condOrg . '
-					GROUP BY "Date" ORDER BY "Date"';
+                                    COUNT(id) AS count
+                    FROM logs
+                    WHERE action NOT IN (' . $condnotinaction . ')
+                    ' . $condOrg . '
+                    GROUP BY "Date" ORDER BY "Date"';
             $validDates = $this->query($sql);
         }
         $data = array();
@@ -163,19 +182,54 @@ class Log extends AppModel
         return $data;
     }
 
-    public function createLogEntry($user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0), $action, $model, $model_id = 0, $title = '', $change = '')
+    /**
+     * @param string|array $user
+     * @param string $action
+     * @param string $model
+     * @param int $modelId
+     * @param string $title
+     * @param string|array $change
+     * @return array
+     * @throws Exception
+     */
+    public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
     {
+        if ($user === 'SYSTEM') {
+            $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
+        } else if (!is_array($user)) {
+            throw new InvalidArgumentException("User must be array or 'SYSTEM' string.");
+        }
+
+        if (is_array($change)) {
+            $output = array();
+            foreach ($change as $field => $values) {
+                if (strpos($field, 'password') !== false) { // if field name contains password, replace value with asterisk
+                    $oldValue = $newValue = "*****";
+                } else {
+                    list($oldValue, $newValue) = $values;
+                }
+                $output[] = "$field ($oldValue) => ($newValue)";
+            }
+            $change = implode(", ", $output);
+        }
+
         $this->create();
-        $this->save(array(
-                'org' => $user['Organisation']['name'],
-                'email' =>$user['email'],
-                'user_id' => $user['id'],
-                'action' => $action,
-                'title' => $title,
-                'change' => $change,
-                'model' => $model,
-                'model_id' => $model_id,
+        $result = $this->save(array(
+            'org' => $user['Organisation']['name'],
+            'email' => $user['email'],
+            'user_id' => $user['id'],
+            'action' => $action,
+            'title' => $title,
+            'change' => $change,
+            'model' => $model,
+            'model_id' => $modelId,
         ));
+
+        if (!$result) {
+            throw new Exception("Cannot save log because of validation errors: " . json_encode($this->validationErrors));
+        }
+
+        return $result;
     }
 
     // to combat a certain bug that causes the upgrade scripts to loop without being able to set the correct version
@@ -256,10 +310,12 @@ class Log extends AppModel
 
     public function logData($data)
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
+        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_audit_notifications_enable')) {
             $pubSubTool = $this->getPubSubTool();
             $pubSubTool->publish($data, 'audit', 'log');
         }
+
+        $this->publishKafkaNotification('audit', $data, 'log');
 
         if (Configure::read('Plugin.ElasticSearch_logging_enable')) {
             // send off our logs to distributed /dev/null
@@ -288,5 +344,32 @@ class Log extends AppModel
             $syslog->write($action, $entry);
         }
         return true;
+    }
+
+    public function filterSiteAdminSensitiveLogs($list)
+    {
+        $this->User = ClassRegistry::init('User');
+        $site_admin_roles = $this->User->Role->find('list', array(
+            'recursive' => -1,
+            'conditions' => array('Role.perm_site_admin' => 1),
+            'fields' => array('Role.id', 'Role.id')
+        ));
+        $site_admins = $this->User->find('list', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'User.role_id' => array_values($site_admin_roles)
+            ),
+            'fields' => array('User.id', 'User.id')
+        ));
+        foreach ($list as $k => $v) {
+            if (
+                $v['Log']['model'] === 'User' &&
+                in_array($v['Log']['model_id'], array_values($site_admins)) &&
+                in_array($v['Log']['action'], array('add', 'edit', 'reset_auth_key'))
+            ) {
+                $list[$k]['Log']['change'] = __('Redacted');
+            }
+        }
+        return $list;
     }
 }

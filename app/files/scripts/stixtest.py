@@ -8,6 +8,7 @@ results = {
     'cybox': 0,
     'mixbox': 0,
     'maec': 0,
+    'stix2': 0,
     'pymisp': 0
 }
 try:
@@ -40,12 +41,19 @@ try:
 except Exception:
     results['success'] = 0
 
+try:
+    import stix2
+    results['stix2'] = stix2.__version__
+except Exception:
+    results['success'] = 0
+
 print(json.dumps({
     'success': results['success'],
     'stix': results['stix'],
     'cybox': results['cybox'],
     'mixbox': results['mixbox'],
     'maec': results['maec'],
+    'stix2': results['stix2'],
     'pymisp': results['pymisp']
 }))
-sys.exit(1)
+sys.exit(0)

@@ -11,7 +11,7 @@ class MispObject extends AppModel
 
     public $actsAs = array(
             'Containable',
-            'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                 'userModel' => 'User',
                 'userKey' => 'user_id',
                 'change' => 'full'),
@@ -47,6 +47,17 @@ class MispObject extends AppModel
     );
 
     public $validate = array(
+        'uuid' => array(
+            'uuid' => array(
+                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                'message' => 'Please provide a valid UUID'
+            ),
+            'unique' => array(
+                'rule' => 'isUnique',
+                'message' => 'The UUID provided is not unique',
+                'required' => 'create'
+            )
+        )
     );
 
     public function beforeValidate($options = array())
@@ -81,18 +92,30 @@ class MispObject extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
-            if (empty($this->data['Object']['skip_zmq'])) {
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') &&
+            Configure::read('Plugin.ZeroMQ_object_notifications_enable') &&
+            empty($this->data['Object']['skip_zmq']);
+        $kafkaTopic = Configure::read('Plugin.Kafka_object_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') &&
+            Configure::read('Plugin.Kafka_object_notifications_enable') &&
+            !empty($kafkaTopic) &&
+            empty($this->data['Object']['skip_kafka']);
+        if ($pubToZmq || $pubToKafka) {
+            $object = $this->find('first', array(
+                'conditions' => array('Object.id' => $this->id),
+                'recursive' => -1
+            ));
+            $action = $created ? 'add' : 'edit';
+            if (!empty($this->data['Object']['deleted'])) {
+                $action = 'soft-delete';
+            }
+            if ($pubToZmq) {
                 $pubSubTool = $this->getPubSubTool();
-                $object = $this->find('first', array(
-                    'conditions' => array('Object.id' => $this->id),
-                    'recursive' => -1
-                ));
-                $action = $created ? 'add' : 'edit';
-                if (!empty($this->data['Object']['deleted'])) {
-                    $action = 'soft-delete';
-                }
                 $pubSubTool->object_save($object, $action);
+            }
+            if ($pubToKafka) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $object, $action);
             }
         }
         return true;
@@ -101,13 +124,22 @@ class MispObject extends AppModel
     public function beforeDelete($cascade = true)
     {
         if (!empty($this->data['Object']['id'])) {
-            if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_notifications_enable')) {
-                $pubSubTool = $this->getPubSubTool();
+            $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_notifications_enable');
+            $kafkaTopic = Configure::read('Plugin.Kafka_object_notifications_topic');
+            $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_object_notifications_enable') && !empty($kafkaTopic);
+            if ($pubToZmq || $pubToKafka) {
                 $object = $this->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('Object.id' => $this->data['Object']['id'])
                 ));
-                $pubSubTool->object_save($object, 'delete');
+                if ($pubToZmq) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->object_save($object, 'delete');
+                }
+                if ($pubToKafka) {
+                    $kafkaPubTool = $this->getKafkaPubTool();
+                    $kafkaPubTool->publishJson($kafkaTopic, $object, 'delete');
+                }
             }
         }
     }
@@ -405,7 +437,9 @@ class MispObject extends AppModel
                                 }
                             }
                         }
+                        $v['disable_correlation'] = $request_item['disable_correlation'];
                         $template['ObjectTemplateElement'][] = $v;
+                        unset($v['uuid']); // force creating a new attribute if template element entry gets reused
                     } else {
                         $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template_object_elements[$k]['object_relation'] . '") that would not pass validation due to this.';
                     }
@@ -421,7 +455,7 @@ class MispObject extends AppModel
     public function attributeCleanup($attributes)
     {
         if (empty($attributes['Attribute'])) {
-            return 'No attribute data found';
+            return $attributes;
         }
         foreach ($attributes['Attribute'] as $k => $attribute) {
             if (isset($attribute['save']) && $attribute['save'] == 0) {
@@ -487,52 +521,61 @@ class MispObject extends AppModel
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
         $this->save($object);
-        $checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment');
-        foreach ($objectToSave['Attribute'] as $newKey => $newAttribute) {
-            foreach ($object['Attribute'] as $origKey => $originalAttribute) {
-                if (!empty($newAttribute['uuid'])) {
-                    if ($newAttribute['uuid'] == $originalAttribute['uuid']) {
-                        $different = false;
-                        foreach ($checkFields as $f) {
-                            if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
-                                $newAttribute[$f] = 0;
+        $checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment', 'disable_correlation');
+        if (!empty($objectToSave['Attribute'])) {
+            foreach ($objectToSave['Attribute'] as $newKey => $newAttribute) {
+                foreach ($object['Attribute'] as $origKey => $originalAttribute) {
+                    if (!empty($newAttribute['uuid'])) {
+                        if ($newAttribute['uuid'] == $originalAttribute['uuid']) {
+                            $different = false;
+                            foreach ($checkFields as $f) {
+                                if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
+                                    $newAttribute[$f] = 0;
+                                }
+                                if ($newAttribute[$f] != $originalAttribute[$f]) {
+                                    $different = true;
+                                }
                             }
-                            if ($newAttribute[$f] != $originalAttribute[$f]) {
-                                $different = true;
+                            if ($different) {
+                                $newAttribute['id'] = $originalAttribute['id'];
+                                $newAttribute['event_id'] = $object['Object']['event_id'];
+                                $newAttribute['object_id'] = $object['Object']['id'];
+                                $newAttribute['timestamp'] = $date->getTimestamp();
+                                $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array(
+                                    'category',
+                                    'value',
+                                    'to_ids',
+                                    'distribution',
+                                    'sharing_group_id',
+                                    'comment',
+                                    'timestamp',
+                                    'object_id',
+                                    'event_id',
+                                    'disable_correlation'
+                                ));
                             }
+                            unset($object['Attribute'][$origKey]);
+                            continue 2;
                         }
-                        if ($different) {
-                            $newAttribute['id'] = $originalAttribute['id'];
-                            $newAttribute['event_id'] = $object['Object']['event_id'];
-                            $newAttribute['object_id'] = $object['Object']['id'];
-                            $newAttribute['timestamp'] = $date->getTimestamp();
-                            $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array(
-                                'category',
-                                'value',
-                                'to_ids',
-                                'distribution',
-                                'sharing_group_id',
-                                'comment',
-                                'timestamp',
-                                'object_id',
-                                'event_id'
-                            ));
-                        }
-                        unset($object['Attribute'][$origKey]);
-                        continue 2;
                     }
                 }
+                $this->Event->Attribute->create();
+                $newAttribute['event_id'] = $object['Object']['event_id'];
+                $newAttribute['object_id'] = $object['Object']['id'];
+                if (!isset($newAttribute['timestamp'])) {
+                    $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+                    if ($newAttribute['distribution'] == 'event') {
+                        $newAttribute['distribution'] = 5;
+                    }
+                }
+                $this->Event->Attribute->save($newAttribute);
+                $attributeArrays['add'][] = $newAttribute;
+                unset($objectToSave['Attribute'][$newKey]);
             }
-            $this->Event->Attribute->create();
-            $newAttribute['event_id'] = $object['Object']['event_id'];
-            $newAttribute['object_id'] = $object['Object']['id'];
-            $this->Event->Attribute->save($newAttribute);
-            $attributeArrays['add'][] = $newAttribute;
-            unset($objectToSave['Attribute'][$newKey]);
-        }
-        foreach ($object['Attribute'] as $origKey => $originalAttribute) {
-            $originalAttribute['deleted'] = 1;
-            $this->Event->Attribute->save($originalAttribute);
+            foreach ($object['Attribute'] as $origKey => $originalAttribute) {
+                $originalAttribute['deleted'] = 1;
+                $this->Event->Attribute->save($originalAttribute);
+            }
         }
         return $this->id;
     }
@@ -554,8 +597,10 @@ class MispObject extends AppModel
             $this->Event->unpublishEvent($eventId);
             $objectId = $this->id;
             $partialFails = array();
-            foreach ($object['Object']['Attribute'] as $attribute) {
-                $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
+            if (!empty($object['Object']['Attribute'])) {
+                foreach ($object['Object']['Attribute'] as $attribute) {
+                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
+                }
             }
             return true;
         } else {
@@ -568,7 +613,7 @@ class MispObject extends AppModel
                     'action' => 'add',
                     'user_id' => $user['id'],
                     'title' => 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
-                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($attribute),
+                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
             ));
         }
         return 'fail';
@@ -667,6 +712,7 @@ class MispObject extends AppModel
         ));
         $object['Object']['timestamp'] = $date->getTimestamp();
         $object['Object']['skip_zmq'] = 1;
+        $object['Object']['skip_kafka'] = 1;
         $result = $this->save($object);
         return $result;
     }
@@ -683,5 +729,114 @@ class MispObject extends AppModel
             $this->delete($orphan);
         }
         return count($orphans);
+    }
+
+    public function validObjectsFromAttributeTypes($user, $event_id, $selected_attribute_ids)
+    {
+        $attributes = $this->Attribute->fetchAttributes($user,
+            array(
+                'conditions' => array(
+                    'Attribute.id' => $selected_attribute_ids,
+                    'Attribute.event_id' => $event_id,
+                    'Attribute.object_id' => 0
+                ),
+            )
+        );
+        if (empty($attributes)) {
+            return array('templates' => array(), 'types' => array());
+        }
+        $attribute_types = array();
+        foreach ($attributes as $i => $attribute) {
+            $attribute_types[$attribute['Attribute']['type']] = 1;
+            $attributes[$i]['Attribute']['object_relation'] = $attribute['Attribute']['type'];
+        }
+        $attribute_types = array_keys($attribute_types);
+
+        $potential_templates = $this->ObjectTemplate->find('list', array(
+            'recursive' => -1,
+            'fields' => array(
+                'ObjectTemplate.id',
+                'COUNT(ObjectTemplateElement.type) as type_count'
+            ),
+            'conditions' => array(
+                'ObjectTemplate.active' => true,
+                'ObjectTemplateElement.type' => $attribute_types
+            ),
+            'joins' => array(
+                array(
+                    'table' => 'object_template_elements',
+                    'alias' => 'ObjectTemplateElement',
+                    'type' => 'RIGHT',
+                    'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
+                    'conditions' => array('ObjectTemplate.id = ObjectTemplateElement.object_template_id')
+                )
+            ),
+            'group' => 'ObjectTemplate.id',
+            'order' => 'type_count DESC'
+        ));
+
+        $potential_template_ids = array_keys($potential_templates);
+        $templates = $this->ObjectTemplate->find('all', array(
+            'recursive' => -1,
+            'conditions' => array('id' => $potential_template_ids),
+            'contain' => 'ObjectTemplateElement'
+        ));
+
+        foreach ($templates as $i => $template) {
+            $res = $this->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributes);
+            $templates[$i]['ObjectTemplate']['compatibility'] = $res['valid'] ? true : $res['missingTypes'];
+            $templates[$i]['ObjectTemplate']['invalidTypes'] = $res['invalidTypes'];
+            $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
+        }
+        return array('templates' => $templates, 'types' => $attribute_types);
+    }
+
+    public function groupAttributesIntoObject($user, $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping, $hard_delete_attribute)
+    {
+        $saved_object_id = $this->saveObject($object, $event_id, $template, $user);
+        if (!is_numeric($saved_object_id)) {
+            return $saved_object_id;
+        }
+
+        $saved_object = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Object.id' => $saved_object_id)
+        ));
+
+        $existing_attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array(
+            'Attribute.id' => $selected_attribute_ids,
+            'Attribute.event_id' => $event_id,
+            'Attribute.object_id' => 0
+        )));
+
+        if (empty($existing_attributes)) {
+            return __('Selected Attributes do not exist.');
+        }
+        $event = array('Event' => $existing_attributes[0]['Event']);
+
+        // Duplicate the attribute and its context, otherwise connected instances will drop the duplicated UUID
+        foreach ($existing_attributes as $i => $existing_attribute) {
+            if (isset($selected_object_relation_mapping[$existing_attribute['Attribute']['id']])) {
+                $sightings = $this->Event->Sighting->attachToEvent($event, $user, $existing_attribute['Attribute']['id']);
+                $object_relation = $selected_object_relation_mapping[$existing_attribute['Attribute']['id']];
+                $created_attribute = $existing_attribute['Attribute'];
+                unset($created_attribute['timestamp']);
+                unset($created_attribute['id']);
+                unset($created_attribute['uuid']);
+                $created_attribute['object_relation'] = $object_relation;
+                $created_attribute['object_id'] = $saved_object['Object']['id'];
+                if (isset($existing_attribute['AttributeTag'])) {
+                    $created_attribute['AttributeTag'] = $existing_attribute['AttributeTag'];
+                }
+                if (!empty($sightings)) {
+                    $created_attribute['Sighting'] = $sightings;
+                }
+                $saved_object['Attribute'][$i] = $created_attribute;
+                $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object['Object']['id']);
+                $this->Attribute->deleteAttribute($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
+            }
+        }
+        return $saved_object['Object']['id'];
+
     }
 }

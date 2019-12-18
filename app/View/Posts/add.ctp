@@ -63,10 +63,10 @@
         }
     </script>
 <?php
-echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'threads', 'menuItem' => 'add'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'threads', 'menuItem' => 'add'));
 ?>

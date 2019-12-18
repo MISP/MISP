@@ -24,11 +24,11 @@ class GalaxyCluster extends AppModel
         )
     );
 
-	private $__clusterCache = array();
+    private $__clusterCache = array();
 
     public $hasMany = array(
         'GalaxyElement' => array('dependent' => true),
-    //	'GalaxyReference'
+    //  'GalaxyReference'
     );
 
     public function beforeValidate($options = array())
@@ -91,6 +91,7 @@ class GalaxyCluster extends AppModel
                 $newCluster = array_intersect_key($cluster, array_flip(array('value', 'description')));
                 $newCluster['galaxy_id'] = $id;
                 $newCluster['type'] = $galaxy['type'];
+                $newCluster['collection_uuid'] = $newCluster['uuid'];
                 $toSave[] = $newCluster;
             }
             $final = array();
@@ -141,13 +142,13 @@ class GalaxyCluster extends AppModel
     */
     public function getCluster($name)
     {
-        $conditions = array('GalaxyCluster.tag_name ' => $name);
+        $conditions = array('LOWER(GalaxyCluster.tag_name)' => strtolower($name));
         if (is_numeric($name)) {
             $conditions = array('GalaxyCluster.id' => $name);
         }
-		if (isset($this->__clusterCache[$name])) {
-			return $this->__clusterCache[$name];
-		}
+        if (isset($this->__clusterCache[$name])) {
+            return $this->__clusterCache[$name];
+        }
         $objects = array('Galaxy', 'GalaxyElement');
         $cluster = $this->find('first', array(
             'conditions' => $conditions,
@@ -172,7 +173,7 @@ class GalaxyCluster extends AppModel
                 'first',
                 array(
                     'conditions' => array(
-                            'Tag.name' => $cluster['GalaxyCluster']['tag_name']
+                        'LOWER(Tag.name)' => strtolower($cluster['GalaxyCluster']['tag_name'])
                     ),
                     'recursive' => -1,
                     'fields' => array('Tag.id')
@@ -183,7 +184,7 @@ class GalaxyCluster extends AppModel
             }
             $cluster['GalaxyCluster']['meta'] = $elements;
         }
-		$this->__clusterCache[$name] = $cluster;
+        $this->__clusterCache[$name] = $cluster;
         return $cluster;
     }
 
@@ -195,6 +196,7 @@ class GalaxyCluster extends AppModel
                     $cluster = $this->getCluster($eventTag['Tag']['name']);
                     if ($cluster) {
                         $cluster['GalaxyCluster']['tag_id'] = $eventTag['Tag']['id'];
+                        $cluster['GalaxyCluster']['local'] = $eventTag['local'];
                         $events[$k]['GalaxyCluster'][] = $cluster['GalaxyCluster'];
                         if ($replace) {
                             unset($events[$k]['EventTag'][$k2]);
@@ -204,5 +206,37 @@ class GalaxyCluster extends AppModel
             }
         }
         return $events;
+    }
+
+    public function getClusterTagsFromMeta($galaxyElements)
+    {
+        // AND operator between cluster metas
+        $tmpResults = array();
+        foreach ($galaxyElements as $galaxyElementKey => $galaxyElementValue) {
+            $tmpResults[] = array_values($this->GalaxyElement->find('list', array(
+                'conditions' => array(
+                    'key' => $galaxyElementKey,
+                    'value' => $galaxyElementValue,
+                ),
+                'fields' => array('galaxy_cluster_id'),
+                'recursive' => -1
+            )));
+        }
+        $clusterTags = array();
+        if (!empty($tmpResults)) {
+            // Get all Clusters matching all conditions
+            $matchingClusters = $tmpResults[0];
+            array_shift($tmpResults);
+            foreach ($tmpResults as $tmpResult) {
+                $matchingClusters = array_intersect($matchingClusters, $tmpResult);
+            }
+    
+            $clusterTags = $this->find('list', array(
+                'conditions' => array('id' => $matchingClusters),
+                'fields' => array('GalaxyCluster.tag_name'),
+                'recursive' => -1
+            ));
+        }
+        return array_values($clusterTags);
     }
 }

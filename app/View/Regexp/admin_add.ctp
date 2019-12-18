@@ -14,7 +14,7 @@
     <?php
         echo $this->Form->input('all', array(
             'checked' => false,
-            'label' => 'All',
+            'label' => __('All'),
         ));
     ?>
     </div>
@@ -34,5 +34,5 @@ echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'regexp', 'menuItem' => 'add'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'regexp', 'menuItem' => 'add'));
 ?>

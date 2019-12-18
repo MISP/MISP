@@ -3,6 +3,7 @@
     <fieldset>
         <legend><?php echo __('Edit Server');?></legend>
     <?php
+        echo '<h4 class="input clear">' . __('Instance identification') . '</h4>';
         echo $this->Form->input('url', array(
             'label' => __('Base URL'),
         ));
@@ -25,7 +26,12 @@
             endif;
     ?>
         <div class="input clear"></div>
-
+        <div class="input clear" style="width:100%;">
+            <hr />
+            <h4><?php echo __('Instance ownership and credentials'); ?></h4>
+            <p class="red"><?php echo __('Information about the organisation that will receive the events, typically the remote instance\'s host organisation.');?></p>
+        </div>
+        <div class = "input clear"></div>
     <?php
         echo $this->Form->input('organisation_type', array(
                 'label' => __('Organisation Type'),
@@ -63,40 +69,32 @@
             <label for="ServerExternalUuid"><?php echo __('Remote Organisation\'s Uuid');?></label>
             <input type="text" id="ServerExternalUuid" <?php if (isset($this->request->data['Server']['external_uuid'])) echo 'value="' . $this->request->data['Server']['external_uuid'] . '"';?>>
         </div>
-        <div class = "input clear"></div>
     <?php
-        echo $this->Form->input('authkey', array(
-                'placeholder' => __('Leave empty to use current key')
-        ));
-    ?>
-        <div class = "input clear"></div>
-    <?php
-        echo $this->Form->input('push', array(
-        ));
-
-        echo $this->Form->input('pull', array(
-        ));
-    ?>
-        <div class = "input clear"></div>
-    <?php
+        echo '<div class = "input clear" style="width:100%;"><hr /></div>';
+        echo sprintf(
+            '<div id="AuthkeyContainer"><p class="red clear" style="width:50%%;">%s</p>%s</div>',
+            __('Ask the owner of the remote instance for a sync account on their instance, log into their MISP using the sync user\'s credentials and retrieve your API key by navigating to Global actions -> My profile. This key is used to authenticate with the remote instance.'),
+            $this->Form->input('authkey', array('placeholder' => __('Leave empty to use current key')))
+        );
+        echo '<div class = "input clear" style="width:100%;"><hr /></div>';
+        echo '<h4 class="input clear">' . __('Enabled synchronisation methods') . '</h4>';
+        echo $this->Form->input('push', array());
+        echo $this->Form->input('pull', array());
+        echo $this->Form->input('push_sightings', array());
+        echo $this->Form->input('caching_enabled', array());
+        echo '<div class = "input clear" style="width:100%;"><hr /><h4>' . __('Misc settings') . '</h4></div>';
         echo $this->Form->input('unpublish_event', array(
             'type' => 'checkbox',
         ));
-    ?>
-        <div class = "input clear"></div>
-    <?php
+        echo '<div class="input clear"></div>';
         echo $this->Form->input('publish_without_email', array(
             'type' => 'checkbox',
         ));
-    ?>
-        <div class = "input clear"></div>
-    <?php
+        echo '<div class="input clear"></div>';
         echo $this->Form->input('self_signed', array(
             'type' => 'checkbox',
         ));
-    ?>
-        <div class = "input clear"></div>
-    <?php
+        echo '<div class="input clear"></div>';
         echo $this->Form->input('skip_proxy', array('type' => 'checkbox', 'label' => 'Skip proxy (if applicable)'));
     ?>
     <div class="clear">
@@ -174,7 +172,7 @@
     <?php echo $this->element('serverRuleElements/pull'); ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'edit'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'edit'));
 ?>
 
 

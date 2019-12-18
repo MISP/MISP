@@ -10,7 +10,7 @@
             <dl>
                 <dt><?php echo __('Uuid');?></dt>
                 <dd><?php echo h($event['Event']['uuid']); ?></dd>
-                <dt><?php echo Configure::read('MISP.showorgalternate') ? 'Source Organisation' : 'Org'?></dt>
+                <dt><?php echo Configure::read('MISP.showorgalternate') ? __('Source Organisation') : __('Org')?></dt>
                 <dd><?php echo h($event['Orgc']['name']); ?></dd>
                 <?php if (Configure::read('MISP.tagging')): ?>
                     <dt><?php echo __('Tags');?></dt>
@@ -22,7 +22,7 @@
                     <?php endforeach; ?>&nbsp;
                     </dd>
                 <?php endif; ?>
-                <dt>Date</dt>
+                <dt><?php echo __('Date');?></dt>
                 <dd>
                     <?php echo h($event['Event']['date']); ?>
                     &nbsp;
@@ -72,12 +72,21 @@
     <div class="related span4">
         <h3><?php echo __('Related Events');?></h3>
         <ul class="inline">
-            <?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
-            <li>
-            <div title="<?php echo h($relatedEvent['Event'][0]['info']); ?>">
-            <a href = "<?php echo '/feeds/previewEvent/' . $feed['Feed']['id'] . '/' . $relatedEvent['Event'][0]['uuid']; ?>"><?php echo h($relatedEvent['Event'][0]['date']) . ' (' . h($relatedEvent['Event'][0]['uuid']) . ')'; ?></a>
-            </div></li>
+            <?php
+                $total = count($event['RelatedEvent']);
+                $display_threshold = 10;
+            ?>
+            <?php foreach ($event['RelatedEvent'] as $i => $relatedEvent): ?>
+            <li class="<?php echo $i > $display_threshold ? 'correlation-expanded-area' : ''; ?>" style="<?php echo $i > $display_threshold ? 'display: none;' : ''; ?>">
+                <?php echo $this->element('/Events/View/related_event', array('related' => $relatedEvent['Event'])); ?>
+            </li>
+            <?php if ($i == $display_threshold+1 && $total > $display_threshold): ?>
+                <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - $i);?></div>
+            <?php endif; ?>
             <?php endforeach; ?>
+            <?php if ($total > $display_threshold): ?>
+                <div class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;"><?php echo __('Collapse…');?></div>
+            <?php endif; ?>
         </ul>
     </div>
     <?php endif; ?>
@@ -88,12 +97,11 @@
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewEvent', 'id' => $event['Event']['uuid']));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewEvent', 'id' => $event['Event']['uuid']));
 ?>
 <script type="text/javascript">
 // tooltips
 $(document).ready(function () {
-    //loadEventTags("<?php echo $event['Event']['id']; ?>");
     $("th, td, dt, div, span, li").tooltip({
         'placement': 'top',
         'container' : 'body',

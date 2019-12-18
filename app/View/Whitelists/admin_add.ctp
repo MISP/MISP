@@ -15,5 +15,5 @@ echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'whitelist', 'menuItem' => 'add'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'whitelist', 'menuItem' => 'add'));
 ?>

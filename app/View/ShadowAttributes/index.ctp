@@ -15,19 +15,36 @@
         ?>
         </ul>
     </div>
-
-    <div class="tabMenuFixedContainer" style="display:<?php echo !$all ? 'none' : 'block';?>;">
-        <span class="tabMenuFixed tabMenuSides useCursorPointer " style="margin-left:50px;">
-            <span role="button" tabindex="0" aria-label="<?php echo __('Only list proposals of my organisation');?>" title="<?php echo __('Only list proposals of my organisation');?>" class="" onclick="window.location.href='<?php echo $baseurl; ?>/shadow_attributes/index'"><?php echo __('My Org\'s Events');?></span>
-        </span>
-    </div>
-    <div class="tabMenuFixedContainer" style="display:<?php echo $all ? 'none' : 'block';?>;">
-        <span class="tabMenuFixed tabMenuSides useCursorPointer " style="margin-left:50px;">
-            <span role="button" tabindex="0" aria-label="<?php echo __('List all proposals');?>" title="<?php echo __('List all proposals');?>" onclick="window.location.href='<?php echo $baseurl; ?>/shadow_attributes/index/all:1'"><?php echo __('All Events');?></span>
-        </span>
-    </div>
+    <?php
+        $data = array(
+            'children' => array(
+                array(
+                    'children' => array(
+                        array(
+                            'text' => __('My Org\'s Events'),
+                            'active' => !$all,
+                            'url' => '/shadow_attributes/index/all:0'
+                        ),
+                        array(
+                            'text' => __('All Events'),
+                            'active' => $all,
+                            'url' => '/shadow_attributes/index/all:1'
+                        )
+                    )
+                ),
+                array(
+                    'type' => 'search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
+                    'data' => '',
+                )
+            )
+        );
+        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+    ?>
     <table class="table table-striped table-hover table-condensed">
         <tr>
+            <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo __('Event');?></th>
             <th>
                 <?php echo $this->Paginator->sort('org', __('Proposal by'));?>
@@ -56,6 +73,9 @@
         </tr>
         <?php foreach ($shadowAttributes as $event):?>
         <tr>
+            <td class="short">
+                <?php echo h($event['ShadowAttribute']['id']);?>
+            </td>
             <td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
                 <?php echo h($event['Event']['id']);?>
             </td>
@@ -113,5 +133,17 @@
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewProposals'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewProposals'));
 ?>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter('/all:<?php echo h($all); ?>');
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter('/all:<?php echo h($all); ?>');
+            }
+        });
+    });
+</script>

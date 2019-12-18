@@ -4,7 +4,7 @@
         <legend><?php echo __('Edit Organisation'); ?></legend>
         <p style="font-weight:bold;"><?php echo __('If the organisation should have access to this instance, make sure that the Local organisation setting is checked. <br />If you would only like to add a known external organisation for inclusion in sharing groups, uncheck the Local organisation setting.');?></p>
         <div style="float:left;width:345px;">
-            <?php echo $this->Form->input('local', array('label' => 'Local organisation'));?>
+            <?php echo $this->Form->input('local', array('label' => __('Local organisation')));?>
         </div>
         <div class="clear"></div>
         <hr />
@@ -14,7 +14,6 @@
             echo $this->Form->input('name', array('div' => 'clear', 'style' => 'width:320px;','label' => __('Organisation Identifier'), 'placeholder' => __('Brief organisation identifier')));
         ?>
         </div>
-        <div id="logoDiv" style="margin-top:40px;"><?php echo __('No image uploaded for this identifier');?></div>
         <div class="clear"></div>
         <div style="float:left;width:425px;">
         <?php
@@ -54,21 +53,12 @@
         echo $this->Form->input('nationality', array('options' => $countries));
         echo $this->Form->input('sector', array('placeholder' => __('For example "financial".'), 'style' => 'width:300px;'));
         echo $this->Form->input('type', array('class' => 'input-xxlarge', 'label' => __('Type of organisation'), 'div' => 'clear', 'placeholder' => __('Freetext description of the org.')));
-        echo $this->Form->input('contacts', array('class' => 'input-xxlarge', 'type' => 'textarea', 'div' => 'clear', 'placeholder' => __('You can add some contact details for the organisation here, if applicable.')));
+        echo $this->Form->input('contacts', array('class' => 'input-xxlarge', 'label' => __('Contacts'), 'type' => 'textarea', 'div' => 'clear', 'placeholder' => __('You can add some contact details for the organisation here, if applicable.')));
     ?>
     </fieldset>
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
     echo $this->Form->end();?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editOrg', 'orgId' => $orgId));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'editOrg', 'orgId' => $orgId));
 ?>
-<script type="text/javascript">
-    $(document).ready(function() {
-        updateOrgCreateImageField($("#OrganisationName").val());
-    });
-
-    $("#OrganisationName").on('input propertychange paste focusout ready', function() {
-        updateOrgCreateImageField($("#OrganisationName").val());
-    });
-</script>

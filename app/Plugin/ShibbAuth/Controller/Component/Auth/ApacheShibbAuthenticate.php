@@ -137,7 +137,8 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			'nids_sid' => ((int)$nidsMax[0][0]['nidsMax'])+1,
 			'newsread' => time(),
 			'role_id' => $roleId,
-			'change_pw' => 0
+			'change_pw' => 0,
+			'date_created' => time()
 		));
 
 		// save user

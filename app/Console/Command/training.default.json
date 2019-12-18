@@ -1,0 +1,43 @@
+{
+    "ID_start": 1,
+    "ID_zero_out": 0,
+    "number_of_misps_to_configure": 5,
+    "reset_admin_credentials": 1,
+    "create_sync_both_ways": 0,
+    "create_admin_user": 0,
+    "settings": {
+
+    },
+    "authkey": "111111111111111111111111111111111",
+    "server_blueprint": "https://my_remote_misp$ID",
+    "user_blueprint": "user$USER_ITERATOR@user.$ORGNAME.test",
+    "user_count": 2,
+    "org_blueprint": "org$ID",
+    "role_blueprint": {
+        "name": "training_participant",
+        "perm_add": true,
+        "perm_modify": true,
+        "perm_modify_org": true,
+        "perm_publish": true,
+        "perm_delegate": true,
+        "perm_sync": true,
+        "perm_admin": true,
+        "perm_audit": true,
+        "perm_auth": true,
+        "perm_site_admin": false,
+        "perm_regexp_access": true,
+        "perm_tagger": true,
+        "perm_template": true,
+        "perm_sharing_group": true,
+        "perm_tag_editor": true,
+        "perm_sighting": true,
+        "perm_object_template": true,
+        "default_role": false,
+        "memory_limit": "",
+        "max_execution_time": "",
+        "restricted_to_site_admin": false,
+        "perm_publish_zmq": true,
+        "permission": "3",
+        "permission_description": "training_participant"
+    }
+}

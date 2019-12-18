@@ -51,13 +51,13 @@ class PostsController extends AppController
                 $this->loadModel('Event');
                 $this->Event->recursive = -1;
                 $this->Event->read(null, $target_id);
-                $eventDiscussionTitle = 'Discussion about Event #' . $this->Event->data['Event']['id'] . ' (' . $this->Event->data['Event']['info'] . ')';
+                $eventDiscussionTitle = __('Discussion about Event #') . $this->Event->data['Event']['id'] . ' (' . $this->Event->data['Event']['info'] . ')';
                 if (!$this->Event->exists()) {
                     throw new NotFoundException(__('Invalid event'));
                 }
                 if (!$this->_isSiteAdmin()) {
                     if ($this->Event->data['Event']['distribution'] == 0 && $this->Event->data['Event']['org_id'] != $this->Auth->user('org_id')) {
-                        throw new MethodNotAllowedException('You don\'t have permission to do that.');
+                        throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
                     }
                 }
                 $thread = $this->Thread->find('first', array('conditions' => array('event_id' => $target_id)));
@@ -81,7 +81,7 @@ class PostsController extends AppController
                     }
                     if (!$this->_isSiteAdmin()) {
                         if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org_id') != $thread['Thread']['org_id']) {
-                            throw new MethodNotAllowedException('You don\'t have permission to do that.');
+                            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
                         }
                     }
                     $title = $this->Thread->data['Thread']['title'];
@@ -94,7 +94,7 @@ class PostsController extends AppController
                 $thread = $this->Thread->read(null, $target_thread_id);
                 if (!$this->_isSiteAdmin()) {
                     if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org_id') != $thread['Thread']['org_id']) {
-                        throw new MethodNotAllowedException('You don\'t have permission to do that.');
+                        throw new MethodNotAllowedException(('You don\'t have permission to do that.'));
                     }
                 }
                 $title = $this->Thread->data['Thread']['title'];
@@ -112,7 +112,7 @@ class PostsController extends AppController
         }
         if ($this->request->is('post')) {
             if (empty($this->request->data['Post']['message'])) {
-                throw new MethodNotAllowedException('Cannot post an empty message.');
+                throw new MethodNotAllowedException(__('Cannot post an empty message.'));
             }
             // Set the default values that we'll alter before actually saving data. These are the default values unless specifically modified.
             // By default, all discussions will be visibile to everyone on the platform
@@ -186,7 +186,7 @@ class PostsController extends AppController
                 $this->redirect(array('controller' => 'threads', 'action' => 'view', $target_id, $target_type == 'event', 'page:' . $pageNr, 'post_id:' . $this->Post->id));
                 return true;
             } else {
-                $this->Flash->error('The post could not be added.');
+                $this->Flash->error(__('The post could not be added.'));
             }
         } else {
             if ($target_type === 'post') {
@@ -208,7 +208,7 @@ class PostsController extends AppController
             throw new NotFoundException(__('Invalid post'));
         }
         if (!$this->_isSiteAdmin() && $this->Auth->user('id') != $post['Post']['user_id']) {
-            throw new MethodNotAllowedException('This is not your event.');
+            throw new MethodNotAllowedException(__('This is not your event.'));
         }
 
         if ($this->request->is('post') || $this->request->is('put')) {
@@ -216,7 +216,7 @@ class PostsController extends AppController
             $fieldList = array('date_modified', 'contents');
             $post['Post']['contents'] = $this->request->data['Post']['contents'];
             if ($this->Post->save($post['Post'], true, $fieldList)) {
-                $this->Flash->success('Post edited');
+                $this->Flash->success(__('Post edited'));
                 $thread = $this->Post->Thread->find('first', array(
                         'recursive' => -1,
                         'contain' => array(
@@ -237,7 +237,7 @@ class PostsController extends AppController
                 $this->redirect(array('controller' => 'threads', 'action' => 'view', $target_id, $context, 'page:' . $pageNr, 'post_id:' . $post_id));
                 return true;
             } else {
-                $this->Flash->error('The Post could not be edited. Please, try again.');
+                $this->Flash->error(__('The post could not be edited. Please, try again.'));
             }
         }
         $this->set('title', $post['Thread']['title']);
@@ -258,7 +258,7 @@ class PostsController extends AppController
         $this->Post->read();
         $temp = $this->Post->data;
         if ($this->Auth->user('id') != $this->Post->data['Post']['user_id'] && !$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('This post doesn\'t belong to you, so you cannot delete it.');
+            throw new MethodNotAllowedException(__('This post doesn\'t belong to you, so you cannot delete it.'));
         }
         if ($this->Post->delete()) {
             $thread = $this->Post->Thread->find('first', array(
@@ -271,7 +271,7 @@ class PostsController extends AppController
                         'conditions' => array('Thread.id' => $temp['Post']['thread_id'])
                 ));
             if (!$this->Post->Thread->updateAfterPostChange($thread)) {
-                $this->Flash->success('Post and thread deleted');
+                $this->Flash->success(__('Post and thread deleted'));
                 if ($context == 'event') {
                     $this->redirect(array('controller' => 'events', 'action' => 'view', $thread['Thread']['event_id']));
                     return true;
@@ -280,7 +280,7 @@ class PostsController extends AppController
                     return true;
                 }
             } else {
-                $this->Flash->success('Post deleted');
+                $this->Flash->success(__('Post deleted'));
                 if ($context == 'event') {
                     $this->redirect(array('controller' => 'events', 'action' => 'view', $thread['Thread']['event_id']));
                     return true;

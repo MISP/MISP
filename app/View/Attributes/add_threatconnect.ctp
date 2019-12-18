@@ -22,5 +22,5 @@ echo $this->Form->end();
 <?php
     $event['Event']['id'] = $this->request->data['Attribute']['event_id'];
     $event['Event']['published'] = $published;
-    echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addThreatConnect', 'event' => $event));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addThreatConnect', 'event' => $event));
 ?>

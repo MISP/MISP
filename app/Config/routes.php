@@ -37,7 +37,7 @@
 
 	// Activate REST
 	Router::mapResources(array('events', 'attributes'));
-	Router::parseExtensions('xml', 'json');
+	Router::parseExtensions('xml', 'json', 'csv');
 
 	Router::connectNamed(
 		array('attributesPage' => array('controller' => 'events', 'action' => 'view'))

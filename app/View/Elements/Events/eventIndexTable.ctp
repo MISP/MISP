@@ -24,7 +24,7 @@
                 endif;
                 if ($isSiteAdmin):
         ?>
-            <th class="filter"><?php echo $this->Paginator->sort('owner org');?></th>
+            <th class="filter"><?php echo $this->Paginator->sort('owner org', __('Owner org'));?></th>
         <?php
                 endif;
             endif;
@@ -36,7 +36,7 @@
         <?php if (Configure::read('MISP.tagging')): ?>
             <th class="filter"><?php echo __('Tags');?></th>
         <?php endif; ?>
-        <th title="<?php echo __('Attribute Count');?>"><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
+        <th title="<?php echo __('Attribute Count');?>"><?php echo $this->Paginator->sort('attribute_count', __('#Attr.'));?></th>
         <?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
             <th title="<?php echo __('Correlation Count');?>"><?php echo __('#Corr.');?></th>
         <?php endif; ?>
@@ -50,23 +50,23 @@
             <th title="<?php echo __('Post Count');?>"><?php echo __('#Posts');?></th>
         <?php endif; ?>
         <?php if ($isSiteAdmin): ?>
-        <th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
+        <th><?php echo $this->Paginator->sort('user_id', __('Email'));?></th>
         <?php endif; ?>
         <th class="filter"><?php echo $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
         <th class="filter"><?php echo $this->Paginator->sort('info');?></th>
         <th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
             <?php echo $this->Paginator->sort('distribution');?>
         </th>
-        <th class="actions">Actions</th>
+        <th class="actions"><?php echo __('Actions');?></th>
 
     </tr>
     <?php foreach ($events as $event): ?>
-    <tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
+    <tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?> id="event_<?php echo h($event['Event']['id']);?>">
             <?php
                 if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):
             ?>
                     <td style="width:10px;" data-id="<?php echo h($event['Event']['id']); ?>">
-                        <input class="select" type="checkbox" data-id="<?php echo $event['Event']['id'];?>" />
+                        <input id="<?php echo h($event['Event']['id']); ?>" class="select" type="checkbox" data-id="<?php echo h($event['Event']['id']);?>" />
                     </td>
             <?php
                 else:
@@ -79,11 +79,11 @@
             <?php
             if ($event['Event']['published'] == 1) {
             ?>
-                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "<?php echo __('View');?>"></a>
+                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"><i class="black fa fa-check"></i></a>
             <?php
             } else {
             ?>
-                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "<?php echo __('View');?>"></a>
+                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"><i class="black fa fa-times"></i></a>
             <?php
             }?>&nbsp;
         </td>
@@ -92,7 +92,6 @@
                 <?php
                     echo $this->OrgImg->getOrgImg(array('name' => $event['Orgc']['name'], 'id' => $event['Orgc']['id'], 'size' => 24));
                 ?>
-                &nbsp;
             </td>
         <?php endif;?>
         <?php if ($isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
@@ -108,70 +107,69 @@
         </td>
         <td class="shortish">
             <?php
-                $clusterList = array();
-                $galaxyList = array();
-                $galaxy_id = 0;
-                if (isset($event['GalaxyCluster'])):
-                    foreach ($event['GalaxyCluster'] as $cluster):
-                        $galaxy_id = $cluster['Galaxy']['id'];
-                        if (!isset($galaxyList[$cluster['Galaxy']['id']])) {
-                            $galaxyList[$cluster['Galaxy']['id']] = $cluster['Galaxy']['name'];
+                $galaxies = array();
+                if (!empty($event['GalaxyCluster'])) {
+                    foreach ($event['GalaxyCluster'] as $gk => $galaxy_cluster) {
+                        $galaxy_id = $galaxy_cluster['Galaxy']['id'];
+                        if (!isset($galaxies[$galaxy_id])) {
+                            $galaxies[$galaxy_id] = $galaxy_cluster['Galaxy'];
                         }
-                        $clusterList[$cluster['Galaxy']['id']][] = array('value' => $cluster['value'], 'id' => $cluster['id'], 'tag_id' => $cluster['tag_id']);
-                    endforeach;
-                endif;
-                $first = true;
-                foreach ($clusterList as $galaxy_id => $clusters):
-                    if (!$first) {
-                        echo '<br />';
-                    } else {
-                        $first = false;
+                        $galaxy_id = $galaxy_cluster['Galaxy']['id'];
+                        unset($galaxy_cluster['Galaxy']);
+                        $galaxies[$galaxy_id]['GalaxyCluster'][] = $galaxy_cluster;
                     }
-                ?>
-                    <span class="blue bold"><a href="<?php echo $baseurl; ?>/galaxies/view/<?php echo h($galaxy_id); ?>"><?php echo h($galaxyList[$galaxy_id]); ?></a>:</span>
-                <?php
-                    foreach ($clusters as $cluster):
-                    ?>
-                        <br />
-                        <span class="blue">
-                            &nbsp;
-                            <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>"><?php echo h($cluster['value']); ?></a>
-                            <a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search"></a>
-                        </span>
-                    <?php
-                    endforeach;
-                endforeach;
-            ?>&nbsp;
+                    echo $this->element('galaxyQuickViewMini', array(
+                      'mayModify' => false,
+                      'isAclTagger' => false,
+                      'data' => $galaxies,
+                      'target_id' => $event['Event']['id'],
+                      'target_type' => 'event',
+                      'static_tags_only' => 1
+                    ));
+                }
+            ?>
         </td>
-        <?php if (Configure::read('MISP.tagging')): ?>
-            <td style = "max-width: 200px;width:10px;">
-                <?php foreach ($event['EventTag'] as $tag):
-                    $tagText = "&nbsp;";
-                    if (Configure::read('MISP.full_tags_on_event_index') == 1) $tagText = h($tag['Tag']['name']);
-                    else if (Configure::read('MISP.full_tags_on_event_index') == 2) {
-                        if (strpos($tag['Tag']['name'], '=')) {
-                            $tagText = explode('=', $tag['Tag']['name']);
-                            $tagText = h(trim(end($tagText), "\""));
-                        }
-                        else $tagText = h($tag['Tag']['name']);
-                    }
-                ?>
-                    <span class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></span>
-                <?php endforeach; ?>
-            </td>
-        <?php endif; ?>
+        <?php
+            if (Configure::read('MISP.tagging')) {
+                echo sprintf(
+                    '<td class="shortish">%s</td>',
+                    $this->element(
+                        'ajaxTags',
+                        array(
+                            'event' => $event,
+                            'tags' => $event['EventTag'],
+                            'tagAccess' => false,
+                            'required_taxonomies' => false,
+                            'columnised' => true,
+                            'static_tags_only' => 1,
+                            'tag_display_style' => Configure::check('MISP.full_tags_on_event_index') ? Configure::read('MISP.full_tags_on_event_index') : 1
+                        )
+                    )
+                );
+            }
+        ?>
         <td style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
             <?php echo $event['Event']['attribute_count']; ?>&nbsp;
         </td>
         <?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
-            <td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : '0') . __(' correlation(s)');?>">
-                <?php echo !empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : ''; ?>&nbsp;
+            <td class = "bold" style="width:30px;">
+                <?php if (!empty($event['Event']['correlation_count'])): ?>
+                    <a href="<?php echo $baseurl."/events/view/" . h($event['Event']['id']) . '/correlation:1';?>" title="<?php echo h($event['Event']['correlation_count']) . __(' correlation(s). Show filtered event with correlation only.');?>">
+                        <?php echo h($event['Event']['correlation_count']); ?>&nbsp;
+                    </a>
+                <?php endif; ?>
             </td>
         <?php endif; ?>
         <?php if (Configure::read('MISP.showSightingsCountOnIndex')):?>
-            <td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . ' sighting(s)';?>">
-                <?php echo !empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : ''; ?>&nbsp;
+            <td class = "bold" style="width:30px;">
+                <?php if (!empty($event['Event']['sightings_count'])): ?>
+                    <a href="<?php echo $baseurl."/events/view/" . h($event['Event']['id']) . '/sighting:1';?>" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . ' sighting(s). Show filtered event with sighting(s) only.';?>">
+                        <?php echo h($event['Event']['sightings_count']); ?>&nbsp;
+                    </a>
+                <?php endif; ?>
             </td>
+
+
         <?php endif; ?>
         <?php if (Configure::read('MISP.showProposalsOnIndex')): ?>
             <td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . __(' proposal(s)');?>">
@@ -193,7 +191,7 @@
                 <span style=" white-space: nowrap;"><?php echo $post_count?></span>&nbsp;
             </td>
         <?php endif;?>
-        <?php if ('true' == $isSiteAdmin): ?>
+        <?php if ($isSiteAdmin): ?>
             <td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
                 <?php echo h($event['User']['email']); ?>&nbsp;
             </td>
@@ -211,30 +209,56 @@
                 echo h($shortDist[$event['Event']['distribution']]);
             endif;
             ?>
+            <?php
+            echo sprintf(
+                '<it type="button" title="%s" class="%s" aria-hidden="true" style="font-size: x-small;" data-event-distribution="%s" data-event-distribution-name="%s" data-scope-id="%s"></it>',
+                'Toggle advanced sharing network viewer',
+                'fa fa-share-alt useCursorPointer distributionNetworkToggle',
+                h($event['Event']['distribution']),
+                $event['Event']['distribution'] == 4 ? h($event['SharingGroup']['name']) : h($shortDist[$event['Event']['distribution']]),
+                h($event['Event']['id'])
+            )
+            ?>
         </td>
         <td class="short action-links">
             <?php
                 if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id'])))
-                    echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => __('Publish Event'), __('Are you sure this event is complete and everyone should be informed?')));
+                    echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'black fa fa-upload', 'title' => __('Publish Event'), 'aria-label' => __('Publish Event')), __('Are you sure this event is complete and everyone should be informed?'));
                 else if (0 == $event['Event']['published']) echo __('Not published');
 
                 if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
             ?>
-                    <a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' class = "icon-edit" title = "<?php echo __('Edit');?>"></a>
+                    <a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' title = "<?php echo __('Edit');?>" aria-label = "<?php echo __('Edit');?>"><i class="black fa fa-edit"></i></a>
             <?php
 
-                    echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));
+                    echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));
                 endif;
             ?>
-            <a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
+            <a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"><i class="fa black fa-eye"></i></a>
         </td>
     </tr>
     <?php endforeach; ?>
 </table>
 <script type="text/javascript">
+    var lastSelected = false;
     $(document).ready(function() {
         $('.select').on('change', function() {
             listCheckboxesChecked();
+        });
+        $('.select').click(function(e) {
+            if ($(this).is(':checked')) {
+                if (e.shiftKey) {
+                    selectAllInbetween(lastSelected, this.id);
+                }
+                lastSelected = this.id;
+            }
+            attributeListAnyAttributeCheckBoxesChecked();
+        });
+
+        $('.distributionNetworkToggle').each(function() {
+            $(this).distributionNetwork({
+                distributionData: <?php echo json_encode($distributionData); ?>,
+            });
         });
     });
 </script>

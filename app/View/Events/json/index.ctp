@@ -9,14 +9,9 @@ foreach ($events as $key => $event) {
         $events[$key]['GalaxyCluster'] = $event['GalaxyCluster'];
     }
     if (isset($event['EventTag'])) $events[$key]['EventTag'] = $event['EventTag'];
-    if (!empty($events[$key]['SharingGroup'])) $events[$key]['SharingGroup'] = $event['SharingGroup'];
-
-    // cleanup the array from things we do not want to expose
-    unset($events[$key]['user_id']);
-    // hide the org field if we are not in showorg mode
-    if (!Configure::read('MISP.showorg')) {
-        unset($events[$key]['Org']);
-        unset($events[$key]['Orgc']);
+    if (!empty($event['SharingGroup'])) {
+        $events[$key]['SharingGroup'] = $event['SharingGroup'];
     }
+    unset($events[$key]['user_id']);
 }
 echo json_encode($events);

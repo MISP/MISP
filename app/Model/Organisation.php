@@ -16,7 +16,7 @@ class Organisation extends AppModel
         ),
     );
 
-	private $__orgCache = array();
+    private $__orgCache = array();
 
     public $validate = array(
         'name' => array(
@@ -94,6 +94,9 @@ class Organisation extends AppModel
         if (!empty($this->data['Organisation']['restricted_to_domain'])) {
             $this->data['Organisation']['restricted_to_domain'] = str_replace("\r", '', $this->data['Organisation']['restricted_to_domain']);
             $this->data['Organisation']['restricted_to_domain'] = explode("\n", $this->data['Organisation']['restricted_to_domain']);
+            foreach ($this->data['Organisation']['restricted_to_domain'] as $k => $v) {
+                $this->data['Organisation']['restricted_to_domain'][$k] = trim($v);
+            }
             $this->data['Organisation']['restricted_to_domain'] = json_encode($this->data['Organisation']['restricted_to_domain']);
         } else {
             $this->data['Organisation']['restricted_to_domain'] = '';
@@ -125,6 +128,8 @@ class Organisation extends AppModel
             $pubSubTool = $this->getPubSubTool();
             $pubSubTool->modified($this->data, 'organisation');
         }
+        $action = $created ? 'add' : 'edit';
+        $this->publishKafkaNotification('organisation', $this->data, $action);
         return true;
     }
 
@@ -133,6 +138,11 @@ class Organisation extends AppModel
         foreach ($results as $k => $organisation) {
             if (!empty($organisation['Organisation']['restricted_to_domain'])) {
                 $results[$k]['Organisation']['restricted_to_domain'] = json_decode($organisation['Organisation']['restricted_to_domain'], true);
+                foreach ($results[$k]['Organisation']['restricted_to_domain'] as $k2 => $v) {
+                    $results[$k]['Organisation']['restricted_to_domain'][$k2] = trim($v);
+                }
+            } else if (isset($organisation['Organisation']['restricted_to_domain'])){
+                $results[$k]['Organisation']['restricted_to_domain'] = array();
             }
         }
         return $results;
@@ -377,28 +387,45 @@ class Organisation extends AppModel
         return (empty($org)) ? false : $org[$this->alias];
     }
 
-	public function attachOrgsToEvent($event, $fields)
-	{
-		if (empty($this->__orgCache[$event['Event']['orgc_id']])) {
-			$temp = $this->find('first', array(
-				'conditions' => array('id' => $event['Event']['orgc_id']),
-				'recursive' => -1,
-				'fields' => $fields
-			));
-			if (!empty($temp)) $temp = $temp[$this->alias];
-			$this->__orgCache[$event['Event']['orgc_id']] = $temp;
-		}
-		$event['Orgc'] = $this->__orgCache[$event['Event']['orgc_id']];
-		if (empty($this->__orgCache[$event['Event']['org_id']])) {
-			$temp = $this->find('first', array(
-				'conditions' => array('id' => $event['Event']['org_id']),
-				'recursive' => -1,
-				'fields' => $fields
-			));
-			if (!empty($temp)) $temp = $temp[$this->alias];
-			$this->__orgCache[$event['Event']['org_id']] = $temp;
-		}
-		$event['Org'] = $this->__orgCache[$event['Event']['org_id']];
-		return $event;
-	}
+    public function attachOrgsToEvent($event, $fields)
+    {
+        if (empty($this->__orgCache[$event['Event']['orgc_id']])) {
+            $temp = $this->find('first', array(
+                'conditions' => array('id' => $event['Event']['orgc_id']),
+                'recursive' => -1,
+                'fields' => $fields
+            ));
+            if (!empty($temp)) {
+                $temp = $temp[$this->alias];
+            }
+            $this->__orgCache[$event['Event']['orgc_id']] = $temp;
+        }
+        $event['Orgc'] = $this->__orgCache[$event['Event']['orgc_id']];
+        if (empty($this->__orgCache[$event['Event']['org_id']])) {
+            $temp = $this->find('first', array(
+                'conditions' => array('id' => $event['Event']['org_id']),
+                'recursive' => -1,
+                'fields' => $fields
+            ));
+            if (!empty($temp)) {
+                $temp = $temp[$this->alias];
+            }
+            $this->__orgCache[$event['Event']['org_id']] = $temp;
+        }
+        $event['Org'] = $this->__orgCache[$event['Event']['org_id']];
+        return $event;
+    }
+
+    public function getOrgIdsFromMeta($metaConditions)
+    {
+        $orgIds = $this->find('list', array(
+            'conditions' => $metaConditions,
+            'fields' => array('id'),
+            'recursive' => -1
+        ));
+        if (empty($orgIds)) {
+            return array(-1);
+        }
+        return array_values($orgIds);
+    }
 }

@@ -8,10 +8,12 @@ class ShadowAttribute extends AppModel
 {
     public $combinedKeys = array('event_id', 'category', 'type');
 
-    public $name = 'ShadowAttribute';				// TODO general
+    public $name = 'ShadowAttribute';               // TODO general
+
+    public $recursive = -1;
 
     public $actsAs = array(
-        'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+        'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
             'change' => 'full'),
@@ -37,6 +39,10 @@ class ShadowAttribute extends AppModel
                 'className' => 'Organisation',
                 'foreignKey' => 'event_org_id'
         ),
+        'Attribute' => array(
+            'className' => 'Attribute',
+            'foreignKey' => 'old_id'
+        )
     );
 
     public $displayField = 'value';
@@ -277,6 +283,10 @@ class ShadowAttribute extends AppModel
         } else {
             $this->__afterSaveCorrelation($this->data['ShadowAttribute']);
         }
+        if (empty($this->data['ShadowAttribute']['deleted'])) {
+            $action = $created ? 'add' : 'edit';
+            $this->publishKafkaNotification('shadow_attribute', $this->data, $action);
+        }
         return $result;
     }
 
@@ -340,6 +350,10 @@ class ShadowAttribute extends AppModel
             $this->data['ShadowAttribute']['uuid'] = CakeText::uuid();
         }
 
+        if (!empty($this->data['ShadowAttribute']['type']) && empty($this->data['ShadowAttribute']['category'])) {
+            $this->data['ShadowAttribute']['category'] = $this->Event->Attribute->typeDefinitions[$this->data['ShadowAttribute']['type']]['default_category'];
+        }
+
         // always return true, otherwise the object cannot be saved
         return true;
     }
@@ -368,7 +382,7 @@ class ShadowAttribute extends AppModel
     {
         // build the list of composite Attribute.type dynamically by checking if type contains a |
         // default composite types
-        $compositeTypes = array('malware-sample');	// TODO hardcoded composite
+        $compositeTypes = array('malware-sample');  // TODO hardcoded composite
         // dynamically generated list
         foreach (array_keys($this->typeDefinitions) as $type) {
             $pieces = explode('|', $type);
@@ -433,11 +447,11 @@ class ShadowAttribute extends AppModel
             return true;
         } else {
             $rootDir = $attachments_dir . DS . 'shadow' . DS . $attribute['event_id'];
-            $dir = new Folder($rootDir, true);						// create directory structure
+            $dir = new Folder($rootDir, true);                      // create directory structure
             $destpath = $rootDir . DS . $attribute['id'];
-            $file = new File($destpath, true);						// create the file
-            $decodedData = base64_decode($attribute['data']);		// decode
-            if ($file->write($decodedData)) {						// save the data
+            $file = new File($destpath, true);                      // create the file
+            $decodedData = base64_decode($attribute['data']);       // decode
+            if ($file->write($decodedData)) {                       // save the data
                 return true;
             } else {
                 // error
@@ -478,12 +492,13 @@ class ShadowAttribute extends AppModel
     {
         $oldsa = $this->find('first', array(
             'conditions' => array(
-                'event_uuid' => $sa['event_uuid'],
-                'value' => $sa['value'],
-                'type' => $sa['type'],
-                'category' => $sa['category'],
-                'to_ids' => $sa['to_ids'],
-                'comment' => $sa['comment']
+                'ShadowAttribute.event_uuid' => $sa['event_uuid'],
+                'ShadowAttribute.uuid' => $sa['uuid'],
+                'ShadowAttribute.value' => $sa['value'],
+                'ShadowAttribute.type' => $sa['type'],
+                'ShadowAttribute.category' => $sa['category'],
+                'ShadowAttribute.to_ids' => $sa['to_ids'],
+                'ShadowAttribute.comment' => $sa['comment']
             ),
         ));
         if (empty($oldsa)) {
@@ -495,10 +510,16 @@ class ShadowAttribute extends AppModel
 
     public function getEventContributors($id)
     {
-        $orgs = $this->find('all', array('fields' => array('DISTINCT(org_id)'), 'conditions' => array('event_id' => $id), 'order' => false));
+        $orgs = $this->find('all', array('fields' => array(
+            'DISTINCT(ShadowAttribute.org_id)'),
+            'conditions' => array('event_id' => $id),
+            'recursive' => -1,
+            'order' => false
+        ));
         $org_ids = array();
+        $this->Organisation = ClassRegistry::init('Organisation');
         foreach ($orgs as $org) {
-            $org_ids[] = $org['ShadowAttribute']['org_id'];
+            $org_ids[] = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('id', 'name'), 'conditions' => array('Organisation.id' => $org['ShadowAttribute']['org_id'])));
         }
         return $org_ids;
     }
@@ -554,6 +575,7 @@ class ShadowAttribute extends AppModel
         }
         $fieldList = array('proposal_email_lock', 'id', 'info');
         $event['Event']['skip_zmq'] = 1;
+        $event['Event']['skip_kafka'] = 1;
         $this->Event->save($event, array('fieldList' => $fieldList));
     }
 
@@ -582,6 +604,160 @@ class ShadowAttribute extends AppModel
             $this->Job->saveField('message', 'Job done.');
         }
         return $proposalCount;
+    }
+
+    private function __preCaptureMassage($proposal)
+    {
+        if (empty($proposal['event_uuid']) || empty($proposal['Org'])) {
+            return false;
+        }
+        if (isset($proposal['id'])) {
+            unset($proposal['id']);
+        }
+        $event = $this->Event->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Event.uuid' => $proposal['event_uuid']),
+            'fields' => array('Event.id', 'Event.uuid', 'Event.org_id')
+        ));
+        if (empty($event)) {
+            return false;
+        }
+        $proposal['event_id'] = $event['Event']['id'];
+        $proposal['event_org_id'] = $event['Event']['org_id'];
+        return $proposal;
+    }
+
+    public function capture($proposal, $user)
+    {
+        $proposal = $this->__preCaptureMassage($proposal);
+        if ($proposal === false) {
+            return false;
+        }
+        $oldsa = $this->findOldProposal($proposal);
+        if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
+            if ($oldsa) {
+                $this->delete($oldsa['id']);
+            }
+            if (isset($proposal['old_id'])) {
+                $oldAttribute = $this->Attribute->find('first', array('recursive' => -1, 'conditions' => array('Attribute.uuid' => $proposal['uuid'])));
+                if ($oldAttribute) {
+                    $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+                } else {
+                    $proposal['old_id'] = 0;
+                }
+            } else {
+                $proposal['old_id'] = 0;
+            }
+            $proposal['org_id'] = $this->Event->Orgc->captureOrg($proposal['Org'], $user);
+            unset($proposal['Org']);
+            $this->create();
+            if ($this->save($proposal)) {
+                if (!isset($proposal['deleted']) || !$proposal['deleted']) {
+                    $this->sendProposalAlertEmail($proposal['event_id']);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function pullProposals($user, $server, $HttpSocket = null)
+    {
+        $version = explode('.', $server['Server']['version']);
+        if (
+            ($version[0] == 2 && $version[1] == 4 && $version[2] < 111)
+        ) {
+            return 0;
+        }
+        $url = $server['Server']['url'];
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $i = 1;
+        $fetchedCount = 0;
+        $chunk_size = 1000;
+        $timestamp = strtotime("-90 day");
+        while(true) {
+            $uri = sprintf(
+                '%s/shadow_attributes/index/all:1/timestamp:%s/limit:%s/page:%s/deleted[]:0/deleted[]:1.json',
+                $url,
+                $timestamp,
+                $chunk_size,
+                $i
+            );
+            $i += 1;
+            $response = $HttpSocket->get($uri, false, $request);
+            if ($response->code == 200) {
+                $data = json_decode($response->body, true);
+                if (empty($data)) {
+                    return $fetchedCount;
+                }
+                $returnSize = count($data);
+                foreach ($data as $k => $proposal) {
+                    $result = $this->capture($proposal['ShadowAttribute'], $user);
+                    if ($result) {
+                        $fetchedCount += 1;
+                    }
+                }
+                if ($returnSize < $chunk_size) {
+                    return $fetchedCount;
+                }
+            } else {
+                return $fetchedCount;
+            }
+        }
+    }
+
+    public function buildConditions($user)
+    {
+        $conditions = array();
+        if (!$user['Role']['perm_site_admin']) {
+            $sgids = $this->Event->cacheSgids($user, true);
+            $attributeDistribution = array(
+                'Attribute.distribution' => array(1,2,3,5)
+            );
+            $objectDistribution = array(
+                '(SELECT distribution FROM objects WHERE objects.id = Attribute.object_id)' => array(1,2,3,5)
+            );
+            if (!empty($sgids) && (!isset($sgids[0]) || $sgids[0] != -1)) {
+                $objectDistribution['(SELECT sharing_group_id FROM objects WHERE objects.id = Attribute.object_id)'] = $sgids;
+                $attributeDistribution['Attribute.sharing_group_id'] = $sgids;
+            }
+            $conditions = array(
+                'AND' => array(
+                    'OR' => array(
+                        'Event.org_id' => $user['org_id'],
+                        'AND' => array(
+                            'OR' => array(
+                                'Event.distribution' => array(1,2,3,5),
+                                'AND '=> array(
+                                    'Event.distribution' => 4,
+                                    'Event.sharing_group_id' => $sgids,
+                                )
+                            )
+                        )
+                    ),
+                    array(
+                        'OR' => array(
+                            'ShadowAttribute.old_id' => '0',
+                            'AND' => array(
+                                array(
+                                    'OR' => array(
+                                        'Attribute.object_id' => '0',
+                                        array(
+                                            'OR' => $objectDistribution
+                                        )
+                                    )
+                                ),
+                                array(
+                                    'OR' => $attributeDistribution
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        }
+        return $conditions;
     }
 
     public function upgradeToProposalCorrelation()

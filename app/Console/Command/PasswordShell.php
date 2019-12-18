@@ -20,7 +20,11 @@ class PasswordShell extends AppShell {
 			}
 			$results['User']['password'] = $this->args[1];
 			$results['User']['confirm_password'] = $this->args[1];
-			$results['User']['change_pw'] = 1;
+            $change_pw = 1;
+            if (!empty($this->params['override_password_change'])) {
+                $change_pw = 0;
+            }
+			$results['User']['change_pw'] = $change_pw;
 			if (!$this->User->save($results)) {
 				echo 'Could not update account for User.id = ', $results['User']['id'], PHP_EOL;
 				echo json_encode($this->User->validationErrors) . PHP_EOL;
@@ -30,4 +34,15 @@ class PasswordShell extends AppShell {
 		}
 		exit;
 	}
+
+    public function getOptionParser()
+    {
+        $parser = parent::getOptionParser();
+        $parser->addOption('override_password_change', array(
+            'short' => 'o',
+            'help' => __('override password change'),
+            'boolean' => 1
+        ));
+        return $parser;
+    }
 }

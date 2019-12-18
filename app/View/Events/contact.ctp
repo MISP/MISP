@@ -34,5 +34,5 @@ $mayPublish = ($isAclPublish && $this->request->data['Event']['orgc_id'] == $me[
 </div>
 <?php
     $event = $this->data;
-    echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'contact', 'event' => $event));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'contact', 'event' => $event));
 ?>

@@ -1,7 +1,7 @@
 <div class="roles view">
 <h2><?php  echo __('Sharing Group');?></h2>
 <?php
-    $fields = array('id', 'name', 'releasability', 'description', 'active');
+    $fields = array('id', 'uuid', 'name', 'releasability', 'description', 'active');
 ?>
     <dl>
         <?php
@@ -86,5 +86,5 @@
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewSG'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewSG'));
 ?>

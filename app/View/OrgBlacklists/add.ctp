@@ -6,6 +6,7 @@
     <?php
         echo $this->Form->input('uuids', array(
                 'type' => 'textarea',
+                'label' => __('UUIDs'),
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
                 'placeholder' => __('Enter a single or a list of UUIDs')
@@ -30,5 +31,5 @@ echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'orgBlacklistsAdd'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'orgBlacklistsAdd'));
 ?>

@@ -36,7 +36,7 @@ class Role extends AppModel
 
     public $actsAs = array(
             'Trim',
-            'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'Role',
                     'roleKey' => 'role_id',
                     'change' => 'full'
@@ -134,12 +134,24 @@ class Role extends AppModel
             'readonlyenabled' => false,
             'title' => 'Create or modify MISP Object templates'
         ),
+        'perm_decaying' => array(
+            'id' => 'RolePermDecaying',
+            'text' => 'Decaying Model Editor',
+            'readonlyenabled' => true,
+            'title' => 'Create or modify MISP Decaying Models'
+        ),
         // Urgently needed permission flag to avoid waking up next to a decapitated horse head sent by Enrico
         'perm_publish_zmq' => array(
             'id' => 'RolePermPublishZmq',
             'text' => 'ZMQ publisher',
             'readonlyenabled' => false,
             'title' => 'Allow users to publish data to the ZMQ pubsub channel via the publish event to ZMQ button.'
+        ),
+        'perm_publish_kafka' => array(
+            'id' => 'RolePermPublishKafka',
+            'text' => 'Kafka publisher',
+            'readonlyenabled' => false,
+            'title' => 'Allow users to publish data to Kafka via the publish event to Kafka button.'
         )
     );
 
@@ -207,6 +219,9 @@ class Role extends AppModel
             ) {
                 $this->data['Role']['memory_limit'] = '';
             }
+        }
+        if (empty($this->data['Role']['rate_limit_count'])) {
+            $this->data['Role']['rate_limit_count'] = 0;
         }
         return true;
     }

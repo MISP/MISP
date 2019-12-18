@@ -55,5 +55,5 @@ endforeach; ?>
 <?php
     $event['Event']['id'] = $eventId;
     $event['Event']['published'] = 0;
-    echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addIOC', 'event' => $event));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addIOC', 'event' => $event));
 ?>

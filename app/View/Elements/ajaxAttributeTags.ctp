@@ -1,6 +1,10 @@
 <div style="width:100%;display:inline-block;">
     <?php
+        if (empty($context)) {
+            $context = 'event';
+        }
         $full = $isAclTagger && $tagAccess;
+        $host_org_user = (int)$me['org_id'] === Configure::read('MISP.host_org_id');
         foreach ($attributeTags as $tag):
             if (!isset($tag['Tag'])) $tag = array('Tag' => $tag);
             $tagClass = $full ? 'tagFirstHalf' : 'tag';
@@ -17,12 +21,12 @@
                 <?php
                     else:
                 ?>
-                        <a href="<?php echo $baseurl;?>/attributes/search/attributetag:<?php echo h($tag['Tag']['id']); ?>" class="<?php echo $tagClass; ?>" style="display:inline-block; background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>"><?php echo h($tag['Tag']['name']); ?></a>
+                        <a href="<?php echo $baseurl;?>/attributes/search/tags:<?php echo h($tag['Tag']['id']); ?>" class="<?php echo $tagClass; ?>" style="display:inline-block; background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>"><?php echo h($tag['Tag']['name']); ?></a>
                 <?php
                     endif;
                     if ($full):
                 ?>
-                        <div class="tagSecondHalf useCursorPointer noPrint" title="<?php echo __('Remove tag');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove tag');?>" onClick="removeObjectTagPopup('attribute', '<?php echo h($attributeId); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
+                        <div class="tagSecondHalf useCursorPointer noPrint" title="<?php echo __('Remove tag');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove tag');?>" onClick="removeObjectTagPopup(this, 'attribute', '<?php echo h($attributeId); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
                 <?php
                     endif;
                 ?>
@@ -31,10 +35,16 @@
         endforeach;
     ?>
         <div style="float:left">
-            <?php if ($full): ?>
-                <button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup('<?php echo h($attributeId); ?>' + '/true', 'tags', 'selectTaxonomy');">+</button>
-            <?php else:?>
-                &nbsp;
-            <?php endif; ?>
+            <?php
+                $addTagButton = '&nbsp;';
+                if ($full) {
+                    $addTagButton = sprintf(
+                        '<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" title="%s" onClick="popoverPopup(this, %s);">+</button>',
+                        __("Add tag"),
+                        sprintf("'%s/attribute', 'tags', 'selectTaxonomy'", h($attributeId))
+                    );
+                }
+                echo $addTagButton;
+            ?>
         </div>
 </div>

@@ -34,8 +34,8 @@
         <div id="PasswordDiv">
             <div class="clear"></div>
             <?php
-                $passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
-                $passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
+                $passwordPopover = '<span class=\"blue bold\">' . __('Length') .'</span>: ' . h($length) . '<br />';
+                $passwordPopover .= '<span class=\"blue bold\">' . __('Complexity') .'</span>: ' . h($complexity);
                 echo $this->Form->input('password', array(
                     'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>'
                 ));
@@ -51,8 +51,8 @@
                     'label' => __('Organisation'),
             ));
         }
-        echo $this->Form->input('role_id', array('label' => 'Role'));   // TODO ACL, User edit role_id.
-        echo $this->Form->input('authkey', array('disabled' => 'disabled', 'label' => 'Authentication key', 'div' => 'input clear'));
+        echo $this->Form->input('role_id', array('label' => __('Role')));   // TODO ACL, User edit role_id.
+        echo $this->Form->input('authkey', array('disabled' => 'disabled', 'div' => 'input clear'));
         echo $this->Form->input('nids_sid');
     ?>
         <div id = "syncServers" class="hidden">
@@ -61,12 +61,12 @@
     ?>
         </div>
     <?php
-        echo $this->Form->input('gpgkey', array('label' => __('GnuPG key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s GnuPG key here or try to retrieve it from the MIT key server by clicking on "Fetch GnuPG key" below.')));
+        echo $this->Form->input('gpgkey', array('label' => __('GnuPG key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s GnuPG key here or try to retrieve it from the CIRCL key server by clicking on "Fetch GnuPG key" below.')));
     ?>
         <div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch the user\'s GnuPG key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GnuPG key');?></span></div>
     <?php
         if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('SMIME key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s SMIME public key in PEM format here.')));
-        echo $this->Form->input('termsaccepted', array('label' => __('Terms accepted')));
+        echo $this->Form->input('termsaccepted', array('type' => 'checkbox', 'label' => __('Terms accepted')));
         echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => __('Change Password')));
         echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
         echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
@@ -75,7 +75,7 @@
     ?>
         <div class="clear"></div>
     <?php
-        echo $this->Form->input('disabled', array('label' => __('Disable this user account')));
+        echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Disable this user account')));
 
     ?>
     </fieldset>
@@ -92,7 +92,7 @@
 echo $this->Form->end();?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editUser'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'editUser'));
 ?>
 
 <script type="text/javascript">

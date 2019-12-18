@@ -12,9 +12,9 @@ class BlackListComponent extends Component
 
     public function index($rest = false, $filters = array())
     {
-		if (!empty($filters)) {
-			$this->controller->paginate['conditions'] = $filters;
-		}
+        if (!empty($filters)) {
+            $this->controller->paginate['conditions'] = $filters;
+        }
         if ($this->controller->response->type() === 'application/json' || $this->controller->response->type() == 'application/xml' || $rest) {
             $blackList = $this->controller->paginate();
             $blacklist= array();
@@ -130,7 +130,7 @@ class BlackListComponent extends Component
                 if ($rest) {
                     throw new MethodNotAllowedException('Could not save the blacklist item.');
                 } else {
-                    $this->controller->Session->setFlash('Could not save the blacklist item');
+                    $this->controller->Session->setFlash(__('Could not save the blacklist item'));
                     $this->controller->redirect(array('action' => 'index'));
                 }
             }

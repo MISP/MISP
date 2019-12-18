@@ -15,12 +15,20 @@ class CacheExport
 			throw new MethodNotAllowedException('Invalid hashing algo');
 		}
 		if ($options['scope'] === 'Attribute') {
-			return hash($hash_type, $data['Attribute']['value']);
+            $temp = hash($hash_type, $data['Attribute']['value']);
+            if (!empty($options['filters']['includeEventUuid'])) {
+                $temp .= ',' . $data['Event']['uuid'];
+            }
+			return $temp;
 		}
 		if ($options['scope'] === 'Event') {
 			$result = array();
 			foreach ($data['Attribute'] as $attribute) {
-				$result[] = hash($hash_type, $data['Attribute']['value']);
+                $temp = hash($hash_type, $data['Attribute']['value']);
+                if (!empty($options['filters']['includeEventUuid'])) {
+                    $temp .= ',' . $data['Event']['uuid'];
+                }
+				$result[] = $temp;
 			}
 			return implode($this->separator(), $result);
 		}

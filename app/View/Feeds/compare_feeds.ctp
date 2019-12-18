@@ -1,4 +1,5 @@
 <?php
+    $canViewFeedData = $isSiteAdmin || intval(Configure::read('MISP.host_org_id')) === $me['org_id'];
     $feedTemplate = array(
         'id', 'name', 'provider', 'url'
     );
@@ -21,7 +22,7 @@
                   ?>
                     <th>
                             <div data-toggle="popover" data-content="<?php echo $popover; ?>" data-trigger="hover">
-                            <?php echo h($item['Feed']['id']); ?>
+                            <?php echo (empty($item['Feed']['is_misp_server']) ? 'F' : 'S') . h($item['Feed']['id']); ?>
                             </div>
                     </th>
                   <?php
@@ -38,7 +39,21 @@
                 <tr>
                     <td class="short">
                             <div data-toggle="popover" data-content="<?php echo $popover;?>" data-trigger="hover">
-                                <?php echo h($item['Feed']['id']) . ' ' . h($item['Feed']['name']); ?>&nbsp;
+                                <?php
+                                    echo sprintf(
+                                        '%s%s %s%s',
+                                        empty($item['Feed']['is_misp_server']) ? 'Feed #' : 'Server #',
+                                        h($item['Feed']['id']),
+                                        empty($item['Feed']['is_misp_server']) ? '' : '(<span class="blue bold">MISP</span>) ',
+                                        (!$canViewFeedData || !empty($item['Feed']['is_misp_server'])) ? h($item['Feed']['name']) : sprintf(
+                                            '<a href="%s/feeds/view/%s" title="View feed #%s">%s</a>',
+                                            $baseurl,
+                                            h($item['Feed']['id']),
+                                            h($item['Feed']['id']),
+                                            h($item['Feed']['name'])
+                                        )
+                                    );
+                                ?>
                             </div>
                         </td>
                         <?php
@@ -56,7 +71,7 @@
                                     endforeach;
                                     $title = '';
                                     if ($percentage == 0) $popover = __('None or less than 1% of the data of %s is contained in %s (%s matching values)', $item['Feed']['name'], $item2['Feed']['name'], $v['overlap_count']);
-                                    else if ($percentage > 0) $popover = __('%s\% of the data of %s is contained in %s (%s matching values)',$percentage, $item['Feed']['name'], $item2['Feed']['name'], $v['overlap_count'])
+                                    else if ($percentage > 0) $popover = __('%s% of the data of %s is contained in %s (%s matching values)',$percentage, $item['Feed']['name'], $item2['Feed']['name'], $v['overlap_count'])
                             ?>
                                 <td class="<?php echo h($class); ?>">
                                     <div data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover">
@@ -84,5 +99,5 @@
     });
 </script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'compare'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'compare'));
 ?>

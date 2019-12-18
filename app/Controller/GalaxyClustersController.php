@@ -7,7 +7,7 @@ class GalaxyClustersController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'recursive' => -1,
             'order' => array(
                 'GalaxyCluster.value' => 'ASC'
@@ -115,10 +115,18 @@ class GalaxyClustersController extends AppController
 
     public function view($id)
     {
+        $conditions = array('GalaxyCluster.id' => $id);
+        if (Validation::uuid($id)) {
+            $conditions = array('GalaxyCluster.uuid' => $id);
+        }
+        $contain = array('Galaxy');
+        if ($this->_isRest()) {
+            $contain[] = 'GalaxyElement';
+        }
         $cluster = $this->GalaxyCluster->find('first', array(
             'recursive' => -1,
-            'contain' => array('Galaxy'),
-            'conditions' => array('GalaxyCluster.id' => $id)
+            'contain' => $contain,
+            'conditions' => $conditions
         ));
         if (!empty($cluster)) {
             $galaxyType = $cluster['GalaxyCluster']['type'];
@@ -135,10 +143,18 @@ class GalaxyClustersController extends AppController
                 $cluster['GalaxyCluster']['tag_count'] = count($tag['EventTag']);
                 $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
             }
+        } else {
+            throw new NotFoundException('Cluster not found.');
         }
-        $this->set('id', $id);
-        $this->set('galaxy_id', $cluster['Galaxy']['id']);
-        $this->set('cluster', $cluster);
+        if ($this->_isRest()) {
+            $cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];
+            $cluster['GalaxyCluster']['GalaxyElement'] = $cluster['GalaxyElement'];
+            return $this->RestResponse->viewData(array('GalaxyCluster' => $cluster['GalaxyCluster']), $this->response->type());
+        } else {
+            $this->set('id', $id);
+            $this->set('galaxy_id', $cluster['Galaxy']['id']);
+            $this->set('cluster', $cluster);
+        }
     }
 
     public function attachToEvent($event_id, $tag_name)
@@ -208,20 +224,40 @@ class GalaxyClustersController extends AppController
             $event_id = $attribute['Attribute']['event_id'];
         } elseif ($target_type == 'event') {
             $event_id = $target_id;
+        } elseif ($target_type === 'tag_collection') {
+            // pass
         } else {
             throw new MethodNotAllowedException('Invalid options');
         }
-        $this->Event->id = $event_id;
-        $this->Event->recursive = -1;
-        $event = $this->Event->read(array(), $event_id);
-        if (empty($event)) {
-            throw new MethodNotAllowedException('Invalid Event.');
-        }
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-            if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+
+        if ($target_type === 'tag_collection') {
+            $tag_collection = $this->GalaxyCluster->Tag->TagCollectionTag->TagCollection->fetchTagCollection($this->Auth->user(), array(
+                'conditions' => array('TagCollection.id' => $target_id),
+                'contain' => array('Organisation', 'TagCollectionTag' => array('Tag'))
+            ));
+            if (empty($tag_collection)) {
+                throw new MethodNotAllowedException('Invalid Tag Collection');
+            }
+            $tag_collection = $tag_collection[0];
+            if (!$this->_isSiteAdmin()) {
+                if (!$this->userRole['perm_tag_editor'] || $this->Auth->user('org_id') !== $tag_collection['TagCollection']['org_id']) {
+                    throw new MethodNotAllowedException('Invalid Tag Collection');
+                }
+            }
+        } else {
+            $this->Event->id = $event_id;
+            $this->Event->recursive = -1;
+            $event = $this->Event->read(array(), $event_id);
+            if (empty($event)) {
                 throw new MethodNotAllowedException('Invalid Event.');
             }
+            if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
+                if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+                    throw new MethodNotAllowedException('Invalid Event.');
+                }
+            }
         }
+
         if ($target_type == 'attribute') {
             $existingTargetTag = $this->Event->Attribute->AttributeTag->find('first', array(
                 'conditions' => array('AttributeTag.tag_id' => $tag_id, 'AttributeTag.attribute_id' => $target_id),
@@ -231,6 +267,12 @@ class GalaxyClustersController extends AppController
         } elseif ($target_type == 'event') {
             $existingTargetTag = $this->Event->EventTag->find('first', array(
                 'conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $target_id),
+                'recursive' => -1,
+                'contain' => array('Tag')
+            ));
+        } elseif ($target_type == 'tag_collection') {
+            $existingTargetTag = $this->GalaxyCluster->Tag->TagCollectionTag->find('first', array(
+                'conditions' => array('TagCollectionTag.tag_id' => $tag_id, 'TagCollectionTag.tag_collection_id' => $target_id),
                 'recursive' => -1,
                 'contain' => array('Tag')
             ));
@@ -247,6 +289,8 @@ class GalaxyClustersController extends AppController
                 $result = $this->Event->EventTag->delete($existingTargetTag['EventTag']['id']);
             } elseif ($target_type == 'attribute') {
                 $result = $this->Event->Attribute->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
+            } elseif ($target_type == 'tag_collection') {
+                $result = $this->GalaxyCluster->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
             }
             if ($result) {
                 $event['Event']['published'] = 0;
@@ -272,43 +316,162 @@ class GalaxyClustersController extends AppController
         $this->redirect($this->referer());
     }
 
-	public function delete($id) {
-		{
-			if ($this->request->is('post')) {
-				$result = false;
-				$galaxy_cluster = $this->GalaxyCluster->find('first', array(
-					'recursive' => -1,
-					'conditions' => array('GalaxyCluster.id' => $id)
-				));
-				if (!empty($galaxy_cluster)) {
-					$result = $this->GalaxyCluster->delete($id, true);
-					$galaxy_id = $galaxy_cluster['GalaxyCluster']['galaxy_id'];
-				}
-				if ($result) {
-					$message = 'Galaxy cluster successfuly deleted.';
-					if ($this->_isRest()) {
-						return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $id, $this->response->type());
-					} else {
-						$this->Flash->success($message);
-						$this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxy_id));
-					}
-				} else {
-					$message = 'Galaxy cluster could not be deleted.';
-					if ($this->_isRest()) {
-						return $this->RestResponse->saveFailResponse('GalaxyCluster', 'delete', $id, $message, $this->response->type());
-					} else {
-						$this->Flash->error($message);
-						$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
-					}
-				}
-			} else {
-				if ($this->request->is('ajax')) {
-					$this->set('id', $id);
-					$this->render('ajax/galaxy_cluster_delete_confirmation');
-				} else {
-					throw new MethodNotAllowedException('This function can only be reached via AJAX.');
-				}
-			}
-		}
-	}
+    public function delete($id)
+    {
+        {
+            if ($this->request->is('post')) {
+                $result = false;
+                $galaxy_cluster = $this->GalaxyCluster->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('GalaxyCluster.id' => $id)
+                ));
+                if (!empty($galaxy_cluster)) {
+                    $result = $this->GalaxyCluster->delete($id, true);
+                    $galaxy_id = $galaxy_cluster['GalaxyCluster']['galaxy_id'];
+                }
+                if ($result) {
+                    $message = 'Galaxy cluster successfuly deleted.';
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $id, $this->response->type());
+                    } else {
+                        $this->Flash->success($message);
+                        $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxy_id));
+                    }
+                } else {
+                    $message = 'Galaxy cluster could not be deleted.';
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('GalaxyCluster', 'delete', $id, $message, $this->response->type());
+                    } else {
+                        $this->Flash->error($message);
+                        $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+                    }
+                }
+            } else {
+                if ($this->request->is('ajax')) {
+                    $this->set('id', $id);
+                    $this->render('ajax/galaxy_cluster_delete_confirmation');
+                } else {
+                    throw new MethodNotAllowedException('This function can only be reached via AJAX.');
+                }
+            }
+        }
+    }
+
+    public function viewGalaxyMatrix($id) {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException('This function can only be reached via AJAX.');
+        }
+
+        $cluster = $this->GalaxyCluster->find('first', array(
+            'conditions' => array('id' => $id)
+        ));
+        if (empty($cluster)) {
+            throw new Exception("Invalid Galaxy Cluster.");
+        }
+        $this->loadModel('Event');
+        $mitreAttackGalaxyId = $this->GalaxyCluster->Galaxy->getMitreAttackGalaxyId();
+        $attackPatternTagNames = $this->GalaxyCluster->find('list', array(
+            'conditions' => array('galaxy_id' => $mitreAttackGalaxyId),
+            'fields' => array('tag_name')
+        ));
+
+        $cluster = $cluster['GalaxyCluster'];
+        $tag_name = $cluster['tag_name'];
+
+        // fetch all event ids having the requested cluster
+        $eventIds = $this->Event->EventTag->find('list', array(
+            'contain' => array('Tag'),
+            'conditions' => array(
+                'Tag.name' => $tag_name
+            ),
+            'fields' => array('event_id'),
+            'recursive' => -1
+        ));
+
+        // fetch all attribute ids having the requested cluster
+        $attributes = $this->Event->Attribute->AttributeTag->find('all', array(
+            'contain' => array('Tag'),
+            'conditions' => array(
+                'Tag.name' => $tag_name
+            ),
+            'fields' => array('attribute_id', 'event_id'),
+            'recursive' => -1
+        ));
+        $attributeIds = array();
+        $additional_event_ids = array();
+        foreach ($attributes as $attribute) {
+            $attributeIds[] = $attribute['AttributeTag']['attribute_id'];
+            $additional_event_ids[$attribute['AttributeTag']['event_id']] = $attribute['AttributeTag']['event_id'];
+        }
+        $additional_event_ids = array_keys($additional_event_ids);
+        $eventIds = array_merge($eventIds, $additional_event_ids);
+        unset($attributes);
+        unset($additional_event_ids);
+
+        // fetch all related tags belonging to attack pattern
+        $eventTags = $this->Event->EventTag->find('all', array(
+            'contain' => array('Tag'),
+            'conditions' => array(
+                'event_id' => $eventIds,
+                'Tag.name' => $attackPatternTagNames
+            ),
+            'fields' => array('Tag.name, COUNT(DISTINCT event_id) as tag_count'),
+            'recursive' => -1,
+            'group' => array('Tag.name')
+        ));
+
+        // fetch all related tags belonging to attack pattern or belonging to an event having this cluster
+        $attributeTags = $this->Event->Attribute->AttributeTag->find('all', array(
+            'contain' => array('Tag'),
+            'conditions' => array(
+                'OR' => array(
+                    'event_id' => $eventIds,
+                    'attribute_id' => $attributeIds
+                ),
+                'Tag.name' => $attackPatternTagNames
+            ),
+            'fields' => array('Tag.name, COUNT(DISTINCT event_id) as tag_count'),
+            'recursive' => -1,
+            'group' => array('Tag.name')
+        ));
+
+        $scores = array();
+        foreach ($attributeTags as $tag) {
+            $tagName = $tag['Tag']['name'];
+            $scores[$tagName] = intval($tag[0]['tag_count']);
+        }
+        foreach ($eventTags as $tag) {
+            $tagName = $tag['Tag']['name'];
+            if (isset($scores[$tagName])) {
+                $scores[$tagName] = $scores[$tagName] + intval($tag[0]['tag_count']);
+            } else {
+                $scores[$tagName] = intval($tag[0]['tag_count']);
+            }
+        }
+
+        $maxScore = count($scores) > 0 ? max(array_values($scores)) : 0;
+        $matrixData = $this->GalaxyCluster->Galaxy->getMatrix($mitreAttackGalaxyId, $scores);
+        $tabs = $matrixData['tabs'];
+        $matrixTags = $matrixData['matrixTags'];
+        $killChainOrders = $matrixData['killChain'];
+        $instanceUUID = $matrixData['instance-uuid'];
+
+        App::uses('ColourGradientTool', 'Tools');
+        $gradientTool = new ColourGradientTool();
+        $colours = $gradientTool->createGradientFromValues($scores);
+        $this->set('target_type', 'attribute');
+        $this->set('columnOrders', $killChainOrders);
+        $this->set('tabs', $tabs);
+        $this->set('scores', $scores);
+        $this->set('maxScore', $maxScore);
+        if (!empty($colours)) {
+            $this->set('colours', $colours['mapping']);
+            $this->set('interpolation', $colours['interpolation']);
+        }
+        $this->set('pickingMode', false);
+        $this->set('defaultTabName', 'mitre-attack');
+        $this->set('removeTrailling', 2);
+
+        $this->render('cluster_matrix');
+    }
 }

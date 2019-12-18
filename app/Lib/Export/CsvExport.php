@@ -14,6 +14,8 @@ class CsvExport
 			$lines = $this->__attributesHandler($data, $options);
 		} else if($options['scope'] === 'Event') {
 			$lines = $this->__eventsHandler($data, $options);
+		} else if($options['scope'] === 'Sighting') {
+			$lines = $this->__sightingsHandler($data, $options);
 		}
         return $lines;
     }
@@ -29,8 +31,6 @@ class CsvExport
 			'Event' => array('fields' => array('Event.*'), 'EventTag' => 'Tag', 'Org.name', 'Orgc.name', 'ThreatLevel')
 		));
 		unset($params['fields']);
-		$params['includeEventUuid'] = 0;
-		$params['includeEventTags'] = 0;
 		$params['withAttachments'] = 0;
 		return $params;
 	}
@@ -44,6 +44,32 @@ class CsvExport
 			$attribute['object_meta-category'] = $attribute['Object']['meta-category'];
 		}
 		return $this->__addLine($attribute, $options);
+	}
+
+        private function __sightingsHandler($sighting, $options)
+        {
+                $lines = '';
+                if (isset($sighting['Sighting']['Event'])) {
+                    foreach($sighting['Sighting']['Event'] as $k => $event_val) {
+                        $new_key = 'event_' . $k;
+                        // in case we have an array, e.g. orc => name
+                        if (is_array($event_val)) {
+                            $v2 = reset($event_val);
+                            $k2 = key($event_val);
+                            $new_key .= '_' . $k2;
+                            $event_val = $v2;
+                        }
+                        $sighting['Sighting'][$new_key] = $event_val;
+                    }
+                }
+                if (isset($sighting['Sighting']['Attribute'])) {
+                    foreach($sighting['Sighting']['Attribute'] as $k => $attribute_val) {
+                        $new_key = 'attribute_' . $k;
+                        $sighting['Sighting'][$new_key] = $attribute_val;
+                    }
+                }
+		$lines .= $this->__addLine($sighting['Sighting'], $options);
+                return $lines;
 	}
 
 	private function __eventsHandler($event, $options)
@@ -175,7 +201,7 @@ class CsvExport
 		foreach ($requested_obj_attributes as $obj_att) {
 			$this->requested_fields[] = $obj_att;
 		}
-		if (isset($options['filters']['includeContext'])) {
+		if (!empty($options['filters']['includeContext'])) {
 			foreach ($this->event_context_fields as $event_context_field) {
 				$this->requested_fields[] = $event_context_field;
 			}
@@ -194,6 +220,9 @@ class CsvExport
 			$options['flatten'] = 1;
 		}
         $headers = implode(',', $headers) . PHP_EOL;
+        if (!empty($options['filters']['headerless'])) {
+            return '';
+        }
         return $headers;
     }
 
@@ -206,5 +235,35 @@ class CsvExport
     {
         return '';
     }
+
+	public function eventIndex($events)
+	{
+		$fields = array(
+			'id', 'date', 'info', 'tags', 'uuid', 'published', 'analysis', 'attribute_count', 'orgc_id', 'orgc_name', 'orgc_uuid', 'timestamp', 'distribution', 'sharing_group_id', 'threat_level_id',
+			'publish_timestamp', 'extends_uuid'
+		);
+		$result = implode(',', $fields) . PHP_EOL;
+		foreach ($events as $key => $event) {
+			$event['tags'] = '';
+			if (!empty($event['EventTag'])) {
+				$tags = array();
+				foreach ($event['EventTag'] as $et) {
+					$tags[] = $et['Tag']['name'];
+				}
+				$tags = implode(', ', $tags);
+			} else {
+				$tags = '';
+			}
+			$event['Event']['tags'] = $tags;
+			$event['Event']['orgc_name'] = $event['Orgc']['name'];
+			$event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
+			$current = array();
+			foreach ($fields as $field) {
+				$current[] = $this->__escapeCSVField($event['Event'][$field]);
+			}
+			$result .= implode(', ', $current) . PHP_EOL;
+		}
+		return $result;
+	}
 
 }

@@ -28,9 +28,9 @@ class TaxonomyPredicate extends AppModel
 
     public function beforeValidate($options = array())
     {
-		if (empty($this->data['TaxonomyPredicate']['expanded'])) {
-			$this->data['TaxonomyPredicate']['expanded'] = $this->data['TaxonomyPredicate']['value'];
-		}
+        if (empty($this->data['TaxonomyPredicate']['expanded'])) {
+            $this->data['TaxonomyPredicate']['expanded'] = $this->data['TaxonomyPredicate']['value'];
+        }
         parent::beforeValidate();
         return true;
     }

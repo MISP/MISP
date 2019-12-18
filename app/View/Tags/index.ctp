@@ -54,14 +54,14 @@
         <?php endif;?>
         <span style="border-right:0px !important;">
             <span id="quickFilterButton" role="button" tabindex="0" aria-label="<?php echo __('Filter user tags');?>" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/tags/index'; ?>');"><?php echo __('Filter');?></span>
-            <input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+            <input class="tabMenuFilterField" type="text" id="quickFilterField">
         </span>
     </div>
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
-            <th><?php echo $this->Paginator->sort('exportable');?></th>
-            <th><?php echo $this->Paginator->sort('hide_tag', 'Hidden');?></th>
+            <th><?php echo $this->Paginator->sort('exportable', __('Exportable'));?></th>
+            <th><?php echo $this->Paginator->sort('hide_tag', __('Hidden'));?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo __('Restricted to org');?></th>
             <?php if ($isSiteAdmin): ?>
@@ -72,15 +72,15 @@
             <th><?php echo __('Tagged attributes');?></th>
             <th><?php echo __('Activity');?></th>
             <th><?php echo __('Favourite');?></th>
-            <?php if ($isAclTagEditor): ?>
+            <?php if ($isSiteAdmin): ?>
             <th class="actions"><?php echo __('Actions');?></th>
             <?php endif; ?>
     </tr><?php
 foreach ($list as $k => $item): ?>
     <tr>
         <td class="short"><?php echo h($item['Tag']['id']); ?>&nbsp;</td>
-        <td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-        <td class="short"><span class="icon-<?php echo $item['Tag']['hide_tag'] ? 'ok' : 'remove'; ?>"></span></td>
+        <td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($item['Tag']['exportable'] ? 'Yes' : 'No'); ?>"></span></td>
+        <td class="short"><span class="icon-<?php echo $item['Tag']['hide_tag'] ? 'ok' : 'remove'; ?>" role="img" aria-label="<?php echo $item['Tag']['hide_tag'] ? 'Yes' : 'No'; ?>"></span></td>
         <td><a href="<?php echo $baseurl . "/events/index/searchtag:" . $item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>" title="<?php echo isset($item['Tag']['Taxonomy']['expanded']) ? h($item['Tag']['Taxonomy']['expanded']) : h($item['Tag']['name']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
         <td class="short">
             <?php if ($item['Tag']['org_id']): ?>
@@ -111,18 +111,18 @@ foreach ($list as $k => $item): ?>
         &nbsp;
         </td>
         <td class="shortish"><?php echo h($item['Tag']['count']); ?>&nbsp;</td>
-        <td class="shortish"><a href="<?php echo $baseurl . "/attributes/search/attributetag:" . $item['Tag']['id']; ?>"><?php echo h($item['Tag']['attribute_count']); ?></a> </td>
+        <td class="shortish"><a href="<?php echo $baseurl . "/attributes/search/tags:" . $item['Tag']['id']; ?>"><?php echo h($item['Tag']['attribute_count']); ?></a> </td>
         <td class="shortish">
             <?php echo $this->element('sparkline', array('id' => $item['Tag']['id'], 'csv' => isset($csv[$k]) ? $csv[$k] : $emptyDate)); ?>
         </td>
         <td class="short" id ="checkbox_row_<?php echo h($item['Tag']['id']);?>">
-            <input id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
+            <input id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" aria-label="<?php echo __('Favourite'); ?>" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
         </td>
         <?php if ($isSiteAdmin): ?>
         <td class="short action-links">
-            <?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['Tag']['id']), array('class' => 'fa fa-share-alt', 'title' => 'View graph'));?>
-            <?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
-            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
+            <?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['Tag']['id']), array('class' => 'fa fa-share-alt', 'title' => __('View graph'), 'aria-label' => __('View graph')));?>
+            <?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit')));?>
+            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
         </td>
         <?php endif; ?>
     </tr><?php
@@ -148,4 +148,4 @@ endforeach; ?>
 </div>
 <?php
     $menuItem = $favouritesOnly ? 'indexfav' : 'index';
-    echo $this->element('side_menu', array('menuList' => 'tags', 'menuItem' => $menuItem));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'tags', 'menuItem' => $menuItem));
