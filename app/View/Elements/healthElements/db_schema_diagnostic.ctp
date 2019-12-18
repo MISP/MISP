@@ -170,6 +170,7 @@
     );
     echo $this->element('/healthElements/db_indexes_diagnostic', array(
         'columnPerTable' => $columnPerTable,
+        'diagnostic' => $dbIndexDiagnostics,
         'indexes' => $indexes
     ));
 ?>

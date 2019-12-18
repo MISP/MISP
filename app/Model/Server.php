@@ -4363,8 +4363,10 @@ class Server extends AppModel
             $dbExpectedSchema = $this->getExpectedDBSchema();
             if ($dbExpectedSchema !== false) {
                 $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
+                $db_indexes_comparison = $this->compareDBIndexes($dbActualSchema['indexes'], $dbExpectedSchema['indexes']);
                 $schemaDiagnostic['checked_table_column'] = $dbActualSchema['column'];
                 $schemaDiagnostic['diagnostic'] = $db_schema_comparison;
+                $schemaDiagnostic['diagnostic_index'] = $db_indexes_comparison;
                 $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
                 foreach($dbActualSchema['schema'] as $tableName => $tableMetas) {
                     foreach($tableMetas as $tableMeta) {
@@ -4634,6 +4636,38 @@ class Server extends AppModel
             );
         }
         return $dbDiff;
+    }
+
+    public function compareDBIndexes($actualIndex, $expectedIndex)
+    {
+        $expectedIndex = $actualIndex;
+        unset($actualIndex['decaying_models']);
+        unset($actualIndex['feeds'][0]);
+        unset($actualIndex['feeds'][1]);
+        unset($actualIndex['galaxy_reference'][0]);
+        unset($actualIndex['galaxy_reference'][3]);
+        unset($actualIndex['notification_logs'][1]);
+        unset($expectedIndex['threads'][2]);
+        $indexDiff = array();
+        foreach($expectedIndex as $tableName => $indexes) {
+            if (!array_key_exists($tableName, $actualIndex)) {
+                // If table does not exists, it is covered by the schema diagnostic
+            } else {
+                $tableIndexDiff = array_diff($indexes, $actualIndex[$tableName]); // check for missing indexes
+                if (count($tableIndexDiff) > 0) {
+                    foreach($tableIndexDiff as $columnDiff) {
+                        $indexDiff[$tableName][$columnDiff] = sprintf(__('Column `%s` should be indexed'), $columnDiff);
+                    }
+                }
+                $tableIndexDiff = array_diff($actualIndex[$tableName], $indexes); // check for additional indexes
+                if (count($tableIndexDiff) > 0) {
+                    foreach($tableIndexDiff as $columnDiff) {
+                        $indexDiff[$tableName][$columnDiff] = sprintf(__('Column `%s` is indexed but should not'), $columnDiff);
+                    }
+                }
+            }
+        }
+        return $indexDiff;
     }
 
     public function getDatabaseIndexes($database, $table)

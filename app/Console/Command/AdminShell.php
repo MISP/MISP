@@ -516,14 +516,15 @@ class AdminShell extends AppShell
 
     public function dumpCurrentDatabaseSchema()
     {
-        $dbActualSchema = $this->Server->getActualDBSchema()['schema'];
+        $dbActualSchema = $this->Server->getActualDBSchema();
         $dbVersion = $this->AdminSetting->find('first', array(
             'conditions' => array('setting' => 'db_version')
         ));
-        if (!empty($dbVersion) && !empty($dbActualSchema)) {
+        if (!empty($dbVersion) && !empty($dbActualSchema['schema'])) {
             $dbVersion = $dbVersion['AdminSetting']['value'];
             $data = array(
-                'schema' => $dbActualSchema,
+                'schema' => $dbActualSchema['schema'],
+                'indexes' => $dbActualSchema['indexes']
                 'db_version' => $dbVersion
             );
             $file = new File(ROOT . DS . 'db_schema.json', true);

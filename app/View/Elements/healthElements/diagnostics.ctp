@@ -239,6 +239,7 @@
                 'updateLocked' => $dbSchemaDiagnostics['update_locked'],
                 'dataSource' => $dbSchemaDiagnostics['dataSource'],
                 'columnPerTable' => $dbSchemaDiagnostics['columnPerTable'],
+                'dbIndexDiagnostics' => $dbSchemaDiagnostics['dbIndexDiagnostics'],
                 'indexes' => $dbSchemaDiagnostics['indexes'],
             )); ?>
         </div>

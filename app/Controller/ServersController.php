@@ -2221,6 +2221,7 @@ misp.direct_call(relative_path, body)
         } else {
             $this->set('checkedTableColumn', $dbSchemaDiagnostics['checked_table_column']);
             $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics['diagnostic']);
+            $this->set('dbIndexDiagnostics', $dbSchemaDiagnostics['diagnostic_index']);
             $this->set('expectedDbVersion', $dbSchemaDiagnostics['expected_db_version']);
             $this->set('actualDbVersion', $dbSchemaDiagnostics['actual_db_version']);
             $this->set('error', $dbSchemaDiagnostics['error']);
