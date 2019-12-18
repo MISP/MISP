@@ -4665,22 +4665,24 @@ class EventsController extends AppController
             throw new Exception("Invalid options.");
         }
 
-        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true));
-        if (empty($event)) {
-            throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
+        if ($scope !== 'tag_collection') {
+            $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true));
+            if (empty($event)) {
+                throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
+            }
+            $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($this->Auth->user(), $eventId, $matrixTags);
+            $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
+            $maxScore = 0;
+            $scoresData = array();
+            foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
+                $sum = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+                $scoresData[$key] = $sum;
+                $maxScore = max($maxScore, $sum);
+            }
+            $scores = $scoresData;
+        } else {
+            $scores = $scoresData = array();
         }
-
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($this->Auth->user(), $eventId, $matrixTags);
-        $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
-        $maxScore = 0;
-        $scoresData = array();
-        foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
-            $sum = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
-            $scoresData[$key] = $sum;
-            $maxScore = max($maxScore, $sum);
-        }
-
-        $scores = $scoresData;
         // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
         if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
             $mergedScore = array();
