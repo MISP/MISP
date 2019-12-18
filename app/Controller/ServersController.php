@@ -2227,6 +2227,7 @@ misp.direct_call(relative_path, body)
             $this->set('remainingLockTime', $dbSchemaDiagnostics['remaining_lock_time']);
             $this->set('updateFailNumberReached', $dbSchemaDiagnostics['update_fail_number_reached']);
             $this->set('updateLocked', $dbSchemaDiagnostics['update_locked']);
+            $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
         }
 
