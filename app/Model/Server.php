@@ -4351,6 +4351,7 @@ class Server extends AppModel
             'actual_db_version' => $actualDbVersion,
             'checked_table_column' => array(),
             'diagnostic' => array(),
+            'diagnostic_index' => array(),
             'expected_db_version' => '?',
             'error' => '',
             'update_locked' => $this->isUpdateLocked(),
