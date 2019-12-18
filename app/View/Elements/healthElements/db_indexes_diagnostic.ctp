@@ -5,13 +5,13 @@
     </label>
 </div>
 <div id="containerDBIndexes" class="" style="max-height: 800px; overflow-y: auto; padding: 5px;">
-    <div class="alert alert-warning">
-        <strong><?php echo __('Notice'); ?></strong>
-        <?php echo __('The highlighted issues may be benign. if you are unsure, please open an issue and ask for clarification.'); ?>
-    </div>
     <?php if(empty($diagnostic)): ?>
         <span class="label label-success"><?php echo __('Index diagnostic:'); ?><i class="fa fa-check"></i></span>
     <?php else: ?>
+        <div class="alert alert-warning">
+            <strong><?php echo __('Notice'); ?></strong>
+            <?php echo __('The highlighted issues may be benign. if you are unsure, please open an issue and ask for clarification.'); ?>
+        </div>
         <table id="tableDBIndexes" class="table table-condensed table-bordered">
             <thead>
                 <tr>
