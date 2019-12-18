@@ -524,7 +524,7 @@ class AdminShell extends AppShell
             $dbVersion = $dbVersion['AdminSetting']['value'];
             $data = array(
                 'schema' => $dbActualSchema['schema'],
-                'indexes' => $dbActualSchema['indexes']
+                'indexes' => $dbActualSchema['indexes'],
                 'db_version' => $dbVersion
             );
             $file = new File(ROOT . DS . 'db_schema.json', true);

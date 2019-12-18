@@ -4640,14 +4640,6 @@ class Server extends AppModel
 
     public function compareDBIndexes($actualIndex, $expectedIndex)
     {
-        $expectedIndex = $actualIndex;
-        unset($actualIndex['decaying_models']);
-        unset($actualIndex['feeds'][0]);
-        unset($actualIndex['feeds'][1]);
-        unset($actualIndex['galaxy_reference'][0]);
-        unset($actualIndex['galaxy_reference'][3]);
-        unset($actualIndex['notification_logs'][1]);
-        unset($expectedIndex['threads'][2]);
         $indexDiff = array();
         foreach($expectedIndex as $tableName => $indexes) {
             if (!array_key_exists($tableName, $actualIndex)) {
