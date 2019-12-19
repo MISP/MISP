@@ -114,9 +114,9 @@ class GalaxiesController extends AppController
         $conditions = $namespace === '0' ? array() : array('namespace' => $namespace);
         $galaxies = $this->Galaxy->find('all', array(
             'recursive' => -1,
-            'fields' => array('MAX(Galaxy.version) as latest_version', '*'),
+            'fields' => array('MAX(Galaxy.version) as latest_version', 'id', 'kill_chain_order', 'name', 'icon', 'description'),
             'conditions' => $conditions,
-            'group' => array('name'),
+            'group' => array('name', 'id', 'kill_chain_order', 'icon', 'description'),
             'order' => array('name asc')
         ));
         $items = array(

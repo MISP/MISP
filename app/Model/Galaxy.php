@@ -383,7 +383,7 @@ class Galaxy extends AppModel
                     'Galaxy.type' => $type,
                     'Galaxy.namespace' => $namespace
                 ),
-                'group' => array('name')
+                'group' => array('name', 'id')
         ));
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
     }
