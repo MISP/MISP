@@ -2221,6 +2221,7 @@ misp.direct_call(relative_path, body)
         } else {
             $this->set('checkedTableColumn', $dbSchemaDiagnostics['checked_table_column']);
             $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics['diagnostic']);
+            $this->set('dbIndexDiagnostics', $dbSchemaDiagnostics['diagnostic_index']);
             $this->set('expectedDbVersion', $dbSchemaDiagnostics['expected_db_version']);
             $this->set('actualDbVersion', $dbSchemaDiagnostics['actual_db_version']);
             $this->set('error', $dbSchemaDiagnostics['error']);
@@ -2228,9 +2229,10 @@ misp.direct_call(relative_path, body)
             $this->set('updateFailNumberReached', $dbSchemaDiagnostics['update_fail_number_reached']);
             $this->set('updateLocked', $dbSchemaDiagnostics['update_locked']);
             $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
+            $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
+            $this->set('indexes', $dbSchemaDiagnostics['indexes']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
         }
-
     }
 
     public function viewDeprecatedFunctionUse()
