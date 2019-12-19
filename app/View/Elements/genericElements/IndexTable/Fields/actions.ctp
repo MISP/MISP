@@ -10,9 +10,22 @@
      *    - postLinkConfirm: As the user to confirm the POST before submission with the given message
      *    - onClick: custom onClick action instead of a simple GET/POST request
      *    - icon: FA icon (added using the helper, knowing the fa domain is not needed, just add the short name such as "edit")
+     *  - requirement evaluates to true/false
+     *  - complex_requirement - add complex requirements via lambda functions:
+     *    - function: the lambda function
+     *    - options: array of options
      */
     echo '<td class="short action-links">';
     foreach ($actions as $action) {
+        if (isset($action['requirement']) && !$action['requirement']) {
+            continue;
+        }
+        if (isset(
+            $action['complex_requirement']) &&
+            !$action['complex_requirement']['function']($row, $action['complex_requirement']['options'])
+        ) {
+            continue;
+        }
         $url_param_data_paths = '';
         $url = empty($action['url']) ? '#' : h($action['url']);
         if (!empty($action['url_params_data_paths'])) {
