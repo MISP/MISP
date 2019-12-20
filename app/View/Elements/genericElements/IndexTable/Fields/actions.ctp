@@ -23,6 +23,7 @@
                     $action['complex_requirement']['options']['datapath'][$name] = Hash::extract($row, $path)[0];
                 }
             }
+            $options = isset($action['complex_requirement']['options']) ? $action['complex_requirement']['options'] : array();
             $requirementMet = $action['complex_requirement']['function']($row, $options);
             if (!$requirementMet) {
                 continue;
