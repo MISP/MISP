@@ -5270,10 +5270,10 @@ class Event extends AppModel
     private function __fillAttribute($attribute, $defaultDistribution)
     {
         if (!isset($attribute['category'])) {
-            $attribute['category'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['default_category'];
+            $attribute['category'] = $this->Attribute->typeDefinitions[$attribute['type']]['default_category'];
         }
         if (!isset($attribute['to_ids'])) {
-            $attribute['to_ids'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
+            $attribute['to_ids'] = $this->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
         }
         $attribute['value'] = $this->Attribute->runRegexp($attribute['type'], $attribute['value']);
         $attribute['distribution'] = (isset($attribute['distribution']) ? (int)$attribute['distribution'] : $defaultDistribution);
