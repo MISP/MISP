@@ -5269,11 +5269,26 @@ class Event extends AppModel
 
     private function __fillAttribute($attribute, $defaultDistribution)
     {
-        if (!isset($attribute['category'])) {
-            $attribute['category'] = $this->Attribute->typeDefinitions[$attribute['type']]['default_category'];
+        if (is_array($attribute['type'])) {
+            $attribute_type = $attribute['type'][0];
+            if (empty($attribute['category'])) {
+                $categories = array();
+                foreach ($attribute['type'] as $type) {
+                    $category = $this->Attribute->typeDefinitions[$type]['default_category'];
+                    if (!in_array($category, $categories)) {
+                        $categories[] = $category;
+                    }
+                }
+                $attribute['category'] = count($categories) === 1 ? $categories[0] : $categories;
+            }
+        } else {
+            $attribute_type = $attribute['type'];
+            if (empty($attribute['category'])) {
+                $attribute['category'] = $this->Attribute->typedefinitions[$attribute_type]['default_category'];
+            }
         }
         if (!isset($attribute['to_ids'])) {
-            $attribute['to_ids'] = $this->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
+            $attribute['to_ids'] = $this->Attribute->typeDefinitions[$attribute_type]['to_ids'];
         }
         $attribute['value'] = $this->Attribute->runRegexp($attribute['type'], $attribute['value']);
         $attribute['distribution'] = (isset($attribute['distribution']) ? (int)$attribute['distribution'] : $defaultDistribution);
