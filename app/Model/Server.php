@@ -4594,7 +4594,7 @@ class Server extends AppModel
                                     if ($colElementDiff == 'column_default') {
                                         $expectedValue = $column['column_default'];
                                         $actualValue = $keyedActualColumn[$columnName]['column_default'];
-                                        if (preg_match(sprintf('/(\'|")+%s(\1)+/', $expectedValue), $actualValue)) { // some version of mysql quote the default value
+                                        if (preg_match(sprintf('@(\'|")+%s(\1)+@', $expectedValue), $actualValue) || (empty($expectedValue) && $actualValue === 'NULL')) { // some version of mysql quote the default value
                                             continue;
                                         } else {
                                             $isCritical = true;
