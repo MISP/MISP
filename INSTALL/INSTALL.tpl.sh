@@ -220,7 +220,7 @@ installSupported () {
 
   # TODO: Double check how the user is added and subsequently used during the install.
   # TODO: Work on possibility to install as user X and install MISP for user Y
-  # TODO: Check if logout needed. (run SUDO_USER in installer)
+  # TODO: Check if logout needed. (run SUDO_CMD in installer)
   # <snippet-begin add-user.sh>
   # TODO: Double check how to properly handle postfix
   # <snippet-begin postfix.sh>
