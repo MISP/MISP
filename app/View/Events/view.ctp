@@ -388,7 +388,8 @@
                                     'related' => $relatedEvent['Event'],
                                     'color_red' => $relatedEvent['Event']['orgc_id'] == $me['org_id'],
                                     'hide' => $count > $display_threshold,
-                                    'relatedEventCorrelationCount' => $relatedEventCorrelationCount
+                                    'relatedEventCorrelationCount' => $relatedEventCorrelationCount,
+                                    'from_id' => $event['Event']['id']
                                 ));
                             ?>
                         <?php

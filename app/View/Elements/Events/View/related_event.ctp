@@ -1,5 +1,8 @@
 <?php
-    $href_url = isset($href_url) ? $href_url : $baseurl . '/events';
+    $href_url = isset($href_url) ? $href_url : $baseurl . '/events/view/' . h($related['id']);
+    if (isset($from_id)) {
+        $href_url .= sprintf('/%s/%s', 1, $from_id);
+    }
     $hide = isset($hide) ? $hide : false;
 ?>
 <span class="<?php echo $hide ? 'hidden correlation-expanded-area' : '' ?>">
@@ -11,7 +14,7 @@
                         <?php echo $this->OrgImg->getOrgImg(array('name' => $related['Orgc']['name'], 'id' => $related['Orgc']['id'], 'size' => 24)); ?>
                     </td>
                     <td style="line-height: 14px; padding-left: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; max-width: 430px;">
-                        <a title="<?php echo h($related['info']); ?>" href="<?php echo h($href_url) . '/' . $related['id']?>">
+                        <a title="<?php echo h($related['info']); ?>" href="<?php echo h($href_url)?>">
                             <span><?php echo h($related['info']) ?>
                         </a>
                     </td>

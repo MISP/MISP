@@ -148,9 +148,9 @@ MISPvars () {
 
   # sudo config to run $LUSER commands
   if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
-    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+    SUDO_CMD="sudo -H -u ${MISP_USER} -g staff"
   else
-    SUDO_USER="sudo -H -u ${MISP_USER}"
+    SUDO_CMD="sudo -H -u ${MISP_USER}"
   fi
   SUDO_WWW="sudo -H -u ${WWW_USER} "
 
@@ -544,12 +544,12 @@ checkID () {
     sudo adduser $MISP_USER $WWW_USER
   fi
 
-  # FIXME: the below SUDO_USER check is a duplicate from global variables, try to have just one check
+  # FIXME: the below SUDO_CMD check is a duplicate from global variables, try to have just one check
   # sudo config to run $LUSER commands
   if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
-    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+    SUDO_CMD="sudo -H -u ${MISP_USER} -g staff"
   else
-    SUDO_USER="sudo -H -u ${MISP_USER}"
+    SUDO_CMD="sudo -H -u ${MISP_USER}"
   fi
 
 }
@@ -953,7 +953,8 @@ composer73 () {
   # Update composer.phar
   # If hash changes, check here: https://getcomposer.org/download/ and replace with the correct one
   # Current Sum for: v1.8.3
-  SHA384_SUM='48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5'
+  SHA384_SUM="$(wget -q -O - https://composer.github.io/installer.sig)"
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
   checkFail "composer.phar checksum failed, please investigate manually. " $?
@@ -1008,11 +1009,12 @@ nuke () {
 # Final function to let the user know what happened
 theEnd () {
   space
-  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_USER tee /home/${MISP_USER}/mysql.txt
-  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_USER tee -a /home/${MISP_USER}/mysql.txt
-  echo "Authkey: $AUTH_KEY" |$SUDO_USER tee -a /home/${MISP_USER}/MISP-authkey.txt
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_CMD tee /home/${MISP_USER}/mysql.txt
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_CMD tee -a /home/${MISP_USER}/mysql.txt
+  echo "Authkey: $AUTH_KEY" |$SUDO_CMD tee -a /home/${MISP_USER}/MISP-authkey.txt
 
-  clear
+  # Commenting out, see: https://github.com/MISP/MISP/issues/5368
+  # clear -x
   space
   echo -e "${LBLUE}MISP${NC} Installed, access here: ${MISP_BASEURL}"
   echo
@@ -1607,7 +1609,7 @@ mispmodules () {
   cd /usr/local/src/
   ## TODO: checkUsrLocalSrc in main doc
   debug "Cloning misp-modules"
-  $SUDO_USER git clone https://github.com/MISP/misp-modules.git
+  $SUDO_CMD git clone https://github.com/MISP/misp-modules.git
   cd misp-modules
   # some misp-modules dependencies
   sudo apt install libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y
@@ -1762,39 +1764,39 @@ mail2misp () {
   debug "Installing Mail2${LBLUE}MISP${NC}"
   cd /usr/local/src/
   sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
-  $SUDO_USER git clone https://github.com/MISP/mail_to_misp.git
-  $SUDO_USER git clone git://github.com/stricaud/faup.git faup
-  $SUDO_USER git clone git://github.com/stricaud/gtcaca.git gtcaca
+  $SUDO_CMD git clone https://github.com/MISP/mail_to_misp.git
+  $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+  $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
   sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
   cd gtcaca
-  $SUDO_USER mkdir -p build
+  $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_USER cmake .. && $SUDO_USER make
+  $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
   cd ../../faup
-  $SUDO_USER mkdir -p build
+  $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_USER cmake .. && $SUDO_USER make
+  $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
   sudo ldconfig
   cd ../../mail_to_misp
-  $SUDO_USER virtualenv -p python3 venv
-  $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-  $SUDO_USER ./venv/bin/pip install -r requirements.txt
-  $SUDO_USER cp mail_to_misp_config.py-example mail_to_misp_config.py
+  $SUDO_CMD virtualenv -p python3 venv
+  $SUDO_CMD ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_CMD ./venv/bin/pip install -r requirements.txt
+  $SUDO_CMD cp mail_to_misp_config.py-example mail_to_misp_config.py
   ##$SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py
-  $SUDO_USER sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-  $SUDO_USER sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_CMD sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_CMD sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
 }
 
 ssdeep () {
   debug "Install ssdeep 2.14.1"
   cd /usr/local/src
-  $SUDO_USER wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
-  $SUDO_USER tar zxvf ssdeep-2.14.1.tar.gz
+  $SUDO_CMD wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
+  $SUDO_CMD tar zxvf ssdeep-2.14.1.tar.gz
   cd ssdeep-2.14.1
-  $SUDO_USER ./configure --datadir=/usr --prefix=/usr --localstatedir=/var --sysconfdir=/etc
-  $SUDO_USER make
+  $SUDO_CMD ./configure --datadir=/usr --prefix=/usr --localstatedir=/var --sysconfdir=/etc
+  $SUDO_CMD make
   sudo make install
 
   #installing ssdeep_php
@@ -1822,25 +1824,25 @@ viper () {
     fi
   fi
   echo "Cloning Viper"
-  $SUDO_USER git clone https://github.com/viper-framework/viper.git
-  $SUDO_USER git clone https://github.com/viper-framework/viper-web.git
+  $SUDO_CMD git clone https://github.com/viper-framework/viper.git
+  $SUDO_CMD git clone https://github.com/viper-framework/viper-web.git
   sudo chown -R $MISP_USER:$MISP_USER viper
   sudo chown -R $MISP_USER:$MISP_USER viper-web
   cd viper
   echo "Creating virtualenv"
-  $SUDO_USER virtualenv -p python3 venv
+  $SUDO_CMD virtualenv -p python3 venv
   echo "Submodule update"
   # TODO: Check for current user install permissions
-  $SUDO_USER git submodule update --init --recursive
+  $SUDO_CMD git submodule update --init --recursive
   echo "pip install deps"
-  $SUDO_USER ./venv/bin/pip install pefile olefile jbxapi Crypto pypdns pypssl r2pipe pdftools virustotal-api SQLAlchemy PrettyTable python-magic scrapy https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-  $SUDO_USER ./venv/bin/pip install .
+  $SUDO_CMD ./venv/bin/pip install pefile olefile jbxapi Crypto pypdns pypssl r2pipe pdftools virustotal-api SQLAlchemy PrettyTable python-magic scrapy https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_CMD ./venv/bin/pip install .
   echo 'update-modules' |/usr/local/src/viper/venv/bin/viper
   cd /usr/local/src/viper-web
-  $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
-  $SUDO_USER /usr/local/src/viper/venv/bin/pip install -r requirements.txt
+  $SUDO_CMD sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
+  $SUDO_CMD /usr/local/src/viper/venv/bin/pip install -r requirements.txt
   echo "Launching viper-web"
-  $SUDO_USER /usr/local/src/viper-web/viper-web -p 8888 -H 0.0.0.0 &
+  $SUDO_CMD /usr/local/src/viper-web/viper-web -p 8888 -H 0.0.0.0 &
   echo 'PATH="/home/misp/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
 
@@ -1852,8 +1854,8 @@ viper () {
   fi
 
   echo "Setting misp_url/misp_key"
-  $SUDO_USER sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ${VIPER_HOME}/viper.conf
-  $SUDO_USER sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
+  $SUDO_CMD sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ${VIPER_HOME}/viper.conf
+  $SUDO_CMD sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
   # Reset admin password to: admin/Password1234
   echo "Fixing admin.db with default password"
   VIPER_COUNT=0
@@ -2004,7 +2006,7 @@ installSupported () {
 
   # TODO: Double check how the user is added and subsequently used during the install.
   # TODO: Work on possibility to install as user X and install MISP for user Y
-  # TODO: Check if logout needed. (run SUDO_USER in installer)
+  # TODO: Check if logout needed. (run SUDO_CMD in installer)
   # <snippet-begin add-user.sh>
   # TODO: Double check how to properly handle postfix
   # <snippet-begin postfix.sh>

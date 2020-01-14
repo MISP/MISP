@@ -378,8 +378,12 @@ class Galaxy extends AppModel
     {
         $galaxy = $this->find('first', array(
                 'recursive' => -1,
-                'fields' => 'id',
-                'conditions' => array('Galaxy.type' => $type, 'Galaxy.namespace' => $namespace),
+                'fields' => array('MAX(Galaxy.version) as latest_version', 'id'),
+                'conditions' => array(
+                    'Galaxy.type' => $type,
+                    'Galaxy.namespace' => $namespace
+                ),
+                'group' => array('name', 'id')
         ));
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
     }

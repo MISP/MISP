@@ -103,6 +103,7 @@
         <tbody class='MISPObject'>
           <tr class='tableHighlightBorderTop borderBlue blueRow' tabindex='0'>
             <td colspan="7">
+              <input type="checkbox" class="ImportMISPObject" checked /> <span class="bold"><?php echo __('Import object');?></span><br />
               <?php if(!empty($object['id'])) { ?>
               <span class="bold"><?php echo __('ID: ');?></span><span class="ObjectID"><?php echo h($object['id']); ?></span><br />
               <?php } ?>
@@ -296,7 +297,7 @@
                         if (is_array($attribute[$field])) {
                             echo '<td class="short" style="width:40px;text-align:center;"><select ' . $field_header . 'Select"  style="padding:0px;height:20px;margin-bottom:0px;">';
                             foreach ($attribute[$field] as $v => $value) {
-                                echo '<option value="' . h($value) . '" ' . ($v ? '' : 'selected="selected"') . '>' . h($value) . '</option>';
+                                echo '<option value="' . h($value) . '">' . h($value) . '</option>';
                             }
                             echo '</select></td>';
                         } else {

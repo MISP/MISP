@@ -1875,12 +1875,18 @@ class AppModel extends Model
 
     private function __saveUpdateProgress($updateProgress)
     {
+        if (!isset($this->AdminSetting)) {
+            $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        }
         $data = json_encode($updateProgress);
         $this->AdminSetting->changeSetting('update_progress', $data);
     }
 
     public function changeLockState($locked)
     {
+        if (!isset($this->AdminSetting)) {
+            $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        }
         $this->AdminSetting->changeSetting('update_locked', $locked);
     }
 

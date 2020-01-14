@@ -159,7 +159,7 @@ class AdminShell extends AppShell
         }
     }
 
-    public function updateWarningLists() 
+    public function updateWarningLists()
     {
         $result = $this->Warninglist->update();
         $success = count($result['success']);
@@ -182,13 +182,7 @@ class AdminShell extends AppShell
             echo 'Usage: ' . APP . '/cake ' . 'Admin updateObjectTemplates [user_id]' . PHP_EOL;
         } else {
             $userId = $this->args[0];
-            $user = $this->User->find('first', array(
-                'recursive' => -1,
-                'conditions' => array(
-                    'User.id' => $userId,
-                ),
-                'fields' => array('User.id', 'User.org_id')
-            ));
+            $user = $this->User->getAuthUser($userId);
             # If the user_id passed does not exist, do a global update.
             if (empty($user)) {
                 echo 'User with ID: ' . $userId . ' not found' . PHP_EOL;
@@ -315,7 +309,7 @@ class AdminShell extends AppShell
 
     public function runUpdates() {
         $whoami = exec('whoami');
-        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun') {
+        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun' || $whoami === 'travis') {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
             $processId = $this->args[0];
             $this->Server->runUpdates(true, false, $processId);
@@ -522,14 +516,15 @@ class AdminShell extends AppShell
 
     public function dumpCurrentDatabaseSchema()
     {
-        $dbActualSchema = $this->Server->getActualDBSchema()['schema'];
+        $dbActualSchema = $this->Server->getActualDBSchema();
         $dbVersion = $this->AdminSetting->find('first', array(
             'conditions' => array('setting' => 'db_version')
         ));
-        if (!empty($dbVersion) && !empty($dbActualSchema)) {
+        if (!empty($dbVersion) && !empty($dbActualSchema['schema'])) {
             $dbVersion = $dbVersion['AdminSetting']['value'];
             $data = array(
-                'schema' => $dbActualSchema,
+                'schema' => $dbActualSchema['schema'],
+                'indexes' => $dbActualSchema['indexes'],
                 'db_version' => $dbVersion
             );
             $file = new File(ROOT . DS . 'db_schema.json', true);

@@ -16,8 +16,9 @@
         h($data['model']);
     $fieldsString = '';
     $simpleFieldWhitelist = array(
-        'default', 'type', 'options', 'placeholder', 'label'
+        'default', 'type', 'options', 'placeholder', 'label', 'empty'
     );
+    $fieldsArrayForPersistence = array();
     $formCreate = $this->Form->create($modelForForm);
     if (!empty($data['fields'])) {
         foreach ($data['fields'] as $fieldData) {
@@ -51,6 +52,7 @@
                     }
                 }
                 $temp = $this->Form->input($fieldData['field'], $params);
+                $fieldsArrayForPersistence []= $modelForForm . Inflector::camelize($fieldData['field']);
                 if (!empty($fieldData['hidden'])) {
                     $temp = '<span class="hidden">' . $temp . '</span>';
                 }
@@ -73,18 +75,55 @@
     if (!empty($data['submit'])) {
         $submitButtonData = array_merge($submitButtonData, $data['submit']);
     }
+    if (!empty($data['ajaxSubmit'])) {
+        $submitButtonData['ajaxSubmit'] = $ajaxSubmit;
+    }
+    $ajaxFlashMessage = '';
+    if ($ajax) {
+        $ajaxFlashMessage = sprintf(
+            '<div id="flashContainer"><div id="main-view-container">%s</div></div>',
+            $this->Flash->render()
+        );
+    }
     $formEnd = $this->Form->end();
-    echo sprintf(
-        '<div class="form">%s<fieldset><legend>%s</legend>%s</fieldset>%s%s%s</div>',
-        $formCreate,
-        empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title']),
-        $fieldsString,
-        $formEnd,
-        $metaFieldString,
-        $this->element('genericElements/Form/submitButton', $submitButtonData)
-    );
+    if (!empty($ajax)) {
+        echo sprintf(
+            '<div id="genericModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true">%s%s%s</div>',
+            sprintf(
+                '<div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button><h3 id="genericModalLabel">%s</h3></div>',
+                empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title'])
+            ),
+            sprintf(
+                '<div class="modal-body modal-body-long">%s</div>',
+                sprintf(
+                    '%s<fieldset>%s%s</fieldset>%s%s',
+                    $formCreate,
+                    $ajaxFlashMessage,
+                    $fieldsString,
+                    $formEnd,
+                    $metaFieldString
+                )
+            ),
+            sprintf(
+                '<div class="modal-footer">%s</div>',
+                $this->element('genericElements/Form/submitButton', $submitButtonData)
+            )
+        );
+    } else {
+        echo sprintf(
+            '<div class="form">%s<fieldset><legend>%s</legend>%s%s</fieldset>%s%s%s</div>',
+            $formCreate,
+            empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title']),
+            $ajaxFlashMessage,
+            $fieldsString,
+            $formEnd,
+            $metaFieldString,
+            $this->element('genericElements/Form/submitButton', $submitButtonData)
+        );
+    }
 ?>
 <script type="text/javascript">
+    var fieldsArray = <?php echo json_encode($fieldsArrayForPersistence); ?>;
     $(document).ready(function() {
         popoverStartup();
     });

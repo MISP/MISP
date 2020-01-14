@@ -101,7 +101,7 @@ class Taxonomy extends AppModel
             }
             $this->deleteAll(array('Taxonomy.namespace' => $current['Taxonomy']['namespace']));
         }
-        $taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'exclusive' => $vocab['exclusive'], 'enabled' => $enabled);
+        $taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'exclusive' => !empty($vocab['exclusive']), 'enabled' => $enabled);
         $predicateLookup = array();
         foreach ($vocab['predicates'] as $k => $predicate) {
             $taxonomy['Taxonomy']['TaxonomyPredicate'][$k] = $predicate;
@@ -283,7 +283,8 @@ class Taxonomy extends AppModel
             if (empty($taxonomy)) {
                 return false;
             }
-            $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace'], false);
+            $tag_names = Hash::extract($taxonomy, 'entries.{n}.tag');
+            $tags = $this->Tag->getTagsByName($tag_names, false);
             if (isset($taxonomy['entries'])) {
                 foreach ($taxonomy['entries'] as $key => $temp) {
                     $taxonomy['entries'][$key]['existing_tag'] = isset($tags[strtoupper($temp['tag'])]) ? $tags[strtoupper($temp['tag'])] : false;

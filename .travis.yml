@@ -113,7 +113,7 @@ install:
     - sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
     - sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
     - sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'
-    - sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates "1337"'
+    - sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates 1'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true'
     - sudo -E su $USER -c 'app/Console/cake Live 1'
     - sudo chmod 777 ./key.txt
@@ -164,7 +164,6 @@ script:
     - git submodule update
     - pipenv install -d
     - pipenv run python tests/testlive_comprehensive.py
-    - pipenv run python tests/test.py
     - pipenv run python tests/test_mispevent.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/

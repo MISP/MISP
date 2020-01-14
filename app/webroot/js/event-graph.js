@@ -1089,6 +1089,11 @@ class EventGraph {
 
                 // Do not link already connected nodes
                 if (that.network.getConnectedEdges(cur_id).length > 0) {
+                    if (nodeData['unreferenced'] !== undefined) {
+                        that.nodes.remove(nodeData.id);
+                        delete nodeData['unreferenced'];
+                        that.nodes.add(nodeData);
+                    }
                     return;
                 }
 
@@ -2100,7 +2105,7 @@ function enable_interactive_graph() {
         eventGraph = new EventGraph(network_options, nodes, edges);
 
         $(document).on("keydown", function(evt) {
-            if (evt.target !== undefined && $(evt.target).is('input')) {
+            if (evt.target !== undefined && ($(evt.target).is('input') || $(evt.target).is('textarea'))) {
                 return;
             }
             switch(evt.keyCode) {

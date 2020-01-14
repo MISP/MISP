@@ -317,8 +317,9 @@ installCake_RHEL ()
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
   # Update composer.phar (optional)
+  #EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
   #$SUDO_WWW $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  #$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+  #$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
   #$SUDO_WWW $RUN_PHP "php composer-setup.php"
   #$SUDO_WWW $RUN_PHP -- php -r "unlink('composer-setup.php');"
   $SUDO_WWW $RUN_PHP "php composer.phar install"

@@ -1503,6 +1503,10 @@ class ServersController extends AppController
                 if (isset($version['perm_sync'])) {
                     $perm_sync = $version['perm_sync'];
                 }
+                $perm_sighting = false;
+                if (isset($version['perm_sighting'])) {
+                    $perm_sighting = $version['perm_sighting'];
+                }
                 App::uses('Folder', 'Utility');
                 $file = new File(ROOT . DS . 'VERSION.json', true);
                 $local_version = json_decode($file->read(), true);
@@ -1529,8 +1533,12 @@ class ServersController extends AppController
                 if (!$mismatch && $version[2] < 111) {
                     $mismatch = 'proposal';
                 }
-                if (!$perm_sync) {
+                if (!$perm_sync && !$perm_sighting) {
                     $result['status'] = 7;
+                    return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+                }
+                if (!$perm_sync && $perm_sighting) {
+                    $result['status'] = 8;
                     return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
                 }
                 return new CakeResponse(
@@ -1630,7 +1638,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('This action requires API access.');
         }
         $versionArray = $this->Server->checkMISPVersion();
-        $this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync']));
+        $this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync'], 'perm_sighting' => $this->userRole['perm_sighting']));
         $this->set('_serialize', 'response');
     }
 
@@ -2207,7 +2215,24 @@ misp.direct_call(relative_path, body)
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException(__('Only site admin accounts get the DB schema diagnostic.'));
         }
-        return $this->RestResponse->viewData($this->Server->dbSchemaDiagnostic(), $this->response->type());
+        $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($dbSchemaDiagnostics, $this->response->type());
+        } else {
+            $this->set('checkedTableColumn', $dbSchemaDiagnostics['checked_table_column']);
+            $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics['diagnostic']);
+            $this->set('dbIndexDiagnostics', $dbSchemaDiagnostics['diagnostic_index']);
+            $this->set('expectedDbVersion', $dbSchemaDiagnostics['expected_db_version']);
+            $this->set('actualDbVersion', $dbSchemaDiagnostics['actual_db_version']);
+            $this->set('error', $dbSchemaDiagnostics['error']);
+            $this->set('remainingLockTime', $dbSchemaDiagnostics['remaining_lock_time']);
+            $this->set('updateFailNumberReached', $dbSchemaDiagnostics['update_fail_number_reached']);
+            $this->set('updateLocked', $dbSchemaDiagnostics['update_locked']);
+            $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
+            $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
+            $this->set('indexes', $dbSchemaDiagnostics['indexes']);
+            $this->render('/Elements/healthElements/db_schema_diagnostic');
+        }
     }
 
     public function viewDeprecatedFunctionUse()

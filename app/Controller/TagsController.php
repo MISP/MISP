@@ -860,41 +860,56 @@ class TagsController extends AppController
         $this->render('/Servers/json/simple');
     }
 
-    private function __findObjectByUuid($object_uuid, &$type)
+    private function __findObjectByUuid($object_uuid, &$type, $scope = 'modify')
     {
         $this->loadModel('Event');
-        $object = $this->Event->find('first', array(
-            'conditions' => array(
-                'Event.uuid' => $object_uuid,
-            ),
-            'fields' => array('Event.orgc_id', 'Event.id'),
-            'recursive' => -1
+        if (!$this->userRole['perm_tagger']) {
+            throw new MethodNotAllowedException(__('This functionality requires tagging permission.'));
+        }
+        $object = $this->Event->fetchEvent($this->Auth->user(), array(
+            'event_uuid' => $object_uuid,
+            'metadata' => 1
         ));
         $type = 'Event';
         if (!empty($object)) {
+            $object = $object[0];
             if (
+                $scope !== 'view' &&
                 !$this->_isSiteAdmin() &&
-                !$this->userRole['perm_tagger'] &&
                 $object['Event']['orgc_id'] != $this->Auth->user('org_id')
             ) {
-                throw new MethodNotAllowedException('Invalid Target.');
+                $message = __('Cannot alter the tags of this data, only the organisation that has created the data (orgc) can modify global tags.');
+                if ($this->Auth->user('org_id') === Configure::read('MISP.host_org_id')) {
+                    $message .= ' ' . __('Please consider using local tags if you are in the host organisation of the instance.');
+                }
+                throw new MethodNotAllowedException($message);
             }
         } else {
             $type = 'Attribute';
-            $object = $this->Event->Attribute->find('first', array(
-                'conditions' => array(
-                    'Attribute.uuid' => $object_uuid,
-                ),
-                'fields' => array('Attribute.id'),
-                'recursive' => -1,
-                'contain' => array('Event.orgc_id')
-            ));
+            $object = $this->Event->Attribute->fetchAttributes(
+                $this->Auth->user(),
+                array(
+                    'conditions' => array(
+                        'Attribute.uuid' => $object_uuid
+                    ),
+                    'flatten' => 1
+                )
+            );
             if (!empty($object)) {
-                if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'] && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
-                    throw new MethodNotAllowedException('Invalid Target.');
+                $object = $object[0];
+                if (
+                    $scope !== 'view' &&
+                    !$this->_isSiteAdmin() &&
+                    $object['Event']['orgc_id'] != $this->Auth->user('org_id')
+                ) {
+                    $message = __('Cannot alter the tags of this data, only the organisation that has created the data (orgc) can modify global tags.');
+                    if ($this->Auth->user('org_id') === Configure::read('MISP.host_org_id')) {
+                        $message .= ' ' . __('Please consider using local tags if you are in the host organisation of the instance.');
+                    }
+                    throw new MethodNotAllowedException($message);
                 }
             } else {
-                throw new MethodNotAllowedException('Invalid Target.');
+                throw new MethodNotAllowedException(__('Invalid Target.'));
             }
         }
         return $object;
@@ -932,11 +947,11 @@ class TagsController extends AppController
                 $local = $this->request->data['local'];
             }
         }
-        if (!is_bool($local)) {
-            throw new InvalidArgumentException('Invalid local flag');
+        if (!empty($local) && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
+            throw new MethodNotAllowedException(__('Local tags can only be added by users of the host organisation.'));
         }
         $objectType = '';
-        $object = $this->__findObjectByUuid($uuid, $objectType);
+        $object = $this->__findObjectByUuid($uuid, $objectType, $local ? 'view' : 'modify');
         $existingTag = $this->Tag->find('first', array('conditions' => $conditions, 'recursive' => -1));
         if (empty($existingTag)) {
             if (!is_numeric($tag)) {
@@ -1038,9 +1053,9 @@ class TagsController extends AppController
             throw new MethodNotAllowedException('Invalid Tag.');
         }
         $objectType = '';
-        $object = $this->__findObjectByUuid($uuid, $objectType);
+        $object = $this->__findObjectByUuid($uuid, $objectType, 'view');
         if (empty($object)) {
-            throw new MethodNotAllowedException('Invalid Target.');
+            throw new MethodNotAllowedException(__('Invalid Target.'));
         }
         $connectorObject = $objectType . 'Tag';
         $this->loadModel($objectType);
@@ -1052,6 +1067,14 @@ class TagsController extends AppController
         ));
         if (empty($existingAssociation)) {
             throw new MethodNotAllowedException('Could not remove tag as it is not attached to the target ' . $objectType);
+        } else {
+            if (empty($existingAssociation[$objectType . 'Tag']['local'])) {
+                $object = $this->__findObjectByUuid($uuid, $objectType);
+            } else {
+                if ($object['Event']['orgc_id'] !== $this->Auth->user('org_id') && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
+                    throw new MethodNotAllowedException(__('Insufficient privileges to remove local tags from events you do not own.'));
+                }
+            }
         }
         $result = $this->$objectType->$connectorObject->delete($existingAssociation[$connectorObject]['id']);
         if ($result) {
