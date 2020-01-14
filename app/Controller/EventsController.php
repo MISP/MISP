@@ -1309,7 +1309,7 @@ class EventsController extends AppController
             foreach ($event['Object'] as $k => $object) {
                 if (!empty($object['Attribute'])) {
                     foreach ($object['Attribute'] as $attribute) {
-                        if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+                        if ($oldest_timestamp == false || $oldest_timestamp > $attribute['timestamp']) {
                             $oldest_timestamp = $attribute['timestamp'];
                         }
                     }
@@ -1407,7 +1407,7 @@ class EventsController extends AppController
         $startDate = null;
         $modificationMap = array();
         foreach ($event['Attribute'] as $k => $attribute) {
-            if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+            if ($oldest_timestamp == false || $oldest_timestamp > $attribute['timestamp']) {
                 $oldest_timestamp = $attribute['timestamp'];
             }
             if ($startDate === null || $attribute['timestamp'] < $startDate) {
