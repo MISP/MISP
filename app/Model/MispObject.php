@@ -692,8 +692,6 @@ class MispObject extends AppModel
                 'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($attribute),
             ));
             return $this->validationErrors;
-        } else {
-            $this->Event->unpublishEvent($eventId);
         }
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
