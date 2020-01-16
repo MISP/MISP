@@ -406,39 +406,6 @@
   },
   {
     "Feed": {
-      "id": "24",
-      "name": "booterblacklist.com Latest",
-      "provider": "booterblacklist.com",
-      "url": "http://booterblacklist.com/data/booterlist_latest.txt",
-      "rules": "",
-      "enabled": true,
-      "distribution": "0",
-      "sharing_group_id": "0",
-      "tag_id": "615",
-      "default": false,
-      "source_format": "freetext",
-      "fixed_event": true,
-      "delta_merge": true,
-      "event_id": "6230",
-      "publish": true,
-      "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
-      "input_source": "network",
-      "delete_local_file": false,
-      "lookup_visible": false,
-      "cache_timestamp": "1495871995"
-    },
-    "Tag": {
-      "id": "615",
-      "name": "osint:source-type=\"block-or-filter-list\"",
-      "colour": "#004f89",
-      "exportable": true,
-      "org_id": "0",
-      "hide_tag": false
-    }
-  },
-  {
-    "Feed": {
       "id": "27",
       "name": "pop3gropers",
       "provider": "home.nuug.no",
@@ -468,31 +435,6 @@
       "exportable": true,
       "org_id": "0",
       "hide_tag": false
-    }
-  },
-  {
-    "Feed": {
-      "id": "29",
-      "name": "Ransomware Tracker CSV Feed",
-      "provider": "Ransomware Tracker abuse.ch",
-      "url": "https://ransomwaretracker.abuse.ch/feeds/csv/",
-      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
-      "enabled": true,
-      "distribution": "0",
-      "sharing_group_id": "0",
-      "tag_id": "0",
-      "default": false,
-      "source_format": "csv",
-      "fixed_event": true,
-      "delta_merge": false,
-      "event_id": "0",
-      "publish": false,
-      "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"4,5,8\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
-      "input_source": "network",
-      "delete_local_file": false,
-      "lookup_visible": true,
-      "cache_timestamp": "1495872683"
     }
   },
   {
@@ -1164,31 +1106,6 @@
       "delete_local_file": false,
       "lookup_visible": true,
       "cache_timestamp": "1514750889"
-    }
-  },
-  {
-    "Feed": {
-      "id": "61",
-      "name": "conficker all domains generated",
-      "provider": "cert.at",
-      "url": "https://www.cert.at/static/downloads/data/conficker/all_domains.txt",
-      "rules": "",
-      "enabled": true,
-      "distribution": "3",
-      "sharing_group_id": "0",
-      "tag_id": "0",
-      "default": false,
-      "source_format": "csv",
-      "fixed_event": false,
-      "delta_merge": false,
-      "event_id": "0",
-      "publish": false,
-      "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"1\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
-      "input_source": "network",
-      "delete_local_file": false,
-      "lookup_visible": true,
-      "cache_timestamp": "1514750904"
     }
   },
   {
