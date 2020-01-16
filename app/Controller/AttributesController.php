@@ -1098,6 +1098,9 @@ class AttributesController extends AppController
             $event['Event']['timestamp'] = $date->getTimestamp();
             $event['Event']['published'] = 0;
             $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
+            if ($attribute['Attribute']['object_id'] != 0) {
+                $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
+            }
             $this->autoRender = false;
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
         } else {
