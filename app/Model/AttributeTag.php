@@ -103,6 +103,7 @@ class AttributeTag extends AppModel
         return true;
     }
 
+    // This function help mirroring the tags at attribute level. It will delete tags that are not present on the remote attribute
     public function pruneOutdatedAttributeTagsFromSync($newerTags, $originalAttributeTags)
     {
         $newerTagsName = array();

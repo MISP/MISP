@@ -4078,7 +4078,12 @@ class Attribute extends AppModel
             return $this->validationErrors;
         } else {
             if ($user['Role']['perm_tagger']) {
-                $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
+                /* 
+                    We should uncomment the line below in the future once we have tag soft-delete
+                    A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
+                    has a version below x
+                */
+                // $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
                 if (isset($attribute['Tag'])) {
                     foreach ($attribute['Tag'] as $tag) {
                         $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
