@@ -2948,6 +2948,9 @@ class AttributesController extends AppController
                             $event['Event']['timestamp'] = $date->getTimestamp();
                             $result = $this->Attribute->Event->save($event);
                             $attribute['Attribute']['timestamp'] = $date->getTimestamp();
+                            if ($attribute['Attribute']['object_id'] != 0) {
+                                $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
+                            }
                             $this->Attribute->save($attribute);
                         }
                         $log = ClassRegistry::init('Log');
@@ -3094,6 +3097,9 @@ class AttributesController extends AppController
                     $date = new DateTime();
                     $event['Event']['timestamp'] = $date->getTimestamp();
                     $this->Attribute->Event->save($event);
+                    if ($this->Attribute->data['Attribute']['object_id'] != 0) {
+                        $this->Attribute->Object->updateTimestamp($this->Attribute->data['Attribute']['object_id'], $date->getTimestamp());
+                    }
                     $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
                     $this->Attribute->save($this->Attribute->data);
                 }
