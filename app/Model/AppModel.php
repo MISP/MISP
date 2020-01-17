@@ -1380,7 +1380,6 @@ class AppModel extends Model
                     ;";
                 $indexArray[] = array('objects', 'first_seen');
                 $indexArray[] = array('objects', 'last_seen');
-                $indexArray[] = array('objects', 'comment', 767);
                 $sqlArray[] = "
                     ALTER TABLE `shadow_attributes`
                         ADD `first_seen` BIGINT(20) NULL DEFAULT NULL,
@@ -1389,7 +1388,6 @@ class AppModel extends Model
                     ;";
                 $indexArray[] = array('shadow_attributes', 'first_seen');
                 $indexArray[] = array('shadow_attributes', 'last_seen');
-                $indexArray[] = array('shadow_attributes', 'comment', 767);
                 break;
             default:
                 return false;
