@@ -11,7 +11,6 @@ services:
 
 sudo: required
 dist: bionic
-group: edge
 
 addons:
     mariadb: '10.2'
