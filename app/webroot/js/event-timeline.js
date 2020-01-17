@@ -51,8 +51,9 @@ var options = {
     editable: user_manipulation ? default_editable : false,
     tooltipOnItemUpdateTime: true,
     onRemove: function(item, callback) { // clear timestamps
-        update_seen(item, 'first', null, false, undefined);
-        update_seen(item, 'last', null, false, function() { reflect_change(true); });
+        update_seen(item, 'first', null, false, function() {
+          update_seen(item, 'last', null, false, function() { reflect_change(true); });
+        });
         eventTimeline.setSelection([]);
         $('.timelineSelectionTooltip').remove()
     },
@@ -66,14 +67,34 @@ var options = {
                 if (!c2) {
                     update_seen(item, 'first', newStart, true, undefined);
                 } else {
-                    update_seen(item, 'first', newStart, false, function() { reflect_change(true); });
+                    update_seen(
+                        item,
+                        'first',
+                        newStart,
+                        false,
+                        function() {
+                            update_seen(
+                                item,
+                                'last',
+                                newEnd,
+                                true,
+                                function() {
+                                    reflect_change(true);
+                                }
+                            );
+                        }
+                    );
                 }
             } else {
-                update_seen(item, 'first', newStart, !c2, undefined);
+                update_seen(item, 'first', newStart, false, function() {
+                    if (c2) {
+                        update_seen(item, 'last', newEnd, true, undefined);
+                    }
+                });
             }
         }
-        if (c2) {
-            update_seen(item, 'last', newEnd, true, undefined);
+        if (c2 && !c1) {
+          update_seen(item, 'last', newEnd, true, undefined);
         }
     }
 };
