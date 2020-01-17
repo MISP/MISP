@@ -3965,7 +3965,8 @@ class Attribute extends AppModel
         if (isset($attribute['uuid'])) {
             $existingAttribute = $this->find('first', array(
                 'conditions' => array('Attribute.uuid' => $attribute['uuid']),
-                'recursive' => -1
+                'contain' => array('AttributeTag' => 'Tag'),
+                'recursive' => -1,
             ));
             $this->Log = ClassRegistry::init('Log');
             if (count($existingAttribute)) {
@@ -4076,28 +4077,36 @@ class Attribute extends AppModel
             ));
             return $this->validationErrors;
         } else {
-            if (isset($attribute['Tag']) && $user['Role']['perm_tagger']) {
-                foreach ($attribute['Tag'] as $tag) {
-                    $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
-                    if ($tag_id) {
-                        // fix the IDs here
-                        $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
-                    } else {
-                        // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
-                        // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
-                        // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
-                        if ($user['Role']['perm_tag_editor']) {
-                            $this->Log->create();
-                            $this->Log->save(array(
-                                'org' => $user['Organisation']['name'],
-                                'model' => 'Attrubute',
-                                'model_id' => $this->id,
-                                'email' => $user['email'],
-                                'action' => 'edit',
-                                'user_id' => $user['id'],
-                                'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
-                                'change' => ''
-                            ));
+            if ($user['Role']['perm_tagger']) {
+                /* 
+                    We should uncomment the line below in the future once we have tag soft-delete
+                    A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
+                    has a version below x
+                */
+                // $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
+                if (isset($attribute['Tag'])) {
+                    foreach ($attribute['Tag'] as $tag) {
+                        $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
+                        if ($tag_id) {
+                            // fix the IDs here
+                            $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
+                        } else {
+                            // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
+                            // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
+                            // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
+                            if ($user['Role']['perm_tag_editor']) {
+                                $this->Log->create();
+                                $this->Log->save(array(
+                                    'org' => $user['Organisation']['name'],
+                                    'model' => 'Attrubute',
+                                    'model_id' => $this->id,
+                                    'email' => $user['email'],
+                                    'action' => 'edit',
+                                    'user_id' => $user['id'],
+                                    'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
+                                    'change' => ''
+                                ));
+                            }
                         }
                     }
                 }

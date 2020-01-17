@@ -692,8 +692,6 @@ class MispObject extends AppModel
                 'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($attribute),
             ));
             return $this->validationErrors;
-        } else {
-            $this->Event->unpublishEvent($eventId);
         }
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
@@ -703,14 +701,14 @@ class MispObject extends AppModel
         return true;
     }
 
-    public function updateTimestamp($id)
+    public function updateTimestamp($id, $timestamp = false)
     {
         $date = new DateTime();
         $object = $this->find('first', array(
             'recursive' => -1,
             'conditions' => array('Object.id' => $id)
         ));
-        $object['Object']['timestamp'] = $date->getTimestamp();
+        $object['Object']['timestamp'] = $timestamp == false ? $date->getTimestamp() : $timestamp;
         $object['Object']['skip_zmq'] = 1;
         $object['Object']['skip_kafka'] = 1;
         $result = $this->save($object);
