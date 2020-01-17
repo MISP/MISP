@@ -1,5 +1,8 @@
 <?php
-    echo $this->Form->create('Attribute', array('id' => 'Attribute' . '_' . $object['id'] . '_first_seen_form', 'url' => '/attributes/editField/' . $object['id']));
+    echo $this->Form->create('Attribute', array(
+      'id' => 'Attribute' . '_' . $object['id'] . '_first_seen_form',
+      'url' => '/attributes/editField/' . $object['id']
+    ));
 ?>
 <?php
     echo $this->Form->input('first_seen', array(
