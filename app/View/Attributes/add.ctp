@@ -68,7 +68,6 @@
                 array(
                     'field' => 'first_seen',
                     'type' => 'text',
-                    'stayInLine' => 1,
                     'hidden' => true
                 ),
                 array(
@@ -87,7 +86,7 @@
                 )
             ),
             'metaFields' => array(
-                '<div id="bothSeenSliderContainer"></div>'
+                '<div id="bothSeenSliderContainer" style="height: 170px;"></div>'
             )
         )
     ));
