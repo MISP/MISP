@@ -839,4 +839,130 @@ class MispObject extends AppModel
         return $saved_object['Object']['id'];
 
     }
+
+    public function resolveUpdatedTemplate($template, $object, $update_template_available = false)
+    {
+        $toReturn = array(
+            'updateable_attribute' => false,
+            'not_updateable_attribute' => false,
+            'newer_template_version' => false,
+            'template' => $template
+        );
+        if (!empty($template)) {
+            $newer_template = $this->ObjectTemplate->find('first', array(
+                'conditions' => array(
+                    'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
+                    'ObjectTemplate.version >' => $object['Object']['template_version'],
+                ),
+                'recursive' => -1,
+                'contain' => array(
+                    'ObjectTemplateElement'
+                ),
+                'order' => array('ObjectTemplate.version DESC')
+            ));
+            if (!empty($newer_template)) {
+              $toReturn['newer_template_version'] = $newer_template['ObjectTemplate']['version'];
+              // ignore IDs for comparison
+              $cur_template_temp = Hash::remove(Hash::remove($template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
+              $newer_template_temp = Hash::remove(Hash::remove($newer_template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
+
+              $template_difference = array();
+              // check how current template is included in the newer
+              foreach ($cur_template_temp as $cur_obj_rel) {
+                  $flag_sim = false;
+                  foreach ($newer_template_temp as $newer_obj_rel) {
+                      $tmp = Hash::diff($cur_obj_rel, $newer_obj_rel);
+                      if (count($tmp) == 0) {
+                          $flag_sim = true;
+                          break;
+                      }
+                  }
+                  if (!$flag_sim) {
+                      $template_difference[] = $cur_obj_rel;
+                  }
+              }
+
+              $toReturn['updateable_attribute'] = $object['Attribute'];
+              $toReturn['not_updateable_attribute'] = array();
+            } else {
+              $toReturn['newer_template_version'] = false;
+            }
+            if (!empty($template_difference)) { // older template not completely embeded in newer
+                foreach ($template_difference as $temp_diff_element) {
+                    foreach ($object['Attribute'] as $i => $attribute) {
+                        if (
+                            $attribute['object_relation'] == $temp_diff_element['object_relation']
+                            && $attribute['type'] == $temp_diff_element['type']
+                        ) { // This attribute cannot be merged automatically
+                            $attribute['merge-possible'] = false;
+                            $toReturn['not_updateable_attribute'][] = $attribute;
+                            unset($toReturn['updateable_attribute'][$i]);
+                        }
+                    }
+                }
+            }
+            if ($update_template_available) { // template version bump requested
+                $toReturn['template'] = $newer_template; // bump the template version
+            }
+        }
+        return $toReturn;
+    }
+
+    public function reviseObject($revised_object, $object) {
+        $revised_object = json_decode(base64_decode($revised_object), true);
+        $revised_object_both = array('mergeable' => array(), 'notMergeable' => array());
+
+        // Loop through attributes to inject and perform the correct action
+        // (inject, duplicate, add warnings, ...) when applicable
+        foreach ($revised_object['Attribute'] as $attribute_to_inject) {
+            $flag_no_collision = true;
+            foreach ($object['Attribute'] as $attribute) {
+                if (
+                    $attribute['object_relation'] == $attribute_to_inject['object_relation']
+                    && $attribute['type'] == $attribute_to_inject['type']
+                    && $attribute['value'] !== $attribute_to_inject['value']
+                ) { // Collision on value
+                    $multiple = !empty(Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s][type=%s][multiple=true]', $attribute['object_relation'], $attribute['type'])));
+                    if ($multiple) { // if multiple is set, check if an entry exists already
+                        $flag_entry_exists = false;
+                        foreach ($object['Attribute'] as $attr) {
+                            if (
+                                $attr['object_relation'] == $attribute_to_inject['object_relation']
+                                && $attr['type'] == $attribute_to_inject['type']
+                                && $attr['value'] === $attribute_to_inject['value']
+                            ) {
+                                $flag_entry_exists = true;
+                                break;
+                            }
+                        }
+                        if (!$flag_entry_exists) { // entry does no exists, can be duplicated
+                            $attribute_to_inject['is_multiple'] = true;
+                            $revised_object_both['mergeable'][] = $attribute_to_inject;
+                            $object['Attribute'][] = $attribute_to_inject;
+                        }
+                    } else { // Collision on value, multiple not set => propose overwrite
+                        $attribute_to_inject['current_value'] = $attribute['value'];
+                        $attribute_to_inject['merge-possible'] = true; // the user can still swap value
+                        $revised_object_both['notMergeable'][] = $attribute_to_inject;
+                    }
+                    $flag_no_collision = false;
+                } else if (
+                    $attribute['object_relation'] == $attribute_to_inject['object_relation']
+                     && $attribute['type'] == $attribute_to_inject['type']
+                     && $attribute['value'] === $attribute_to_inject['value']
+                ) { // all good, they are basically the same, do nothing
+                    $revised_object_both['mergeable'][] = $attribute_to_inject;
+                    $flag_no_collision = false;
+                }
+            }
+            if ($flag_no_collision) { // no collision, nor equalities => inject it straight away
+                $revised_object_both['mergeable'][] = $attribute_to_inject;
+                $object['Attribute'][] = $attribute_to_inject;
+            }
+        }
+        return array(
+            'object' => $object,
+            'revised_object_both' => $revised_object_both
+        );
+    }
 }
