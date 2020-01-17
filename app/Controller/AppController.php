@@ -1188,6 +1188,9 @@ class AppController extends Controller
         if ($returnFormat === 'download') {
             $returnFormat = 'json';
         }
+        if ($returnFormat === 'stix' && $this->_isJson()) {
+            $returnFormat = 'stix-json';
+        }
         $elementCounter = 0;
         $renderView = false;
         $final = $this->$scope->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);

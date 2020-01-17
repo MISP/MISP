@@ -297,7 +297,7 @@
                         if (is_array($attribute[$field])) {
                             echo '<td class="short" style="width:40px;text-align:center;"><select ' . $field_header . 'Select"  style="padding:0px;height:20px;margin-bottom:0px;">';
                             foreach ($attribute[$field] as $v => $value) {
-                                echo '<option value="' . h($value) . '" ' . ($v ? '' : 'selected="selected"') . '>' . h($value) . '</option>';
+                                echo '<option value="' . h($value) . '">' . h($value) . '</option>';
                             }
                             echo '</select></td>';
                         } else {

@@ -93,7 +93,7 @@ class Attribute extends AppModel
                     ),
             'Artifacts dropped' => array(
                     'desc' => __('Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'mime-type', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'kusto-query', 'mime-type', 'anonymised')
                     ),
             'Payload installation' => array(
                     'desc' => __('Info on where the malware gets installed in the system'),
@@ -191,6 +191,7 @@ class Attribute extends AppModel
             'stix2-pattern' => array('desc' => __('STIX 2 pattern'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'sigma' => array('desc' => __('Sigma - Generic Signature Format for SIEM Systems'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'gene' => array('desc' => __('GENE - Go Evtx sigNature Engine'), 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
+            'kusto-query' => array('desc' => __('Kusto query - Kusto from Microsoft Azure is a service for storing and running interactive analytics over Big Data.'), 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
             'mime-type' => array('desc' => __('A media type (also MIME type and content type) is a two-part identifier for file formats and format contents transmitted on the Internet'), 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
             'identity-card-number' => array('desc' => __('Identity card number'), 'default_category' => 'Person', 'to_ids' => 0),
             'cookie' => array('desc' => __('HTTP cookie as often stored on the user web client. This can include authentication cookie or session cookie.'), 'default_category' => 'Network activity', 'to_ids' => 0),
@@ -1306,6 +1307,7 @@ class Attribute extends AppModel
             case 'stix2-pattern':
             case 'sigma':
             case 'gene':
+            case 'kusto-query':
             case 'mime-type':
             case 'identity-card-number':
             case 'cookie':
@@ -4078,7 +4080,8 @@ class Attribute extends AppModel
         if (isset($attribute['uuid'])) {
             $existingAttribute = $this->find('first', array(
                 'conditions' => array('Attribute.uuid' => $attribute['uuid']),
-                'recursive' => -1
+                'contain' => array('AttributeTag' => 'Tag'),
+                'recursive' => -1,
             ));
             $this->Log = ClassRegistry::init('Log');
             if (count($existingAttribute)) {
@@ -4191,28 +4194,36 @@ class Attribute extends AppModel
             ));
             return $this->validationErrors;
         } else {
-            if (isset($attribute['Tag']) && $user['Role']['perm_tagger']) {
-                foreach ($attribute['Tag'] as $tag) {
-                    $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
-                    if ($tag_id) {
-                        // fix the IDs here
-                        $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
-                    } else {
-                        // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
-                        // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
-                        // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
-                        if ($user['Role']['perm_tag_editor']) {
-                            $this->Log->create();
-                            $this->Log->save(array(
-                                'org' => $user['Organisation']['name'],
-                                'model' => 'Attrubute',
-                                'model_id' => $this->id,
-                                'email' => $user['email'],
-                                'action' => 'edit',
-                                'user_id' => $user['id'],
-                                'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
-                                'change' => ''
-                            ));
+            if ($user['Role']['perm_tagger']) {
+                /* 
+                    We should uncomment the line below in the future once we have tag soft-delete
+                    A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
+                    has a version below x
+                */
+                // $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
+                if (isset($attribute['Tag'])) {
+                    foreach ($attribute['Tag'] as $tag) {
+                        $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
+                        if ($tag_id) {
+                            // fix the IDs here
+                            $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
+                        } else {
+                            // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
+                            // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
+                            // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
+                            if ($user['Role']['perm_tag_editor']) {
+                                $this->Log->create();
+                                $this->Log->save(array(
+                                    'org' => $user['Organisation']['name'],
+                                    'model' => 'Attrubute',
+                                    'model_id' => $this->id,
+                                    'email' => $user['email'],
+                                    'action' => 'edit',
+                                    'user_id' => $user['id'],
+                                    'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
+                                    'change' => ''
+                                ));
+                            }
                         }
                     }
                 }

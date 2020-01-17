@@ -164,7 +164,6 @@ script:
     - git submodule update
     - pipenv install -d
     - pipenv run python tests/testlive_comprehensive.py
-    - pipenv run python tests/test.py
     - pipenv run python tests/test_mispevent.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
