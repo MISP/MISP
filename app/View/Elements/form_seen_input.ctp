@@ -15,8 +15,20 @@
 var controller = "<?php echo $temp; ?>"; // get current controller name so that we can access all form fields
 
 function reflect_change_on_form() {
-    var first_seen = $('#date_fs').val() + 'T' + $("#time_fs").val();
-    var last_seen = $('#date_ls').val() + 'T' + $("#time_ls").val();
+    var first_seen = '';
+    if ($('#date_fs').val() !== '') {
+        first_seen += $('#date_fs').val();
+        if ($("#time_fs").val() !== '') {
+            first_seen += 'T' + $('#time_fs').val();
+        }
+    }
+    var last_seen = '';
+    if ($('#date_ls').val() !== '') {
+        last_seen += $('#date_ls').val();
+        if ($("#time_ls").val() !== '') {
+            last_seen += 'T' + $('#time_ls').val();
+        }
+    }
     $('#'+controller+'FirstSeen').val(first_seen);
     $('#'+controller+'LastSeen').val(last_seen);
 }
