@@ -146,9 +146,6 @@ class AppModel extends Model
     // this could become useful in the future
     public function updateMISP($command)
     {
-        if (!$this->_isSiteAdmin() && (!Configure::read('MISP.live') || $this->_isRest())) {
-            return false;
-        }
         $dbUpdateSuccess = false;
         switch ($command) {
             case '2.4.20':
