@@ -4972,7 +4972,7 @@ class Server extends AppModel
         foreach ($worker_array as $k => $queue) {
             foreach($worker_array[$k]['workers'] as $worker) {
                 if ($worker['ok']) {
-                    $worker_array[$k]['ok'] = true; // If at least one worker is up. the queue can be considered working
+                    $worker_array[$k]['ok'] = true; // If at least one worker is up, the queue can be considered working
                 }
             }
             if ($k != 'scheduler') {
