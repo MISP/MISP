@@ -286,8 +286,7 @@ class AppModel extends Model
     public function updateDatabase($command)
     {
         $this->Log = ClassRegistry::init('Log');
-        $this->__resetUpdateProgress();
-
+    
         $liveOff = false;
         $exitOnError = false;
         if (isset($this->advanced_updates_description[$command])) {
@@ -1318,7 +1317,6 @@ class AppModel extends Model
                 break;
             case 44:
                 $sqlArray[] = "ALTER TABLE object_template_elements CHANGE `disable_correlation` `disable_correlation` tinyint(1);";
-
                 break;
             case 45:
                 $sqlArray[] = "ALTER TABLE `events` ADD `sighting_timestamp` int(11) NOT NULL DEFAULT 0 AFTER `publish_timestamp`;";
@@ -1846,6 +1844,7 @@ class AppModel extends Model
                     return true;
                 }
                 $this->changeLockState(time());
+                $this->__resetUpdateProgress();
 
                 $update_done = 0;
                 foreach ($updates as $update => $temp) {
@@ -1926,9 +1925,9 @@ class AppModel extends Model
         $this->__saveUpdateProgress($updateProgress);
     }
 
-    private function __resetUpdateProgress()
+    private function __getEmptyUpdateMessage()
     {
-        $updateProgress = array(
+        return array(
             'commands' => array(),
             'results' => array(),
             'time' => array('started' => array(), 'elapsed' => array()),
@@ -1937,6 +1936,11 @@ class AppModel extends Model
             'failed_num' => array(),
             'toward_db_version' => ''
         );
+    }
+
+    private function __resetUpdateProgress()
+    {
+        $updateProgress = $this->__getEmptyUpdateMessage();
         $this->__saveUpdateProgress($updateProgress);
     }
 
@@ -1966,9 +1970,7 @@ class AppModel extends Model
         if ($updateProgress !== false) {
             $updateProgress = json_decode($updateProgress, true);
         } else {
-            $this->__resetUpdateProgress();
-            $updateProgress = $this->AdminSetting->getSetting('update_progress');
-            $updateProgress = json_decode($updateProgress, true);
+            $updateProgress = $this->__getEmptyUpdateMessage();
         }
         foreach($updateProgress as $setting => $value) {
             if (!is_array($value)) {
