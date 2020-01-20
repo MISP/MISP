@@ -34,8 +34,7 @@ from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
 from pymisp.exceptions import PyMISPInvalidFormat
 TAG_REGEX = re.compile(r"\(.+\) .+ = .+")
 special_parsing = ('relationship', 'report', 'galaxy', 'marking-definition')
-galaxy_types = {'attack-pattern': 'Attack Pattern', 'intrusion-set': 'Intrusion Set',
-                'malware': 'Malware', 'threat-actor': 'Threat Actor', 'tool': 'Tool'}
+galaxy_types = ('attack-pattern', 'intrusion-set', 'malware', 'threat-actor', 'tool')
 with open('{_PyMISP_dir}/pymisp/data/describeTypes.json'.format(_PyMISP_dir=_PyMISP_dir), 'r') as f:
     misp_types = json.loads(f.read())['result'].get('types')
 
@@ -119,7 +118,7 @@ class StixParser():
         if hasattr(self, 'galaxy'):
             for galaxy in self.galaxy.values():
                 if galaxy['used'] == False:
-                    self.misp_event['Galaxy'].append(self.parse_galaxies(galaxy['object']))
+                    self.misp_event.add_tag(self.parse_galaxy(galaxy['object']))
         if hasattr(self, 'marking_definition'):
             for marking in self.marking_definition.values():
                 if marking['used'] == False:
@@ -432,10 +431,10 @@ class StixParser():
                     target = reference.target_ref.split('--')[1]
                     if target in self.galaxy:
                         galaxy = self.galaxy[target]
-                        galaxies.append(self.parse_external_galaxy(galaxy['object']))
+                        galaxies.append(self.parse_galaxy(galaxy['object']))
                         galaxy['used'] = True
                 if galaxies:
-                    attribute['Galaxy'] = galaxies
+                    attribute['Tag'] = galaxies
         self.misp_event.add_attribute(**attribute)
 
     def parse_complex_fields_observable_email(self, objects, to_ids):
@@ -594,18 +593,8 @@ class StixFromMISPParser(StixParser):
         else:
             self.parse_attribute(o, labels)
 
-    def parse_galaxy(self, o, labels):
-        name = self.get_misp_type(labels)
-        tag = labels[1]
-        galaxy_type, value = tag.split(':')[1].split('=')
-        galaxy_desc, cluster_desc = o['description'].split(' | ') if ' | ' in o['description'] else ('', o['description'])
-        _, uuid = o.get('id').split('--')
-        galaxy = {'type': galaxy_type, 'name': name,
-                  'GalaxyCluster': [{'type': galaxy_type, 'value':value, 'tag_name': tag,
-                                     'description': cluster_desc, 'collection_uuid': uuid}]}
-        if galaxy_desc:
-            galaxy['description'] = galaxy_desc
-        return galaxy
+    def parse_galaxy(self, galaxy):
+        return galaxy['labels'][1]
 
     def parse_MISP_course_of_action(self, o, _):
         self.parse_course_of_action(o)
@@ -740,7 +729,7 @@ class StixFromMISPParser(StixParser):
         if len(labels) > 2:
             self.parse_usual_object(o, labels)
         else:
-            self.misp_event['Galaxy'].append(self.parse_galaxy(o, labels))
+            self.misp_event.add_tag(self.parse_galaxy(o))
 
     def observable_connection(self, observable):
         attributes, _ = self.attributes_from_network_traffic(observable, 'network-connection')
@@ -1092,9 +1081,6 @@ class StixFromMISPParser(StixParser):
             return "{}|{}".format(filename[1:-1], md5[1:-1]), pattern_parts[2].split(' = ')[1][1:-2]
         return pattern_parts[0].split(' = ')[1][1:-1], pattern_parts[1].split(' = ')[1][1:-2]
 
-    def parse_galaxies(self, galaxy_object):
-        return self.parse_galaxy(galaxy_object, galaxy_object.get('labels'))
-
 
 class ExternalStixParser(StixParser):
     def __init__(self):
@@ -1158,23 +1144,8 @@ class ExternalStixParser(StixParser):
         except KeyError:
             print("Unknown {} type: {}".format(self.stix_version, object_type), file=sys.stderr)
 
-    def parse_external_galaxy(self, o):
-        galaxy = {'name': galaxy_types[o._type].replace('-', ' ').title()}
-        cluster = defaultdict(dict)
-        cluster['value'] = o.name
-        if  hasattr(o, 'description'):
-            cluster['description'] = o.description
-        if hasattr(o, 'kill_chain_name'):
-            galaxy_type = o.kill_chain_phases[0].get('phase_name')
-            galaxy['type'] = galaxy_type
-            cluster['type'] = galaxy_type
-        if hasattr(o, 'aliases'):
-            aliases = []
-            for a in o.get('aliases'):
-                aliases.append(a)
-            cluster['meta']['synonyms'] = aliases
-        galaxy['GalaxyCluster'] = [cluster]
-        return galaxy
+    def parse_galaxy(self, galaxy):
+        return 'misp-galaxy:{}="{}"'.format(galaxy._type, galaxy.name)
 
     def parse_external_indicator(self, indicator):
         pattern = indicator.pattern
@@ -1547,8 +1518,6 @@ class ExternalStixParser(StixParser):
             self.handle_object_relationship(misp_object, uuid)
         self.misp_event.add_object(**misp_object)
 
-    def parse_galaxies(self, galaxy_object):
-        return self.parse_external_galaxy(galaxy_object)
 
     @staticmethod
     def parse_marking(marking):
