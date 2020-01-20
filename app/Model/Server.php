@@ -4970,9 +4970,11 @@ class Server extends AppModel
             $worker_array[$entry]['workers'][] = array('pid' => $pid, 'user' => $worker['user'], 'alive' => $alive, 'correct_user' => $correct_user, 'ok' => $ok);
         }
         foreach ($worker_array as $k => $queue) {
-            foreach($worker_array[$k]['workers'] as $worker) {
-                if ($worker['ok']) {
-                    $worker_array[$k]['ok'] = true; // If at least one worker is up, the queue can be considered working
+            if (isset($worker_array[$k]['workers'])) {
+                foreach($worker_array[$k]['workers'] as $worker) {
+                    if ($worker['ok']) {
+                        $worker_array[$k]['ok'] = true; // If at least one worker is up, the queue can be considered working
+                    }
                 }
             }
             if ($k != 'scheduler') {
