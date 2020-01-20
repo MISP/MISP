@@ -146,6 +146,9 @@ class AppModel extends Model
     // this could become useful in the future
     public function updateMISP($command)
     {
+        if (!$this->_isSiteAdmin() && (!Configure::read('MISP.live') || $this->_isRest())) {
+            return false;
+        }
         $dbUpdateSuccess = false;
         switch ($command) {
             case '2.4.20':
@@ -1490,7 +1493,7 @@ class AppModel extends Model
                     if ($indexSuccess['success']) {
                         $this->__setUpdateResMessages(count($sqlArray)+$i, __('Successfuly indexed ') . sprintf('%s -> %s', $iA[0], $iA[1]));
                     } else {
-                        $this->__setUpdateResMessages(count($sqlArray)+$i, sprintf('%s %s %s %s', 
+                        $this->__setUpdateResMessages(count($sqlArray)+$i, sprintf('%s %s %s %s',
                             __('Failed to add index'),
                             sprintf('%s -> %s', $iA[0], $iA[1]),
                             __('The returned error is:') . PHP_EOL,
@@ -1759,8 +1762,7 @@ class AppModel extends Model
             $job = $this->Job->find('first', array(
                 'conditions' => array('Job.id' => $processId)
             ));
-
-            if (!empty($updates)) {
+            if (empty($updates)) {
                 // Exit if updates are locked.
                 // This is not as reliable as a real lock implementation
                 // However, as all updates are re-playable, there is no harm if they
