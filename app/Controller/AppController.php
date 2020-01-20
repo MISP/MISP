@@ -291,7 +291,7 @@ class AppController extends Controller
 
         if ($this->Auth->user()) {
             // update script
-            if ($this->_isSiteAdmin() || (Configure::read('MISP.live') && !$this->_isRest())) {
+            if ($this->Auth->user('Role')['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
                 $this->{$this->modelClass}->runUpdates();
             }
             $user = $this->Auth->user();
