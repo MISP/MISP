@@ -90,7 +90,8 @@ class StixExport
             $decoded = json_decode($result, true);
             if (!isset($decoded['success']) || !$decoded['success']) {
                 $this->__delete_temporary_files($f);
-                return 'Error while processing your query: ' . $decoded['error'];
+                $error = $decoded && !empty($decoded['error']) ? $decoded['error'] : $result;
+                return 'Error while processing your query: ' . $error;
             }
             $file = new File($this->__tmp_dir . $filename . '.out');
             $stix_event = ($this->__return_type == 'stix') ? $file->read() : substr($file->read(), 1, -1);

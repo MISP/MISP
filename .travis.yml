@@ -1,9 +1,9 @@
 language: php
 
 php:
-    - 7.1
     - 7.2
     - 7.3
+    - 7.4
     - nightly
 
 services:
@@ -95,7 +95,6 @@ install:
     - sudo usermod -a -G www-data $USER
     - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
     - sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
-    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "/usr/bin/python3"'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.timeout" 600'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.cookieTimeout" 3600'
@@ -122,27 +121,18 @@ install:
     - app/Console/worker/start.sh &
     - sleep 10
     # Dirty install python stuff
+    - virtualenv -p python3.6 ./venv
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$TRAVIS_BUILD_DIR/venv/bin/python"'
+    - . ./venv/bin/activate
     - pushd cti-python-stix2
-    - sudo pip3 install .
+    - pip install .
     - popd
-    - pushd app/files/scripts
-    - sudo -H -u $USER git clone https://github.com/CybOXProject/python-cybox.git
-    - sudo -H -u $USER git clone https://github.com/STIXProject/python-stix.git
-    - sudo -H -u $USER git clone https://github.com/MAECProject/python-maec.git
-    - sudo -H -u $USER git clone https://github.com/CybOXProject/mixbox.git
-    - pushd mixbox
-    - sudo pip3 install .
+    - pushd PyMISP
+    - pip install .[fileobjects]
     - popd
-    - pushd python-cybox
-    - sudo pip3 install .
-    - popd
-    - pushd python-stix
-    - sudo pip3 install .
-    - popd
-    - pushd python-maec
-    - sudo pip3 install .
-    - popd
-    - popd
+    - pip install stix zmq redis plyara
+    - pip install -I antlr4-python3-runtime==4.7.2 # antlr4-python3-runtime==4.8 causes issues
+    - deactivate
 
 before_script:
     - curl http://misp.local
