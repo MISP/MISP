@@ -7,8 +7,8 @@ var mapping_text_to_id = new Map();
 var user_manipulation = $('#event_timeline').data('user-manipulation');
 var extended_text = $('#event_timeline').data('extended') == 1 ? "extended:1/" : "";
 var container_timeline = document.getElementById('event_timeline');
-var hardThreshold = 50;
-var softThreshold = 30;
+var hardThreshold = 1000;
+var softThreshold = 200;
 var timeline_disabled = false;
 var default_editable = {
     add: false,         // add new items by double tapping
