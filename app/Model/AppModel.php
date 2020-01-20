@@ -1762,7 +1762,7 @@ class AppModel extends Model
             $job = $this->Job->find('first', array(
                 'conditions' => array('Job.id' => $processId)
             ));
-            if (empty($updates)) {
+            if (!empty($updates)) {
                 // Exit if updates are locked.
                 // This is not as reliable as a real lock implementation
                 // However, as all updates are re-playable, there is no harm if they
