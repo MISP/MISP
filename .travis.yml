@@ -131,7 +131,7 @@ install:
     - pip install .[fileobjects]
     - popd
     - pip install stix zmq redis plyara
-    - pip install -I antlr4-python3-runtime==4.7.2
+    - pip install -I antlr4-python3-runtime==4.7.2 # antlr4-python3-runtime==4.8 causes issues
     - deactivate
 
 before_script:
