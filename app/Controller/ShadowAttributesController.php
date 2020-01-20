@@ -96,7 +96,7 @@ class ShadowAttributesController extends AppController
                 $this->Attribute->delete($activeAttribute['Attribute']['id']);
             } else {
                 // Update the live attribute with the shadow data
-                $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids');
+                $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids', 'first_seen', 'last_seen');
                 foreach ($fieldsToUpdate as $f) {
                     $activeAttribute['Attribute'][$f] = $shadow[$f];
                 }
@@ -415,7 +415,7 @@ class ShadowAttributesController extends AppController
                             array(
                                 'conditions' => array('ShadowAttribute.id' => $this->ShadowAttribute->id),
                                 'recursive' => -1,
-                                'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp')
+                                'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp', 'first_seen', 'last_seen')
                             )
                         );
                         $this->set('ShadowAttribute', $sa['ShadowAttribute']);
@@ -689,12 +689,12 @@ class ShadowAttributesController extends AppController
             if ($attachment) {
                 $fields = array(
                         'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id', 'category' => 'Attribute.category', 'type' => 'Attribute.type'),
-                        'optional' => array('value', 'to_ids', 'comment')
+                        'optional' => array('value', 'to_ids', 'comment', 'first_seen', 'last_seen')
                 );
             } else {
                 $fields = array(
                         'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id'),
-                        'optional' => array('category', 'type', 'value', 'to_ids', 'comment')
+                        'optional' => array('category', 'type', 'value', 'to_ids', 'comment', 'first_seen', 'last_seen')
                 );
                 if ($existingAttribute['Attribute']['object_id']) {
                     unset($fields['optional']['type']);
@@ -731,7 +731,7 @@ class ShadowAttributesController extends AppController
                             array(
                                     'conditions' => array('ShadowAttribute.id' => $this->ShadowAttribute->id),
                                     'recursive' => -1,
-                                    'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp')
+                                    'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp', 'first_seen', 'last_seen')
                             )
                     );
                     $this->set('ShadowAttribute', $sa['ShadowAttribute']);
@@ -833,6 +833,8 @@ class ShadowAttributesController extends AppController
                     'type' => $existingAttribute['Attribute']['type'],
                     'to_ids' => $existingAttribute['Attribute']['to_ids'],
                     'value' => $existingAttribute['Attribute']['value'],
+                    'first_seen' => $existingAttribute['Attribute']['first_seen'],
+                    'last_seen' => $existingAttribute['Attribute']['last_seen'],
                     'email' => $this->Auth->user('email'),
                     'org_id' => $this->Auth->user('org_id'),
                     'proposal_to_delete' => true,
@@ -873,7 +875,7 @@ class ShadowAttributesController extends AppController
                 'recursive' => -1,
                 'contain' => 'Event',
                 'fields' => array(
-                    'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id',
+                    'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen',
                     'Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'
                 ),
                 'conditions' => array('AND' => array('ShadowAttribute.id' => $id, $distConditions, 'ShadowAttribute.deleted' => 0))
@@ -944,7 +946,7 @@ class ShadowAttributesController extends AppController
         }
         $params = array(
             'conditions' => $conditions,
-            'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
+            'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen'),
             'contain' => array(
                     'Event' => array(
                             'fields' => array('id', 'org_id', 'info', 'orgc_id', 'uuid'),
@@ -1124,7 +1126,7 @@ class ShadowAttributesController extends AppController
             }
         }
 
-        $keys = array_flip(array('uuid', 'event_id', 'value', 'type', 'category', 'to_ids'));
+        $keys = array_flip(array('uuid', 'event_id', 'value', 'type', 'category', 'to_ids', 'first_seen', 'last_seen'));
 
         $proposal = array_intersect_key($attribute['Attribute'], $keys);
         $proposal['email'] = $this->Auth->user('email');

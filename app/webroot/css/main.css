@@ -25,6 +25,10 @@ button .full-width {
     margin-bottom:10px;
 }
 
+form button.btn[disabled] {
+    cursor: not-allowed;
+}
+
 /*.close{
     float:none;
 }*/
@@ -299,6 +303,39 @@ td.highlight3 {
     background-color: red !important;
     color: #ffffff !important;
 
+}
+
+table.table-striped > tbody > tr.objectAddFieldTr > td {
+    position: absolute;
+    background-color: #ffffff00;
+}
+
+table.table-striped > tbody > tr > td > span.objectAddField {
+    padding: 0px;
+    line-height: normal;
+    display: inline-block;
+    position: relative;
+    top: -19px;
+    left: -10px;
+    color: white;
+    background-color: #1369a0;
+    border: 0px;
+    border-radius: 15px;
+    height: 16px;
+    width: 16px;
+    text-align: center;
+}
+
+table.table-striped > tbody > tr > td > span.objectAddField:before {
+    left: 2px;
+    height: 12px;
+    width: 12px;
+    line-height: 16px;
+}
+
+.table-striped tbody > tr > td > span.objectAddField:hover {
+    transform: scale(1.7);
+    cursor: pointer;
 }
 
 tr.highlightBlueSides {
@@ -880,6 +917,20 @@ a.proposal_link_red:hover {
     border: 0;
 }
 
+.immutableAttributeDescription:before {
+    background: rgba(255, 255, 255, 0);
+    content: '';
+    margin-right: 5px;
+    margin-left: 2px;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    height: 10px;
+    width: 5px;
+    position: relative;
+    display: block;
+    float: left;
+}
+
 .modal-body-long {
     max-height: 600px;
 }
@@ -1041,6 +1092,16 @@ a.pill-pre-picker {
     height: 10px;
     width: 5px;
     position: absolute;
+}
+
+div.generic-picker-wrapper > div.generic-picker-embeded-block {
+    margin-left: 15px;
+    margin-top: -12px;
+    display: inline-block;
+}
+
+div.generic-picker-embeded-block legend {
+    margin-bottom: 0px;
 }
 
 .generic-picker-item-element-check {
@@ -2305,6 +2366,23 @@ table tr:hover .down-expand-button {
 .label-icon {
     left: 5px;
     position: relative;
+}
+
+.nanosec-div {
+    font-weight:bold;
+    position: relative;
+    width: 100%;
+    text-align: center;
+    top: -5px;
+}
+
+.larger-input-field {
+    width: 270px !important;
+}
+
+.precision-tool {
+    margin-left: 10px;
+    display: inline-block;
 }
 
 .fa-as-icon {

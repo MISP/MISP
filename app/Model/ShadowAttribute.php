@@ -133,6 +133,16 @@ class ShadowAttribute extends AppModel
                         'rule' => array('boolean'),
                 ),
         ),
+        'first_seen' => array(
+            'rule' => array('datetimeOrNull'),
+            'required' => false,
+            'message' => array('Invalid ISO 8601 format')
+        ),
+        'last_seen' => array(
+            'rule' => array('datetimeOrNull'),
+            'required' => false,
+            'message' => array('Invalid ISO 8601 format')
+        )
     );
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -177,6 +187,9 @@ class ShadowAttribute extends AppModel
         if ($this->data['ShadowAttribute']['deleted']) {
             $this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
         }
+
+        // convert into utc and micro sec
+        $this->data = $this->Attribute->ISODatetimeToUTC($this->data, $this->alias);
         return true;
     }
 
@@ -358,6 +371,14 @@ class ShadowAttribute extends AppModel
         return true;
     }
 
+    public function afterFind($results, $primary = false)
+    {
+        foreach ($results as $k => $v) {
+            $results[$k] = $this->Attribute->UTCToISODatetime($results[$k], $this->alias);
+        }
+        return $results;
+    }
+
     public function validateTypeValue($fields)
     {
         $category = $this->data['ShadowAttribute']['category'];
@@ -472,6 +493,20 @@ class ShadowAttribute extends AppModel
             }
         }
         return $fails;
+    }
+
+    // check whether the variable is null or datetime
+    public function datetimeOrNull($fields)
+    {
+        $k = array_keys($fields)[0];
+        $seen = $fields[$k];
+        try {
+            new DateTime($seen);
+            $returnValue = true;
+        } catch (Exception $e) {
+            $returnValue = false;
+        }
+        return $returnValue || is_null($seen);
     }
 
     public function setDeleted($id)

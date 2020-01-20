@@ -65,6 +65,16 @@
                     'field' => 'disable_correlation',
                     'type' => 'checkbox'
                 ),
+                array(
+                    'field' => 'first_seen',
+                    'type' => 'text',
+                    'hidden' => true
+                ),
+                array(
+                    'field' => 'last_seen',
+                    'type' => 'text',
+                    'hidden' => true
+                ),
                 '<div id="extended_event_preview" style="width:446px;"></div>'
             ),
             'submit' => array(
@@ -74,6 +84,9 @@
                     "'" . ($action == 'add' ? h($event_id) : h($attribute['Attribute']['id'])) . "'",
                     "'" . h($action) . "'"
                 )
+            ),
+            'metaFields' => array(
+                '<div id="bothSeenSliderContainer" style="height: 170px;"></div>'
             )
         )
     ));
@@ -130,4 +143,5 @@
         checkSharingGroup('Attribute');
     });
 </script>
+<?php echo $this->element('form_seen_input'); ?>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts
