@@ -27,8 +27,6 @@ class AdminSetting extends AppModel
         if ($this->save($setting_object)) {
             return true;
         } else {
-            $this->create();
-            $this->save($setting_object);
             return $this->validationErrors;
         }
     }
