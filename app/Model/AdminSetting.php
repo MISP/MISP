@@ -21,7 +21,7 @@ class AdminSetting extends AppModel
         $setting_object = $this->find('first', array(
             'conditions' => array('setting' => $setting)
         ));
-        $this->deleteAll('setting' => $setting);
+        $this->deleteAll(array('setting' => $setting));
         $this->create();
         $setting_object['AdminSetting'] = array('setting' => $setting, 'value' => $value);
         if ($this->save($setting_object)) {
