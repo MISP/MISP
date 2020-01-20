@@ -4502,6 +4502,32 @@ class EventsController extends AppController
         return $json;
     }
 
+    public function getEventTimeline($id, $type = 'event')
+    {
+        $validTools = array('event');
+        if (!in_array($type, $validTools)) {
+            throw new MethodNotAllowedException('Invalid type.');
+        }
+
+        App::uses('EventTimelineTool', 'Tools');
+        $grapher = new EventTimelineTool();
+        $data = $this->request->is('post') ? $this->request->data : array();
+        $dataFiltering = array_key_exists('filtering', $data) ? $data['filtering'] : array();
+
+        $extended = isset($this->params['named']['extended']) ? 1 : 0;
+
+        $grapher->construct($this->Event, $this->Auth->user(), $dataFiltering, $extended);
+        $json = $grapher->get_timeline($id);
+
+        array_walk_recursive($json, function (&$item, $key) {
+            if (!mb_detect_encoding($item, 'utf-8', true)) {
+                $item = utf8_encode($item);
+            }
+        });
+        $this->response->type('json');
+        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+    }
+
     public function getDistributionGraph($id, $type = 'event')
     {
         $extended = isset($this->params['named']['extended']) ? 1 : 0;

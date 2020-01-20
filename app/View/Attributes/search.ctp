@@ -32,13 +32,27 @@
                     'type' => 'checkbox',
                     'label' => __('Alternate Search Result (Events)')
             ));
+            echo $this->Form->input('first_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+            ));
+            echo $this->Form->input('last_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+            ));
         ?>
+        <div class="clear">
+        <h3><?php echo __('First seen and Last seen.'); ?></h3>
+        <p><?php echo __('Attributes not having first seen or last seen set might not appear in the search'); ?></p>
+    </div>
     </fieldset>
-<?php
-    echo $this->Form->button(__('Search'), array('class' => 'btn btn-primary'));
-    echo $this->Form->end();
-?>
+    <?php echo $this->Form->end(); ?>
+    <div id="bothSeenSliderContainer"></div>
+    <button onclick="$('#AttributeSearchForm').submit();" class="btn btn-primary">Submit</button>
 </div>
+<?php echo $this->element('form_seen_input'); ?>
 <script type="text/javascript">
 //
 // Generate Category / Type filtering array

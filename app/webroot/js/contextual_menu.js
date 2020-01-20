@@ -143,6 +143,7 @@ class ContextualMenu {
     __create_menu_div_bootstrap_popover() {
         var div = document.createElement('div');
         div.classList.add("contextual-menu");
+        div.style.display = 'none';
         this.container.appendChild(div);
         var that = this;
         this.trigger_container.tabIndex = 0; // required for the popover focus feature
@@ -151,19 +152,20 @@ class ContextualMenu {
             container: 'body',
             html: true,
             placement: "bottom",
-            content: function () {return $(that.menu); }, // return contextual menu html
+            content: function () { var html=$(that.menu); html.css('display', 'inline-block'); return html;}, // return contextual menu html
             trigger: "manual",
             template: '<div class="popover" id="popover-contextual-menu-'+this.trigger_container.id+'" role="tooltip" style="'+additional_styling+'"><div class="arrow"></div></h3><div class="popover-content"></div></div>'
         })
 
         // Overwrite the default popover behavior: hidding cause the popover to be detached from the DOM, making impossible to fetch input values in the form
         $(this.trigger_container).click (function(e) {
-            if (that.has_been_shown_once) {
-                $('#popover-contextual-menu-'+this.id).toggle();
-            } else {
-                that.has_been_shown_once = true;
-                $(this).popover('show');
-            }
+            $(this).popover('toggle');
+            // if (that.has_been_shown_once) {
+            //     $('#popover-contextual-menu-'+this.id).toggle();
+            // } else {
+            //     that.has_been_shown_once = true;
+            //     $(this).popover('show');
+            // }
         });
         return div;
     }
@@ -371,7 +373,7 @@ class ContextualMenu {
         this.menu.appendChild(label);
         this.menu.appendChild(div);
         if(options.event !== undefined) {
-            button.addEventListener("click", function(evt) { 
+            button.addEventListener("click", function(evt) {
 		var corresponding_select_id = evt.target.dataset.correspondingId;
 		var selected_value = $('#'+corresponding_select_id).val();
 		options.event(selected_value);

@@ -23,6 +23,9 @@
       <?php echo date('Y-m-d', $object['timestamp']); ?>
     </td>
     <td class="short">
+      <?php echo $this->element('/Servers/View/seen_field', array('object' => $object)); ?>
+    </td>
+    <td class="short">
       <div id="Attribute_<?php echo $object['uuid']; ?>_category_solid" class="inline-field-solid">
         <?php echo h($object['category']); ?>
       </div>

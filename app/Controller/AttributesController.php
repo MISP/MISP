@@ -864,7 +864,7 @@ class AttributesController extends AppController
                     $skipTimeCheck = true;
                 }
                 if ($skipTimeCheck || $this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-                    $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
+                    $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'first_seen', 'last_seen');
                     foreach ($recoverFields as $rF) {
                         if (!isset($this->request->data['Attribute'][$rF])) {
                             $this->request->data['Attribute'][$rF] = $existingAttribute['Attribute'][$rF];
@@ -1064,7 +1064,7 @@ class AttributesController extends AppController
         if (!$this->_isRest()) {
             $this->Attribute->Event->insertLock($this->Auth->user(), $this->Attribute->data['Attribute']['event_id']);
         }
-        $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution');
+        $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution', 'first_seen', 'last_seen');
         $changed = false;
         if (empty($this->request->data['Attribute'])) {
             $this->request->data = array('Attribute' => $this->request->data);
@@ -1662,7 +1662,7 @@ class AttributesController extends AppController
                 unset($this->request->data['to_ids']);
                 $this->request->data['ignore'] = 1;
             }
-            $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags');
+            $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'first_seen', 'last_seen');
             $filterData = array(
                 'request' => $this->request,
                 'named_params' => $this->params['named'],
@@ -2152,7 +2152,7 @@ class AttributesController extends AppController
 
     public function fetchViewValue($id, $field = null)
     {
-        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp');
+        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp', 'first_seen', 'last_seen');
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException(__('Invalid field requested.'));
         }
@@ -2199,7 +2199,7 @@ class AttributesController extends AppController
 
     public function fetchEditForm($id, $field = null)
     {
-        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution');
+        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'first_seen', 'last_seen');
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException(__('Invalid field requested.'));
         }

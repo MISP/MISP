@@ -5,7 +5,7 @@
     echo $this->Form->create('Object', array('id', 'url' => $url, 'enctype' => 'multipart/form-data'));
 ?>
 <h3><?php echo ucfirst($action) . ' ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . __(' Object'); ?></h3>
-<div class="row-fluid" style="margin-bottom:10px;">
+<div id="meta-div" class="row-fluid" style="margin-bottom:10px;">
   <dl class="span8">
     <dt><?php echo __('Object Template');?></dt>
     <dd>
@@ -77,6 +77,19 @@
         ));
       ?>
     </dd>
+    <?php
+        echo $this->Form->input('first_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+                ));
+        echo $this->Form->input('last_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+                ));
+    ?>
+    <div id="bothSeenSliderContainer"></div>
   </dl>
 </div>
 <?php
@@ -309,6 +322,7 @@
 
 
 <?php
+    echo $this->element('form_seen_input');
     if (!$ajax) {
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addObject', 'event' => $event));
     }
