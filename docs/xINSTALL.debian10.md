@@ -158,6 +158,8 @@ cd $PATH_TO_MISP/app/files/scripts/python-stix
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+# FIXME: Remove once stix-fixed
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
 # install STIX2.0 library to support STIX 2.0 export:
 cd ${PATH_TO_MISP}/cti-python-stix2
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
