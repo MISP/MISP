@@ -309,7 +309,7 @@ Now configure your Apache webserver with the DocumentRoot ${PATH_TO_MISP}/app/we
 ```bash
 # <snippet-begin 1_apacheConfig.sh>
 apacheConfig () {
-  debug "Generating Apache config"
+  debug "Generating Apache config, if this hangs, make sure you have enough entropy (install: haveged or wait)"
   sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
   if [[ ! -z ${MISP_BASEURL} ]] && [[ "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "http" || "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "https" ]]; then
