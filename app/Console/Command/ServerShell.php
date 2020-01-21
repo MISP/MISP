@@ -6,7 +6,7 @@ class ServerShell extends AppShell
 {
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
 
-    public function list() {
+    public function listServers() {
         $res = ['servers'=>[]];
 
         $servers = $this->Server->find('all', [
