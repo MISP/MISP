@@ -38,6 +38,9 @@ class ServerShell extends AppShell
         }
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die('User ID do not match an existing user.' . PHP_EOL);
+        }
         if (empty($this->args[1])) die();
         $serverId = $this->args[1];
         if (!empty($this->args[2])) {
