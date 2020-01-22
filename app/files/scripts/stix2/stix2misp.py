@@ -81,8 +81,10 @@ class StixParser():
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
             attribute_distribution = 5
+        self.synonyms_to_tag_names = args[2] if len(args) > 2 else '/var/www/MISP/app/files/scripts/synonymsToTagNames.json'
         self.misp_event.distribution = event_distribution
         self._attribute_distribution = attribute_distribution
+        self.tags = set()
 
     def _load_custom(self, parsed_object):
         self.event['custom_object'][parsed_object['id'].split('--')[1]] = parsed_object
@@ -118,7 +120,7 @@ class StixParser():
         if hasattr(self, 'galaxy'):
             for galaxy in self.galaxy.values():
                 if galaxy['used'] == False:
-                    self.misp_event.add_tag(self.parse_galaxy(galaxy['object']))
+                    self.tags.update(self.parse_galaxy(galaxy['object']))
         if hasattr(self, 'marking_definition'):
             for marking in self.marking_definition.values():
                 if marking['used'] == False:
@@ -126,6 +128,9 @@ class StixParser():
                         self.misp_event.add_tag(self.parse_marking(marking['object']))
                     except PyMISPInvalidFormat:
                         continue
+        if self.tags:
+            for tag in self.tags:
+                self.misp_event.add_tag(tag)
 
     def build_from_STIX_with_report(self):
         report_attributes = defaultdict(set)
@@ -431,7 +436,7 @@ class StixParser():
                     target = reference.target_ref.split('--')[1]
                     if target in self.galaxy:
                         galaxy = self.galaxy[target]
-                        galaxies.append(self.parse_galaxy(galaxy['object']))
+                        galaxies.append(self.parse_galaxy(galaxy['object'])[0])
                         galaxy['used'] = True
                 if galaxies:
                     attribute['Tag'] = galaxies
@@ -594,7 +599,7 @@ class StixFromMISPParser(StixParser):
             self.parse_attribute(o, labels)
 
     def parse_galaxy(self, galaxy):
-        return galaxy['labels'][1]
+        return [galaxy['labels'][1]]
 
     def parse_MISP_course_of_action(self, o, _):
         self.parse_course_of_action(o)
@@ -725,11 +730,11 @@ class StixFromMISPParser(StixParser):
             attribute = self.add_tag_in_attribute(attribute, o.object_marking_refs)
         self.handle_single_attribute(attribute, uuid=attribute_uuid)
 
-    def parse_vulnerability(self, o, labels):
+    def parse_vulnerability(self, vulnerability, labels):
         if len(labels) > 2:
-            self.parse_usual_object(o, labels)
+            self.parse_usual_object(vulnerability, labels)
         else:
-            self.misp_event.add_tag(self.parse_galaxy(o))
+            self.tags.update(self.parse_galaxy(vulnerability))
 
     def observable_connection(self, observable):
         attributes, _ = self.attributes_from_network_traffic(observable, 'network-connection')
@@ -1135,6 +1140,9 @@ class ExternalStixParser(StixParser):
         self.single_attribute_fields = ('type', 'value', 'to_ids')
 
     def handler(self):
+        with open(self.synonyms_to_tag_names, 'rt', encoding='utf-8') as f:
+            synonyms_to_tag_names = json.loads(f.read())
+        self.synonyms_to_tag_names = synonyms_to_tag_names
         self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
         self.general_handler()
 
@@ -1145,7 +1153,9 @@ class ExternalStixParser(StixParser):
             print("Unknown {} type: {}".format(self.stix_version, object_type), file=sys.stderr)
 
     def parse_galaxy(self, galaxy):
-        return 'misp-galaxy:{}="{}"'.format(galaxy._type, galaxy.name)
+        if galaxy.name in self.synonyms_to_tag_names:
+            return self.synonyms_to_tag_names[galaxy.name]
+        return ['misp-galaxy:{}="{}"'.format(galaxy._type, galaxy.name)]
 
     def parse_external_indicator(self, indicator):
         pattern = indicator.pattern
