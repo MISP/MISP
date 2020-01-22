@@ -444,6 +444,7 @@ installMISPonKali () {
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I antlr4-python3-runtime==4.7.2 2> /dev/null > /dev/null
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
 

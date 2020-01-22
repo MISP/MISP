@@ -1226,7 +1226,7 @@ EOF
 }
 
 apacheConfig () {
-  debug "Generating Apache config"
+  debug "Generating Apache config, if this hangs, make sure you have enough entropy (install: haveged or wait)"
   sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
   if [[ ! -z ${MISP_BASEURL} ]] && [[ "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "http" || "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "https" ]]; then
@@ -1295,6 +1295,8 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   cd $PATH_TO_MISP/app/files/scripts/python-maec
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  # FIXME: Remove once stix-fixed
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
@@ -2230,6 +2232,7 @@ installMISPonKali () {
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I antlr4-python3-runtime==4.7.2 2> /dev/null > /dev/null
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
 
