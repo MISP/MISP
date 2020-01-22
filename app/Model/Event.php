@@ -5673,19 +5673,18 @@ class Event extends AppModel
         return $this->save($event);
     }
 
-    public function upload_stix($user, $filename, $stix_version, $original_file, $publish)
+    public function upload_stix($user, $scriptDir, $filename, $stix_version, $original_file, $publish)
     {
         App::uses('Folder', 'Utility');
         App::uses('File', 'Utility');
+        $tempFilePath = $scriptDir . DS . 'tmp' . DS . $filename;
         if ($stix_version == '2') {
-            $scriptFile = APP . 'files/scripts/stix2/stix2misp.py';
-            $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
+            $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
             $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $tempFilePath;
             $output_path = $tempFilePath . '.stix2';
             $stix_version = "STIX 2.0";
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
-            $scriptFile = APP . 'files/scripts/stix2misp.py';
-            $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
+            $scriptFile = $scriptDir . DS . 'stix2misp.py';
             $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename;
             $output_path = $tempFilePath . '.json';
             $stix_version = "STIX 1.1";

@@ -2146,15 +2146,16 @@ class EventsController extends AppController
         if (!$this->userRole['perm_modify']) {
             throw new UnauthorizedException(__('You do not have permission to do that.'));
         }
+        $scriptDir = APP . 'files' . DS . 'scripts';
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 $randomFileName = $this->Event->generateRandomFileName();
-                $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-                $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+                $tempFile = new File($scriptDir . DS . 'tmp' . DS . $randomFileName, true, 0644);
                 $tempFile->write($this->request->input());
                 $tempFile->close();
                 $result = $this->Event->upload_stix(
                     $this->Auth->user(),
+                    $scriptDir,
                     $randomFileName,
                     $stix_version,
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
@@ -2176,10 +2177,10 @@ class EventsController extends AppController
                 $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
                 if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
                     $randomFileName = $this->Event->generateRandomFileName();
-                    $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-                    move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
+                    move_uploaded_file($this->data['Event']['stix']['tmp_name'], $scriptDir . DS . 'tmp' . DS . $randomFileName);
                     $result = $this->Event->upload_stix(
                         $this->Auth->user(),
+                        $scriptDir,
                         $randomFileName,
                         $stix_version,
                         $original_file,
