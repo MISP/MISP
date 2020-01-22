@@ -43,6 +43,12 @@
         <?php
             echo $this->Form->button(__('Login'), array('class' => 'btn btn-primary'));
             echo $this->Form->end();
+            if (true == Configure::read('ApacheShibbAuth')):
+        ?>
+            <div class="clear"></div>
+             <a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>
+        <?php
+            endif;
         ?>
     </td>
     <td style="width:250px;padding-left:50px">
