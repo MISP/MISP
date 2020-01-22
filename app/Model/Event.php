@@ -5691,7 +5691,12 @@ class Event extends AppModel
         } else {
             throw new MethodNotAllowedException('Invalid STIX version');
         }
-        $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution'));
+        $synonymsToTagNames = $this->__getTagNamesFromSynonyms($scriptDir);
+        if ($synonymsToTagNames) {
+            $shell_command .= ' ' . $synonymsToTagNames;
+        }
+        $shell_command .= ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $result = shell_exec($shell_command);
         $tempFile = file_get_contents($tempFilePath);
         unlink($tempFilePath);
@@ -5731,6 +5736,48 @@ class Event extends AppModel
             $response .= ' ' . __('check whether the dependencies for STIX are met via the diagnostic tool.');
             return $response;
         }
+    }
+
+    private function __getTagNamesFromSynonyms($scriptDir)
+    {
+        $synonymsToTagNames = $scriptDir . DS . 'synonymsToTagNames.json';
+        if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
+            if (empty($this->GalaxyCluster)) {
+                $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            }
+            $clusters = $this->GalaxyCluster->find('all', array(
+                'recursive' => -1,
+                'fields' => array(
+                    'GalaxyCluster.value',
+                    'MAX(GalaxyCluster.version)',
+                    'GalaxyCluster.tag_name',
+                    'GalaxyCluster.id'
+                ),
+                'group' => array('GalaxyCluster.tag_name')
+            ));
+            $synonyms = $this->GalaxyCluster->GalaxyElement->find('all', array(
+                'recursive' => -1,
+                'fields' => array('galaxy_cluster_id', 'value'),
+                'conditions' => array('key' => 'synonyms')
+            ));
+            $idToSynonyms = array();
+            foreach($synonyms as $synonym) {
+                $idToSynonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym['GalaxyElement']['value'];
+            }
+            $mapping = array();
+            foreach($clusters as $cluster) {
+                $mapping[$cluster['GalaxyCluster']['value']][] = $cluster['GalaxyCluster']['tag_name'];
+                if (!empty($idToSynonyms[$cluster['GalaxyCluster']['id']])) {
+                    foreach($idToSynonyms[$cluster['GalaxyCluster']['id']] as $synonym) {
+                        $mapping[$synonym][] = $cluster['GalaxyCluster']['tag_name'];
+                    }
+                }
+            }
+            $file = new File($synonymsToTagNames, true, 0644);
+            $file->write(json_encode($mapping));
+            $file->close();
+        }
+        return $synonymsToTagNames;
     }
 
     public function enrichmentRouter($options)
