@@ -394,6 +394,7 @@ class ServersController extends AppController
             }
             $this->set('allTags', $allTags);
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
+            $this->render('edit');
         }
     }
 

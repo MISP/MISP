@@ -383,6 +383,9 @@ doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 cd /var/www/htdocs/MISP/PyMISP
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
+# FIXME: Remove once stix-fixed
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
+
 # install support for STIX 2.0
 cd /var/www/htdocs/MISP/cti-python-stix2
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install

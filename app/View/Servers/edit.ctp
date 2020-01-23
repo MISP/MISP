@@ -1,29 +1,25 @@
 <div class="servers form">
-<?php echo $this->Form->create('Server', array('type' => 'file', 'novalidate'=>true)); ?>
-    <fieldset>
-        <legend><?php echo __('Edit Server');?></legend>
-    <?php
-        echo '<h4 class="input clear">' . __('Instance identification') . '</h4>';
-        echo $this->Form->input('url', array(
-            'label' => __('Base URL'),
-        ));
-        echo $this->Form->input('name', array(
-                'label' => __('Instance name'),
-        ));
-        if (!empty($host_org_id) && $this->request->data['Server']['remote_org_id'] == $host_org_id):
-    ?>
-            <div id="InternalDiv" class = "input clear" style="width:100%;">
-                <hr />
-                <p class="red" style="width:50%;"><?php echo __('You can set this instance up as an internal instance by checking the checkbox below. This means that any synchronisation between this instance and the remote will not be automatically degraded as it would in a normal synchronisation scenario. Please make sure that you own both instances and that you are OK with this otherwise dangerous change. This also requires that the current instance\'s host organisation and the remote sync organisation are the same.');?></p>
-    <?php
-                echo $this->Form->input('internal', array(
-                        'label' => __('Internal instance'),
-                        'type' => 'checkbox',
-                ));
-    ?>
-            </div>
-    <?php
-            endif;
+<?php
+    echo $this->Form->create('Server', array('type' => 'file', 'novalidate'=>true));
+    echo '<fieldset>';
+    echo sprintf('<legend>%s</legend>', $this->action === 'add' ? __('Add Server') : __('Edit Server'));
+    echo '<h4 class="input clear">' . __('Instance identification') . '</h4>';
+    echo $this->Form->input('url', array(
+        'label' => __('Base URL'),
+    ));
+    echo $this->Form->input('name', array(
+            'label' => __('Instance name'),
+    ));
+    if (!empty($host_org_id) && !empty($this->request->data['Server']) && $this->request->data['Server']['remote_org_id'] == $host_org_id) {
+        echo sprintf(
+            '<div id="InternalDiv" class = "input clear" style="width:100%;"><hr /><p class="red" style="width:50%;">%s</p>%s</div>',
+            __('You can set this instance up as an internal instance by checking the checkbox below. This means that any synchronisation between this instance and the remote will not be automatically degraded as it would in a normal synchronisation scenario. Please make sure that you own both instances and that you are OK with this otherwise dangerous change. This also requires that the current instance\'s host organisation and the remote sync organisation are the same.'),
+            $this->Form->input('internal', array(
+                    'label' => __('Internal instance'),
+                    'type' => 'checkbox',
+            ))
+        );
+    }
     ?>
         <div class="input clear"></div>
         <div class="input clear" style="width:100%;">
@@ -33,11 +29,14 @@
         </div>
         <div class = "input clear"></div>
     <?php
-        echo $this->Form->input('organisation_type', array(
-                'label' => __('Organisation Type'),
-                'options' => $organisationOptions,
-                'default' => $oldRemoteSetting
-        ));
+        $org_type_form = array(
+            'label' => __('Organisation Type'),
+            'options' => $organisationOptions
+        );
+        if (!empty($oldRemoteSetting)) {
+            $org_type_form['default'] = $oldRemoteSetting;
+        }
+        echo $this->Form->input('organisation_type', $org_type_form);
     ?>
         <div id="ServerExternalContainer" class="input select hiddenField" style="display:none;">
             <label for="ServerExternal"><?php echo __('External Organisation');?></label>
@@ -153,6 +152,7 @@
         <span id="pull_tags_NOT" style="display:none;"><?php echo __('Events with the following tags blocked: ');?><span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
         <span id="pull_orgs_OR" style="display:none;"><?php echo __('Events with the following organisations allowed: ');?><span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
         <span id="pull_orgs_NOT" style="display:none;"><?php echo __('Events with the following organisations blocked: ');?><span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
+        <span id="pull_url_params" style="display:none;"><?php echo __('Additional parameters: ');?><span id="pull_url_params_text" style="color:green;"></span><br /></span>
         <span id="pull_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />
     <?php
         echo $this->Form->input('push_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
@@ -162,7 +162,7 @@
         echo $this->Form->checkbox('delete_client_cert', array('style' => 'display:none;', 'label' => false, 'div' => false));
     ?>
     </fieldset>
-    <span role="button" tabindex="0" aria-label="<?php echo __('Submit');?>" title="<?php echo __('Submit');?>" class="btn btn-primary" onClick="serverSubmitForm('Edit');"><?php echo __('Submit');?></span>
+    <span role="button" tabindex="0" aria-label="<?php echo __('Submit');?>" title="<?php echo __('Submit');?>" class="btn btn-primary" onClick="serverSubmitForm('<?php echo Inflector::humanize($this->action);?>');"><?php echo __('Submit');?></span>
 <?php
     echo $this->Form->end();
 ?>
@@ -172,7 +172,7 @@
     <?php echo $this->element('serverRuleElements/pull'); ?>
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'edit'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => $this->action));
 ?>
 
 
@@ -192,7 +192,17 @@ var formInfoValues = {
         'ServerSelfSigned' : "<?php echo __('Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended).');?>"
 };
 
-var rules = {"push": {"tags": {"OR":[], "NOT":[]}, "orgs": {"OR":[], "NOT":[]}}, "pull": {"tags": {"OR":[], "NOT":[]}, "orgs": {"OR":[], "NOT":[]}}};
+var rules = {
+    "push": {
+        "tags": {"OR":[], "NOT":[]},
+        "orgs": {"OR":[], "NOT":[]}
+    },
+    "pull": {
+        "tags": {"OR":[], "NOT":[]},
+        "orgs": {"OR":[], "NOT":[]},
+        "url_params": ""
+    }
+};
 var validOptions = ['pull', 'push'];
 var validFields = ['tags', 'orgs'];
 var tags = <?php echo json_encode($allTags); ?>;
@@ -201,7 +211,6 @@ var delete_cert = false;
 var delete_client_cert = false;
 var host_org_id = "<?php echo h($host_org_id); ?>";
 var modelContext = 'Server';
-
 $(document).ready(function() {
     serverOrgTypeChange();
     $('#ServerOrganisationType').change(function() {
