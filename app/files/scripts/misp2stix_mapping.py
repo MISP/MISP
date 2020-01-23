@@ -39,7 +39,7 @@ galaxy_types_mapping.update(dict.fromkeys(['mitre-course-of-action',
                                            'mitre-mobile-attack-course-of-action'],
                                           'parse_course_of_action_galaxy'))
 galaxy_types_mapping.update(dict.fromkeys(['android', 'banker', 'stealer', 'backdoor', 'ransomware', 'mitre-malware',
-                                           'mitre-enterprise-attack-malware', 'mitre-mobile-attack-malware'],
+                                           'malpedia', 'mitre-enterprise-attack-malware', 'mitre-mobile-attack-malware'],
                                           'parse_malware_galaxy'))
 galaxy_types_mapping.update(dict.fromkeys(['threat-actor', 'microsoft-activity-group'],
                                           'parse_threat_actor_galaxy'))
