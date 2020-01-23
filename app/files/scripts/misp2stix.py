@@ -701,7 +701,7 @@ class StixBuilder(object):
             ttp = self.create_ttp_from_galaxy(uuid, galaxy_name, cluster['id'], cluster['type'])
             attack_pattern = AttackPattern()
             attack_pattern.id_ = "{}:AttackPattern-{}".format(self.namespace_prefix, uuid)
-            attack_pattern.title = "{}: {}".format(galaxy_name, cluster['value'])
+            attack_pattern.title = cluster['value']
             attack_pattern.description = cluster['description']
             if cluster['meta'].get('external_id'):
                 external_id = cluster['meta']['external_id'][0]
@@ -785,12 +785,11 @@ class StixBuilder(object):
         self.ttps_from_objects[uuid] = course_of_action
 
     def parse_course_of_action_galaxy(self, galaxy):
-        galaxy_name = galaxy['name']
         for cluster in galaxy['GalaxyCluster']:
             uuid = cluster['collection_uuid']
             course_of_action = CourseOfAction()
             course_of_action.id_ = "{}:CourseOfAction-{}".format(self.namespace_prefix, uuid)
-            course_of_action.title = "{}: {}".format(galaxy_name, cluster['value'])
+            course_of_action.title = cluster['value']
             course_of_action.description = cluster['description']
             self.galaxies['course_of_action'].append(course_of_action)
 
@@ -896,7 +895,7 @@ class StixBuilder(object):
             ttp = self.create_ttp_from_galaxy(uuid, galaxy_name, cluster['id'], cluster['type'])
             malware = MalwareInstance()
             malware.id_ = "{}:MalwareInstance-{}".format(self.namespace_prefix, uuid)
-            malware.title = "{}: {}".format(galaxy_name, cluster['value'])
+            malware.title = cluster['value']
             if cluster.get('description'):
                 malware.description = cluster['description']
             if cluster['meta'].get('synonyms'):
@@ -1007,12 +1006,11 @@ class StixBuilder(object):
         return to_ids, observable
 
     def parse_threat_actor_galaxy(self, galaxy):
-        galaxy_name = galaxy['name']
         for cluster in galaxy['GalaxyCluster']:
             uuid = cluster['collection_uuid']
             threat_actor = ThreatActor()
             threat_actor.id_ = "{}:ThreatActor-{}".format(self.namespace_prefix, uuid)
-            threat_actor.title = "{}: {}".format(galaxy_name, cluster['value'])
+            threat_actor.title = cluster['value']
             if cluster.get('description'):
                 threat_actor.description = cluster['description']
             meta = cluster['meta']
@@ -1032,8 +1030,7 @@ class StixBuilder(object):
             ttp = self.create_ttp_from_galaxy(uuid, galaxy_name, cluster['id'], cluster['type'])
             tool = ToolInformation()
             tool.id_ = "{}:ToolInformation-{}".format(self.namespace_prefix, uuid)
-            name = "Mitre Tool" if galaxy['type'] == 'mitre-tool' else galaxy['name']
-            tool.name = "{}: {}".format(name, cluster['value'])
+            tool.name = cluster['value']
             if cluster.get('description'):
                 tool.description = cluster['description']
             tools = Tools()
