@@ -2552,23 +2552,29 @@ class Server extends AppModel
             return $final;
         }
         $filter_rules = json_decode($filter_rules, true);
+        $url_params = null;
         foreach ($filter_rules as $field => $rules) {
             $temp = array();
-            foreach ($rules as $operator => $elements) {
-                foreach ($elements as $k => $element) {
-                    if ($operator === 'NOT') {
-                        $element = '!' . $element;
-                    }
-                    if (!empty($element)) {
-                        $temp[] = $element;
+            if ($field === 'url_params') {
+                $url_params = json_decode($rules, true);
+            } else {
+                foreach ($rules as $operator => $elements) {
+                    foreach ($elements as $k => $element) {
+                        if ($operator === 'NOT') {
+                            $element = '!' . $element;
+                        }
+                        if (!empty($element)) {
+                            $temp[] = $element;
+                        }
                     }
                 }
-            }
-            if (!empty($temp)) {
-                $temp = implode('|', $temp);
-                $final[substr($field, 0, strlen($field) -1)] = $temp;
+                if (!empty($temp)) {
+                    $temp = implode('|', $temp);
+                    $final[substr($field, 0, strlen($field) -1)] = $temp;
+                }
             }
         }
+        $final = array_merge_recursive($final, $url_params);
         return $final;
     }
 

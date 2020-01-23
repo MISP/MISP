@@ -63,6 +63,18 @@ foreach ($servers as $row_pos => $server):
                 }
             }
         }
+        if ($syncOption === 'pull') {
+            if (!empty($rules['pull']['url_params'])) {
+                $ruleDescription[$syncOption] .= sprintf(
+                    '%s: %s',
+                    sprintf("<span class='bold'>%s</span>", __('URL params')),
+                    sprintf(
+                        "<pre class='jsonify'>%s</pre>",
+                        h(json_encode(json_decode($rules['pull']['url_params']), JSON_PRETTY_PRINT))
+                    )
+                );
+            }
+        }
     }
     $arrows = '';
     foreach (['up', 'down'] as $direction) {

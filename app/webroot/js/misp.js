@@ -3401,8 +3401,15 @@ function zeroMQServerAction(action) {
 function convertServerFilterRules(rules) {
     validOptions.forEach(function (type) {
         container = "#"+ modelContext + type.ucfirst() + "Rules";
-        if ($(container).val() != '' && $(container).val() != '[]') rules[type] = JSON.parse($(container).val());
-        else {rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}};
+        if ($(container).val() != '' && $(container).val() != '[]') {
+            rules[type] = JSON.parse($(container).val());
+        } else {
+            if (type === 'pull') {
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "url_params": ""}
+            } else {
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}
+            }
+        };
     });
     serverRuleUpdate();
     return rules;
@@ -3433,6 +3440,14 @@ function serverRuleUpdate() {
                 }
             });
         });
+        if (type === 'pull') {
+            if (rules[type]['url_params']) {
+                $("#pull_url_params").show();
+                $("#pull_url_params_text").text(rules[type]['url_params']);
+            } else {
+                $("#pull_url_params").hide();
+            }
+        }
     });
     serverRuleGenerateJSON();
 }
@@ -3488,6 +3503,7 @@ function serverRulePopulateTagPicklist() {
             }));
         });
     });
+    $('#urlParams').val(rules["pull"]["url_params"]);
 }
 
 function submitServerRulePopulateTagPicklistValues(context) {
@@ -3501,7 +3517,9 @@ function submitServerRulePopulateTagPicklistValues(context) {
             rules[context][field]["NOT"].push($(this).val());
         });
     });
-
+    if (context === 'pull') {
+        rules[context]["url_params"] = $('#urlParams').val();
+    }
     $('#server_' + context + '_rule_popover').fadeOut();
     $('#gray_out').fadeOut();
     serverRuleUpdate();
