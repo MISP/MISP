@@ -44,7 +44,7 @@ from cybox.utils import Namespace
 from stix.coa import CourseOfAction
 from stix.common import InformationSource, Identity, ToolInformation
 from stix.common.confidence import Confidence
-from stix.common.related import RelatedIndicator, RelatedObservable, RelatedThreatActor, RelatedTTP
+from stix.common.related import RelatedCOA, RelatedIndicator, RelatedObservable, RelatedThreatActor, RelatedTTP
 from stix.common.vocabs import IncidentStatus
 from stix.core import STIXPackage, STIXHeader
 from stix.data_marking import Marking, MarkingSpecification
@@ -174,7 +174,8 @@ class StixBuilder(object):
             for course_of_action in self.galaxies['course_of_action']:
                 stix_package.add_course_of_action(course_of_action)
                 rcoa = CourseOfAction(idref=course_of_action.id_, timestamp=course_of_action.timestamp)
-                self.incident.add_coa_taken(rcoa)
+                related_coa = RelatedCOA(rcoa, relationship='CourseOfAction')
+                self.incident.add_coa_taken(related_coa)
         if self.galaxies.get('threat_actor'):
             ata = AttributedThreatActors()
             for threat_actor in self.galaxies['threat_actor']:
