@@ -420,14 +420,9 @@
                 )
             ),
             array(
-                'url' => h(Configure::read('Plugin.CustomAuth_custom_logout')),
-                'text' => __('Log out'),
-                'requirement' => (Configure::read('Plugin.CustomAuth_custom_logout') && empty(Configure::read('Plugin.CustomAuth_disable_logout')))
-            ),
-            array(
                 'url' => '/users/logout',
                 'text' => __('Log out'),
-                'requirement' => (!$externalAuthUser && empty(Configure::read('Plugin.CustomAuth_disable_logout')))
+                'requirement' => empty(Configure::read('Plugin.CustomAuth_disable_logout'))
             )
         );
     }
