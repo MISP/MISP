@@ -4197,7 +4197,7 @@ class Attribute extends AppModel
             return $this->validationErrors;
         } else {
             if ($user['Role']['perm_tagger']) {
-                /* 
+                /*
                     We should uncomment the line below in the future once we have tag soft-delete
                     A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
                     has a version below x
@@ -4499,7 +4499,7 @@ class Attribute extends AppModel
         $loop = false;
         if (empty($params['limit'])) {
             $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
-            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
+            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 80;
             $params['limit'] = $memory_in_mb * $memory_scaling_factor;
             $loop = true;
             $params['page'] = 1;
