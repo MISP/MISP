@@ -1309,7 +1309,7 @@ class EventsController extends AppController
             foreach ($event['Object'] as $k => $object) {
                 if (!empty($object['Attribute'])) {
                     foreach ($object['Attribute'] as $attribute) {
-                        if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+                        if ($oldest_timestamp == false || $oldest_timestamp > $attribute['timestamp']) {
                             $oldest_timestamp = $attribute['timestamp'];
                         }
                     }
@@ -1407,7 +1407,7 @@ class EventsController extends AppController
         $startDate = null;
         $modificationMap = array();
         foreach ($event['Attribute'] as $k => $attribute) {
-            if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+            if ($oldest_timestamp == false || $oldest_timestamp > $attribute['timestamp']) {
                 $oldest_timestamp = $attribute['timestamp'];
             }
             if ($startDate === null || $attribute['timestamp'] < $startDate) {
@@ -2082,7 +2082,6 @@ class EventsController extends AppController
         if (isset($this->params['named']['extends'])) {
             $this->set('extends_uuid', $this->params['named']['extends']);
         }
-        $this->set('action', 'add');
     }
 
     public function addIOC($id)
@@ -2148,7 +2147,6 @@ class EventsController extends AppController
             throw new UnauthorizedException(__('You do not have permission to do that.'));
         }
         if ($this->request->is('post')) {
-            $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
             if ($this->_isRest()) {
                 $randomFileName = $this->Event->generateRandomFileName();
                 $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
@@ -2159,8 +2157,8 @@ class EventsController extends AppController
                     $this->Auth->user(),
                     $randomFileName,
                     $stix_version,
-                    $original_file,
-                    $this->data['Event']['publish']
+                    'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
+                    false
                 );
                 if (is_array($result)) {
                     return $this->RestResponse->saveSuccessResponse('Events', 'upload_stix', false, $this->response->type(), 'STIX document imported, event\'s created: ' . implode(', ', $result) . '.');
@@ -2175,6 +2173,7 @@ class EventsController extends AppController
                     return $this->RestResponse->saveFailResponse('Events', 'upload_stix', false, $result, $this->response->type());
                 }
             } else {
+                $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
                 if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
                     $randomFileName = $this->Event->generateRandomFileName();
                     $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
@@ -2420,11 +2419,9 @@ class EventsController extends AppController
             $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
         $this->set('analysisLevels', $analysisLevels);
-
         $this->set('fieldDesc', $fieldDesc);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('event', $this->Event->data);
-        $this->set('action', 'edit');
         $this->render('add');
     }
 
@@ -4505,6 +4502,32 @@ class EventsController extends AppController
         return $json;
     }
 
+    public function getEventTimeline($id, $type = 'event')
+    {
+        $validTools = array('event');
+        if (!in_array($type, $validTools)) {
+            throw new MethodNotAllowedException('Invalid type.');
+        }
+
+        App::uses('EventTimelineTool', 'Tools');
+        $grapher = new EventTimelineTool();
+        $data = $this->request->is('post') ? $this->request->data : array();
+        $dataFiltering = array_key_exists('filtering', $data) ? $data['filtering'] : array();
+
+        $extended = isset($this->params['named']['extended']) ? 1 : 0;
+
+        $grapher->construct($this->Event, $this->Auth->user(), $dataFiltering, $extended);
+        $json = $grapher->get_timeline($id);
+
+        array_walk_recursive($json, function (&$item, $key) {
+            if (!mb_detect_encoding($item, 'utf-8', true)) {
+                $item = utf8_encode($item);
+            }
+        });
+        $this->response->type('json');
+        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+    }
+
     public function getDistributionGraph($id, $type = 'event')
     {
         $extended = isset($this->params['named']['extended']) ? 1 : 0;
@@ -4668,22 +4691,24 @@ class EventsController extends AppController
             throw new Exception("Invalid options.");
         }
 
-        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true));
-        if (empty($event)) {
-            throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
+        if ($scope !== 'tag_collection') {
+            $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true));
+            if (empty($event)) {
+                throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
+            }
+            $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($this->Auth->user(), $eventId, $matrixTags);
+            $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
+            $maxScore = 0;
+            $scoresData = array();
+            foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
+                $sum = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+                $scoresData[$key] = $sum;
+                $maxScore = max($maxScore, $sum);
+            }
+            $scores = $scoresData;
+        } else {
+            $scores = $scoresData = array();
         }
-
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($this->Auth->user(), $eventId, $matrixTags);
-        $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
-        $maxScore = 0;
-        $scoresData = array();
-        foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
-            $sum = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
-            $scoresData[$key] = $sum;
-            $maxScore = max($maxScore, $sum);
-        }
-
-        $scores = $scoresData;
         // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
         if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
             $mergedScore = array();
@@ -4843,7 +4868,7 @@ class EventsController extends AppController
             $options = array();
             foreach ($enabledModules['modules'] as $temp) {
                 if ($temp['name'] == $module) {
-                    $format = (isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
+                    $format = (!empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
                             $options[$conf] = Configure::read('Plugin.' . $type . '_' . $module . '_' . $conf);
@@ -5107,7 +5132,7 @@ class EventsController extends AppController
                         throw new Exception($result);
                     }
                     $importComment = !empty($result['comment']) ? $result['comment'] : 'Enriched via the ' . $module['name'] . ' module';
-                    if (isset($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
+                    if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
                         $event = $this->Event->handleMispFormatFromModuleResult($result);
                         $event['Event'] = array('id' => $eventId);
                         if ($this->_isRest()) {
@@ -5160,8 +5185,9 @@ class EventsController extends AppController
                     $this->set('importComment', $importComment);
                     $this->render($render_name);
                 }
+            } else {
+                $this->Flash->error($fail);
             }
-            $this->Flash->error($fail);
         }
         $this->set('configTypes', $this->Module->configTypes);
         $this->set('module', $module);

@@ -394,6 +394,7 @@ class ServersController extends AppController
             }
             $this->set('allTags', $allTags);
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
+            $this->render('edit');
         }
     }
 
@@ -1135,6 +1136,9 @@ class ServersController extends AppController
             $this->set('phpversion', phpversion());
             $this->set('phpmin', $this->phpmin);
             $this->set('phprec', $this->phprec);
+            $this->set('pythonmin', $this->pythonmin);
+            $this->set('pythonrec', $this->pythonrec);
+            $this->set('pymisp', $this->pymisp);
         }
     }
 
@@ -2221,15 +2225,18 @@ misp.direct_call(relative_path, body)
         } else {
             $this->set('checkedTableColumn', $dbSchemaDiagnostics['checked_table_column']);
             $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics['diagnostic']);
+            $this->set('dbIndexDiagnostics', $dbSchemaDiagnostics['diagnostic_index']);
             $this->set('expectedDbVersion', $dbSchemaDiagnostics['expected_db_version']);
             $this->set('actualDbVersion', $dbSchemaDiagnostics['actual_db_version']);
             $this->set('error', $dbSchemaDiagnostics['error']);
             $this->set('remainingLockTime', $dbSchemaDiagnostics['remaining_lock_time']);
             $this->set('updateFailNumberReached', $dbSchemaDiagnostics['update_fail_number_reached']);
             $this->set('updateLocked', $dbSchemaDiagnostics['update_locked']);
+            $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
+            $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
+            $this->set('indexes', $dbSchemaDiagnostics['indexes']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
         }
-
     }
 
     public function viewDeprecatedFunctionUse()

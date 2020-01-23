@@ -1,7 +1,7 @@
 <?php
   $tr_class = '';
   $linkClass = 'white';
-  $currentType = 'denyForm';
+  $currentType = 'Object';
   $tr_class = 'tableHighlightBorderTop borderBlue';
   if ($event['Event']['id'] != $object['event_id']) {
     if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
@@ -35,6 +35,9 @@
   </td>
   <td class="short context hidden">
     <?php echo h($object['uuid']); ?>
+  </td>
+  <td class="short context hidden">
+      <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
   <td class="short">
     <?php echo date('Y-m-d', $object['timestamp']); ?>
@@ -85,18 +88,21 @@
       }
     ?>
   </td>
-  <td class="shortish">
-    <?php echo h($object['comment']); ?>
+  <td class="showspaces bitwider" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+    <div id = "Object_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
+    <div id = "Object_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
+      <?php echo nl2br(h($object['comment'])); ?>&nbsp;
+    </div>
   </td>
   <td colspan="4">&nbsp;
   </td>
-  <td class="shortish">
+  <td class="shortish" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
     <?php
       $turnRed = '';
       if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
     ?>
     <div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class = "inline-field-placeholder"></div>
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
+    <div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid">
       <?php
         if ($object['objectType'] == 0) {
           if ($object['distribution'] == 4):
@@ -155,5 +161,6 @@
         'child' => $attrKey == $lastElement ? 'last' : true
       ));
     }
+    echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') .'" onclick="popoverPopup(this, ' . h($object['id']) . ', \'objects\', \'quickFetchTemplateWithValidObjectAttributes\')"></span></td></tr>';
   }
 ?>

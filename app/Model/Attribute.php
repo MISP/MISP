@@ -35,7 +35,7 @@ class Attribute extends AppModel
     );
 
     public $defaultFields = array(
-        'id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'to_ids', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'comment', 'deleted', 'disable_correlation'
+        'id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'to_ids', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'comment', 'deleted', 'disable_correlation', 'first_seen', 'last_seen'
     );
 
     public $distributionDescriptions = array(
@@ -89,16 +89,16 @@ class Attribute extends AppModel
             'Payload delivery' => array(
                     'desc' => __('Information about how the malware is delivered'),
                     'formdesc' => __('Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'whois-registrant-email', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
                     ),
             'Artifacts dropped' => array(
                     'desc' => __('Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'mime-type', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'kusto-query', 'mime-type', 'anonymised')
                     ),
             'Payload installation' => array(
                     'desc' => __('Info on where the malware gets installed in the system'),
                     'formdesc' => __('Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'other', 'mime-type', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
                     ),
             'Persistence mechanism' => array(
                     'desc' => __('Mechanisms used by the malware to start at boot'),
@@ -191,6 +191,7 @@ class Attribute extends AppModel
             'stix2-pattern' => array('desc' => __('STIX 2 pattern'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'sigma' => array('desc' => __('Sigma - Generic Signature Format for SIEM Systems'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'gene' => array('desc' => __('GENE - Go Evtx sigNature Engine'), 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
+            'kusto-query' => array('desc' => __('Kusto query - Kusto from Microsoft Azure is a service for storing and running interactive analytics over Big Data.'), 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
             'mime-type' => array('desc' => __('A media type (also MIME type and content type) is a two-part identifier for file formats and format contents transmitted on the Internet'), 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
             'identity-card-number' => array('desc' => __('Identity card number'), 'default_category' => 'Person', 'to_ids' => 0),
             'cookie' => array('desc' => __('HTTP cookie as often stored on the user web client. This can include authentication cookie or session cookie.'), 'default_category' => 'Network activity', 'to_ids' => 0),
@@ -317,6 +318,7 @@ class Attribute extends AppModel
             'place-port-of-onward-foreign-destination' => array('desc' => __('A Port where the passenger is transiting to'), 'default_category' => 'Person', 'to_ids' => 0),
             'passenger-name-record-locator-number' => array('desc' => __('The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.'), 'default_category' => 'Person', 'to_ids' => 0),
             'mobile-application-id' => array('desc' => __('The application id of a mobile application'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'chrome-extension-id' => array('desc' => __('Chrome extension id'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'cortex' => array('desc' => __('Cortex analysis result'), 'default_category' => 'External analysis', 'to_ids' => 0),
             'boolean' => array('desc' => __('Boolean value - to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),
             'anonymised' => array('desc' => __('Anonymised value - described with the anonymisation object via a relationship'),  'formdesc' => __('Anonymised value - described with the anonymisation object via a relationship.'), 'default_category' => 'Other', 'to_ids' => 0)
@@ -374,7 +376,9 @@ class Attribute extends AppModel
         'deleted',
         'disable_correlation',
         'object_id',
-        'object_relation'
+        'object_relation',
+        'first_seen',
+        'last_seen'
     );
 
     public $searchResponseTypes = array(
@@ -526,6 +530,16 @@ class Attribute extends AppModel
                 'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
                 'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
                 'required' => true
+        ),
+        'first_seen' => array(
+            'rule' => array('datetimeOrNull'),
+            'required' => false,
+            'message' => array('Invalid ISO 8601 format')
+        ),
+        'last_seen' => array(
+            'rule' => array('datetimeOrNull'),
+            'required' => false,
+            'message' => array('Invalid ISO 8601 format')
         )
     );
 
@@ -604,6 +618,7 @@ class Attribute extends AppModel
             if (isset($v['Attribute']['object_relation']) && $v['Attribute']['object_relation'] === null) {
                 $results[$k]['Attribute']['object_relation'] = '';
             }
+            $results[$k] = $this->UTCToISODatetime($results[$k], $this->alias);
         }
         return $results;
     }
@@ -634,6 +649,13 @@ class Attribute extends AppModel
                 $this->data['Attribute']['value1'] = $this->data['Attribute']['value'];
                 $this->data['Attribute']['value2'] = '';
             }
+        }
+
+        $this->data = $this->ISODatetimeToUTC($this->data, $this->alias);
+
+        // update correlation... (only needed here if there's an update)
+        if ($this->id || !empty($this->data['Attribute']['id'])) {
+            $this->__beforeSaveCorrelation($this->data['Attribute']);
         }
         // always return true after a beforeSave()
         return true;
@@ -853,6 +875,16 @@ class Attribute extends AppModel
             $date = new DateTime();
             $this->data['Attribute']['timestamp'] = $date->getTimestamp();
         }
+
+        // parse first_seen different formats
+        if (isset($this->data['Attribute']['first_seen'])) {
+            $this->data['Attribute']['first_seen'] = $this->data['Attribute']['first_seen'] === '' ? null : $this->data['Attribute']['first_seen'];
+        }
+        // parse last_seen different formats
+        if (isset($this->data['Attribute']['last_seen'])) {
+            $this->data['Attribute']['last_seen'] = $this->data['Attribute']['last_seen'] === '' ? null : $this->data['Attribute']['last_seen'];
+        }
+
         // TODO: add explanatory comment
         // TODO: i18n?
         $result = $this->runRegexp($this->data['Attribute']['type'], $this->data['Attribute']['value']);
@@ -983,6 +1015,20 @@ class Attribute extends AppModel
     {
         $value = $fields['value'];
         return $this->runValidation($value, $this->data['Attribute']['type']);
+    }
+
+    // check whether the variable is null or datetime
+    public function datetimeOrNull($fields)
+    {
+        $k = array_keys($fields)[0];
+        $seen = $fields[$k];
+        try {
+            new DateTime($seen);
+            $returnValue = true;
+        } catch (Exception $e) {
+            $returnValue = false;
+        }
+        return $returnValue || is_null($seen);
     }
 
     private $__hexHashLengths = array(
@@ -1262,6 +1308,7 @@ class Attribute extends AppModel
             case 'stix2-pattern':
             case 'sigma':
             case 'gene':
+            case 'kusto-query':
             case 'mime-type':
             case 'identity-card-number':
             case 'cookie':
@@ -1345,6 +1392,7 @@ class Attribute extends AppModel
             case 'github-organisation':
             case 'cpe':
             case 'twitter-id':
+            case 'chrome-extension-id':
             case 'mobile-application-id':
                 // no newline
                 if (!preg_match("#\n#", $value)) {
@@ -2137,6 +2185,50 @@ class Attribute extends AppModel
         return $fails;
     }
 
+    public function ISODatetimeToUTC($data, $alias)
+    {
+        // convert into utc and micro sec
+        if (!empty($data[$alias]['first_seen'])) {
+            $d = new DateTime($data[$alias]['first_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $fs_sec = $d->format('U');
+            $fs_micro = $d->format('u');
+            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+            $fs = $fs_sec . $fs_micro;
+            $data[$alias]['first_seen'] = $fs;
+        }
+        if (!empty($data[$alias]['last_seen'])) {
+            $d = new DateTime($data[$alias]['last_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $ls_sec = $d->format('U');
+            $ls_micro = $d->format('u');
+            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+            $ls = $ls_sec . $ls_micro;
+            $data[$alias]['last_seen'] = $ls;
+        }
+        return $data;
+    }
+
+    public function UTCToISODatetime($data, $alias)
+    {
+        if (!empty($data[$alias]['first_seen'])) {
+            $fs = $data[$alias]['first_seen'];
+            $fs_sec = intval($fs / 1000000); // $fs is in micro (10^6)
+            $fs_micro = $fs % 1000000;
+            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+            $fs = $fs_sec . '.' . $fs_micro;
+            $data[$alias]['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
+        }
+        if (!empty($data[$alias]['last_seen'])) {
+            $ls = $data[$alias]['last_seen'];
+            $ls_sec = intval($ls / 1000000); // $ls is in micro (10^6)
+            $ls_micro = $ls % 1000000;
+            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+            $ls = $ls_sec . '.' . $ls_micro;
+            $data[$alias]['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
+        }
+        return $data;
+    }
 
     public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false, $enforceWarninglist = false)
     {
@@ -3526,6 +3618,7 @@ class Attribute extends AppModel
                 $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
             }
         }
+        $saveResult = true;
         foreach ($attributes as $k => $attribute) {
             if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
                 $attribute = $this->onDemandEncrypt($attribute);
@@ -3535,9 +3628,9 @@ class Attribute extends AppModel
             }
             unset($attribute['Attachment']);
             $this->create();
-            $this->save($attribute);
+            $saveResult = $saveResult && $this->save($attribute);
         }
-        return true;
+        return $saveResult;
     }
 
     public function onDemandEncrypt($attribute)
@@ -3648,6 +3741,32 @@ class Attribute extends AppModel
         } else {
             $timestamp = intval($this->Event->resolveTimeDelta($timestamp));
             $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+        }
+        if ($returnRaw) {
+            return $timestamp;
+        }
+        return $conditions;
+    }
+
+    public function setTimestampSeenConditions($timestamp, $conditions, $scope = 'Attribute.first_seen', $returnRaw = false)
+    {
+        if (is_array($timestamp)) {
+            $timestamp[0] = intval($this->Event->resolveTimeDelta($timestamp[0])) * 1000000; // seen in stored in micro-seconds in the DB
+            $timestamp[1] = intval($this->Event->resolveTimeDelta($timestamp[1])) * 1000000; // seen in stored in micro-seconds in the DB
+            if ($timestamp[0] > $timestamp[1]) {
+                $temp = $timestamp[0];
+                $timestamp[0] = $timestamp[1];
+                $timestamp[1] = $temp;
+            }
+            $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
+            $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
+        } else {
+            $timestamp = intval($this->Event->resolveTimeDelta($timestamp)) * 1000000; // seen in stored in micro-seconds in the DB
+            if ($scope == 'Attribute.first_seen') {
+                $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+            } else {
+                $conditions['AND'][] = array($scope . ' <=' => $timestamp);
+            }
         }
         if ($returnRaw) {
             return $timestamp;
@@ -3963,7 +4082,8 @@ class Attribute extends AppModel
         if (isset($attribute['uuid'])) {
             $existingAttribute = $this->find('first', array(
                 'conditions' => array('Attribute.uuid' => $attribute['uuid']),
-                'recursive' => -1
+                'contain' => array('AttributeTag' => 'Tag'),
+                'recursive' => -1,
             ));
             $this->Log = ClassRegistry::init('Log');
             if (count($existingAttribute)) {
@@ -3982,7 +4102,7 @@ class Attribute extends AppModel
                     return true;
                 }
                 // If a field is not set in the request, just reuse the old value
-                $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id', 'object_id', 'object_relation');
+                $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id', 'object_id', 'object_relation', 'first_seen', 'last_seen');
                 foreach ($recoverFields as $rF) {
                     if (!isset($attribute[$rF])) {
                         $attribute[$rF] = $existingAttribute['Attribute'][$rF];
@@ -4052,7 +4172,9 @@ class Attribute extends AppModel
             'comment',
             'sharing_group_id',
             'deleted',
-            'disable_correlation'
+            'disable_correlation',
+            'first_seen',
+            'last_seen'
         );
         if ($objectId) {
             $fieldList[] = 'object_id';
@@ -4074,28 +4196,36 @@ class Attribute extends AppModel
             ));
             return $this->validationErrors;
         } else {
-            if (isset($attribute['Tag']) && $user['Role']['perm_tagger']) {
-                foreach ($attribute['Tag'] as $tag) {
-                    $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
-                    if ($tag_id) {
-                        // fix the IDs here
-                        $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
-                    } else {
-                        // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
-                        // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
-                        // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
-                        if ($user['Role']['perm_tag_editor']) {
-                            $this->Log->create();
-                            $this->Log->save(array(
-                                'org' => $user['Organisation']['name'],
-                                'model' => 'Attrubute',
-                                'model_id' => $this->id,
-                                'email' => $user['email'],
-                                'action' => 'edit',
-                                'user_id' => $user['id'],
-                                'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
-                                'change' => ''
-                            ));
+            if ($user['Role']['perm_tagger']) {
+                /*
+                    We should uncomment the line below in the future once we have tag soft-delete
+                    A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
+                    has a version below x
+                */
+                // $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
+                if (isset($attribute['Tag'])) {
+                    foreach ($attribute['Tag'] as $tag) {
+                        $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
+                        if ($tag_id) {
+                            // fix the IDs here
+                            $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
+                        } else {
+                            // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
+                            // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
+                            // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
+                            if ($user['Role']['perm_tag_editor']) {
+                                $this->Log->create();
+                                $this->Log->save(array(
+                                    'org' => $user['Organisation']['name'],
+                                    'model' => 'Attrubute',
+                                    'model_id' => $this->id,
+                                    'email' => $user['email'],
+                                    'action' => 'edit',
+                                    'user_id' => $user['id'],
+                                    'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
+                                    'change' => ''
+                                ));
+                            }
                         }
                     }
                 }
@@ -4214,6 +4344,8 @@ class Attribute extends AppModel
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'timestamp' => array('function' => 'set_filter_timestamp'),
                     'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'first_seen' => array('function' => 'set_filter_seen'),
+                    'last_seen' => array('function' => 'set_filter_seen'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
                     'comment' => array('function' => 'set_filter_comment')
                 ),
@@ -4367,7 +4499,7 @@ class Attribute extends AppModel
         $loop = false;
         if (empty($params['limit'])) {
             $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
-            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
+            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 80;
             $params['limit'] = $memory_in_mb * $memory_scaling_factor;
             $loop = true;
             $params['page'] = 1;

@@ -416,7 +416,7 @@ class LogsController extends AppController
             $this->set('actions', $actions);
 
             // combobox for models
-            $models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'DecayingModel', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
+            $models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'Feed', 'DecayingModel', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
             $models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
             $this->set('models', $models);
             $this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);

@@ -1495,7 +1495,7 @@ class User extends AppModel
             $endDate = time();
         }
         $dates = array();
-        for ($d=$startDate; $d < $endDate; $d=$d+3600*24) { 
+        for ($d=$startDate; $d < $endDate; $d=$d+3600*24) {
             $dates[] = date('Y-m-d', $d);
         }
         $csv = 'Date,Close\n';

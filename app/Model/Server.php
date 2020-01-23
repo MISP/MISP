@@ -2552,23 +2552,29 @@ class Server extends AppModel
             return $final;
         }
         $filter_rules = json_decode($filter_rules, true);
+        $url_params = null;
         foreach ($filter_rules as $field => $rules) {
             $temp = array();
-            foreach ($rules as $operator => $elements) {
-                foreach ($elements as $k => $element) {
-                    if ($operator === 'NOT') {
-                        $element = '!' . $element;
-                    }
-                    if (!empty($element)) {
-                        $temp[] = $element;
+            if ($field === 'url_params') {
+                $url_params = json_decode($rules, true);
+            } else {
+                foreach ($rules as $operator => $elements) {
+                    foreach ($elements as $k => $element) {
+                        if ($operator === 'NOT') {
+                            $element = '!' . $element;
+                        }
+                        if (!empty($element)) {
+                            $temp[] = $element;
+                        }
                     }
                 }
-            }
-            if (!empty($temp)) {
-                $temp = implode('|', $temp);
-                $final[substr($field, 0, strlen($field) -1)] = $temp;
+                if (!empty($temp)) {
+                    $temp = implode('|', $temp);
+                    $final[substr($field, 0, strlen($field) -1)] = $temp;
+                }
             }
         }
+        $final = array_merge_recursive($final, $url_params);
         return $final;
     }
 
@@ -4285,7 +4291,7 @@ class Server extends AppModel
         $dataSource = $this->getDataSource()->config['datasource'];
         if ($dataSource == 'Database/Mysql') {
             $sql = sprintf(
-                'select table_name, sum((data_length+index_length)/1024/1024) AS used, sum(data_free)/1024/1024 reclaimable from information_schema.tables where table_schema = %s group by table_name;',
+                'select TABLE_NAME, sum((DATA_LENGTH+INDEX_LENGTH)/1024/1024) AS used, sum(DATA_FREE)/1024/1024 AS reclaimable from information_schema.tables where table_schema = %s group by TABLE_NAME;',
                 "'" . $this->getDataSource()->config['database'] . "'"
             );
             $sqlResult = $this->query($sql);
@@ -4294,14 +4300,14 @@ class Server extends AppModel
                 foreach ($temp[0] as $k => $v) {
                     $temp[0][$k] = round($v, 2) . 'MB';
                 }
-                $temp[0]['table'] = $temp['tables']['table_name'];
+                $temp[0]['table'] = $temp['tables']['TABLE_NAME'];
                 $result[] = $temp[0];
             }
             return $result;
         }
         else if ($dataSource == 'Database/Postgres') {
             $sql = sprintf(
-                'select table_name as table, pg_total_relation_size(%s||%s||table_name) as used from information_schema.tables where table_schema = %s group by table_name;',
+                'select TABLE_NAME as table, pg_total_relation_size(%s||%s||TABLE_NAME) as used from information_schema.tables where table_schema = %s group by TABLE_NAME;',
                 "'" . $this->getDataSource()->config['database'] . "'",
                 "'.'",
                 "'" . $this->getDataSource()->config['database'] . "'"
@@ -4347,23 +4353,34 @@ class Server extends AppModel
         ))['AdminSetting']['value'];
         $dataSource = $this->getDataSource()->config['datasource'];
         $schemaDiagnostic = array(
+            'dataSource' => $dataSource,
             'actual_db_version' => $actualDbVersion,
             'checked_table_column' => array(),
             'diagnostic' => array(),
+            'diagnostic_index' => array(),
             'expected_db_version' => '?',
             'error' => '',
             'update_locked' => $this->isUpdateLocked(),
             'remaining_lock_time' => $this->getLockRemainingTime(),
-            'update_fail_number_reached' => $this->UpdateFailNumberReached()
+            'update_fail_number_reached' => $this->UpdateFailNumberReached(),
+            'indexes' => array()
         );
         if ($dataSource == 'Database/Mysql') {
             $dbActualSchema = $this->getActualDBSchema();
             $dbExpectedSchema = $this->getExpectedDBSchema();
             if ($dbExpectedSchema !== false) {
                 $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
+                $db_indexes_comparison = $this->compareDBIndexes($dbActualSchema['indexes'], $dbExpectedSchema['indexes']);
                 $schemaDiagnostic['checked_table_column'] = $dbActualSchema['column'];
                 $schemaDiagnostic['diagnostic'] = $db_schema_comparison;
+                $schemaDiagnostic['diagnostic_index'] = $db_indexes_comparison;
                 $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
+                foreach($dbActualSchema['schema'] as $tableName => $tableMetas) {
+                    foreach($tableMetas as $tableMeta) {
+                        $schemaDiagnostic['columnPerTable'][$tableName][] = $tableMeta['column_name'];
+                    }
+                }
+                $schemaDiagnostic['indexes'] = $dbActualSchema['indexes'];
             } else {
                 $schemaDiagnostic['error'] = sprintf('Diagnostic not available as the expected schema file could not be loaded');
             }
@@ -4500,26 +4517,28 @@ class Server extends AppModel
         )
     ){
         $dbActualSchema = array();
+        $dbActualIndexes = array();
         $dataSource = $this->getDataSource()->config['datasource'];
         if ($dataSource == 'Database/Mysql') {
-            $sqlGetTable = sprintf('SELECT table_name FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
+            $sqlGetTable = sprintf('SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
             $sqlResult = $this->query($sqlGetTable);
-            $tables = HASH::extract($sqlResult, '{n}.tables.table_name');
+            $tables = HASH::extract($sqlResult, '{n}.tables.TABLE_NAME');
             foreach ($tables as $table) {
                 $sqlSchema = sprintf(
                     "SELECT %s
                     FROM information_schema.columns
-                    WHERE table_schema = '%s' AND table_name = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
+                    WHERE table_schema = '%s' AND TABLE_NAME = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
                 $sqlResult = $this->query($sqlSchema);
                 foreach ($sqlResult as $column_schema) {
                     $dbActualSchema[$table][] = $column_schema['columns'];
                 }
+                $dbActualIndexes[$table] = $this->getDatabaseIndexes($this->getDataSource()->config['database'], $table);
             }
         }
         else if ($dataSource == 'Database/Postgres') {
             return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
-        return array('schema' => $dbActualSchema, 'column' => $tableColumnNames);
+        return array('schema' => $dbActualSchema, 'column' => $tableColumnNames, 'indexes' => $dbActualIndexes);
     }
 
     public function compareDBSchema($dbActualSchema, $dbExpectedSchema)
@@ -4578,8 +4597,19 @@ class Server extends AppModel
                             $isCritical = false;
                             foreach($colElementDiffs as $colElementDiff) {
                                 if(!in_array($colElementDiff, $nonCriticalColumnElements)) {
-                                    $isCritical = true;
-                                    break;
+                                    if ($colElementDiff == 'column_default') {
+                                        $expectedValue = $column['column_default'];
+                                        $actualValue = $keyedActualColumn[$columnName]['column_default'];
+                                        if (preg_match(sprintf('@(\'|")+%s(\1)+@', $expectedValue), $actualValue) || (empty($expectedValue) && $actualValue === 'NULL')) { // some version of mysql quote the default value
+                                            continue;
+                                        } else {
+                                            $isCritical = true;
+                                            break;
+                                        }
+                                    } else {
+                                        $isCritical = true;
+                                        break;
+                                    }
                                 }
                             }
                             $dbDiff[$tableName][] = array(
@@ -4613,6 +4643,42 @@ class Server extends AppModel
             );
         }
         return $dbDiff;
+    }
+
+    public function compareDBIndexes($actualIndex, $expectedIndex)
+    {
+        $indexDiff = array();
+        foreach($expectedIndex as $tableName => $indexes) {
+            if (!array_key_exists($tableName, $actualIndex)) {
+                // If table does not exists, it is covered by the schema diagnostic
+            } else {
+                $tableIndexDiff = array_diff($indexes, $actualIndex[$tableName]); // check for missing indexes
+                if (count($tableIndexDiff) > 0) {
+                    foreach($tableIndexDiff as $columnDiff) {
+                        $indexDiff[$tableName][$columnDiff] = sprintf(__('Column `%s` should be indexed'), $columnDiff);
+                    }
+                }
+                $tableIndexDiff = array_diff($actualIndex[$tableName], $indexes); // check for additional indexes
+                if (count($tableIndexDiff) > 0) {
+                    foreach($tableIndexDiff as $columnDiff) {
+                        $indexDiff[$tableName][$columnDiff] = sprintf(__('Column `%s` is indexed but should not'), $columnDiff);
+                    }
+                }
+            }
+        }
+        return $indexDiff;
+    }
+
+    public function getDatabaseIndexes($database, $table)
+    {
+        $sqlTableIndex = sprintf(
+            "SELECT DISTINCT TABLE_NAME, COLUMN_NAME FROM information_schema.statistics WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s';",
+            $database,
+            $table
+        );
+        $sqlTableIndexResult = $this->query($sqlTableIndex);
+        $tableIndex = Hash::extract($sqlTableIndexResult, '{n}.statistics.COLUMN_NAME');
+        return $tableIndex;
     }
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)
@@ -4906,11 +4972,17 @@ class Server extends AppModel
             if (!$alive || !$correct_user) {
                 $ok = false;
                 $workerIssueCount++;
-                $worker_array[$entry]['ok'] = false;
             }
             $worker_array[$entry]['workers'][] = array('pid' => $pid, 'user' => $worker['user'], 'alive' => $alive, 'correct_user' => $correct_user, 'ok' => $ok);
         }
         foreach ($worker_array as $k => $queue) {
+            if (isset($worker_array[$k]['workers'])) {
+                foreach($worker_array[$k]['workers'] as $worker) {
+                    if ($worker['ok']) {
+                        $worker_array[$k]['ok'] = true; // If at least one worker is up, the queue can be considered working
+                    }
+                }
+            }
             if ($k != 'scheduler') {
                 $worker_array[$k]['jobCount'] = CakeResque::getQueueSize($k);
             }

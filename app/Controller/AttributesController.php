@@ -239,13 +239,8 @@ class AttributesController extends AppController
                         $failed = 1;
                         $message = sprintf('Attributes saved, however, %s attributes could not be saved. Click %s for more info', count($fails), '$flashErrorMessage');
                     } else {
-                        if (!empty($fails["attribute_0"])) {
-                            $failed = 1;
-                            $message = '0: ' . $v[0];
-                        } else {
-                            $failed = 1;
-                            $message = 'Attribute could not be saved.';
-                        }
+                        $failed = 1;
+                        $message = 'Attribute could not be saved.';
                     }
                 }
                 if (!empty($failKeys)) {
@@ -267,8 +262,14 @@ class AttributesController extends AppController
                     $flashErrorMessage = implode('<br />', $flashErrorMessage);
                     $this->Session->write('flashErrorMessage', $flashErrorMessage);
                 }
+                if (empty($failed)) {
+                    $this->Flash->success($message);
+                } else {
+                    $this->Flash->error($message);
+                }
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
+                    $this->layout = false;
                     $errors = ($attributeCount > 1) ? $message : $this->Attribute->validationErrors;
                     if (!empty($successes)) {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)),'status' => 200, 'type' => 'json'));
@@ -276,11 +277,6 @@ class AttributesController extends AppController
                         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errors)),'status' => 200, 'type' => 'json'));
                     }
                 } else {
-                    if (empty($failed)) {
-                        $this->Flash->success($message);
-                    } else {
-                        $this->Flash->error($message);
-                    }
                     if ($successes > 0) {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                     }
@@ -311,25 +307,31 @@ class AttributesController extends AppController
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
-        $info = array();
+        $initialDistribution = 5;
+        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
+        if ($configuredDistribution != null && $configuredDistribution != 'event') {
+            $initialDistribution = $configuredDistribution;
+        }
+        $this->set('initialDistribution', $initialDistribution);
+        $fieldDesc = array();
         $distributionLevels = $this->Attribute->distributionLevels;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
         }
         $this->set('distributionLevels', $distributionLevels);
+        foreach ($distributionLevels as $key => $value) {
+            $fieldDesc['distribution'][$key] = $this->Attribute->distributionDescriptions[$key]['formdesc'];
+        }
         foreach ($this->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
         }
         foreach ($this->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($distributionLevels as $key => $value) {
-            $info['distribution'][$key] = array('key' => $value, 'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']);
+            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
         }
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
         $this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
-        $this->set('info', $info);
+        $this->set('fieldDesc', $fieldDesc);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('published', $events['Event']['published']);
@@ -862,7 +864,7 @@ class AttributesController extends AppController
                     $skipTimeCheck = true;
                 }
                 if ($skipTimeCheck || $this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-                    $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
+                    $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'first_seen', 'last_seen');
                     foreach ($recoverFields as $rF) {
                         if (!isset($this->request->data['Attribute'][$rF])) {
                             $this->request->data['Attribute'][$rF] = $existingAttribute['Attribute'][$rF];
@@ -1062,7 +1064,7 @@ class AttributesController extends AppController
         if (!$this->_isRest()) {
             $this->Attribute->Event->insertLock($this->Auth->user(), $this->Attribute->data['Attribute']['event_id']);
         }
-        $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution');
+        $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution', 'first_seen', 'last_seen');
         $changed = false;
         if (empty($this->request->data['Attribute'])) {
             $this->request->data = array('Attribute' => $this->request->data);
@@ -1096,6 +1098,9 @@ class AttributesController extends AppController
             $event['Event']['timestamp'] = $date->getTimestamp();
             $event['Event']['published'] = 0;
             $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
+            if ($attribute['Attribute']['object_id'] != 0) {
+                $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
+            }
             $this->autoRender = false;
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
         } else {
@@ -1647,7 +1652,7 @@ class AttributesController extends AppController
             if (isset($this->request->data['Attribute'])) {
                 $this->request->data = $this->request->data['Attribute'];
             }
-            $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category');
+            $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category', 'first_seen', 'last_seen');
             foreach ($checkForEmpty as $field) {
                 if (empty($this->request->data[$field]) || $this->request->data[$field] === 'ALL') {
                     unset($this->request->data[$field]);
@@ -1657,7 +1662,7 @@ class AttributesController extends AppController
                 unset($this->request->data['to_ids']);
                 $this->request->data['ignore'] = 1;
             }
-            $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags');
+            $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'first_seen', 'last_seen');
             $filterData = array(
                 'request' => $this->request,
                 'named_params' => $this->params['named'],
@@ -1756,34 +1761,26 @@ class AttributesController extends AppController
     private function __searchUI($attributes)
     {
         $sightingsData = array();
-        $sgids = $this->Attribute->Event->cacheSgids($this->Auth->user(), true);
         $this->Feed = ClassRegistry::init('Feed');
-        if (!empty($options['overrideLimit'])) {
-            $overrideLimit = true;
-        } else {
-            $overrideLimit = false;
-        }
-        $this->loadModel('GalaxyCluster');
-        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+
         $this->loadModel('Sighting');
+        $user = $this->Auth->user();
         foreach ($attributes as $k => $attribute) {
+            $attributeId = $attribute['Attribute']['id'];
+
             $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
-            $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
+            $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute', $excludeGalaxy = false, $cullGalaxyTags = true);
             unset($attributes[$k]['AttributeTag']);
-            foreach ($attributes[$k]['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
-                if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                    unset($attributes[$k]['Attribute']['AttributeTag'][$k2]);
-                }
-            }
+
             $sightingsData = array_merge(
                 $sightingsData,
-                $this->Sighting->attachToEvent($attribute, $this->Auth->user(), $attributes[$k]['Attribute']['id'], $extraConditions = false)
+                $this->Sighting->attachToEvent($attribute, $user, $attributeId, $extraConditions = false)
             );
-            $correlations = $this->Attribute->Event->getRelatedAttributes($this->Auth->user(), $attributes[$k]['Attribute']['id'], false, false, 'attribute');
+            $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeId, false, false, 'attribute');
             if (!empty($correlations)) {
-                $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attributes[$k]['Attribute']['id']];
+                $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attributeId];
             }
-            $temp = $this->Feed->attachFeedCorrelations(array($attributes[$k]['Attribute']), $this->Auth->user, $attributes[$k]['Event'], $overrideLimit);
+            $temp = $this->Feed->attachFeedCorrelations(array($attributes[$k]['Attribute']), $user, $attributes[$k]['Event']);
             if (!empty($temp)) {
                 $attributes[$k]['Attribute'] = $temp[0];
             }
@@ -2155,7 +2152,7 @@ class AttributesController extends AppController
 
     public function fetchViewValue($id, $field = null)
     {
-        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp');
+        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp', 'first_seen', 'last_seen');
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException(__('Invalid field requested.'));
         }
@@ -2202,7 +2199,7 @@ class AttributesController extends AppController
 
     public function fetchEditForm($id, $field = null)
     {
-        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution');
+        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'first_seen', 'last_seen');
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException(__('Invalid field requested.'));
         }
@@ -2954,6 +2951,9 @@ class AttributesController extends AppController
                             $event['Event']['timestamp'] = $date->getTimestamp();
                             $result = $this->Attribute->Event->save($event);
                             $attribute['Attribute']['timestamp'] = $date->getTimestamp();
+                            if ($attribute['Attribute']['object_id'] != 0) {
+                                $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
+                            }
                             $this->Attribute->save($attribute);
                         }
                         $log = ClassRegistry::init('Log');
@@ -3100,6 +3100,9 @@ class AttributesController extends AppController
                     $date = new DateTime();
                     $event['Event']['timestamp'] = $date->getTimestamp();
                     $this->Attribute->Event->save($event);
+                    if ($this->Attribute->data['Attribute']['object_id'] != 0) {
+                        $this->Attribute->Object->updateTimestamp($this->Attribute->data['Attribute']['object_id'], $date->getTimestamp());
+                    }
                     $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
                     $this->Attribute->save($this->Attribute->data);
                 }

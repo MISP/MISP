@@ -46,10 +46,12 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '94';
-    public $pyMispVersion = '2.4.119';
-    public $phpmin = '7.0';
-    public $phprec = '7.2';
+    private $__queryVersion = '97';
+    public $pyMispVersion = '2.4.120';
+    public $phpmin = '7.2';
+    public $phprec = '7.4';
+    public $pythonmin = '3.6';
+    public $pythonrec = '3.7';
     public $isApiAuthed = false;
 
     public $baseurl = '';
@@ -289,7 +291,9 @@ class AppController extends Controller
 
         if ($this->Auth->user()) {
             // update script
-            $this->{$this->modelClass}->runUpdates();
+            if ($this->Auth->user('Role')['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
+                $this->{$this->modelClass}->runUpdates();
+            }
             $user = $this->Auth->user();
             if (!isset($user['force_logout']) || $user['force_logout']) {
                 $this->loadModel('User');
@@ -1187,6 +1191,9 @@ class AppController extends Controller
         }
         if ($returnFormat === 'download') {
             $returnFormat = 'json';
+        }
+        if ($returnFormat === 'stix' && $this->_isJson()) {
+            $returnFormat = 'stix-json';
         }
         $elementCounter = 0;
         $renderView = false;

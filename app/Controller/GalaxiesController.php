@@ -111,17 +111,19 @@ class GalaxiesController extends AppController
     {
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
         $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
-        $conditions = $namespace == '0' ? array() : array('namespace' => $namespace);
+        $conditions = $namespace === '0' ? array() : array('namespace' => $namespace);
         $galaxies = $this->Galaxy->find('all', array(
             'recursive' => -1,
+            'fields' => array('MAX(Galaxy.version) as latest_version', 'id', 'kill_chain_order', 'name', 'icon', 'description'),
             'conditions' => $conditions,
+            'group' => array('name', 'id', 'kill_chain_order', 'icon', 'description'),
             'order' => array('name asc')
         ));
-
-        $items = array();
-        $items[] = array(
-            'name' => __('All clusters'),
-            'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'. '/local:' . $local
+        $items = array(
+            array(
+                'name' => __('All clusters'),
+                'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'. '/local:' . $local
+            )
         );
         foreach ($galaxies as $galaxy) {
             if (!isset($galaxy['Galaxy']['kill_chain_order'])) {
