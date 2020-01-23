@@ -1798,7 +1798,7 @@ function popoverPopup(clicked, id, context, target, admin) {
             }
             var errorText = '<div class="alert alert-error" style="margin-bottom: 3px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>';
             if (errorJSON !== '') {
-                errorText += '<div class="well"><strong>Returned error:</strong>' + $('<span/>').text(errorJSON).html() + '</div>';
+                errorText += '<div class="well"><strong>Returned error:</strong> ' + $('<span/>').text(errorJSON).html() + '</div>';
             }
             popover.options.content = errorText;
             $clicked.popover('show');
