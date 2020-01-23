@@ -5346,8 +5346,8 @@
         "attribute_tags": [
             "id",
             "attribute_id",
-            "tag_id",
-            "event_id"
+            "event_id",
+            "tag_id"
         ],
         "attributes": [
             "id",
@@ -5535,8 +5535,7 @@
             "distribution",
             "sharing_group_id",
             "first_seen",
-            "last_seen",
-            "comment"
+            "last_seen"
         ],
         "org_blacklists": [
             "id"
@@ -5591,8 +5590,7 @@
             "type",
             "category",
             "first_seen",
-            "last_seen",
-            "comment"
+            "last_seen"
         ],
         "sharing_group_orgs": [
             "id",
