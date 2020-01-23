@@ -5,7 +5,7 @@ $towardDbVersion = $updateProgress['toward_db_version'];
 $updateLocked = $updateProgress['update_locked'];
 $lockRemainingTime = $updateProgress['lock_remaining_time'];
 $updateFailNumberReached = $updateProgress['update_fail_number_reached'];
-if ($updateProgress['total'] !== 0 ) {
+if (!empty($updateProgress['total'])) {
     $percentageFail = floor(count($updateProgress['failed_num']) / $updateProgress['total']*100);
     $percentage = floor(($updateProgress['current']) / $updateProgress['total']*100);
 } else {

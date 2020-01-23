@@ -7,7 +7,7 @@ mispmodules () {
   cd /usr/local/src/
   ## TODO: checkUsrLocalSrc in main doc
   debug "Cloning misp-modules"
-  $SUDO_USER git clone https://github.com/MISP/misp-modules.git
+  $SUDO_CMD git clone https://github.com/MISP/misp-modules.git
   cd misp-modules
   # some misp-modules dependencies
   sudo apt install libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y

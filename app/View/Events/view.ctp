@@ -508,6 +508,9 @@
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventgraph_toggle" data-toggle-type="eventgraph" onclick="enable_interactive_graph();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle Event graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event graph');?>" style="vertical-align:top;"></span><?php echo __('Event graph');?>
         </button>
+        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventtimeline_toggle" data-toggle-type="eventtimeline" onclick="enable_timeline();">
+            <span class="icon-plus icon-white" title="<?php echo __('Toggle Event timeline');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event timeline');?>" style="vertical-align:top;"></span><?php echo __('Event timeline');?>
+        </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="correlationgraph_toggle" data-toggle-type="correlationgraph" onclick="enable_correlation_graph();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle Correlation graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Correlation graph');?>" style="vertical-align:top;"></span><?php echo __('Correlation graph');?>
         </button>
@@ -532,6 +535,9 @@
     </div>
     <div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
         <?php echo $this->element('view_event_graph'); ?>
+    </div>
+    <div id="eventtimeline_div" class="info_container_eventtimeline" style="display: none;" data-fullscreen="false">
+        <?php echo $this->element('view_timeline'); ?>
     </div>
     <div id="correlationgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>

@@ -232,12 +232,12 @@
             $event = $this->__get_filtered_event($id);
             $this->__json['items'] = array();
             $this->__json['relations'] = array();
-            
+
             $this->__json['existing_object_relation'] = array();
             if (empty($event)) {
                 return $this->__json;
             }
-            
+
             if (!empty($event['Object'])) {
                 $object = $event['Object'];
             } else {
@@ -312,7 +312,7 @@
             if (empty($event)) {
                 return $this->__json;
             }
-            
+
             if (!empty($event['Object'])) {
                 $object = $event['Object'];
             } else {
@@ -419,7 +419,7 @@
             if (empty($event)) {
                 return $this->__json;
             }
-            
+
             if (!empty($event['Object'])) {
                 $object = $event['Object'];
             } else {
