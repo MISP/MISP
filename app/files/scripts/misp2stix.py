@@ -371,12 +371,6 @@ class StixBuilder(object):
         indicator.add_observable(observable)
         return indicator
 
-    def add_related_indicators(self):
-        for rindicator in self.incident.related_indicators:
-            for ttp in self.ttps:
-                ittp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
-                rindicator.item.add_indicated_ttp(ittp)
-
     def handle_attribute(self, attribute):
         observable = self.generate_observable(attribute)
         if observable:
