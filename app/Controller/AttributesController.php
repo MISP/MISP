@@ -1652,7 +1652,7 @@ class AttributesController extends AppController
             if (isset($this->request->data['Attribute'])) {
                 $this->request->data = $this->request->data['Attribute'];
             }
-            $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category');
+            $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category', 'first_seen', 'last_seen');
             foreach ($checkForEmpty as $field) {
                 if (empty($this->request->data[$field]) || $this->request->data[$field] === 'ALL') {
                     unset($this->request->data[$field]);
