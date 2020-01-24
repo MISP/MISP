@@ -825,8 +825,11 @@ class StixBuilder(object):
             email_object.attachments = Attachments()
             for attachment in attributes_dict['attachment']:
                 attachment_file = self.create_file_attachment(attachment['value'], attachment['uuid'])
-                email_object.add_related(attachment_file, "Contains", inline=True)
-                email_object.attachments.append(attachment_file.parent.id_)
+                related_file = RelatedObject(relationship='Contains', inline=True,
+                                             id_=attachment_file.parent.id_,
+                                             properties=attachment_file)
+                email_object.parent.related_objects.append(related_file)
+                email_object.attachments.append(related_file.id_)
         uuid = misp_object['uuid']
         email_object.header = email_header
         email_object.parent.id_ = "{}:EmailMessageObject-{}".format(self.namespace_prefix, uuid)
