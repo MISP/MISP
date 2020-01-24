@@ -380,7 +380,7 @@ class StixBuilder(object):
                 indicator.add_indicator_type("Malware Artifacts")
                 try:
                     indicator.add_indicator_type(misp_indicator_type[attribute['type']])
-                except Exception:
+                except KeyError:
                     pass
                 indicator.add_valid_time_position(ValidTime())
                 indicator.add_observable(observable)
@@ -681,6 +681,8 @@ class StixBuilder(object):
         for relation, feature in attack_pattern_object_mapping.items():
             if relation in attributes_dict:
                 setattr(attack_pattern, feature, attributes_dict[relation])
+        if attack_pattern.capec_id and not attack_pattern.capec_id.startswith('CAPEC'):
+            attack_pattern.capec_id = 'CAPEC-{}'.format(attack_pattern.capec_id)
         if misp_object.get('ObjectReference'):
             references = ((reference['referenced_uuid'], reference['relationship_type']) for reference in misp_object['ObjectReference'])
             self.ttp_references[uuid] = references

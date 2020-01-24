@@ -21,11 +21,11 @@ misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "UR
                    "named pipe" : "Pipe", "link" : "URI", "network-connection": "NetworkConnection", "windows-service-name": "WinService"}
 cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "URI" : "value", "AutonomousSystem" : "number",
                         "Pipe" : "name", "Mutex" : "name", "WinService": "name"}
-misp_indicator_type = {"AS" : "", "mutex" : "Host Characteristics", "named pipe" : "Host Characteristics",
+misp_indicator_type = {"mutex" : "Host Characteristics", "named pipe" : "Host Characteristics",
                        "email-attachment": "Malicious E-mail", "url" : "URL Watchlist"}
 misp_indicator_type.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"] + ["attachment"], "File Hash Watchlist"))
 misp_indicator_type.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to",  "email-attachment"], "Malicious E-mail"))
-misp_indicator_type.update(dict.fromkeys(["ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], "IP Watchlist"))
+misp_indicator_type.update(dict.fromkeys(["AS", "ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], "IP Watchlist"))
 misp_indicator_type.update(dict.fromkeys(["domain", "domain|ip", "hostname"], "Domain Watchlist"))
 misp_indicator_type.update(dict.fromkeys(["regkey", "regkey|value"], "Host Characteristics"))
 cybox_validation = {"AutonomousSystem": "isInt"}
