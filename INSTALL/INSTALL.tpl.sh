@@ -220,7 +220,7 @@ installSupported () {
 
   # TODO: Double check how the user is added and subsequently used during the install.
   # TODO: Work on possibility to install as user X and install MISP for user Y
-  # TODO: Check if logout needed. (run SUDO_USER in installer)
+  # TODO: Check if logout needed. (run SUDO_CMD in installer)
   # <snippet-begin add-user.sh>
   # TODO: Double check how to properly handle postfix
   # <snippet-begin postfix.sh>
@@ -444,6 +444,7 @@ installMISPonKali () {
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I antlr4-python3-runtime==4.7.2 2> /dev/null > /dev/null
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
 
@@ -678,6 +679,7 @@ x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
 x86_64-kali-2019.2
+x86_64-kali-2019.3
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-debian-jessie

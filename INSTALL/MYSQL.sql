@@ -199,6 +199,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   `locked` tinyint(1) NOT NULL DEFAULT 0,
   `threat_level_id` int(11) NOT NULL,
   `publish_timestamp` int(11) NOT NULL DEFAULT 0,
+  `sighting_timestamp` int(11) NOT NULL DEFAULT 0,
   `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
   `extends_uuid` varchar(40) COLLATE utf8_bin DEFAULT '',
   PRIMARY KEY (`id`),
@@ -821,6 +822,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `org_id` int(11) NOT NULL,
   `push` tinyint(1) NOT NULL,
   `pull` tinyint(1) NOT NULL,
+  `push_sightings` tinyint(1) NOT NULL DEFAULT 0,
   `lastpulledid` int(11) DEFAULT NULL,
   `lastpushedid` int(11) DEFAULT NULL,
   `organization` varchar(10) COLLATE utf8_bin DEFAULT NULL,
@@ -1358,7 +1360,7 @@ INSERT INTO `admin_settings` (`id`, `setting`, `value`) VALUES
 
 INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`, `enabled`) VALUES
 (1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint', 3, 1, 0),
-(2, 'Botvrij.eu', 'The Botvrij.eu Data', 'http://www.botvrij.eu/data/feed-osint', 3, 1, 0);
+(2, 'Botvrij.eu', 'The Botvrij.eu Data', 'https://www.botvrij.eu/data/feed-osint', 3, 1, 0);
 
  INSERT INTO `regexp` (`id`, `regexp`, `replacement`, `type`) VALUES
  (1, '/.:.ProgramData./i', '%ALLUSERSPROFILE%\\\\', 'ALL'),

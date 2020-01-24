@@ -183,6 +183,8 @@ cd $PATH_TO_MISP/app/files/scripts/python-stix
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+# FIXME: Remove once stix-fixed
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
 # install STIX2.0 library to support STIX 2.0 export:
 cd ${PATH_TO_MISP}/cti-python-stix2
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
@@ -198,7 +200,7 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/py
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
 
 # install zmq needed by mispzmq
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq redis
 
 # install python-magic
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
@@ -217,8 +219,9 @@ cd $PATH_TO_MISP/app
 # Make composer cache happy
 sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
 # Update composer.phar
+#EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
 # $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-# $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'a5c698ffe4b8e849a443b120cd5ba38043260d5c4023dbf93e1558871f1f07f58274fc6f4c93bcfd858c6bd0775cd8d1') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+# $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 # $SUDO_WWW php composer-setup.php
 # $SUDO_WWW php -r "unlink('composer-setup.php');"
 $SUDO_WWW php composer.phar install

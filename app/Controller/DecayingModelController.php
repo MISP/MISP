@@ -591,7 +591,8 @@ class DecayingModelController extends AppController
                     $filters['uuid'] = $filters['id'];
                 } else {
                     $attributes = $this->User->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-                        'conditions' => array('Attribute.id' => $filters['id'])
+                        'conditions' => array('Attribute.id' => $filters['id']),
+                        'flatten' => 1
                     ));
                     if (!empty($attributes)) {
                         $filters['uuid'] = $attributes[0]['Attribute']['uuid'];

@@ -262,6 +262,16 @@
                         'requirement' => ($isSiteAdmin || $hostOrgUser)
                     ),
                     array(
+                        'text' => __('List SightingDB Connections'),
+                        'url' => '/sightingdb/index',
+                        'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
+                        'text' => __('Add SightingDB Connection'),
+                        'url' => '/sightingdb/add',
+                        'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
                         'text' => __('List Communities'),
                         'url' => '/communities/index',
                         'requirement' => ($isSiteAdmin)

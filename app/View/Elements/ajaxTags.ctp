@@ -162,4 +162,36 @@
         '<span class="tag-list-container">%s</span>',
         $tagData
     );
+    $tagConflictData = '';
+    if (!empty($tagConflicts['global'])) {
+        $tagConflictData .= '<div><div class="alert alert-error tag-conflict-notice">';
+        $tagConflictData .= '<i class="fas fa-globe-americas icon"></i>';
+        $tagConflictData .= '<div class="text-container">';
+        foreach ($tagConflicts['global'] as $tagConflict) {
+            $tagConflictData .= sprintf(
+                '<strong>%s</strong></br>',
+                h($tagConflict['conflict'])
+            );
+            foreach ($tagConflict['tags'] as $tag) {
+                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span></br>', h($tag));
+            }
+        }
+        $tagConflictData .= '</div></div></span>';
+    }
+    if (!empty($tagConflicts['local'])) {
+        $tagConflictData .= '<div><div class="alert alert-error tag-conflict-notice">';
+        $tagConflictData .= '<i class="fas fa-user icon"></i>';
+        $tagConflictData .= '<div class="text-container">';
+        foreach ($tagConflicts['local'] as $tagConflict) {
+            $tagConflictData .= sprintf(
+                '<strong>%s</strong></br>',
+                h($tagConflict['conflict'])
+            );
+            foreach ($tagConflict['tags'] as $tag) {
+                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span></br>', h($tag));
+            }
+        }
+        $tagConflictData .= '</div></div></span>';
+    }
+    echo $tagConflictData;
 ?>
