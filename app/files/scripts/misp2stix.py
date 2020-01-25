@@ -593,7 +593,7 @@ class StixBuilder(object):
         attribute_value = attribute['value']
         ta = ThreatActor(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
         ta.id_ = "{}:ThreatActor-{}".format(self.orgname, attribute['uuid'])
-        ta.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute_value, attribute['id'])
+        ta.title = "{}: {} (MISP Attribute)".format(attribute['category'], attribute_value)
         description = attribute_value
         if attribute.get('comment'):
             description += " ({})".format(attribute['comment'])
@@ -1436,7 +1436,7 @@ class StixBuilder(object):
         handling = self.set_tlp(tags)
         if handling is not None:
             ttp.handling = handling
-        ttp.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute['value'], attribute['id'])
+        ttp.title = "{}: {} (MISP Attribute)".format(attribute['category'], attribute['value'])
         return ttp
 
     def create_ttp_from_galaxy(self, uuid, galaxy_name):
@@ -1452,7 +1452,7 @@ class StixBuilder(object):
         handling = self.set_tlp(tags)
         if handling is not None:
             ttp.handling = handling
-        ttp.title = "{}: {} (MISP Object #{})".format(misp_object['meta-category'], misp_object['name'], misp_object['id'])
+        ttp.title = "{}: {} (MISP Object)".format(misp_object['meta-category'], misp_object['name'])
         return ttp
 
     def create_attributes_dict(self, attributes, with_uuid=False):
