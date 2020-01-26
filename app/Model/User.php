@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
+App::uses('GpgTool', 'Tools');
 
 class User extends AppModel
 {
