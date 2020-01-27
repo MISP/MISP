@@ -138,13 +138,9 @@
 
 <script type="text/javascript">
 $(document).ready(function () {
-    $('.expandable').click(function() {
-        $(this).parent().children('div').toggle();
-        if ($(this).children('span').html() == '+') {
-            $(this).children('span').html('-');
-        } else {
-            $(this).children('span').html('+');
-        }
+    $('.expandable').popover({
+        html: true,
+        trigger: 'hover'
     });
 });
 </script>

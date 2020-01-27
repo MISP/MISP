@@ -1782,60 +1782,100 @@ class Attribute extends AppModel
         return $this->saveAttachment($attribute);
     }
 
-    public function getPictureData($attribute, $thumbnail=false, $width=200, $height=200)
+    /**
+     * Currently, as image are considered files with JPG (JPEG), PNG or GIF extension.
+     * @param array $attribute
+     * @return bool
+     */
+    public function isImage(array $attribute)
     {
-        $extension = explode('.', $attribute['Attribute']['value']);
-        $extension = end($extension);
-        if (extension_loaded('gd')) {
-            if (!$thumbnail) {
-                $data = $this->getAttachment($attribute['Attribute']);
-                $image = ImageCreateFromString($data);
-                ob_start ();
-                switch ($extension) {
-                    case 'gif':
-                        // php-gd doesn't support animated gif. Skipping...
-                        break;
-                    case 'jpg':
-                    case 'jpeg':
-                        imagejpeg($image);
-                        break;
-                    case 'png':
-                        imagepng($image);
-                        break;
-                    default:
-                        break;
-                    }
-                    $image_data = $extension != 'gif' ? ob_get_contents() : $data;
-                    ob_end_clean ();
-            } else { // thumbnail requested, resample picture with desired dimension and save result
-                $thumbnail_exists = $this->getAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
-                if ($width == 200 && $height == 200 && $thumbnail_exists !== '') { // check if thumbnail already exists
-                    $image_data = $thumbnail_exists;
-                } else {
-                    $data = $this->getAttachment($attribute['Attribute']);
-                    if ($extension == 'gif') {
-                        $image_data = $data;
-                    } else {
-                        $image = ImageCreateFromString($data);
-                        $extension = 'jpg';
-                        $imageTC = ImageCreateTrueColor($width, $height);
-                        ImageCopyResampled($imageTC, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
-                        ob_start ();
-                        imagejpeg ($imageTC);
-                        $image_data = ob_get_contents();
-                        ob_end_clean ();
-                        imagedestroy($image);
-                        imagedestroy($imageTC);
-                    }
-                    // save thumbnail for later reuse
-                    $attribute['Attribute']['data'] = $image_data;
-                    $this->saveAttachment($attribute['Attribute'], '_thumbnail');
+        return $attribute['type'] === 'attachment' &&
+            Validation::extension($attribute['value'], array('jpg', 'jpeg', 'png', 'gif'));
+    }
+
+    /**
+     * @param array $attribute
+     * @param bool $thumbnail
+     * @param int $maxWidth - When $thumbnail is true
+     * @param int $maxHeight - When $thumbnail is true
+     * @return string
+     * @throws Exception
+     */
+    public function getPictureData(array $attribute, $thumbnail=false, $maxWidth=200, $maxHeight=200)
+    {
+        if ($thumbnail && extension_loaded('gd')) {
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                // Return thumbnail directly if already exists
+                $imageData = $this->getAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
+                if ($imageData !== '') {
+                    return $imageData;
                 }
             }
+
+            // Thumbnail doesn't exists, we need to generate it
+            $imageData = $this->getAttachment($attribute['Attribute']);
+            $imageData = $this->resizeImage($imageData, $maxWidth, $maxHeight);
+
+            // Save just when requested default thumbnail size
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                $attribute['Attribute']['data'] = $imageData;
+                $this->saveAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
+            }
         } else {
-            $image_data = $this->getAttachment($attribute['Attribute']);
+            $imageData = $this->getAttachment($attribute['Attribute']);
         }
-        return $image_data;
+
+        return $imageData;
+    }
+
+    /**
+     * @param string $data
+     * @param int $maxWidth
+     * @param int $maxHeight
+     * @return string
+     * @throws Exception
+     */
+    private function resizeImage($data, $maxWidth, $maxHeight)
+    {
+        $image = imagecreatefromstring($data);
+        if ($image === false) {
+            throw new Exception("Image is not valid.");
+        }
+
+        $currentWidth = imagesx($image);
+        $currentHeight = imagesy($image);
+
+        // Compute thumbnail size with keeping ratio
+        if ($currentWidth > $currentHeight) {
+            $newWidth = min($currentWidth, $maxWidth);
+            $divisor = $currentWidth / $newWidth;
+            $newHeight = floor($currentHeight / $divisor);
+        } else {
+            $newHeight = min($currentHeight, $maxHeight);
+            $divisor = $currentHeight / $newHeight;
+            $newWidth = floor($currentWidth / $divisor);
+        }
+
+        $imageThumbnail = imagecreatetruecolor($newWidth, $newHeight);
+
+        // Allow transparent background
+        imagealphablending($imageThumbnail, false);
+        imagesavealpha($imageThumbnail, true);
+        $transparent = imagecolorallocatealpha($imageThumbnail, 255, 255, 255, 127);
+        imagefilledrectangle($imageThumbnail, 0, 0, $newWidth, $newHeight, $transparent);
+
+        // Resize image
+        imagecopyresampled($imageThumbnail, $image, 0, 0, 0, 0, $newWidth, $newHeight, $currentWidth, $currentHeight);
+        imagedestroy($image);
+
+        // Output image to string
+        ob_start();
+        imagepng($imageThumbnail, null, 9);
+        $imageData = ob_get_contents();
+        ob_end_clean();
+        imagedestroy($imageThumbnail);
+
+        return $imageData;
     }
 
     public function __beforeSaveCorrelation($a)

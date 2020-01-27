@@ -2725,6 +2725,7 @@ function moduleResultsSubmit(id) {
                 $(this).find('.ObjectAttribute').each(function(a) {
                     var attribute_type = $(this).find('.AttributeType').text();
                     attribute = {
+                        import_attribute: $(this).find('.ImportMISPObjectAttribute')[0].checked,
                         object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
                         type: attribute_type,
@@ -2735,6 +2736,9 @@ function moduleResultsSubmit(id) {
                         comment: $(this).find('.AttributeComment').val(),
                         distribution: $(this).find('.AttributeDistribution').val(),
                         sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                    }
+                    if (!attribute['import_attribute']) {
+                        return true;
                     }
                     if (attribute['distribution'] != '4') {
                         attribute['sharing_group_id'] = '0';
@@ -2778,6 +2782,7 @@ function moduleResultsSubmit(id) {
                 type_value = $(this).find('.AttributeType').text();
             }
             temp = {
+                import_attribute: $(this).find('.ImportMISPAttribute')[0].checked,
                 category: category_value,
                 type: type_value,
                 value: $(this).find('.AttributeValue').text(),
@@ -2787,6 +2792,9 @@ function moduleResultsSubmit(id) {
                 comment: $(this).find('.AttributeComment').val(),
                 distribution: $(this).find('.AttributeDistribution').val(),
                 sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+            }
+            if (!temp['import_attribute']) {
+                return true;
             }
             if (temp['distribution'] != '4') {
                 temp['sharing_group_id'] = '0';
