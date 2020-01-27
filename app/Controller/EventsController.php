@@ -25,8 +25,11 @@ class EventsController extends AppController
             )
     );
 
-    private $acceptedFilteringNamedParams = array('sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
-        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting'
+    private $acceptedFilteringNamedParams = array(
+        'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
+        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
+        'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit',
+        'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting', 'includeSightingdb'
     );
 
     public $defaultFilteringRules =  array(
@@ -730,7 +733,7 @@ class EventsController extends AppController
             if (!empty($passedArgs['searchminimal'])) {
                 unset($rules['contain']);
                 $rules['recursive'] = -1;
-                $rules['fields'] = array('id', 'timestamp', 'published', 'uuid');
+                $rules['fields'] = array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid');
                 $rules['contain'] = array('Orgc.uuid');
             }
             $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
@@ -1150,6 +1153,7 @@ class EventsController extends AppController
 
         // remove galaxies tags
         $this->loadModel('GalaxyCluster');
+        $this->loadModel('Taxonomy');
         $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
         foreach ($event['Object'] as $k => $object) {
             if (isset($object['Attribute'])) {
@@ -1159,6 +1163,14 @@ class EventsController extends AppController
                             unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
                         }
                     }
+                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                    foreach ($tagConflicts['global'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    foreach ($tagConflicts['local'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
         }
@@ -1168,6 +1180,14 @@ class EventsController extends AppController
                     unset($event['Attribute'][$k]['AttributeTag'][$k2]);
                 }
             }
+            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+            foreach ($tagConflicts['global'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            foreach ($tagConflicts['local'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         if (empty($this->passedArgs['sort'])) {
             $filters['sort'] = 'timestamp';
@@ -1176,6 +1196,10 @@ class EventsController extends AppController
         $sightingsData = $this->Event->getSightingData($event);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, $all, $sightingsData);
+        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+            $this->loadModel('Sightingdb');
+            $event = $this->Sightingdb->attachToEvent($event, $this->Auth->user());
+        }
         $this->params->params['paging'] = array($this->modelClass => $params);
         // workaround to get the event dates in to the attribute relations
         $relatedDates = array();
@@ -1229,6 +1253,7 @@ class EventsController extends AppController
         if (isset($filters['deleted'])) {
             $deleted = $filters['deleted'] == 2 ? 0 : 1;
         }
+        $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('deleted', $deleted);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
@@ -1250,6 +1275,9 @@ class EventsController extends AppController
             }
             $this->params->here = implode('/', $uriArray);
         }
+        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+            $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($this->Auth->user()));
+        }
         $this->set('sightingTypes', $this->Sighting->type);
         $this->set('currentUri', $this->params->here);
         $this->layout = false;
@@ -1258,12 +1286,14 @@ class EventsController extends AppController
 
     private function __viewUI($event, $continue, $fromEvent)
     {
+        $this->loadModel('Taxonomy');
         $filterData = array(
             'request' => $this->request,
             'paramArray' => $this->acceptedFilteringNamedParams,
             'named_params' => $this->params['named']
         );
         $exception = false;
+        $warningTagConflicts = array();
         $filters = $this->_harvestParameters($filterData, $exception);
 
         $this->loadModel('GalaxyCluster');
@@ -1279,7 +1309,7 @@ class EventsController extends AppController
             foreach ($event['Object'] as $k => $object) {
                 if (!empty($object['Attribute'])) {
                     foreach ($object['Attribute'] as $attribute) {
-                        if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+                        if ($oldest_timestamp == false || $oldest_timestamp > $attribute['timestamp']) {
                             $oldest_timestamp = $attribute['timestamp'];
                         }
                     }
@@ -1364,10 +1394,20 @@ class EventsController extends AppController
                 unset($event['EventTag'][$k]);
             }
         }
+
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
+        foreach ($tagConflicts['global'] as $tagConflict) {
+            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        }
+        foreach ($tagConflicts['local'] as $tagConflict) {
+            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        }
+        $this->set('tagConflicts', $tagConflicts);
+
         $startDate = null;
         $modificationMap = array();
         foreach ($event['Attribute'] as $k => $attribute) {
-            if ($oldest_timestamp == false || $oldest_timestamp < $attribute['timestamp']) {
+            if ($oldest_timestamp == false || $oldest_timestamp > $attribute['timestamp']) {
                 $oldest_timestamp = $attribute['timestamp'];
             }
             if ($startDate === null || $attribute['timestamp'] < $startDate) {
@@ -1380,6 +1420,14 @@ class EventsController extends AppController
                     unset($event['Attribute'][$k]['AttributeTag'][$k2]);
                 }
             }
+            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+            foreach ($tagConflicts['global'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            foreach ($tagConflicts['local'] as $tagConflict) {
+                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            }
+            $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event, 'both');
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
@@ -1405,9 +1453,18 @@ class EventsController extends AppController
                             unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
                         }
                     }
+                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                    foreach ($tagConflicts['global'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    foreach ($tagConflicts['local'] as $tagConflict) {
+                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    }
+                    $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
         }
+        $this->set('warningTagConflicts', $warningTagConflicts);
         $filters['sort'] = 'timestamp';
         $filters['direction'] = 'desc';
         if (isset($filters['distribution'])) {
@@ -1437,6 +1494,10 @@ class EventsController extends AppController
         $sightingsData = $this->Event->getSightingData($event);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, false, $sightingsData);
+        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+            $this->loadModel('Sightingdb');
+            $event = $this->Sightingdb->attachToEvent($event, $this->Auth->user());
+        }
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
         $dataForView = array(
@@ -1474,9 +1535,11 @@ class EventsController extends AppController
                 $delegationConditions['OR'] = array('EventDelegation.org_id' => $this->Auth->user('org_id'),
                                                     'EventDelegation.requester_org_id' => $this->Auth->user('org_id'));
             }
-            $this->set('delegationRequest', $this->EventDelegation->find('first', array('conditions' => $delegationConditions,
-                                                                                        'recursive' => -1,
-                                                                                        'contain' => array('Org', 'RequesterOrg'))));
+            $this->set('delegationRequest', $this->EventDelegation->find('first', array(
+                'conditions' => $delegationConditions,
+                'recursive' => -1,
+                'contain' => array('Org', 'RequesterOrg')
+            )));
         }
         if (Configure::read('Plugin.Enrichment_services_enable')) {
             $this->loadModel('Module');
@@ -1516,6 +1579,10 @@ class EventsController extends AppController
         $orgTable = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
+        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+            $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($this->Auth->user()));
+        }
+        $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('relatedEventCorrelationCount', $relatedEventCorrelationCount);
         $this->set('oldest_timestamp', $oldest_timestamp);
         $this->set('required_taxonomies', $this->Event->getRequiredTaxonomies());
@@ -1970,41 +2037,48 @@ class EventsController extends AppController
         }
 
         $this->request->data['Event']['date'] = date('Y-m-d');
+        if (isset($this->request->data['Event']['distribution'])) {
+            $initialDistribution = $this->request->data['Event']['distribution'];
+        } else {
+            $initialDistribution = 3;
+            if (Configure::read('MISP.default_event_distribution') != null) {
+                $initialDistribution = Configure::read('MISP.default_event_distribution');
+            }
+        }
+        $this->set('initialDistribution', $initialDistribution);
 
         // combobox for distribution
         $distributions = array_keys($this->Event->distributionDescriptions);
         $distributions = $this->_arrayToValuesIndexArray($distributions);
         $this->set('distributions', $distributions);
         // tooltip for distribution
-        $info = array();
+        $fieldDesc = array();
         $distributionLevels = $this->Event->distributionLevels;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
         }
         $this->set('distributionLevels', $distributionLevels);
         foreach ($distributionLevels as $key => $value) {
-            $info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
+            $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
         }
 
         // combobox for risks
         $threat_levels = $this->Event->ThreatLevel->find('all');
         $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-        foreach ($threat_levels as $key => $threat_level) {
-            $info['threat_level'][$threat_level['ThreatLevel']['id']] = array('key' => $threat_level['ThreatLevel']['name'], 'desc' => $threat_level['ThreatLevel']['form_description']);
-        }
+        $fieldDesc['threat_level_id'] = Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.description');
 
         // combobox for analysis
         $this->set('sharingGroups', $sgs);
         // tooltip for analysis
-        foreach ($this->Event->analysisLevels as $key => $value) {
-            $info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
+        $analysisLevels = $this->Event->analysisLevels;
+        $this->set('analysisLevels', $analysisLevels);
+        foreach ($analysisLevels as $key => $value) {
+            $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
         if (!$this->_isRest()) {
             $this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
         }
-        $this->set('info', $info);
-        $this->set('analysisDescriptions', $this->Event->analysisDescriptions);
-        $this->set('analysisLevels', $this->Event->analysisLevels);
+        $this->set('fieldDesc', $fieldDesc);
         if (isset($this->params['named']['extends'])) {
             $this->set('extends_uuid', $this->params['named']['extends']);
         }
@@ -2073,7 +2147,6 @@ class EventsController extends AppController
             throw new UnauthorizedException(__('You do not have permission to do that.'));
         }
         if ($this->request->is('post')) {
-            $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
             if ($this->_isRest()) {
                 $randomFileName = $this->Event->generateRandomFileName();
                 $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
@@ -2084,8 +2157,8 @@ class EventsController extends AppController
                     $this->Auth->user(),
                     $randomFileName,
                     $stix_version,
-                    $original_file,
-                    $this->data['Event']['publish']
+                    'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
+                    false
                 );
                 if (is_array($result)) {
                     return $this->RestResponse->saveSuccessResponse('Events', 'upload_stix', false, $this->response->type(), 'STIX document imported, event\'s created: ' . implode(', ', $result) . '.');
@@ -2100,6 +2173,7 @@ class EventsController extends AppController
                     return $this->RestResponse->saveFailResponse('Events', 'upload_stix', false, $result, $this->response->type());
                 }
             } else {
+                $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
                 if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
                     $randomFileName = $this->Event->generateRandomFileName();
                     $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
@@ -2322,34 +2396,33 @@ class EventsController extends AppController
         $this->set('sharingGroups', $sgs);
 
         // tooltip for distribution
-        $info = array();
+        $fieldDesc = array();
         $distributionLevels = $this->Event->distributionLevels;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
         }
         $this->set('distributionLevels', $distributionLevels);
         foreach ($distributionLevels as $key => $value) {
-            $info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
+            $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
         }
 
         // combobox for risks
         $threat_levels = $this->Event->ThreatLevel->find('all');
         $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-        foreach ($threat_levels as $key => $threat_level) {
-            $info['threat_level'][$threat_level['ThreatLevel']['id']] = array('key' => $threat_level['ThreatLevel']['name'], 'desc' => $threat_level['ThreatLevel']['form_description']);
-        }
+        $fieldDesc['threat_level_id'] = Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.description');
 
         // combobox for analysis
         $this->set('sharingGroups', $sgs);
         // tooltip for analysis
-        foreach ($this->Event->analysisLevels as $key => $value) {
-            $info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
+        $analysisLevels = $this->Event->analysisLevels;
+        foreach ($analysisLevels as $key => $value) {
+            $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
-        $this->set('analysisLevels', $this->Event->analysisLevels);
-
-        $this->set('info', $info);
+        $this->set('analysisLevels', $analysisLevels);
+        $this->set('fieldDesc', $fieldDesc);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('event', $this->Event->data);
+        $this->render('add');
     }
 
     public function delete($id = null)
@@ -2494,6 +2567,59 @@ class EventsController extends AppController
         } else {
             $this->set('id', $id);
             $this->set('type', 'unpublish');
+            $this->render('ajax/eventPublishConfirmationForm');
+        }
+    }
+
+    public function publishSightings($id = null)
+    {
+        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
+        $event = $this->Event->fetchEvent(
+            $this->Auth->user(),
+            array(
+                'eventid' => $id,
+                'metadata' => 1
+            )
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $result = $this->Event->publishRouter($id, null, $this->Auth->user(), 'sightings');
+            if (!Configure::read('MISP.background_jobs')) {
+                if (!is_array($result)) {
+                    // redirect to the view event page
+                    $message = 'Sightings published';
+                } else {
+                    $lastResult = array_pop($result);
+                    $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
+                    $errors['failed_servers'] = $result;
+                    $message = sprintf('Sightings published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString);
+                }
+            } else {
+                // update the DB to set the published flag
+                // for background jobs, this should be done already
+                $fieldList = array('id', 'info', 'sighting_timestamp');
+                $event['Event']['sighting_timestamp'] = time();
+                $this->Event->save($event, array('fieldList' => $fieldList));
+                $message = 'Job queued';
+            }
+            if ($this->_isRest()) {
+                $this->set('name', 'Publish Sightings');
+                $this->set('message', $message);
+                if (!empty($errors)) {
+                    $this->set('errors', $errors);
+                }
+                $this->set('url', '/events/publishSightings/' . $id);
+                $this->set('id', $id);
+                $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
+            } else {
+                $this->Flash->success($message);
+                $this->redirect(array('action' => 'view', $id));
+            }
+        } else {
+            $this->set('id', $id);
+            $this->set('type', 'publishSightings');
             $this->render('ajax/eventPublishConfirmationForm');
         }
     }
@@ -2875,105 +3001,18 @@ class EventsController extends AppController
 
     public function xml($key, $eventid = false, $withAttachment = false, $tags = false, $from = false, $to = false, $last = false)
     {
-        App::uses('XMLConverterTool', 'Tools');
-        $converter = new XMLConverterTool();
-        $this->loadModel('Whitelist');
-
-        // request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted xml object.
-        // The correct format for a posted xml is a "request" root element, as shown by the examples below:
-        // For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
-        if ($this->request->is('post')) {
-            if (empty($this->request->data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request").'));
-            } else {
-                $data = $this->request->data;
-            }
-            $paramArray = array('eventid', 'withAttachment', 'tags', 'from', 'to', 'last');
-            foreach ($paramArray as $p) {
-                if (isset($data['request'][$p])) {
-                    ${$p} = $data['request'][$p];
-                } else {
-                    ${$p} = null;
-                }
-            }
-        }
-
-        $simpleFalse = array('tags', 'eventid', 'withAttachment', 'from', 'to', 'last');
-        foreach ($simpleFalse as $sF) {
-            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
-                ${$sF} = false;
-            }
-        }
-        if ($from) {
-            $from = $this->Event->dateFieldCheck($from);
-        }
-        if ($to) {
-            $to = $this->Event->dateFieldCheck($to);
-        }
-        if ($tags) {
-            $tags = str_replace(';', ':', $tags);
-        }
-        if ($last) {
-            $last = $this->Event->resolveTimeDelta($last);
-        }
-        $eventIdArray = array();
-
-        if ($eventid) {
-            if (!is_numeric($eventid)) {
-                throw new MethodNotAllowedException(__('Invalid Event ID.'));
-            }
-            $eventIdArray[] = $eventid;
-        }
-
-        if ($key != 'download') {
-            // check if the key is valid -> search for users based on key
-            $user = $this->checkAuthUser($key);
-            if (!$user) {
-                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-            }
-        } else {
-            if (!$this->Auth->user('id')) {
-                throw new UnauthorizedException(__('You have to be logged in to do that.'));
-            }
-            $user = $this->Auth->user();
-        }
-
-        if ($eventid) {
-            $final_filename='misp.event' . $eventid . '.export.xml';
-        } else {
-            $final_filename='misp.export.xml';
-        }
-        $final = "";
-        $final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
-        $validEvents = 0;
-        if (!$eventid) {
-            $eventIdArray = $this->Event->fetchEventIds($user, $from, $to, $last, true);
-        }
-        foreach ($eventIdArray as $currentEventId) {
-            $result = $this->Event->fetchEvent($user, array('eventid' => $currentEventId, 'tags' => $tags, 'from' => $from, 'to' => $to, 'last' => $last));
-            if (empty($result)) {
-                continue;
-            }
-            $validEvents++;
-            if ($withAttachment) {
-                foreach ($result[0]['Attribute'] as $key => $attribute) {
-                    if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
-                        $encodedFile = $this->Event->Attribute->base64EncodeAttachment($attribute);
-                        $result[0]['Attribute'][$key]['data'] = $encodedFile;
-                    }
-                }
-            }
-            $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-            $final .= $converter->convert($result[0]) . PHP_EOL;
-        }
-        if ($validEvents == 0) {
-            throw new NotFoundException(__('No events found that match the passed parameters.'));
-        }
-        $final .= '</response>' . PHP_EOL;
-        $this->response->body($final);
-        $this->response->type('xml');
-        $this->response->download($final_filename);
-        return $this->response;
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'key', 'eventid', 'withAttachment', 'tags', 'from', 'to', 'last'
+            ),
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'ordered_url_params' => func_get_args(),
+            'injectedParams' => array(
+                'returnFormat' => 'xml'
+            )
+        ));
+        return $this->restSearch();
     }
 
     // Grab an event or a list of events for the event view or any of the XML exports. The returned object includes an array of events (or an array that only includes a single event if an ID was given)
@@ -2988,200 +3027,66 @@ class EventsController extends AppController
         return $results;
     }
 
-    public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false, $includeAllTags = false, $eventid = false)
+    public function nids()
     {
-        if ($this->request->is('post')) {
-            if (empty($this->request->data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json or xml with the filter parameters. Valid filters: id (event ID), tags (list of tags), from (from date in YYYY-MM-DD format), to (to date in YYYY-MM-DD format), last (events with a published timestamp newer than - valid options are in time + unit format such as 6d or 2w, etc)'));
-            } else {
-                $data = $this->request->data;
-            }
-            $paramArray = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type', 'enforceWarninglist', 'eventid');
-            if (!isset($data['request'])) {
-                $data = array('request' => $data);
-            }
-            foreach ($paramArray as $p) {
-                if (isset($data['request'][$p])) {
-                    ${$p} = $data['request'][$p];
-                } else {
-                    ${$p} = null;
-                }
-            }
-        }
-
-        $simpleFalse = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type', 'enforceWarninglist', 'includeAllTags', 'eventid');
-        foreach ($simpleFalse as $sF) {
-            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
-                ${$sF} = false;
-            }
-        }
-        if (!empty($eventid)) {
-            $id = $eventid;
-        }
-        if ($from) {
-            $from = $this->Event->dateFieldCheck($from);
-        }
-        if ($to) {
-            $to = $this->Event->dateFieldCheck($to);
-        }
-        if ($tags) {
-            $tags = str_replace(';', ':', $tags);
-        }
-        if ($last) {
-            $last = $this->Event->resolveTimeDelta($last);
-        }
-        // backwards compatibility, swap key and format
-        if ($format != 'snort' && $format != 'suricata') {
-            $format = 'suricata'; // default format
-        }
-        $this->response->type('txt');   // set the content type
-        $filename = 'misp.' . $format . '.rules';
-        if ($id) {
-            $filename = 'misp.' . $format . '.event' . $id . '.rules';
-        }
-        $this->header('Content-Disposition: download; filename="' . $filename . '"');
-        $this->layout = 'text/default';
-        if ($key != 'download') {
-            // check if the key is valid -> search for users based on key
-            $user = $this->checkAuthUser($key);
-            if (!$user) {
-                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-            }
-        } else {
-            // check if there's a user logged in or not
-            if (!$this->Auth->user('id')) {
-                throw new UnauthorizedException(__('You have to be logged in to do that.'));
-            }
-            $user = $this->Auth->user();
-        }
-
-        // display the full snort rulebase
-        $this->loadModel('Attribute');
-        $rules = $this->Attribute->nids($user, $format, $id, $continue, $tags, $from, $to, $last, $type, $enforceWarninglist, $includeAllTags);
-        $this->set('rules', $rules);
-        $this->render('/Events/nids');
-    }
-
-    public function hids($type, $key = 'download', $tags = false, $from = false, $to = false, $last = false, $enforceWarninglist = false)
-    {
-        $simpleFalse = array('tags', 'from', 'to', 'last', 'enforceWarninglist');
-        if ($this->request->is('post')) {
-            if (empty($this->request->data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json or xml with the filter parameters.'));
-            } else {
-                $data = $this->request->data;
-            }
-            if (!isset($data['request'])) {
-                $data = array('request' => $data);
-            }
-            foreach ($simpleFalse as $sF) {
-                if (isset($data['request'][$sF])) {
-                    ${$sF} = $data['request'][$sF];
-                }
-            }
-        }
-        foreach ($simpleFalse as $sF) {
-            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
-                ${$sF} = false;
-            }
-        }
-        if (!in_array($type, array('md5', 'sha1', 'sha256'))) {
-            throw new MethodNotAllowedException(__('Invalid hash type.'));
-        }
-        if ($from) {
-            $from = $this->Event->dateFieldCheck($from);
-        }
-        if ($to) {
-            $to = $this->Event->dateFieldCheck($to);
-        }
-        if ($tags) {
-            $tags = str_replace(';', ':', $tags);
-        }
-        if ($last) {
-            $last = $this->Event->resolveTimeDelta($last);
-        }
-        $this->response->type('txt');   // set the content type
-        $this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
-        $this->layout = 'text/default';
-        if ($key != 'download') {
-            // check if the key is valid -> search for users based on key
-            $user = $this->checkAuthUser($key);
-            if (!$user) {
-                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-            }
-        } else {
-            // check if there's a user logged in or not
-            if (!$this->Auth->user('id')) {
-                throw new UnauthorizedException(__('You have to be logged in to do that.'));
-            }
-        }
-        $this->loadModel('Attribute');
-        $rules = $this->Attribute->hids($this->Auth->user(), $type, $tags, $from, $to, $last, false, $enforceWarninglist);
-        return new CakeResponse(array('body'=> implode(PHP_EOL, $rules), 'status' => 200, 'type' => 'txt'));
-    }
-
-    // csv function (DEPCRECATED)
-    // Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
-    // $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
-    // $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything.
-    public function csv($key, $eventid = false, $ignore = false, $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $headerless = false, $enforceWarninglist = false, $value = false, $timestamp = false)
-    {
-        $paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless', 'enforceWarninglist', 'value', 'timestamp');
-        $filterData = array(
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'format', 'key', 'id', 'continue', 'tags', 'from', 'to', 'last',
+                'type', 'enforceWarninglist', 'includeAllTags', 'eventid'
+            ),
             'request' => $this->request,
             'named_params' => $this->params['named'],
-            'paramArray' => $paramArray,
-            'ordered_url_params' => compact($paramArray)
+            'ordered_url_params' => func_get_args()
+        ));
+        if (empty($this->_legacyParams['returnFormat'])) {
+            $this->_legacyParams['returnFormat'] = 'suricata';
+        }
+        return $this->restSearch();
+    }
+
+    public function hids($type)
+    {
+        $typeMappings = array(
+            'md5' => array('malware-sample', 'md5', 'filename|md5'),
+            'sha1' => array('sha1', 'filename|sha1'),
+            'sha256' => array('sha256', 'filename|sha256')
         );
-        $exception = false;
-        $filters = $this->_harvestParameters($filterData, $exception);
-        if ($filters === false) {
-            return $exception;
-        }
-        $list = array();
-        $user = $this->_getApiAuthUser($key, $exception);
-        if ($user === false) {
-            return $exception;
-        }
-        if (!empty($eventid) && !is_array($eventid)) {
-            $filename = 'misp.csv.event' . $eventid . '.csv';
-        } else {
-            $filename = 'misp.csv.filtered_results.csv';
-        }
-        if (!isset($filters['ignore'])) {
-            $filters['ignore'] = 0;
-        }
-        $final = $this->Event->restSearch($user, 'csv', $filters);
-        // if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
-        // We don't need to look out for permissions since that's filtered by the search itself
-        // We just want all the attributes found by the search
-        if (!empty($params['eventid']) && $params['eventid'] === 'search') {
-            $ioc = $this->Session->read('paginate_conditions_ioc');
-            $paginateConditions = $this->Session->read('paginate_conditions');
-            unset($paginateConditions['contain']['Event']['Orgc']);
-            $attributes = $this->Event->Attribute->find('all', array(
-                'conditions' => $paginateConditions['conditions'],
-                'contain' => $paginateConditions['contain'],
-            ));
-            $orgs = $this->Event->Orgc->find('list', array(
-                'fields' => array('Orgc.id', 'Orgc.name'),
-                'recursive' => -1
-            ));
-            if ($ioc) {
-                $this->loadModel('Whitelist');
-                $attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
-            }
-            $list = array();
-            foreach ($attributes as $attribute) {
-                $attribute['Event']['Orgc'] = array(
-                    'id' => $attribute['Event']['org_id'],
-                    'name' => $orgs[$attribute['Event']['org_id']]
-                );
-                $list[] = $attribute['Attribute']['id'];
-            }
-        }
-        $responseType = 'csv';
-        return $this->RestResponse->viewData($final, $responseType, false, true, $filename);
+        $ordered_url_params = func_get_args();
+        unset($ordered_url_params[0]);
+        $ordered_url_params = array_values($ordered_url_params);
+        $this->scopeOverride = 'Attribute';
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'key', 'id', 'withAttachment', 'tags', 'from', 'to', 'last'
+            ),
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'ordered_url_params' => $ordered_url_params,
+            'injectedParams' => array(
+                'returnFormat' => 'hashes',
+                'type' => (isset($typeMappings[$type])) ? $typeMappings[$type] : $type
+            )
+        ));
+        return $this->restSearch();
+    }
+
+    // DEPRECATED - use restSearch with "returnFormat":"csv"
+    public function csv($key)
+    {
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'key', 'eventid', 'ignore', 'tags', 'category', 'type', 'includeContext',
+                'from', 'to', 'last', 'headerless', 'enforceWarninglist', 'value', 'timestamp'
+            ),
+            'key' => $key,
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'ordered_url_params' => func_get_args(),
+            'injectedParams' => array(
+                'returnFormat' => 'csv'
+            )
+        ));
+        return $this->restSearch();
     }
 
     public function _addIOCFile($id)
@@ -3350,128 +3255,6 @@ class EventsController extends AppController
         return $toReturn;
     }
 
-    public function downloadSearchResult()
-    {
-        $ioc = $this->Session->read('paginate_conditions_ioc');
-        $paginateConditions = $this->Session->read('paginate_conditions');
-        $attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-            'conditions' => $paginateConditions['conditions'],
-            'contain' => $paginateConditions['contain'],
-        ));
-        if ($ioc) {
-            $this->loadModel('Whitelist');
-            $attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
-        }
-        $idList = array();
-        foreach ($attributes as $attribute) {
-            if (!in_array($attribute['Attribute']['event_id'], $idList)) {
-                $idList[] = $attribute['Attribute']['event_id'];
-            }
-        }
-        $results = $this->__fetchEvent(null, $idList);
-        $this->set('results', $results);
-        if ($this->response->type() === 'application/json') {
-            $type = 'json';
-        } else {
-            $type = 'xml';
-        }
-        App::uses(strtoupper($type) . 'ConverterTool', 'Tools');
-        $tool = strtoupper($type) . 'ConverterTool';
-        $converter = new $tool();
-        $body = $converter->eventCollection2Format($results);
-        $body = $converter->frameCollection($body, $this->mispVersion);
-        $this->response->body($body);
-        $this->response->download('misp.search.results.' . $type);
-        return $this->response;
-    }
-
-    // Use the REST interface to search for attributes or events. Usage:
-    // MISP-base-url/events/restSearch/[api-key]/[value]/[type]/[category]/[orgc]
-    // value, type, category, orgc are optional
-    // target can be either "event" or "attribute"
-    // the last 4 fields accept the following operators:
-    // && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
-    // ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-    public function restSearch(
-        $returnFormat = false,
-        $value = false,
-        $type = false,
-        $category = false,
-        $org = false,
-        $tags = false,
-        $searchall = false,
-        $from = false,
-        $to = false,
-        $last = false,
-        $eventid = false,
-        $withAttachments = false,
-        $metadata = false,
-        $uuid = false,
-        $publish_timestamp = false,
-        $timestamp = false,
-        $published = false,
-        $enforceWarninglist = false,
-        $sgReferenceOnly = false
-    ) {
-        $paramArray = array(
-            'value', 'type', 'category', 'object_relation', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
-            'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'returnFormat',
-            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'deleted',
-            'excludeLocalTags', 'date'
-        );
-        $filterData = array(
-            'request' => $this->request,
-            'named_params' => $this->params['named'],
-            'paramArray' => $paramArray,
-            'ordered_url_params' => compact($paramArray)
-        );
-        $exception = false;
-        $filters = $this->_harvestParameters($filterData, $exception);
-        unset($filterData);
-        if ($filters === false) {
-            return $exception;
-        }
-        $list = array();
-        $user = $this->_getApiAuthUser($returnFormat, $exception);
-        if ($user === false) {
-            return $exception;
-        }
-        if (isset($filters['returnFormat'])) {
-            $returnFormat = $filters['returnFormat'];
-        } else {
-            $returnFormat = 'json';
-        }
-        if ($returnFormat === 'download') {
-            $returnFormat = 'json';
-        }
-        $elementCounter = 0;
-        $renderView = false;
-        $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
-        if (!empty($renderView) && !empty($final)) {
-            $this->layout = false;
-            $final = json_decode($final, true);
-            foreach ($final as $key => $data) {
-                $this->set($key, $data);
-            }
-            $this->render('/Events/module_views/' . $renderView);
-        } else {
-            $responseType = $this->Event->validFormats[$returnFormat][0];
-            $filename = 'misp.event.';
-            if (!empty($filters['eventid']) && !is_array($filters['eventid'])) {
-                if (Validation::uuid(trim($filters['eventid']))) {
-                    $filename .= trim($filters['eventid']);
-                } else if (!empty(intval(trim($filters['eventid'])))) {
-                    $filename .= intval(trim($filters['eventid']));
-                }
-            } else {
-                $filename .= 'list';
-            }
-            $filename .= '.' . $responseType;
-            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
-        }
-
-    }
-
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
     {
         // return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events
@@ -3515,125 +3298,6 @@ class EventsController extends AppController
         $this->response->body($final);
         $this->response->download('misp.openIOC' . $eventid . '.ioc');
         return $this->response;
-    }
-
-    public function create_dummy_event()
-    {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('You don\'t have the privileges to access this.'));
-        }
-        $data['Event']['info'] = 'Test event showing every category-type combination';
-        $data['Event']['date'] = '2013-10-09';
-        $data['Event']['threat_level_id'] = 4; //'Undefined'
-        $data['Event']['analysis'] = '0';
-        $data['Event']['distribution'] = '0';
-
-        $defaultValues = array(
-                'md5' => '098f6bcd4621d373cade4e832627b4f6',
-                'sha1' => 'a7645200866fd00bde529733ceac8506ab1f5518',
-                'sha256' => '0f58957831a9cf0b768451ee6b236555f519c04f0da5a5ea87538fd0990b29d1',
-                'filename' => 'test.exe',
-                'filename|md5' => 'test.exe|8886be8e4e862189a68d27e8fc7a6144',
-                'filename|sha1' => 'test.exe|a7645200866fd00bde529733ceac8506ab1f5518',
-                'filename|sha256' => 'test.exe|0f58957831a9cf0b768451ee6b236555f519c04f0da5a5ea87538fd0990b29d1',
-                'ip-src' => '1.1.1.1',
-                'ip-dst' => '2.2.2.2',
-                'hostname' => 'www.futuremark.com',
-                'domain' => 'evildomain.org',
-                'email-src' => 'bla@bla.com',
-                'email-dst' => 'hmm@hmm.com',
-                'email-subject' => 'Some made-up email subject',
-                'email-attachment' => 'filename.exe',
-                'url' => 'http://www.evilsite.com/test',
-                'http-method' => 'POST',
-                'user-agent' => 'Microsoft Internet Explorer',
-                'regkey' => 'HKLM\Software\Microsoft\Windows\CurrentVersion\Run\fishy',
-                'regkey|value' => 'HKLM\Software\Microsoft\Windows\CurrentVersion\Run\fishy|%ProgramFiles%\Malicios\malware.exe',
-                'AS' => '45566',
-                'snort' => 'alert ip 1.1.1.1 any -> $HOME_NET any (msg: "MISP e1 Incoming From IP: 1.1.1.1"; classtype:trojan-activity; sid:21; rev:1; priority:1; reference:url,http://localhost:8888/events/view/1;)',
-                'pattern-in-file' => 'Somestringinfile',
-                'pattern-in-traffic' => 'Somestringintraffic',
-                'pattern-in-memory' => 'Somestringinmemory',
-                'yara' => 'rule silent_banker : banker{meta:description = "This is just an example" thread_level = 3 in_the_wild = true strings: $a = {6A 40 68 00 30 00 00 6A 14 8D 91} $b = {8D 4D B0 2B C1 83 C0 27 99 6A 4E 59 F7 F9} $c = "UVODFRYSIHLNWPEJXQZAKCBGMT" condition:}',
-                'vulnerability' => 'CVE-2011-0001',
-                'attachment' => 'file.txt',
-                'malware-sample' => 'test.exe|8886be8e4e862189a68d27e8fc7a6144',
-                'link' => 'http://www.somesite.com/',
-                'comment' => 'Comment',
-                'text' => 'Any text',
-                'other' => 'Could be anything',
-                'named pipe' => '\\.\pipe\PipeName',
-                'mutex' => 'mutexstring',
-                'target-user' => 'user1',
-                'target-email' => 'someone@something.com',
-                'target-machine' => 'machinename',
-                'target-org' => 'EA games',
-                'target-location' => 'Hell',
-                'target-external' => 'some target'
-        );
-        $this->loadModel('Attribute');
-        foreach ($this->Attribute->categoryDefinitions as $category => $v) {
-            foreach ($v['types'] as $k => $type) {
-                $data['Attribute'][] = array(
-                    'category' => $category,
-                    'type' => $type,
-                    'value' => $defaultValues[$type],
-                    'to_ids' => '0',
-                    'distribution' => '0',
-                );
-            }
-        }
-        $this->Event->_add($data, false, $this->Auth->user());
-    }
-
-    // for load testing, it's slow, execution time is set at 1 hour maximum
-    public function create_massive_dummy_events()
-    {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('You don\'t have the privileges to access this.'));
-        }
-        ini_set('max_execution_time', 3600);
-        $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
-        $date = new DateTime();
-        $ts =  $date->getTimestamp();
-        $default = array('Event' => array(
-            'info' => 'A junk event for load testing',
-            'date' => '2014-09-01',
-            'threat_level_id' => 4,
-            'distribution' => 0,
-            'analysis' => 0,
-            'org_id' => $this->Auth->user('org_id'),
-            'orgc_id' => $this->Auth->user('org_id'),
-            'timestamp' => $ts,
-            'user_id' => $this->Auth->user('id'),
-        ));
-        $default['Event']['info'] = 'A junk event for load testing';
-        $default['Event']['date'] = '2013-10-09';
-        $default['Event']['threat_level_id'] = 4; //'Undefined'
-        $default['Event']['analysis'] = '0';
-        $default['Event']['distribution'] = '0';
-        for ($i = 0; $i < 50; $i++) {
-            $data = $default;
-            $data['Event']['uuid'] = CakeText::uuid();
-            for ($j = 0; $j < 3000; $j++) {
-                $value = mt_rand();
-                $data['Attribute'][] = array(
-                        'category' => 'Other',
-                        'type' => 'text',
-                        'value' => $value,
-                        'to_ids' => '0',
-                        'distribution' => '0',
-                        'value1' => $value,
-                        'value2' => '',
-                        'comment' => '',
-                        'uuid' => CakeText::uuid(),
-                        'timestamp' => $ts,
-                        'disable_correlation' => 1
-                );
-            }
-            $this->Event->create();
-            $this->Event->saveAssociated($data, array('validate' => false));
-        }
     }
 
     public function proposalEventIndex()
@@ -3715,6 +3379,7 @@ class EventsController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
+        $this->loadModel('Taxonomy');
         $rearrangeRules = array(
                 'request' => false,
                 'Event' => false,
@@ -3827,6 +3492,20 @@ class EventsController extends AppController
                 ));
                 if (!empty($found)) {
                     $error = __('Tag is already attached to this event.');
+                    continue;
+                }
+                $tagsOnEvent = $this->Event->EventTag->find('all', array(
+                    'conditions' => array(
+                        'EventTag.event_id' => $id,
+                        'EventTag.local' => $local
+                    ),
+                    'contain' => 'Tag',
+                    'fields' => array('Tag.name'),
+                    'recursive' => -1
+                ));
+                $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnEvent, '{n}.Tag.name'));
+                if (!$exclusiveTestPassed) {
+                    $fail = __('Tag is not allowed due to taxonomy exclusivity settings');
                     continue;
                 }
                 $this->Event->EventTag->create();
@@ -3945,13 +3624,15 @@ class EventsController extends AppController
                 'fields' => array('Tag.name')
             ));
             if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
-                $event['Event']['published'] = 0;
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Event->save($event);
+                if (empty($eventTag['EventTag']['local'])) {
+                    $event['Event']['published'] = 0;
+                    $date = new DateTime();
+                    $event['Event']['timestamp'] = $date->getTimestamp();
+                    $this->Event->save($event);
+                }
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => empty($eventTag['EventTag']['local']))), 'status'=>200, 'type' => 'json'));
             } else {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')), 'status'=>200, 'type' => 'json'));
             }
@@ -4141,147 +3822,42 @@ class EventsController extends AppController
         }
     }
 
-    public function stix2($key, $id = false, $withAttachments = false, $tags = false, $from = false, $to = false, $last = false)
+    public function stix2()
     {
-        if ($key != 'download') {
-            // check if the key is valid -> search for users based on key
-            $user = $this->checkAuthUser($key);
-            if (!$user) {
-                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-            }
-        } else {
-            if (!$this->Auth->user('id')) {
-                throw new UnauthorizedException(__('You have to be logged in to do that.'));
-            }
-        }
-        if ($this->request->is('post')) {
-            if (empty($this->request->data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request").'));
-            } else {
-                $data = $this->request->data;
-            }
-            $paramArray = array('id', 'withAttachments', 'tags', 'from', 'to', 'last');
-            foreach ($paramArray as $p) {
-                if (isset($data['request'][$p])) {
-                    ${$p} = $data['request'][$p];
-                } else {
-                    ${$p} = null;
-                }
-            }
-        }
-        $simpleFalse = array('id', 'withAttachments', 'tags', 'from', 'to', 'last');
-        foreach ($simpleFalse as $sF) {
-            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
-                ${$sF} = false;
-            }
-        }
-        if ($from) {
-            $from = $this->Event->dateFieldCheck($from);
-        }
-        if ($to) {
-            $to = $this->Event->dateFieldCheck($to);
-        }
-        if ($last) {
-            $last = $this->Event->resolveTimeDelta($last);
-        }
-
-        // set null if a null string is passed
-        $numeric = false;
-        if (is_numeric($id)) {
-            $numeric = true;
-        }
-        $result = $this->Event->stix2($id, $tags, $withAttachments, $this->Auth->user(), 'json', $from, $to, $last);
-        if ($result['success'] == 1) {
-            if ($numeric) {
-                $filename = 'misp.stix2.event' . $id . '.json';
-            } else {
-                $filename = 'misp.stix2.event.collection.json';
-            }
-            $this->header('Content-Disposition: download; filename="' . $filename . '"');
-            return $this->RestResponse->viewData($result['data'], 'application/json', false, true, $filename);
-        } else {
-            throw new Exception(h($result['message']));
-        }
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'key', 'id', 'withAttachment', 'tags', 'from', 'to', 'last'
+            ),
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'ordered_url_params' => func_get_args(),
+            'injectedParams' => array(
+                'returnFormat' => 'stix2'
+            ),
+            'alias' => array(
+                'id' => 'eventid'
+            )
+        ));
+        return $this->restSearch();
     }
 
-    public function stix($key, $id = false, $withAttachments = false, $tags = false, $from = false, $to = false, $last = false)
+    public function stix()
     {
-        if ($key != 'download') {
-            // check if the key is valid -> search for users based on key
-            $user = $this->checkAuthUser($key);
-            if (!$user) {
-                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-            }
-        } else {
-            if (!$this->Auth->user('id')) {
-                throw new UnauthorizedException(__('You have to be logged in to do that.'));
-            }
-        }
-
-        // request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted xml object.
-        // The correct format for a posted xml is a "request" root element, as shown by the examples below:
-        // For XML: <request><id>!3&amp;!4</id><tags>OSINT</tags></request>
-        // This would return all OSINT tagged events except for event #3 and #4
-        if ($this->request->is('post')) {
-            if (empty($this->request->data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request").'));
-            } else {
-                $data = $this->request->data;
-            }
-            if (!isset($data['request'])) {
-                $data = array('request' => $data);
-            }
-            $paramArray = array('id', 'withAttachment', 'tags', 'from', 'to', 'last');
-            foreach ($paramArray as $p) {
-                if (isset($data['request'][$p])) {
-                    ${$p} = $data['request'][$p];
-                } else {
-                    ${$p} = null;
-                }
-            }
-        }
-
-        $simpleFalse = array('id', 'withAttachments', 'tags', 'from', 'to', 'last');
-        foreach ($simpleFalse as $sF) {
-            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
-                ${$sF} = false;
-            }
-        }
-        if ($from) {
-            $from = $this->Event->dateFieldCheck($from);
-        }
-        if ($to) {
-            $to = $this->Event->dateFieldCheck($to);
-        }
-        if ($last) {
-            $last = $this->Event->resolveTimeDelta($last);
-        }
-
-        // set null if a null string is passed
-        $numeric = false;
-        if (is_numeric($id)) {
-            $numeric = true;
-        }
-        // set the export type based on the request
-        if ($this->response->type() === 'application/json') {
-            $returnType = 'json';
-        } else {
-            $returnType = 'xml';
-            $this->response->type('xml');   // set the content type
-            $this->layout = 'xml/default';
-        }
-        $result = $this->Event->stix($id, $tags, $withAttachments, $this->Auth->user(), $returnType, $from, $to, $last);
-        if ($result['success'] == 1) {
-            // read the output file and pass it to the view
-            if (!$numeric) {
-                $this->header('Content-Disposition: download; filename="misp.stix.event.collection.' . $returnType . '"');
-            } else {
-                $this->header('Content-Disposition: download; filename="misp.stix.event' . $id . '.' . $returnType . '"');
-            }
-            $this->set('data', $result['data']);
-        } else {
-            throw new BadRequestException(h($result['message']));
-        }
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'key', 'id', 'withAttachment', 'tags', 'from', 'to', 'last'
+            ),
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'ordered_url_params' => func_get_args(),
+            'injectedParams' => array(
+                'returnFormat' => 'stix'
+            ),
+            'alias' => array(
+                'id' => 'eventid'
+            )
+        ));
+        return $this->restSearch();
     }
 
     public function filterEventIdsForPush()
@@ -4456,12 +4032,12 @@ class EventsController extends AppController
                     'checkbox_set' => '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1'
             ),
             'stix_json' => array(
-                    'url' => '/events/restSearch/stix/eventid:' . $id . '.json',
+                    'url' => '/events/restSearch/stix-json/eventid:' . $id,
                     'text' => 'STIX JSON (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix/withAttachments:1/eventid:' . $id . '.json'
+                    'checkbox_set' => '/events/restSearch/stix-json/withAttachments:1/eventid:' . $id
             ),
             'stix2_json' => array(
                     'url' => '/events/restSearch/stix2/eventid:' . $id,
@@ -4926,6 +4502,32 @@ class EventsController extends AppController
         return $json;
     }
 
+    public function getEventTimeline($id, $type = 'event')
+    {
+        $validTools = array('event');
+        if (!in_array($type, $validTools)) {
+            throw new MethodNotAllowedException('Invalid type.');
+        }
+
+        App::uses('EventTimelineTool', 'Tools');
+        $grapher = new EventTimelineTool();
+        $data = $this->request->is('post') ? $this->request->data : array();
+        $dataFiltering = array_key_exists('filtering', $data) ? $data['filtering'] : array();
+
+        $extended = isset($this->params['named']['extended']) ? 1 : 0;
+
+        $grapher->construct($this->Event, $this->Auth->user(), $dataFiltering, $extended);
+        $json = $grapher->get_timeline($id);
+
+        array_walk_recursive($json, function (&$item, $key) {
+            if (!mb_detect_encoding($item, 'utf-8', true)) {
+                $item = utf8_encode($item);
+            }
+        });
+        $this->response->type('json');
+        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+    }
+
     public function getDistributionGraph($id, $type = 'event')
     {
         $extended = isset($this->params['named']['extended']) ? 1 : 0;
@@ -5089,22 +4691,24 @@ class EventsController extends AppController
             throw new Exception("Invalid options.");
         }
 
-        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true));
-        if (empty($event)) {
-            throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
+        if ($scope !== 'tag_collection') {
+            $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true));
+            if (empty($event)) {
+                throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
+            }
+            $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($this->Auth->user(), $eventId, $matrixTags);
+            $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
+            $maxScore = 0;
+            $scoresData = array();
+            foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
+                $sum = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+                $scoresData[$key] = $sum;
+                $maxScore = max($maxScore, $sum);
+            }
+            $scores = $scoresData;
+        } else {
+            $scores = $scoresData = array();
         }
-
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($this->Auth->user(), $eventId, $matrixTags);
-        $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
-        $maxScore = 0;
-        $scoresData = array();
-        foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
-            $sum = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
-            $scoresData[$key] = $sum;
-            $maxScore = max($maxScore, $sum);
-        }
-
-        $scores = $scoresData;
         // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
         if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
             $mergedScore = array();
@@ -5264,7 +4868,7 @@ class EventsController extends AppController
             $options = array();
             foreach ($enabledModules['modules'] as $temp) {
                 if ($temp['name'] == $module) {
-                    $format = (isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
+                    $format = (!empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
                             $options[$conf] = Configure::read('Plugin.' . $type . '_' . $module . '_' . $conf);
@@ -5528,7 +5132,7 @@ class EventsController extends AppController
                         throw new Exception($result);
                     }
                     $importComment = !empty($result['comment']) ? $result['comment'] : 'Enriched via the ' . $module['name'] . ' module';
-                    if (isset($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
+                    if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
                         $event = $this->Event->handleMispFormatFromModuleResult($result);
                         $event['Event'] = array('id' => $eventId);
                         if ($this->_isRest()) {
@@ -5581,8 +5185,9 @@ class EventsController extends AppController
                     $this->set('importComment', $importComment);
                     $this->render($render_name);
                 }
+            } else {
+                $this->Flash->error($fail);
             }
-            $this->Flash->error($fail);
         }
         $this->set('configTypes', $this->Module->configTypes);
         $this->set('module', $module);

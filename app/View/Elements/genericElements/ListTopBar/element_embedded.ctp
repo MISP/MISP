@@ -33,7 +33,7 @@
             '<li><a class="%s %s" id="%s" href="%s" %s %s %s %s>%s%s%s</a></li>',
             empty($data['class']) ? '' : h($data['class']),
             empty($data['active']) ? '' : 'background-blue',   // Change the default class for highlighted/active toggles here
-            empty($data['id']) ? '' : 'id="' . h($data['id']) . '"',
+            empty($data['id']) ? '' :  h($data['id']),
             empty($data['url']) ? '#' : h($data['url']),    // prevent default is passed if the url is not set
             empty($onClick) ? '' : $onClick,    // pass $data['onClick'] for the function name to call and $data['onClickParams'] for the parameter list
             empty($dataFields) ? '' : $dataFields,

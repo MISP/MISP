@@ -16,6 +16,8 @@
                 echo '<p>' . __('Are you sure this event is complete and everyone should be informed?') . '</p>';
             } else if ($type === 'unpublish') {
                 echo '<p>' . __('Are you sure you wish to unpublish the event?') . '</p>';
+            } else if ($type === 'publishSightings') {
+                echo '<p>' . __('Are you sure you wish publish and synchronise all sightings attached to this event?') . '</p>';
             } else {
                 echo '<p>' . __('Publish but do NOT send alert email? Only for minor changes!') . '</p>';
             }

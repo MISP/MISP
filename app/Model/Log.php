@@ -16,51 +16,56 @@ class Log extends AppModel
     );
     public $validate = array(
             'action' => array(
-            'rule' => array('inList', array(
-                            'accept',
-                            'accept_delegation',
-                            'add',
-                            'admin_email',
-                            'auth',
-                            'auth_fail',
-                            'blacklisted',
-                            'change_pw',
-                            'delete',
-                            'disable',
-                            'discard',
-                            'edit',
-                            'email',
-                            'enable',
-                            'error',
-                            'export',
-                            'file_upload',
-                            'galaxy',
-                            'include_formula',
-                            'login',
-                            'login_fail',
-                            'logout',
-                            'merge',
-                            'pruneUpdateLogs',
-                            'publish',
-                            'publish alert',
-                            'pull',
-                            'purge_events',
-                            'push',
-                            'remove_dead_workers',
-                            'request',
-                            'request_delegation',
-                            'reset_auth_key',
-                            'security',
-                            'serverSettingsEdit',
-                            'tag',
-                            'undelete',
-                            'update',
-                            'update_database',
-                            'upgrade_24',
-                            'upload_sample',
-                            'version_warning',
-                            'warning'
-                        )),
+            'rule' => array(
+                'inList',
+                array( // ensure that the length of the rules is < 20 in length
+                    'accept',
+                    'accept_delegation',
+                    'add',
+                    'admin_email',
+                    'auth',
+                    'auth_fail',
+                    'blacklisted',
+                    'change_pw',
+                    'delete',
+                    'disable',
+                    'discard',
+                    'edit',
+                    'email',
+                    'enable',
+                    'error',
+                    'export',
+                    'file_upload',
+                    'galaxy',
+                    'include_formula',
+                    'login',
+                    'login_fail',
+                    'logout',
+                    'merge',
+                    'pruneUpdateLogs',
+                    'publish',
+                    'publish_sightings',
+                    'publish alert',
+                    'pull',
+                    'purge_events',
+                    'push',
+                    'remove_dead_workers',
+                    'request',
+                    'request_delegation',
+                    'reset_auth_key',
+                    'security',
+                    'serverSettingsEdit',
+                    'tag',
+                    'undelete',
+                    'update',
+                    'update_database',
+                    'update_db_worker',
+                    'upgrade_24',
+                    'upload_sample',
+                    'version_warning',
+                    'warning'
+                )
+            ),
             'message' => 'Options : ...'
         )
     );
@@ -184,6 +189,7 @@ class Log extends AppModel
      * @param int $modelId
      * @param string $title
      * @param string|array $change
+     * @return array
      * @throws Exception
      */
     public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
@@ -222,6 +228,8 @@ class Log extends AppModel
         if (!$result) {
             throw new Exception("Cannot save log because of validation errors: " . json_encode($this->validationErrors));
         }
+
+        return $result;
     }
 
     // to combat a certain bug that causes the upgrade scripts to loop without being able to set the correct version

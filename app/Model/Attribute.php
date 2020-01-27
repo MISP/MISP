@@ -35,7 +35,7 @@ class Attribute extends AppModel
     );
 
     public $defaultFields = array(
-        'id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'to_ids', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'comment', 'deleted', 'disable_correlation'
+        'id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'to_ids', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'comment', 'deleted', 'disable_correlation', 'first_seen', 'last_seen'
     );
 
     public $distributionDescriptions = array(
@@ -89,16 +89,16 @@ class Attribute extends AppModel
             'Payload delivery' => array(
                     'desc' => __('Information about how the malware is delivered'),
                     'formdesc' => __('Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'whois-registrant-email', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
                     ),
             'Artifacts dropped' => array(
                     'desc' => __('Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'mime-type', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'kusto-query', 'mime-type', 'anonymised')
                     ),
             'Payload installation' => array(
                     'desc' => __('Info on where the malware gets installed in the system'),
                     'formdesc' => __('Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'other', 'mime-type', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
                     ),
             'Persistence mechanism' => array(
                     'desc' => __('Mechanisms used by the malware to start at boot'),
@@ -107,7 +107,7 @@ class Attribute extends AppModel
                     ),
             'Network activity' => array(
                     'desc' => __('Information about network traffic generated by the malware'),
-                    'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro', 'zeek', 'anonymised', 'community-id', 'email-subject')
+                    'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email-dst', 'email-src', 'eppn', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro', 'zeek', 'anonymised', 'community-id', 'email-subject')
                     ),
             'Payload type' => array(
                     'desc' => __('Information about the final payload(s)'),
@@ -135,7 +135,7 @@ class Attribute extends AppModel
             'Social network' => array(
                     'desc' => __('Social networks and platforms'),
                     // email-src and email-dst or should we go with a new email type that is neither / both?
-                    'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'twitter-id', 'email-src', 'email-dst', 'comment', 'text', 'other', 'whois-registrant-email', 'anonymised')
+                    'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'twitter-id', 'email-src', 'email-dst', 'eppn','comment', 'text', 'other', 'whois-registrant-email', 'anonymised')
             ),
             'Person' => array(
                     'desc' => __('A human being - natural person'),
@@ -165,6 +165,7 @@ class Attribute extends AppModel
             'domain' => array('desc' => __('A domain name used in the malware'), 'formdesc' => __("A domain name used in the malware. Use this instead of hostname when the upper domain is important or can be used to create links between events."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'domain|ip' => array('desc' => __('A domain name and its IP address (as found in DNS lookup) separated by a |'),'formdesc' => __("A domain name and its IP address (as found in DNS lookup) separated by a | (no spaces)"), 'default_category' => 'Network activity', 'to_ids' => 1),
             'email-src' => array('desc' => __("The email address used to send the malware."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'eppn' => array('desc' => __("eduPersonPrincipalName - eppn - the NetId of the person for the purposes of inter-institutional authentication. Should be stored in the form of user@univ.edu, where univ.edu is the name of the local security domain."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'email-dst' => array('desc' => __("A recipient email address"), 'formdesc' => __("A recipient email address that is not related to your constituency."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'email-subject' => array('desc' => __("The subject of the email"), 'default_category' => 'Payload delivery', 'to_ids' => 0),
             'email-attachment' => array('desc' => __("File name of the email attachment."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -190,6 +191,7 @@ class Attribute extends AppModel
             'stix2-pattern' => array('desc' => __('STIX 2 pattern'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'sigma' => array('desc' => __('Sigma - Generic Signature Format for SIEM Systems'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'gene' => array('desc' => __('GENE - Go Evtx sigNature Engine'), 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
+            'kusto-query' => array('desc' => __('Kusto query - Kusto from Microsoft Azure is a service for storing and running interactive analytics over Big Data.'), 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
             'mime-type' => array('desc' => __('A media type (also MIME type and content type) is a two-part identifier for file formats and format contents transmitted on the Internet'), 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
             'identity-card-number' => array('desc' => __('Identity card number'), 'default_category' => 'Person', 'to_ids' => 0),
             'cookie' => array('desc' => __('HTTP cookie as often stored on the user web client. This can include authentication cookie or session cookie.'), 'default_category' => 'Network activity', 'to_ids' => 0),
@@ -316,6 +318,7 @@ class Attribute extends AppModel
             'place-port-of-onward-foreign-destination' => array('desc' => __('A Port where the passenger is transiting to'), 'default_category' => 'Person', 'to_ids' => 0),
             'passenger-name-record-locator-number' => array('desc' => __('The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.'), 'default_category' => 'Person', 'to_ids' => 0),
             'mobile-application-id' => array('desc' => __('The application id of a mobile application'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'chrome-extension-id' => array('desc' => __('Chrome extension id'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'cortex' => array('desc' => __('Cortex analysis result'), 'default_category' => 'External analysis', 'to_ids' => 0),
             'boolean' => array('desc' => __('Boolean value - to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),
             'anonymised' => array('desc' => __('Anonymised value - described with the anonymisation object via a relationship'),  'formdesc' => __('Anonymised value - described with the anonymisation object via a relationship.'), 'default_category' => 'Other', 'to_ids' => 0)
@@ -373,7 +376,9 @@ class Attribute extends AppModel
         'deleted',
         'disable_correlation',
         'object_id',
-        'object_relation'
+        'object_relation',
+        'first_seen',
+        'last_seen'
     );
 
     public $searchResponseTypes = array(
@@ -401,6 +406,7 @@ class Attribute extends AppModel
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
         'text' => array('txt', 'TextExport', 'txt'),
+        'hashes' => array('txt', 'HashesExport', 'txt'),
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),
@@ -437,6 +443,7 @@ class Attribute extends AppModel
             'mac-eui-64' => 'Network activity',
             'hostname' => 'Network activity',
             'domain' => 'Network activity',
+            'eppn' => 'Network activity',
             'url' => 'Network activity',
             'ja3-fingerprint-md5' => 'Network activity',
             'hassh-md5' => 'Network activity',
@@ -523,6 +530,16 @@ class Attribute extends AppModel
                 'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
                 'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
                 'required' => true
+        ),
+        'first_seen' => array(
+            'rule' => array('datetimeOrNull'),
+            'required' => false,
+            'message' => array('Invalid ISO 8601 format')
+        ),
+        'last_seen' => array(
+            'rule' => array('datetimeOrNull'),
+            'required' => false,
+            'message' => array('Invalid ISO 8601 format')
         )
     );
 
@@ -601,6 +618,7 @@ class Attribute extends AppModel
             if (isset($v['Attribute']['object_relation']) && $v['Attribute']['object_relation'] === null) {
                 $results[$k]['Attribute']['object_relation'] = '';
             }
+            $results[$k] = $this->UTCToISODatetime($results[$k], $this->alias);
         }
         return $results;
     }
@@ -631,6 +649,13 @@ class Attribute extends AppModel
                 $this->data['Attribute']['value1'] = $this->data['Attribute']['value'];
                 $this->data['Attribute']['value2'] = '';
             }
+        }
+
+        $this->data = $this->ISODatetimeToUTC($this->data, $this->alias);
+
+        // update correlation... (only needed here if there's an update)
+        if ($this->id || !empty($this->data['Attribute']['id'])) {
+            $this->__beforeSaveCorrelation($this->data['Attribute']);
         }
         // always return true after a beforeSave()
         return true;
@@ -813,9 +838,11 @@ class Attribute extends AppModel
     {
         parent::beforeValidate();
         if (!isset($this->data['Attribute']['type'])) {
+            $this->validationErrors['type'] = ['No type set.'];
             return false;
         }
         if (is_array($this->data['Attribute']['value'])) {
+            $this->validationErrors['type'] = ['Value is an array.'];
             return false;
         }
         App::uses('ComplexTypeTool', 'Tools');
@@ -823,6 +850,7 @@ class Attribute extends AppModel
         $this->data['Attribute']['value'] = $this->complexTypeTool->refangValue($this->data['Attribute']['value'], $this->data['Attribute']['type']);
 
         if (!empty($this->data['Attribute']['object_id']) && empty($this->data['Attribute']['object_relation'])) {
+            $this->validationErrors['type'] = ['Object attribute sent, but no object_relation set.'];
             return false;
         }
         // remove leading and trailing blanks
@@ -847,6 +875,16 @@ class Attribute extends AppModel
             $date = new DateTime();
             $this->data['Attribute']['timestamp'] = $date->getTimestamp();
         }
+
+        // parse first_seen different formats
+        if (isset($this->data['Attribute']['first_seen'])) {
+            $this->data['Attribute']['first_seen'] = $this->data['Attribute']['first_seen'] === '' ? null : $this->data['Attribute']['first_seen'];
+        }
+        // parse last_seen different formats
+        if (isset($this->data['Attribute']['last_seen'])) {
+            $this->data['Attribute']['last_seen'] = $this->data['Attribute']['last_seen'] === '' ? null : $this->data['Attribute']['last_seen'];
+        }
+
         // TODO: add explanatory comment
         // TODO: i18n?
         $result = $this->runRegexp($this->data['Attribute']['type'], $this->data['Attribute']['value']);
@@ -977,6 +1015,20 @@ class Attribute extends AppModel
     {
         $value = $fields['value'];
         return $this->runValidation($value, $this->data['Attribute']['type']);
+    }
+
+    // check whether the variable is null or datetime
+    public function datetimeOrNull($fields)
+    {
+        $k = array_keys($fields)[0];
+        $seen = $fields[$k];
+        try {
+            new DateTime($seen);
+            $returnValue = true;
+        } catch (Exception $e) {
+            $returnValue = false;
+        }
+        return $returnValue || is_null($seen);
     }
 
     private $__hexHashLengths = array(
@@ -1200,6 +1252,7 @@ class Attribute extends AppModel
                 }
                 break;
             case 'email-src':
+            case 'eppn':
             case 'email-dst':
             case 'target-email':
             case 'whois-registrant-email':
@@ -1255,6 +1308,7 @@ class Attribute extends AppModel
             case 'stix2-pattern':
             case 'sigma':
             case 'gene':
+            case 'kusto-query':
             case 'mime-type':
             case 'identity-card-number':
             case 'cookie':
@@ -1338,6 +1392,7 @@ class Attribute extends AppModel
             case 'github-organisation':
             case 'cpe':
             case 'twitter-id':
+            case 'chrome-extension-id':
             case 'mobile-application-id':
                 // no newline
                 if (!preg_match("#\n#", $value)) {
@@ -1727,60 +1782,100 @@ class Attribute extends AppModel
         return $this->saveAttachment($attribute);
     }
 
-    public function getPictureData($attribute, $thumbnail=false, $width=200, $height=200)
+    /**
+     * Currently, as image are considered files with JPG (JPEG), PNG or GIF extension.
+     * @param array $attribute
+     * @return bool
+     */
+    public function isImage(array $attribute)
     {
-        $extension = explode('.', $attribute['Attribute']['value']);
-        $extension = end($extension);
-        if (extension_loaded('gd')) {
-            if (!$thumbnail) {
-                $data = $this->getAttachment($attribute['Attribute']);
-                $image = ImageCreateFromString($data);
-                ob_start ();
-                switch ($extension) {
-                    case 'gif':
-                        // php-gd doesn't support animated gif. Skipping...
-                        break;
-                    case 'jpg':
-                    case 'jpeg':
-                        imagejpeg($image);
-                        break;
-                    case 'png':
-                        imagepng($image);
-                        break;
-                    default:
-                        break;
-                    }
-                    $image_data = $extension != 'gif' ? ob_get_contents() : $data;
-                    ob_end_clean ();
-            } else { // thumbnail requested, resample picture with desired dimension and save result
-                $thumbnail_exists = $this->getAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
-                if ($width == 200 && $height == 200 && $thumbnail_exists !== '') { // check if thumbnail already exists
-                    $image_data = $thumbnail_exists;
-                } else {
-                    $data = $this->getAttachment($attribute['Attribute']);
-                    if ($extension == 'gif') {
-                        $image_data = $data;
-                    } else {
-                        $image = ImageCreateFromString($data);
-                        $extension = 'jpg';
-                        $imageTC = ImageCreateTrueColor($width, $height);
-                        ImageCopyResampled($imageTC, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
-                        ob_start ();
-                        imagejpeg ($imageTC);
-                        $image_data = ob_get_contents();
-                        ob_end_clean ();
-                        imagedestroy($image);
-                        imagedestroy($imageTC);
-                    }
-                    // save thumbnail for later reuse
-                    $attribute['Attribute']['data'] = $image_data;
-                    $this->saveAttachment($attribute['Attribute'], '_thumbnail');
+        return $attribute['type'] === 'attachment' &&
+            Validation::extension($attribute['value'], array('jpg', 'jpeg', 'png', 'gif'));
+    }
+
+    /**
+     * @param array $attribute
+     * @param bool $thumbnail
+     * @param int $maxWidth - When $thumbnail is true
+     * @param int $maxHeight - When $thumbnail is true
+     * @return string
+     * @throws Exception
+     */
+    public function getPictureData(array $attribute, $thumbnail=false, $maxWidth=200, $maxHeight=200)
+    {
+        if ($thumbnail && extension_loaded('gd')) {
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                // Return thumbnail directly if already exists
+                $imageData = $this->getAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
+                if ($imageData !== '') {
+                    return $imageData;
                 }
             }
+
+            // Thumbnail doesn't exists, we need to generate it
+            $imageData = $this->getAttachment($attribute['Attribute']);
+            $imageData = $this->resizeImage($imageData, $maxWidth, $maxHeight);
+
+            // Save just when requested default thumbnail size
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                $attribute['Attribute']['data'] = $imageData;
+                $this->saveAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
+            }
         } else {
-            $image_data = $this->getAttachment($attribute['Attribute']);
+            $imageData = $this->getAttachment($attribute['Attribute']);
         }
-        return $image_data;
+
+        return $imageData;
+    }
+
+    /**
+     * @param string $data
+     * @param int $maxWidth
+     * @param int $maxHeight
+     * @return string
+     * @throws Exception
+     */
+    private function resizeImage($data, $maxWidth, $maxHeight)
+    {
+        $image = imagecreatefromstring($data);
+        if ($image === false) {
+            throw new Exception("Image is not valid.");
+        }
+
+        $currentWidth = imagesx($image);
+        $currentHeight = imagesy($image);
+
+        // Compute thumbnail size with keeping ratio
+        if ($currentWidth > $currentHeight) {
+            $newWidth = min($currentWidth, $maxWidth);
+            $divisor = $currentWidth / $newWidth;
+            $newHeight = floor($currentHeight / $divisor);
+        } else {
+            $newHeight = min($currentHeight, $maxHeight);
+            $divisor = $currentHeight / $newHeight;
+            $newWidth = floor($currentWidth / $divisor);
+        }
+
+        $imageThumbnail = imagecreatetruecolor($newWidth, $newHeight);
+
+        // Allow transparent background
+        imagealphablending($imageThumbnail, false);
+        imagesavealpha($imageThumbnail, true);
+        $transparent = imagecolorallocatealpha($imageThumbnail, 255, 255, 255, 127);
+        imagefilledrectangle($imageThumbnail, 0, 0, $newWidth, $newHeight, $transparent);
+
+        // Resize image
+        imagecopyresampled($imageThumbnail, $image, 0, 0, 0, 0, $newWidth, $newHeight, $currentWidth, $currentHeight);
+        imagedestroy($image);
+
+        // Output image to string
+        ob_start();
+        imagepng($imageThumbnail, null, 9);
+        $imageData = ob_get_contents();
+        ob_end_clean();
+        imagedestroy($imageThumbnail);
+
+        return $imageData;
     }
 
     public function __beforeSaveCorrelation($a)
@@ -2130,6 +2225,50 @@ class Attribute extends AppModel
         return $fails;
     }
 
+    public function ISODatetimeToUTC($data, $alias)
+    {
+        // convert into utc and micro sec
+        if (!empty($data[$alias]['first_seen'])) {
+            $d = new DateTime($data[$alias]['first_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $fs_sec = $d->format('U');
+            $fs_micro = $d->format('u');
+            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+            $fs = $fs_sec . $fs_micro;
+            $data[$alias]['first_seen'] = $fs;
+        }
+        if (!empty($data[$alias]['last_seen'])) {
+            $d = new DateTime($data[$alias]['last_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $ls_sec = $d->format('U');
+            $ls_micro = $d->format('u');
+            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+            $ls = $ls_sec . $ls_micro;
+            $data[$alias]['last_seen'] = $ls;
+        }
+        return $data;
+    }
+
+    public function UTCToISODatetime($data, $alias)
+    {
+        if (!empty($data[$alias]['first_seen'])) {
+            $fs = $data[$alias]['first_seen'];
+            $fs_sec = intval($fs / 1000000); // $fs is in micro (10^6)
+            $fs_micro = $fs % 1000000;
+            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+            $fs = $fs_sec . '.' . $fs_micro;
+            $data[$alias]['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
+        }
+        if (!empty($data[$alias]['last_seen'])) {
+            $ls = $data[$alias]['last_seen'];
+            $ls_sec = intval($ls / 1000000); // $ls is in micro (10^6)
+            $ls_micro = $ls % 1000000;
+            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+            $ls = $ls_sec . '.' . $ls_micro;
+            $data[$alias]['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
+        }
+        return $data;
+    }
 
     public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false, $enforceWarninglist = false)
     {
@@ -2244,7 +2383,7 @@ class Attribute extends AppModel
         $rules = array();
         foreach ($eventIds as $event) {
             $conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
-            $valid_types = array('ip-dst', 'ip-src', 'ip-dst|port', 'ip-src|port', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'user-agent', 'snort');
+            $valid_types = array('ip-dst', 'ip-src', 'ip-dst|port', 'ip-src|port', 'eppn', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'user-agent', 'snort');
             $conditions['AND']['Attribute.type'] = $valid_types;
             if (!empty($type)) {
                 $conditions['AND'][] = array('Attribute.type' => $type);
@@ -3251,6 +3390,8 @@ class Attribute extends AppModel
                         if (empty($at['Tag'])) {
                             unset($results[$k]['AttributeTag'][$k2]);
                             $tagCulled = true;
+                        } else {
+                            $results[$k]['AttributeTag'][$k2]['Tag']['local'] = $results[$k]['AttributeTag'][$k2]['local'];
                         }
                     }
                     if ($tagCulled) {
@@ -3260,6 +3401,7 @@ class Attribute extends AppModel
                 if (isset($result['Event']['EventTag'])) {
                     $results[$k]['Event']['Tag'] = array();
                     foreach ($result['Event']['EventTag'] as $et) {
+                        $et['Tag']['local'] = $et['local'];
                         $results[$k]['Event']['Tag'][] = $et['Tag'];
                     }
                     unset($results[$k]['Event']['EventTag']);
@@ -3516,6 +3658,7 @@ class Attribute extends AppModel
                 $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
             }
         }
+        $saveResult = true;
         foreach ($attributes as $k => $attribute) {
             if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
                 $attribute = $this->onDemandEncrypt($attribute);
@@ -3525,9 +3668,9 @@ class Attribute extends AppModel
             }
             unset($attribute['Attachment']);
             $this->create();
-            $this->save($attribute);
+            $saveResult = $saveResult && $this->save($attribute);
         }
-        return true;
+        return $saveResult;
     }
 
     public function onDemandEncrypt($attribute)
@@ -3576,11 +3719,6 @@ class Attribute extends AppModel
             }
         }
         return true;
-    }
-
-    public function convertToOpenIOC($user, $attributes)
-    {
-        return $this->IOCExport->buildAll($user, $event);
     }
 
     private function __createTagSubQuery($tag_id, $blocked = false, $scope = 'Event', $limitAttributeHitsTo = 'event')
@@ -3643,6 +3781,32 @@ class Attribute extends AppModel
         } else {
             $timestamp = intval($this->Event->resolveTimeDelta($timestamp));
             $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+        }
+        if ($returnRaw) {
+            return $timestamp;
+        }
+        return $conditions;
+    }
+
+    public function setTimestampSeenConditions($timestamp, $conditions, $scope = 'Attribute.first_seen', $returnRaw = false)
+    {
+        if (is_array($timestamp)) {
+            $timestamp[0] = intval($this->Event->resolveTimeDelta($timestamp[0])) * 1000000; // seen in stored in micro-seconds in the DB
+            $timestamp[1] = intval($this->Event->resolveTimeDelta($timestamp[1])) * 1000000; // seen in stored in micro-seconds in the DB
+            if ($timestamp[0] > $timestamp[1]) {
+                $temp = $timestamp[0];
+                $timestamp[0] = $timestamp[1];
+                $timestamp[1] = $temp;
+            }
+            $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
+            $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
+        } else {
+            $timestamp = intval($this->Event->resolveTimeDelta($timestamp)) * 1000000; // seen in stored in micro-seconds in the DB
+            if ($scope == 'Attribute.first_seen') {
+                $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+            } else {
+                $conditions['AND'][] = array($scope . ' <=' => $timestamp);
+            }
         }
         if ($returnRaw) {
             return $timestamp;
@@ -3958,7 +4122,8 @@ class Attribute extends AppModel
         if (isset($attribute['uuid'])) {
             $existingAttribute = $this->find('first', array(
                 'conditions' => array('Attribute.uuid' => $attribute['uuid']),
-                'recursive' => -1
+                'contain' => array('AttributeTag' => 'Tag'),
+                'recursive' => -1,
             ));
             $this->Log = ClassRegistry::init('Log');
             if (count($existingAttribute)) {
@@ -3977,7 +4142,7 @@ class Attribute extends AppModel
                     return true;
                 }
                 // If a field is not set in the request, just reuse the old value
-                $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id', 'object_id', 'object_relation');
+                $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id', 'object_id', 'object_relation', 'first_seen', 'last_seen');
                 foreach ($recoverFields as $rF) {
                     if (!isset($attribute[$rF])) {
                         $attribute[$rF] = $existingAttribute['Attribute'][$rF];
@@ -4047,7 +4212,9 @@ class Attribute extends AppModel
             'comment',
             'sharing_group_id',
             'deleted',
-            'disable_correlation'
+            'disable_correlation',
+            'first_seen',
+            'last_seen'
         );
         if ($objectId) {
             $fieldList[] = 'object_id';
@@ -4069,28 +4236,36 @@ class Attribute extends AppModel
             ));
             return $this->validationErrors;
         } else {
-            if (isset($attribute['Tag']) && $user['Role']['perm_tagger']) {
-                foreach ($attribute['Tag'] as $tag) {
-                    $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
-                    if ($tag_id) {
-                        // fix the IDs here
-                        $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
-                    } else {
-                        // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
-                        // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
-                        // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
-                        if ($user['Role']['perm_tag_editor']) {
-                            $this->Log->create();
-                            $this->Log->save(array(
-                                'org' => $user['Organisation']['name'],
-                                'model' => 'Attrubute',
-                                'model_id' => $this->id,
-                                'email' => $user['email'],
-                                'action' => 'edit',
-                                'user_id' => $user['id'],
-                                'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
-                                'change' => ''
-                            ));
+            if ($user['Role']['perm_tagger']) {
+                /*
+                    We should uncomment the line below in the future once we have tag soft-delete
+                    A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
+                    has a version below x
+                */
+                // $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
+                if (isset($attribute['Tag'])) {
+                    foreach ($attribute['Tag'] as $tag) {
+                        $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
+                        if ($tag_id) {
+                            // fix the IDs here
+                            $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
+                        } else {
+                            // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
+                            // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
+                            // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
+                            if ($user['Role']['perm_tag_editor']) {
+                                $this->Log->create();
+                                $this->Log->save(array(
+                                    'org' => $user['Organisation']['name'],
+                                    'model' => 'Attrubute',
+                                    'model_id' => $this->id,
+                                    'email' => $user['email'],
+                                    'action' => 'edit',
+                                    'user_id' => $user['id'],
+                                    'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
+                                    'change' => ''
+                                ));
+                            }
                         }
                     }
                 }
@@ -4108,6 +4283,7 @@ class Attribute extends AppModel
         $result = $this->fetchAttributes($user, array(
             'conditions' => array('Attribute.id' => $id),
             'flatten' => 1,
+            'deleted' => [0,1],
             'recursive' => -1,
             'contain' => array('Event')
         ));
@@ -4207,6 +4383,9 @@ class Attribute extends AppModel
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'timestamp' => array('function' => 'set_filter_timestamp'),
+                    'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'first_seen' => array('function' => 'set_filter_seen'),
+                    'last_seen' => array('function' => 'set_filter_seen'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
                     'comment' => array('function' => 'set_filter_comment')
                 ),
@@ -4281,6 +4460,10 @@ class Attribute extends AppModel
                 $filters['wildcard'] = $filters['searchall'];
             }
         }
+
+        $subqueryElements = $this->Event->harvestSubqueryElements($filters);
+        $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
+
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
                 'conditions' => $conditions,
@@ -4295,6 +4478,7 @@ class Attribute extends AppModel
                 'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
                 'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
                 'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
+                'includeSightingdb' => !empty($filters['includeSightingdb']) ? $filters['includeSightingdb'] : 0,
                 'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
                 'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
                 'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
@@ -4355,7 +4539,7 @@ class Attribute extends AppModel
         $loop = false;
         if (empty($params['limit'])) {
             $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
-            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
+            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 80;
             $params['limit'] = $memory_in_mb * $memory_scaling_factor;
             $loop = true;
             $params['page'] = 1;
@@ -4378,6 +4562,10 @@ class Attribute extends AppModel
         while ($continue) {
             $this->Whitelist = ClassRegistry::init('Whitelist');
             $results = $this->fetchAttributes($user, $params, $continue);
+            if ($params['includeSightingdb']) {
+                $this->Sightingdb = ClassRegistry::init('Sightingdb');
+                $results = $this->Sightingdb->attachToAttributes($results, $user);
+            }
             $params['page'] += 1;
             $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
             $results = array_values($results);
@@ -4385,8 +4573,9 @@ class Attribute extends AppModel
             $temp = '';
             foreach ($results as $attribute) {
                 $elementCounter++;
-                $temp .= $exportTool->handler($attribute, $exportToolParams);
-                if ($temp !== '') {
+                $handlerResult = $exportTool->handler($attribute, $exportToolParams);
+                $temp .= $handlerResult;
+                if ($handlerResult !== '') {
                     if ($i != count($results) -1) {
                         $temp .= $exportTool->separator($exportToolParams);
                     }

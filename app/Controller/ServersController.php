@@ -256,6 +256,7 @@ class ServersController extends AppController
                     $defaults = array(
                         'push' => 0,
                         'pull' => 0,
+                        'push_sightings' => 0,
                         'caching_enabled' => 0,
                         'json' => '[]',
                         'push_rules' => '[]',
@@ -399,6 +400,7 @@ class ServersController extends AppController
             }
             $this->set('allTags', $allTags);
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
+            $this->render('edit');
         }
     }
 
@@ -450,7 +452,7 @@ class ServersController extends AppController
             }
             if (!$fail) {
                 // say what fields are to be updated
-                $fieldList = array('id', 'url', 'push', 'pull', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
+                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
                 $this->request->data['Server']['id'] = $id;
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
@@ -669,13 +671,14 @@ class ServersController extends AppController
             if (!Configure::read('MISP.background_jobs')) {
                 $result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
                 if (is_array($result)) {
-                    $success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled.', count($result[0]), count($result[1]), $result[2]));
+                    $success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled.', count($result[0]), count($result[1]), $result[2], $result[3]));
                 } else {
                     $error = $result;
                 }
                 $this->set('successes', $result[0]);
                 $this->set('fails', $result[1]);
                 $this->set('pulledProposals', $result[2]);
+                $this->set('pulledSightings', $result[3]);
             } else {
                 $this->loadModel('Job');
                 $this->Job->create();
@@ -1058,6 +1061,7 @@ class ServersController extends AppController
 
                 // get the DB diagnostics
                 $dbDiagnostics = $this->Server->dbSpaceUsage();
+                $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
 
                 $redisInfo = $this->Server->redisInfo();
 
@@ -1071,7 +1075,7 @@ class ServersController extends AppController
                 $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
                 $this->set('sessionCount', $sessionCount);
 
-                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'redisInfo');
+                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo');
             }
             // check whether the files are writeable
             $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
@@ -1112,6 +1116,9 @@ class ServersController extends AppController
                         'writeableDirs' => $writeableDirs,
                         'writeableFiles' => $writeableFiles,
                         'readableFiles' => $readableFiles,
+                        'dbDiagnostics' => $dbDiagnostics,
+                        'dbSchemaDiagnostics' => $dbSchemaDiagnostics,
+                        'redisInfo' => $redisInfo,
                         'finalSettings' => $dumpResults,
                         'extensions' => $extensions,
                         'workers' => $worker_array
@@ -1135,6 +1142,9 @@ class ServersController extends AppController
             $this->set('phpversion', phpversion());
             $this->set('phpmin', $this->phpmin);
             $this->set('phprec', $this->phprec);
+            $this->set('pythonmin', $this->pythonmin);
+            $this->set('pythonrec', $this->pythonrec);
+            $this->set('pymisp', $this->pymisp);
         }
     }
 
@@ -1143,12 +1153,23 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
-        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio');
+        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
         if (!in_array($type, $validTypes)) {
             throw new MethodNotAllowedException('Invalid worker type.');
         }
         $prepend = '';
         if ($type != 'scheduler') {
+            $workerIssueCount = 0;
+            $workerDiagnostic = $this->Server->workerDiagnostics($workerIssueCount);
+            if ($type == 'update' && isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
+                $message = __('Only one `update` worker can run at a time');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Servers', 'startWorker', false, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                    $this->redirect('/servers/serverSettings/workers');
+                }
+            }
             shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null 2>&1 &');
         } else {
             shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
@@ -1461,6 +1482,20 @@ class ServersController extends AppController
         }
     }
 
+    public function getRemoteUser($id)
+    {
+        $this->Server->id = $id;
+        if (!$this->Server->exists()) {
+            throw new NotFoundException(__('Invalid server'));
+        }
+        $user = $this->Server->getRemoteUser($id);
+        if (empty($user)) {
+            throw new NotFoundException(__('Invalid user or user not found.'));
+        } else {
+            return $this->RestResponse->viewData($user);
+        }
+    }
+
     public function testConnection($id = false)
     {
         if (!$this->Auth->user('Role')['perm_sync'] && !$this->Auth->user('Role')['perm_site_admin']) {
@@ -1477,6 +1512,10 @@ class ServersController extends AppController
                 $perm_sync = false;
                 if (isset($version['perm_sync'])) {
                     $perm_sync = $version['perm_sync'];
+                }
+                $perm_sighting = false;
+                if (isset($version['perm_sighting'])) {
+                    $perm_sighting = $version['perm_sighting'];
                 }
                 App::uses('Folder', 'Utility');
                 $file = new File(ROOT . DS . 'VERSION.json', true);
@@ -1504,8 +1543,12 @@ class ServersController extends AppController
                 if (!$mismatch && $version[2] < 111) {
                     $mismatch = 'proposal';
                 }
-                if (!$perm_sync) {
+                if (!$perm_sync && !$perm_sighting) {
                     $result['status'] = 7;
+                    return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+                }
+                if (!$perm_sync && $perm_sighting) {
+                    $result['status'] = 8;
                     return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
                 }
                 return new CakeResponse(
@@ -1605,7 +1648,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('This action requires API access.');
         }
         $versionArray = $this->Server->checkMISPVersion();
-        $this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync']));
+        $this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync'], 'perm_sighting' => $this->userRole['perm_sighting']));
         $this->set('_serialize', 'response');
     }
 
@@ -1672,36 +1715,49 @@ class ServersController extends AppController
         $this->set('updateLocked', $this->Server->isUpdateLocked());
     }
 
-    public function updateProgress()
+    public function updateProgress($ajaxHtml=false)
     {
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
-        $update_progress = $this->Server->getUpdateProgress();
-        $current_index = $update_progress['current'];
-        $current_command = !isset($update_progress['commands'][$current_index]) ? '' : $update_progress['commands'][$current_index];
-        $lookup_string = preg_replace('/\s{2,}/', '', substr($current_command, 0, -1));
-        $sql_info = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
-        if (empty($sql_info)) {
-            $update_progress['process_list'] = array();
+
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $dbVersion = $this->AdminSetting->getSetting('db_version');
+        $updateProgress = $this->Server->getUpdateProgress();
+        $updateProgress['db_version'] = $dbVersion;
+        $maxUpdateNumber = max(array_keys($this->Server->db_changes));
+        $updateProgress['complete_update_remaining'] = max($maxUpdateNumber - $dbVersion, 0);
+        $updateProgress['update_locked'] = $this->Server->isUpdateLocked();
+        $updateProgress['lock_remaining_time'] = $this->Server->getLockRemainingTime();
+        $updateProgress['update_fail_number_reached'] = $this->Server->UpdateFailNumberReached();
+        $currentIndex = $updateProgress['current'];
+        $currentCommand = !isset($updateProgress['commands'][$currentIndex]) ? '' : $updateProgress['commands'][$currentIndex];
+        $lookupString = preg_replace('/\s{2,}/', '', substr($currentCommand, 0, -1));
+        $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
+        if (empty($sqlInfo)) {
+            $updateProgress['process_list'] = array();
         } else {
             // retrieve current update process
-            foreach($sql_info as $row) {
-                if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookup_string) {
-                    $sql_info = $row['PROCESSLIST'];
+            foreach($sqlInfo as $row) {
+                if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookupString) {
+                    $sqlInfo = $row['PROCESSLIST'];
                     break;
                 }
             }
-            $update_progress['process_list'] = array();
-            $update_progress['process_list']['STATE'] = isset($sql_info['STATE']) ? $sql_info['STATE'] : '';
-            $update_progress['process_list']['PROGRESS'] = isset($sql_info['PROGRESS']) ? $sql_info['PROGRESS'] : 0;
-            $update_progress['process_list']['STAGE'] = isset($sql_info['STAGE']) ? $sql_info['STAGE'] : 0;
-            $update_progress['process_list']['MAX_STAGE'] = isset($sql_info['MAX_STAGE']) ? $sql_info['MAX_STAGE'] : 0;
+            $updateProgress['process_list'] = array();
+            $updateProgress['process_list']['STATE'] = isset($sqlInfo['STATE']) ? $sqlInfo['STATE'] : '';
+            $updateProgress['process_list']['PROGRESS'] = isset($sqlInfo['PROGRESS']) ? $sqlInfo['PROGRESS'] : 0;
+            $updateProgress['process_list']['STAGE'] = isset($sqlInfo['STAGE']) ? $sqlInfo['STAGE'] : 0;
+            $updateProgress['process_list']['MAX_STAGE'] = isset($sqlInfo['MAX_STAGE']) ? $sqlInfo['MAX_STAGE'] : 0;
         }
-        if ($this->request->is('ajax')) {
-            return $this->RestResponse->viewData(h($update_progress), $this->response->type());
+        $this->set('ajaxHtml', $ajaxHtml);
+        if ($this->request->is('ajax') && $ajaxHtml) {
+            $this->set('updateProgress', $updateProgress);
+            $this->layout = false;
+        } elseif ($this->request->is('ajax') || $this->_isRest()) {
+            return $this->RestResponse->viewData(h($updateProgress), $this->response->type());
         } else {
-            $this->set('updateProgress', $update_progress);
+            $this->set('updateProgress', $updateProgress);
         }
     }
 
@@ -1905,16 +1961,16 @@ misp_verifycert = %s
 relative_path = \'%s\'
 body = %s
 
-from pymisp import PyMISP
+from pymisp import ExpandedPyMISP
 
-misp = PyMISP(misp_url, misp_key, misp_verifycert)
+misp = ExpandedPyMISP(misp_url, misp_key, misp_verifycert)
 misp.direct_call(relative_path, body)
 ',
             $baseurl,
             $request['header']['Authorization'],
             $verifyCert,
             $relative,
-            (empty($request['body']) ? 'Null' : $request['body'])
+            (empty($request['body']) ? 'None' : $request['body'])
         );
         return $python_script;
     }
@@ -2148,6 +2204,55 @@ misp.direct_call(relative_path, body)
         } else {
             $message = __('Priority could not be changed.');
             return $this->RestResponse->saveFailResponse('Servers', 'changePriority', $id, $message, $this->response->type());
+        }
+    }
+
+    public function releaseUpdateLock()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint expects POST requests.'));
+        }
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(__('Only site admin accounts can release the update lock.'));
+        }
+        $this->Server->changeLockState(false);
+        $this->Server->resetUpdateFailNumber();
+        $this->redirect(array('action' => 'updateProgress'));
+    }
+
+    public function dbSchemaDiagnostic()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(__('Only site admin accounts get the DB schema diagnostic.'));
+        }
+        $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($dbSchemaDiagnostics, $this->response->type());
+        } else {
+            $this->set('checkedTableColumn', $dbSchemaDiagnostics['checked_table_column']);
+            $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics['diagnostic']);
+            $this->set('dbIndexDiagnostics', $dbSchemaDiagnostics['diagnostic_index']);
+            $this->set('expectedDbVersion', $dbSchemaDiagnostics['expected_db_version']);
+            $this->set('actualDbVersion', $dbSchemaDiagnostics['actual_db_version']);
+            $this->set('error', $dbSchemaDiagnostics['error']);
+            $this->set('remainingLockTime', $dbSchemaDiagnostics['remaining_lock_time']);
+            $this->set('updateFailNumberReached', $dbSchemaDiagnostics['update_fail_number_reached']);
+            $this->set('updateLocked', $dbSchemaDiagnostics['update_locked']);
+            $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
+            $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
+            $this->set('indexes', $dbSchemaDiagnostics['indexes']);
+            $this->render('/Elements/healthElements/db_schema_diagnostic');
+        }
+    }
+
+    public function viewDeprecatedFunctionUse()
+    {
+        $data = $this->Deprecation->getDeprecatedAccessList($this->Server);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($data, $this->response->type());
+        } else {
+            $this->layout = false;
+            $this->set('data', $data);
         }
     }
 }

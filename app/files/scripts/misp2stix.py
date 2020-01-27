@@ -89,44 +89,44 @@ class StixBuilder(object):
                 idgen.set_id_namespace(Namespace(self.baseurl, self.orgname, "MISP"))
         self.namespace_prefix = idgen.get_id_namespace_alias()
         ## MAPPING FOR ATTRIBUTES
-        self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable,
-                                      "named pipe": self.generate_pipe_observable}
-        self.simple_type_to_method.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"], self.resolve_file_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], self.generate_ip_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], self.generate_socket_address_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], self.generate_regkey_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link", "windows-service-name"], self.generate_simple_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to"], self.resolve_email_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["http-method", "user-agent"], self.resolve_http_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traffic", "pattern-in-memory"], self.resolve_pattern_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["mac-address"], self.resolve_system_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["attachment"], self.resolve_attachment))
-        self.simple_type_to_method.update(dict.fromkeys(["email-attachment"], self.generate_email_attachment_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], self.resolve_malware_sample))
+        self.simple_type_to_method = {"port": 'generate_port_observable', "domain|ip": 'generate_domain_ip_observable',
+                                      "named pipe": 'generate_pipe_observable'}
+        self.simple_type_to_method.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"], 'resolve_file_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], 'generate_ip_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], 'generate_socket_address_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], 'generate_regkey_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link", "windows-service-name"], 'generate_simple_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to"], 'resolve_email_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["http-method", "user-agent"], 'resolve_http_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traffic", "pattern-in-memory"], 'resolve_pattern_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["mac-address"], 'resolve_system_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["attachment"], 'resolve_attachment'))
+        self.simple_type_to_method.update(dict.fromkeys(["email-attachment"], 'generate_email_attachment_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], 'resolve_malware_sample'))
         ## MAPPING FOR OBJECTS
-        self.ttp_names = {'attack-pattern': self.parse_attack_pattern,
-                          'course-of-action': self.parse_course_of_action,
-                          'vulnerability': self.parse_vulnerability,
-                          'weakness': self.parse_weakness}
+        self.ttp_names = {'attack-pattern': 'parse_attack_pattern',
+                          'course-of-action': 'parse_course_of_action',
+                          'vulnerability': 'parse_vulnerability',
+                          'weakness': 'parse_weakness'}
         self.types_mapping = {CourseOfAction: 'add_course_of_action',
                               ThreatActor: 'add_threat_actor',
                               TTP: 'add_ttp'}
-        self.objects_mapping = {"asn": self.parse_asn_object,
-                                "credential": self.parse_credential_object,
-                                "domain-ip": self.parse_domain_ip_object,
-                                "email": self.parse_email_object,
-                                "file": self.parse_file_object,
-                                "ip-port": self.parse_ip_port_object,
-                                "network-connection": self.parse_network_connection_object,
-                                "network-socket": self.parse_network_socket_object,
-                                "pe": self.store_pe,
-                                "pe-section": self.store_pe,
-                                "process": self.parse_process_object,
-                                "registry-key": self.parse_regkey_object,
-                                "url": self.parse_url_object,
-                                "user-account": self.parse_user_account_object,
-                                "whois": self.parse_whois,
-                                "x509": self.parse_x509_object}
+        self.objects_mapping = {"asn": 'parse_asn_object',
+                                "credential": 'parse_credential_object',
+                                "domain-ip": 'parse_domain_ip_object',
+                                "email": 'parse_email_object',
+                                "file": 'parse_file_object',
+                                "ip-port": 'parse_ip_port_object',
+                                "network-connection": 'parse_network_connection_object',
+                                "network-socket": 'parse_network_socket_object',
+                                "pe": 'store_pe',
+                                "pe-section": 'store_pe',
+                                "process": 'parse_process_object',
+                                "registry-key": 'parse_regkey_object',
+                                "url": 'parse_url_object',
+                                "user-account": 'parse_user_account_object',
+                                "whois": 'parse_whois',
+                                "x509": 'parse_x509_object'}
 
     def loadEvent(self):
         pathname = os.path.dirname(self.args[0])
@@ -274,11 +274,11 @@ class StixBuilder(object):
             if name == 'original-imported-file':
                 continue
             if name in self.ttp_names:
-                self.ttp_names[name](misp_object)
+                getattr(self, self.ttp_names[name])(misp_object)
             else:
                 category = misp_object.get('meta-category')
                 try:
-                    to_ids, observable = self.objects_mapping[name](misp_object)
+                    to_ids, observable = getattr(self, self.objects_mapping[name])(misp_object)
                 except KeyError:
                     to_ids, observable = self.create_custom_observable(name, misp_object['Attribute'], misp_object['uuid'])
                 except TypeError:
@@ -525,7 +525,7 @@ class StixBuilder(object):
         attribute_type = attribute['type']
         attribute_uuid = attribute['uuid']
         try:
-            observable_property = self.simple_type_to_method[attribute_type](attribute)
+            observable_property = getattr(self, self.simple_type_to_method[attribute_type])(attribute)
         except KeyError:
             return False
         if isinstance(observable_property, Observable):

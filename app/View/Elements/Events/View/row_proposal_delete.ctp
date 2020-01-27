@@ -50,6 +50,9 @@
   <td class="short context hidden">
     <?php echo h($object['uuid']); ?>
   </td>
+  <td class="short context hidden">
+      <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
+  </td>
   <td style="font-weight:bold;text-align:left;">DELETE</td>
   <?php
     if ($extended):
@@ -79,7 +82,7 @@
         }
         if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin || ($object['org_id'] == $me['org_id'])) {
         ?>
-          <span class="fa fa-trash icon-white useCursorPointer" title="<?php echo __('Discard proposal');?>" role="button" tabindex="0" aria-label="<?php echo __('Discard proposal');?>" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+          <span class="fa fa-trash white useCursorPointer" title="<?php echo __('Discard proposal');?>" role="button" tabindex="0" aria-label="<?php echo __('Discard proposal');?>" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
         <?php
         }
     ?>

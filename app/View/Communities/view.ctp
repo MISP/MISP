@@ -56,12 +56,3 @@
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'view_community'));
 ?>
-<script type="text/javascript">
-    <?php
-        $startingTab = 'description';
-        if (!$local) $startingTab = 'events';
-    ?>
-    $(document).ready(function () {
-        organisationViewContent('<?php echo $startingTab; ?>', '<?php echo h($id);?>');
-    });
-</script>

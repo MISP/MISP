@@ -234,7 +234,7 @@ sudo -u www HOME=/tmp $PATH_TO_MISP/venv/bin/pip install plyara
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd $PATH_TO_MISP/app
 sudo -u www php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-sudo -u www php -r "if (hash_file('SHA384', 'composer-setup.php') === 'a5c698ffe4b8e849a443b120cd5ba38043260d5c4023dbf93e1558871f1f07f58274fc6f4c93bcfd858c6bd0775cd8d1') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink
+sudo -u www php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink
 ('composer-setup.php'); } echo PHP_EOL;"
 sudo -u www env HOME=/tmp php composer-setup.php
 sudo -u www php -r "unlink('composer-setup.php');"

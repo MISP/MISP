@@ -46,10 +46,12 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '89';
-    public $pyMispVersion = '2.4.114';
-    public $phpmin = '7.0';
-    public $phprec = '7.2';
+    private $__queryVersion = '97';
+    public $pyMispVersion = '2.4.120';
+    public $phpmin = '7.2';
+    public $phprec = '7.4';
+    public $pythonmin = '3.6';
+    public $pythonrec = '3.7';
     public $isApiAuthed = false;
 
     public $baseurl = '';
@@ -61,6 +63,8 @@ class AppController extends Controller
         'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
         'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
     );
+
+    protected $_legacyParams = array();
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -90,7 +94,10 @@ class AppController extends Controller
             'RestResponse',
             'Flash',
             'Toolbox',
-            'RateLimit'
+            'RateLimit',
+            'IndexFilter',
+            'Deprecation',
+            'RestSearch'
             //,'DebugKit.Toolbar'
     );
 
@@ -105,7 +112,14 @@ class AppController extends Controller
     public function beforeFilter()
     {
         $this->Auth->loginRedirect = Configure::read('MISP.baseurl') . '/users/routeafterlogin';
-        $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
+
+        $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
+        if ($customLogout) {
+            $this->Auth->logoutRedirect = $customLogout;
+        } else {
+            $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
+        }
+
         $this->__sessionMassage();
         if (Configure::read('Security.allow_cors')) {
             // Add CORS headers
@@ -123,7 +137,7 @@ class AppController extends Controller
         }
 
         if (!empty($this->params['named']['sql'])) {
-            $this->sql_dump = 1;
+            $this->sql_dump = intval($this->params['named']['sql']);
         }
 
         $this->_setupDatabaseConnection();
@@ -164,10 +178,10 @@ class AppController extends Controller
         } else {
             $this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
         }
-        $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         if (!empty($this->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
         }
+        $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
         $this->_setupBaseurl();
@@ -284,7 +298,9 @@ class AppController extends Controller
 
         if ($this->Auth->user()) {
             // update script
-            $this->{$this->modelClass}->runUpdates();
+            if ($this->Auth->user('Role')['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
+                $this->{$this->modelClass}->runUpdates();
+            }
             $user = $this->Auth->user();
             if (!isset($user['force_logout']) || $user['force_logout']) {
                 $this->loadModel('User');
@@ -350,7 +366,7 @@ class AppController extends Controller
                 $this->Auth->logout();
                 throw new MethodNotAllowedException($message);//todo this should pb be removed?
             } else {
-                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ' , array('params' => array('url' => $this->baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
+                $this->Flash->error(__('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ') , array('params' => array('url' => $this->baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
             }
         }
         if ($this->Session->check(AuthComponent::$sessionKey)) {
@@ -394,10 +410,8 @@ class AppController extends Controller
         // instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
         // getActions returns all the flags in a single SQL query
         if ($this->Auth->user()) {
-            $versionArray = $this->{$this->modelClass}->checkMISPVersion();
-            $this->mispVersionFull = implode('.', array_values($versionArray));
             $this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
-            $this->set('mispVersionFull', $this->mispVersionFull);
+            $this->set('mispVersionFull', $this->mispVersion);
             $role = $this->getActions();
             $this->set('me', $this->Auth->user());
             $this->set('isAdmin', $role['perm_admin']);
@@ -471,7 +485,22 @@ class AppController extends Controller
         }
         $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
-        $this->__rateLimitCheck();
+        if ($this->_isRest()) {
+            $this->__rateLimitCheck();
+        }
+        if ($this->modelClass !== 'CakeError') {
+            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->action, $this->{$this->modelClass}, $this->Auth->user('id'));
+            if ($deprecationWarnings) {
+                $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
+                if ($this->_isRest()) {
+                    $this->response->header('X-Deprecation-Warning', $deprecationWarnings);
+                    $this->components['RestResponse']['deprecationWarnings'] = $deprecationWarnings;
+                } else {
+                    $this->Flash->warning($deprecationWarnings);
+                }
+            }
+        }
+        $this->components['RestResponse']['sql_dump'] = $this->sql_dump;
     }
 
     private function __rateLimitCheck()
@@ -504,10 +533,6 @@ class AppController extends Controller
 
     public function afterFilter()
     {
-        if (Configure::read('debug') > 1 && !empty($this->sql_dump) && $this->_isRest()) {
-            $this->Log = ClassRegistry::init('Log');
-            echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
-        }
         if ($this->isApiAuthed && $this->_isRest()) {
             $this->Session->destroy();
         }
@@ -693,9 +718,8 @@ class AppController extends Controller
     }
 
     // generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
-    protected function _harvestParameters($options, &$exception)
+    protected function _harvestParameters($options, &$exception, $data = array())
     {
-        $data = array();
         if (!empty($options['request']->is('post'))) {
             if (empty($options['request']->data)) {
                 $exception = $this->RestResponse->throwException(
@@ -706,11 +730,24 @@ class AppController extends Controller
                 return false;
             } else {
                 if (isset($options['request']->data['request'])) {
-                    $data = $options['request']->data['request'];
+                    $data = array_merge($data, $options['request']->data['request']);
                 } else {
-                    $data = $options['request']->data;
+                    $data = array_merge($data, $options['request']->data);
                 }
             }
+        }
+        /*
+         * If we simply capture ordered URL params with func_get_args(), reassociate them.
+         * We can easily detect this by having ordered_url_params passed as a list instead of a dict.
+         */
+        if (isset($options['ordered_url_params'][0])) {
+            $temp = array();
+            foreach ($options['ordered_url_params'] as $k => $url_param) {
+                if (!empty($options['paramArray'][$k])) {
+                    $temp[$options['paramArray'][$k]] = $url_param;
+                }
+            }
+            $options['ordered_url_params'] = $temp;
         }
         if (!empty($options['paramArray'])) {
             foreach ($options['paramArray'] as $p) {
@@ -1089,4 +1126,96 @@ class AppController extends Controller
         }
     }
 
+    protected function _legacyAPIRemap($options = array())
+    {
+        $ordered_url_params = array();
+        foreach ($options['paramArray'] as $k => $param) {
+            if (isset($options['ordered_url_params'][$k])) {
+                $ordered_url_params[$param] = $options['ordered_url_params'][$k];
+            } else {
+                $ordered_url_params[$param] = false;
+            }
+        }
+        $filterData = array(
+            'request' => $options['request'],
+            'named_params' => $options['named_params'],
+            'paramArray' => $options['paramArray'],
+            'ordered_url_params' => $ordered_url_params
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if (!empty($options['injectedParams'])) {
+            foreach ($options['injectedParams'] as $injectedParam => $injectedValue) {
+                $filters[$injectedParam] = $injectedValue;
+            }
+        }
+        if (!empty($options['alias'])) {
+            foreach ($options['alias'] as $from => $to) {
+                if (!empty($filters[$from])) {
+                    $filters[$to] = $filters[$from];
+                }
+            }
+        }
+        $this->_legacyParams = $filters;
+        return true;
+    }
+
+    public function restSearch()
+    {
+        $ordered_url_params = func_get_args();
+        if (empty($this->RestSearch->paramArray[$this->modelClass])) {
+            throw new NotFoundException(__('RestSearch is not implemented (yet) for this scope.'));
+        }
+        $scope = empty($this->scopeOverride) ? $this->modelClass : $this->scopeOverride;
+        if (!isset($this->$scope)) {
+            $this->loadModel($scope);
+        }
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => $this->RestSearch->paramArray[$scope],
+            'ordered_url_params' => func_get_args()
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception, $this->_legacyParams);
+        if (empty($filters['returnFormat'])) {
+            $filters['returnFormat'] = 'json';
+        }
+        unset($filterData);
+        if ($filters === false) {
+            return $exception;
+        }
+        $list = array();
+        $key = empty($filters['key']) ? $filters['returnFormat'] : $filters['key'];
+        $user = $this->_getApiAuthUser($key, $exception);
+        if ($user === false) {
+            return $exception;
+        }
+        if (isset($filters['returnFormat'])) {
+            $returnFormat = $filters['returnFormat'];
+        } else {
+            $returnFormat = 'json';
+        }
+        if ($returnFormat === 'download') {
+            $returnFormat = 'json';
+        }
+        if ($returnFormat === 'stix' && $this->_isJson()) {
+            $returnFormat = 'stix-json';
+        }
+        $elementCounter = 0;
+        $renderView = false;
+        $final = $this->$scope->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        if (!empty($renderView) && !empty($final)) {
+            $this->layout = false;
+            $final = json_decode($final, true);
+            foreach ($final as $key => $data) {
+                $this->set($key, $data);
+            }
+            $this->render('/Events/module_views/' . $renderView);
+        } else {
+            $responseType = $this->$scope->validFormats[$returnFormat][0];
+            $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
+            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        }
+    }
 }

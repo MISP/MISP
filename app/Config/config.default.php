@@ -17,7 +17,7 @@ $config = array(
 			'org'                            => 'ORGNAME',
 			'showorg'                        => true,
 			'threatlevel_in_email_subject'   => true,
-			'email_subject_TLP_string'       => 'TLP Amber',
+            'email_subject_TLP_string'       => 'tlp:amber',
 			'email_subject_tag'              => 'tlp',
 			'email_subject_include_tag_name' => true,
 			'background_jobs'                => true,
@@ -110,7 +110,6 @@ $config = array(
 	'ApacheShibbAuth'  =>                      // Configuration for shibboleth authentication
 		array(
 			'apacheEnv'         => 'REMOTE_USER',        // If proxy variable = HTTP_REMOTE_USER
-			'ssoAuth'           => 'AUTH_TYPE',
 			'MailTag'           => 'EMAIL_TAG',
 			'OrgTag'            => 'FEDERATION_TAG',
 			'GroupTag'          => 'GROUP_TAG',
@@ -120,7 +119,6 @@ $config = array(
 				'group_two'   => 2,
 				'group_one'   => 1,
 			),
-			'DefaultRoleId'     => 3,
 			'DefaultOrg'        => 'DEFAULT_ORG',
 		),
 	*/
@@ -141,7 +139,7 @@ $config = array(
 	/*
 	'ApacheSecureAuth' => // Configuration for kerberos authentication
 		array(
-			'apacheEnv'          => 'REMOTE_USER',           // If proxy variable = HTTP_REMOTE_USER
+			'apacheEnv'          => 'REMOTE_USER',           // If proxy variable = HTTP_REMOTE_USER, If BasicAuth ldap = PHP_AUTH_USER
 			'ldapServer'         => 'ldap://example.com',   // FQDN or IP
 			'ldapProtocol'       => 3,
 			'ldapNetworkTimeout' => -1,  // use -1 for unlimited network timeout
