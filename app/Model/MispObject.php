@@ -58,9 +58,33 @@ class MispObject extends AppModel
                 'rule' => 'isUnique',
                 'message' => 'The UUID provided is not unique',
                 'required' => 'create'
-            )
+            ),
+        ),
+        'first_seen' => array(
+            'rule' => array('datetimeOrNull'),
+            'required' => false,
+            'message' => array('Invalid ISO 8601 format')
+        ),
+        'last_seen' => array(
+            'rule' => array('datetimeOrNull'),
+            'required' => false,
+            'message' => array('Invalid ISO 8601 format')
         )
     );
+
+     // check whether the variable is null or datetime
+     public function datetimeOrNull($fields)
+     {
+         $k = array_keys($fields)[0];
+         $seen = $fields[$k];
+         try {
+             new DateTime($seen);
+             $returnValue = true;
+         } catch (Exception $e) {
+             $returnValue = false;
+         }
+         return $returnValue || is_null($seen);
+     }
 
     public function afterFind($results, $primary = false)
     {
@@ -633,7 +657,10 @@ class MispObject extends AppModel
             $forcedSeenOnElements['last_seen'] = $objectToSave['Object']['last_seen'];
         }
         $object = $this->syncObjectAndAttributeSeen($object, $forcedSeenOnElements, false);
-        $this->save($object);
+        $saveResult = $this->save($object);
+        if ($saveResult === false) {
+            return $this->validationErrors;
+        }
 
         if (!$onlyAddNewAttribute) {
             $checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment', 'disable_correlation', 'first_seen', 'last_seen');
