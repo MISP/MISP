@@ -280,6 +280,7 @@ class AdminShell extends AppShell
             $setting = $this->Server->getSettingData($setting_name);
             if (empty($setting)) {
                 echo 'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
+                exit(1);
             }
             $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value);
             if ($result === true) {
