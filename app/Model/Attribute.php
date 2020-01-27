@@ -4639,4 +4639,28 @@ class Attribute extends AppModel
         }
         return $conditions;
     }
+
+    /**
+     * @param array $attribute
+     */
+    public function removeGalaxyClusterTags(array &$attribute)
+    {
+        $galaxyTagIds = array();
+        foreach ($attribute['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] as $galaxyCluster) {
+                $galaxyTagIds[$galaxyCluster['tag_id']] = true;
+            }
+        }
+
+        if (empty($galaxyTagIds)) {
+            return;
+        }
+
+        foreach ($attribute['AttributeTag'] as $k => $attributeTag) {
+            $tagId = $attributeTag['Tag']['id'];
+            if (isset($galaxyTagIds[$tagId])) {
+                unset($attribute['AttributeTag'][$k]);
+            }
+        }
+    }
 }
