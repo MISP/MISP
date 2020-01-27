@@ -5771,7 +5771,7 @@ class Server extends AppModel
             'conditions' => array('Server.id' => $serverId),
         ));
         if ($server === null) {
-            throw new Exception("Server with ID '$serverId' not found.");
+            throw new Exception(__("Server with ID '$serverId' not found."));
         }
 
         if (!$HttpSocket) {
@@ -5783,23 +5783,23 @@ class Server extends AppModel
         $response = $HttpSocket->get($uri, array(), $request);
 
         if ($response === false) {
-            throw new Exception("Could not reach '$uri'.");
+            throw new Exception(__("Could not reach '$uri'."));
         } else if ($response->code == 404) { // intentional !=
-            throw new NotFoundException("Fetching the '$uri' failed with HTTP error 404: Not Found");
+            throw new NotFoundException(__("Fetching the '$uri' failed with HTTP error 404: Not Found"));
         } else if ($response->code == 405) { // intentional !=
             $responseText = json_decode($response->body, true);
             if ($responseText !== null) {
-                throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$responseText['message']}");
+                throw new Exception(sprintf(__("Fetching the '$uri' failed with HTTP error %s: %s"), $response->code, $responseText['message']));
             }
         }
 
         if ($response->code != 200) { // intentional !=
-            throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+            throw new Exception(sprintf(__("Fetching the '$uri' failed with HTTP error %s: %s"), $response->code, $response->reasonPhrase));
         }
 
         $data = json_decode($response->body, true);
         if ($data === null) {
-            throw new Exception('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
+            throw new Exception(__('Could not parse JSON: ') . json_last_error_msg(), json_last_error());
         }
 
         return array($data, $response);

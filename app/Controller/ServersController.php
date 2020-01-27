@@ -156,7 +156,7 @@ class ServersController extends AppController
         try {
             $event = $this->Server->previewEvent($serverId, $eventId);
         } catch (NotFoundException $e) {
-            throw new NotFoundException("Event '$eventId' not found.");
+            throw new NotFoundException(__("Event '$eventId' not found."));
         } catch (Exception $e) {
             $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
             $this->redirect(array('action' => 'previewIndex', $serverId));
