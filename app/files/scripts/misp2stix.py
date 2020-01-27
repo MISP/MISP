@@ -345,7 +345,7 @@ class StixBuilder(object):
         handling = self.set_tlp(tuple(tags))
         if handling is not None:
             indicator.handling = handling
-        title = "{} (MISP Object #{})".format(misp_object['name'], misp_object['id'])
+        title = "{}: {} (MISP Object)".format(misp_object['meta-category'], misp_object['name'])
         indicator.title = title
         indicator.description = misp_object['comment'] if misp_object.get('comment') else title
         indicator.add_indicator_type("Malware Artifacts")
@@ -481,7 +481,7 @@ class StixBuilder(object):
         handling = self.set_tlp(tags)
         if handling is not None:
             indicator.handling = handling
-        indicator.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute['value'], attribute['id'])
+        indicator.title = "{}: {} (MISP Attribute)".format(attribute['category'], attribute['value'])
         indicator.description = indicator.title
         confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
         confidence_value = confidence_mapping.get(attribute['to_ids'], None)
@@ -1332,7 +1332,7 @@ class StixBuilder(object):
         ciq_identity.specification = identity_spec
         ciq_identity.id_ = "{}:Identity-{}".format(self.orgname, attribute['uuid'])
         # is this a good idea?
-        ciq_identity.name = "{}: {} (MISP Attribute #{})".format(attribute_type, attribute_value, attribute['id'])
+        ciq_identity.name = "{}: {} (MISP Attribute)".format(attribute['category'], attribute_value)
         return ciq_identity
 
     def resolve_malware_sample(self, attribute):
