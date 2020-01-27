@@ -12,7 +12,7 @@
     ));
     if (!empty($host_org_id) && !empty($this->request->data['Server']) && $this->request->data['Server']['remote_org_id'] == $host_org_id) {
         echo sprintf(
-            '<div id="InternalDiv" class = "input clear" style="width:100%;"><hr /><p class="red" style="width:50%;">%s</p>%s</div>',
+            '<div id="InternalDiv" class = "input clear" style="width:100%%;"><hr /><p class="red" style="width:50%%;">%s</p>%s</div>',
             __('You can set this instance up as an internal instance by checking the checkbox below. This means that any synchronisation between this instance and the remote will not be automatically degraded as it would in a normal synchronisation scenario. Please make sure that you own both instances and that you are OK with this otherwise dangerous change. This also requires that the current instance\'s host organisation and the remote sync organisation are the same.'),
             $this->Form->input('internal', array(
                     'label' => __('Internal instance'),
