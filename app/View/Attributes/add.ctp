@@ -141,6 +141,31 @@
             endif;
         ?>
         checkSharingGroup('Attribute');
+
+        var $form = $('#AttributeType').closest('form').submit(function( event ) {
+            if ($('#AttributeType').val() === 'datetime') {
+                // add timezone of the browser if not set
+                var allowLocalTZ = true;
+                var $valueInput = $('#AttributeValue')
+                var dateValue = moment($valueInput.val())
+                if (dateValue.isValid()) {
+                    if (dateValue.creationData().format !== "YYYY-MM-DDTHH:mm:ssZ" && dateValue.creationData().format !== "YYYY-MM-DDTHH:mm:ss.SSSSZ") {
+                        // Missing timezone data
+                        var confirm_message = '<?php echo __('As no timezone has been entered, it has been auto-detected as: ') ?>' + dateValue.format('Z')
+                        confirm_message += '<?php echo '\r\n' . __('This value will be submited instead: '); ?>' + dateValue.toISOString(allowLocalTZ)
+                        if (confirm(confirm_message)) {
+                            $valueInput.val(dateValue.toISOString(allowLocalTZ));
+                        } else {
+                            return false;
+                        }
+                    }
+                } else {
+                    textStatus = '<?php echo __('Value is not a valid datetime. Excpected format YYYY-MM-DDTHH:mm:ssZ') ?>'
+                    showMessage('fail',  + ": " + '???');
+                    return false;
+                }
+            }
+        });
     });
 </script>
 <?php echo $this->element('form_seen_input'); ?>
