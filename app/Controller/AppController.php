@@ -112,7 +112,14 @@ class AppController extends Controller
     public function beforeFilter()
     {
         $this->Auth->loginRedirect = Configure::read('MISP.baseurl') . '/users/routeafterlogin';
-        $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
+
+        $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
+        if ($customLogout) {
+            $this->Auth->logoutRedirect = $customLogout;
+        } else {
+            $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
+        }
+
         $this->__sessionMassage();
         if (Configure::read('Security.allow_cors')) {
             // Add CORS headers
