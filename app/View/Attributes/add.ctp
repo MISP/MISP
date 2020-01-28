@@ -151,8 +151,8 @@
                 if (dateValue.isValid()) {
                     if (dateValue.creationData().format !== "YYYY-MM-DDTHH:mm:ssZ" && dateValue.creationData().format !== "YYYY-MM-DDTHH:mm:ss.SSSSZ") {
                         // Missing timezone data
-                        var confirm_message = '<?php echo __('As no timezone has been entered, it has been auto-detected as: ') ?>' + dateValue.format('Z')
-                        confirm_message += '<?php echo '\r\n' . __('This value will be submited instead: '); ?>' + dateValue.toISOString(allowLocalTZ)
+                        var confirm_message = '<?php echo __('Timezone missing, auto-detected as: ') ?>' + dateValue.format('Z')
+                        confirm_message += '<?php echo '\r\n' . __('The following value will be submited instead: '); ?>' + dateValue.toISOString(allowLocalTZ)
                         if (confirm(confirm_message)) {
                             $valueInput.val(dateValue.toISOString(allowLocalTZ));
                         } else {
