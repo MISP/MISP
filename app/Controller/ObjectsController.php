@@ -286,6 +286,12 @@ class ObjectsController extends AppController
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
                     if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($eventId);
+                    } else {
+                        $object_validation_errors = array();
+                        foreach($result as $field => $field_errors) {
+                            $object_validation_errors[] = sprintf('%s: %s', $field,  implode(', ', $field_errors));
+                        }
+                        $error = __('Object could not be saved.') . PHP_EOL . implode(PHP_EOL, $object_validation_errors);
                     }
                 } else {
                     $result = false;
@@ -414,6 +420,14 @@ class ObjectsController extends AppController
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
             $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute);
+            $error_message = __('Object could not be saved.');
+            if (!is_numeric($objectToSave)){
+                $object_validation_errors = array();
+                foreach($objectToSave as $field => $field_errors) {
+                    $object_validation_errors[] = sprintf('%s: %s', $field,  implode(', ', $field_errors));
+                }
+                $error_message = __('Object could not be saved.') . PHP_EOL . implode(PHP_EOL, $object_validation_errors);
+            }
             // we pre-validate the attributes before we create an object at this point
             // This allows us to stop the process and return an error (API) or return
             //  to the add form
@@ -428,11 +442,10 @@ class ObjectsController extends AppController
                     $this->MispObject->Event->unpublishEvent($objectToSave['Object']['event_id']);
                     return $this->RestResponse->viewData($objectToSave, $this->response->type());
                 } else {
-                    return $this->RestResponse->saveFailResponse('Objects', 'add', false, $id, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $id, $this->response->type());
                 }
             } else {
                 $message = __('Object attributes saved.');
-                $error_message = __('Object attributes could not be saved.');
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
                     if (is_numeric($objectToSave)) {

@@ -1373,7 +1373,7 @@ class User extends AppModel
                     $updatedUser['User']['id'],
                     $updatedUser['User']['email']
                 ),
-                $fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')',
+                $fieldsResult = ['authkey' =>  [$oldKey, $newkey]],
                 $updatedUser
         );
         if ($alert) {
