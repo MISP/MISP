@@ -161,7 +161,7 @@
                     }
                 } else {
                     textStatus = '<?php echo __('Value is not a valid datetime. Excpected format YYYY-MM-DDTHH:mm:ssZ') ?>'
-                    showMessage('fail',  + ": " + '???');
+                    showMessage('fail', textStatus);
                     return false;
                 }
             }
