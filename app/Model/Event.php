@@ -6683,26 +6683,22 @@ class Event extends AppModel
         $i = 0;
         $current_chunk_size = 0;
         $largest_event = 0;
-        while (!empty($eventIds)) {
-            foreach ($eventIds as $id => $count) {
-                if ($count > $largest_event) {
-                    $largest_event = $count;
-                }
-                if ($current_chunk_size == 0 && $count > $limit) {
+        foreach ($eventIds as $id => $count) {
+            if ($count > $largest_event) {
+                $largest_event = $count;
+            }
+            if ($current_chunk_size == 0 && $count > $limit) {
+                $eventIdList[$i][] = $id;
+                $current_chunk_size = $count;
+                $i++;
+            } else {
+                if (($current_chunk_size + $count) > $limit) {
+                    $i++;
                     $eventIdList[$i][] = $id;
                     $current_chunk_size = $count;
-                    $i++;
-                    break;
                 } else {
-                    if (($current_chunk_size + $count) > $limit) {
-                        $i++;
-                        $eventIdList[$i][] = $id;
-                        $current_chunk_size = $count;
-                        break;
-                    } else {
-                        $current_chunk_size += $count;
-                        $eventIdList[$i][] = $id;
-                    }
+                    $current_chunk_size += $count;
+                    $eventIdList[$i][] = $id;
                 }
             }
         }
