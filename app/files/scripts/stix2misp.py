@@ -633,6 +633,29 @@ class StixParser():
         file_type, file_value, _ = self.handle_file(properties, False)
         return file_type, file_value, pe_uuid
 
+    # Parse a course of action and add a MISP object to the event
+    def parse_course_of_action(self, course_of_action):
+        misp_object = MISPObject('course-of-action', misp_objects_path_custom=_MISP_objects_path)
+        if course_of_action.title:
+            attribute = {'type': 'text', 'object_relation': 'name',
+                         'value': course_of_action.title}
+            misp_object.add_attribute(**attribute)
+        for prop, properties_key in stix2misp_mapping._coa_mapping.items():
+            if getattr(course_of_action, prop):
+                attribute = {'type': 'text', 'object_relation': prop.replace('_', ''),
+                             'value': attrgetter('{}.{}'.format(prop, properties_key))(course_of_action)}
+                misp_object.add_attribute(**attribute)
+        if course_of_action.parameter_observables:
+            for observable in course_of_action.parameter_observables.observables:
+                properties = observable.object_.properties
+                attribute = MISPAttribute()
+                attribute.type, attribute.value, _ = self.handle_attribute_type(properties)
+                referenced_uuid = str(uuid.uuid4())
+                attribute.uuid = referenced_uuid
+                self.misp_event.add_attribute(**attribute)
+                misp_object.add_reference(referenced_uuid, 'observable', None, **attribute)
+        self.misp_event.add_object(**misp_object)
+
     # Parse attributes of a portable executable, create the corresponding object,
     # and return its uuid to build the reference for the file object generated at the same time
     def parse_pe(self, properties):
@@ -1153,10 +1176,8 @@ class StixFromMISPParser(StixParser):
 
     def parse_related_galaxies(self):
         galaxies_references = []
-        for feature in ('coa_taken', 'coa_requested'):
-            coas = getattr(self.event, feature)
-            if coas:
-                galaxies_references.extend([coa.course_of_action.idref for coa in coas])
+        for coa_taken in self.event.coa_taken:
+            self.parse_course_of_action(coa_taken.course_of_action)
         if self.event.attributed_threat_actors:
             galaxies_references.extend([ta.item.idref for ta in self.event.attributed_threat_actors.threat_actor])
         if self.event.leveraged_ttps and self.event.leveraged_ttps.ttp:
@@ -1235,26 +1256,7 @@ class ExternalStixParser(StixParser):
     # Parse the courses of action field of an external STIX document
     def parse_coa(self, courses_of_action):
         for coa in courses_of_action:
-            misp_object = MISPObject('course-of-action', misp_objects_path_custom=_MISP_objects_path)
-            if coa.title:
-                attribute = {'type': 'text', 'object_relation': 'name',
-                             'value': coa.title}
-                misp_object.add_attribute(**attribute)
-            for prop, properties_key in stix2misp_mapping._coa_mapping.items():
-                if getattr(coa, prop):
-                    attribute = {'type': 'text', 'object_relation': prop.replace('_', ''),
-                                 'value': attrgetter('{}.{}'.format(prop, properties_key))(coa)}
-                    misp_object.add_attribute(**attribute)
-            if coa.parameter_observables:
-                for observable in coa.parameter_observables.observables:
-                    properties = observable.object_.properties
-                    attribute = MISPAttribute()
-                    attribute.type, attribute.value, _ = self.handle_attribute_type(properties)
-                    referenced_uuid = str(uuid.uuid4())
-                    attribute.uuid = referenced_uuid
-                    self.misp_event.add_attribute(**attribute)
-                    misp_object.add_reference(referenced_uuid, 'observable', None, **attribute)
-            self.misp_event.add_object(**misp_object)
+            self.parse_course_of_action(coa)
 
     # Parse description of an external indicator or observable and add it in the MISP event as an attribute
     def parse_description(self, stix_object):
