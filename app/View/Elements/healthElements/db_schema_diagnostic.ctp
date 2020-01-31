@@ -158,7 +158,7 @@
         $updateLocked ? __('Updates are locked') : __('Updates are not locked'),
         $updateLocked ? ( 
             $updateFailNumberReached ? 
-                __('Update are locked due to to many update fails') : sprintf(__('Update unlocked in %s'), h($humanReadableTime)))
+                __('Updates are locked due to to many update fails') : sprintf(__('Updates unlocked in %s'), h($humanReadableTime)))
             : __('Updates are not locked'),
         $updateLocked ? 'times' : 'check'
         );
