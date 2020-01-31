@@ -359,7 +359,6 @@ class EventShell extends AppShell
     public function cachebro()
     {
         $timeStart = time();
-        $broHeader = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url\tmeta.do_notice\tmeta.if_in\n";
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
         $id = $this->args[1];
