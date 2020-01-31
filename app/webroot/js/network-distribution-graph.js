@@ -1,7 +1,3 @@
-/*
-*
-*/
-
 (function(factory) {
         "use strict";
         if (typeof define === 'function' && define.amd) {
@@ -63,10 +59,10 @@
                         'root': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
-                                code: '\uf10c',
+                                face: '"Font Awesome 5 Free"',
+                                code: '\uf111',
                                 color: '#000000',
-                                size: 50
+                                size: 50,
                             },
                             font: {size: 30},
                             color: '#000000',
@@ -74,7 +70,7 @@
                         'org-only': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
+                                face: '"Font Awesome 5 Free"',
                                 code: '\uf2c2',
                                 color: '#ff0000',
                                 size: 30
@@ -89,7 +85,7 @@
                         'root-this-community': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
+                                face: '"Font Awesome 5 Free"',
                                 code: '\uf1e1',
                                 color: '#ff9725',
                                 size: 70
@@ -116,7 +112,7 @@
                         'root-connected-community': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
+                                face: '"Font Awesome 5 Free"',
                                 code: '\uf0e8',
                                 color: '#9b6e1b',
                                 size: 70
@@ -135,7 +131,7 @@
                         'web': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
+                                face: '"Font Awesome 5 Free"',
                                 code: '\uf0ac',
                                 color: '#007d20',
                                 size: 70
@@ -150,7 +146,7 @@
                         'root-sharing-group': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
+                                face: '"Font Awesome 5 Free"',
                                 code: '\uf0c0',
                                 color: '#1369a0',
                                 size: 70
