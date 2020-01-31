@@ -6718,32 +6718,48 @@ class Event extends AppModel
     private function __clusterEventIds($exportTool, $eventIds)
     {
         $memory_in_mb = $this->Attribute->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
-        $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
+        $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
+        $default_event_memory_divisor = Configure::check('MISP.default_event_memory_multiplier') ? Configure::read('MISP.default_event_memory_divisor') : 3;
+        $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
+        // increase the cost per attribute to account for the overhead of object metadata
+        $memory_scaling_factor = $memory_scaling_factor / $default_event_memory_divisor;
         $limit = $memory_in_mb * $memory_scaling_factor;
         $eventIdList = array();
         $continue = true;
         $i = 0;
         $current_chunk_size = 0;
-        while (!empty($eventIds)) {
-            foreach ($eventIds as $id => $count) {
-                if ($current_chunk_size == 0 && $count > $limit) {
+        $largest_event = 0;
+        foreach ($eventIds as $id => $count) {
+            if ($count > $largest_event) {
+                $largest_event = $count;
+            }
+            if ($current_chunk_size == 0 && $count > $limit) {
+                $eventIdList[$i][] = $id;
+                $current_chunk_size = $count;
+                $i++;
+            } else {
+                if (($current_chunk_size + $count) > $limit) {
+                    $i++;
                     $eventIdList[$i][] = $id;
                     $current_chunk_size = $count;
-                    unset($eventIds[$id]);
-                    $i++;
-                    break;
                 } else {
-                    if (($current_chunk_size + $count) > $limit) {
-                        $i++;
-                        $current_chunk_size = 0;
-                        break;
-                    } else {
-                        $current_chunk_size += $count;
-                        $eventIdList[$i][] = $id;
-                        unset($eventIds[$id]);
-                    }
+                    $current_chunk_size += $count;
+                    $eventIdList[$i][] = $id;
                 }
             }
+        }
+        if ($largest_event/$memory_scaling_factor > $memory_in_mb) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Event',
+                    'model_id' => 0,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'title' => sprintf('Event fetch potential memory exhaustion. During the fetching of events, a large event was detected that exceeds the available PHP memory. Consider rasing the PHP max_memory setting to at least %sM', ceil($largest_event/$memory_scaling_factor)),
+                    'change' => null,
+            ));
         }
         return $eventIdList;
     }

@@ -4539,7 +4539,8 @@ class Attribute extends AppModel
         $loop = false;
         if (empty($params['limit'])) {
             $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
-            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 80;
+            $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
+            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
             $params['limit'] = $memory_in_mb * $memory_scaling_factor;
             $loop = true;
             $params['page'] = 1;
