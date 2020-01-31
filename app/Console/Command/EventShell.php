@@ -377,8 +377,10 @@ class EventShell extends AppShell
         }
 
         $file->write('');
+        $skipHeader = false;
         foreach ($types as $k => $type) {
-            $final = $this->Attribute->bro($user, $type);
+            $final = $this->Attribute->bro($user, $type, false, false, false, false, false, false, $skipHeader);
+            $skipHeader = true;
             foreach ($final as $attribute) {
                 $file->append($attribute . PHP_EOL);
             }
