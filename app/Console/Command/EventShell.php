@@ -359,7 +359,6 @@ class EventShell extends AppShell
     public function cachebro()
     {
         $timeStart = time();
-        $broHeader = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url\tmeta.do_notice\tmeta.if_in\n";
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
         $id = $this->args[1];
@@ -377,8 +376,10 @@ class EventShell extends AppShell
         }
 
         $file->write('');
+        $skipHeader = false;
         foreach ($types as $k => $type) {
-            $final = $this->Attribute->bro($user, $type);
+            $final = $this->Attribute->bro($user, $type, false, false, false, false, false, false, $skipHeader);
+            $skipHeader = true;
             foreach ($final as $attribute) {
                 $file->append($attribute . PHP_EOL);
             }

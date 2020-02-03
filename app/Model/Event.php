@@ -6636,6 +6636,10 @@ class Event extends AppModel
             }
         }
 
+        if (isset($filters['tag']) and !isset($filters['tags'])) {
+            $filters['tags'] = $filters['tag'];
+        }
+
         $subqueryElements = $this->harvestSubqueryElements($filters);
         $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements);
 

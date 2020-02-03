@@ -2659,7 +2659,7 @@ class Attribute extends AppModel
         return $values;
     }
 
-    public function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false)
+    public function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $skipHeader = false)
     {
         App::uses('BroExport', 'Export');
         $export = new BroExport();
@@ -2727,7 +2727,9 @@ class Attribute extends AppModel
         }
         natsort($intel);
         $intel = array_unique($intel);
-        array_unshift($intel, $export->header);
+        if (empty($skipHeader)) {
+            array_unshift($intel, $export->header);
+        }
         return $intel;
     }
 
@@ -2742,7 +2744,8 @@ class Attribute extends AppModel
                 'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.comment', 'Attribute.to_ids', 'Attribute.value', 'Attribute.value' . $valueField),
                 'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
                 'group' => array('Attribute.type', 'Attribute.value' . $valueField), // fields to GROUP BY
-                'enforceWarninglist' => $enforceWarninglist
+                'enforceWarninglist' => $enforceWarninglist,
+                'flatten' => 1
             )
         );
         $orgs = $this->Event->Orgc->find('list', array(
