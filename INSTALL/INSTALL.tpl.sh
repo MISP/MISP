@@ -324,8 +324,9 @@ installSupported () {
   progress 4
 
   # Install Viper - functionLocation('generic/viper-debian.md')
-  [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
-  progress 4
+  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ##[[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+  ##progress 4
 
   # Install ssdeep - functionLocation('generic/ssdeep-debian.md')
   [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
@@ -600,8 +601,9 @@ installMISPonKali () {
   debug "Installing misp-modules"
   mispmodules
 
-  debug "Installing Viper"
-  viper
+  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ##debug "Installing Viper"
+  ##viper
 
   debug "Installing ssdeep"
   ssdeep

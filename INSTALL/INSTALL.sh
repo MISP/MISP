@@ -185,7 +185,8 @@ usage () {
   echo -e "${SCRIPT_NAME} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
   echo -e "                -M | ${LBLUE}MISP${NC} modules"        # modules
   echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
-  echo -e "                -V | Viper"                            # viper
+  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ##echo -e "                -V | Viper"                            # viper
   echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"         # mail2
   echo -e "                -S | Experimental ssdeep correlations" # ssdeep
   echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
@@ -196,7 +197,7 @@ usage () {
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
-  echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
+  echo -e "Options can be combined: ${SCRIPT_NAME} -c -D # Will install Core+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
   echo -e "MISP + modules - ${SCRIPT_NAME} -c -M"
@@ -1845,7 +1846,7 @@ viper () {
   $SUDO_CMD /usr/local/src/viper/venv/bin/pip install -r requirements.txt
   echo "Launching viper-web"
   $SUDO_CMD /usr/local/src/viper-web/viper-web -p 8888 -H 0.0.0.0 &
-  echo 'PATH="/home/misp/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee /etc/environment
+  echo 'PATH="/home/misp/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee -a /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
 
   # TODO: Perms, MISP_USER_HOME, nasty hack cuz Kali on R00t
@@ -2112,8 +2113,9 @@ installSupported () {
   progress 4
 
   # Install Viper - functionLocation('generic/viper-debian.md')
-  [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
-  progress 4
+  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ##[[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+  ##progress 4
 
   # Install ssdeep - functionLocation('generic/ssdeep-debian.md')
   [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
@@ -2388,8 +2390,9 @@ installMISPonKali () {
   debug "Installing misp-modules"
   mispmodules
 
-  debug "Installing Viper"
-  viper
+  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ##debug "Installing Viper"
+  ##viper
 
   debug "Installing ssdeep"
   ssdeep
