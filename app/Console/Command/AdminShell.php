@@ -280,6 +280,7 @@ class AdminShell extends AppShell
             $setting = $this->Server->getSettingData($setting_name);
             if (empty($setting)) {
                 echo 'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
+                exit(1);
             }
             $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value);
             if ($result === true) {
@@ -528,7 +529,7 @@ class AdminShell extends AppShell
                 'db_version' => $dbVersion
             );
             $file = new File(ROOT . DS . 'db_schema.json', true);
-            $file->write(json_encode($data));
+            $file->write(json_encode($data, JSON_PRETTY_PRINT));
             $file->close();
             echo __("> Database schema dumped on disk") . PHP_EOL;
         } else {

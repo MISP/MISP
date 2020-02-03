@@ -88,7 +88,7 @@ class Log extends AppModel
     public $logMetaAdmin = array(
         'update' => array('values' => array('update_database'), 'name' => 'MISP Update results'),
         'settings' => array('values' => array('serverSettingsEdit', 'remove_dead_workers'), 'name' => 'Setting changes'),
-        'errors' => array('values' => array('warning', 'errors', 'version_warning'), 'name' => 'Warnings and errors'),
+        'errors' => array('values' => array('warning', 'error', 'version_warning'), 'name' => 'Warnings and errors'),
         'email' => array('values' => array('admin_email'))
     );
 

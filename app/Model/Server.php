@@ -200,6 +200,24 @@ class Server extends AppModel
                                 'optionsSource' => 'AvailableLanguages',
                                 'afterHook' => 'cleanCacheFiles'
                         ),
+                        'default_attribute_memory_coefficient' => array(
+                                'level' => 1,
+                                'description' => __('This values controls the internal fetcher\'s memory envelope when it comes to attributes. The number provided is the amount of attributes that can be loaded for each MB of PHP memory available in one shot. Consider lowering this number if your instance has a lot of attribute tags / attribute galaxies attached.'),
+                                'value' => 80,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => true
+                        ),
+                        'default_event_memory_divisor' => array(
+                                'level' => 1,
+                                'description' => __('This value controls the divisor for attribute weighting when it comes to loading full events. Meaning that it will load coefficient / divisor number of attributes per MB of memory available. Consider raising this number if you have a lot of correlations or highly contextualised events (large number of event level galaxies/tags).'),
+                                'value' => 3,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => true
+                        ),
                         'enable_advanced_correlations' => array(
                                 'level' => 0,
                                 'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),
@@ -2552,23 +2570,29 @@ class Server extends AppModel
             return $final;
         }
         $filter_rules = json_decode($filter_rules, true);
+        $url_params = null;
         foreach ($filter_rules as $field => $rules) {
             $temp = array();
-            foreach ($rules as $operator => $elements) {
-                foreach ($elements as $k => $element) {
-                    if ($operator === 'NOT') {
-                        $element = '!' . $element;
-                    }
-                    if (!empty($element)) {
-                        $temp[] = $element;
+            if ($field === 'url_params') {
+                $url_params = json_decode($rules, true);
+            } else {
+                foreach ($rules as $operator => $elements) {
+                    foreach ($elements as $k => $element) {
+                        if ($operator === 'NOT') {
+                            $element = '!' . $element;
+                        }
+                        if (!empty($element)) {
+                            $temp[] = $element;
+                        }
                     }
                 }
-            }
-            if (!empty($temp)) {
-                $temp = implode('|', $temp);
-                $final[substr($field, 0, strlen($field) -1)] = $temp;
+                if (!empty($temp)) {
+                    $temp = implode('|', $temp);
+                    $final[substr($field, 0, strlen($field) -1)] = $temp;
+                }
             }
         }
+        $final = array_merge_recursive($final, $url_params);
         return $final;
     }
 
@@ -5125,23 +5149,16 @@ class Server extends AppModel
         return 2;
     }
 
-
-    /* returns an array with the events
-     * error codes:
-     * 1: received non json response
-     * 2: no route to host
-     * 3: empty result set
+    /**
+     * Returns an array with the events
+     * @param int $id
+     * @param $user - not used
+     * @param array $passedArgs
+     * @return array
+     * @throws Exception
      */
-    public function previewIndex($id, $user, $passedArgs, &$total_count = 0)
+    public function previewIndex($id, $user, array $passedArgs)
     {
-        $server = $this->find('first', array(
-            'conditions' => array('Server.id' => $id),
-        ));
-        if (empty($server)) {
-            return 2;
-        }
-        $HttpSocket = $this->setupHttpSocket($server);
-        $request = $this->setupSyncRequest($server);
         $validArgs = array_merge(array('sort', 'direction', 'page', 'limit'), $this->validEventIndexFilters);
         $urlParams = '';
         foreach ($validArgs as $v) {
@@ -5149,80 +5166,56 @@ class Server extends AppModel
                 $urlParams .= '/' . $v . ':' . $passedArgs[$v];
             }
         }
-        $uri = $server['Server']['url'] . '/events/index' . $urlParams;
-        $response = $HttpSocket->get($uri, $data = '', $request);
-        if (!empty($response->headers['X-Result-Count'])) {
-            $temp = $response->headers['X-Result-Count'];
-            $total_count = $temp;
-        }
-        if ($response->code == 200) {
-            try {
-                $events = json_decode($response->body, true);
-            } catch (Exception $e) {
-                return 1;
+
+        $relativeUri = '/events/index' . $urlParams;
+        list($events, $response) = $this->serverGetRequest($id, $relativeUri);
+        $totalCount = $response->getHeader('X-Result-Count') ?: 0;
+
+        foreach ($events as $k => $event) {
+            if (!isset($event['Orgc'])) {
+                $event['Orgc']['name'] = $event['orgc'];
             }
-            if (!empty($events)) {
-                foreach ($events as $k => $event) {
-                    if (!isset($event['Orgc'])) {
-                        $event['Orgc']['name'] = $event['orgc'];
-                    }
-                    if (!isset($event['Org'])) {
-                        $event['Org']['name'] = $event['org'];
-                    }
-                    if (!isset($event['EventTag'])) {
-                        $event['EventTag'] = array();
-                    }
-                    $events[$k] = array('Event' => $event);
-                }
-            } else {
-                return 3;
+            if (!isset($event['Org'])) {
+                $event['Org']['name'] = $event['org'];
             }
-            return $events;
+            if (!isset($event['EventTag'])) {
+                $event['EventTag'] = array();
+            }
+            $events[$k] = array('Event' => $event);
         }
-        return 2;
+
+        return array($events, $totalCount);
     }
 
-    /* returns an array with the events
-     * error codes:
-     * 1: received non-json response
-     * 2: no route to host
+    /**
+     * Returns an array with the event.
+     * @param int $serverId
+     * @param int $eventId
+     * @return array
+     * @throws Exception
      */
     public function previewEvent($serverId, $eventId)
     {
-        $server = $this->find('first', array(
-                'conditions' => array('Server.id' => $serverId),
-        ));
-        if (empty($server)) {
-            return 2;
+        $relativeUri =  '/events/' . $eventId;
+        list($event) = $this->serverGetRequest($serverId, $relativeUri);
+
+        if (!isset($event['Event']['Orgc'])) {
+            $event['Event']['Orgc']['name'] = $event['Event']['orgc'];
         }
-        $HttpSocket = $this->setupHttpSocket($server);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/events/' . $eventId;
-        $response = $HttpSocket->get($uri, $data = '', $request);
-        if ($response->code == 200) {
-            try {
-                $event = json_decode($response->body, true);
-            } catch (Exception $e) {
-                return 1;
-            }
-            if (!isset($event['Event']['Orgc'])) {
-                $event['Event']['Orgc']['name'] = $event['Event']['orgc'];
-            }
-            if (isset($event['Event']['Orgc'][0])) {
-                $event['Event']['Orgc'] = $event['Event']['Orgc'][0];
-            }
-            if (!isset($event['Event']['Org'])) {
-                $event['Event']['Org']['name'] = $event['Event']['org'];
-            }
-            if (isset($event['Event']['Org'][0])) {
-                $event['Event']['Org'] = $event['Event']['Org'][0];
-            }
-            if (!isset($event['Event']['EventTag'])) {
-                $event['Event']['EventTag'] = array();
-            }
-            return $event;
+        if (isset($event['Event']['Orgc'][0])) {
+            $event['Event']['Orgc'] = $event['Event']['Orgc'][0];
         }
-        return 2;
+        if (!isset($event['Event']['Org'])) {
+            $event['Event']['Org']['name'] = $event['Event']['org'];
+        }
+        if (isset($event['Event']['Org'][0])) {
+            $event['Event']['Org'] = $event['Event']['Org'][0];
+        }
+        if (!isset($event['Event']['EventTag'])) {
+            $event['Event']['EventTag'] = array();
+        }
+
+        return $event;
     }
 
     // Loops through all servers and checks which servers' push rules don't conflict with the given event.
@@ -5781,6 +5774,53 @@ class Server extends AppModel
             $success = $success && $result;
         }
         return $success;
+    }
+
+    /**
+     * @param int $serverId
+     * @param string $relativeUri
+     * @param HttpSocket|null $HttpSocket
+     * @return array
+     * @throws Exception
+     */
+    private function serverGetRequest($serverId, $relativeUri, HttpSocket $HttpSocket = null)
+    {
+        $server = $this->find('first', array(
+            'conditions' => array('Server.id' => $serverId),
+        ));
+        if ($server === null) {
+            throw new Exception(__("Server with ID '$serverId' not found."));
+        }
+
+        if (!$HttpSocket) {
+            $HttpSocket = $this->setupHttpSocket($server);
+        }
+        $request = $this->setupSyncRequest($server);
+
+        $uri = $server['Server']['url'] . $relativeUri;
+        $response = $HttpSocket->get($uri, array(), $request);
+
+        if ($response === false) {
+            throw new Exception(__("Could not reach '$uri'."));
+        } else if ($response->code == 404) { // intentional !=
+            throw new NotFoundException(__("Fetching the '$uri' failed with HTTP error 404: Not Found"));
+        } else if ($response->code == 405) { // intentional !=
+            $responseText = json_decode($response->body, true);
+            if ($responseText !== null) {
+                throw new Exception(sprintf(__("Fetching the '$uri' failed with HTTP error %s: %s"), $response->code, $responseText['message']));
+            }
+        }
+
+        if ($response->code != 200) { // intentional !=
+            throw new Exception(sprintf(__("Fetching the '$uri' failed with HTTP error %s: %s"), $response->code, $response->reasonPhrase));
+        }
+
+        $data = json_decode($response->body, true);
+        if ($data === null) {
+            throw new Exception(__('Could not parse JSON: ') . json_last_error_msg(), json_last_error());
+        }
+
+        return array($data, $response);
     }
 
     public function getRemoteUser($id)

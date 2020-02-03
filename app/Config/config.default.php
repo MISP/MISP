@@ -119,7 +119,6 @@ $config = array(
 				'group_two'   => 2,
 				'group_one'   => 1,
 			),
-			'DefaultRoleId'     => 3,
 			'DefaultOrg'        => 'DEFAULT_ORG',
 		),
 	*/

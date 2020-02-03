@@ -1798,7 +1798,7 @@ function popoverPopup(clicked, id, context, target, admin) {
             }
             var errorText = '<div class="alert alert-error" style="margin-bottom: 3px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>';
             if (errorJSON !== '') {
-                errorText += '<div class="well"><strong>Returned error:</strong>' + $('<span/>').text(errorJSON).html() + '</div>';
+                errorText += '<div class="well"><strong>Returned error:</strong> ' + $('<span/>').text(errorJSON).html() + '</div>';
             }
             popover.options.content = errorText;
             $clicked.popover('show');
@@ -2725,6 +2725,7 @@ function moduleResultsSubmit(id) {
                 $(this).find('.ObjectAttribute').each(function(a) {
                     var attribute_type = $(this).find('.AttributeType').text();
                     attribute = {
+                        import_attribute: $(this).find('.ImportMISPObjectAttribute')[0].checked,
                         object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
                         type: attribute_type,
@@ -2735,6 +2736,9 @@ function moduleResultsSubmit(id) {
                         comment: $(this).find('.AttributeComment').val(),
                         distribution: $(this).find('.AttributeDistribution').val(),
                         sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                    }
+                    if (!attribute['import_attribute']) {
+                        return true;
                     }
                     if (attribute['distribution'] != '4') {
                         attribute['sharing_group_id'] = '0';
@@ -2778,6 +2782,7 @@ function moduleResultsSubmit(id) {
                 type_value = $(this).find('.AttributeType').text();
             }
             temp = {
+                import_attribute: $(this).find('.ImportMISPAttribute')[0].checked,
                 category: category_value,
                 type: type_value,
                 value: $(this).find('.AttributeValue').text(),
@@ -2787,6 +2792,9 @@ function moduleResultsSubmit(id) {
                 comment: $(this).find('.AttributeComment').val(),
                 distribution: $(this).find('.AttributeDistribution').val(),
                 sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+            }
+            if (!temp['import_attribute']) {
+                return true;
             }
             if (temp['distribution'] != '4') {
                 temp['sharing_group_id'] = '0';
@@ -3401,8 +3409,15 @@ function zeroMQServerAction(action) {
 function convertServerFilterRules(rules) {
     validOptions.forEach(function (type) {
         container = "#"+ modelContext + type.ucfirst() + "Rules";
-        if ($(container).val() != '' && $(container).val() != '[]') rules[type] = JSON.parse($(container).val());
-        else {rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}};
+        if ($(container).val() != '' && $(container).val() != '[]') {
+            rules[type] = JSON.parse($(container).val());
+        } else {
+            if (type === 'pull') {
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "url_params": ""}
+            } else {
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}
+            }
+        };
     });
     serverRuleUpdate();
     return rules;
@@ -3433,6 +3448,14 @@ function serverRuleUpdate() {
                 }
             });
         });
+        if (type === 'pull') {
+            if (rules[type]['url_params']) {
+                $("#pull_url_params").show();
+                $("#pull_url_params_text").text(rules[type]['url_params']);
+            } else {
+                $("#pull_url_params").hide();
+            }
+        }
     });
     serverRuleGenerateJSON();
 }
@@ -3488,6 +3511,7 @@ function serverRulePopulateTagPicklist() {
             }));
         });
     });
+    $('#urlParams').val(rules["pull"]["url_params"]);
 }
 
 function submitServerRulePopulateTagPicklistValues(context) {
@@ -3501,7 +3525,9 @@ function submitServerRulePopulateTagPicklistValues(context) {
             rules[context][field]["NOT"].push($(this).val());
         });
     });
-
+    if (context === 'pull') {
+        rules[context]["url_params"] = $('#urlParams').val();
+    }
     $('#server_' + context + '_rule_popover').fadeOut();
     $('#gray_out').fadeOut();
     serverRuleUpdate();

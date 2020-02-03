@@ -1154,53 +1154,43 @@ class AttributesController extends AppController
     public function viewPicture($id, $thumbnail=false)
     {
         if (Validation::uuid($id)) {
-            $temp = $this->Attribute->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Attribute.uuid' => $id),
-                'fields' => array('Attribute.id', 'Attribute.uuid')
-            ));
-            if (empty($temp)) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            $id = $temp['Attribute']['id'];
-        } elseif (!is_numeric($id)) {
+            $conditions = array('Attribute.uuid' => $id);
+        } elseif (is_numeric($id)) {
+            $conditions = array('Attribute.id' => $id);
+        } else {
             throw new NotFoundException(__('Invalid attribute id.'));
         }
-        $this->Attribute->id = $id;
-        if (!$this->Attribute->exists()) {
-            throw new NotFoundException('Invalid attribute');
-        }
-        $conditions = array(
-            'conditions' => array(
-                'Attribute.id' => $id,
-                'Attribute.type' => 'attachment'
-            ),
+
+        $conditions['Attribute.type'] = 'attachment';
+        $options = array(
+            'conditions' => $conditions,
             'includeAllTags' => false,
             'includeAttributeUuid' => true,
-            'flatten' => true
+            'flatten' => true,
         );
 
         if ($this->_isRest()) {
-            $conditions['withAttachments'] = true;
+            $options['withAttachments'] = true;
         }
 
-        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
+        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $options);
         if (empty($attribute)) {
             throw new MethodNotAllowedException('Invalid attribute');
         }
         $attribute = $attribute[0];
+
+        if (!$this->Attribute->isImage($attribute['Attribute'])) {
+            throw new NotFoundException("Attribute is not an image.");
+        }
 
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
         } else {
             $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
             $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
-            $image_data = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
-            $extension = explode('.', $attribute['Attribute']['value']);
-            $extension = end($extension);
-            $this->response->type(strtolower(h($extension)));
-            $this->response->body($image_data);
-            $this->autoRender = false;
+            $imageData = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
+            $extension = pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION);
+            return new CakeResponse(array('body' => $imageData, 'type' => strtolower($extension)));
         }
     }
 
@@ -1652,7 +1642,7 @@ class AttributesController extends AppController
             if (isset($this->request->data['Attribute'])) {
                 $this->request->data = $this->request->data['Attribute'];
             }
-            $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category');
+            $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category', 'first_seen', 'last_seen');
             foreach ($checkForEmpty as $field) {
                 if (empty($this->request->data[$field]) || $this->request->data[$field] === 'ALL') {
                     unset($this->request->data[$field]);
@@ -1767,6 +1757,15 @@ class AttributesController extends AppController
         $user = $this->Auth->user();
         foreach ($attributes as $k => $attribute) {
             $attributeId = $attribute['Attribute']['id'];
+            if ($this->Attribute->isImage($attribute['Attribute'])) {
+                if (extension_loaded('gd')) {
+                    // if extension is loaded, the data is not passed to the view because it is asynchronously fetched
+                    $attribute['Attribute']['image'] = true; // tell the view that it is an image despite not having the actual data
+                } else {
+                    $attribute['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
+                }
+                $attributes[$k] = $attribute;
+            }
 
             $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
             $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute', $excludeGalaxy = false, $cullGalaxyTags = true);
