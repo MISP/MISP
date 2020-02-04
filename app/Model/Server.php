@@ -2570,7 +2570,7 @@ class Server extends AppModel
             return $final;
         }
         $filter_rules = json_decode($filter_rules, true);
-        $url_params = null;
+        $url_params = array();
         foreach ($filter_rules as $field => $rules) {
             $temp = array();
             if ($field === 'url_params') {
@@ -2592,7 +2592,9 @@ class Server extends AppModel
                 }
             }
         }
-        $final = array_merge_recursive($final, $url_params);
+        if (!empty($url_params)) {
+            $final = array_merge_recursive($final, $url_params);
+        }
         return $final;
     }
 
