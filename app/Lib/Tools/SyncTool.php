@@ -40,6 +40,8 @@ class SyncTool
      */
     public function createHttpSocket($params = array())
     {
+        // Refresh config
+        Configure::load('config');
         // Use own CA PEM file
         $caPath = Configure::read('MISP.ca_path');
         if (!isset($params['ssl_cafile']) && $caPath) {
