@@ -1178,17 +1178,12 @@ class StixBuilder():
         child_refs = []
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
-            relation = attribute['object_relation']
-            if relation == 'parent-pid':
-                pattern += mapping.format('parent_ref', attribute['value'])
-            elif relation == 'child-pid':
-                child_refs.append(attribute['value'])
-            else:
-                try:
-                    pattern += mapping.format(processMapping[relation], attribute['value'])
-                except KeyError:
-                    continue
-        if child_refs: pattern += mapping.format('child_refs', child_refs)
+            try:
+                pattern += mapping.format(processMapping[attribute['object_relation']], attribute['value'])
+            except KeyError:
+                continue
+        if child_refs:
+            pattern += mapping.format('child_refs', child_refs)
         return "[{}]".format(pattern[:-5])
 
     def resolve_regkey_observable(self, attributes, object_id):

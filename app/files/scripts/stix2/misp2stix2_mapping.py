@@ -351,7 +351,9 @@ peMapping = {'type': 'pe_type', 'number-sections': 'number_of_sections', 'imphas
 
 peSectionMapping = {'name': 'name', 'size-in-bytes': 'size', 'entropy': 'entropy'}
 
-processMapping = {'name': 'name', 'pid': 'pid', 'creation-time': 'created'}
+processMapping = {'pid': 'pid', 'child-pid': 'child_refs[*].pid',
+                  'name': 'name', 'parent-pid': 'parent_ref.pid',
+                  'creation-time': 'created', 'image': 'binary_ref.name'}
 
 regkeyMapping = {'data-type': 'data_type', 'data': 'data', 'name': 'name',
                  'last-modified': 'modified', 'key': 'key'}
