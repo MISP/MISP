@@ -23,10 +23,11 @@ import time
 import io
 import re
 import stix2
+import stix2misp_mapping
 from collections import defaultdict
+from copy import deepcopy
 from pathlib import Path
 from pymisp import MISPEvent, MISPObject, MISPAttribute, PyMISPInvalidFormat
-from stix2misp_mapping import misp_types_mapping
 
 
 class StixParser():
@@ -146,23 +147,46 @@ class StixParser():
         tag = getattr(marking.definition, marking_type)
         return "{}:{}".format(marking_type, tag)
 
+    def parse_timeline(self, stix_object):
+        misp_object = {'timestamp': self.getTimestampfromDate(stix_object.modified)}
+        first, last = self._timeline_mapping[stix_object._type]
+        first_seen = getattr(stix_object, first)
+        if stix_object.created != first_seen and stix_object.modified != first_seen:
+            misp_object['first_seen'] = first_seen
+            if hasattr(stix_object, last):
+                misp_object['last_seen'] = getattr(stix_object, last)
+        elif hasattr(stix_object, last):
+            misp_object.update({'first_seen': first_seen, 'last_seen': getattr(stix_object, last)})
+        return misp_object
+
 
 class StixFromMISPParser(StixParser):
-    _objects_mapping = {'asn': {'observable': 'attributes_from_asn_observable', 'pattern': 'pattern_asn'},
-                         'credential': {'observable': 'observable_credential', 'pattern': 'pattern_credential'},
-                         'domain-ip': {'observable': 'attributes_from_domain_ip_observable', 'pattern': 'pattern_domain_ip'},
-                         'email': {'observable': 'observable_email', 'pattern': 'pattern_email'},
+    _objects_mapping = {'asn': {'observable': 'attributes_from_asn_observable',
+                                'pattern': 'parse_asn_pattern'},
+                         'credential': {'observable': 'observable_credential',
+                                        'pattern': 'parse_credential_pattern'},
+                         'domain-ip': {'observable': 'attributes_from_domain_ip_observable',
+                                       'pattern': 'parse_domain_ip_pattern'},
+                         'email': {'observable': 'observable_email',
+                                   'pattern': 'parse_email_pattern'},
                          'file': {'observable': 'observable_file', 'pattern': 'pattern_file'},
-                         'ip-port': {'observable': 'observable_ip_port', 'pattern': 'pattern_ip_port'},
-                         'network-connection': {'observable': 'observable_connection', 'pattern': 'pattern_connection'},
-                         'network-socket': {'observable': 'observable_socket', 'pattern': 'pattern_socket'},
-                         'process': {'observable': 'attributes_from_process_observable', 'pattern': 'pattern_process'},
-                         'registry-key': {'observable': 'attributes_from_regkey_observable', 'pattern': 'pattern_regkey'},
-                         'url': {'observable': 'attributes_from_url_observable', 'pattern': 'pattern_url'},
+                         'ip-port': {'observable': 'observable_ip_port',
+                                     'pattern': 'parse_ip_port_pattern'},
+                         'network-connection': {'observable': 'observable_connection',
+                                                'pattern': 'parse_network_connection_pattern'},
+                         'network-socket': {'observable': 'observable_socket', 'pattern':
+                                            'parse_network_socket_pattern'},
+                         'process': {'observable': 'attributes_from_process_observable',
+                                     'pattern': 'parse_process_pattern'},
+                         'registry-key': {'observable': 'attributes_from_regkey_observable',
+                                          'pattern': 'parse_regkey_pattern'},
+                         'url': {'observable': 'attributes_from_url_observable',
+                                 'pattern': 'parse_url_pattern'},
                          'user-account': {'observable': 'attributes_from_user_account_observable',
-                                          'pattern': 'attributes_from_user_account_pattern'},
+                                          'pattern': 'parse_user_account_pattern'},
                          'WindowsPEBinaryFile': {'observable': 'observable_pe', 'pattern': 'pattern_pe'},
-                         'x509': {'observable': 'attributes_from_x509_observable', 'pattern': 'pattern_x509'}}
+                         'x509': {'observable': 'attributes_from_x509_observable',
+                                  'pattern': 'parse_x509_pattern'}}
     _object_from_refs = {'course-of-action': 'parse_MISP_course_of_action', 'vulnerability': 'parse_vulnerability',
                           'custom_object': 'parse_custom'}
     _object_from_refs.update(dict.fromkeys(['indicator', 'observed-data'], 'parse_usual_object'))
@@ -207,6 +231,21 @@ class StixFromMISPParser(StixParser):
     ##                             PARSING FUNCTIONS.                             ##
     ################################################################################
 
+    def parse_custom_attribute(self, custom):
+        attribute_type = custom['type'].split('x-misp-object-')[1]
+        if attribute_type not in self._misp_types:
+            replacement = ' ' if attribute_type == 'named-pipe' else '|'
+            attribute_type = attribute_type.replace('-', replacement)
+        attribute = {'type': attribute_type,
+                     'timestamp': self.getTimestampfromDate(custom['x_misp_timestamp']),
+                     'to_ids': bool(custom['labels'][1].split('=')[1]),
+                     'value': custom['x_misp_value'],
+                     'category': self.get_misp_category(custom['labels']),
+                     'uuid': custom['id'].split('--')[1]}
+        if custom.get('object_marking_refs'):
+            attribute = self.create_attribute_with_tag(attribute, custom['object_marking_refs'])
+        self.misp_event.add_attribute(**attribute)
+
     def parse_custom_object(self, custom):
         name = custom['type'].split('x-misp-object-')[1]
         misp_object = MISPObject(name, misp_objects_path_custom=self._misp_objects_path)
@@ -228,24 +267,8 @@ class StixFromMISPParser(StixParser):
                                              'object_relation': object_relation})
         self.misp_event.add_object(**misp_object)
 
-    def parse_custom_attribute(self, custom):
-        attribute_type = custom['type'].split('x-misp-object-')[1]
-        if attribute_type not in self._misp_types:
-            replacement = ' ' if attribute_type == 'named-pipe' else '|'
-            attribute_type = attribute_type.replace('-', replacement)
-        attribute = {'type': attribute_type,
-                     'timestamp': self.getTimestampfromDate(custom['x_misp_timestamp']),
-                     'to_ids': bool(custom['labels'][1].split('=')[1]),
-                     'value': custom['x_misp_value'],
-                     'category': self.get_misp_category(custom['labels']),
-                     'uuid': custom['id'].split('--')[1]}
-        if custom.get('object_marking_refs'):
-            attribute = self.create_attribute_with_tag(attribute, custom['object_marking_refs'])
-        self.misp_event.add_attribute(**attribute)
-
     def parse_indicator_attribute(self, indicator):
         attribute = self.create_attribute_dict(indicator)
-        print(indicator)
         attribute['to_ids'] = True
         pattern = indicator.pattern.replace('\\\\', '\\')
         if attribute['type'] in ('malware-sample', 'attachment'):
@@ -259,14 +282,19 @@ class StixFromMISPParser(StixParser):
 
 
     def parse_indicator_object(self, indicator):
-        object_uuid = indicator.id.split('--')[1]
+        misp_object, object_type = self.create_misp_object(indicator)
+        pattern = indicator.pattern.replace('\\\\', '\\').strip('[]').split(' AND ')
+        try:
+            attributes = getattr(self, self._objects_mapping[object_type]['pattern'])(pattern)
+        except KeyError:
+            print("Unable to map {} object:\n{}".format(stix_type, o), file=sys.stderr)
+            return
 
     def parse_observable_attribute(self, observable):
         attribute = self.create_attribute_dict(observable)
-        print(observable)
         attribute['to_ids'] = False
         objects = observable.objects
-        value = misp_types_mapping[attribute['type']](objects, attribute['type'])
+        value = stix2misp_mapping.misp_types_mapping[attribute['type']](objects, attribute['type'])
         if isinstance(value, tuple):
             value, data = value
             attribute['data'] = io.BytesIO(data.encode())
@@ -276,7 +304,107 @@ class StixFromMISPParser(StixParser):
         self.misp_event.add_attribute(**attribute)
 
     def parse_observable_object(self, observable):
-        object_uuid = observable.id.split('--')[1]
+        misp_object, object_type = self.create_misp_object(observable)
+        print(observable._type)
+
+    ################################################################################
+    ##                         PATTERN PARSING FUNCTIONS.                         ##
+    ################################################################################
+
+    def fill_pattern_attributes(self, pattern, object_mapping):
+        attributes = []
+        for pattern_part in pattern:
+            pattern_type, pattern_value = pattern_part.split(' = ')
+            if pattern_type not in object_mapping:
+                if 'x_misp_' in pattern_type:
+                    attribute = self.parse_custom_property(pattern_type)
+                    attribute['value'] = pattern_value.strip("'")
+                    attributes.append(attribute)
+                continue
+            attribute = deepcopy(object_mapping[pattern_type])
+            attribute['value'] = pattern_value.strip("'")
+            attributes.append(attribute)
+        return attributes
+
+    def parse_asn_pattern(self, pattern):
+        return self.fill_pattern_attributes(pattern, stix2misp_mapping.asn_mapping)
+
+    def parse_credential_pattern(self, pattern):
+        return self.fill_pattern_attributes(pattern, stix2misp_mapping.credential_mapping)
+
+    def parse_domain_ip_pattern(self, pattern):
+        return self.fill_pattern_attributes(pattern, stix2misp_mapping.domain_ip_mapping)
+
+    def parse_email_pattern(self, pattern):
+        return self.fill_pattern_attributes(pattern, stix2misp_mapping.email_mapping)
+        # attributes = []
+        # for pattern_part in pattern:
+        #     pattern_type, pattern_value = pattern_part.split(' = ')
+        #     if pattern_type not in stix2misp_mapping.email_mapping:
+        #         if pattern_type.startswith("email-message:'x_misp_attachment_"):
+        #
+        # return attributes
+
+    def parse_ip_port_pattern(self, pattern):
+        return self.fill_pattern_attributes(pattern, stix2misp_mapping.network_traffic_mapping)
+
+    @staticmethod
+    def parse_network_connection_pattern(pattern):
+        attributes = []
+        for pattern_part in pattern:
+            pattern_type, pattern_value = pattern_part.split(' = ')
+            if pattern_type not in stix2misp_mapping.network_traffic_mapping:
+                if pattern_type.startswith('network-traffic:protocols['):
+                    pattern_value = pattern_value.strip("'")
+                    attributes.append({
+                        'type': 'text', 'value': pattern_value,
+                        'object_relation': 'layer%s-protocol' % stix2misp_mapping.connection_protocols[pattern_value]
+                    })
+                continue
+            attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
+            attribute['value'] = pattern_value.strip("'")
+            attributes.append(attribute)
+        return attributes
+
+    @staticmethod
+    def parse_network_socket_pattern(pattern):
+        attributes = []
+        for pattern_part in pattern:
+            pattern_type, pattern_value = pattern_part.split(' = ')
+            if pattern_type not in stix2misp_mapping.network_traffic_mapping:
+                continue
+            attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
+            if "network-traffic:extensions.'socket-ext'.is_" in pattern_type:
+                pattern_value = pattern_type.split('_')[1]
+            attribute['value'] = pattern_value
+            attributes.append(attribute)
+        return attributes
+
+    @staticmethod
+    def parse_process_pattern(pattern):
+        attributes = []
+
+    def parse_regkey_pattern(self, pattern):
+        return self.fill_pattern_attributes(pattern, stix2misp_mapping.regkey_mapping)
+
+    def parse_url_pattern(self, pattern):
+        return self.fill_pattern_attributes(pattern, stix2misp_mapping.url_mapping)
+
+    @staticmethod
+    def parse_user_account_pattern(pattern):
+        attributes = []
+        for pattern_part in pattern:
+            pattern_type, pattern_value = pattern_part.split(' = ')
+            pattern_type = pattern_type.split('.')[-1].split('[')[0] if "extensions.'unix-account-ext'" in pattern_type else pattern_type.split(':')[-1]
+            if pattern_type not in stix2misp_mapping.user_account_mapping:
+                continue
+            attribute = deepcopy(stix2misp_mapping.user_account_mapping[pattern_type])
+            attribute['value'] = pattern_value.strip("'")
+            attributes.append(attribute)
+        return attributes
+
+    def parse_x509_pattern(self, pattern):
+        return self.fill_pattern_attributes(pattern, stix2misp_mapping.x509_mapping)
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
@@ -287,20 +415,21 @@ class StixFromMISPParser(StixParser):
         attribute_uuid = stix_object.id.split('--')[1]
         attribute = {'uuid': attribute_uuid,
                      'type': self.get_misp_type(labels),
-                     'category': self.get_misp_category(labels),
-                     'timestamp': self.getTimestampfromDate(stix_object.modified)}
+                     'category': self.get_misp_category(labels)}
         tags = [{'name': label} for label in labels[3:]]
         if tags:
             attribute['Tag'] = tags
-        first, last = self._timeline_mapping[stix_object._type]
-        first_seen = getattr(stix_object, first)
-        if stix_object.created != first_seen and stix_object.modified != first_seen:
-            attribute = {'first_seen': first_seen}
-            if hasattr(stix_object, last):
-                attribute['last_seen'] = getattr(stix_object, last)
-        elif hasattr(stix_object, last):
-            attribute.update({'first_seen': first_seen, 'last_seen': getattr(stix_object, last)})
+        attribute.update(self.parse_timeline(stix_object))
         return attribute
+
+    def create_misp_object(self, stix_object):
+        labels = stix_object['labels']
+        object_type = self.get_misp_type(labels)
+        misp_object = MISPObject('file' if object_type == 'WindowsPEBinaryFile' else object_type,
+                                 misp_objects_path_custom=self._misp_objects_path)
+        misp_object.uuid = stix_object.id.split('--')[1]
+        misp_object.update(self.parse_timeline(stix_object))
+        return misp_object, object_type
 
     @staticmethod
     def get_misp_category(labels):
@@ -336,6 +465,11 @@ class StixFromMISPParser(StixParser):
             md5 = pattern_parts[1].split(' = ')[1]
             return "{}|{}".format(filename.strip("'"), md5.strip("'")), pattern_parts[2].split(' = ')[1].strip("'")
         return pattern_parts[0].split(' = ')[1].strip("'"), pattern_parts[1].split(' = ')[1].strip("'")
+
+    @staticmethod
+    def parse_custom_property(property):
+        properties = property.split('_')
+        return {'type': properties[2], 'object_relation': '-'.join(properties[3:])}
 
 
 class ExternalStixParser(StixParser):
@@ -410,7 +544,7 @@ class ExternalStixParser(StixParser):
 
 def from_misp(stix_objects):
     for stix_object in stix_objects:
-        if stix_object._type == "report" and 'misp:tool="misp2stix2"' in stix_object.get('labels', []):
+        if stix_object['type'] == "report" and 'misp:tool="misp2stix2"' in stix_object.get('labels', []):
             return True
     return False
 
