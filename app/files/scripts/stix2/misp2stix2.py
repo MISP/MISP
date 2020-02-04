@@ -1159,6 +1159,11 @@ class StixBuilder():
                 observable[str_n] = {'type': 'process', 'pid': attribute['value']}
                 current_process['child_refs'].append(str_n)
                 n += 1
+            elif relation == 'image':
+                str_n = str(n)
+                observable[str_n] = {'type': 'file', 'name': attribute['value']}
+                current_process['binary_ref'] = str_n
+                n += 1
             else:
                 try:
                     current_process[processMapping[relation]] = attribute['value']
