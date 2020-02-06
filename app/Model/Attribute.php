@@ -653,10 +653,6 @@ class Attribute extends AppModel
 
         $this->data = $this->ISODatetimeToUTC($this->data, $this->alias);
 
-        // update correlation... (only needed here if there's an update)
-        if ($this->id || !empty($this->data['Attribute']['id'])) {
-            $this->__beforeSaveCorrelation($this->data['Attribute']);
-        }
         // always return true after a beforeSave()
         return true;
     }
