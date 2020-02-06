@@ -337,14 +337,32 @@ class StixFromMISPParser(StixParser):
         return self.fill_pattern_attributes(pattern, stix2misp_mapping.domain_ip_mapping)
 
     def parse_email_pattern(self, pattern):
-        return self.fill_pattern_attributes(pattern, stix2misp_mapping.email_mapping)
-        # attributes = []
-        # for pattern_part in pattern:
-        #     pattern_type, pattern_value = pattern_part.split(' = ')
-        #     if pattern_type not in stix2misp_mapping.email_mapping:
-        #         if pattern_type.startswith("email-message:'x_misp_attachment_"):
-        #
-        # return attributes
+        attributes = []
+        attachments = defaultdict(dict)
+        for pattern_part in pattern:
+            pattern_type, pattern_value = pattern_part.split(' = ')
+            if 'body_multipart' in pattern_type:
+                pattern_type = pattern_type.split('.')
+                feature = 'data' if pattern_type[-1] == 'payload_bin' else 'value'
+                attachments[pattern_type[0][-2]][feature] = pattern_value.strip("'")
+                continue
+            if pattern_type not in stix2misp_mapping.email_mapping:
+                if 'x_misp_' in pattern_type:
+                    attribute = self.parse_custom_property(pattern_type)
+                    attribute['value'] = pattern_value.strip("'")
+                    attributes.append(attribute)
+                continue
+            attribute = deepcopy(stix2misp_mapping.email_mapping[pattern_type])
+            attribute['value'] = pattern_value.strip("'")
+            attributes.append(attribute)
+        for attachment in attachments.values():
+            if 'data' in attachment:
+                attribute = {'type': 'attachment', 'object_relation': 'screenshot', 'data': attachment['data']}
+            else:
+                attribute = {'type': 'email-attachment', 'object_relation': 'attachment'}
+            attribute['value'] = attachment['value']
+            attributes.append(attribute)
+        return attributes
 
     def parse_file_pattern(self, pattern):
         attributes = []
