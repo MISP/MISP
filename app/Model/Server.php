@@ -5266,15 +5266,15 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         $results = array();
-        $extensions = array('redis', 'gd');
+        $extensions = array('redis', 'gd', 'ssdeep');
         foreach ($extensions as $extension) {
             $results['web']['extensions'][$extension] = extension_loaded($extension);
         }
         if (!is_readable(APP . '/files/scripts/selftest.php')) {
             $results['cli'] = false;
         } else {
-            $results['cli'] = exec('php ' . APP . '/files/scripts/selftest.php');
-            $results['cli'] = json_decode($results['cli'], true);
+            $execResult = exec('php ' . APP . '/files/scripts/selftest.php');
+            $results['cli'] = json_decode($execResult, true);
         }
         return $results;
     }
