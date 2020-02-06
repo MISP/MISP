@@ -324,6 +324,7 @@ credentialObjectMapping = {'password': 'credential', 'username': 'user_id'}
 
 domainIpObjectMapping = {'ip-dst': 'resolves_to_refs[*].value', 'domain': 'value'}
 
+email_attachment = {'email_type': 'message', 'stix_type': 'body_multipart[{}].body_raw_ref.name'}
 emailObjectMapping = {'email-body': {'email_type': 'message', 'stix_type': 'body'},
                       'subject': {'email_type': 'message', 'stix_type': 'subject'},
                       'to': {'email_type': 'message', 'stix_type': 'to_refs'}, 'cc': {'email_type': 'message', 'stix_type': 'cc_refs'},
@@ -331,7 +332,7 @@ emailObjectMapping = {'email-body': {'email_type': 'message', 'stix_type': 'body
                       'from': {'email_type': 'message', 'stix_type': 'from_ref'},
                       'from-display-name': {'email_type': 'addr', 'stix_type': 'display_name'},
                       'reply-to': {'email_type': 'message', 'stix_type': 'additional_header_fields.reply_to'},
-                      'attachment': {'email_type': 'message', 'stix_type': 'body_multipart[*].body_raw_ref.name'},
+                      'attachment': email_attachment, 'screenshot': email_attachment,
                       'send-date': {'email_type': 'message', 'stix_type': 'date'},
                       'x-mailer': {'email_type': 'message', 'stix_type': 'additional_header_fields.x_mailer'}}
 

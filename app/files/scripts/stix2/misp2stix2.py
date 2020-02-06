@@ -895,12 +895,12 @@ class StixBuilder():
                     else:
                         message[mapping].append(object_str)
                     object_num += 1
-                elif relation == 'attachment':
+                elif relation in ('attachment', 'screenshot'):
                     object_str = str(object_num)
                     body = {"content_disposition": "{}; filename='{}'".format(relation, attribute_value),
                             "body_raw_ref": object_str}
                     message['body_multipart'].append(body)
-                    observable[object_str] = {'type': 'file', 'name': attribute_value}
+                    observable[object_str] = {'type': 'artifact', 'payload_bin': attribute['data']} if 'data' in attribute and attribute['data'] else {'type': 'file', 'name': attribute_value}
                     object_num += 1
                 elif relation in ('x-mailer', 'reply-to'):
                     key = '-'.join([part.capitalize() for part in relation.split('-')])
@@ -909,10 +909,7 @@ class StixBuilder():
                     message[mapping] = attribute_value
             except Exception:
                 mapping = "x_misp_{}_{}".format(attribute['type'], relation)
-                if relation in ('eml', 'screenshot'):
-                    message[mapping] = {'value': attribute_value, 'data': attribute['data']}
-                else:
-                    message[mapping] = attribute_value
+                message[mapping] = {'value': attribute_value, 'data': attribute['data']} if relation == 'eml' else attribute_value
         if additional_header:
             message['additional_header_fields'] = additional_header
         message['type'] = 'email-message'
@@ -926,17 +923,24 @@ class StixBuilder():
     def resolve_email_object_pattern(self, attributes, object_id):
         pattern_mapping = objectsMapping['email']['pattern']
         pattern = ""
+        n = 0
         for attribute in attributes:
             self.parse_galaxies(attribute['Galaxy'], object_id)
             relation = attribute['object_relation']
             try:
                 mapping = emailObjectMapping[relation]
-                stix_type = mapping['stix_type']
                 email_type = mapping['email_type']
+                if relation in ('attachment', 'screenshot'):
+                    stix_type = mapping['stix_type'].format(n)
+                    if 'data' in attribute and attribute['data']:
+                        pattern += pattern_mapping.format(email_type, 'body_multipart[{}].body_raw_ref.payload_bin'.format(n), attribute['data'])
+                    n += 1
+                else:
+                    stix_type = mapping['stix_type']
             except KeyError:
                 email_type = 'message'
                 stix_type = "'x_misp_{}_{}'".format(attribute['type'], relation)
-                if relation in ('eml', 'screenshot'):
+                if relation == 'eml':
                     stix_type_data = "{}.data".format(stix_type)
                     pattern += pattern_mapping.format(email_type, stix_type_data, attribute['data'])
                     stix_type += ".value"
