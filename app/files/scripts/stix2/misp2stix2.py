@@ -995,7 +995,7 @@ class StixBuilder():
                 malware_sample['filename'] = filename
                 malware_sample['md5'] = md5
                 if attribute.get('data'):
-                    pattern += "{} AND ".format(attribute_data_pattern(attribute['data']))
+                    pattern += "file:content_ref.payload_bin = '{}' AND ".format(attribute['data'])
             elif attribute_type in ("filename", "md5"):
                 d_pattern[attribute_type] = attribute['value']
             else:
