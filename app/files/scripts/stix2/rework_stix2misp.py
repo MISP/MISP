@@ -169,7 +169,8 @@ class StixFromMISPParser(StixParser):
                                        'pattern': 'parse_domain_ip_pattern'},
                          'email': {'observable': 'observable_email',
                                    'pattern': 'parse_email_pattern'},
-                         'file': {'observable': 'observable_file', 'pattern': 'pattern_file'},
+                         'file': {'observable': 'observable_file',
+                                  'pattern': 'parse_file_pattern'},
                          'ip-port': {'observable': 'observable_ip_port',
                                      'pattern': 'parse_ip_port_pattern'},
                          'network-connection': {'observable': 'observable_connection',
@@ -344,6 +345,27 @@ class StixFromMISPParser(StixParser):
         #         if pattern_type.startswith("email-message:'x_misp_attachment_"):
         #
         # return attributes
+
+    def parse_file_pattern(self, pattern):
+        attributes = []
+        malware_sample = {}
+        for pattern_part in pattern:
+            pattern_type, pattern_value = pattern_part.split(' = ')
+            if pattern_type in ("file:hashes.'md5'", 'file:name', 'file:content_ref.payload_bin'):
+                malware_sample[pattern_type] = pattern_value
+            if pattern_type not in stix2misp_mapping.file_mapping:
+                continue
+            attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
+            attribute['value'] = pattern_value.strip("'")
+            attributes.append(attribute)
+        if 'file:content_ref.payload_bin' in malware_sample:
+            attributes.append({
+                'type': 'malware-sample',
+                'object_relation': 'malware-sample',
+                'value': '|'.join(malware_sample[feature] for feature in ('file:name', "file:hashes.'md5'")),
+                'data': malware_sample['file:content_ref.payload_bin']
+            })
+        return attributes
 
     def parse_ip_port_pattern(self, pattern):
         return self.fill_pattern_attributes(pattern, stix2misp_mapping.network_traffic_mapping)

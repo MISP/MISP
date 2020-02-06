@@ -216,6 +216,8 @@ file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'directory:path': path_attribute_mapping,
                 'size': size_attribute_mapping,
                 'file:size': size_attribute_mapping}
+hash_types = ('md5', 'sha1', 'sha256', 'sha224', 'sha384', 'sha512', 'ssdeep', 'tlsh')
+file_mapping.update({"file:hashes.'{}'".format(hash_type): {'type': hash_type, 'object_relation': hash_type} for hash_type in hash_types})
 
 network_traffic_mapping = {'src_port': src_port_attribute_mapping,
                            'network-traffic:src_port': src_port_attribute_mapping,
