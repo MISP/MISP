@@ -161,33 +161,33 @@ class StixParser():
 
 
 class StixFromMISPParser(StixParser):
-    _objects_mapping = {'asn': {'observable': 'attributes_from_asn_observable',
+    _objects_mapping = {'asn': {'observable': 'parse_asn_observable',
                                 'pattern': 'parse_asn_pattern'},
                          'credential': {'observable': 'observable_credential',
                                         'pattern': 'parse_credential_pattern'},
-                         'domain-ip': {'observable': 'attributes_from_domain_ip_observable',
+                         'domain-ip': {'observable': 'parse_domain_ip_observable',
                                        'pattern': 'parse_domain_ip_pattern'},
                          'email': {'observable': 'observable_email',
                                    'pattern': 'parse_email_pattern'},
                          'file': {'observable': 'observable_file',
                                   'pattern': 'parse_file_pattern'},
-                         'ip-port': {'observable': 'observable_ip_port',
+                         'ip-port': {'observable': 'parse_ip_port_observable',
                                      'pattern': 'parse_ip_port_pattern'},
-                         'network-connection': {'observable': 'observable_connection',
+                         'network-connection': {'observable': 'parse_network_connection_observable',
                                                 'pattern': 'parse_network_connection_pattern'},
                          'network-socket': {'observable': 'observable_socket', 'pattern':
                                             'parse_network_socket_pattern'},
                          'process': {'observable': 'attributes_from_process_observable',
                                      'pattern': 'parse_process_pattern'},
-                         'registry-key': {'observable': 'attributes_from_regkey_observable',
+                         'registry-key': {'observable': 'parse_regkey_observable',
                                           'pattern': 'parse_regkey_pattern'},
-                         'url': {'observable': 'attributes_from_url_observable',
+                         'url': {'observable': 'parse_url_observable',
                                  'pattern': 'parse_url_pattern'},
                          'user-account': {'observable': 'attributes_from_user_account_observable',
                                           'pattern': 'parse_user_account_pattern'},
                          'WindowsPEBinaryFile': {'observable': 'observable_pe',
                                                  'pattern': 'parse_pe_pattern'},
-                         'x509': {'observable': 'attributes_from_x509_observable',
+                         'x509': {'observable': 'parse_x509_observable',
                                   'pattern': 'parse_x509_pattern'}}
     _object_from_refs = {'course-of-action': 'parse_MISP_course_of_action', 'vulnerability': 'parse_vulnerability',
                           'custom_object': 'parse_custom'}
@@ -282,14 +282,13 @@ class StixFromMISPParser(StixParser):
             attribute = self.create_attribute_with_tag(attribute, indicator.object_marking_refs)
         self.misp_event.add_attribute(**attribute)
 
-
     def parse_indicator_object(self, indicator):
         misp_object, object_type = self.create_misp_object(indicator)
         pattern = indicator.pattern.replace('\\\\', '\\').strip('[]').split(' AND ')
         try:
             attributes = getattr(self, self._objects_mapping[object_type]['pattern'])(pattern)
         except KeyError:
-            print("Unable to map {} object:\n{}".format(stix_type, o), file=sys.stderr)
+            print(f"Unable to map {object_type} object:\n{indicator}", file=sys.stderr)
             return
         if isinstance(attributes, tuple):
             attributes, target_uuid = attributes
@@ -313,7 +312,12 @@ class StixFromMISPParser(StixParser):
 
     def parse_observable_object(self, observable):
         misp_object, object_type = self.create_misp_object(observable)
-        print(observable._type)
+        observable_object = observable.objects
+        # try:
+        attributes = getattr(self, self._objects_mapping[object_type]['observable'])(observable_object)
+        # except KeyError:
+        #     print(f"Unable to map {object_type} object:\n{observable}", file=sys.stderr)
+        #     return
 
     ################################################################################
     ##                         PATTERN PARSING FUNCTIONS.                         ##
@@ -324,7 +328,7 @@ class StixFromMISPParser(StixParser):
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
             if pattern_type not in object_mapping:
-                if 'x_misp_' in pattern_type:
+                if pattern_type.startswith('x_misp_'):
                     attribute = self.parse_custom_property(pattern_type)
                     attribute['value'] = pattern_value.strip("'")
                     attributes.append(attribute)
@@ -495,6 +499,100 @@ class StixFromMISPParser(StixParser):
 
     def parse_x509_pattern(self, pattern):
         return self.fill_pattern_attributes(pattern, stix2misp_mapping.x509_mapping)
+
+    ################################################################################
+    ##                        OBSERVABLE PARSING FUNCTIONS                        ##
+    ################################################################################
+
+    @staticmethod
+    def fetch_network_traffic_and_references(observable):
+        references = {}
+        network_traffics = []
+        for key, value in observable.items():
+            if isinstance(value, stix2.NetworkTraffic):
+                network_traffics.append(value)
+            else:
+                references[key] = {'object': value, 'used': False}
+        return network_traffics, references
+
+    def fill_observable_attributes(self, observable, object_mapping):
+        attributes = []
+        for key, value in observable.items():
+            if key not in object_mapping:
+                if key.startswith('x_misp_'):
+                    attribute = self.parse_custom_property(key)
+                    attribute.update({'value': value, 'to_ids': False})
+                    attributes.append(attribute)
+                continue
+            attribute = deepcopy(object_mapping[key])
+            attribute.update({'value': value, 'to_ids': False})
+            attributes.append(attribute)
+        return attributes
+
+    @staticmethod
+    def parse_domain_ip_observable(observable):
+        attributes = []
+        for object in observable.values():
+            attribute = deepcopy(stix2misp_mapping.domain_ip_mapping[object._type])
+            attribute.update({'value': object.value, 'to_ids': False})
+            attributes.append(attribute)
+        return attributes
+
+    def parse_ip_port_observable(self, observable):
+        network_traffics, references = self.fetch_network_traffic_and_references(observable)
+        attributes = []
+        for network_traffic in network_traffics:
+            for feature in ('src', 'dst'):
+                port = f'{feature}_port'
+                if hasattr(network_traffic, port):
+                    attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[port])
+                    attribute.update({'value': getattr(network_traffic, port), 'to_ids': False})
+                    attributes.append(attribute)
+                ref = f'{feature}_ref'
+                if hasattr(network_traffic, ref):
+                    attributes.append(self._parse_network_traffic_reference(references[getattr(network_traffic, ref)], feature))
+        for reference in references.values():
+            if not reference['used']:
+                attribute = deepcopy(stix2misp_mapping.ip_port_mapping[reference['object']._type])
+                attribute.update({'value': reference['object'].value, 'to_ids': False})
+                attributes.append(attribute)
+        return attributes
+
+    def parse_network_connection_observable(self, observable):
+        network_traffics, references = self.fetch_network_traffic_and_references(observable)
+
+    @staticmethod
+    def _parse_network_traffic_reference(reference, feature):
+        attribute = {key: value.format(feature) for key, value in stix2misp_mapping.ip_port_mapping[reference['object']._type].items()}
+        attribute.update({'value': reference['object'].value, 'to_ids': False})
+        reference['used'] = True
+        return attribute
+
+    def parse_regkey_observable(self, observable):
+        attributes = []
+        for key, value in observable['0'].items():
+            if key in stix2misp_mapping.regkey_mapping:
+                attribute = deepcopy(stix2misp_mapping.regkey_mapping[key])
+                attribute.update({'value': value.replace('\\\\', '\\'), 'to_ids': False})
+                attributes.append(attribute)
+        if 'values' in observable['0']:
+            attributes.extend(self.fill_observable_attributes(observable['0'].values[0], stix2misp_mapping.regkey_mapping))
+        return attributes
+
+    def parse_url_observable(self, observable):
+        attributes = []
+        for object in observable.values():
+            feature = 'dst_port' if isinstance(object, stix2.NetworkTraffic) else 'value'
+            attribute = deepcopy(stix2misp_mapping.url_mapping[object._type])
+            attribute.update({'value': getattr(object, feature), 'to_ids': False})
+            attributes.append(attribute)
+        return attributes
+
+    def parse_x509_observable(self, observable):
+        attributes = self.fill_observable_attributes(observable['0'], stix2misp_mapping.x509_mapping)
+        if hasattr(observable['0'], 'hashes') and observable['0'].hashes:
+            attributes.extend(self.fill_observable_attributes(observable['0'].hashes, stix2misp_mapping.x509_mapping))
+        return attributes
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##

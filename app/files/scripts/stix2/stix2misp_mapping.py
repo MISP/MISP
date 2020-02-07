@@ -217,6 +217,7 @@ file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'size': size_attribute_mapping,
                 'file:size': size_attribute_mapping}
 hash_types = ('md5', 'sha1', 'sha256', 'sha224', 'sha384', 'sha512', 'ssdeep', 'tlsh')
+file_mapping.update({hash_type: {'type': hash_type, 'object_relation': hash_type} for hash_type in hash_types})
 file_mapping.update({"file:hashes.'{}'".format(hash_type): {'type': hash_type, 'object_relation': hash_type} for hash_type in hash_types})
 
 network_traffic_mapping = {'src_port': src_port_attribute_mapping,
@@ -242,14 +243,17 @@ network_traffic_mapping = {'src_port': src_port_attribute_mapping,
 
 network_traffic_extensions = {'socket-ext': 'network-socket'}
 
-network_traffic_ip = ('ip-{}', 'ip-{}')
-ip_port_types = {'domain-name': ('domain', 'domain'), 'ipv4-addr': network_traffic_ip, 'ipv6-addr': network_traffic_ip}
+network_traffic_ip = {'type': 'ip-{}', 'object_relation': 'ip-{}'}
+ip_port_mapping = {'domain-name': domain_attribute_mapping,
+                   'ipv4-addr': network_traffic_ip,
+                   'ipv6-addr': network_traffic_ip}
 network_socket_types = {'domain-name': ('hostname', 'hostname-{}'), 'ipv4-addr': network_traffic_ip, 'ipv6-addr': network_traffic_ip}
-network_traffic_references_mapping = {'with_extensions': network_socket_types, 'without_extensions': ip_port_types}
+network_traffic_references_mapping = {'with_extensions': network_socket_types, 'without_extensions': ip_port_mapping}
 
 pe_mapping = {'pe_type': pe_type_mapping, 'number_of_sections': number_sections_mapping, 'imphash': imphash_mapping}
 
 pe_section_mapping = {'name': section_name_mapping, 'size': size_attribute_mapping, 'entropy': entropy_mapping}
+pe_section_mapping.update({hash_type: {'type': hash_type, 'object_relation': hash_type} for hash_type in hash_types})
 
 process_mapping = {'name': process_name_mapping,
                    'process:name': process_name_mapping,
