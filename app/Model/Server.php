@@ -4668,7 +4668,7 @@ class Server extends AppModel
     public function compareDBIndexes($actualIndex, $expectedIndex, $dbExpectedSchema)
     {
         $defaultIndexKeylength = 255;
-        $whitelistTables = array('logs');
+        $whitelistTables = array();
         $indexDiff = array();
         foreach($expectedIndex as $tableName => $indexes) {
             if (!array_key_exists($tableName, $actualIndex)) {
