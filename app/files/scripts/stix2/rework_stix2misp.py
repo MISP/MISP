@@ -185,7 +185,8 @@ class StixFromMISPParser(StixParser):
                                  'pattern': 'parse_url_pattern'},
                          'user-account': {'observable': 'attributes_from_user_account_observable',
                                           'pattern': 'parse_user_account_pattern'},
-                         'WindowsPEBinaryFile': {'observable': 'observable_pe', 'pattern': 'pattern_pe'},
+                         'WindowsPEBinaryFile': {'observable': 'observable_pe',
+                                                 'pattern': 'parse_pe_pattern'},
                          'x509': {'observable': 'attributes_from_x509_observable',
                                   'pattern': 'parse_x509_pattern'}}
     _object_from_refs = {'course-of-action': 'parse_MISP_course_of_action', 'vulnerability': 'parse_vulnerability',
@@ -290,6 +291,12 @@ class StixFromMISPParser(StixParser):
         except KeyError:
             print("Unable to map {} object:\n{}".format(stix_type, o), file=sys.stderr)
             return
+        if isinstance(attributes, tuple):
+            attributes, target_uuid = attributes
+            misp_object.add_reference(target_uuid, 'includes')
+        for attribute in attributes:
+            misp_object.add_attribute(**attribute)
+        self.misp_event.add_object(**misp_object)
 
     def parse_observable_attribute(self, observable):
         attribute = self.create_attribute_dict(observable)
@@ -420,9 +427,52 @@ class StixFromMISPParser(StixParser):
             attributes.append(attribute)
         return attributes
 
-    @staticmethod
-    def parse_process_pattern(pattern):
+    def parse_pe_pattern(self, pattern):
         attributes = []
+        sections = defaultdict(dict)
+        pe = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
+        for pattern_part in pattern:
+            pattern_type, pattern_value = pattern_part.split(' = ')
+            if ':extensions.' in pattern_type:
+                if '.sections[' in pattern_type:
+                    pattern_type = pattern_type.split('.')
+                    relation = pattern_type[-1].strip("'")
+                    if relation in stix2misp_mapping.pe_section_mapping:
+                        sections[pattern_type[2][-2]][relation] = pattern_value.strip("'")
+                else:
+                    pattern_type = pattern_type.split('.')[-1]
+                    if pattern_type not in stix2misp_mapping.pe_mapping:
+                        if pattern_type.startswith('x_misp_'):
+                            attribute = self.parse_custom_property(pattern_type)
+                            attribute['value'] = pattern_value.strip("'")
+                            pe.add_attribute(**attribute)
+                        continue
+                    attribute = deepcopy(stix2misp_mapping.pe_mapping[pattern_type])
+                    attribute['value'] = pattern_value.strip("'")
+                    attributes.append(attribute)
+            else:
+                if pattern_type not in stix2misp_mapping.file_mapping:
+                    if pattern_type.startswith('x_misp_'):
+                        attribute = self.parse_custom_property(pattern_type)
+                        attribute['value'] = pattern_value.strip("'")
+                        attributes.append(attribute)
+                    continue
+                attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
+                attribute['value'] = pattern_value.strip("'")
+                attributes.append(attribute)
+        for section in sections.values():
+            pe_section = MISPObject('pe-section', misp_objects_path_custom=self._misp_objects_path)
+            for feature, value in section.items():
+                attribute = deepcopy(stix2misp_mapping.pe_section_mapping[feature])
+                attribute['value'] = value
+                pe_section.add_attribute(**attribute)
+            pe.add_reference(pe_section.uuid, 'includes')
+            self.misp_event.add_object(**pe_section)
+        self.misp_event.add_object(**pe)
+        return attributes, pe.uuid
+
+    def parse_process_pattern(self, pattern):
+        return self.fill_pattern_attributes(pattern, stix2misp_mapping.process_mapping)
 
     def parse_regkey_pattern(self, pattern):
         return self.fill_pattern_attributes(pattern, stix2misp_mapping.regkey_mapping)
