@@ -247,8 +247,9 @@ network_traffic_ip = {'type': 'ip-{}', 'object_relation': 'ip-{}'}
 ip_port_mapping = {'domain-name': domain_attribute_mapping,
                    'ipv4-addr': network_traffic_ip,
                    'ipv6-addr': network_traffic_ip}
-network_socket_types = {'domain-name': ('hostname', 'hostname-{}'), 'ipv4-addr': network_traffic_ip, 'ipv6-addr': network_traffic_ip}
-network_traffic_references_mapping = {'with_extensions': network_socket_types, 'without_extensions': ip_port_mapping}
+network_connection_mapping = {'domain-name': {'type': 'hostname', 'object_relation': 'hostname-{}'},
+                              'ipv4-addr': network_traffic_ip,
+                              'ipv6-addr': network_traffic_ip}
 
 pe_mapping = {'pe_type': pe_type_mapping, 'number_of_sections': number_sections_mapping, 'imphash': imphash_mapping}
 
