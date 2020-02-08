@@ -49,11 +49,14 @@ class Bruteforce extends AppModel
         // first remove old expired rows
         $this->clean();
         // count
-        $params = array('conditions' => array(
-                        'Bruteforce.ip' => $ip,
-                        'Bruteforce.username' => $username),);
+        $params = array(
+            'conditions' => array(
+            'Bruteforce.ip' => $ip,
+            'LOWER(Bruteforce.username)' => trim(strtolower($username)))
+        );
         $count = $this->find('count', $params);
-        if ($count >= Configure::read('SecureAuth.amount')) {
+        $amount = Configure::check('SecureAuth.amount') ? Configure::read('SecureAuth.amount') : 5;
+        if ($count >= $amount) {
             return true;
         } else {
             return false;
