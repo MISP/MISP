@@ -163,7 +163,7 @@ class StixParser():
 class StixFromMISPParser(StixParser):
     _objects_mapping = {'asn': {'observable': 'parse_asn_observable',
                                 'pattern': 'parse_asn_pattern'},
-                         'credential': {'observable': 'observable_credential',
+                         'credential': {'observable': 'parse_credential_observable',
                                         'pattern': 'parse_credential_pattern'},
                          'domain-ip': {'observable': 'parse_domain_ip_observable',
                                        'pattern': 'parse_domain_ip_pattern'},
@@ -518,16 +518,24 @@ class StixFromMISPParser(StixParser):
     def fill_observable_attributes(self, observable, object_mapping):
         attributes = []
         for key, value in observable.items():
-            if key not in object_mapping:
-                if key.startswith('x_misp_'):
-                    attribute = self.parse_custom_property(key)
-                    attribute.update({'value': value, 'to_ids': False})
-                    attributes.append(attribute)
+            if key in object_mapping:
+                attribute = deepcopy(object_mapping[key])
+            elif key.startswith('x_misp_'):
+                attribute = self.parse_custom_property(key)
+                if isinstance(value, list):
+                    for single_value in value:
+                        single_attribute = {'value': single_value, 'to_ids': False}
+                        single_attribute.update(attribute)
+                        attributes.append(single_attribute)
+                    continue
+            else:
                 continue
-            attribute = deepcopy(object_mapping[key])
             attribute.update({'value': value, 'to_ids': False})
             attributes.append(attribute)
         return attributes
+
+    def parse_credential_observable(self, observable):
+        return self.fill_observable_attributes(observable['0'], stix2misp_mapping.credential_mapping)
 
     @staticmethod
     def parse_domain_ip_observable(observable):
