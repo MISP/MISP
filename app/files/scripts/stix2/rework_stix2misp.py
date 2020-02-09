@@ -183,7 +183,7 @@ class StixFromMISPParser(StixParser):
                                           'pattern': 'parse_regkey_pattern'},
                          'url': {'observable': 'parse_url_observable',
                                  'pattern': 'parse_url_pattern'},
-                         'user-account': {'observable': 'attributes_from_user_account_observable',
+                         'user-account': {'observable': 'parse_user_account_observable',
                                           'pattern': 'parse_user_account_pattern'},
                          'WindowsPEBinaryFile': {'observable': 'observable_pe',
                                                  'pattern': 'parse_pe_pattern'},
@@ -481,6 +481,19 @@ class StixFromMISPParser(StixParser):
             attribute = deepcopy(stix2misp_mapping.url_mapping[object._type])
             attribute.update({'value': getattr(object, feature), 'to_ids': False})
             attributes.append(attribute)
+        return attributes
+
+    def parse_user_account_observable(self, observable):
+        observable = observable['0']
+        attributes = self.fill_observable_attributes(observable, stix2misp_mapping.user_account_mapping)
+        if 'extensions' in observable and 'unix-account-ext' in observable['extensions']:
+            extension = observable['extensions']['unix-account-ext']
+            if 'groups' in extension:
+                for group in extension['groups']:
+                    attributes.append({'type': 'text', 'object_relation': 'group',
+                                       'to_ids': False, 'disable_correlation': True,
+                                       'value': group})
+            attributes.extend(self.fill_observable_attributes(extension, stix2misp_mapping.user_account_mapping))
         return attributes
 
     def parse_x509_observable(self, observable):
