@@ -167,9 +167,9 @@ class StixFromMISPParser(StixParser):
                                         'pattern': 'parse_credential_pattern'},
                          'domain-ip': {'observable': 'parse_domain_ip_observable',
                                        'pattern': 'parse_domain_ip_pattern'},
-                         'email': {'observable': 'observable_email',
+                         'email': {'observable': 'parse_email_observable',
                                    'pattern': 'parse_email_pattern'},
-                         'file': {'observable': 'observable_file',
+                         'file': {'observable': 'parse_file_observable',
                                   'pattern': 'parse_file_pattern'},
                          'ip-port': {'observable': 'parse_ip_port_observable',
                                      'pattern': 'parse_ip_port_pattern'},
@@ -323,17 +323,6 @@ class StixFromMISPParser(StixParser):
     ##                        OBSERVABLE PARSING FUNCTIONS                        ##
     ################################################################################
 
-    @staticmethod
-    def fetch_network_traffic_and_references(observable):
-        references = {}
-        network_traffics = []
-        for key, value in observable.items():
-            if isinstance(value, stix2.NetworkTraffic):
-                network_traffics.append(value)
-            else:
-                references[key] = {'object': value, 'used': False}
-        return network_traffics, references
-
     def fill_observable_attributes(self, observable, object_mapping):
         attributes = []
         for key, value in observable.items():
@@ -353,6 +342,17 @@ class StixFromMISPParser(StixParser):
             attributes.append(attribute)
         return attributes
 
+    @staticmethod
+    def filter_main_object(observable, main_type):
+        references = {}
+        main_objects = []
+        for key, value in observable.items():
+            if isinstance(value, getattr(stix2, main_type)):
+                main_objects.append(value)
+            else:
+                references[key] = value
+        return main_objects[0], references
+
     def parse_asn_observable(self, observable):
         attributes = []
         for observable_object in observable.values():
@@ -371,19 +371,62 @@ class StixFromMISPParser(StixParser):
             attributes.append(attribute)
         return attributes
 
+    def parse_email_observable(self, observable):
+        email, references = self.filter_main_object(observable, 'EmailMessage')
+        attributes = self.fill_observable_attributes(email, stix2misp_mapping.email_mapping)
+        if hasattr(email, 'from_ref'):
+            reference = references[email.from_ref]
+            attributes.append({'type': 'email-src', 'object_relation': 'from',
+                               'value': reference.value, 'to_ids': False})
+        for feature in ('to_refs', 'cc_refs'):
+            if hasattr(email, feature):
+                for ref_id in getattr(email, feature):
+                    reference = references[ref_id]
+                    attributes.append({'type': 'email-dst', 'object_relation': feature.split('_')[0],
+                                       'value': reference.value, 'to_ids': False})
+        if hasattr(email, 'additional_header_fields'):
+            attributes.extend(self.fill_observable_attributes(email.additional_header_fields, stix2misp_mapping.email_mapping))
+        if hasattr(email, 'body_multipart'):
+            for body_multipart in email.body_multipart:
+                reference = references[body_multipart['body_raw_ref']]
+                value = body_multipart['content_disposition'].split('=')[-1].strip("'")
+                if 'screenshot' in body_multipart['content_disposition']:
+                    attributes.append({'type': 'attachment', 'object_relation': 'screenshot', 'to_ids': False,
+                                       'value': value, 'data': reference.payload_bin})
+                else:
+                    attributes.append({'type': 'email-attachment', 'object_relation': 'attachment',
+                                       'value': value, 'to_ids': False})
+        return attributes
+
+    def parse_file_observable(self, observable):
+        file, references = self.filter_main_object(observable, 'File')
+        attributes = self.fill_observable_attributes(file, stix2misp_mapping.file_mapping)
+        if hasattr(file, 'hashes'):
+            attributes.extend(self.fill_observable_attributes(file.hashes, stix2misp_mapping.file_mapping))
+        if hasattr(file, 'content_ref'):
+            reference = references[file.content_ref]
+            value, type = (f'{file.name}|{file.hashes["MD5"]}', 'malware-sample') if 'MD5' in file.hashes else (file.name, 'attachment')
+            attributes.append({'type': type, 'object_relation': type, 'value': value,
+                               'to_ids': False, 'data': reference.payload_bin})
+        if hasattr(file, 'parent_directory_ref'):
+            reference = references[file.parent_directory_ref]
+            attributes.append({'type': 'text', 'object_relation': 'path',
+                               'value': reference.path, 'to_ids': False})
+        return attributes
+
     def parse_ip_port_observable(self, observable):
-        network_traffics, references = self.fetch_network_traffic_and_references(observable)
+        network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
+        references = {key: {'object': value, 'used': False} for key, value in references.items()}
         attributes = []
-        for network_traffic in network_traffics:
-            for feature in ('src', 'dst'):
-                port = f'{feature}_port'
-                if hasattr(network_traffic, port):
-                    attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[port])
-                    attribute.update({'value': getattr(network_traffic, port), 'to_ids': False})
-                    attributes.append(attribute)
-                ref = f'{feature}_ref'
-                if hasattr(network_traffic, ref):
-                    attributes.append(self._parse_network_traffic_reference(references[getattr(network_traffic, ref)], feature, 'ip_port_mapping'))
+        for feature in ('src', 'dst'):
+            port = f'{feature}_port'
+            if hasattr(network_traffic, port):
+                attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[port])
+                attribute.update({'value': getattr(network_traffic, port), 'to_ids': False})
+                attributes.append(attribute)
+            ref = f'{feature}_ref'
+            if hasattr(network_traffic, ref):
+                attributes.append(self._parse_network_traffic_reference(references[getattr(network_traffic, ref)], feature, 'ip_port_mapping'))
         for reference in references.values():
             if not reference['used']:
                 attribute = deepcopy(stix2misp_mapping.ip_port_mapping[reference['object']._type])
@@ -392,22 +435,20 @@ class StixFromMISPParser(StixParser):
         return attributes
 
     def parse_network_connection_observable(self, observable):
-        network_traffics, references = self.fetch_network_traffic_and_references(observable)
-        attributes = []
-        for network_traffic in network_traffics:
-            attributes.extend(self._parse_network_traffic(network_traffic, references))
-            if hasattr(network_traffic, 'protocols'):
-                attributes.extend(self._parse_network_traffic_protocol(protocol) for protocol in network_traffic.protocols if protocol in stix2misp_mapping.connection_protocols)
+        network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
+        references = {key: {'object': value, 'used': False} for key, value in references.items()}
+        attributes = self._parse_network_traffic(network_traffic, references)
+        if hasattr(network_traffic, 'protocols'):
+            attributes.extend(self._parse_network_traffic_protocol(protocol) for protocol in network_traffic.protocols if protocol in stix2misp_mapping.connection_protocols)
         attributes.extend(self._parse_network_traffic_references(references))
         return attributes
 
     def parse_network_socket_observable(self, observable):
-        network_traffics, references = self.fetch_network_traffic_and_references(observable)
-        attributes = []
-        for network_traffic in network_traffics:
-            attributes.extend(self._parse_network_traffic(network_traffic, references))
-            if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
-                attributes.extend(self._parse_socket_extension(network_traffic.extensions['socket-ext']))
+        network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
+        references = {key: {'object': value, 'used': False} for key, value in references.items()}
+        attributes = self._parse_network_traffic(network_traffic, references)
+        if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
+            attributes.extend(self._parse_socket_extension(network_traffic.extensions['socket-ext']))
         attributes.extend(self._parse_network_traffic_references(references))
         return attributes
 

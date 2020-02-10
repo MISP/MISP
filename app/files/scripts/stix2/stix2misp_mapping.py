@@ -192,9 +192,7 @@ domain_ip_mapping = {'domain-name': domain_attribute_mapping,
 
 email_mapping = {'date': email_date_attribute_mapping,
                  'email-message:date': email_date_attribute_mapping,
-                 'to_refs': to_attribute_mapping,
                  'email-message:to_refs': to_attribute_mapping,
-                 'cc_refs': cc_attribute_mapping,
                  'email-message:cc_refs': cc_attribute_mapping,
                  'subject': email_subject_attribute_mapping,
                  'email-message:subject': email_subject_attribute_mapping,
@@ -202,23 +200,18 @@ email_mapping = {'date': email_date_attribute_mapping,
                  'email-message:additional_header_fields.x_mailer': x_mailer_attribute_mapping,
                  'Reply-To': reply_to_attribute_mapping,
                  'email-message:additional_header_fields.reply_to': reply_to_attribute_mapping,
-                 'from_ref': from_attribute_mapping,
                  'email-message:from_ref': from_attribute_mapping,
-                 'body_multipart': body_multipart_mapping,
-                 'email-message:body_multipart[*].body_raw_ref.name': body_multipart_mapping,
                  'email-addr:value': to_attribute_mapping}
 
 file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'file:mime_type': mime_type_attribute_mapping,
                 'name': filename_attribute_mapping,
                 'file:name': filename_attribute_mapping,
-                'path': path_attribute_mapping,
-                'directory:path': path_attribute_mapping,
+                'file:content_ref.payload_bin': {'type': 'malware-sample', 'object_relation': 'malware-sample'},
+                'artifact:payoad:bin': {'type': 'attachment', 'object_relation': 'attachment'},
+                'file:parent_directory_ref.path': {'type': 'text', 'object_relation': 'path'},
                 'size': size_attribute_mapping,
                 'file:size': size_attribute_mapping}
-hash_types = ('md5', 'sha1', 'sha256', 'sha224', 'sha384', 'sha512', 'ssdeep', 'tlsh')
-file_mapping.update({hash_type: {'type': hash_type, 'object_relation': hash_type} for hash_type in hash_types})
-file_mapping.update({"file:hashes.'{}'".format(hash_type): {'type': hash_type, 'object_relation': hash_type} for hash_type in hash_types})
 
 network_traffic_mapping = {'src_port': src_port_attribute_mapping,
                            'network-traffic:src_port': src_port_attribute_mapping,
@@ -230,8 +223,8 @@ network_traffic_mapping = {'src_port': src_port_attribute_mapping,
                            'network-traffic:end': end_datetime_attribute_mapping,
                            'value': domain_attribute_mapping,
                            'domain-name:value': domain_attribute_mapping,
-                           'network-traffic:dst_ref.value': {'type': 'ip-dst', 'relation': 'ip-dst'},
-                           'network-traffic:src_red.value': {'type': 'ip-src', 'relation': 'ip-src'},
+                           'network-traffic:dst_ref.value': {'type': 'ip-dst', 'object_relation': 'ip-dst'},
+                           'network-traffic:src_ref.value': {'type': 'ip-src', 'object_relation': 'ip-src'},
                            'address_family': address_family_attribute_mapping,
                            "network-traffic:extensions.'socket-ext'.address_family": address_family_attribute_mapping,
                            'protocol_family': domain_family_attribute_mapping,
@@ -254,7 +247,14 @@ network_connection_mapping = {'domain-name': {'type': 'hostname', 'object_relati
 pe_mapping = {'pe_type': pe_type_mapping, 'number_of_sections': number_sections_mapping, 'imphash': imphash_mapping}
 
 pe_section_mapping = {'name': section_name_mapping, 'size': size_attribute_mapping, 'entropy': entropy_mapping}
-pe_section_mapping.update({hash_type: {'type': hash_type, 'object_relation': hash_type} for hash_type in hash_types})
+
+hash_types = ('MD5', 'SHA-1', 'SHA-256', 'SHA-224', 'SHA-384', 'SHA-512', 'ssdeep', 'tlsh')
+for hash_type in hash_types:
+    misp_hash_type = hash_type.replace('-', '').lower()
+    attribute = {'type': misp_hash_type, 'object_relation': misp_hash_type}
+    file_mapping[hash_type] = attribute
+    file_mapping[f"file:hashes.'{hash_type}'"] = attribute
+    pe_section_mapping[hash_type] = attribute
 
 process_mapping = {'name': process_name_mapping,
                    'process:name': process_name_mapping,
