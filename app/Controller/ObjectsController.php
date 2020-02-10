@@ -238,6 +238,7 @@ class ObjectsController extends AppController
                 $this->request->data['Attribute'] = $this->request->data['Object']['Attribute'];
                 unset($this->request->data['Object']['Attribute']);
             }
+            $breakOnDuplicate = !empty($this->request->data['Object']['breakOnDuplicate']) || !empty($this->params['named']['breakOnDuplicate']);
             $object = $this->MispObject->attributeCleanup($this->request->data);
             // we pre-validate the attributes before we create an object at this point
             // This allows us to stop the process and return an error (API) or return
@@ -283,7 +284,7 @@ class ObjectsController extends AppController
                 }
                 if (empty($error)) {
                     unset($object['Object']['id']);
-                    $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
+                    $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), 'halt', $breakOnDuplicate);
                     if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($eventId);
                     } else {
