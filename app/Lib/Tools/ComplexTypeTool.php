@@ -41,7 +41,7 @@ class ComplexTypeTool
         array(
             'from' => '/\.+/',
             'to' => '.',
-            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+            'types' => array('ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
         ),
         array(
             'from' => '/\[hxxp:\/\/\]/',

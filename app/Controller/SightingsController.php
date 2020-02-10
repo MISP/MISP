@@ -66,7 +66,7 @@ class SightingsController extends AppController
                 $source = isset($this->request->data['source']) ? trim($this->request->data['source']) : '';
             }
             if (!$error) {
-                $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source);
+                $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source, false, true);
             }
             if (!is_numeric($result)) {
                 $error = $result;
@@ -276,42 +276,6 @@ class SightingsController extends AppController
         return $this->RestResponse->viewData($sightings);
     }
 
-    public function restSearch($context = false)
-    {
-        $allowedContext = array(false, 'event', 'attribute');
-        $paramArray = array('returnFormat', 'id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent');
-        $filterData = array(
-            'request' => $this->request,
-            'named_params' => $this->params['named'],
-            'paramArray' => $paramArray,
-            'ordered_url_params' => compact($paramArray)
-        );
-        $filters = $this->_harvestParameters($filterData, $exception);
-
-        // validate context
-        if (!in_array($context, $allowedContext, true)) {
-            throw new MethodNotAllowedException(_('Invalid context.'));
-        }
-        // ensure that an id is provided if context is set
-        if ($context !== false && !isset($filters['id'])) {
-            throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
-        }
-        $filters['context'] = $context;
-
-        if (isset($filters['returnFormat'])) {
-            $returnFormat = $filters['returnFormat'];
-        }
-        if ($returnFormat === 'download') {
-            $returnFormat = 'json';
-        }
-
-        $sightings = $this->Sighting->restSearch($this->Auth->user(), $returnFormat, $filters);
-
-        $validFormats = $this->Sighting->validFormats;
-        $responseType = $validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($sightings, $responseType, false, true);
-    }
-
     public function listSightings($id = false, $context = 'attribute', $org_id = false)
     {
         $rawId = $id;
@@ -418,5 +382,29 @@ class SightingsController extends AppController
         $this->set('results', $results);
         $this->layout = 'ajax';
         $this->render('ajax/view_sightings');
+    }
+
+    // Save sightings synced over, restricted to sync users
+    public function bulkSaveSightings($eventId = false)
+    {
+        if ($this->request->is('post')) {
+            if (empty($this->request->data['Sighting'])) {
+                $sightings = $this->request->data;
+            } else {
+                $sightings = $this->request->data['Sighting'];
+            }
+            $saved = $this->Sighting->bulkSaveSightings($eventId, $sightings, $this->Auth->user());
+            if (is_numeric($saved)) {
+                if ($saved > 0) {
+                   return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $saved . ' sightings added.')), 'status' => 200, 'type' => 'json'));
+                } else {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'success' => 'No sightings added.')), 'status' => 200, 'type' => 'json'));
+                }
+            } else {
+                throw new MethodNotAllowedException($saved);
+            }
+        } else {
+            throw new MethodNotAllowedException('This method is only accessible via POST requests.');
+        }
     }
 }

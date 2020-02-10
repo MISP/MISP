@@ -180,29 +180,6 @@ class EventShell extends AppShell
         }
     }
 
-    private function __recursiveEcho($array) {
-        $text = "";
-        foreach ($array as $k => $v) {
-            if (is_array($v)) {
-                if (empty($v)) $text .= '<' . $k . '/>';
-                else {
-                    foreach ($v as $element) {
-                        $text .= '<' . $k . '>';
-                        $text .= $this->__recursiveEcho($element);
-                        $text .= '</' . $k . '>';
-                    }
-                }
-            } else {
-                if ($v === false) $v = 0;
-                if ($v === "" || $v === null) $text .= '<' . $k . '/>';
-                else {
-                    $text .= '<' . $k . '>' . $v . '</' . $k . '>';
-                }
-            }
-        }
-        return $text;
-    }
-
     public function cachehids() {
         $timeStart = time();
         $userId = $this->args[0];
@@ -382,7 +359,6 @@ class EventShell extends AppShell
     public function cachebro()
     {
         $timeStart = time();
-        $broHeader = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url\tmeta.do_notice\tmeta.if_in\n";
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
         $id = $this->args[1];
@@ -400,8 +376,10 @@ class EventShell extends AppShell
         }
 
         $file->write('');
+        $skipHeader = false;
         foreach ($types as $k => $type) {
-            $final = $this->Attribute->bro($user, $type);
+            $final = $this->Attribute->bro($user, $type, false, false, false, false, false, false, $skipHeader);
+            $skipHeader = true;
             foreach ($final as $attribute) {
                 $file->append($attribute . PHP_EOL);
             }
@@ -529,6 +507,28 @@ class EventShell extends AppShell
         $log = ClassRegistry::init('Log');
         $log->create();
         $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'published () => (1)');
+    }
+
+    public function publish_sightings() {
+        $id = $this->args[0];
+        $passAlong = $this->args[1];
+        $jobId = $this->args[2];
+        $userId = $this->args[3];
+        $user = $this->User->getAuthUser($userId);
+        $job = $this->Job->read(null, $jobId);
+        $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
+        $result = $this->Event->publish_sightings($id, $passAlong);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        if ($result) {
+            $job['Job']['message'] = 'Sightings published.';
+        } else {
+            $job['Job']['message'] = 'Sightings published, but the upload to other instances may have failed.';
+        }
+        $this->Job->save($job);
+        $log = ClassRegistry::init('Log');
+        $log->create();
+        $log->createLogEntry($user, 'publish_sightings', 'Event', $id, 'Sightings for event (' . $id . '): published.', 'publish_sightings updated');
     }
 
     public function enrichment() {

@@ -6,12 +6,41 @@ class ServerShell extends AppShell
 {
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
 
+    public function listServers() {
+        $res = ['servers'=>[]];
+
+        $servers = $this->Server->find('all', [
+            'fields' => ['Server.id', 'Server.name', 'Server.url'],
+            'recursive' => 0
+        ]);
+        foreach ($servers as $server)
+            $res['servers'][] = $server['Server'];
+
+        echo json_encode($res) . PHP_EOL;
+    }
+
+    public function test() {
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Test'] . PHP_EOL);
+        }
+
+        $serverId = intval($this->args[0]);
+        $res = @$this->Server->runConnectionTest($serverId);
+        if (!empty($res['message']))
+            $res['message'] = json_decode($res['message']);
+
+        echo json_encode($res) . PHP_EOL;
+    }
+
     public function pull() {
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['pull'] . PHP_EOL);
         }
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die('User ID do not match an existing user.' . PHP_EOL);
+        }
         if (empty($this->args[1])) die();
         $serverId = $this->args[1];
         if (!empty($this->args[2])) {
@@ -46,7 +75,7 @@ class ServerShell extends AppShell
                 'status' => 4
         ));
         if (is_array($result)) {
-            $message = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled.', count($result[0]), count($result[1]), $result[2]));
+            $message = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled.', count($result[0]), count($result[1]), $result[2], $result[3]));
         } else {
             $message = sprintf(__('ERROR: %s'), $result);
         }
@@ -104,7 +133,7 @@ class ServerShell extends AppShell
 
     public function fetchFeed() {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['fetchFeed'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Fetch feeds as local data'] . PHP_EOL);
         }
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
@@ -195,7 +224,7 @@ class ServerShell extends AppShell
             $data = array(
                     'worker' => 'default',
                     'job_type' => 'cache_servers',
-                    'job_input' => 'Server: ' . $id,
+                    'job_input' => 'Server: ' . $scopeid,
                     'status' => 0,
                     'retries' => 0,
                     'org' => $user['Organisation']['name'],
@@ -230,7 +259,7 @@ class ServerShell extends AppShell
 
     public function cacheFeed() {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['cacheFeed'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Cache feeds for quick lookups'] . PHP_EOL);
         }
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);

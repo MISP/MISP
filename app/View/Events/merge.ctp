@@ -1,7 +1,7 @@
 <div class="eventmerge form">
 <?php echo $this->Form->create('Event', array('enctype' => 'multipart/form-data'));?>
     <fieldset>
-        <legend><?php echo __('Merge events'); ?></legend>
+        <legend><?php echo __('Merge events - WARNING: this feature is very outdated and should not be used anymore.'); ?></legend>
         <?php
         echo $this->Form->hidden('target_id');
         echo $this->Form->input('source_id', array(

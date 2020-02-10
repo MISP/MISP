@@ -40,7 +40,18 @@
         echo $this->Form->input('to_ids', array(
                 'label' => __('IDS Signature?'),
         ));
+        echo $this->Form->input('first_seen', array(
+            'type' => 'text',
+            'div' => 'input hidden',
+            'required' => false,
+        ));
+        echo $this->Form->input('last_seen', array(
+            'type' => 'text',
+            'div' => 'input hidden',
+            'required' => false,
+        ));
     ?>
+        <div id="bothSeenSliderContainer"></div>
     </fieldset>
     <p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message"><?php echo __('Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.');?></p>
     <?php if (isset($ajax) && $ajax): ?>
@@ -69,6 +80,8 @@
 <?php
     $event['Event']['id'] = $this->request->data['ShadowAttribute']['event_id'];
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttribute', 'event' => $event));
+
+    echo $this->element('form_seen_input');
 ?>
 
 <script type="text/javascript">

@@ -138,17 +138,9 @@
 
 <script type="text/javascript">
 $(document).ready(function () {
-    $('.expandable').click(function() {
-        $(this).parent().children('div').toggle();
-        if ($(this).children('span').html() == '+') {
-            $(this).children('span').html('-');
-        } else {
-            $(this).children('span').html('+');
-        }
-    });
-    $('.delete-cluster').click(function() {
-        var tagName = $(this).data('tag-name');
-        removeTag($id = false, $tag_id = false, $galaxy = false);
+    $('.expandable').popover({
+        html: true,
+        trigger: 'hover'
     });
 });
 </script>

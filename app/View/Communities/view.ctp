@@ -14,12 +14,19 @@
             )
         );
         $optional_fields = array(
-            'type', 'description', 'rules', 'email', 'sector', 'nationality', 'eligibility', 'pgp_key'
+            'type', 'description', 'rules', 'email', 'sector', 'nationality', 'eligibility',
         );
         foreach ($optional_fields as $field) {
             if (!empty($community[$field])) {
                 $table_data[] = array('key' => Inflector::humanize($field), 'value' => $community[$field]);
             }
+        }
+        if (!empty($community['pgp_key'])) {
+            $table_data[] = array(
+                'key' => __('GnuPG key'),
+                'element' => 'genericElements/key',
+                'element_params' => array('key' => $community['pgp_key']),
+            );
         }
         //misp-project.org/org-logos/uuid.png
         echo sprintf(
@@ -49,12 +56,3 @@
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'view_community'));
 ?>
-<script type="text/javascript">
-    <?php
-        $startingTab = 'description';
-        if (!$local) $startingTab = 'events';
-    ?>
-    $(document).ready(function () {
-        organisationViewContent('<?php echo $startingTab; ?>', '<?php echo h($id);?>');
-    });
-</script>

@@ -86,7 +86,7 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
         <div class="blueElement" style="padding: 4px 5px;">
             <div style="text-align: center; position: relative;">
                 <?php if (isset($merge_button_functionname)): ?>
-                    <input type="button" class="btn <?php echo $btn_style; ?>" onclick="<?php echo h($merge_button_functionname); ?>(this)" data-objectid="<?php echo h($object['Object']['id']) ?>" data-updatetemplate="<?php echo $temp_comparison == 'below' ? 'true' : 'false'; ?>" value="<?php echo $temp_text; ?>" <?php echo $temp_comparison == 'above' ? 'disabled' : ''; ?>></input>
+                    <input type="button" class="btn <?php echo $btn_style; ?>" onclick="<?php echo h($merge_button_functionname); ?>(this)" data-objectid="<?php echo h($object['Object']['id']) ?>" data-updatetemplate="<?php echo $temp_comparison == 'below' ? 'true' : 'false'; ?>" value="<?php echo $temp_text; ?>" <?php echo $temp_comparison == 'above' ? 'disabled' : ''; ?>>
                 <?php endif; ?>
                 <?php if (isset($similar_object_similarity_amount[$object['Object']['id']])): ?>
                     <span class="badge badge-inverse" style="position: absolute; right: 0;" title="<?php echo __('Similarity amount') ?>">

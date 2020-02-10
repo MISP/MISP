@@ -40,7 +40,18 @@
             echo $this->Form->input('batch_import', array(
                     'type' => 'checkbox',
             ));
+            echo $this->Form->input('first_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+            ));
+            echo $this->Form->input('last_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+            ));
         ?>
+        <div id="bothSeenSliderContainer"></div>
     </div>
     </fieldset>
     <p style="color:red;font-weight:bold;display:none;<?php if ($ajax) echo 'text-align:center;'; ?>" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.');?></p>
@@ -72,6 +83,8 @@
     if (!$ajax) {
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttribute', 'event' => $event));
     }
+
+    echo $this->element('form_seen_input');
 ?>
 <script type="text/javascript">
 <?php

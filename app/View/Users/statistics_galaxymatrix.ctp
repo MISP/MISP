@@ -24,9 +24,9 @@
         </div>
         <div style="display: inline-block;">
             <label>Dates</label>
-            <input id="dateFrom" class="datepicker" placeholder="from" value="<?php echo isset($dateFrom) ? h($dateFrom) : ''; ?>"></input>
+            <input id="dateFrom" class="datepicker" placeholder="from" value="<?php echo isset($dateFrom) ? h($dateFrom) : ''; ?>">
             <i class="fas fa-arrow-right"></i>
-            <input id="dateTo" class="datepicker" placeholder="to" value="<?php echo isset($dateTo) ? h($dateTo) : ''; ?>"></input>
+            <input id="dateTo" class="datepicker" placeholder="to" value="<?php echo isset($dateTo) ? h($dateTo) : ''; ?>">
         </div>
         <button id="btnSubmit" class="btn btn-primary"><?php echo __('Submit') ?></button>
     </div>

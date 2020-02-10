@@ -48,12 +48,19 @@ class UsersController extends AppController
             ));
             $id = $userid['User']['id'];
         }
-        $this->User->id = $id;
-        $this->User->recursive = 0;
-        if (!$this->User->exists()) {
+        $user = $this->User->read(null, $id);
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $id),
+            'contain' => array(
+                'UserSetting',
+                'Role',
+                'Organisation'
+            )
+        ));
+        if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
         }
-        $user = $this->User->read(null, $id);
         if (!empty($user['User']['gpgkey'])) {
             $pgpDetails = $this->User->verifySingleGPG($user);
             $user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
@@ -62,10 +69,28 @@ class UsersController extends AppController
         if ($this->_isRest()) {
             unset($user['User']['server_id']);
             $user['User']['password'] = '*****';
-            return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
+            $temp = array();
+            foreach ($user['UserSetting'] as $k => $v) {
+                $temp[$v['setting']] = $v['value'];
+            }
+            $user['UserSetting'] = $temp;
+            return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
         } else {
             $this->set('user', $user);
         }
+    }
+
+    private function __massageUserObject($user)
+    {
+        unset($user['User']['server_id']);
+        $user['User']['password'] = '*****';
+        $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
+        foreach ($objectsToInclude as $objectToInclude) {
+            if (isset($user[$objectToInclude])) {
+                $temp[$objectToInclude] = $user[$objectToInclude];
+            }
+        }
+        return $temp;
     }
 
     public function request_API()
@@ -92,14 +117,20 @@ class UsersController extends AppController
         if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
             throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
         }
-        $id = $this->Auth->user('id');
-        $this->User->read(null, $id);
-        if (!$this->User->exists()) {
+        $currentUser = $this->User->find('first', array(
+            'conditions' => array('User.id' => $this->Auth->user('id')),
+            'recursive' => -1
+        ));
+        if (empty($currentUser)) {
             throw new NotFoundException('Something went wrong. Your user account could not be accessed.');
         }
+        $id = $currentUser['User']['id'];
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (empty($this->request->data['User'])) {
+                $this->request->data = array('User' => $this->request->data);
+            }
             $abortPost = false;
-            if (!$this->_isSiteAdmin() && !empty($this->request->data['User']['email'])) {
+            if (!empty($this->request->data['User']['email']) && !$this->_isSiteAdmin()) {
                 $organisation = $this->User->Organisation->find('first', array(
                     'conditions' => array('Organisation.id' => $this->Auth->user('org_id')),
                     'recursive' => -1
@@ -116,7 +147,7 @@ class UsersController extends AppController
                         }
                     }
                     if ($abortPost) {
-                        $this->Flash->error(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
+                        $message = __('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']);
                     }
                 }
             }
@@ -138,17 +169,49 @@ class UsersController extends AppController
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
                 $fieldList = array('email', 'autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
-                if ("" != $this->request->data['User']['password']) {
+                if (!empty($this->request->data['User']['password'])) {
                     $fieldList[] = 'password';
+                    $fieldList[] = 'confirm_password';
+                }
+                foreach ($this->request->data['User'] as $k => $v) {
+                    $currentUser['User'][$k] = $v;
                 }
                 // Save the data
-                if ($this->User->save($this->request->data, true, $fieldList)) {
-                    $this->Flash->success(__('The profile has been updated'));
-                    $this->_refreshAuth();
-                    $this->redirect(array('action' => 'view', $id));
-                } else {
-                    $this->Flash->error(__('The profile could not be updated. Please, try again.'));
+                if ($this->_isRest()) {
+                    if (!empty($this->request->data['User']['password'])) {
+                        if ($this->request->data['User']['password'] === '*****') {
+                            unset($this->request->data['User']['password']);
+                        } else {
+                            $currentUser['User']['confirm_password'] = $this->request->data['User']['password'];
+                        }
+                    }
                 }
+                if ($this->User->save($currentUser, true, $fieldList)) {
+                    if ($this->_isRest()) {
+                        $user = $this->User->find('first', array(
+                            'conditions' => array('User.id' => $id),
+                            'recursive' => -1,
+                            'contain' => array(
+                                'Organisation',
+                                'Role',
+                                'UserSetting'
+                            )
+                        ));
+                        return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
+                    } else {
+                        $this->Flash->success(__('The profile has been updated'));
+                        $this->_refreshAuth();
+                        $this->redirect(array('action' => 'view', $id));
+                    }
+                } else {
+                    $message = __('The profile could not be updated. Please, try again.');
+                    $abortPost = true;
+                }
+            }
+            if ($abortPost) {
+                return $this->RestResponse->saveFailResponse('Users', 'edit', $id, $message, $this->response->type());
+            } else {
+                $this->Flash->error($message);
             }
         } else {
             $this->User->set('password', '');
@@ -462,11 +525,18 @@ class UsersController extends AppController
 
     public function admin_view($id = null)
     {
-        $this->User->id = $id;
-        if (!$this->User->exists()) {
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $id),
+            'contain' => array(
+                'UserSetting',
+                'Role',
+                'Organisation'
+            )
+        ));
+        if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
         }
-        $user = $this->User->read(null, $id);
         if (!empty($user['User']['gpgkey'])) {
             $pgpDetails = $this->User->verifySingleGPG($user);
             $user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
@@ -482,11 +552,21 @@ class UsersController extends AppController
         }
         if ($this->_isRest()) {
             $user['User']['password'] = '*****';
+            $temp = array();
+            foreach ($user['UserSetting'] as $k => $v) {
+                $temp[$v['setting']] = $v['value'];
+            }
+            $user['UserSetting'] = $temp;
+            return $this->RestResponse->viewData(array(
+                'User' => $user['User'],
+                'Role' => $user['Role'],
+                'UserSetting' => $user['UserSetting']
+            ), $this->response->type());
             return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
         } else {
-            $temp = $this->User->data['User']['invited_by'];
+            $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
             $this->set('id', $id);
-            $this->set('user2', $this->User->read(null, $temp));
+            $this->set('user2', $user2);
         }
     }
 
@@ -806,9 +886,9 @@ class UsersController extends AppController
                         continue;
                     }
                     if ($field != 'confirm_password') {
-                        array_push($fieldsOldValues, $this->User->field($field));
+                        $fieldsOldValues[$field] = $this->User->field($field);
                     } else {
-                        array_push($fieldsOldValues, $this->User->field('password'));
+                        $fieldsOldValues[$field] = $this->User->field('password');
                     }
                 }
                 if (
@@ -849,31 +929,28 @@ class UsersController extends AppController
                                     }
                                     $cP++;
                                 }
-                                array_push($fieldsNewValues, $newValueStr);
+                                $fieldsNewValues[$field] = $newValueStr;
                             } else {
-                                array_push($fieldsNewValues, $newValue);
+                                $fieldsNewValues[$field] = $newValue;
                             }
                         } else {
-                            array_push($fieldsNewValues, $this->data['User']['password']);
+                            $fieldsNewValues[$field] = $this->data['User']['password'];
                         }
                     }
                     // compare
-                    $fieldsResultStr = '';
-                    $c = 0;
+                    $fieldsResult = array();
                     foreach ($fields as $field) {
-                        if (isset($fieldsOldValues[$c]) && $fieldsOldValues[$c] != $fieldsNewValues[$c]) {
+                        if (isset($fieldsOldValues[$field]) && $fieldsOldValues[$field] != $fieldsNewValues[$field]) {
                             if ($field != 'confirm_password' && $field != 'enable_password') {
-                                $fieldsResultStr = $fieldsResultStr . ', ' . $field . ' (' . $fieldsOldValues[$c] . ') => (' . $fieldsNewValues[$c] . ')';
+                                $fieldsResult[$field] = array($fieldsOldValues[$field], $fieldsNewValues[$field]);
                             }
                         }
-                        $c++;
                     }
-                    $fieldsResultStr = substr($fieldsResultStr, 2);
                     $user = $this->User->find('first', array(
                         'recursive' => -1,
                         'conditions' => array('User.id' => $this->User->id)
                     ));
-                    $this->User->extralog($this->Auth->user(), "edit", "user", $fieldsResultStr, $user);
+                    $this->User->extralog($this->Auth->user(), "edit", "user", $fieldsResult, $user);
                     if ($this->_isRest()) {
                         $user['User']['password'] = '******';
                         return $this->RestResponse->viewData($user, $this->response->type());
@@ -1724,10 +1801,12 @@ class UsersController extends AppController
             'group' => 'Event.orgc_id',
             'conditions' => array('Event.orgc_id' => array_keys($orgs)),
             'recursive' => -1,
-            'fields' => array('Event.orgc_id', 'count(*)')
+            'fields' => array('Event.orgc_id', 'count(*)', 'sum(Event.attribute_count) as attributeCount')
         ));
         foreach ($events as $event) {
             $orgs[$event['Event']['orgc_id']]['eventCount'] = $event[0]['count(*)'];
+            $orgs[$event['Event']['orgc_id']]['attributeCount'] = $event[0]['attributeCount'];
+            $orgs[$event['Event']['orgc_id']]['orgActivity'] = $this->User->getOrgActivity($event['Event']['orgc_id'], array('event_timestamp' => '365d'));
         }
         unset($events);
         $orgs = Set::combine($orgs, '{n}.name', '{n}');

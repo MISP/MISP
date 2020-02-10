@@ -5,21 +5,21 @@
         <div class="span9 form-inline" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 15px;">
             <div style="border-bottom: 1px solid #ddd;">
                 <label class="checkbox inline">
-                    <input id="table_toggle_all_type" type="checkbox"></input>
+                    <input id="table_toggle_all_type" type="checkbox">
                     <?php echo __('Show All Types'); ?>
                 </label>
                 <label class="checkbox inline">
-                    <input id="table_toggle_objects" type="checkbox"></input>
+                    <input id="table_toggle_objects" type="checkbox">
                     <?php echo __('Show MISP Objects'); ?>
                 </label>
-                <input id="table_type_search" class="input" type="text" placeholder="<?php echo __('Search Attribute Type'); ?>"></input>
+                <input id="table_type_search" class="input" type="text" placeholder="<?php echo __('Search Attribute Type'); ?>">
                 <button class="btn btn-primary btn-small" onclick="decayingTool.restoreSelection()"><span class="fa fa-history"></span></button>
             </div>
             <div class="AttributeTypeTableContainer">
                 <table id="table_attribute_type" class="table table-striped table-bordered">
                     <thead>
                         <tr>
-                            <th><input id="checkAll" type="checkbox" title="<?php echo __('Check all'); ?>"></input></th>
+                            <th><input id="checkAll" type="checkbox" title="<?php echo __('Check all'); ?>"></th>
                             <th><?php echo __('Attribute Type'); ?></th>
                             <th><?php echo __('Category'); ?></th>
                             <th><?php echo __('Model ID'); ?></th>
@@ -41,7 +41,7 @@
                                 }
                             ?>
                             <tr class="<?php echo $class; ?>">
-                                <td><input type="checkbox"></input></td>
+                                <td><input type="checkbox"></td>
                                 <td class="useCursorPointer isFilteringField isAttributeTypeField">
                                     <?php if(isset($info['isObject']) && $info['isObject'] && !(isset($info['isAttribute']) && $info['isAttribute'])): ?>
                                         <it class="fa fa-cube" title="<?php echo __('Belong to a MISP Object'); ?>"></it>
@@ -85,17 +85,17 @@
                                 <span class="add-on param-name" data-toggle="tooltip" data-placement="left" style="min-width: 100px;" title="<?php echo isset($config['info']) ? h($config['info']) : ''?>">
                                     <?php echo h($config['name']) . (isset($config['greek']) ? ' <strong>' . h($config['greek']).'</strong>' : ''); ?>
                                 </span>
-                                <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> max=<?php echo isset($config['max']) ? h($config['max']) : ''; ?> oninput="refreshGraph(this);" ></input>
-                                <span class="add-on"><input id="input_<?php echo h($param); ?>_range" type="range" min=0 <?php echo isset($config['max']) ? 'max=' . h($config['max']) : '' ?> step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="$('#input_<?php echo h($param); ?>').val(this.value).trigger('input');"></input></span>
+                                <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> max=<?php echo isset($config['max']) ? h($config['max']) : ''; ?> oninput="refreshGraph(this);">
+                                <span class="add-on"><input id="input_<?php echo h($param); ?>_range" type="range" min=0 <?php echo isset($config['max']) ? 'max=' . h($config['max']) : '' ?> step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="$('#input_<?php echo h($param); ?>').val(this.value).trigger('input');"></span>
                                 <?php if (isset($config['unit'])): ?>
                                     <span class="add-on"><?php echo h($config['unit']); ?></span>
                                 <?php endif; ?>
 
                             </div>
                         <?php endforeach; ?>
-                        <input id="input_default_base_score" value=0 class="hidden"></input>
+                        <input id="input_default_base_score" value=0 class="hidden">
                         <div class="input-append" style="margin-bottom: 0px;">
-                            <input id="input_base_score_config" class="hidden" value="[]"></input>
+                            <input id="input_base_score_config" class="hidden" value="[]">
                             <button class="btn btn-primary" style="border-radius: 4px 0px 0px 4px;" onclick="decayingTool.toggleBasescoreForm()">
                                 <span class="fa fa-tags"> <?php echo __('Adjust base  score'); ?></span>
                             </button>

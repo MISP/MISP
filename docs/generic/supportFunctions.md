@@ -26,7 +26,8 @@ usage () {
   echo -e "${SCRIPT_NAME} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
   echo -e "                -M | ${LBLUE}MISP${NC} modules"        # modules
   echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
-  echo -e "                -V | Viper"                            # viper
+  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ##echo -e "                -V | Viper"                            # viper
   echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"         # mail2
   echo -e "                -S | Experimental ssdeep correlations" # ssdeep
   echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
@@ -37,7 +38,7 @@ usage () {
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
-  echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
+  echo -e "Options can be combined: ${SCRIPT_NAME} -c -D # Will install Core+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
   echo -e "MISP + modules - ${SCRIPT_NAME} -c -M"
@@ -385,12 +386,12 @@ checkID () {
     sudo adduser $MISP_USER $WWW_USER
   fi
 
-  # FIXME: the below SUDO_USER check is a duplicate from global variables, try to have just one check
+  # FIXME: the below SUDO_CMD check is a duplicate from global variables, try to have just one check
   # sudo config to run $LUSER commands
   if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
-    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+    SUDO_CMD="sudo -H -u ${MISP_USER} -g staff"
   else
-    SUDO_USER="sudo -H -u ${MISP_USER}"
+    SUDO_CMD="sudo -H -u ${MISP_USER}"
   fi
 
 }
@@ -798,7 +799,8 @@ composer73 () {
   # Update composer.phar
   # If hash changes, check here: https://getcomposer.org/download/ and replace with the correct one
   # Current Sum for: v1.8.3
-  SHA384_SUM='48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5'
+  SHA384_SUM="$(wget -q -O - https://composer.github.io/installer.sig)"
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
   checkFail "composer.phar checksum failed, please investigate manually. " $?
@@ -830,8 +832,8 @@ genRCLOCAL () {
 
 # Run PyMISP tests
 runTests () {
-  echo "url = ${MISP_BASEURL}
-key = ${AUTH_KEY}" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
+  echo "url = '${MISP_BASEURL}'
+key = '${AUTH_KEY}'" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
   sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
@@ -853,11 +855,12 @@ nuke () {
 # Final function to let the user know what happened
 theEnd () {
   space
-  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_USER tee /home/${MISP_USER}/mysql.txt
-  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_USER tee -a /home/${MISP_USER}/mysql.txt
-  echo "Authkey: $AUTH_KEY" |$SUDO_USER tee -a /home/${MISP_USER}/MISP-authkey.txt
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_CMD tee /home/${MISP_USER}/mysql.txt
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_CMD tee -a /home/${MISP_USER}/mysql.txt
+  echo "Authkey: $AUTH_KEY" |$SUDO_CMD tee -a /home/${MISP_USER}/MISP-authkey.txt
 
-  clear
+  # Commenting out, see: https://github.com/MISP/MISP/issues/5368
+  # clear -x
   space
   echo -e "${LBLUE}MISP${NC} Installed, access here: ${MISP_BASEURL}"
   echo

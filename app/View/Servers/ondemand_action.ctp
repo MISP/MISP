@@ -1,6 +1,6 @@
 <?php
 if (!$isSiteAdmin) exit();
-$disabledBtnText = $updateLocked ? 'title="' . __('An action is already in progress...') . '" disabled' : 'title=' . __('Action');
+$disabledBtnText = $updateLocked ? 'title="' . __('An action is already in progress...') . '"' : 'title="' . __('Action') .'"';
 ?>
 
 <div class="index">
@@ -18,6 +18,7 @@ $disabledBtnText = $updateLocked ? 'title="' . __('An action is already in progr
 
     <?php $i = 0; ?>
     <?php foreach($actions as $id => $action): ?>
+        <?php $btnDisabled = $updateLocked && (!isset($action['ignore_disabled']) || !$action['ignore_disabled']) ? 'disabled' : ''; ?>
         <div class="headerUpdateBlock">
             <h4><?php echo ($i+1) . '. ' . h($action['title']); ?></h4>
         </div>
@@ -50,7 +51,7 @@ $disabledBtnText = $updateLocked ? 'title="' . __('An action is already in progr
                     echo $this->Form->create(false, array( 'url' => $baseurl . $action['url'] . $url_param ));
                 ?>
 
-                    <button class="btn btn-warning <?php echo isset($action['redirectToUpdateProgress']) && $action['redirectToUpdateProgress'] ? 'submitButton' : 'submitButtonToUpdateProgress'; ?>" <?php echo $disabledBtnText; ?> role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>"><?php echo __('Action: ') . h($action['title']); ?></button>
+                    <button class="btn btn-warning <?php echo isset($action['redirectToUpdateProgress']) && $action['redirectToUpdateProgress'] ? 'submitButton' : 'submitButtonToUpdateProgress'; ?>" <?php echo $disabledBtnText; ?> <?php echo $btnDisabled; ?> role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>"><?php echo __('Action: ') . h($action['title']); ?></button>
 
                 <?php
                     echo $this->Form->end();

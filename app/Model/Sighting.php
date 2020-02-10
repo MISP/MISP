@@ -248,10 +248,9 @@ class Sighting extends AppModel
             return array();
         }
         $anonymise = Configure::read('Plugin.Sightings_anonymise');
-
         foreach ($sightings as $k => $sighting) {
             if (
-                $sighting['Sighting']['org_id'] == 0 && !empty($sighting['Organisation']) ||
+                ($sighting['Sighting']['org_id'] == 0 && !empty($sighting['Organisation'])) ||
                 $anonymise
             ) {
                 if ($sighting['Sighting']['org_id'] != $user['org_id']) {
@@ -272,7 +271,72 @@ class Sighting extends AppModel
         return $sightings;
     }
 
-    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false)
+    /*
+     * Loop through all attributes of an event, including those in objects
+     * and pass each value to SightingDB. If there's a hit, append the data
+     * directly to the attributes
+     */
+    public function attachSightingDB($event, $user)
+    {
+        if (!empty(Configure::read('Plugin.Sightings_sighting_db_enable'))) {
+            $host = empty(Configure::read('Plugin.Sightings_sighting_db_host')) ? 'localhost' : Configure::read('Plugin.Sightings_sighting_db_host');
+            $port = empty(Configure::read('Plugin.Sightings_sighting_db_port')) ? 9999 : Configure::read('Plugin.Sightings_sighting_db_port');
+            App::uses('SyncTool', 'Tools');
+            $syncTool = new SyncTool();
+            $params = array(
+                'ssl_verify_peer' => false,
+                'ssl_verify_peer_name' => false,
+                'ssl_verify_host' => false
+            );
+            $HttpSocket = $syncTool->createHttpSocket($params);
+            if (!empty($event['Attribute'])) {
+                $event['Attribute'] = $this->__attachSightingDBToAttribute($event['Attribute'], $user, $host, $port, $HttpSocket);
+            }
+            if (!empty($event['Object'])) {
+                foreach ($event['Object'] as &$object) {
+                    if (!empty($object['Attribute'])) {
+                        $object['Attribute'] = $this->__attachSightingDBToAttribute($object['Attribute'], $user, $host, $port, $HttpSocket);
+                    }
+                }
+            }
+        }
+        return $event;
+    }
+
+    private function __attachSightingDBToAttribute($attributes, $user, $host, $port, $HttpSocket = false)
+    {
+        if (empty($HttpSocket)) {
+            App::uses('SyncTool', 'Tools');
+            $syncTool = new SyncTool();
+            $params = array(
+                'ssl_allow_self_signed' => true,
+                'ssl_verify_peer' => false
+            );
+            $HttpSocket = $syncTool->createHttpSocket($params);
+        }
+        foreach($attributes as &$attribute) {
+            $response = $HttpSocket->get(
+                sprintf(
+                    '%s:%s/r/all/%s?val=%s',
+                    $host,
+                    $port,
+                    $attribute['type'],
+                    rtrim(str_replace('/', '_', str_replace('+', '-', base64_encode($attribute['value']))), '=')
+                )
+            );
+            if ($response->code == 200) {
+                $responseData = json_decode($response->body, true);
+                if ($responseData !== false) {
+                    if (!isset($responseData['error'])) {
+                        $attribute['SightingDB'] = $responseData;
+                    }
+                }
+            }
+        }
+        return $attributes;
+    }
+
+    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false)
     {
         $conditions = array();
         if ($id && $id !== 'stix') {
@@ -314,7 +378,7 @@ class Sighting extends AppModel
             $sighting = array(
                     'attribute_id' => $attribute['Attribute']['id'],
                     'event_id' => $attribute['Attribute']['event_id'],
-                    'org_id' => $user['org_id'],
+                    'org_id' => ($saveOnBehalfOf === false) ? $user['org_id'] : $saveOnBehalfOf,
                     'date_sighting' => $timestamp,
                     'type' => $type,
                     'source' => $source
@@ -337,6 +401,9 @@ class Sighting extends AppModel
                 return json_encode($this->validationErrors);
             }
             $sightingsAdded += $result ? 1 : 0;
+            if ($publish) {
+                $this->Event->publishRouter($sighting['event_id'], null, $user, 'sightings');
+            }
         }
         if ($sightingsAdded == 0) {
             return 'There was nothing to add.';
@@ -562,6 +629,16 @@ class Sighting extends AppModel
 
     public function restSearch($user, $returnFormat, $filters)
     {
+        $allowedContext = array('event', 'attribute');
+        // validate context
+        if (isset($filters['context']) && !in_array($filters['context'], $allowedContext, true)) {
+            throw new MethodNotAllowedException(_('Invalid context.'));
+        }
+        // ensure that an id is provided if context is set
+        if (!empty($filters['context']) && !isset($filters['id'])) {
+            throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
+        }
+
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }
@@ -607,10 +684,12 @@ class Sighting extends AppModel
             $conditions['Sighting.source'] = $filters['source'];
         }
 
-        if ($filters['context'] === 'attribute') {
-            $conditions['Sighting.attribute_id'] = $filters['id'];
-        } elseif ($filters['context'] === 'event') {
-            $conditions['Sighting.event_id'] = $filters['id'];
+        if (!empty($filters['id'])) {
+            if ($filters['context'] === 'attribute') {
+                $conditions['Sighting.attribute_id'] = $filters['id'];
+            } elseif ($filters['context'] === 'event') {
+                $conditions['Sighting.event_id'] = $filters['id'];
+            }
         }
 
         // fetch sightings matching the query
@@ -645,7 +724,6 @@ class Sighting extends AppModel
                     $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
                     $additional_event_added = true;
                 }
-
                 if (!empty($sight)) {
                     array_push($allowedSightings, $sight);
                 }
@@ -690,5 +768,72 @@ class Sighting extends AppModel
         $final = fread($tmpfile, fstat($tmpfile)['size']);
         fclose($tmpfile);
         return $final;
+    }
+
+    // Bulk save sightings
+    public function bulkSaveSightings($eventId, $sightings, $user, $passAlong = null)
+    {
+        if (!is_numeric($eventId)) {
+             $eventId = $this->Event->field('id', array('uuid' => $eventId));
+        }
+        $event = $this->Event->fetchEvent($user, array(
+             'eventid' => $eventId,
+             'metadata' => 1,
+             'flatten' => true
+        ));
+        if (empty($event)) {
+            return 'Event not found or not accesible by this user.';
+        }
+        $saved = 0;
+        foreach ($sightings as $s) {
+            $saveOnBehalfOf = false;
+            if ($user['Role']['perm_sync']) {
+                if (isset($s['org_id'])) {
+                    if ($s['org_id'] != 0 && !empty($s['Organisation'])) {
+                        $saveOnBehalfOf = $this->Event->Orgc->captureOrg($s['Organisation'], $user);
+                    } else {
+                        $saveOnBehalfOf = 0;
+                    }
+                }
+            }
+            $result = $this->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid'], false, $saveOnBehalfOf);
+            if (is_numeric($result)) {
+                $saved += $result;
+            }
+        }
+        if ($saved > 0) {
+            $this->Event->publishRouter($eventId, $passAlong, $user, 'sightings');
+        }
+        return $saved;
+    }
+
+    public function pullSightings($user, $server)
+    {
+        $HttpSocket = $this->setupHttpSocket($server);
+        $this->Server = ClassRegistry::init('Server');
+        $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, false, 'sightings');
+        $saved = 0;
+        // now process the $eventIds to pull each of the events sequentially
+        if (!empty($eventIds)) {
+            // download each event and save sightings
+            foreach ($eventIds as $k => $eventId) {
+                $event = $this->Event->downloadEventFromServer($eventId, $server);
+                $sightings = array();
+                if(!empty($event) && !empty($event['Event']['Attribute'])) {
+                    foreach($event['Event']['Attribute'] as $attribute) {
+                        if(!empty($attribute['Sighting'])) {
+                            $sightings = array_merge($sightings, $attribute['Sighting']);
+                        }
+                    }
+                }
+                if(!empty($event) && !empty($sightings)) {
+                    $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
+                    if (is_numeric($result)) {
+                        $saved += $result;
+                    }
+                }
+            }
+        }
+        return $saved;
     }
 }

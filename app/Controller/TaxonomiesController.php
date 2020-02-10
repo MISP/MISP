@@ -22,7 +22,18 @@ class TaxonomiesController extends AppController
     public function index()
     {
         $this->paginate['recursive'] = -1;
-        $taxonomies = $this->paginate();
+        if ($this->_isRest()) {
+            $keepFields = array('conditions', 'contain', 'recursive', 'sort');
+            $searchParams = array();
+            foreach ($keepFields as $field) {
+                if (!empty($this->paginate[$field])) {
+                    $searchParams[$field] = $this->paginate[$field];
+                }
+            }
+            $taxonomies = $this->Taxonomy->find('all', $searchParams);
+        } else {
+            $taxonomies = $this->paginate();
+        }
         $this->loadModel('Tag');
         foreach ($taxonomies as $key => $taxonomy) {
             $total = 0;

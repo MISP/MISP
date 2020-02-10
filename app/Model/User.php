@@ -4,6 +4,9 @@ App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
 App::uses('GpgTool', 'Tools');
 
+/**
+ * @property Log $Log
+ */
 class User extends AppModel
 {
     public $displayField = 'email';
@@ -203,7 +206,8 @@ class User extends AppModel
             'finderQuery' => '',
             'counterQuery' => ''
         ),
-        'Post'
+        'Post',
+        'UserSetting'
     );
 
     public $actsAs = array(
@@ -606,10 +610,22 @@ class User extends AppModel
     public function getAuthUser($id)
     {
         if (empty($id)) {
-            throw new Exception('Invalid user ID.');
+            throw new NotFoundException('Invalid user ID.');
         }
         $conditions = array('User.id' => $id);
-        $user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
+        $user = $this->find(
+            'first',
+            array(
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'contain' => array(
+                    'Organisation',
+                    'Role',
+                    'Server',
+                    'UserSetting'
+                )
+            )
+        );
         if (empty($user)) {
             return $user;
         }
@@ -617,6 +633,7 @@ class User extends AppModel
         $user['User']['Role'] = $user['Role'];
         $user['User']['Organisation'] = $user['Organisation'];
         $user['User']['Server'] = $user['Server'];
+        $user['User']['UserSetting'] = $user['UserSetting'];
         unset($user['Organisation'], $user['Role'], $user['Server']);
         return $user['User'];
     }
@@ -1296,7 +1313,7 @@ class User extends AppModel
             if ($jobId) {
                 if ($k % 100 == 0) {
                     $job->id =  $jobId;
-                    $job->saveField('progress', 100 * (($k + 1) / count($user_count)));
+                    $job->saveField('progress', 100 * (($k + 1) / $user_count));
                     $job->saveField('message', __('Reset in progress - %s/%s.', $k, $user_count));
                 }
             }
@@ -1331,7 +1348,7 @@ class User extends AppModel
                     $updatedUser['User']['id'],
                     $updatedUser['User']['email']
                 ),
-                $fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')',
+                $fieldsResult = ['authkey' =>  [$oldKey, $newkey]],
                 $updatedUser
         );
         if ($alert) {
@@ -1380,20 +1397,12 @@ class User extends AppModel
 
         // query
         $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        $this->Log->save(array(
-            'org' => $user['Organisation']['name'],
-            'model' => $model,
-            'model_id' => $modelId,
-            'email' => $user['email'],
-            'action' => $action,
-            'title' => $description,
-            'change' => isset($fieldsResult) ? $fieldsResult : ''));
+        $result = $this->Log->createLogEntry($user, $action, $model, $modelId, $description, $fieldsResult);
 
         // write to syslogd as well
         App::import('Lib', 'SysLog.SysLog');
         $syslog = new SysLog();
-        $syslog->write('notice', $description . ' -- ' . $action . (empty($fieldResult) ? '' : '-- ' . $fieldResult));
+        $syslog->write('notice', "$description -- $action" . (empty($fieldResult) ? '' : ' -- ' . $result['Log']['change']));
     }
 
     /**
@@ -1421,5 +1430,58 @@ class User extends AppModel
         );
 
         return new Crypt_GPG($options);
+    }
+
+    public function getOrgActivity($orgId, $params=array())
+    {
+        $conditions = array();
+        $options = array();
+        foreach($params as $paramName => $value) {
+            $options['filter'] = $paramName;
+            $filterParam[$paramName] = $value;
+            $conditions = $this->Event->set_filter_timestamp($filterParam, $conditions, $options);
+        }
+        $conditions['Event.orgc_id'] = $orgId;
+        $events = $this->Event->find('all', array(
+            'recursive' => -1,
+            'fields' => array('Event.orgc_id', 'Event.timestamp', 'Event.attribute_count'),
+            'conditions' => $conditions,
+            'order' => 'Event.timestamp'
+        ));
+        $sparklineData = array();
+        foreach ($events as $event) {
+            $date = date("Y-m-d", $event['Event']['timestamp']);
+            if (!isset($sparklineData[$event['Event']['attribute_count']][$date])) {
+                $sparklineData[$date] = $event['Event']['attribute_count'];
+            } else {
+                $sparklineData[$date] += $event['Event']['attribute_count'];
+            }
+        }
+
+        // get first and last timestamp
+        if (isset($params['from'])) {
+            $startDate = $params['from'];
+        } else {
+            $startDate = $this->resolveTimeDelta($params['event_timestamp']);
+        }
+        if (isset($params['to'])) {
+            $endDate = $params['to'];
+        } else {
+            $endDate = time();
+        }
+        $dates = array();
+        for ($d=$startDate; $d < $endDate; $d=$d+3600*24) {
+            $dates[] = date('Y-m-d', $d);
+        }
+        $csv = 'Date,Close\n';
+        foreach ($dates as $date) {
+            $csv .= sprintf('%s,%s\n', $date, isset($sparklineData[$date]) ? $sparklineData[$date] : 0);
+        }
+        $data = array(
+            'csv' => $csv,
+            'data' => $sparklineData,
+            'orgId' => $orgId
+        );
+        return $data;
     }
 }

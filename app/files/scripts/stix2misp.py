@@ -61,7 +61,7 @@ class StixParser():
     ##            LOADING & UTILITY FUNCTIONS USED BY BOTH SUBCLASSES.            ##
     ################################################################################
 
-    # Load data from STIX document, and other usefull data
+    # Load data from STIX document, and other useful data
     def load_event(self, args, filename, from_misp, stix_version):
         self.outputname = '{}.json'.format(filename)
         try:
@@ -100,41 +100,42 @@ class StixParser():
     # Load the mapping dictionary for STIX object types
     def load_mapping(self):
         self.attribute_types_mapping = {
-            "AccountObjectType": self.handle_credential,
-            'AddressObjectType': self.handle_address,
-            "ArtifactObjectType": self.handle_attachment,
-            "ASObjectType": self.handle_as,
-            "CustomObjectType": self.handle_custom,
-            "DNSRecordObjectType": self.handle_dns,
-            'DomainNameObjectType': self.handle_domain_or_url,
-            'EmailMessageObjectType': self.handle_email_attribute,
-            'FileObjectType': self.handle_file,
-            'HostnameObjectType': self.handle_hostname,
-            'HTTPSessionObjectType': self.handle_http,
-            'MutexObjectType': self.handle_mutex,
-            'NetworkConnectionObjectType': self.handle_network_connection,
-            'NetworkSocketObjectType': self.handle_network_socket,
-            'PDFFileObjectType': self.handle_file,
-            'PipeObjectType': self.handle_pipe,
-            'PortObjectType': self.handle_port,
-            'ProcessObjectType': self.handle_process,
-            'SocketAddressObjectType': self.handle_socket_address,
-            'SystemObjectType': self.handle_system,
-            'UnixUserAccountObjectType': self.handle_unix_user,
-            'URIObjectType': self.handle_domain_or_url,
-            'UserAccountObjectType': self.handle_user,
-            "WhoisObjectType": self.handle_whois,
-            "WindowsFileObjectType": self.handle_file,
-            'WindowsRegistryKeyObjectType': self.handle_regkey,
-            "WindowsExecutableFileObjectType": self.handle_pe,
-            "WindowsServiceObjectType": self.handle_windows_service,
-            'WindowsUserAccountObjectType': self.handle_windows_user,
-            "X509CertificateObjectType": self.handle_x509
+            "AccountObjectType": 'handle_credential',
+            'AddressObjectType': 'handle_address',
+            "ArtifactObjectType": 'handle_attachment',
+            "ASObjectType": 'handle_as',
+            "CustomObjectType": 'handle_custom',
+            "DNSRecordObjectType": 'handle_dns',
+            'DomainNameObjectType': 'handle_domain_or_url',
+            'EmailMessageObjectType': 'handle_email_attribute',
+            'FileObjectType': 'handle_file',
+            'HostnameObjectType': 'handle_hostname',
+            'HTTPSessionObjectType': 'handle_http',
+            'LinkObjectType': 'handle_link',
+            'MutexObjectType': 'handle_mutex',
+            'NetworkConnectionObjectType': 'handle_network_connection',
+            'NetworkSocketObjectType': 'handle_network_socket',
+            'PDFFileObjectType': 'handle_file',
+            'PipeObjectType': 'handle_pipe',
+            'PortObjectType': 'handle_port',
+            'ProcessObjectType': 'handle_process',
+            'SocketAddressObjectType': 'handle_socket_address',
+            'SystemObjectType': 'handle_system',
+            'UnixUserAccountObjectType': 'handle_unix_user',
+            'URIObjectType': 'handle_domain_or_url',
+            'UserAccountObjectType': 'handle_user',
+            "WhoisObjectType": 'handle_whois',
+            "WindowsFileObjectType": 'handle_file',
+            'WindowsRegistryKeyObjectType': 'handle_regkey',
+            "WindowsExecutableFileObjectType": 'handle_pe',
+            "WindowsServiceObjectType": 'handle_windows_service',
+            'WindowsUserAccountObjectType': 'handle_windows_user',
+            "X509CertificateObjectType": 'handle_x509'
         }
 
         self.marking_mapping = {
-            'AIS:AISMarkingStructure': self.parse_AIS_marking,
-            'tlpMarking:TLPMarkingStructureType': self.parse_TLP_marking
+            'AIS:AISMarkingStructure': 'parse_AIS_marking',
+            'tlpMarking:TLPMarkingStructureType': 'parse_TLP_marking'
         }
 
     def parse_marking(self, handling):
@@ -142,7 +143,7 @@ class StixParser():
         if hasattr(handling, 'marking_structures') and handling.marking_structures:
             for marking in handling.marking_structures:
                 try:
-                    tags.extend(self.marking_mapping[marking._XSI_TYPE](marking))
+                    tags.extend(getattr(self, self.marking_mapping[marking._XSI_TYPE])(marking))
                 except KeyError:
                     print(marking._XSI_TYPE, file=sys.stderr)
                     continue
@@ -225,7 +226,7 @@ class StixParser():
             args.append(is_object)
         elif xsi_type == "ArtifactObjectType":
             args.append(title)
-        return self.attribute_types_mapping[xsi_type](*args)
+        return getattr(self, self.attribute_types_mapping[xsi_type])(*args)
         # except AttributeError:
         #     # ATM USED TO TEST TYPES
         #     print("Unparsed type: {}".format(xsi_type))
@@ -412,6 +413,11 @@ class StixParser():
         elif client_request.http_request_line:
             value = client_request.http_request_line.http_method.value
             return "http-method", value, "method"
+
+    # Return type & value of a link attribute
+    @staticmethod
+    def handle_link(properties):
+        return "link", properties.value.value, "link"
 
     # Return type & value of a mutex attribute
     @staticmethod
@@ -643,9 +649,10 @@ class StixParser():
             file_header = headers.file_header
             misp_object.add_attribute(**{"type": "counter", "object_relation": "number-sections",
                                          "value": file_header.number_of_sections.value})
-            for h in file_header.hashes:
-                hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
-                header_object.add_attribute(**{"type": hash_type, "value": hash_value, "object_relation": hash_relation})
+            if file_header.hashes:
+                for h in file_header.hashes:
+                    hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
+                    header_object.add_attribute(**{"type": hash_type, "value": hash_value, "object_relation": hash_relation})
             if file_header.size_of_optional_header:
                 header_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
                                                "value": file_header.size_of_optional_header.value})

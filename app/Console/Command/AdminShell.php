@@ -159,13 +159,12 @@ class AdminShell extends AppShell
         }
     }
 
-    public function updateWarningLists() {
-        $result = $this->Galaxy->update();
-        if ($result) {
-            echo 'Warning lists updated' . PHP_EOL;
-        } else {
-            echo 'Could not update warning lists' . PHP_EOL;
-        }
+    public function updateWarningLists()
+    {
+        $result = $this->Warninglist->update();
+        $success = count($result['success']);
+        $fails = count($result['fails']);
+        echo "$success warninglists updated, $fails fails" . PHP_EOL;
     }
 
     public function updateNoticeLists() {
@@ -183,13 +182,7 @@ class AdminShell extends AppShell
             echo 'Usage: ' . APP . '/cake ' . 'Admin updateObjectTemplates [user_id]' . PHP_EOL;
         } else {
             $userId = $this->args[0];
-            $user = $this->User->find('first', array(
-                'recursive' => -1,
-                'conditions' => array(
-                    'User.id' => $userId,
-                ),
-                'fields' => array('User.id', 'User.org_id')
-            ));
+            $user = $this->User->getAuthUser($userId);
             # If the user_id passed does not exist, do a global update.
             if (empty($user)) {
                 echo 'User with ID: ' . $userId . ' not found' . PHP_EOL;
@@ -287,6 +280,7 @@ class AdminShell extends AppShell
             $setting = $this->Server->getSettingData($setting_name);
             if (empty($setting)) {
                 echo 'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
+                exit(1);
             }
             $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value);
             if ($result === true) {
@@ -314,48 +308,17 @@ class AdminShell extends AppShell
         }
     }
 
-    public function updateDatabase() {
+    public function runUpdates() {
         $whoami = exec('whoami');
-        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
+        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun' || $whoami === 'travis') {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
-            $this->Server->runUpdates(true);
+            $processId = $this->args[0];
+            $this->Server->runUpdates(true, false, $processId);
             echo 'All updates completed.' . PHP_EOL;
         } else {
-            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
+            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd` or `apache` or `wwwrun`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
         }
     }
-
-    public function updateApp() {
-        $whoami = exec('whoami');
-        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache') {
-            $command = $this->args[0];
-            if (!empty($this->args[1])) {
-                $processId = $this->args[1];
-                $job = $this->Job->read(null, $processId);
-            } else { // create worker
-                $this->Job->create();
-                $job_data = array(
-                    'worker' => 'prio',
-                    'job_type' => 'update_app',
-                    'job_input' => 'command: ' . $command,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => '',
-                    'org' => '',
-                    'message' => 'Updating.',
-                );
-                $this->Job->save($job_data);
-                $job = $this->Job->read(null, $this->Job->id);
-            }
-            $result = $this->Server->updateDatabase($command, false);
-            $job['Job']['progress'] = 100;
-            $job['Job']['message'] = 'Update done';
-            $this->Job->save($job);
-        } else {
-            die('This OS user is not allowed to run this command.' . PHP_EOL . 'Run it under `www-data` or `httpd`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
-        }
-    }
-
 
     public function getAuthkey() {
         if (empty($this->args[0])) {
@@ -549,6 +512,28 @@ class AdminShell extends AppShell
             } else {
                 echo __("%s events purged.\n", $result);
             }
+        }
+    }
+
+    public function dumpCurrentDatabaseSchema()
+    {
+        $dbActualSchema = $this->Server->getActualDBSchema();
+        $dbVersion = $this->AdminSetting->find('first', array(
+            'conditions' => array('setting' => 'db_version')
+        ));
+        if (!empty($dbVersion) && !empty($dbActualSchema['schema'])) {
+            $dbVersion = $dbVersion['AdminSetting']['value'];
+            $data = array(
+                'schema' => $dbActualSchema['schema'],
+                'indexes' => $dbActualSchema['indexes'],
+                'db_version' => $dbVersion
+            );
+            $file = new File(ROOT . DS . 'db_schema.json', true);
+            $file->write(json_encode($data, JSON_PRETTY_PRINT));
+            $file->close();
+            echo __("> Database schema dumped on disk") . PHP_EOL;
+        } else {
+            echo __("Something went wrong. Could not find the existing db version or fetch the current database schema.") . PHP_EOL;
         }
     }
 }

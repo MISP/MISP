@@ -365,19 +365,12 @@ class Feed extends AppModel
                     if ($scope === 'Server' || $source[$scope]['source_format'] == 'misp') {
                         $pipe = $redis->multi(Redis::PIPELINE);
                         $eventUuidHitPosition = array();
-                        $i = 0;
                         foreach ($objects as $k => $object) {
                             if (isset($object[$scope])) {
                                 foreach ($object[$scope] as $currentFeed) {
                                     if ($source[$scope]['id'] == $currentFeed['id']) {
-                                        $eventUuidHitPosition[$i] = $k;
-                                        $i++;
-                                        if (in_array($object['type'], $compositeTypes)) {
-                                            $value = explode('|', $object['value']);
-                                            $redis->smembers($cachePrefix . 'event_uuid_lookup:' . md5($value[0]));
-                                        } else {
-                                            $redis->smembers($cachePrefix . 'event_uuid_lookup:' . md5($object['value']));
-                                        }
+                                        $eventUuidHitPosition[] = $k;
+                                        $redis->smembers($cachePrefix . 'event_uuid_lookup:' . $hashTable[$k]);
                                     }
                                 }
                             }
@@ -422,7 +415,7 @@ class Feed extends AppModel
                 }
 
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not add event '$uuid' from feed {$feed['Feed']['id']}.", $e));
+                $this->logException("Could not add event '$uuid' from feed {$feed['Feed']['id']}.", $e);
                 $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
             }
 
@@ -439,7 +432,7 @@ class Feed extends AppModel
                     $results['edit']['success'] = $uuid;
                 }
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not edit event '$uuid' from feed {$feed['Feed']['id']}.", $e));
+                $this->logException("Could not edit event '$uuid' from feed {$feed['Feed']['id']}.", $e);
                 $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
             }
 
@@ -780,7 +773,7 @@ class Feed extends AppModel
             try {
                 $actions = $this->getNewEventUuids($this->data, $HttpSocket);
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not get new event uuids for feed $feedId.", $e));
+                $this->logException("Could not get new event uuids for feed $feedId.", $e);
                 $this->jobProgress($jobId, 'Could not fetch event manifest. See log for more details.');
                 return false;
             }
@@ -798,7 +791,7 @@ class Feed extends AppModel
             try {
                 $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not get freetext feed $feedId", $e));
+                $this->logException("Could not get freetext feed $feedId", $e);
                 $this->jobProgress($jobId, 'Could not fetch freetext feed. See log for more details.');
                 return false;
             }
@@ -821,7 +814,7 @@ class Feed extends AppModel
             try {
                 $result = $this->saveFreetextFeedData($this->data, $data, $user);
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not save freetext feed data for feed $feedId.", $e));
+                $this->logException("Could not save freetext feed data for feed $feedId.", $e);
                 return false;
             }
 
@@ -964,7 +957,7 @@ class Feed extends AppModel
      * @param $user Not used
      * @param int|bool $jobId
      * @param string $scope
-     * @return bool Returns true if at least one feed was cached sucessfully.
+     * @return bool Returns true if at least one feed was cached successfully.
      * @throws Exception
      */
     public function cacheFeedInitiator($user, $jobId = false, $scope = 'freetext')
@@ -1037,14 +1030,15 @@ class Feed extends AppModel
         try {
             $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
         } catch (Exception $e) {
-            CakeLog::error($this->exceptionAsMessage("Could not get freetext feed $feedId", $e));
+            $this->logException("Could not get freetext feed $feedId", $e);
             $this->jobProgress($jobId, 'Could not fetch freetext feed. See log for more details.');
             return false;
         }
 
         foreach ($values as $k => $value) {
-            $redis->sAdd('misp:feed_cache:' . $feedId, md5($value['value']));
-            $redis->sAdd('misp:feed_cache:combined', md5($value['value']));
+            $md5Value = md5($value['value']);
+            $redis->sAdd('misp:feed_cache:' . $feedId, $md5Value);
+            $redis->sAdd('misp:feed_cache:combined', $md5Value);
             if ($k % 1000 == 0) {
                 $this->jobProgress($jobId, "Feed $feedId: $k/" . count($values) . " values cached.");
             }
@@ -1060,7 +1054,7 @@ class Feed extends AppModel
         try {
             $manifest = $this->getManifest($feed, $HttpSocket);
         } catch (Exception $e) {
-            CakeLog::error($this->exceptionAsMessage("Could not get manifest for feed $feedId.", $e));
+            $this->logException("Could not get manifest for feed $feedId.", $e);
             return false;
         }
 
@@ -1071,7 +1065,7 @@ class Feed extends AppModel
             try {
                 $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
             } catch (Exception $e) {
-                CakeLog::error($this->exceptionAsMessage("Could not get and parse event '$uuid' for feed $feedId.", $e));
+                $this->logException("Could not get and parse event '$uuid' for feed $feedId.", $e);
                 return false;
             }
 
@@ -1112,7 +1106,7 @@ class Feed extends AppModel
         try {
             $cache = $this->getCache($feed, $HttpSocket);
         } catch (Exception $e) {
-            CakeLog::notice($this->exceptionAsMessage("Could not get cache file for $feedId.", $e));
+            $this->logException("Could not get cache file for $feedId.", $e, LOG_NOTICE);
             return false;
         }
 
@@ -1230,8 +1224,10 @@ class Feed extends AppModel
 
     public function importFeeds($feeds, $user, $default = false)
     {
-        $feeds = json_decode($feeds, true);
-        if (!isset($feeds[0])) {
+        if (is_string($feeds)) {
+            $feeds = json_decode($feeds, true);
+        }
+        if ($feeds && !isset($feeds[0])) {
             $feeds = array($feeds);
         }
         $results = array('successes' => 0, 'fails' => 0);
@@ -1623,22 +1619,6 @@ class Feed extends AppModel
                 // ignore error during saving information about job
             }
         }
-    }
-
-    /**
-     * @param string $message
-     * @param Exception $exception
-     * @return string
-     */
-    private function exceptionAsMessage($message, $exception)
-    {
-        $message = sprintf("%s\n[%s] %s",
-            $message,
-            get_class($exception),
-            $exception->getMessage()
-        );
-        $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
-        return $message;
     }
 
     /**

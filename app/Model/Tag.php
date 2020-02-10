@@ -327,10 +327,16 @@ class Tag extends AppModel
         } else {
             if (
                 !$user['Role']['perm_site_admin'] &&
-                $existingTag['Tag']['org_id'] != 0 &&
-                $existingTag['Tag']['org_id'] != $user['org_id'] &&
-                $existingTag['Tag']['user_id'] != 0 &&
-                $existingTag['Tag']['user_id'] != $user['id']
+                (
+                    (
+                        $existingTag['Tag']['org_id'] != 0 &&
+                        $existingTag['Tag']['org_id'] != $user['org_id']
+                    ) ||
+                    (
+                        $existingTag['Tag']['user_id'] != 0 &&
+                        $existingTag['Tag']['user_id'] != $user['id']
+                    )
+                )
             ) {
                 return false;
             }
@@ -407,11 +413,28 @@ class Tag extends AppModel
         return ($this->saveAll($tags));
     }
 
+    public function getTagsByName($tag_names, $containTagConnectors = true)
+    {
+        $contain = array('EventTag', 'AttributeTag');
+        $tag_params = array(
+                'recursive' => -1,
+                'conditions' => array('name' => $tag_names)
+        );
+        if ($containTagConnectors) {
+            $tag_params['contain'] = $contain;
+        }
+        $tags_temp = $this->find('all', $tag_params);
+        $tags = array();
+        foreach ($tags_temp as $temp) {
+            $tags[strtoupper($temp['Tag']['name'])] = $temp;
+        }
+        return $tags;
+    }
+
     public function getTagsForNamespace($namespace, $containTagConnectors = true)
     {
 
-        $contain = array('EventTag');
-        $contain[] = 'AttributeTag';
+        $contain = array('EventTag', 'AttributeTag');
         $tag_params = array(
                 'recursive' => -1,
                 'conditions' => array('UPPER(name) LIKE' => strtoupper($namespace) . '%'),

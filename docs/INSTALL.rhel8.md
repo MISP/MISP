@@ -29,7 +29,9 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     The core MISP team cannot verify if this guide is working or not. Please help us in keeping it up to date and accurate.
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
 
-This document details the steps to install MISP on Red Hat Enterprise Linux 8.x (RHEL 8.x).
+!!! notice
+    Maintenance for CentOS 8 will end on: May 31st, 2029 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
+    CentOS 8 [NetInstallURL](http://mirrorlist.centos.org/?release=8&arch=x86_64&repo=BaseOS)
 
 This document details the steps to install MISP on Red Hat Enterprise Linux 8.x (RHEL 8.x) and CentOS 8.x.
 At time of this writing it was tested on versions 8.0 for RHEL.
@@ -104,12 +106,9 @@ sudo yum update -y
 
 ## 1.6/ **[RHEL]** Install the EPEL repo
 
-!!! note
-    There is no epel-releas-latest-8 yet, but the RHEL 7 seems to work for testing.
-
 ```bash
 # <snippet-begin 0_RHEL_EPEL.sh>
-sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
+sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
 # <snippet-end 0_RHEL_EPEL.sh>
 ```
 
@@ -142,7 +141,7 @@ yumInstallCoreDeps () {
   sudo systemctl enable --now redis.service
 
   PHP_INI=/etc/php.ini
-  sudo yum install php php-fpm php-devel \
+  sudo yum install php php-fpm php-devel php-pear \
        php-mysqlnd \
        php-mbstring \
        php-xml \
@@ -223,6 +222,9 @@ installCoreRHEL () {
   cd $PATH_TO_MISP/app/files/scripts/mixbox
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
+  # FIXME: Remove once stix-fixed
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
+
   # install STIX2.0 library to support STIX 2.0 export:
   cd $PATH_TO_MISP/cti-python-stix2
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
@@ -238,7 +240,7 @@ installCoreRHEL () {
 
   # lief needs manual compilation
   sudo yum groupinstall "Development Tools" -y
-  sudo yum install cmake3 cppcheck -y
+  sudo yum install cmake3 -y
 
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW mkdir build
@@ -252,14 +254,18 @@ installCoreRHEL () {
   ..
   $SUDO_WWW make -j3 pyLIEF
 
-  # In case you get "internal compiler error: Killed (program cc1plus)"
-  # You ran out of memory.
-  # Create some swap
-  # sudo dd if=/dev/zero of=/var/swap.img bs=1024k count=4000
-  # sudo mkswap /var/swap.img
-  # sudo swapon /var/swap.img
-  # And compile again
-  # $SUDO_WWW make -j3 pyLIEF
+  if [ $? == 2 ]; then
+    # In case you get "internal compiler error: Killed (program cc1plus)"
+    # You ran out of memory.
+    # Create some swap
+    sudo dd if=/dev/zero of=/var/swap.img bs=1024k count=4000
+    sudo mkswap /var/swap.img
+    sudo swapon /var/swap.img
+    # And compile again
+    $SUDO_WWW make -j3 pyLIEF
+    sudo swapoff /var/swap.img
+    sudo rm /var/swap.img
+  fi
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
   echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
@@ -301,7 +307,7 @@ installCake_RHEL ()
   cd $PATH_TO_MISP/app
   # Update composer.phar (optional)
   $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'a5c698ffe4b8e849a443b120cd5ba38043260d5c4023dbf93e1558871f1f07f58274fc6f4c93bcfd858c6bd0775cd8d1') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+  $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
   $SUDO_WWW php composer-setup.php
   $SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
@@ -420,7 +426,7 @@ EOF
   sudo systemctl restart mariadb
 
   mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
-  mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE on *.* to $DBUSER@localhost IDENTIFIED by '$DBPASSWORD_MISP';"
+  mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';"
   mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
   mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'
 
@@ -676,6 +682,9 @@ sudo systemctl enable --now misp-workers.service
 ```
 
 ## 9.07/ misp-modules (Broken on RHEL8)
+
+Here are CentOS 8 packages of openjpeg2-devel: https://centos.pkgs.org/8/centos-powertools-x86_64/openjpeg2-devel-2.3.0-8.el8.x86_64.rpm.html
+
 ```bash
 # some misp-modules dependencies
 sudo yum install openjpeg2-devel -y

@@ -148,6 +148,14 @@
                         'url' => '/users/view/me'
                     ),
                     array(
+                        'text' => __('My Settings'),
+                        'url' => '/user_settings/index/user_id:me'
+                    ),
+                    array(
+                        'text' => __('Set Setting'),
+                        'url' => '/user_settings/setSetting'
+                    ),
+                    array(
                         'text' => __('Dashboard'),
                         'url' => '/users/dashboard'
                     ),
@@ -188,7 +196,7 @@
                         'requirement' => $isAdmin
                     ),
                     array(
-                        'text' => __('Decaying Models'),
+                        'text' => __('List Decaying Models'),
                         'url' => '/decayingModel/index',
                     ),
                     array(
@@ -254,6 +262,16 @@
                         'requirement' => ($isSiteAdmin || $hostOrgUser)
                     ),
                     array(
+                        'text' => __('List SightingDB Connections'),
+                        'url' => '/sightingdb/index',
+                        'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
+                        'text' => __('Add SightingDB Connection'),
+                        'url' => '/sightingdb/add',
+                        'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
                         'text' => __('List Communities'),
                         'url' => '/communities/index',
                         'requirement' => ($isSiteAdmin)
@@ -269,6 +287,14 @@
                     array(
                         'text' => __('List Users'),
                         'url' => '/admin/users/index'
+                    ),
+                    array(
+                        'text' => __('List User Settings'),
+                        'url' => '/user_settings/index/user_id:all'
+                    ),
+                    array(
+                        'text' => __('Set User Setting'),
+                        'url' => '/user_settings/setSetting'
                     ),
                     array(
                         'text' => __('Add User'),
@@ -394,14 +420,9 @@
                 )
             ),
             array(
-                'url' => h(Configure::read('Plugin.CustomAuth_custom_logout')),
-                'text' => __('Log out'),
-                'requirement' => (Configure::read('Plugin.CustomAuth_custom_logout') && empty(Configure::read('Plugin.CustomAuth_disable_logout')))
-            ),
-            array(
                 'url' => '/users/logout',
                 'text' => __('Log out'),
-                'requirement' => (!$externalAuthUser && empty(Configure::read('Plugin.CustomAuth_disable_logout')))
+                'requirement' => empty(Configure::read('Plugin.CustomAuth_disable_logout'))
             )
         );
     }

@@ -1,13 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This script requires the MISP retention taxonomy is installed and enabled
 # See https://github.com/MISP/misp-taxonomies/tree/master/retention/retention
 
-from pymisp import PyMISP, MISPEvent
+from pymisp import ExpandedPyMISP, MISPEvent
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import re
-from keys import misp_url, misp_key, misp_verifycert
+from keys import misp_url, misp_key
 
 # pip install pymisp python-dateutil
 
@@ -18,16 +18,15 @@ class misphelper(object):
     expiredTag = "retention:expired"
 
     def __init__(self):
-        self.misp = PyMISP(url=misp_url,
+        self.misp = ExpandedPyMISP(url=misp_url,
                            key=misp_key,
-                           ssl=misp_verifycert,
-                           out_type="json")
+                           ssl=True)
         self.taxonomyId = self.searchTaxonomy()
 
     def searchTaxonomy(self):
-        res = self.misp.get_taxonomies_list()
+        res = self.misp.taxonomies()
 
-        for tax in res["response"]:
+        for tax in res:
             if (tax["Taxonomy"]["namespace"] == "retention" and tax["Taxonomy"]["enabled"]):
                 return tax["Taxonomy"]["id"]
 
@@ -44,12 +43,12 @@ class misphelper(object):
                 changed = True
                 attr["to_ids"] = False
 
+        self.misp.tag(mevent, self.expiredTag, True)
         if changed:
-            mevent.add_tag(self.expiredTag)
             res = self.misp.update_event(mevent.id, mevent)
 
     def findEventsAfterRetention(self, events, retention):
-        for event in events["response"]:
+        for event in events:
             ts = datetime.strptime(event["Event"]["date"], "%Y-%m-%d")
             now = datetime.utcnow()
 
@@ -66,12 +65,13 @@ class misphelper(object):
                 self.processEvent(event["Event"])
 
     def queryRetentionTags(self):
-        res = self.misp.get_taxonomy_tags_list(self.taxonomyId)
+        res = self.misp.get_taxonomy(self.taxonomyId)
 
-        for tag in res:
+        for tag in res['entries']:
             m = re.match(r"^retention:([0-9]+)([d,w,m,y])$", tag["tag"])
             if m:
-                events = self.misp.search(published=True, tags=tag["tag"], not_tags=self.expiredTag)
+                tagSearch = self.misp.build_complex_query(and_parameters = tag["tag"], not_parameters = self.expiredTag)
+                events = self.misp.search(published=True, tags=tagSearch)
                 self.findEventsAfterRetention(events, (m.group(1), m.group(2)))
 
             else:

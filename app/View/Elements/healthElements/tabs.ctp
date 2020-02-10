@@ -61,7 +61,7 @@
         'requirement' => !empty($worker_array)
     );
     $data['children'][0]['children'][] = array(
-        'url' => '/servers/serverSettings/diagnostics',
+        'url' => '/servers/serverSettings/download',
         'title' => __('Download report'),
         'html' => '<i class="fa fa-download"></i>'
     );

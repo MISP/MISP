@@ -209,6 +209,9 @@ $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 cd $PATH_TO_MISP/app/files/scripts/mixbox
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
+# FIXME: Remove once stix-fixed
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
+
 # install STIX2.0 library to support STIX 2.0 export:
 cd $PATH_TO_MISP/cti-python-stix2
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
@@ -240,8 +243,9 @@ sudo mkdir /var/www/.composer/
 sudo chown apache:apache /var/www/.composer/
 cd $PATH_TO_MISP/app
 # Update composer.phar (optional)
+#EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
 #$SUDO_WWW $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-#$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === 'a5c698ffe4b8e849a443b120cd5ba38043260d5c4023dbf93e1558871f1f07f58274fc6f4c93bcfd858c6bd0775cd8d1') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+#$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 #$SUDO_WWW $RUN_PHP "php composer-setup.php"
 #$SUDO_WWW $RUN_PHP -- php -r "unlink('composer-setup.php');"
 $SUDO_WWW $RUN_PHP "php composer.phar install"

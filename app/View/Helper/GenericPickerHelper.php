@@ -113,4 +113,3 @@ class GenericPickerHelper extends AppHelper {
         return $template;
     }
 }
-?>

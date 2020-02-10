@@ -1017,7 +1017,7 @@ ModelTable.prototype = {
         }
         var is_row_selected = $('#saveForm #save-model-button').data('modelid') == model.DecayingModel.id;
         return cells_html = [
-            this._gen_td('<input type="checkbox" onchange="decayingTool.refreshSaveButton()" style="margin:0" ' + (is_row_selected ? 'checked' : 'disabled') + '></input>', 'DMCheckbox'),
+            this._gen_td('<input type="checkbox" onchange="decayingTool.refreshSaveButton()" style="margin:0" ' + (is_row_selected ? 'checked' : 'disabled') + '>', 'DMCheckbox'),
             this._gen_td_link('/decayingModel/view/'+model.DecayingModel.id, this._h(model.DecayingModel.id), 'DMId'),
             this._gen_td(
                 this._h(model.DecayingModel.name) + (model.DecayingModel.default ? '<img src="/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="Default Model from MISP Project" />' : '') ,

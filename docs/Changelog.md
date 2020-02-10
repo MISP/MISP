@@ -155,7 +155,7 @@ Changes
 - [PyMISP] updated to the latest version. [Alexandre Dulaunoy]
 - [misp-galaxy/misp-objects] updated to the latest version. [Alexandre
   Dulaunoy]
-- [AdminShell] Let the user know as which user he exectued the script.
+- [AdminShell] Let the user know as which user he executed the script.
   [Steve Clement]
 - [doc] MISP works on OpenBSD 6.5, partially (#4577) [Steve Clement]
 
@@ -226,7 +226,7 @@ Changes
 - [object:revise] Changed text of back button. [mokaddem]
 - [object:revise] Improved help text. [mokaddem]
 - [object:add] Improved help text. [mokaddem]
-- [object:similiar] Added back button, improved highlight and text.
+- [object:similar] Added back button, improved highlight and text.
   [mokaddem]
 - [object_revise] Deleted useless comment. Also, fix #3897. [mokaddem]
 - [object:reivse] Improved layout. [mokaddem]
@@ -1224,7 +1224,7 @@ Fix
   * Diagnostics
   * Files
   * Tabs
-  Fixed android icon dissapear in workers tab.
+  Fixed android icon disappear in workers tab.
 - Fixed i18n string representation in Server Controller and Model.
   [4ekin]
 - [stix export] Fixed tlp markings that were obscurly set to a wrong

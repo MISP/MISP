@@ -504,7 +504,7 @@
                 this._draw();
             },
 
-            _create_all_tag_html: function(tag) {
+            _create_all_tag_html: function(tag, row_i) {
                 var that = this;
                 if (tag !== false) {
                     var html_tag = this._create_tag_html(tag);
@@ -517,7 +517,7 @@
                         }
                     });
                     if (overridden_html !== '') {
-                        return '<div style="position:relative;" class="useCursorPointer overridden_tags_container">'
+                        return '<div style="position:relative;" class="useCursorPointer overridden_tags_container" data-row="' + row_i + '">'
                             + overridden_html
                             + '<div class="attribute_tag_wrapper" style="top:-12px;margin-bottom:-12px; left:4px;margin-right:-4px; float: left;  position: relative;">' + html_tag + '</div>'
                         + '</div>';
@@ -583,7 +583,7 @@
                     .data(function (tag, row_i) {
                         var html_computation = that._get_computation_step(tag);
                         return [
-                            that._create_all_tag_html(tag),
+                            that._create_all_tag_html(tag, row_i),
                             html_computation[0], html_computation[1], html_computation[2], html_computation[3]
                         ]
                     });
@@ -602,8 +602,9 @@
                     .style('opacity', 1.0)
                     .each("end", function(td_content, col_i){
                         var $div = $(td_content);
+                        var row_i = $div.data('row');
                         if (col_i == 0 && $div.hasClass('overridden_tags_container')) {
-                            $('.overridden_tags_container').popover({
+                            $('.overridden_tags_container[data-row="' + row_i + '"]').popover({
                                 title: 'Event tag overridden by Attribute tag',
                                 content: that._generateOverridenExplanationPopoverHTML($div),
                                 html: true,

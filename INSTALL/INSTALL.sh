@@ -148,9 +148,9 @@ MISPvars () {
 
   # sudo config to run $LUSER commands
   if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
-    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+    SUDO_CMD="sudo -H -u ${MISP_USER} -g staff"
   else
-    SUDO_USER="sudo -H -u ${MISP_USER}"
+    SUDO_CMD="sudo -H -u ${MISP_USER}"
   fi
   SUDO_WWW="sudo -H -u ${WWW_USER} "
 
@@ -185,7 +185,8 @@ usage () {
   echo -e "${SCRIPT_NAME} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
   echo -e "                -M | ${LBLUE}MISP${NC} modules"        # modules
   echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
-  echo -e "                -V | Viper"                            # viper
+  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ##echo -e "                -V | Viper"                            # viper
   echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"         # mail2
   echo -e "                -S | Experimental ssdeep correlations" # ssdeep
   echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
@@ -196,7 +197,7 @@ usage () {
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
-  echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
+  echo -e "Options can be combined: ${SCRIPT_NAME} -c -D # Will install Core+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
   echo -e "MISP + modules - ${SCRIPT_NAME} -c -M"
@@ -544,12 +545,12 @@ checkID () {
     sudo adduser $MISP_USER $WWW_USER
   fi
 
-  # FIXME: the below SUDO_USER check is a duplicate from global variables, try to have just one check
+  # FIXME: the below SUDO_CMD check is a duplicate from global variables, try to have just one check
   # sudo config to run $LUSER commands
   if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
-    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+    SUDO_CMD="sudo -H -u ${MISP_USER} -g staff"
   else
-    SUDO_USER="sudo -H -u ${MISP_USER}"
+    SUDO_CMD="sudo -H -u ${MISP_USER}"
   fi
 
 }
@@ -953,7 +954,8 @@ composer73 () {
   # Update composer.phar
   # If hash changes, check here: https://getcomposer.org/download/ and replace with the correct one
   # Current Sum for: v1.8.3
-  SHA384_SUM='48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5'
+  SHA384_SUM="$(wget -q -O - https://composer.github.io/installer.sig)"
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
   checkFail "composer.phar checksum failed, please investigate manually. " $?
@@ -985,8 +987,8 @@ genRCLOCAL () {
 
 # Run PyMISP tests
 runTests () {
-  echo "url = ${MISP_BASEURL}
-key = ${AUTH_KEY}" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
+  echo "url = '${MISP_BASEURL}'
+key = '${AUTH_KEY}'" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
   sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
@@ -1008,11 +1010,12 @@ nuke () {
 # Final function to let the user know what happened
 theEnd () {
   space
-  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_USER tee /home/${MISP_USER}/mysql.txt
-  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_USER tee -a /home/${MISP_USER}/mysql.txt
-  echo "Authkey: $AUTH_KEY" |$SUDO_USER tee -a /home/${MISP_USER}/MISP-authkey.txt
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_CMD tee /home/${MISP_USER}/mysql.txt
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_CMD tee -a /home/${MISP_USER}/mysql.txt
+  echo "Authkey: $AUTH_KEY" |$SUDO_CMD tee -a /home/${MISP_USER}/MISP-authkey.txt
 
-  clear
+  # Commenting out, see: https://github.com/MISP/MISP/issues/5368
+  # clear -x
   space
   echo -e "${LBLUE}MISP${NC} Installed, access here: ${MISP_BASEURL}"
   echo
@@ -1224,7 +1227,7 @@ EOF
 }
 
 apacheConfig () {
-  debug "Generating Apache config"
+  debug "Generating Apache config, if this hangs, make sure you have enough entropy (install: haveged or wait)"
   sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
   if [[ ! -z ${MISP_BASEURL} ]] && [[ "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "http" || "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "https" ]]; then
@@ -1293,6 +1296,8 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   cd $PATH_TO_MISP/app/files/scripts/python-maec
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  # FIXME: Remove once stix-fixed
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
@@ -1308,7 +1313,7 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
 
   # install zmq needed by mispzmq
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq redis
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
@@ -1395,7 +1400,7 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE userInit -q
 
   # This makes sure all Database upgrades are done, without logging in.
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin updateDatabase
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin runUpdates
 
   # The default install is Python >=3.6 in a virtualenv, setting accordingly
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
@@ -1607,7 +1612,7 @@ mispmodules () {
   cd /usr/local/src/
   ## TODO: checkUsrLocalSrc in main doc
   debug "Cloning misp-modules"
-  $SUDO_USER git clone https://github.com/MISP/misp-modules.git
+  $SUDO_CMD git clone https://github.com/MISP/misp-modules.git
   cd misp-modules
   # some misp-modules dependencies
   sudo apt install libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y
@@ -1762,39 +1767,39 @@ mail2misp () {
   debug "Installing Mail2${LBLUE}MISP${NC}"
   cd /usr/local/src/
   sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
-  $SUDO_USER git clone https://github.com/MISP/mail_to_misp.git
-  $SUDO_USER git clone git://github.com/stricaud/faup.git faup
-  $SUDO_USER git clone git://github.com/stricaud/gtcaca.git gtcaca
+  $SUDO_CMD git clone https://github.com/MISP/mail_to_misp.git
+  $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+  $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
   sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
   cd gtcaca
-  $SUDO_USER mkdir -p build
+  $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_USER cmake .. && $SUDO_USER make
+  $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
   cd ../../faup
-  $SUDO_USER mkdir -p build
+  $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_USER cmake .. && $SUDO_USER make
+  $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
   sudo ldconfig
   cd ../../mail_to_misp
-  $SUDO_USER virtualenv -p python3 venv
-  $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-  $SUDO_USER ./venv/bin/pip install -r requirements.txt
-  $SUDO_USER cp mail_to_misp_config.py-example mail_to_misp_config.py
+  $SUDO_CMD virtualenv -p python3 venv
+  $SUDO_CMD ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_CMD ./venv/bin/pip install -r requirements.txt
+  $SUDO_CMD cp mail_to_misp_config.py-example mail_to_misp_config.py
   ##$SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py
-  $SUDO_USER sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-  $SUDO_USER sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_CMD sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_CMD sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
 }
 
 ssdeep () {
   debug "Install ssdeep 2.14.1"
   cd /usr/local/src
-  $SUDO_USER wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
-  $SUDO_USER tar zxvf ssdeep-2.14.1.tar.gz
+  $SUDO_CMD wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
+  $SUDO_CMD tar zxvf ssdeep-2.14.1.tar.gz
   cd ssdeep-2.14.1
-  $SUDO_USER ./configure --datadir=/usr --prefix=/usr --localstatedir=/var --sysconfdir=/etc
-  $SUDO_USER make
+  $SUDO_CMD ./configure --datadir=/usr --prefix=/usr --localstatedir=/var --sysconfdir=/etc
+  $SUDO_CMD make
   sudo make install
 
   #installing ssdeep_php
@@ -1807,8 +1812,10 @@ ssdeep () {
   sudo service apache2 restart
 }
 
+# viper-web is broken ATM
 # Main Viper install function
 viper () {
+  export PATH=$PATH:/home/misp/.local/bin
   debug "Installing Viper dependencies"
   cd /usr/local/src/
   sudo apt-get install \
@@ -1820,30 +1827,26 @@ viper () {
     fi
   fi
   echo "Cloning Viper"
-  $SUDO_USER git clone https://github.com/viper-framework/viper.git
+  $SUDO_CMD git clone https://github.com/viper-framework/viper.git
+  $SUDO_CMD git clone https://github.com/viper-framework/viper-web.git
   sudo chown -R $MISP_USER:$MISP_USER viper
+  sudo chown -R $MISP_USER:$MISP_USER viper-web
   cd viper
   echo "Creating virtualenv"
-  $SUDO_USER virtualenv -p python3 venv
+  $SUDO_CMD virtualenv -p python3 venv
   echo "Submodule update"
   # TODO: Check for current user install permissions
-  $SUDO_USER git submodule update --init --recursive
-  ##$SUDO git submodule update --init --recursive
-  echo "Pip install deps"
-  $SUDO_USER ./venv/bin/pip install SQLAlchemy PrettyTable python-magic
-  echo "pip install scrapy"
-  $SUDO_USER ./venv/bin/pip install scrapy
-  echo "install lief"
-  $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-  echo "pip install reqs"
-  $SUDO_USER ./venv/bin/pip install -r requirements.txt
-  $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
-  $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
-  echo "Launching viper-cli"
-  $SUDO_USER /usr/local/src/viper/viper-cli -h > /dev/null
+  $SUDO_CMD git submodule update --init --recursive
+  echo "pip install deps"
+  $SUDO_CMD ./venv/bin/pip install pefile olefile jbxapi Crypto pypdns pypssl r2pipe pdftools virustotal-api SQLAlchemy PrettyTable python-magic scrapy https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_CMD ./venv/bin/pip install .
+  echo 'update-modules' |/usr/local/src/viper/venv/bin/viper
+  cd /usr/local/src/viper-web
+  $SUDO_CMD sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
+  $SUDO_CMD /usr/local/src/viper/venv/bin/pip install -r requirements.txt
   echo "Launching viper-web"
-  $SUDO_USER /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
-  echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee /etc/environment
+  $SUDO_CMD /usr/local/src/viper-web/viper-web -p 8888 -H 0.0.0.0 &
+  echo 'PATH="/home/misp/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee -a /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
 
   # TODO: Perms, MISP_USER_HOME, nasty hack cuz Kali on R00t
@@ -1854,8 +1857,8 @@ viper () {
   fi
 
   echo "Setting misp_url/misp_key"
-  $SUDO_USER sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ${VIPER_HOME}/viper.conf
-  $SUDO_USER sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
+  $SUDO_CMD sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ${VIPER_HOME}/viper.conf
+  $SUDO_CMD sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
   # Reset admin password to: admin/Password1234
   echo "Fixing admin.db with default password"
   VIPER_COUNT=0
@@ -2006,7 +2009,7 @@ installSupported () {
 
   # TODO: Double check how the user is added and subsequently used during the install.
   # TODO: Work on possibility to install as user X and install MISP for user Y
-  # TODO: Check if logout needed. (run SUDO_USER in installer)
+  # TODO: Check if logout needed. (run SUDO_CMD in installer)
   # <snippet-begin add-user.sh>
   # TODO: Double check how to properly handle postfix
   # <snippet-begin postfix.sh>
@@ -2110,8 +2113,9 @@ installSupported () {
   progress 4
 
   # Install Viper - functionLocation('generic/viper-debian.md')
-  [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
-  progress 4
+  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ##[[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+  ##progress 4
 
   # Install ssdeep - functionLocation('generic/ssdeep-debian.md')
   [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
@@ -2230,6 +2234,7 @@ installMISPonKali () {
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I antlr4-python3-runtime==4.7.2 2> /dev/null > /dev/null
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
 
@@ -2385,8 +2390,9 @@ installMISPonKali () {
   debug "Installing misp-modules"
   mispmodules
 
-  debug "Installing Viper"
-  viper
+  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ##debug "Installing Viper"
+  ##viper
 
   debug "Installing ssdeep"
   ssdeep
@@ -2463,7 +2469,14 @@ x86_64-fedora-30
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
+x86_64-kali-2019.1
 x86_64-kali-2019.2
+x86_64-kali-2019.3
+x86_64-kali-2019.4
+x86_64-kali-2020.1
+x86_64-kali-2020.2
+x86_64-kali-2020.3
+x86_64-kali-2020.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-debian-jessie

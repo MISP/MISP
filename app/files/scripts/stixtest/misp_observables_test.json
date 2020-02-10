@@ -8,25 +8,27 @@
         "info": "STIX observables test event",
         "published": true,
         "uuid": "5ac4db18-0c58-4436-a3fa-01ef0a00020f",
-        "attribute_count": "169",
+        "attribute_count": "168",
         "analysis": "0",
-        "timestamp": "1565613005",
+        "timestamp": "1569255796",
         "distribution": "0",
         "proposal_email_lock": false,
         "locked": true,
-        "publish_timestamp": "1565613845",
+        "publish_timestamp": "1569255805",
         "sharing_group_id": "0",
         "disable_correlation": false,
         "extends_uuid": "",
         "Org": {
             "id": "1",
             "name": "ORGNAME",
-            "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7"
+            "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+            "local": true
         },
         "Orgc": {
             "id": "14",
             "name": "ORGNAME_387",
-            "uuid": "5a8e935e-5484-488c-852c-776f7c7cf985"
+            "uuid": "5a8e935e-5484-488c-852c-776f7c7cf985",
+            "local": false
         },
         "Attribute": [
             {
@@ -122,6 +124,7 @@
                 "object_relation": null,
                 "value": "oui|b2a5abfeef9e36964281a31e17b57c97",
                 "Galaxy": [],
+                "data": "",
                 "ShadowAttribute": []
             },
             {
@@ -141,7 +144,25 @@
                 "object_relation": null,
                 "value": "1.2.3.4",
                 "Galaxy": [],
-                "ShadowAttribute": []
+                "ShadowAttribute": [],
+                "Sighting": [
+                    {
+                        "id": "6",
+                        "attribute_id": "253557",
+                        "event_id": "1256",
+                        "org_id": "1",
+                        "date_sighting": "1568295335",
+                        "uuid": "5d7a49a7-95e4-41a0-9926-72e9a964451a",
+                        "source": "",
+                        "type": "0",
+                        "Organisation": {
+                            "id": "1",
+                            "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                            "name": "ORGNAME"
+                        },
+                        "attribute_uuid": "5ac4db18-62f0-4f12-906d-01ef0a00020f"
+                    }
+                ]
             },
             {
                 "id": "253558",
@@ -179,7 +200,25 @@
                 "object_relation": null,
                 "value": "www.circl.lu|1.2.3.4",
                 "Galaxy": [],
-                "ShadowAttribute": []
+                "ShadowAttribute": [],
+                "Sighting": [
+                    {
+                        "id": "7",
+                        "attribute_id": "253559",
+                        "event_id": "1256",
+                        "org_id": "1",
+                        "date_sighting": "1568295335",
+                        "uuid": "5d7a49a7-d27c-41cf-9a82-72e9a964451a",
+                        "source": "",
+                        "type": "0",
+                        "Organisation": {
+                            "id": "1",
+                            "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                            "name": "ORGNAME"
+                        },
+                        "attribute_uuid": "5ac4db18-d4dc-4e7b-be94-01ef0a00020f"
+                    }
+                ]
             },
             {
                 "id": "253560",
@@ -369,6 +408,7 @@
                 "object_relation": null,
                 "value": "oui.oui",
                 "Galaxy": [],
+                "data": "",
                 "ShadowAttribute": []
             },
             {
@@ -522,10 +562,79 @@
                 "value": "AS66642",
                 "Galaxy": [],
                 "ShadowAttribute": []
+            },
+            {
+                "id": "273918",
+                "type": "named pipe",
+                "category": "Artifacts dropped",
+                "to_ids": false,
+                "uuid": "5d886bec-7414-46ea-be16-0e42a964451a",
+                "event_id": "1256",
+                "distribution": "5",
+                "timestamp": "1569221612",
+                "comment": "",
+                "sharing_group_id": "0",
+                "deleted": false,
+                "disable_correlation": false,
+                "object_id": "0",
+                "object_relation": null,
+                "value": "\\\\.\\pipe\\testpipe",
+                "Galaxy": [],
+                "ShadowAttribute": []
             }
         ],
         "ShadowAttribute": [],
         "RelatedEvent": [
+            {
+                "Event": {
+                    "id": "1364",
+                    "date": "2019-09-11",
+                    "threat_level_id": "4",
+                    "info": "attack sightigns test",
+                    "published": false,
+                    "uuid": "5d78f7b1-cbd8-4f8a-9243-7366a964451a",
+                    "analysis": "0",
+                    "timestamp": "1568290754",
+                    "distribution": "1",
+                    "org_id": "1",
+                    "orgc_id": "1",
+                    "Org": {
+                        "id": "1",
+                        "name": "ORGNAME",
+                        "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7"
+                    },
+                    "Orgc": {
+                        "id": "1",
+                        "name": "ORGNAME",
+                        "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7"
+                    }
+                }
+            },
+            {
+                "Event": {
+                    "id": "1362",
+                    "date": "2019-09-04",
+                    "threat_level_id": "4",
+                    "info": "test pipe",
+                    "published": false,
+                    "uuid": "5d6f7a03-f734-49ba-967a-28e3a964451a",
+                    "analysis": "0",
+                    "timestamp": "1567586843",
+                    "distribution": "1",
+                    "org_id": "1",
+                    "orgc_id": "1",
+                    "Org": {
+                        "id": "1",
+                        "name": "ORGNAME",
+                        "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7"
+                    },
+                    "Orgc": {
+                        "id": "1",
+                        "name": "ORGNAME",
+                        "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7"
+                    }
+                }
+            },
             {
                 "Event": {
                     "id": "1359",
@@ -781,7 +890,7 @@
                     "id": "219",
                     "date": "2018-10-19",
                     "threat_level_id": "3",
-                    "info": "OSINT - How we discovered a Ukranian cybercrime hotspot",
+                    "info": "OSINT - How we discovered a Ukrainian cybercrime hotspot",
                     "published": false,
                     "uuid": "5bcdcd27-03e4-4118-9f82-46c3950d210f",
                     "analysis": "2",
@@ -810,7 +919,7 @@
                     "published": true,
                     "uuid": "5abb8534-ba9c-48cd-bb63-02480a00020f",
                     "analysis": "0",
-                    "timestamp": "1565613036",
+                    "timestamp": "1569255728",
                     "distribution": "0",
                     "org_id": "1",
                     "orgc_id": "14",
@@ -1868,23 +1977,23 @@
                 "template_version": "10",
                 "event_id": "1256",
                 "uuid": "5ac4db19-c620-4b8d-a5a7-01ef0a00020f",
-                "timestamp": "1565609463",
+                "timestamp": "1569255796",
                 "distribution": "5",
                 "sharing_group_id": "0",
                 "comment": "",
                 "deleted": false,
                 "ObjectReference": [
                     {
-                        "id": "9649",
-                        "uuid": "5d514df7-0c98-4393-b3ef-3afda964451a",
-                        "timestamp": "1565609463",
+                        "id": "9677",
+                        "uuid": "5d88f166-2be4-410f-9186-50e2a964451a",
+                        "timestamp": "1569255782",
                         "object_id": "13275",
                         "event_id": "1256",
                         "source_uuid": null,
                         "referenced_uuid": "8ba6c3ce-d802-41ec-acd8-132c58c055d2",
                         "referenced_id": "16290",
                         "referenced_type": "1",
-                        "relationship_type": "abuses",
+                        "relationship_type": "includes",
                         "comment": "",
                         "deleted": false,
                         "Object": {
@@ -2140,7 +2249,25 @@
                         "object_relation": "ip-src",
                         "value": "1.2.3.4",
                         "Galaxy": [],
-                        "ShadowAttribute": []
+                        "ShadowAttribute": [],
+                        "Sighting": [
+                            {
+                                "id": "8",
+                                "attribute_id": "253613",
+                                "event_id": "1256",
+                                "org_id": "1",
+                                "date_sighting": "1568295335",
+                                "uuid": "5d7a49a7-e1c4-4df8-acaf-72e9a964451a",
+                                "source": "",
+                                "type": "0",
+                                "Organisation": {
+                                    "id": "1",
+                                    "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                                    "name": "ORGNAME"
+                                },
+                                "attribute_uuid": "5afb32e7-72c0-449b-8f06-02090a00020f"
+                            }
+                        ]
                     },
                     {
                         "id": "253614",
@@ -2310,7 +2437,25 @@
                         "object_relation": "ip-src",
                         "value": "1.2.3.4",
                         "Galaxy": [],
-                        "ShadowAttribute": []
+                        "ShadowAttribute": [],
+                        "Sighting": [
+                            {
+                                "id": "9",
+                                "attribute_id": "253621",
+                                "event_id": "1256",
+                                "org_id": "1",
+                                "date_sighting": "1568295335",
+                                "uuid": "5d7a49a7-f940-4ccc-9edf-72e9a964451a",
+                                "source": "",
+                                "type": "0",
+                                "Organisation": {
+                                    "id": "1",
+                                    "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                                    "name": "ORGNAME"
+                                },
+                                "attribute_uuid": "5afb332f-54e8-420e-9adf-02070a00020f"
+                            }
+                        ]
                     },
                     {
                         "id": "253622",
@@ -2669,7 +2814,25 @@
                         "object_relation": "ip-address",
                         "value": "1.2.3.4",
                         "Galaxy": [],
-                        "ShadowAttribute": []
+                        "ShadowAttribute": [],
+                        "Sighting": [
+                            {
+                                "id": "10",
+                                "attribute_id": "253638",
+                                "event_id": "1256",
+                                "org_id": "1",
+                                "date_sighting": "1568295335",
+                                "uuid": "5d7a49a7-40c8-4298-8020-72e9a964451a",
+                                "source": "",
+                                "type": "0",
+                                "Organisation": {
+                                    "id": "1",
+                                    "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                                    "name": "ORGNAME"
+                                },
+                                "attribute_uuid": "5b0d1bd1-d478-44a1-b37f-026b0a00020f"
+                            }
+                        ]
                     }
                 ]
             },
@@ -2821,25 +2984,6 @@
                         "value": "victim-notified",
                         "Galaxy": [],
                         "ShadowAttribute": []
-                    },
-                    {
-                        "id": "253646",
-                        "type": "text",
-                        "category": "Other",
-                        "to_ids": false,
-                        "uuid": "5b1fc787-ee28-4876-ac46-03ec0a00020f",
-                        "event_id": "1256",
-                        "distribution": "5",
-                        "timestamp": "1528809351",
-                        "comment": "",
-                        "sharing_group_id": "0",
-                        "deleted": false,
-                        "disable_correlation": false,
-                        "object_id": "13281",
-                        "object_relation": "password",
-                        "value": "admin",
-                        "Galaxy": [],
-                        "ShadowAttribute": []
                     }
                 ]
             },
@@ -2914,7 +3058,25 @@
                         "object_relation": "subnet-announced",
                         "value": "1.2.3.4",
                         "Galaxy": [],
-                        "ShadowAttribute": []
+                        "ShadowAttribute": [],
+                        "Sighting": [
+                            {
+                                "id": "11",
+                                "attribute_id": "253649",
+                                "event_id": "1256",
+                                "org_id": "1",
+                                "date_sighting": "1568295335",
+                                "uuid": "5d7a49a7-a100-4968-8567-72e9a964451a",
+                                "source": "",
+                                "type": "0",
+                                "Organisation": {
+                                    "id": "1",
+                                    "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                                    "name": "ORGNAME"
+                                },
+                                "attribute_uuid": "5b23c878-b444-4e4f-84c4-02710a00020f"
+                            }
+                        ]
                     },
                     {
                         "id": "253650",
@@ -3045,25 +3207,6 @@
                         "object_id": "16142",
                         "object_relation": "username",
                         "value": "misp",
-                        "Galaxy": [],
-                        "ShadowAttribute": []
-                    },
-                    {
-                        "id": "271906",
-                        "type": "boolean",
-                        "category": "Other",
-                        "to_ids": false,
-                        "uuid": "5d234f9d-5d5c-4ef0-819b-2f45a964451a",
-                        "event_id": "1256",
-                        "distribution": "5",
-                        "timestamp": "1562595229",
-                        "comment": "",
-                        "sharing_group_id": "0",
-                        "deleted": false,
-                        "disable_correlation": true,
-                        "object_id": "16142",
-                        "object_relation": "is_service_account",
-                        "value": "0",
                         "Galaxy": [],
                         "ShadowAttribute": []
                     },

@@ -415,4 +415,17 @@ class Organisation extends AppModel
         $event['Org'] = $this->__orgCache[$event['Event']['org_id']];
         return $event;
     }
+
+    public function getOrgIdsFromMeta($metaConditions)
+    {
+        $orgIds = $this->find('list', array(
+            'conditions' => $metaConditions,
+            'fields' => array('id'),
+            'recursive' => -1
+        ));
+        if (empty($orgIds)) {
+            return array(-1);
+        }
+        return array_values($orgIds);
+    }
 }
