@@ -26,7 +26,8 @@ usage () {
   echo -e "${SCRIPT_NAME} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
   echo -e "                -M | ${LBLUE}MISP${NC} modules"        # modules
   echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
-  echo -e "                -V | Viper"                            # viper
+  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ##echo -e "                -V | Viper"                            # viper
   echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"         # mail2
   echo -e "                -S | Experimental ssdeep correlations" # ssdeep
   echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
@@ -37,7 +38,7 @@ usage () {
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
-  echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
+  echo -e "Options can be combined: ${SCRIPT_NAME} -c -D # Will install Core+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
   echo -e "MISP + modules - ${SCRIPT_NAME} -c -M"

@@ -200,6 +200,24 @@ class Server extends AppModel
                                 'optionsSource' => 'AvailableLanguages',
                                 'afterHook' => 'cleanCacheFiles'
                         ),
+                        'default_attribute_memory_coefficient' => array(
+                                'level' => 1,
+                                'description' => __('This values controls the internal fetcher\'s memory envelope when it comes to attributes. The number provided is the amount of attributes that can be loaded for each MB of PHP memory available in one shot. Consider lowering this number if your instance has a lot of attribute tags / attribute galaxies attached.'),
+                                'value' => 80,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => true
+                        ),
+                        'default_event_memory_divisor' => array(
+                                'level' => 1,
+                                'description' => __('This value controls the divisor for attribute weighting when it comes to loading full events. Meaning that it will load coefficient / divisor number of attributes per MB of memory available. Consider raising this number if you have a lot of correlations or highly contextualised events (large number of event level galaxies/tags).'),
+                                'value' => 3,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => true
+                        ),
                         'enable_advanced_correlations' => array(
                                 'level' => 0,
                                 'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),
@@ -2552,7 +2570,7 @@ class Server extends AppModel
             return $final;
         }
         $filter_rules = json_decode($filter_rules, true);
-        $url_params = null;
+        $url_params = array();
         foreach ($filter_rules as $field => $rules) {
             $temp = array();
             if ($field === 'url_params') {
@@ -2574,7 +2592,9 @@ class Server extends AppModel
                 }
             }
         }
-        $final = array_merge_recursive($final, $url_params);
+        if (!empty($url_params)) {
+            $final = array_merge_recursive($final, $url_params);
+        }
         return $final;
     }
 
@@ -4370,7 +4390,7 @@ class Server extends AppModel
             $dbExpectedSchema = $this->getExpectedDBSchema();
             if ($dbExpectedSchema !== false) {
                 $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
-                $db_indexes_comparison = $this->compareDBIndexes($dbActualSchema['indexes'], $dbExpectedSchema['indexes']);
+                $db_indexes_comparison = $this->compareDBIndexes($dbActualSchema['indexes'], $dbExpectedSchema['indexes'], $dbExpectedSchema);
                 $schemaDiagnostic['checked_table_column'] = $dbActualSchema['column'];
                 $schemaDiagnostic['diagnostic'] = $db_schema_comparison;
                 $schemaDiagnostic['diagnostic_index'] = $db_indexes_comparison;
@@ -4645,23 +4665,53 @@ class Server extends AppModel
         return $dbDiff;
     }
 
-    public function compareDBIndexes($actualIndex, $expectedIndex)
+    public function compareDBIndexes($actualIndex, $expectedIndex, $dbExpectedSchema)
     {
+        $defaultIndexKeylength = 255;
+        $whitelistTables = array();
         $indexDiff = array();
         foreach($expectedIndex as $tableName => $indexes) {
             if (!array_key_exists($tableName, $actualIndex)) {
-                // If table does not exists, it is covered by the schema diagnostic
+                continue; // If table does not exists, it is covered by the schema diagnostic
+            } elseif(in_array($tableName, $whitelistTables)) {
+                continue; // Ignore whitelisted tables
             } else {
                 $tableIndexDiff = array_diff($indexes, $actualIndex[$tableName]); // check for missing indexes
                 if (count($tableIndexDiff) > 0) {
                     foreach($tableIndexDiff as $columnDiff) {
-                        $indexDiff[$tableName][$columnDiff] = sprintf(__('Column `%s` should be indexed'), $columnDiff);
+                        $columnData  = Hash::extract($dbExpectedSchema['schema'][$tableName], sprintf('{n}[column_name=%s]', $columnDiff))[0];
+                        $message = sprintf(__('Column `%s` should be indexed'), $columnDiff);
+                        if ($columnData['data_type'] == 'varchar') {
+                            $keyLength = sprintf('(%s)', $columnData['character_maximum_length'] < $defaultIndexKeylength ? $columnData['character_maximum_length'] : $defaultIndexKeylength);
+                        } elseif ($columnData['data_type'] == 'text') {
+                            $keyLength = sprintf('(%s)', $defaultIndexKeylength);
+                        } else {
+                            $keyLength = '';
+                        }
+                        $sql = sprintf('CREATE INDEX `%s` ON `%s` (%s%s);',
+                            $columnDiff,
+                            $tableName,
+                            $columnDiff,
+                            $keyLength
+                        );
+                        $indexDiff[$tableName][$columnDiff] = array(
+                            'message' => $message,
+                            'sql' => $sql
+                        );
                     }
                 }
                 $tableIndexDiff = array_diff($actualIndex[$tableName], $indexes); // check for additional indexes
                 if (count($tableIndexDiff) > 0) {
                     foreach($tableIndexDiff as $columnDiff) {
-                        $indexDiff[$tableName][$columnDiff] = sprintf(__('Column `%s` is indexed but should not'), $columnDiff);
+                        $message = sprintf(__('Column `%s` is indexed but should not'), $columnDiff);
+                        $sql = sprintf('DROP INDEX `%s` ON %s;',
+                            $columnDiff,
+                            $tableName
+                        );
+                        $indexDiff[$tableName][$columnDiff] = array(
+                            'message' => $message,
+                            'sql' => $sql
+                        );
                     }
                 }
             }
@@ -4764,7 +4814,7 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '>1.2.0.6', 'cybox' => '>2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>1.2.0', 'pymisp' => '>2.4.93');
+        $expected = array('stix' => '>1.2.0.6', 'cybox' => '>2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>1.2.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);
@@ -5241,15 +5291,15 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         $results = array();
-        $extensions = array('redis', 'gd');
+        $extensions = array('redis', 'gd', 'ssdeep');
         foreach ($extensions as $extension) {
             $results['web']['extensions'][$extension] = extension_loaded($extension);
         }
         if (!is_readable(APP . '/files/scripts/selftest.php')) {
             $results['cli'] = false;
         } else {
-            $results['cli'] = exec('php ' . APP . '/files/scripts/selftest.php');
-            $results['cli'] = json_decode($results['cli'], true);
+            $execResult = exec('php ' . APP . '/files/scripts/selftest.php');
+            $results['cli'] = json_decode($execResult, true);
         }
         return $results;
     }

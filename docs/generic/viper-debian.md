@@ -37,7 +37,7 @@ viper () {
   $SUDO_CMD /usr/local/src/viper/venv/bin/pip install -r requirements.txt
   echo "Launching viper-web"
   $SUDO_CMD /usr/local/src/viper-web/viper-web -p 8888 -H 0.0.0.0 &
-  echo 'PATH="/home/misp/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee /etc/environment
+  echo 'PATH="/home/misp/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee -a /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
 
   # TODO: Perms, MISP_USER_HOME, nasty hack cuz Kali on R00t
