@@ -1066,6 +1066,7 @@ class UsersController extends AppController
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
             if (!empty($this->request->data['User']['email'])) {
                 if ($this->Bruteforce->isBlacklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
+                    $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
                     throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . Configure::read('SecureAuth.expire') . ' seconds and try again.');
                 }
             }
@@ -1116,7 +1117,7 @@ class UsersController extends AppController
                 $this->Session->delete('Message.auth');
             }
             // don't display "invalid user" before first login attempt
-            if ($this->request->is('post')) {
+            if ($this->request->is('post') || $this->request->is('put')) {
                 $this->Flash->error(__('Invalid username or password, try again'));
                 if (isset($this->request->data['User']['email'])) {
                     $this->Bruteforce->insert($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email']);
