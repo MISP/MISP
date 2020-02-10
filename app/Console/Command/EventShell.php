@@ -6,7 +6,11 @@ class EventShell extends AppShell
 {
     public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation');
 
-    public function doPublish() {
+    public $tasks = array('ConfigLoad');
+
+    public function doPublish()
+    {
+        $this->ConfigLoad->execute();
         $id = $this->args[0];
         $this->Event->id = $id;
         if (!$this->Event->exists()) {
@@ -34,7 +38,9 @@ class EventShell extends AppShell
         $this->Job->saveField('message', 'Job done.');
     }
 
-    public function cache() {
+    public function cache()
+    {
+        $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
         $id = $this->args[1];
@@ -70,6 +76,7 @@ class EventShell extends AppShell
 
     private function __runCaching($user, $typeData, $id, $export_type, $subType = '')
     {
+        $this->ConfigLoad->execute();
         $export_type = strtolower($typeData['type']);
         $final = $this->{$typeData['scope']}->restSearch($user, $typeData['params']['returnFormat'], $typeData['params'], false, $id);
         $dir = new Folder(APP . 'tmp/cached_exports/' . $export_type, true, 0750);
@@ -84,7 +91,9 @@ class EventShell extends AppShell
         return true;
     }
 
-    public function cachexml() {
+    public function cachexml()
+    {
+        $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
         $id = $this->args[1];
@@ -118,7 +127,9 @@ class EventShell extends AppShell
         $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
     }
 
-    public function cachejson() {
+    public function cachejson()
+    {
+        $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
         $id = $this->args[1];
@@ -152,7 +163,9 @@ class EventShell extends AppShell
         $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
     }
 
-    public function cachestix() {
+    public function cachestix()
+    {
+        $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
         $id = $this->args[1];
@@ -180,7 +193,9 @@ class EventShell extends AppShell
         }
     }
 
-    public function cachehids() {
+    public function cachehids()
+    {
+        $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
@@ -211,7 +226,9 @@ class EventShell extends AppShell
         $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
     }
 
-    public function cacherpz() {
+    public function cacherpz()
+    {
+        $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
@@ -252,7 +269,9 @@ class EventShell extends AppShell
         $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
     }
 
-    public function cachecsv() {
+    public function cachecsv()
+    {
+        $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
@@ -291,7 +310,9 @@ class EventShell extends AppShell
         $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
     }
 
-    public function cachetext() {
+    public function cachetext()
+    {
+        $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
@@ -320,7 +341,9 @@ class EventShell extends AppShell
         $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
     }
 
-    public function cachenids() {
+    public function cachenids()
+    {
+        $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
@@ -358,6 +381,7 @@ class EventShell extends AppShell
 
     public function cachebro()
     {
+        $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
@@ -392,7 +416,9 @@ class EventShell extends AppShell
         $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
     }
 
-    public function alertemail() {
+    public function alertemail()
+    {
+        $this->ConfigLoad->execute();
         $userId = $this->args[0];
         $processId = $this->args[1];
         $job = $this->Job->read(null, $processId);
@@ -406,7 +432,9 @@ class EventShell extends AppShell
         $this->Job->save($job);
     }
 
-    public function contactemail() {
+    public function contactemail()
+    {
+        $this->ConfigLoad->execute();
         $id = $this->args[0];
         $message = $this->args[1];
         $all = $this->args[2];
@@ -421,7 +449,9 @@ class EventShell extends AppShell
         if ($result != true) $this->Job->saveField('message', 'Job done.');
     }
 
-    public function postsemail() {
+    public function postsemail()
+    {
+        $this->ConfigLoad->execute();
         $userId = $this->args[0];
         $postId = $this->args[1];
         $eventId = $this->args[2];
@@ -436,7 +466,9 @@ class EventShell extends AppShell
         $this->Job->save($job);
     }
 
-    public function enqueueCaching() {
+    public function enqueueCaching()
+    {
+        $this->ConfigLoad->execute();
         $timestamp = $this->args[0];
         $task = $this->Task->findByType('cache_exports');
 
@@ -487,7 +519,9 @@ class EventShell extends AppShell
         $this->Task->saveField('message', $i . ' job(s) started at ' . date('d/m/Y - H:i:s') . '.');
     }
 
-    public function publish() {
+    public function publish()
+    {
+        $this->ConfigLoad->execute();
         $id = $this->args[0];
         $passAlong = $this->args[1];
         $jobId = $this->args[2];
@@ -509,7 +543,9 @@ class EventShell extends AppShell
         $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'published () => (1)');
     }
 
-    public function publish_sightings() {
+    public function publish_sightings()
+    {
+        $this->ConfigLoad->execute();
         $id = $this->args[0];
         $passAlong = $this->args[1];
         $jobId = $this->args[2];
@@ -531,7 +567,9 @@ class EventShell extends AppShell
         $log->createLogEntry($user, 'publish_sightings', 'Event', $id, 'Sightings for event (' . $id . '): published.', 'publish_sightings updated');
     }
 
-    public function enrichment() {
+    public function enrichment()
+    {
+        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['enrichment'] . PHP_EOL);
         }
@@ -581,7 +619,9 @@ class EventShell extends AppShell
         $log->createLogEntry($user, 'enrichment', 'Event', $eventId, 'Event (' . $eventId . '): enriched.', 'enriched () => (1)');
     }
 
-    public function processfreetext() {
+    public function processfreetext()
+    {
+        $this->ConfigLoad->execute();
         $inputFile = $this->args[0];
         $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
         $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
@@ -602,6 +642,7 @@ class EventShell extends AppShell
 
     public function processmoduleresult()
     {
+        $this->ConfigLoad->execute();
         $inputFile = $this->args[0];
         $tempDir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
         $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);

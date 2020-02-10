@@ -6,9 +6,10 @@ class ServerShell extends AppShell
 {
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
 
-    public function listServers() {
+    public function listServers()
+    {
+        $this->ConfigLoad->execute();
         $res = ['servers'=>[]];
-
         $servers = $this->Server->find('all', [
             'fields' => ['Server.id', 'Server.name', 'Server.url'],
             'recursive' => 0
@@ -19,7 +20,9 @@ class ServerShell extends AppShell
         echo json_encode($res) . PHP_EOL;
     }
 
-    public function test() {
+    public function test()
+    {
+        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Test'] . PHP_EOL);
         }
@@ -32,7 +35,9 @@ class ServerShell extends AppShell
         echo json_encode($res) . PHP_EOL;
     }
 
-    public function pull() {
+    public function pull()
+    {
+        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['pull'] . PHP_EOL);
         }
@@ -83,7 +88,9 @@ class ServerShell extends AppShell
         echo $message . PHP_EOL;
     }
 
-    public function push() {
+    public function push()
+    {
+        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['push'] . PHP_EOL);
         }
@@ -131,7 +138,9 @@ class ServerShell extends AppShell
     }
 
 
-    public function fetchFeed() {
+    public function fetchFeed()
+    {
+        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Fetch feeds as local data'] . PHP_EOL);
         }
@@ -209,7 +218,9 @@ class ServerShell extends AppShell
         echo $outcome['message'] . PHP_EOL;
     }
 
-    public function cacheServer() {
+    public function cacheServer()
+    {
+        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['cacheServer'] . PHP_EOL);
         }
@@ -257,7 +268,9 @@ class ServerShell extends AppShell
     }
 
 
-    public function cacheFeed() {
+    public function cacheFeed()
+    {
+        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Cache feeds for quick lookups'] . PHP_EOL);
         }
@@ -310,7 +323,9 @@ class ServerShell extends AppShell
         echo $message . PHP_EOL;
     }
 
-    public function enqueuePull() {
+    public function enqueuePull()
+    {
+        $this->ConfigLoad->execute();
         $timestamp = $this->args[0];
         $userId = $this->args[1];
         $taskId = $this->args[2];
@@ -369,7 +384,9 @@ class ServerShell extends AppShell
         $this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '. Failed jobs: ' . $failCount . '/' . $count);
     }
 
-    public function enqueueFeedFetch() {
+    public function enqueueFeedFetch()
+    {
+        $this->ConfigLoad->execute();
         $timestamp = $this->args[0];
         $userId = $this->args[1];
         $taskId = $this->args[2];
@@ -413,7 +430,9 @@ class ServerShell extends AppShell
         $this->Task->saveField('message', count($feeds) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '. Failed jobs: ' . $failCount . '/' . count($feeds));
     }
 
-    public function enqueueFeedCache() {
+    public function enqueueFeedCache()
+    {
+        $this->ConfigLoad->execute();
         $timestamp = $this->args[0];
         $userId = $this->args[1];
         $taskId = $this->args[2];
@@ -460,7 +479,9 @@ class ServerShell extends AppShell
         $this->Task->saveField('message', 'Job completed at ' . date('d/m/Y - H:i:s'));
     }
 
-    public function enqueuePush() {
+    public function enqueuePush()
+    {
+        $this->ConfigLoad->execute();
         $timestamp = $this->args[0];
         $taskId = $this->args[1];
         $userId = $this->args[2];
@@ -496,5 +517,4 @@ class ServerShell extends AppShell
         $this->Task->id = $task['Task']['id'];
         $this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');
     }
-
 }
