@@ -41,7 +41,7 @@ $(document).ready(function () {
     $uri = "/galaxy_clusters/index/" . $galaxy['Galaxy']['id'];
     if (isset($passedArgsArray)) $uri .= '/searchall:' . $passedArgsArray['all'];
     ?>
-    $.get("<?php echo $uri;?>", function(data) {
+    $.get("<?php echo h($uri);?>", function(data) {
         $("#clusters_div").html(data);
     });
 
