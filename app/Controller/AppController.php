@@ -47,7 +47,7 @@ class AppController extends Controller
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '97';
-    public $pyMispVersion = '2.4.120';
+    public $pyMispVersion = '2.4.121';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $pythonmin = '3.6';
@@ -1162,7 +1162,6 @@ class AppController extends Controller
 
     public function restSearch()
     {
-        $ordered_url_params = func_get_args();
         if (empty($this->RestSearch->paramArray[$this->modelClass])) {
             throw new NotFoundException(__('RestSearch is not implemented (yet) for this scope.'));
         }
@@ -1185,7 +1184,6 @@ class AppController extends Controller
         if ($filters === false) {
             return $exception;
         }
-        $list = array();
         $key = empty($filters['key']) ? $filters['returnFormat'] : $filters['key'];
         $user = $this->_getApiAuthUser($key, $exception);
         if ($user === false) {

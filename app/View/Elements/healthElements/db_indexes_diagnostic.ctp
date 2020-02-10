@@ -19,6 +19,7 @@
                     <th>Column name</th>
                     <th>Indexed</th>
                     <th>Description</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -30,15 +31,23 @@
                     <?php foreach($columnArray as $columnName): ?>
                         <?php 
                             $columnIndexed = !empty($indexes[$tableName]) && in_array($columnName, $indexes[$tableName]);
-                            $warning = isset($diagnostic[$tableName][$columnName]);
-                            if ($warning) {
+                            $warningArray = isset($diagnostic[$tableName][$columnName]);
+                            if ($warningArray) {
                                 $columnCount++;
                             }
-                            $rowHtml .= sprintf('%s%s%s%s%s',
-                                sprintf('<tr class="%s">', $warning ? 'error' : 'indexInfo hidden'),
+                            $rowHtml .= sprintf('%s%s%s%s%s%s',
+                                sprintf('<tr class="%s">', $warningArray ? 'error' : 'indexInfo hidden'),
                                 sprintf('<td>%s</td>', h($columnName)),
                                 sprintf('<td><i class="bold fa %s"></i></td>', $columnIndexed ? 'green fa-check' : 'red fa-times'),
-                                sprintf('<td>%s</td>', $warning ? h($diagnostic[$tableName][$columnName]) : ''),
+                                sprintf('<td>%s</td>', $warningArray ? h($diagnostic[$tableName][$columnName]['message']) : ''),
+                                sprintf('<td>%s</td>', $warningArray ?
+                                    sprintf(
+                                        '<i class="fa fa-wrench useCursorPointer" onclick="quickFixIndexSchema(this, \'%s\')" title="%s" data-query="%s"></i>',
+                                        h($diagnostic[$tableName][$columnName]['sql']),
+                                        __('Fix Database Index Schema'),
+                                        h($diagnostic[$tableName][$columnName]['sql'])
+                                    ) : ''
+                                ),
                                 '</tr>'
                             );
                         ?>
@@ -59,4 +68,9 @@
             $('#containerDBIndexes').toggle();
         })
     })
+    function quickFixIndexSchema(clicked, sqlQuery) {
+        var message = "<?php echo sprintf('<div class=\"alert alert-error\" style=\"margin-bottom: 5px;\"><h5>%s</h5> %s</div>', __('Warning'), __('Executing this query might take some time and may harm your database. Please review the query below or backup your database in case of doubt.')) ?>"
+        message += "<div class=\"well\"><kbd>" + sqlQuery + "</kbd></div>"
+        openPopover(clicked, message, undefined, 'left');
+    }
 </script>
