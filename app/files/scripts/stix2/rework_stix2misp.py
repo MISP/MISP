@@ -177,7 +177,7 @@ class StixFromMISPParser(StixParser):
                                                 'pattern': 'parse_network_connection_pattern'},
                          'network-socket': {'observable': 'parse_network_socket_observable',
                                             'pattern': 'parse_network_socket_pattern'},
-                         'process': {'observable': 'attributes_from_process_observable',
+                         'process': {'observable': 'parse_process_observable',
                                      'pattern': 'parse_process_pattern'},
                          'registry-key': {'observable': 'parse_regkey_observable',
                                           'pattern': 'parse_regkey_pattern'},
@@ -488,6 +488,32 @@ class StixFromMISPParser(StixParser):
                 attribute.update({'value': reference['object'].value, 'to_ids': False})
                 attributes.append(attribute)
         return attributes
+
+    def parse_process_observable(self, observable):
+        references = {}
+        for key, value in observable.items():
+            if isinstance(value, stix2.Process) and hasattr(value, 'name'):
+                process = value
+            else:
+                references[key] = value
+        attributes = self.fill_observable_attributes(process, stix2misp_mapping.process_mapping)
+        if hasattr(process, 'parent_ref'):
+            attributes.append(self._parse_process_reference(references[process.parent_ref], 'parent'))
+        if hasattr(process, 'child_refs'):
+            for reference in process.child_refs:
+                attributes.append(self._parse_process_reference(references[reference], 'child'))
+        if hasattr(process, 'binary_ref'):
+            reference = references[process.binary_ref]
+            attribute = deepcopy(stix2misp_mapping.process_image_mapping)
+            attribute.update({'value': reference.name, 'to_ids': False})
+            attributes.append(attribute)
+        return attributes
+
+    @staticmethod
+    def _parse_process_reference(reference, feature):
+        attribute = deepcopy(stix2misp_mapping.pid_attribute_mapping)
+        attribute.update({'object_relation': f'{feature}-pid', 'value': reference.pid, 'to_ids': False})
+        return attribute
 
     def parse_regkey_observable(self, observable):
         attributes = []
