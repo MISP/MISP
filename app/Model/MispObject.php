@@ -208,7 +208,10 @@ class MispObject extends AppModel
         $newObjectAttributes = array();
         $existingObjectAttributes = array();
         foreach ($object['Attribute'] as $attribute) {
-            $newObjectAttributes[] = hash('sha256', $attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $attribute['value']);
+            $newObjectAttributes[] = hash(
+                'sha256',
+                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $attribute['value']
+            );
         }
         $newObjectAttributeCount = count($newObjectAttributes);
         $existingObjects = $this->find('all', array(
@@ -224,17 +227,17 @@ class MispObject extends AppModel
         ));
         $oldObjects = array();
         foreach ($existingObjects as $k => $existingObject) {
+            $temp = array();
             if (!empty($existingObject['Attribute']) && $newObjectAttributeCount == count($existingObject['Attribute'])) {
                 foreach ($existingObject['Attribute'] as $existingAttribute) {
-                    $oldObjects[$k][] = hash('sha256',
-                    $attribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value']
-                );
+                    $temp[] = hash(
+                        'sha256',
+                        $attribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value']
+                    );
                 }
-            }
-        }
-        foreach ($oldObjects as $k => $object) {
-            if (empty(array_diff($object, $newObjectAttributes))) {
-                return true;
+                if (empty(array_diff($temp, $newObjectAttributes))) {
+                    return true;
+                }
             }
         }
         return false;
@@ -244,7 +247,9 @@ class MispObject extends AppModel
     {
         if ($breakOnDuplicate) {
             $duplicate = $this->checkForDuplicateObjects($object, $eventId);
-            return array('value' => array('Duplicate object found. Since breakOnDuplicate is set the object will not be added.'));
+            if ($duplicate) {
+                return array('value' => array('Duplicate object found. Since breakOnDuplicate is set the object will not be added.'));
+            }
         }
         $this->create();
         $templateFields = array(
