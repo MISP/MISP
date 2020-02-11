@@ -74,7 +74,7 @@
         echo sprintf(
             '<div id="AuthkeyContainer"><p class="red clear" style="width:50%%;">%s</p>%s</div>',
             __('Ask the owner of the remote instance for a sync account on their instance, log into their MISP using the sync user\'s credentials and retrieve your API key by navigating to Global actions -> My profile. This key is used to authenticate with the remote instance.'),
-            $this->Form->input('authkey', array())
+            $this->Form->input('authkey', array('autocomplete' => 'off'))
         );
         echo '<div class = "input clear" style="width:100%;"><hr /></div>';
         echo '<h4 class="input clear">' . __('Enabled synchronisation methods') . '</h4>';

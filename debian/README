@@ -1,0 +1,1 @@
+* We cannot use cakephp package from debian, as it is outdated. CakePHP is provided along with MISP.

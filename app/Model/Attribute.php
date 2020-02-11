@@ -1594,6 +1594,13 @@ class Attribute extends AppModel
                 }
                 $value = ($value) ? '1' : '0';
                 break;
+            case 'datetime':
+                try {
+                    $value = (new DateTime($value))->setTimezone(new DateTimeZone('GMT'))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formating with microseconds
+                } catch (Exception $e) {
+                    // silently skip. Rejection will be done in runValidation()
+                }
+                break;
         }
         return $value;
     }

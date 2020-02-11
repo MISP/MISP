@@ -1066,6 +1066,7 @@ class UsersController extends AppController
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
             if (!empty($this->request->data['User']['email'])) {
                 if ($this->Bruteforce->isBlacklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
+                    $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
                     throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . Configure::read('SecureAuth.expire') . ' seconds and try again.');
                 }
             }
@@ -1116,7 +1117,7 @@ class UsersController extends AppController
                 $this->Session->delete('Message.auth');
             }
             // don't display "invalid user" before first login attempt
-            if ($this->request->is('post')) {
+            if ($this->request->is('post') || $this->request->is('put')) {
                 $this->Flash->error(__('Invalid username or password, try again'));
                 if (isset($this->request->data['User']['email'])) {
                     $this->Bruteforce->insert($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email']);
@@ -2128,19 +2129,31 @@ class UsersController extends AppController
         $this->Auth->login($newUser['User']);
     }
 
-    public function fetchPGPKey($email = false)
+    public function searchGpgKey($email = false)
     {
-        if ($email == false) {
+        if (!$email) {
             throw new NotFoundException('No email provided.');
         }
-        $keys = $this->User->fetchPGPKey($email);
-        if (is_numeric($keys)) {
-            throw new NotFoundException('Could not retrieved any keys from the key server.');
+        $keys = $this->User->searchGpgKey($email);
+        if (empty($keys)) {
+            throw new NotFoundException('No keys found for given email at keyserver.');
         }
         $this->set('keys', $keys);
         $this->autorender = false;
         $this->layout = false;
         $this->render('ajax/fetchpgpkey');
+    }
+
+    public function fetchGpgKey($fingerprint = null)
+    {
+        if (!$fingerprint) {
+            throw new NotFoundException('No fingerprint provided.');
+        }
+        $key = $this->User->fetchGpgKey($fingerprint);
+        if (!$key) {
+            throw new NotFoundException('No key with given fingerprint found.');
+        }
+        return new CakeResponse(array('body' => $key));
     }
 
     public function dashboard()

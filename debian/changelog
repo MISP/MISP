@@ -1,0 +1,5 @@
+misp (2.4.220-1) UNRELEASED; urgency=low
+
+  * First package of MISP
+
+ -- Sebastien Tricaud <sebastien.tricaud@devo.com>  Wed, 29 Jan 2020 16:32:33 -0800

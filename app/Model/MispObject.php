@@ -203,8 +203,54 @@ class MispObject extends AppModel
         }
     }
 
-    public function saveObject($object, $eventId, $template = false, $user, $errorBehaviour = 'drop')
+    public function checkForDuplicateObjects($object, $eventId)
     {
+        $newObjectAttributes = array();
+        $existingObjectAttributes = array();
+        foreach ($object['Attribute'] as $attribute) {
+            $newObjectAttributes[] = hash(
+                'sha256',
+                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $attribute['value']
+            );
+        }
+        $newObjectAttributeCount = count($newObjectAttributes);
+        $existingObjects = $this->find('all', array(
+            'recursive' => -1,
+            'contain' => array(
+                'Attribute' => array(
+                    'fields' => array('value', 'type', 'category', 'object_relation'),
+                    'conditions' => array('Attribute.deleted' => 0)
+                )
+            ),
+            'fields' => array('template_uuid'),
+            'conditions' => array('template_uuid' => $object['Object']['template_uuid'], 'Object.deleted' => 0)
+        ));
+        $oldObjects = array();
+        foreach ($existingObjects as $k => $existingObject) {
+            $temp = array();
+            if (!empty($existingObject['Attribute']) && $newObjectAttributeCount == count($existingObject['Attribute'])) {
+                foreach ($existingObject['Attribute'] as $existingAttribute) {
+                    $temp[] = hash(
+                        'sha256',
+                        $attribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value']
+                    );
+                }
+                if (empty(array_diff($temp, $newObjectAttributes))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public function saveObject($object, $eventId, $template = false, $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
+    {
+        if ($breakOnDuplicate) {
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId);
+            if ($duplicate) {
+                return array('value' => array('Duplicate object found. Since breakOnDuplicate is set the object will not be added.'));
+            }
+        }
         $this->create();
         $templateFields = array(
             'name' => 'name',
