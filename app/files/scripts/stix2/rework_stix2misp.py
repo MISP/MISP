@@ -185,7 +185,7 @@ class StixFromMISPParser(StixParser):
                                  'pattern': 'parse_url_pattern'},
                          'user-account': {'observable': 'parse_user_account_observable',
                                           'pattern': 'parse_user_account_pattern'},
-                         'WindowsPEBinaryFile': {'observable': 'observable_pe',
+                         'WindowsPEBinaryFile': {'observable': 'parse_pe_observable',
                                                  'pattern': 'parse_pe_pattern'},
                          'x509': {'observable': 'parse_x509_observable',
                                   'pattern': 'parse_x509_pattern'}}
@@ -313,11 +313,17 @@ class StixFromMISPParser(StixParser):
     def parse_observable_object(self, observable):
         misp_object, object_type = self.create_misp_object(observable)
         observable_object = observable.objects
-        # try:
-        attributes = getattr(self, self._objects_mapping[object_type]['observable'])(observable_object)
-        # except KeyError:
-        #     print(f"Unable to map {object_type} object:\n{observable}", file=sys.stderr)
-        #     return
+        try:
+            attributes = getattr(self, self._objects_mapping[object_type]['observable'])(observable_object)
+        except KeyError:
+            print(f"Unable to map {object_type} object:\n{observable}", file=sys.stderr)
+            return
+        if isinstance(attributes, tuple):
+            attributes, target_uuid = attributes
+            misp_object.add_reference(target_uuid, 'includes')
+        for attribute in attributes:
+            misp_object.add_attribute(**attribute)
+        self.misp_event.add_object(**misp_object)
 
     ################################################################################
     ##                        OBSERVABLE PARSING FUNCTIONS                        ##
@@ -341,6 +347,18 @@ class StixFromMISPParser(StixParser):
             attribute.update({'value': value, 'to_ids': False})
             attributes.append(attribute)
         return attributes
+
+    def fill_pe_observable_attributes(self, pe_object, extension, mapping):
+        for feature, value in extension.items():
+            if feature not in mapping:
+                if feature.startswith('x_misp_'):
+                    attribute = self.parse_custom_property(feature)
+                else:
+                    continue
+            else:
+                attribute = deepcopy(mapping[feature])
+            attribute.update({'value': value, 'to_ids': False})
+            pe_object.add_attribute(**attribute)
 
     @staticmethod
     def filter_main_object(observable, main_type):
@@ -488,6 +506,20 @@ class StixFromMISPParser(StixParser):
                 attribute.update({'value': reference['object'].value, 'to_ids': False})
                 attributes.append(attribute)
         return attributes
+
+    def parse_pe_observable(self, observable):
+        pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
+        extension = observable['0']['extensions']['windows-pebinary-ext']
+        self.fill_pe_observable_attributes(pe_object, extension, stix2misp_mapping.pe_mapping)
+        for section in extension['sections']:
+            section_object = MISPObject('pe-section', misp_objects_path_custom=self._misp_objects_path)
+            self.fill_pe_observable_attributes(section_object, section, stix2misp_mapping.pe_section_mapping)
+            if hasattr(section, 'hashes'):
+                self.fill_pe_observable_attributes(section_object, section.hashes, stix2misp_mapping.pe_section_mapping)
+            pe_object.add_reference(section_object.uuid, 'includes')
+            self.misp_event.add_object(**section_object)
+        self.misp_event.add_object(**pe_object)
+        return self.parse_file_observable(observable), pe_object.uuid
 
     def parse_process_observable(self, observable):
         references = {}
