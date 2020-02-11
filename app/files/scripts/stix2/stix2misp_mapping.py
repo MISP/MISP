@@ -118,60 +118,62 @@ misp_types_mapping = {
     'AS': parse_number
 }
 
-address_family_attribute_mapping = {'type': 'text','relation': 'address-family'}
-as_number_attribute_mapping = {'type': 'AS', 'relation': 'asn'}
-asn_description_attribute_mapping = {'type': 'text', 'relation': 'description'}
-asn_subnet_attribute_mapping = {'type': 'ip-src', 'relation': 'subnet-announced'}
-body_multipart_mapping = {'type': 'email-attachment', 'relation': 'attachment'}
-cc_attribute_mapping = {'type': 'email-dst', 'relation': 'cc'}
-data_attribute_mapping = {'type': 'text', 'relation': 'data'}
-data_type_attribute_mapping = {'type': 'text', 'relation': 'data-type'}
-domain_attribute_mapping = {'type': 'domain', 'relation': 'domain'}
-domain_family_attribute_mapping = {'type': 'text', 'relation': 'domain-family'}
-dst_port_attribute_mapping = {'type': 'port', 'relation': 'dst-port'}
-email_date_attribute_mapping = {'type': 'datetime', 'relation': 'send-date'}
-email_subject_attribute_mapping = {'type': 'email-subject', 'relation': 'subject'}
-end_datetime_attribute_mapping = {'type': 'datetime', 'relation': 'last-seen'}
-entropy_mapping = {'type': 'float', 'relation': 'entropy'}
-filename_attribute_mapping = {'type': 'filename', 'relation': 'filename'}
-from_attribute_mapping = {'type': 'email-src', 'relation': 'from'}
-imphash_mapping = {'type': 'imphash', 'relation': 'imphash'}
-ip_attribute_mapping = {'type': 'ip-dst', 'relation': 'ip'}
-issuer_attribute_mapping = {'type': 'text', 'relation': 'issuer'}
-key_attribute_mapping = {'type': 'regkey', 'relation': 'key'}
-mime_type_attribute_mapping = {'type': 'mime-type', 'relation': 'mimetype'}
-modified_attribute_mapping = {'type': 'datetime', 'relation': 'last-modified'}
-number_sections_mapping = {'type': 'counter', 'relation': 'number-sections'}
-password_mapping = {'type': 'text', 'relation': 'password'}
-path_attribute_mapping = {'type': 'text', 'relation': 'path'}
-pe_type_mapping = {'type': 'text', 'relation': 'type'}
-pid_attribute_mapping = {'type': 'text', 'relation': 'pid'}
-process_command_line_mapping = {'type': 'text', 'relation': 'command-line'}
-process_creation_time_mapping = {'type': 'datetime', 'relation': 'creation-time'}
-process_name_mapping = {'type': 'text', 'relation': 'name'}
-regkey_name_attribute_mapping = {'type': 'text', 'relation': 'name'}
-reply_to_attribute_mapping = {'type': 'email-reply-to', 'relation': 'reply-to'}
-section_name_mapping = {'type': 'text', 'relation': 'name'}
-serial_number_attribute_mapping = {'type': 'text', 'relation': 'serial-number'}
-size_attribute_mapping = {'type': 'size-in-bytes', 'relation': 'size-in-bytes'}
-src_port_attribute_mapping = {'type': 'port', 'relation': 'src-port'}
-start_datetime_attribute_mapping = {'type': 'datetime', 'relation': 'first-seen'}
-state_attribute_mapping = {'type': 'text', 'relation': 'state'}
-to_attribute_mapping = {'type': 'email-dst', 'relation': 'to'}
-url_attribute_mapping = {'type': 'url', 'relation': 'url'}
-url_port_attribute_mapping = {'type': 'port', 'relation': 'port'}
-username_mapping = {'type': 'text', 'relation': 'username'}
-x_mailer_attribute_mapping = {'type': 'email-x-mailer', 'relation': 'x-mailer'}
-x509_md5_attribute_mapping = {'type': 'x509-fingerprint-md5', 'relation': 'x509-fingerprint-md5'}
-x509_sha1_attribute_mapping = {'type': 'x509-fingerprint-sha1', 'relation': 'x509-fingerprint-sha1'}
-x509_sha256_attribute_mapping = {'type': 'x509-fingerprint-sha256', 'relation': 'x509-fingerprint-sha256'}
-x509_spka_attribute_mapping = {'type': 'text', 'relation': 'pubkey-info-algorithm'} # x509 subject public key algorithm
-x509_spke_attribute_mapping = {'type': 'text', 'relation': 'pubkey-info-exponent'} # x509 subject public key exponent
-x509_spkm_attribute_mapping = {'type': 'text', 'relation': 'pubkey-info-modulus'} # x509 subject public key modulus
-x509_subject_attribute_mapping = {'type': 'text', 'relation': 'subject'}
-x509_version_attribute_mapping = {'type': 'text', 'relation': 'version'}
-x509_vna_attribute_mapping = {'type': 'datetime', 'relation': 'validity-not-after'} # x509 validity not after
-x509_vnb_attribute_mapping = {'type': 'datetime', 'relation': 'validity-not-before'} # x509 validity not before
+address_family_attribute_mapping = {'type': 'text','object_relation': 'address-family'}
+as_number_attribute_mapping = {'type': 'AS', 'object_relation': 'asn'}
+asn_description_attribute_mapping = {'type': 'text', 'object_relation': 'description'}
+asn_subnet_attribute_mapping = {'type': 'ip-src', 'object_relation': 'subnet-announced'}
+cc_attribute_mapping = {'type': 'email-dst', 'object_relation': 'cc'}
+credential_mapping = {'type': 'text', 'object_relation': 'password'}
+data_attribute_mapping = {'type': 'text', 'object_relation': 'data'}
+data_type_attribute_mapping = {'type': 'text', 'object_relation': 'data-type'}
+domain_attribute_mapping = {'type': 'domain', 'object_relation': 'domain'}
+domain_family_attribute_mapping = {'type': 'text', 'object_relation': 'domain-family'}
+dst_port_attribute_mapping = {'type': 'port', 'object_relation': 'dst-port'}
+email_date_attribute_mapping = {'type': 'datetime', 'object_relation': 'send-date'}
+email_subject_attribute_mapping = {'type': 'email-subject', 'object_relation': 'subject'}
+end_datetime_attribute_mapping = {'type': 'datetime', 'object_relation': 'last-seen'}
+entropy_mapping = {'type': 'float', 'object_relation': 'entropy'}
+filename_attribute_mapping = {'type': 'filename', 'object_relation': 'filename'}
+from_attribute_mapping = {'type': 'email-src', 'object_relation': 'from'}
+imphash_mapping = {'type': 'imphash', 'object_relation': 'imphash'}
+ip_attribute_mapping = {'type': 'ip-dst', 'object_relation': 'ip'}
+issuer_attribute_mapping = {'type': 'text', 'object_relation': 'issuer'}
+key_attribute_mapping = {'type': 'regkey', 'object_relation': 'key'}
+malware_sample_attribute_mapping = {'type': 'malware-sample', 'object_relation': 'malware-sample'}
+mime_type_attribute_mapping = {'type': 'mime-type', 'object_relation': 'mimetype'}
+modified_attribute_mapping = {'type': 'datetime', 'object_relation': 'last-modified'}
+number_sections_mapping = {'type': 'counter', 'object_relation': 'number-sections'}
+password_mapping = {'type': 'text', 'object_relation': 'password'}
+pe_type_mapping = {'type': 'text', 'object_relation': 'type'}
+pid_attribute_mapping = {'type': 'text', 'object_relation': 'pid'}
+process_command_line_mapping = {'type': 'text', 'object_relation': 'command-line'}
+process_creation_time_mapping = {'type': 'datetime', 'object_relation': 'creation-time'}
+process_image_mapping = {'type': 'filename', 'object_relation': 'image'}
+process_name_mapping = {'type': 'text', 'object_relation': 'name'}
+regkey_name_attribute_mapping = {'type': 'text', 'object_relation': 'name'}
+reply_to_attribute_mapping = {'type': 'email-reply-to', 'object_relation': 'reply-to'}
+section_name_mapping = {'type': 'text', 'object_relation': 'name'}
+serial_number_attribute_mapping = {'type': 'text', 'object_relation': 'serial-number'}
+size_attribute_mapping = {'type': 'size-in-bytes', 'object_relation': 'size-in-bytes'}
+src_port_attribute_mapping = {'type': 'port', 'object_relation': 'src-port'}
+start_datetime_attribute_mapping = {'type': 'datetime', 'object_relation': 'first-seen'}
+state_attribute_mapping = {'type': 'text', 'object_relation': 'state'}
+to_attribute_mapping = {'type': 'email-dst', 'object_relation': 'to'}
+url_attribute_mapping = {'type': 'url', 'object_relation': 'url'}
+url_port_attribute_mapping = {'type': 'port', 'object_relation': 'port'}
+user_id_mapping = {'type': 'text', 'object_relation': 'username'}
+username_mapping = {'type': 'text', 'object_relation': 'username'}
+x_mailer_attribute_mapping = {'type': 'email-x-mailer', 'object_relation': 'x-mailer'}
+x509_md5_attribute_mapping = {'type': 'x509-fingerprint-md5', 'object_relation': 'x509-fingerprint-md5'}
+x509_sha1_attribute_mapping = {'type': 'x509-fingerprint-sha1', 'object_relation': 'x509-fingerprint-sha1'}
+x509_sha256_attribute_mapping = {'type': 'x509-fingerprint-sha256', 'object_relation': 'x509-fingerprint-sha256'}
+x509_spka_attribute_mapping = {'type': 'text', 'object_relation': 'pubkey-info-algorithm'} # x509 subject public key algorithm
+x509_spke_attribute_mapping = {'type': 'text', 'object_relation': 'pubkey-info-exponent'} # x509 subject public key exponent
+x509_spkm_attribute_mapping = {'type': 'text', 'object_relation': 'pubkey-info-modulus'} # x509 subject public key modulus
+x509_subject_attribute_mapping = {'type': 'text', 'object_relation': 'subject'}
+x509_version_attribute_mapping = {'type': 'text', 'object_relation': 'version'}
+x509_vna_attribute_mapping = {'type': 'datetime', 'object_relation': 'validity-not-after'} # x509 validity not after
+x509_vnb_attribute_mapping = {'type': 'datetime', 'object_relation': 'validity-not-before'} # x509 validity not before
 
 asn_mapping = {'number': as_number_attribute_mapping,
                'autonomous-system:number': as_number_attribute_mapping,
@@ -181,8 +183,10 @@ asn_mapping = {'number': as_number_attribute_mapping,
                'ipv4-addr:value': asn_subnet_attribute_mapping,
                'ipv6-addr:value': asn_subnet_attribute_mapping}
 
-credential_mapping = {'credential': {'type': 'text', 'relation': 'password'},
-                      'user_id': {'type': 'text', 'relation': 'username'}}
+credential_mapping = {'credential': credential_mapping,
+                      'user-account:credential': credential_mapping,
+                      'user_id': user_id_mapping,
+                      'user-account:user_id': user_id_mapping}
 
 domain_ip_mapping = {'domain-name': domain_attribute_mapping,
                      'domain-name:value': domain_attribute_mapping,
@@ -264,8 +268,9 @@ process_mapping = {'name': process_name_mapping,
                    'process:created': process_creation_time_mapping,
                    'command_line': process_command_line_mapping,
                    'process:command_line': process_command_line_mapping,
-                   'process:parent_ref': {'type': 'text', 'relation': 'parent-pid'},
-                   'process:child_refs': {'type': 'text', 'relation': 'child-pid'}}
+                   'process:parent_ref.pid': {'type': 'text', 'object_relation': 'parent-pid'},
+                   'process:child_refs[*].pid': {'type': 'text', 'object_relation': 'child-pid'},
+                   'process:binary_ref.name': process_image_mapping}
 
 regkey_mapping = {'data': data_attribute_mapping,
                   'windows-registry-key:values.data': data_attribute_mapping,
@@ -277,7 +282,7 @@ regkey_mapping = {'data': data_attribute_mapping,
                   'windows-registry-key:values.name': regkey_name_attribute_mapping,
                   'key': key_attribute_mapping,
                   'windows-registry-key:key': key_attribute_mapping,
-                  'windows-registry-key:value': {'type': 'text', 'relation': 'hive'}
+                  'windows-registry-key:value': {'type': 'text', 'object_relation': 'hive'}
                   }
 
 url_mapping = {'url': url_attribute_mapping,
@@ -288,22 +293,22 @@ url_mapping = {'url': url_attribute_mapping,
                'network-traffic:dst_port': url_port_attribute_mapping
                }
 
-user_account_mapping = {'account_created': {'type': 'datetime', 'object_relation': 'created', 'disable_correlation': True},
-                        'account_expires': {'type': 'datetime', 'object_relation': 'expires', 'disable_correlation': True},
-                        'account_first_login': {'type': 'datetime', 'object_relation': 'first_login', 'disable_correlation': True},
-                        'account_last_login': {'type': 'datetime', 'object_relation': 'last_login', 'disable_correlation': True},
+user_account_mapping = {'account_created': {'type': 'datetime', 'object_relation': 'created'},
+                        'account_expires': {'type': 'datetime', 'object_relation': 'expires'},
+                        'account_first_login': {'type': 'datetime', 'object_relation': 'first_login'},
+                        'account_last_login': {'type': 'datetime', 'object_relation': 'last_login'},
                         'account_login': {'type': 'text', 'object_relation': 'username'},
                         'account_type': {'type': 'text', 'object_relation': 'account-type'},
-                        'can_escalate_privs': {'type': 'boolean', 'object_relation': 'can_escalate_privs', 'disable_correlation': True},
+                        'can_escalate_privs': {'type': 'boolean', 'object_relation': 'can_escalate_privs'},
                         'credential': {'type': 'text', 'object_relation': 'password'},
-                        'credential_last_changed': {'type': 'datetime', 'object_relation': 'password_last_changed', 'disable_correlation': True},
+                        'credential_last_changed': {'type': 'datetime', 'object_relation': 'password_last_changed'},
                         'display_name': {'type': 'text', 'object_relation': 'display-name'},
-                        'gid': {'type': 'text', 'object_relation': 'group-id', 'disable_correlation': True},
-                        'home_dir': {'type': 'text', 'object_relation': 'home_dir', 'disable_correlation': True},
-                        'is_disabled': {'type': 'boolean', 'object_relation': 'disabled', 'disable_correlation': True},
-                        'is_privileged': {'type': 'boolean', 'object_relation': 'privileged', 'disable_correlation': True},
-                        'is_service_account': {'type': 'boolean', 'object_relation': 'is_service_account', 'disable_correlation': True},
-                        'shell': {'type': 'text', 'object_relation': 'shell', 'disable_correlation': True},
+                        'gid': {'type': 'text', 'object_relation': 'group-id'},
+                        'home_dir': {'type': 'text', 'object_relation': 'home_dir'},
+                        'is_disabled': {'type': 'boolean', 'object_relation': 'disabled'},
+                        'is_privileged': {'type': 'boolean', 'object_relation': 'privileged'},
+                        'is_service_account': {'type': 'boolean', 'object_relation': 'is_service_account'},
+                        'shell': {'type': 'text', 'object_relation': 'shell'},
                         'user_id': {'type': 'text', 'object_relation': 'user-id'}}
 
 x509_mapping = {'issuer': issuer_attribute_mapping,
