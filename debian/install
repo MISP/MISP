@@ -1,0 +1,6 @@
+app usr/share/misp
+Plugin usr/share/misp
+tools usr/share/misp
+cti-python-stix2 usr/share/misp
+PyMISP usr/share/misp
+INSTALL/MYSQL.sql usr/share/doc/misp

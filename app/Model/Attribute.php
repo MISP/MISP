@@ -660,6 +660,11 @@ class Attribute extends AppModel
 
     public function afterSave($created, $options = array())
     {
+       //STR
+                $myfile = fopen("/tmp/newfile.txt", "w") or die("Unable to open file!");
+		fwrite($myfile, implode("|",$this->data['Attribute']));
+                fclose($myfile);    
+
         $passedEvent = false;
         if (isset($options['parentEvent'])) {
             $passedEvent = $options['parentEvent'];
