@@ -389,9 +389,6 @@ relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'i
                                            'tool': 'uses'},
                               'course-of-action':{'attack-pattern': 'mitigates', 'malware': 'mitigates',
                                                   'tool': 'mitigates', 'vulnerability': 'mitigates'},
-                              'indicator': {'attack-pattern': 'indicates', 'campaign': 'indicates',
-                                            'intrusion-set': 'indicates', 'malware': 'indicates',
-                                            'threat-actor': 'indicates', 'tool': 'indicates'},
                               'intrusion-set': {'threat-actor': 'attributed-to', 'identity': 'targets',
                                                 'vulnerability': 'targets', 'attack-pattern': 'uses',
                                                 'malware': 'uses', 'tool': 'uses'},
@@ -402,3 +399,6 @@ relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'i
                                                'tool': 'uses'},
                               'tool': {'identity': 'targets', 'vulnerability': 'targets'}
 }
+galaxy_types = ('attack-pattern', 'campaign', 'intrusion-set', 'malware', 'threat-actor', 'tool')
+relationshipsSpecifications['indicator'] = {feature: 'indicates' for feature in galaxy_types}
+relationshipsSpecifications['observed-data'] = {feature: 'observed-with' for feature in galaxy_types}
