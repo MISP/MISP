@@ -5,7 +5,7 @@ $towardDbVersion = $updateProgress['toward_db_version'];
 $updateLocked = $updateProgress['update_locked'];
 $lockRemainingTime = $updateProgress['lock_remaining_time'];
 $updateFailNumberReached = $updateProgress['update_fail_number_reached'];
-if ($updateProgress['total'] !== 0 ) {
+if (!empty($updateProgress['total'])) {
     $percentageFail = floor(count($updateProgress['failed_num']) / $updateProgress['total']*100);
     $percentage = floor(($updateProgress['current']) / $updateProgress['total']*100);
 } else {
@@ -29,9 +29,9 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
         <div style="display:flex;flex-direction: row;justify-content: space-between;">
             <span>
                 <?php if ($updateFailNumberReached): ?>
-                    <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Update are locked due to to many update fails'); ?></h5>
+                    <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Updates are locked due to to many update fails'); ?></h5>
                 <?php else: ?>
-                    <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Update are locked due to an ongoing update process. Release lock only if you know what you are doing'); ?></h5>
+                    <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Updates are locked due to an ongoing update process. Release lock only if you know what you are doing.'); ?></h5>
                     <i>(<?php echo sprintf(__('automatically unlock in %smin %ssec'), '<span id="unlock_remaining_time_min">-</span>', '<span id="unlock_remaining_time_sec">-</span>'); ?>)</i>
                 <?php endif; ?>
             </span>

@@ -65,6 +65,16 @@
                     'field' => 'disable_correlation',
                     'type' => 'checkbox'
                 ),
+                array(
+                    'field' => 'first_seen',
+                    'type' => 'text',
+                    'hidden' => true
+                ),
+                array(
+                    'field' => 'last_seen',
+                    'type' => 'text',
+                    'hidden' => true
+                ),
                 '<div id="extended_event_preview" style="width:446px;"></div>'
             ),
             'submit' => array(
@@ -74,6 +84,9 @@
                     "'" . ($action == 'add' ? h($event_id) : h($attribute['Attribute']['id'])) . "'",
                     "'" . h($action) . "'"
                 )
+            ),
+            'metaFields' => array(
+                '<div id="bothSeenSliderContainer" style="height: 170px;"></div>'
             )
         )
     ));
@@ -128,6 +141,32 @@
             endif;
         ?>
         checkSharingGroup('Attribute');
+
+        var $form = $('#AttributeType').closest('form').submit(function( event ) {
+            if ($('#AttributeType').val() === 'datetime') {
+                // add timezone of the browser if not set
+                var allowLocalTZ = true;
+                var $valueInput = $('#AttributeValue')
+                var dateValue = moment($valueInput.val())
+                if (dateValue.isValid()) {
+                    if (dateValue.creationData().format !== "YYYY-MM-DDTHH:mm:ssZ" && dateValue.creationData().format !== "YYYY-MM-DDTHH:mm:ss.SSSSZ") {
+                        // Missing timezone data
+                        var confirm_message = '<?php echo __('Timezone missing, auto-detected as: ') ?>' + dateValue.format('Z')
+                        confirm_message += '<?php echo '\r\n' . __('The following value will be submited instead: '); ?>' + dateValue.toISOString(allowLocalTZ)
+                        if (confirm(confirm_message)) {
+                            $valueInput.val(dateValue.toISOString(allowLocalTZ));
+                        } else {
+                            return false;
+                        }
+                    }
+                } else {
+                    textStatus = '<?php echo __('Value is not a valid datetime. Excpected format YYYY-MM-DDTHH:mm:ssZ') ?>'
+                    showMessage('fail', textStatus);
+                    return false;
+                }
+            }
+        });
     });
 </script>
+<?php echo $this->element('form_seen_input'); ?>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

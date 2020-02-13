@@ -419,6 +419,11 @@ function updateIndex(id, context, newPage) {
             } else {
                 console.log("genericPopupCallback function not defined");
             }
+            if (typeof timelinePopupCallback !== "undefined") {
+                timelinePopupCallback("success");
+            } else {
+                console.log("timelinepopupcallback function not defined");
+            }
         },
         url: url,
     });
@@ -447,15 +452,42 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
     });
 }
 
+function updateObjectFieldOnSuccess(name, type, id, field, event) {
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            if (field != 'timestamp') {
+                $(".loading").show();
+            }
+        },
+        dataType:"html",
+        cache: false,
+        success:function (data, textStatus) {
+            if (field != 'timestamp') {
+                $(".loading").hide();
+                $(name + '_solid').html(data);
+                $(name + '_placeholder').empty();
+                $(name + '_solid').show();
+            } else {
+                $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
+            }
+        },
+        url:"/objects/fetchViewValue/" + id + "/" + field,
+    });
+}
+
 function activateField(type, id, field, event) {
     resetForms();
     if (type == 'denyForm') return;
     var objectType = 'attributes';
+    var containerName = 'Attribute';
     if (type == 'ShadowAttribute') {
         objectType = 'shadow_attributes';
+    } else if (type == 'Object') {
+        objectType = 'objects';
+        containerName = 'Object';
     }
     var name = '#' + type + '_' + id + '_' + field;
-    var container_name = '#Attribute_' + id + '_' + field;
+    var container_name = '#' + containerName + '_' + id + '_' + field;
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
@@ -593,6 +625,8 @@ function submitForm(type, id, field, context) {
     var name = '#' + type + '_' + id + '_' + field;
     if (type == 'ShadowAttribute') {
         object_type = 'shadow_attributes';
+    } else if (type == 'Object') {
+        object_type = 'objects';
     }
     $.ajax({
         data: $(name + '_field').closest("form").serialize(),
@@ -748,7 +782,8 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
     responseArray = data;
     if (type == 'Attribute') {
         if (responseArray.saved) {
-            showMessage('success', responseArray.success);
+            var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
+            showMessage('success', msg);
             updateAttributeFieldOnSuccess(name, type, id, field, event);
             updateAttributeFieldOnSuccess(name, type, id, 'timestamp', event);
             eventUnpublish();
@@ -759,6 +794,17 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
     }
     if (type == 'ShadowAttribute') {
         updateIndex(event, 'event');
+    } else if (type == 'Object') {
+        if (responseArray.saved) {
+            var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
+            showMessage('success', msg);
+            updateObjectFieldOnSuccess(name, type, id, field, event);
+            updateObjectFieldOnSuccess(name, type, id, 'timestamp', event);
+            eventUnpublish();
+        } else {
+            showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
+            updateObjectFieldOnSuccess(name, type, id, field, event);
+        }
     }
     if (responseArray.hasOwnProperty('check_publish')) {
         checkAndSetPublishedInfo();
@@ -1139,7 +1185,7 @@ function openGenericModal(url) {
     });
 }
 
-function submitPopoverForm(context_id, referer, update_context_id, modal) {
+function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dissmis_id_to_close) {
     var url = null;
     var context = 'event';
     var contextNamingConvention = 'Attribute';
@@ -1175,6 +1221,12 @@ function submitPopoverForm(context_id, referer, update_context_id, modal) {
         case 'addSighting':
             closePopover = false;
             break;
+        case 'addObjectReference':
+            url = "/objectReferences/add/" + context_id;
+            break;
+        case 'quickAddAttributeForm':
+           url = "/objects/quickAddAttributeForm/" + context_id;
+           break;
     }
     if ($("#submitButton").parent().hasClass('modal-footer')) {
         var $form = $("#submitButton").parent().parent().find('.modal-body form');
@@ -1193,6 +1245,9 @@ function submitPopoverForm(context_id, referer, update_context_id, modal) {
                 if (closePopover) {
                     $("#gray_out").fadeOut();
                     $("#popover_form").fadeOut();
+                    if (popover_dissmis_id_to_close !== undefined) {
+                        $('[data-dismissid="' + popover_dissmis_id_to_close + '"]').popover('destroy');
+                    }
                     $(".loading").show();
                 }
             }
@@ -1217,7 +1272,14 @@ function submitPopoverForm(context_id, referer, update_context_id, modal) {
                 $('#sightingsListAllToggle').removeClass('btn-inverse');
                 $('#sightingsListAllToggle').addClass('btn-primary');
             }
-            if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')) eventUnpublish();
+            if (
+                (
+                    context == 'event' &&
+                    (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference' || referer == 'quickAddAttributeForm')
+                )
+            ){
+                eventUnpublish();
+            }
         },
         error: function (jqXHR, textStatus, errorThrown) {
             showMessage('fail', textStatus + ": " + errorThrown);
@@ -1260,6 +1322,11 @@ function handleAjaxModalResponse(response, context_id, url, referer, context, co
                     result = "fail";
                 }
                 recoverValuesFromPersistance(savedArray);
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                showMessage('fail', textStatus + ": " + errorThrown);
+            },
+            complete: function () {
                 $(".loading").hide();
             },
             url:url
@@ -1718,8 +1785,22 @@ function popoverPopup(clicked, id, context, target, admin) {
                 $clicked.popover('show');
             }
         },
-        error:function() {
-            popover.options.content =  '<div class="alert alert-error" style="margin-bottom: 0px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>';
+        error:function(jqXHR, textStatus, errorThrown ) {
+            var errorJSON = '';
+            try {
+                errorJSON = JSON.parse(jqXHR.responseText);
+                errorJSON = errorJSON['errors'];
+                if (errorJSON === undefined) {
+                    errorJSON = '';
+                }
+            } catch (SyntaxError) {
+                // no error provided
+            }
+            var errorText = '<div class="alert alert-error" style="margin-bottom: 3px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>';
+            if (errorJSON !== '') {
+                errorText += '<div class="well"><strong>Returned error:</strong> ' + $('<span/>').text(errorJSON).html() + '</div>';
+            }
+            popover.options.content = errorText;
             $clicked.popover('show');
         },
         url: url
@@ -2644,6 +2725,7 @@ function moduleResultsSubmit(id) {
                 $(this).find('.ObjectAttribute').each(function(a) {
                     var attribute_type = $(this).find('.AttributeType').text();
                     attribute = {
+                        import_attribute: $(this).find('.ImportMISPObjectAttribute')[0].checked,
                         object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
                         type: attribute_type,
@@ -2654,6 +2736,9 @@ function moduleResultsSubmit(id) {
                         comment: $(this).find('.AttributeComment').val(),
                         distribution: $(this).find('.AttributeDistribution').val(),
                         sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                    }
+                    if (!attribute['import_attribute']) {
+                        return true;
                     }
                     if (attribute['distribution'] != '4') {
                         attribute['sharing_group_id'] = '0';
@@ -2697,6 +2782,7 @@ function moduleResultsSubmit(id) {
                 type_value = $(this).find('.AttributeType').text();
             }
             temp = {
+                import_attribute: $(this).find('.ImportMISPAttribute')[0].checked,
                 category: category_value,
                 type: type_value,
                 value: $(this).find('.AttributeValue').text(),
@@ -2706,6 +2792,9 @@ function moduleResultsSubmit(id) {
                 comment: $(this).find('.AttributeComment').val(),
                 distribution: $(this).find('.AttributeDistribution').val(),
                 sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+            }
+            if (!temp['import_attribute']) {
+                return true;
             }
             if (temp['distribution'] != '4') {
                 temp['sharing_group_id'] = '0';
@@ -3272,27 +3361,31 @@ function getTextColour(hex) {
     }
 }
 
-function pgpChoiceSelect(uri) {
+function gpgSelect(fingerprint) {
     $("#popover_form").fadeOut();
     $("#gray_out").fadeOut();
     $.ajax({
         type: "get",
-        url: "https://pgp.circl.lu" + uri,
+        url: "/users/fetchGpgKey/" + fingerprint,
+        beforeSend: function () {
+            $(".loading").show();
+        },
         success: function (data) {
-            var result = data.split("<pre>")[1].split("</pre>")[0];
-            $("#UserGpgkey").val(result);
+            $("#UserGpgkey").val(data);
             showMessage('success', "Key found!");
         },
         error: function (data, textStatus, errorThrown) {
             showMessage('fail', textStatus + ": " + errorThrown);
+        },
+        complete: function () {
             $(".loading").hide();
-            $("#gray_out").fadeOut();
-        }
+        },
     });
 }
 
 function lookupPGPKey(emailFieldName) {
-    simplePopup("/users/fetchPGPKey/" + $('#' + emailFieldName).val());
+    var email = $('#' + emailFieldName).val();
+    simplePopup("/users/searchGpgKey/" + email);
 }
 
 function zeroMQServerAction(action) {
@@ -3320,8 +3413,15 @@ function zeroMQServerAction(action) {
 function convertServerFilterRules(rules) {
     validOptions.forEach(function (type) {
         container = "#"+ modelContext + type.ucfirst() + "Rules";
-        if ($(container).val() != '' && $(container).val() != '[]') rules[type] = JSON.parse($(container).val());
-        else {rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}};
+        if ($(container).val() != '' && $(container).val() != '[]') {
+            rules[type] = JSON.parse($(container).val());
+        } else {
+            if (type === 'pull') {
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "url_params": ""}
+            } else {
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}
+            }
+        };
     });
     serverRuleUpdate();
     return rules;
@@ -3352,6 +3452,14 @@ function serverRuleUpdate() {
                 }
             });
         });
+        if (type === 'pull') {
+            if (rules[type]['url_params']) {
+                $("#pull_url_params").show();
+                $("#pull_url_params_text").text(rules[type]['url_params']);
+            } else {
+                $("#pull_url_params").hide();
+            }
+        }
     });
     serverRuleGenerateJSON();
 }
@@ -3407,6 +3515,7 @@ function serverRulePopulateTagPicklist() {
             }));
         });
     });
+    $('#urlParams').val(rules["pull"]["url_params"]);
 }
 
 function submitServerRulePopulateTagPicklistValues(context) {
@@ -3420,7 +3529,9 @@ function submitServerRulePopulateTagPicklistValues(context) {
             rules[context][field]["NOT"].push($(this).val());
         });
     });
-
+    if (context === 'pull') {
+        rules[context]["url_params"] = $('#urlParams').val();
+    }
     $('#server_' + context + '_rule_popover').fadeOut();
     $('#gray_out').fadeOut();
     serverRuleUpdate();

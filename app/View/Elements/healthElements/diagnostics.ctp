@@ -66,7 +66,7 @@
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
-        <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><?php echo __('Update Progress');?></a>
+        <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" style="margin-left: 5px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><i class="fas fa-tasks"></i> <?php echo __('View Update Progress');?></a>
     </div>
     <h3><?php echo __('Submodules version');?>
         <it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Refresh submodules version.'); ?>"></it>
@@ -159,7 +159,7 @@
     <p><span class="bold"><?php echo __('PHP ini path');?></span>:… <span class="green"><?php echo h($php_ini); ?></span><br />
     <span class="bold"><?php echo __('PHP Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['web']['phpcolour']; ?>"><?php echo h($phpversions['web']['phpversion']) . ' (' . $phpversions['web']['phptext'] . ')';?></span><br />
     <span class="bold"><?php echo __('PHP CLI Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['cli']['phpcolour']; ?>"><?php echo h($phpversions['cli']['phpversion']) . ' (' . $phpversions['cli']['phptext'] . ')';?></span></p>
-    <p class="red bold"><?php echo __('Please note that the we will be dropping support for Python 2.7 and PHP 7.1 as of 2020-01-01 and are henceforth considered deprecated (but supported until the end of 2019). Both of these versions will by then reached End of Life and will become a liability. Furthermore, by dropping support for these outdated versions of the languages, we\'ll be able to phase out support for legacy code that exists solely to support them. Make sure that you plan ahead accordingly. More info: ');?><a href="https://secure.php.net/supported-versions.php">PHP</a>, <a href="https://www.python.org/dev/peps/pep-0373">Python</a>.</p>
+    <p class="red bold"><?php echo __('Please note that the support for Python versions below 3.6 and below PHP 7.2 has been dropped as of 2020-01-01 and are henceforth considered unsupported. More info: ');?><a href="https://secure.php.net/supported-versions.php">PHP</a>, <a href="https://www.python.org/dev/peps/pep-0373">Python</a>.</p>
     <p><?php echo __('The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.');?></p>
     <?php
         foreach ($phpSettings as $settingName => &$phpSetting):

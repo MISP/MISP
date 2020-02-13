@@ -200,6 +200,24 @@ class Server extends AppModel
                                 'optionsSource' => 'AvailableLanguages',
                                 'afterHook' => 'cleanCacheFiles'
                         ),
+                        'default_attribute_memory_coefficient' => array(
+                                'level' => 1,
+                                'description' => __('This values controls the internal fetcher\'s memory envelope when it comes to attributes. The number provided is the amount of attributes that can be loaded for each MB of PHP memory available in one shot. Consider lowering this number if your instance has a lot of attribute tags / attribute galaxies attached.'),
+                                'value' => 80,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => true
+                        ),
+                        'default_event_memory_divisor' => array(
+                                'level' => 1,
+                                'description' => __('This value controls the divisor for attribute weighting when it comes to loading full events. Meaning that it will load coefficient / divisor number of attributes per MB of memory available. Consider raising this number if you have a lot of correlations or highly contextualised events (large number of event level galaxies/tags).'),
+                                'value' => 3,
+                                'errorMessage' => '',
+                                'test' => 'testForNumeric',
+                                'type' => 'numeric',
+                                'null' => true
+                        ),
                         'enable_advanced_correlations' => array(
                                 'level' => 0,
                                 'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),
@@ -2552,22 +2570,30 @@ class Server extends AppModel
             return $final;
         }
         $filter_rules = json_decode($filter_rules, true);
+        $url_params = array();
         foreach ($filter_rules as $field => $rules) {
             $temp = array();
-            foreach ($rules as $operator => $elements) {
-                foreach ($elements as $k => $element) {
-                    if ($operator === 'NOT') {
-                        $element = '!' . $element;
-                    }
-                    if (!empty($element)) {
-                        $temp[] = $element;
+            if ($field === 'url_params') {
+                $url_params = json_decode($rules, true);
+            } else {
+                foreach ($rules as $operator => $elements) {
+                    foreach ($elements as $k => $element) {
+                        if ($operator === 'NOT') {
+                            $element = '!' . $element;
+                        }
+                        if (!empty($element)) {
+                            $temp[] = $element;
+                        }
                     }
                 }
+                if (!empty($temp)) {
+                    $temp = implode('|', $temp);
+                    $final[substr($field, 0, strlen($field) -1)] = $temp;
+                }
             }
-            if (!empty($temp)) {
-                $temp = implode('|', $temp);
-                $final[substr($field, 0, strlen($field) -1)] = $temp;
-            }
+        }
+        if (!empty($url_params)) {
+            $final = array_merge_recursive($final, $url_params);
         }
         return $final;
     }
@@ -4364,7 +4390,7 @@ class Server extends AppModel
             $dbExpectedSchema = $this->getExpectedDBSchema();
             if ($dbExpectedSchema !== false) {
                 $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
-                $db_indexes_comparison = $this->compareDBIndexes($dbActualSchema['indexes'], $dbExpectedSchema['indexes']);
+                $db_indexes_comparison = $this->compareDBIndexes($dbActualSchema['indexes'], $dbExpectedSchema['indexes'], $dbExpectedSchema);
                 $schemaDiagnostic['checked_table_column'] = $dbActualSchema['column'];
                 $schemaDiagnostic['diagnostic'] = $db_schema_comparison;
                 $schemaDiagnostic['diagnostic_index'] = $db_indexes_comparison;
@@ -4639,23 +4665,53 @@ class Server extends AppModel
         return $dbDiff;
     }
 
-    public function compareDBIndexes($actualIndex, $expectedIndex)
+    public function compareDBIndexes($actualIndex, $expectedIndex, $dbExpectedSchema)
     {
+        $defaultIndexKeylength = 255;
+        $whitelistTables = array();
         $indexDiff = array();
         foreach($expectedIndex as $tableName => $indexes) {
             if (!array_key_exists($tableName, $actualIndex)) {
-                // If table does not exists, it is covered by the schema diagnostic
+                continue; // If table does not exists, it is covered by the schema diagnostic
+            } elseif(in_array($tableName, $whitelistTables)) {
+                continue; // Ignore whitelisted tables
             } else {
                 $tableIndexDiff = array_diff($indexes, $actualIndex[$tableName]); // check for missing indexes
                 if (count($tableIndexDiff) > 0) {
                     foreach($tableIndexDiff as $columnDiff) {
-                        $indexDiff[$tableName][$columnDiff] = sprintf(__('Column `%s` should be indexed'), $columnDiff);
+                        $columnData  = Hash::extract($dbExpectedSchema['schema'][$tableName], sprintf('{n}[column_name=%s]', $columnDiff))[0];
+                        $message = sprintf(__('Column `%s` should be indexed'), $columnDiff);
+                        if ($columnData['data_type'] == 'varchar') {
+                            $keyLength = sprintf('(%s)', $columnData['character_maximum_length'] < $defaultIndexKeylength ? $columnData['character_maximum_length'] : $defaultIndexKeylength);
+                        } elseif ($columnData['data_type'] == 'text') {
+                            $keyLength = sprintf('(%s)', $defaultIndexKeylength);
+                        } else {
+                            $keyLength = '';
+                        }
+                        $sql = sprintf('CREATE INDEX `%s` ON `%s` (%s%s);',
+                            $columnDiff,
+                            $tableName,
+                            $columnDiff,
+                            $keyLength
+                        );
+                        $indexDiff[$tableName][$columnDiff] = array(
+                            'message' => $message,
+                            'sql' => $sql
+                        );
                     }
                 }
                 $tableIndexDiff = array_diff($actualIndex[$tableName], $indexes); // check for additional indexes
                 if (count($tableIndexDiff) > 0) {
                     foreach($tableIndexDiff as $columnDiff) {
-                        $indexDiff[$tableName][$columnDiff] = sprintf(__('Column `%s` is indexed but should not'), $columnDiff);
+                        $message = sprintf(__('Column `%s` is indexed but should not'), $columnDiff);
+                        $sql = sprintf('DROP INDEX `%s` ON %s;',
+                            $columnDiff,
+                            $tableName
+                        );
+                        $indexDiff[$tableName][$columnDiff] = array(
+                            'message' => $message,
+                            'sql' => $sql
+                        );
                     }
                 }
             }
@@ -4758,7 +4814,7 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '>1.2.0.6', 'cybox' => '>2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>1.2.0', 'pymisp' => '>2.4.93');
+        $expected = array('stix' => '>1.2.0.6', 'cybox' => '>2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>1.2.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);
@@ -4966,11 +5022,17 @@ class Server extends AppModel
             if (!$alive || !$correct_user) {
                 $ok = false;
                 $workerIssueCount++;
-                $worker_array[$entry]['ok'] = false;
             }
             $worker_array[$entry]['workers'][] = array('pid' => $pid, 'user' => $worker['user'], 'alive' => $alive, 'correct_user' => $correct_user, 'ok' => $ok);
         }
         foreach ($worker_array as $k => $queue) {
+            if (isset($worker_array[$k]['workers'])) {
+                foreach($worker_array[$k]['workers'] as $worker) {
+                    if ($worker['ok']) {
+                        $worker_array[$k]['ok'] = true; // If at least one worker is up, the queue can be considered working
+                    }
+                }
+            }
             if ($k != 'scheduler') {
                 $worker_array[$k]['jobCount'] = CakeResque::getQueueSize($k);
             }
@@ -5119,23 +5181,16 @@ class Server extends AppModel
         return 2;
     }
 
-
-    /* returns an array with the events
-     * error codes:
-     * 1: received non json response
-     * 2: no route to host
-     * 3: empty result set
+    /**
+     * Returns an array with the events
+     * @param int $id
+     * @param $user - not used
+     * @param array $passedArgs
+     * @return array
+     * @throws Exception
      */
-    public function previewIndex($id, $user, $passedArgs, &$total_count = 0)
+    public function previewIndex($id, $user, array $passedArgs)
     {
-        $server = $this->find('first', array(
-            'conditions' => array('Server.id' => $id),
-        ));
-        if (empty($server)) {
-            return 2;
-        }
-        $HttpSocket = $this->setupHttpSocket($server);
-        $request = $this->setupSyncRequest($server);
         $validArgs = array_merge(array('sort', 'direction', 'page', 'limit'), $this->validEventIndexFilters);
         $urlParams = '';
         foreach ($validArgs as $v) {
@@ -5143,80 +5198,56 @@ class Server extends AppModel
                 $urlParams .= '/' . $v . ':' . $passedArgs[$v];
             }
         }
-        $uri = $server['Server']['url'] . '/events/index' . $urlParams;
-        $response = $HttpSocket->get($uri, $data = '', $request);
-        if (!empty($response->headers['X-Result-Count'])) {
-            $temp = $response->headers['X-Result-Count'];
-            $total_count = $temp;
-        }
-        if ($response->code == 200) {
-            try {
-                $events = json_decode($response->body, true);
-            } catch (Exception $e) {
-                return 1;
+
+        $relativeUri = '/events/index' . $urlParams;
+        list($events, $response) = $this->serverGetRequest($id, $relativeUri);
+        $totalCount = $response->getHeader('X-Result-Count') ?: 0;
+
+        foreach ($events as $k => $event) {
+            if (!isset($event['Orgc'])) {
+                $event['Orgc']['name'] = $event['orgc'];
             }
-            if (!empty($events)) {
-                foreach ($events as $k => $event) {
-                    if (!isset($event['Orgc'])) {
-                        $event['Orgc']['name'] = $event['orgc'];
-                    }
-                    if (!isset($event['Org'])) {
-                        $event['Org']['name'] = $event['org'];
-                    }
-                    if (!isset($event['EventTag'])) {
-                        $event['EventTag'] = array();
-                    }
-                    $events[$k] = array('Event' => $event);
-                }
-            } else {
-                return 3;
+            if (!isset($event['Org'])) {
+                $event['Org']['name'] = $event['org'];
             }
-            return $events;
+            if (!isset($event['EventTag'])) {
+                $event['EventTag'] = array();
+            }
+            $events[$k] = array('Event' => $event);
         }
-        return 2;
+
+        return array($events, $totalCount);
     }
 
-    /* returns an array with the events
-     * error codes:
-     * 1: received non-json response
-     * 2: no route to host
+    /**
+     * Returns an array with the event.
+     * @param int $serverId
+     * @param int $eventId
+     * @return array
+     * @throws Exception
      */
     public function previewEvent($serverId, $eventId)
     {
-        $server = $this->find('first', array(
-                'conditions' => array('Server.id' => $serverId),
-        ));
-        if (empty($server)) {
-            return 2;
+        $relativeUri =  '/events/' . $eventId;
+        list($event) = $this->serverGetRequest($serverId, $relativeUri);
+
+        if (!isset($event['Event']['Orgc'])) {
+            $event['Event']['Orgc']['name'] = $event['Event']['orgc'];
         }
-        $HttpSocket = $this->setupHttpSocket($server);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/events/' . $eventId;
-        $response = $HttpSocket->get($uri, $data = '', $request);
-        if ($response->code == 200) {
-            try {
-                $event = json_decode($response->body, true);
-            } catch (Exception $e) {
-                return 1;
-            }
-            if (!isset($event['Event']['Orgc'])) {
-                $event['Event']['Orgc']['name'] = $event['Event']['orgc'];
-            }
-            if (isset($event['Event']['Orgc'][0])) {
-                $event['Event']['Orgc'] = $event['Event']['Orgc'][0];
-            }
-            if (!isset($event['Event']['Org'])) {
-                $event['Event']['Org']['name'] = $event['Event']['org'];
-            }
-            if (isset($event['Event']['Org'][0])) {
-                $event['Event']['Org'] = $event['Event']['Org'][0];
-            }
-            if (!isset($event['Event']['EventTag'])) {
-                $event['Event']['EventTag'] = array();
-            }
-            return $event;
+        if (isset($event['Event']['Orgc'][0])) {
+            $event['Event']['Orgc'] = $event['Event']['Orgc'][0];
         }
-        return 2;
+        if (!isset($event['Event']['Org'])) {
+            $event['Event']['Org']['name'] = $event['Event']['org'];
+        }
+        if (isset($event['Event']['Org'][0])) {
+            $event['Event']['Org'] = $event['Event']['Org'][0];
+        }
+        if (!isset($event['Event']['EventTag'])) {
+            $event['Event']['EventTag'] = array();
+        }
+
+        return $event;
     }
 
     // Loops through all servers and checks which servers' push rules don't conflict with the given event.
@@ -5260,15 +5291,15 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         $results = array();
-        $extensions = array('redis', 'gd');
+        $extensions = array('redis', 'gd', 'ssdeep');
         foreach ($extensions as $extension) {
             $results['web']['extensions'][$extension] = extension_loaded($extension);
         }
         if (!is_readable(APP . '/files/scripts/selftest.php')) {
             $results['cli'] = false;
         } else {
-            $results['cli'] = exec('php ' . APP . '/files/scripts/selftest.php');
-            $results['cli'] = json_decode($results['cli'], true);
+            $execResult = exec('php ' . APP . '/files/scripts/selftest.php');
+            $results['cli'] = json_decode($execResult, true);
         }
         return $results;
     }
@@ -5775,6 +5806,53 @@ class Server extends AppModel
             $success = $success && $result;
         }
         return $success;
+    }
+
+    /**
+     * @param int $serverId
+     * @param string $relativeUri
+     * @param HttpSocket|null $HttpSocket
+     * @return array
+     * @throws Exception
+     */
+    private function serverGetRequest($serverId, $relativeUri, HttpSocket $HttpSocket = null)
+    {
+        $server = $this->find('first', array(
+            'conditions' => array('Server.id' => $serverId),
+        ));
+        if ($server === null) {
+            throw new Exception(__("Server with ID '$serverId' not found."));
+        }
+
+        if (!$HttpSocket) {
+            $HttpSocket = $this->setupHttpSocket($server);
+        }
+        $request = $this->setupSyncRequest($server);
+
+        $uri = $server['Server']['url'] . $relativeUri;
+        $response = $HttpSocket->get($uri, array(), $request);
+
+        if ($response === false) {
+            throw new Exception(__("Could not reach '$uri'."));
+        } else if ($response->code == 404) { // intentional !=
+            throw new NotFoundException(__("Fetching the '$uri' failed with HTTP error 404: Not Found"));
+        } else if ($response->code == 405) { // intentional !=
+            $responseText = json_decode($response->body, true);
+            if ($responseText !== null) {
+                throw new Exception(sprintf(__("Fetching the '$uri' failed with HTTP error %s: %s"), $response->code, $responseText['message']));
+            }
+        }
+
+        if ($response->code != 200) { // intentional !=
+            throw new Exception(sprintf(__("Fetching the '$uri' failed with HTTP error %s: %s"), $response->code, $response->reasonPhrase));
+        }
+
+        $data = json_decode($response->body, true);
+        if ($data === null) {
+            throw new Exception(__('Could not parse JSON: ') . json_last_error_msg(), json_last_error());
+        }
+
+        return array($data, $response);
     }
 
     public function getRemoteUser($id)

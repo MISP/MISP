@@ -23,6 +23,9 @@
       <?php echo date('Y-m-d', $object['timestamp']); ?>
     </td>
     <td class="short">
+      <?php echo $this->element('/Servers/View/seen_field', array('object' => $object)); ?>
+    </td>
+    <td class="short">
       <div id = "Attribute_<?php echo $object['id']; ?>_category_placeholder" class = "inline-field-placeholder"></div>
       <div id = "Attribute_<?php echo $object['id']; ?>_category_solid" class="inline-field-solid" ondblclick="activateField('Attribute', '<?php echo $object['id']; ?>', 'category', <?php echo $event['Event']['id'];?>);">
         <?php echo h($object['category']); ?>

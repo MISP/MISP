@@ -46,10 +46,12 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '94';
-    public $pyMispVersion = '2.4.119';
-    public $phpmin = '7.0';
-    public $phprec = '7.2';
+    private $__queryVersion = '98';
+    public $pyMispVersion = '2.4.121';
+    public $phpmin = '7.2';
+    public $phprec = '7.4';
+    public $pythonmin = '3.6';
+    public $pythonrec = '3.7';
     public $isApiAuthed = false;
 
     public $baseurl = '';
@@ -110,7 +112,14 @@ class AppController extends Controller
     public function beforeFilter()
     {
         $this->Auth->loginRedirect = Configure::read('MISP.baseurl') . '/users/routeafterlogin';
-        $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
+
+        $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
+        if ($customLogout) {
+            $this->Auth->logoutRedirect = $customLogout;
+        } else {
+            $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
+        }
+
         $this->__sessionMassage();
         if (Configure::read('Security.allow_cors')) {
             // Add CORS headers
@@ -289,7 +298,9 @@ class AppController extends Controller
 
         if ($this->Auth->user()) {
             // update script
-            $this->{$this->modelClass}->runUpdates();
+            if ($this->Auth->user('Role')['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
+                $this->{$this->modelClass}->runUpdates();
+            }
             $user = $this->Auth->user();
             if (!isset($user['force_logout']) || $user['force_logout']) {
                 $this->loadModel('User');
@@ -1151,7 +1162,6 @@ class AppController extends Controller
 
     public function restSearch()
     {
-        $ordered_url_params = func_get_args();
         if (empty($this->RestSearch->paramArray[$this->modelClass])) {
             throw new NotFoundException(__('RestSearch is not implemented (yet) for this scope.'));
         }
@@ -1174,7 +1184,6 @@ class AppController extends Controller
         if ($filters === false) {
             return $exception;
         }
-        $list = array();
         $key = empty($filters['key']) ? $filters['returnFormat'] : $filters['key'];
         $user = $this->_getApiAuthUser($key, $exception);
         if ($user === false) {

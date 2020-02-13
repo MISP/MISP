@@ -2064,9 +2064,9 @@ class Event extends AppModel
 
         // do not expose all the data ...
         $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid');
-        $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation');
+        $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
         $fieldsObj = array('*');
-        $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp');
+        $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
         $fieldsServer = array('id', 'url', 'name');
         if (!$options['includeAllTags']) {
@@ -2699,6 +2699,13 @@ class Event extends AppModel
             $params['comment'] = $this->convert_filters($params['comment']);
             $conditions = $this->generic_add_filter($conditions, $params['comment'], 'Attribute.comment');
         }
+        return $conditions;
+    }
+
+    public function set_filter_seen(&$params, $conditions, $options)
+    {
+        $f = $options['scope'] . '.' . $options['filter'];
+        $conditions = $this->Attribute->setTimestampSeenConditions($params[$options['filter']], $conditions, $f);
         return $conditions;
     }
 
@@ -4924,7 +4931,7 @@ class Event extends AppModel
         if (!$this->__fTool) {
             $this->__fTool = new FinancialTool();
         }
-        if ($object['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $object['value'])) {
+        if ($this->Attribute->isImage($object)) {
             if (!empty($object['data'])) {
                 $object['image'] = $object['data'];
             } else {
@@ -6589,6 +6596,10 @@ class Event extends AppModel
             }
         }
 
+        if (isset($filters['tag']) and !isset($filters['tags'])) {
+            $filters['tags'] = $filters['tag'];
+        }
+
         $subqueryElements = $this->harvestSubqueryElements($filters);
         $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements);
 
@@ -6671,32 +6682,48 @@ class Event extends AppModel
     private function __clusterEventIds($exportTool, $eventIds)
     {
         $memory_in_mb = $this->Attribute->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
-        $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
+        $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
+        $default_event_memory_divisor = Configure::check('MISP.default_event_memory_multiplier') ? Configure::read('MISP.default_event_memory_divisor') : 3;
+        $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
+        // increase the cost per attribute to account for the overhead of object metadata
+        $memory_scaling_factor = $memory_scaling_factor / $default_event_memory_divisor;
         $limit = $memory_in_mb * $memory_scaling_factor;
         $eventIdList = array();
         $continue = true;
         $i = 0;
         $current_chunk_size = 0;
-        while (!empty($eventIds)) {
-            foreach ($eventIds as $id => $count) {
-                if ($current_chunk_size == 0 && $count > $limit) {
+        $largest_event = 0;
+        foreach ($eventIds as $id => $count) {
+            if ($count > $largest_event) {
+                $largest_event = $count;
+            }
+            if ($current_chunk_size == 0 && $count > $limit) {
+                $eventIdList[$i][] = $id;
+                $current_chunk_size = $count;
+                $i++;
+            } else {
+                if (($current_chunk_size + $count) > $limit) {
+                    $i++;
                     $eventIdList[$i][] = $id;
                     $current_chunk_size = $count;
-                    unset($eventIds[$id]);
-                    $i++;
-                    break;
                 } else {
-                    if (($current_chunk_size + $count) > $limit) {
-                        $i++;
-                        $current_chunk_size = 0;
-                        break;
-                    } else {
-                        $current_chunk_size += $count;
-                        $eventIdList[$i][] = $id;
-                        unset($eventIds[$id]);
-                    }
+                    $current_chunk_size += $count;
+                    $eventIdList[$i][] = $id;
                 }
             }
+        }
+        if ($largest_event/$memory_scaling_factor > $memory_in_mb) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Event',
+                    'model_id' => 0,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'title' => sprintf('Event fetch potential memory exhaustion. During the fetching of events, a large event was detected that exceeds the available PHP memory. Consider rasing the PHP max_memory setting to at least %sM', ceil($largest_event/$memory_scaling_factor)),
+                    'change' => null,
+            ));
         }
         return $eventIdList;
     }
