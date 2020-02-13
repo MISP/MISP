@@ -428,23 +428,24 @@ class StixBuilder():
         coa_args= self.generate_galaxy_args(misp_object, False, False, 'course-of-action')
         self.add_coa_stix_object(coa_args)
 
-    def add_course_of_action_from_object(self, misp_object, _):
+    def add_course_of_action_from_object(self, misp_object, to_ids):
         coa_id = 'course-of-action--{}'.format(misp_object['uuid'])
-        coa_args = {'id': coa_id, 'type': 'course-of-action'}
+        coa_args = {'id': coa_id, 'type': 'course-of-action', 'created_by_ref': self.identity_id}
+        coa_args['labels'] = self.create_object_labels(misp_object['name'], misp_object['meta-category'], to_ids)
         for attribute in misp_object['Attribute']:
             self.parse_galaxies(attribute['Galaxy'], coa_id)
             relation = attribute['object_relation']
-            if relation == 'name':
-                coa_args['name'] = attribute['value']
-            elif relation == 'description':
-                coa_args['description'] = attribute['value']
+            if relation in ('name', 'description'):
+                coa_args[relation] = attribute['value']
+            else:
+                coa_args[f'x_misp_{attribute["type"]}_{relation}'] = attribute['value']
         if not 'name' in coa_args:
             return
         self.add_coa_stix_object(coa_args)
 
     def add_coa_stix_object(self, coa_args):
         coa_args['created_by_ref'] = self.identity_id
-        course_of_action = CourseOfAction(**coa_args)
+        course_of_action = CourseOfAction(**coa_args, allow_custom=True)
         self.append_object(course_of_action)
 
     def add_custom(self, attribute):
