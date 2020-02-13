@@ -1,3 +1,9 @@
+misp (2.4.221-1) UNRELEASED; urgency=low
+
+  * Bump to release 2.4.221
+
+-- Sebastien Tricaud <sebastien.tricaud@devo.com>  Wed, 12 Feb 2020 14:44:35 -0800
+
 misp (2.4.220-1) UNRELEASED; urgency=low
 
   * First package of MISP
