@@ -74,14 +74,14 @@ class StixParser():
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
             attribute_distribution = 5
-        self.synonyms_to_tag_names = args[2] if len(args) > 2 else '/var/www/MISP/app/files/scripts/synonymsToTagNames.json'
+        self._synonyms_to_tag_names = args[2] if len(args) > 2 else '/var/www/MISP/app/files/scripts/synonymsToTagNames.json'
         self.parse_event(event.objects)
 
     def _load_galaxy(self, galaxy):
         try:
-            self.galaxy[galaxy['id'].split('--')[1]] = {'object': galaxy, 'used': False}
+            self.galaxy[galaxy['id'].split('--')[1]] = {'tag_names': self.parse_galaxy(galaxy), 'used': False}
         except AttributeError:
-            self.galaxy = {galaxy['id'].split('--')[1]: {'object': galaxy, 'used': False}}
+            self.galaxy = {galaxy['id'].split('--')[1]: {'tag_names': self.parse_galaxy(galaxy), 'used': False}}
 
     def _load_identity(self, identity):
         try:
@@ -105,6 +105,11 @@ class StixParser():
         except AttributeError:
             self.report = {report['id'].split('--')[1]: report}
 
+    def _load_synonyms_to_tag_names(self):
+        with open(self._synonyms_to_tag_names, 'rt', encoding='utf-8') as f:
+            synonyms_to_tag_names = json.loads(f.read())
+        self._synonyms_to_tag_names = synonyms_to_tag_names
+
     def save_file(self):
         event = self.misp_event.to_json()
         event = json.loads(event)
@@ -126,6 +131,13 @@ class StixParser():
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
     ################################################################################
+
+    def _get_tag_names_from_synonym(self, name):
+        try:
+            return self._synonyms_to_tag_names[name]
+        except TypeError:
+            self._load_synonyms_to_tag_names()
+            return self._synonyms_to_tag_names[name]
 
     @staticmethod
     def getTimestampfromDate(date):
@@ -228,7 +240,7 @@ class StixFromMISPParser(StixParser):
 
     def _parse_undefined(self, stix_object):
         if any(label.startswith('misp-galaxy:') for label in stix_object.get('labels', [])):
-            self.parse_galaxy(stix_object)
+            self._load_galaxy(stix_object)
         else:
             getattr(self, self._special_mapping[stix_object._type])(stix_object)
 
@@ -298,6 +310,15 @@ class StixFromMISPParser(StixParser):
                 misp_object.add_attribute(**{'type': attribute_type, 'value': value,
                                              'object_relation': object_relation})
         self.misp_event.add_object(**misp_object)
+
+    def parse_galaxy(self, galaxy):
+        if hasattr(galaxy, 'labels'):
+            return tuple(label for label in galaxy.labels if label.startswith('misp-galaxy:'))
+        try:
+            return tuple(self._get_tag_names_from_synonym(galaxy.name))
+        except KeyError:
+            print(f'Unknown {galaxy._type} name: {galaxy.name}', file=sys.stderr)
+            return tuple()
 
     def parse_indicator_attribute(self, indicator):
         attribute = self.create_attribute_dict(indicator)
