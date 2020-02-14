@@ -43,8 +43,11 @@ class StixParser():
                              'indicator': '_parse_indicator',
                              'observed-data': '_parse_observable',
                              'identity': '_load_identity'}
-    _stix2misp_mapping.update({special_type: '_load_undefined' for special_type in ('attack-pattern', 'course-of-action', 'vulnerability')})
+    _stix2misp_mapping.update({special_type: '_parse_undefined' for special_type in ('attack-pattern', 'course-of-action', 'vulnerability')})
     _stix2misp_mapping.update({galaxy_type: '_load_galaxy' for galaxy_type in _galaxy_types})
+    _special_mapping = {'attack-pattern': 'parse_attack_pattern',
+                        'course-of-action': 'parse_course_of_action',
+                        'vulnerability': 'parse_vulnerability'}
     _timeline_mapping = {'indicator': ('valid_from', 'valid_until'),
                          'observed-data': ('first_observed', 'last_observed')}
 
@@ -101,12 +104,6 @@ class StixParser():
             self.report[report['id'].split('--')[1]] = report
         except AttributeError:
             self.report = {report['id'].split('--')[1]: report}
-
-    def _load_undefined(self, stix_object):
-        try:
-            self.objects_to_parse[stix_object['id'].split('--')[1]] = stix_object
-        except AttributeError:
-            self.objects_to_parse = {stix_object['id'].split('--')[1]: stix_object}
 
     def save_file(self):
         event = self.misp_event.to_json()
@@ -229,9 +226,42 @@ class StixFromMISPParser(StixParser):
         else:
             self.parse_observable_attribute(observable)
 
+    def _parse_undefined(self, stix_object):
+        if any(label.startswith('misp-galaxy:') for label in stix_object.get('labels', [])):
+            self.parse_galaxy(stix_object)
+        else:
+            getattr(self, self._special_mapping[stix_object._type])(stix_object)
+
     ################################################################################
     ##                             PARSING FUNCTIONS.                             ##
     ################################################################################
+
+    def fill_misp_object(self, misp_object, stix_object, mapping):
+        for feature, value in stix_object.items():
+            if feature not in mapping:
+                if feature.startswith('x_misp_'):
+                    attribute = self.parse_custom_property(feature)
+                else:
+                    continue
+            else:
+                attribute = deepcopy(mapping[feature])
+            attribute.update({'value': value, 'to_ids': False})
+            misp_object.add_attribute(**attribute)
+
+    def parse_attack_pattern(self, attack_pattern):
+        misp_object = MISPObject('attack-pattern', misp_objects_path_custom=self._misp_objects_path)
+        if hasattr(attack_pattern, 'external_references'):
+            misp_object.add_attribute(**{
+                'type': 'text', 'object_relation': 'id',
+                'value': attack_pattern.external_references[0]['external_id'].split('-')[1]
+            })
+        self.fill_misp_object(misp_object, attack_pattern, stix2misp_mapping.attack_pattern_mapping)
+        self.misp_event.add_object(**misp_object)
+
+    def parse_course_of_action(self, course_of_action):
+        misp_object = MISPObject('course-of-action', misp_objects_path_custom=self._misp_objects_path)
+        self.fill_misp_object(misp_object, course_of_action, stix2misp_mapping.course_of_action_mapping)
+        self.misp_event.add_object(**misp_object)
 
     def parse_custom_attribute(self, custom):
         attribute_type = custom['type'].split('x-misp-object-')[1]
@@ -325,6 +355,20 @@ class StixFromMISPParser(StixParser):
             misp_object.add_attribute(**attribute)
         self.misp_event.add_object(**misp_object)
 
+    def parse_vulnerability(self, vulnerability):
+        attributes = self.fill_observable_attributes(vulnerability, stix2misp_mapping.vulnerability_mapping)
+        if hasattr(vulnerability, 'external_references'):
+            for reference in vulnerability.external_references:
+                if reference['source_name'] == 'url':
+                    attributes.append({'type': 'link', 'object_relation': 'references', 'value': reference['url']})
+        if len(attributes) > 1:
+            vulnerability_object = MISPObject('vulenrability', misp_object_path_custom=self._misp_objects_path)
+            for attribute in attributes:
+                vulnerability_object.add_attribute(**attribute)
+            self.misp_event.add_object(**vulnerability_object)
+        else:
+            self.misp_event.add_attribute(**attributes[0])
+
     ################################################################################
     ##                        OBSERVABLE PARSING FUNCTIONS                        ##
     ################################################################################
@@ -347,18 +391,6 @@ class StixFromMISPParser(StixParser):
             attribute.update({'value': value, 'to_ids': False})
             attributes.append(attribute)
         return attributes
-
-    def fill_pe_observable_attributes(self, pe_object, extension, mapping):
-        for feature, value in extension.items():
-            if feature not in mapping:
-                if feature.startswith('x_misp_'):
-                    attribute = self.parse_custom_property(feature)
-                else:
-                    continue
-            else:
-                attribute = deepcopy(mapping[feature])
-            attribute.update({'value': value, 'to_ids': False})
-            pe_object.add_attribute(**attribute)
 
     @staticmethod
     def filter_main_object(observable, main_type):
@@ -510,12 +542,12 @@ class StixFromMISPParser(StixParser):
     def parse_pe_observable(self, observable):
         pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
         extension = observable['0']['extensions']['windows-pebinary-ext']
-        self.fill_pe_observable_attributes(pe_object, extension, stix2misp_mapping.pe_mapping)
+        self.fill_misp_object(pe_object, extension, stix2misp_mapping.pe_mapping)
         for section in extension['sections']:
             section_object = MISPObject('pe-section', misp_objects_path_custom=self._misp_objects_path)
-            self.fill_pe_observable_attributes(section_object, section, stix2misp_mapping.pe_section_mapping)
+            self.fill_misp_object(section_object, section, stix2misp_mapping.pe_section_mapping)
             if hasattr(section, 'hashes'):
-                self.fill_pe_observable_attributes(section_object, section.hashes, stix2misp_mapping.pe_section_mapping)
+                self.fill_misp_object(section_object, section.hashes, stix2misp_mapping.pe_section_mapping)
             pe_object.add_reference(section_object.uuid, 'includes')
             self.misp_event.add_object(**section_object)
         self.misp_event.add_object(**pe_object)
@@ -904,7 +936,8 @@ class ExternalStixParser(StixParser):
     def parse_event(self, stix_objects):
         for stix_object in stix_objects:
             object_type = stix_object['type']
-            getattr(self, self._stix2misp_mapping[object_type] if object_type in self._stix2misp_mapping else '_load_special_object')(stix_object)
+            if object_type in self._stix2misp_mapping:
+                getattr(self, self._stix2misp_mapping[object_type])(stix_object)
 
     def _parse_indicator(self, indicator):
         print(f'has marking refs: {hasattr(indicator, "object_marking_refs")}')
@@ -912,6 +945,12 @@ class ExternalStixParser(StixParser):
 
     def _parse_observable(self, observable):
         print(f'has marking refs: {hasattr(observable, "object_marking_refs")}')
+
+    def _parse_undefined(self, stix_object):
+        try:
+            self.objects_to_parse[stix_object['id'].split('--')[1]] = stix_object
+        except AttributeError:
+            self.objects_to_parse = {stix_object['id'].split('--')[1]: stix_object}
 
     ################################################################################
     ##                             PARSING FUNCTIONS.                             ##

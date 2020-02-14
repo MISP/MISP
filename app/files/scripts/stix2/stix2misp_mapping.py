@@ -120,7 +120,7 @@ misp_types_mapping = {
 
 address_family_attribute_mapping = {'type': 'text','object_relation': 'address-family'}
 as_number_attribute_mapping = {'type': 'AS', 'object_relation': 'asn'}
-asn_description_attribute_mapping = {'type': 'text', 'object_relation': 'description'}
+description_attribute_mapping = {'type': 'text', 'object_relation': 'description'}
 asn_subnet_attribute_mapping = {'type': 'ip-src', 'object_relation': 'subnet-announced'}
 cc_attribute_mapping = {'type': 'email-dst', 'object_relation': 'cc'}
 credential_mapping = {'type': 'text', 'object_relation': 'password'}
@@ -142,6 +142,7 @@ key_attribute_mapping = {'type': 'regkey', 'object_relation': 'key'}
 malware_sample_attribute_mapping = {'type': 'malware-sample', 'object_relation': 'malware-sample'}
 mime_type_attribute_mapping = {'type': 'mime-type', 'object_relation': 'mimetype'}
 modified_attribute_mapping = {'type': 'datetime', 'object_relation': 'last-modified'}
+name_attribute_mapping = {'type': 'text', 'object_relation': 'name'}
 number_sections_mapping = {'type': 'counter', 'object_relation': 'number-sections'}
 password_mapping = {'type': 'text', 'object_relation': 'password'}
 pe_type_mapping = {'type': 'text', 'object_relation': 'type'}
@@ -158,6 +159,7 @@ size_attribute_mapping = {'type': 'size-in-bytes', 'object_relation': 'size-in-b
 src_port_attribute_mapping = {'type': 'port', 'object_relation': 'src-port'}
 start_datetime_attribute_mapping = {'type': 'datetime', 'object_relation': 'first-seen'}
 state_attribute_mapping = {'type': 'text', 'object_relation': 'state'}
+summary_attribute_mapping = {'type': 'text', 'object_relation': 'summary'}
 to_attribute_mapping = {'type': 'email-dst', 'object_relation': 'to'}
 url_attribute_mapping = {'type': 'url', 'object_relation': 'url'}
 url_port_attribute_mapping = {'type': 'port', 'object_relation': 'port'}
@@ -177,11 +179,17 @@ x509_vnb_attribute_mapping = {'type': 'datetime', 'object_relation': 'validity-n
 
 asn_mapping = {'number': as_number_attribute_mapping,
                'autonomous-system:number': as_number_attribute_mapping,
-               'name': asn_description_attribute_mapping,
-               'autonomous-system:name': asn_description_attribute_mapping,
+               'name': description_attribute_mapping,
+               'autonomous-system:name': description_attribute_mapping,
                'value': asn_subnet_attribute_mapping,
                'ipv4-addr:value': asn_subnet_attribute_mapping,
                'ipv6-addr:value': asn_subnet_attribute_mapping}
+
+attack_pattern_mapping = {'name': name_attribute_mapping,
+                          'description': summary_attribute_mapping}
+
+course_of_action_mapping = {'description': description_attribute_mapping,
+                            'name': name_attribute_mapping}
 
 credential_mapping = {'credential': credential_mapping,
                       'user-account:credential': credential_mapping,
@@ -310,6 +318,9 @@ user_account_mapping = {'account_created': {'type': 'datetime', 'object_relation
                         'is_service_account': {'type': 'boolean', 'object_relation': 'is_service_account'},
                         'shell': {'type': 'text', 'object_relation': 'shell'},
                         'user_id': {'type': 'text', 'object_relation': 'user-id'}}
+
+vulnerability_mapping = {'name': {'type': 'text', 'object_relation': 'id'},
+                         'description': summary_attribute_mapping}
 
 x509_mapping = {'issuer': issuer_attribute_mapping,
                 'x509-certificate:issuer': issuer_attribute_mapping,
