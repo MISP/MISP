@@ -3245,17 +3245,6 @@ class EventsController extends AppController
         return $results;
     }
 
-    private function __strposarray($string, $array)
-    {
-        $toReturn = false;
-        foreach ($array as $item) {
-            if (strpos($string, $item)) {
-                $toReturn = true;
-            }
-        }
-        return $toReturn;
-    }
-
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
     {
         // return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events

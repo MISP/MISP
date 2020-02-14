@@ -48,6 +48,8 @@ if [ "$1" = "configure" ] ; then
    MISPDBUSER=$RET
    db_get misp/mariadb_setmisppwd
    MISPDBUSERPWD=$RET
+   db_get misp/base_url
+   BASEURL=$RET
    db_stop
 
    mysql -h$HOST -uroot -p$ROOTPWD -e "CREATE USER IF NOT EXISTS '$MISPDBUSER'@'localhost' IDENTIFIED BY '$MISPDBUSERPWD';"
@@ -67,8 +69,11 @@ if [ "$1" = "configure" ] ; then
    sed -i -E "s/'password'\s=>\s'db password'/'password' => '$MISPDBUSERPWD'/" /usr/share/misp/app/Config/database.php
    sed -i -E "s/'database'\s=>\s'misp'/'database' => '$MISPDB'/" /usr/share/misp/app/Config/database.php
 
-   cd /usr/share/misp/app
-   composer require resque/php-resque
-# No composer.json in current directory, do you want to use the one at /usr/share/misp/app? [Y,n]? Y
-   echo "{\"major\":2, \"minor\":4, \"hotfix\":220}" > /usr/share/misp/VERSION.json    
+   composer require resque/php-resque || true
+   # No composer.json in current directory, do you want to use the one at /usr/share/misp/app? [Y,n]? Y
+
+   
+   sudo -u www-data /usr/share/misp/app/Console/cake admin setSetting MISP.baseurl "$BASEURL"
+   
+   echo "{\"major\":2, \"minor\":4, \"hotfix\":221}" > /usr/share/misp/VERSION.json    
 fi
