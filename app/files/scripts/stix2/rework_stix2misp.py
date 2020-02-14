@@ -97,7 +97,10 @@ class StixParser():
             self.marking_definition = {marking['id'].split('--')[1]: {'object': tag, 'used': False}}
 
     def _load_relationship(self, relationship):
-        self.relationship[relationship.source_ref.split('--')[1]].append(relationship)
+        target_uuid = relationship.target_ref.split('--')[1]
+        reference = (target_uuid, relationship.relationship_type)
+        source_uuid = relationship.source_ref.split('--')[1]
+        self.relationship[source_uuid].append(reference)
 
     def _load_report(self, report):
         try:
@@ -217,8 +220,7 @@ class StixFromMISPParser(StixParser):
             if object_type in self._stix2misp_mapping:
                 getattr(self, self._stix2misp_mapping[object_type])(stix_object)
             else:
-                print(f'not found: {object_type}')
-            # getattr(self, self._stix2misp_mapping[object_type] if object_type in self._stix2misp_mapping else '_load_special_object')
+                print(f'not found: {object_type}', file=sys.stderr)
 
     def _parse_custom(self, custom):
         if 'from_object' in custom['labels']:
