@@ -40,7 +40,7 @@
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
-            <th><?php echo __('uuid');?></th>
+            <th><?php echo __('UUID');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo $this->Paginator->sort('Creator');?></th>
             <th><?php echo __('Description');?></th>
