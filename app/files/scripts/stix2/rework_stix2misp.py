@@ -56,6 +56,8 @@ class StixParser():
         self.misp_event = MISPEvent()
         self.relationship = defaultdict(list)
         self.tags = set()
+        self.galaxy = {}
+        self.marking_definition = {}
 
     def handler(self, event, filename, args):
         self.filename = filename
@@ -78,10 +80,7 @@ class StixParser():
         self.parse_event(event.objects)
 
     def _load_galaxy(self, galaxy):
-        try:
-            self.galaxy[galaxy['id'].split('--')[1]] = {'tag_names': self.parse_galaxy(galaxy), 'used': False}
-        except AttributeError:
-            self.galaxy = {galaxy['id'].split('--')[1]: {'tag_names': self.parse_galaxy(galaxy), 'used': False}}
+        self.galaxy[galaxy['id'].split('--')[1]] = {'tag_names': self.parse_galaxy(galaxy), 'used': False}
 
     def _load_identity(self, identity):
         try:
@@ -91,10 +90,7 @@ class StixParser():
 
     def _load_marking(self, marking):
         tag = self.parse_marking(marking)
-        try:
-            self.marking_definition[marking['id'].split('--')[1]] = {'object': tag, 'used': False}
-        except AttributeError:
-            self.marking_definition = {marking['id'].split('--')[1]: {'object': tag, 'used': False}}
+        self.marking_definition[marking['id'].split('--')[1]] = {'object': tag, 'used': False}
 
     def _load_relationship(self, relationship):
         target_uuid = relationship.target_ref.split('--')[1]
@@ -130,6 +126,56 @@ class StixParser():
         except AttributeError:
             self.marking_refs = {attribute.uuid: (marking.split('--')[1] for marking in marking_refs)}
         return attribute
+
+    def parse_galaxies(self):
+        for galaxy in self.galaxy.values():
+            if not galaxy['used']:
+                for tag_name in galaxy['tag_names']:
+                    self.tags.add(tag_name)
+
+    def parse_relationships(self):
+        attribute_uuids = (attribute.uuid for attribute in self.misp_event.attributes)
+        object_uuids = (object.uuid for object in self.misp_event.objects)
+        for source, references in self.relationship.items():
+            if source in self.galaxy:
+                continue
+            if source in object_uuids:
+                source_object = self.misp_event.get_object_by_uuid(source)
+                for reference in references:
+                    target, reference = reference
+                    if target in attribute_uuids or target in object_uuids:
+                        source_object.add_reference(target, reference)
+            elif source in attribute_uuids:
+                for attribute in self.misp_event.atributes:
+                    if attribute.uuid == source:
+                        for reference in references:
+                            target, reference = reference
+                            if target in self.galaxy:
+                                for tag_name in self.galaxy[target]['tag_names']:
+                                    attribute.add_tag(tag_name)
+                                self.galaxy[target]['used'] = True
+                        break
+
+    def parse_report(self):
+        event_infos = set()
+        for report in self.report.values():
+            if hasattr(report, 'name') and report.name:
+                event_infos.add(report.name)
+            if hasattr(report, 'labels') and report.labels:
+                for label in report.labels:
+                    self.tags.add(label)
+            if hasattr(report, 'object_marking_refs') and report.object_marking_refs:
+                for marking_ref in report.object_marking_refs:
+                    marking_ref = marking_ref.split('--')[1]
+                    try:
+                        self.tags.add(self.marking_definition[marking_ref]['object'])
+                        self.marking_definition[marking_ref]['used'] = True
+                    except KeyError:
+                        continue
+        if len(event_infos) == 1:
+            self.misp_event.info = event_infos.pop()
+        else:
+            self.misp_event.info = f'Imported with MISP import script for {self.stix_version}'
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
@@ -224,6 +270,21 @@ class StixFromMISPParser(StixParser):
                 getattr(self, self._stix2misp_mapping[object_type])(stix_object)
             else:
                 print(f'not found: {object_type}', file=sys.stderr)
+        if self.relationship:
+            self.parse_relationships()
+        if self.galaxy:
+            self.parse_galaxies()
+        if self.tags:
+            for tag in self.tags:
+                self.misp_event.add_tag(tag)
+        if hasattr(self, 'report'):
+            self.parse_report()
+        if self.marking_definition:
+            for marking_definition in self.marking_definition.values():
+                if not marking_definition['used']:
+                    self.tags.add(marking_definition['object'])
+        for tag in self.tags:
+            self.misp_event.add_tag(tag)
 
     def _parse_custom(self, custom):
         if 'from_object' in custom['labels']:
