@@ -769,7 +769,7 @@ class StixFromMISPParser(StixParser):
             attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
             if "network-traffic:extensions.'socket-ext'.is_" in pattern_type:
                 pattern_value = pattern_type.split('_')[1]
-            attribute['value'] = pattern_value
+            attribute['value'] = pattern_value.strip("'")
             attributes.append(attribute)
         return attributes
 
