@@ -161,14 +161,17 @@ class StixParser():
 
     def parse_timeline(self, stix_object):
         misp_object = {'timestamp': self.getTimestampfromDate(stix_object.modified)}
-        first, last = self._timeline_mapping[stix_object._type]
-        first_seen = getattr(stix_object, first)
-        if stix_object.created != first_seen and stix_object.modified != first_seen:
-            misp_object['first_seen'] = first_seen
-            if hasattr(stix_object, last):
-                misp_object['last_seen'] = getattr(stix_object, last)
-        elif hasattr(stix_object, last):
-            misp_object.update({'first_seen': first_seen, 'last_seen': getattr(stix_object, last)})
+        try:
+            first, last = self._timeline_mapping[stix_object._type]
+            first_seen = getattr(stix_object, first)
+            if stix_object.created != first_seen and stix_object.modified != first_seen:
+                misp_object['first_seen'] = first_seen
+                if hasattr(stix_object, last):
+                    misp_object['last_seen'] = getattr(stix_object, last)
+            elif hasattr(stix_object, last):
+                misp_object.update({'first_seen': first_seen, 'last_seen': getattr(stix_object, last)})
+        except KeyError:
+            pass
         return misp_object
 
 
@@ -263,7 +266,7 @@ class StixFromMISPParser(StixParser):
             misp_object.add_attribute(**attribute)
 
     def parse_attack_pattern(self, attack_pattern):
-        misp_object = MISPObject('attack-pattern', misp_objects_path_custom=self._misp_objects_path)
+        misp_object, _ = self.create_misp_object(attack_pattern)
         if hasattr(attack_pattern, 'external_references'):
             misp_object.add_attribute(**{
                 'type': 'text', 'object_relation': 'id',
@@ -273,7 +276,7 @@ class StixFromMISPParser(StixParser):
         self.misp_event.add_object(**misp_object)
 
     def parse_course_of_action(self, course_of_action):
-        misp_object = MISPObject('course-of-action', misp_objects_path_custom=self._misp_objects_path)
+        misp_object, _ = self.create_misp_object(course_of_action)
         self.fill_misp_object(misp_object, course_of_action, stix2misp_mapping.course_of_action_mapping)
         self.misp_event.add_object(**misp_object)
 
@@ -385,12 +388,14 @@ class StixFromMISPParser(StixParser):
                 if reference['source_name'] == 'url':
                     attributes.append({'type': 'link', 'object_relation': 'references', 'value': reference['url']})
         if len(attributes) > 1:
-            vulnerability_object = MISPObject('vulenrability', misp_object_path_custom=self._misp_objects_path)
+            vulnerability_object, _ = self.create_misp_object(vulnerability)
             for attribute in attributes:
                 vulnerability_object.add_attribute(**attribute)
             self.misp_event.add_object(**vulnerability_object)
         else:
-            self.misp_event.add_attribute(**attributes[0])
+            attribute = self.create_attribute_dict(vulnerability)
+            attribute['value'] = attributes[0]['value']
+            self.misp_event.add_attribute(**attribute)
 
     ################################################################################
     ##                        OBSERVABLE PARSING FUNCTIONS                        ##
