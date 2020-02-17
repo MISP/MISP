@@ -719,6 +719,7 @@ class StixBuilder():
     def create_marking(self, tag):
         if tag in tlp_markings:
             marking_definition = globals()[tlp_markings[tag]]
+            self.markings[tag] = marking_definition
             return marking_definition.id
         marking_id = 'marking-definition--%s' % uuid.uuid4()
         definition_type, definition = tag.split(':')
