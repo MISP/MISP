@@ -21,7 +21,7 @@ class PubSubTool
                 $settings[$key] = $temp;
             }
         }
-        $settingsFile = new File(APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'settings.json', true, 0644);
+        $settingsFile = new File(APP . 'files' . DS . 'scripts' . DS . 'tmp' . DS . 'mispzmq_settings.json', true, 0644);
         $settingsFile->write(json_encode($settings, true));
         $settingsFile->close();
         return $settings;
@@ -51,7 +51,7 @@ class PubSubTool
     // otherwise return the pid
     public function checkIfRunning()
     {
-        $pidFile = new File(APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmq.pid');
+        $pidFile = new File(APP . 'files' . DS . 'scripts' . DS . 'tmp' . DS . 'mispzmq.pid');
         $pid = $pidFile->read(true, 'r');
         if ($pid === false || $pid === '') {
             return false;

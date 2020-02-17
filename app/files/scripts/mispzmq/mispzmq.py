@@ -26,8 +26,8 @@ def check_pid(pid):
 
 class MISPZMQ:
     def __init__(self):
-        self.current_location = Path(__file__).parent
-        self.pidfile = self.current_location / "mispzmq.pid"
+        self.tmp_location = Path(__file__).parent.parent / "tmp"
+        self.pidfile = self.tmp_location / "mispzmq.pid"
         self.publishCount = 0
         if self.pidfile.exists():
             with open(self.pidfile.as_posix()) as f:
@@ -37,13 +37,13 @@ class MISPZMQ:
             else:
                 # Cleanup
                 self.pidfile.unlink()
-        if (self.current_location / 'settings.json').exists():
+        if (self.tmp_location / 'mispzmq_settings.json').exists():
             self.setup()
         else:
             raise Exception("The settings file is missing.")
 
     def setup(self):
-        with open((self.current_location / 'settings.json').as_posix()) as settings_file:
+        with open((self.tmp_location / 'mispzmq_settings.json').as_posix()) as settings_file:
             self.settings = json.load(settings_file)
         self.namespace = self.settings["redis_namespace"]
         self.r = redis.StrictRedis(host=self.settings["redis_host"], db=self.settings["redis_database"],
