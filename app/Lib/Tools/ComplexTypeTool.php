@@ -169,12 +169,6 @@ class ComplexTypeTool
         return array_values($array);
     }
 
-    private function __parse_row($row, $delimiter)
-    {
-        $columns = str_getcsv($row, $delimiter);
-        return $columns;
-    }
-
     /*
      * parse a CSV file with the given settings
      * All lines starting with # are stripped
