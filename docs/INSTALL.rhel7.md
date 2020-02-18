@@ -218,7 +218,7 @@ installCoreRHEL () {
 
   # Create a python3 virtualenv
   sudo pip3 install virtualenv
-  $SUDO_WWW python3 -- virtualenv -p python3 $PATH_TO_MISP/venv
+  $SUDO_WWW python3 -m venv $PATH_TO_MISP/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
