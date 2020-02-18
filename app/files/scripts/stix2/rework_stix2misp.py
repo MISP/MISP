@@ -172,6 +172,10 @@ class StixParser():
                         self.marking_definition[marking_ref]['used'] = True
                     except KeyError:
                         continue
+            if hasattr(report, 'external_references'):
+                for reference in report.external_references:
+                    self.misp_event.add_attribute(**{'type': 'link', 'value': reference['url']})
+
         if len(event_infos) == 1:
             self.misp_event.info = event_infos.pop()
         else:
