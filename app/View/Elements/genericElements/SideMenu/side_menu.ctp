@@ -79,6 +79,11 @@
                             'text' => __('Add Attachment')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add',
+                            'url' => '/eventReports/add/' . h($event['Event']['id']),
+                            'text' => __('Add Event Report')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'onClick' => array(
                                 'function' => 'getPopup',
                                 'params' => array($event['Event']['id'], 'events', 'importChoice')
@@ -332,6 +337,27 @@
                         ));
                     }
                 break;
+
+                case 'event-report':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => '/eventReports/index',
+                        'text' => __('List Event Reports')
+                    ));
+                    if ($isAclAdd && $menuItem === 'add') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add',
+                            'url' => '/eventReports/add',
+                            'text' => __('Add Event Report')
+                        ));
+                    }
+                    if ($menuItem === 'view') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/eventReports/view/' . h($id),
+                            'text' => __('View Event Report')
+                        ));
+                    }
+                    break;
 
                 case 'regexp':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(

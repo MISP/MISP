@@ -373,6 +373,10 @@ class Event extends AppModel
         'Sighting' => array(
             'className' => 'Sighting',
             'dependent' => true,
+        ),
+        'EventReport' => array(
+            'className' => 'EventReport',
+            'dependent' => true,
         )
     );
 
