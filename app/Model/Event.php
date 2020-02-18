@@ -5694,6 +5694,7 @@ class Event extends AppModel
         }
         $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $result = shell_exec($shell_command);
+        $result = end(preg_split("/\r\n|\n|\r/", trim($result)));
         $tempFile = file_get_contents($tempFilePath);
         unlink($tempFilePath);
         if (trim($result) == '1') {
