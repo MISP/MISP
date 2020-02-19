@@ -142,9 +142,7 @@ class PubSubTool
 
     private function __pushToRedis($ns, $data)
     {
-        $settings = $this->__getSetSettings();
-        $this->__redis->select($settings['redis_database']);
-        $this->__redis->rPush($settings['redis_namespace'] . $ns, $data);
+        $this->__redis->rPush($this->__settings['redis_namespace'] . $ns, $data);
         return true;
     }
 
