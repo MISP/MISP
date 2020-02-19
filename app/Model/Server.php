@@ -4550,6 +4550,7 @@ class Server extends AppModel
                     WHERE table_schema = '%s' AND TABLE_NAME = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
                 $sqlResult = $this->query($sqlSchema);
                 foreach ($sqlResult as $column_schema) {
+                    $column_schema['columns'] = array_change_key_case($column_schema['columns'],CASE_LOWER);
                     $dbActualSchema[$table][] = $column_schema['columns'];
                 }
                 $dbActualIndexes[$table] = $this->getDatabaseIndexes($this->getDataSource()->config['database'], $table);

@@ -49,7 +49,7 @@
                 'children' => array(
                     array(
                         'id' => 'create-button',
-                        'title' => $possibleAction === 'attribute' ? __('Add attribute') : __('Add proposal'),
+                        'title' => $possibleAction === 'Attribute' ? __('Add attribute') : __('Add proposal'),
                         'fa-icon' => 'plus',
                         //'onClick' => 'clickCreateButton',
                         'onClick' => 'openGenericModal',
