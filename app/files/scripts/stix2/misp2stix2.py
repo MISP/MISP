@@ -1079,7 +1079,7 @@ class StixBuilder():
                 stix_type = ipPortObjectMapping[relation]
             elif relation == 'ip':
                 mapping_type = 'ip-port'
-                stix_type = ipPortObjectMapping[relation].format(define_address_type(attribute_value))
+                stix_type = ipPortObjectMapping[relation].format('ref', define_address_type(attribute_value))
             else:
                 try:
                     stix_type = ipPortObjectMapping[relation]
@@ -1260,17 +1260,21 @@ class StixBuilder():
     @staticmethod
     def create_network_pattern(attributes, mapping):
         pattern = []
+        features = ('ip-{}', 'hostname-{}', '{}-port')
         for feature in ('src', 'dst'):
-            ip_feature = 'ip-{}'.format(feature)
-            if ip_feature in attributes:
-                value = attributes[ip_feature]
-                pattern.append(mapping.format(networkTrafficMapping[ip_feature].format(define_address_type(value)), value))
-            host_feature = 'hostname-{}'.format(feature)
-            if host_feature in attributes:
-                pattern.append(mapping.format(networkTrafficMapping[host_feature].format('domain-name'), attributes[host_feature]))
-            port_feature = '{}-port'.format(feature)
-            if port_feature in attributes:
-                pattern.append(mapping.format(networkTrafficMapping[port_feature], attributes[port_feature]))
+            index = 0
+            references = {ftype: attributes[ftype] for ftype in (f_type.format(feature) for f_type in features) if ftype in attributes}
+            ref  = 'ref' if len(references) == 1 else 'refs[{}]'
+            if f'ip-{feature}' in attributes:
+                value = references[f'ip-{feature}']
+                pattern.append(mapping.format(networkTrafficMapping[f'ip-{feature}'].format(ref.format(index), define_address_type(value)), value))
+                index += 1
+            if f'hostname-{feature}' in attributes:
+                key = f'hostname-{feature}'
+                pattern.append(mapping.format(networkTrafficMapping[key].format(ref.format(index), 'domain-name'), references[key]))
+            if f'{feature}-port' in attributes:
+                key = f'{feature}-port'
+                pattern.append(mapping.format(networkTrafficMapping[key], references[key]))
         return pattern
 
     @staticmethod

@@ -273,8 +273,8 @@ mispTypesMapping = {
 }
 
 network_traffic_pattern = "network-traffic:{0} = '{1}'"
-network_traffic_src_ref = "src_ref.type = '{0}' AND network-traffic:src_ref.value"
-network_traffic_dst_ref = "dst_ref.type = '{0}' AND network-traffic:dst_ref.value"
+network_traffic_src_ref = "src_{0}.type = '{1}' AND network-traffic:src_{0}.value"
+network_traffic_dst_ref = "dst_{0}.type = '{1}' AND network-traffic:dst_{0}.value"
 
 objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                           'observable': {'type': 'autonomous-system'},
