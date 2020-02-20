@@ -333,8 +333,9 @@ installSupported () {
   progress 4
 
   # Install misp-dashboard - functionLocation('generic/misp-dashboard-debian.md')
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
-  progress 4
+  ## FIXME: The current stat of misp-dashboard is broken, disabling any use.
+  ##[[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
+  ##progress 4
 
   # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
@@ -428,8 +429,9 @@ installMISPonKali () {
   # Needs virtualenv
   $SUDO_WWW virtualenv -p python3 ${PATH_TO_MISP}/venv
 
-  debug "Installing MISP dashboard"
-  mispDashboard
+  ## FIXME: The current stat of misp-dashboard is broken, disabling any use.
+  ##debug "Installing MISP dashboard"
+  ##mispDashboard
 
   debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
@@ -589,7 +591,8 @@ installMISPonKali () {
 
   debug "Running Core Cake commands"
   coreCAKE 2> /dev/null > /dev/null
-  dashboardCAKE 2> /dev/null > /dev/null
+  ## FIXME: The current stat of misp-dashboard is broken, disabling any use.
+  ##dashboardCAKE 2> /dev/null > /dev/null
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT 2> /dev/null > /dev/null

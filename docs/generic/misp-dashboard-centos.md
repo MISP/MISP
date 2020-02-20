@@ -2,6 +2,9 @@
 --------------
 
 !!! warning
+    Currently defunct due to upstream dependency changes
+
+!!! warning
     Does not work on RHEL 8
 
 ```bash
