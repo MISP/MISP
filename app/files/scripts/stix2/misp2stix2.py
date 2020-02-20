@@ -1260,7 +1260,7 @@ class StixBuilder():
     @staticmethod
     def create_network_pattern(attributes, mapping):
         pattern = []
-        features = ('ip-{}', 'hostname-{}', '{}-port')
+        features = ('ip-{}', 'hostname-{}')
         for feature in ('src', 'dst'):
             index = 0
             references = {ftype: attributes[ftype] for ftype in (f_type.format(feature) for f_type in features) if ftype in attributes}
@@ -1274,7 +1274,7 @@ class StixBuilder():
                 pattern.append(mapping.format(networkTrafficMapping[key].format(ref.format(index), 'domain-name'), references[key]))
             if f'{feature}-port' in attributes:
                 key = f'{feature}-port'
-                pattern.append(mapping.format(networkTrafficMapping[key], references[key]))
+                pattern.append(mapping.format(networkTrafficMapping[key], attributes[key]))
         return pattern
 
     @staticmethod
