@@ -806,23 +806,36 @@ class StixFromMISPParser(StixParser):
     def parse_ip_port_pattern(self, pattern):
         return self.fill_pattern_attributes(pattern, stix2misp_mapping.network_traffic_mapping)
 
-    @staticmethod
-    def parse_network_connection_pattern(pattern):
+    def parse_network_connection_pattern(self, pattern):
         attributes = []
+        references = defaultdict(dict)
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
             if pattern_type not in stix2misp_mapping.network_traffic_mapping:
+                pattern_value = pattern_value.strip("'")
                 if pattern_type.startswith('network-traffic:protocols['):
-                    pattern_value = pattern_value.strip("'")
                     attributes.append({
                         'type': 'text', 'value': pattern_value,
-                        'object_relation': 'layer%s-protocol' % stix2misp_mapping.connection_protocols[pattern_value]
+                        'object_relation': f'layer{stix2misp_mapping.connection_protocols[pattern_value]}-protocol'
                     })
+                    continue
+                if any(pattern_type.startswith(f'network-traffic:{feature}_ref') for feature in ('src', 'dst')):
+                    feature_type, ref = pattern_type.split(':')[1].split('_')
+                    ref, feature = ref.split('.')
+                    ref = f"{feature_type}_{'0' if ref == 'ref' else ref.strip('refs[]')}"
+                    references[ref].update(self._parse_network_connection_reference(feature_type, feature, pattern_value))
                 continue
             attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
             attribute['value'] = pattern_value.strip("'")
             attributes.append(attribute)
+        attributes.extend(attribute for attribute in references.values())
         return attributes
+
+    @staticmethod
+    def _parse_network_connection_reference(feature_type, feature, value):
+        if feature == 'type':
+            return {type: value.format(feature_type) for type, value in stix2misp_mapping.network_connection_mapping[value].items()}
+        return {feature: value}
 
     @staticmethod
     def parse_network_socket_pattern(pattern):
