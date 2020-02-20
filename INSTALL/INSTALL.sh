@@ -184,9 +184,9 @@ usage () {
   space
   echo -e "${SCRIPT_NAME} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
   echo -e "                -M | ${LBLUE}MISP${NC} modules"        # modules
-  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
   ##echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
-  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ## FIXME: The current state of Viper is broken, disabling any use.
   ##echo -e "                -V | Viper"                            # viper
   echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"         # mail2
   echo -e "                -S | Experimental ssdeep correlations" # ssdeep
@@ -2114,7 +2114,7 @@ installSupported () {
   progress 4
 
   # Install Viper - functionLocation('generic/viper-debian.md')
-  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ## FIXME: The current state of Viper is broken, disabling any use.
   ##[[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
   ##progress 4
 
@@ -2123,7 +2123,7 @@ installSupported () {
   progress 4
 
   # Install misp-dashboard - functionLocation('generic/misp-dashboard-debian.md')
-  ## FIXME: The current stat of misp-dashboard is broken, disabling any use.
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
   ##[[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
   ##progress 4
 
@@ -2381,7 +2381,7 @@ installMISPonKali () {
 
   debug "Running Core Cake commands"
   coreCAKE 2> /dev/null > /dev/null
-  ## FIXME: The current stat of misp-dashboard is broken, disabling any use.
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
   ##dashboardCAKE 2> /dev/null > /dev/null
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
@@ -2394,7 +2394,7 @@ installMISPonKali () {
   debug "Installing misp-modules"
   mispmodules
 
-  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ## FIXME: The current state of Viper is broken, disabling any use.
   ##debug "Installing Viper"
   ##viper
 

@@ -25,9 +25,9 @@ usage () {
   space
   echo -e "${SCRIPT_NAME} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
   echo -e "                -M | ${LBLUE}MISP${NC} modules"        # modules
-  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
   ##echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
-  ## FIXME: The current stat of Viper is broken, disabling any use.
+  ## FIXME: The current state of Viper is broken, disabling any use.
   ##echo -e "                -V | Viper"                            # viper
   echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"         # mail2
   echo -e "                -S | Experimental ssdeep correlations" # ssdeep
