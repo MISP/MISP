@@ -41,8 +41,12 @@
             <select id="ServerExternal">
                 <?php
                     foreach ($externalOrganisations as $k => $v) {
-                        if ($k == $oldRemoteOrg) echo '<option value="' . $k . '" selected="selected">' . h($v) . '</option>';
-                        else echo '<option value="' . $k . '">' . h($v) . '</option>';
+                        if (isset($oldRemoteOrg)) {
+                            if ($k == $oldRemoteOrg) echo '<option value="' . h($k) . '" selected="selected">' . h($v) . '</option>';
+                            else echo '<option value="' . h($k) . '">' . h($v) . '</option>';
+                        } else {
+                            echo '<option value="' . h($k) . '">' . h($v) . '</option>';
+                        }
                     }
                 ?>
             </select>
@@ -53,10 +57,10 @@
                 <?php
                     foreach ($localOrganisations as $k => $v) {
                         if (isset($oldRemoteOrg)) {
-                            if ($k == $oldRemoteOrg) echo '<option value="' . $k . '" selected="selected">' . h($v) . '</option>';
-                            else echo '<option value="' . $k . '">' . h($v) . '</option>';
+                            if ($k == $oldRemoteOrg) echo '<option value="' . h($k) . '" selected="selected">' . h($v) . '</option>';
+                            else echo '<option value="' . h($k) . '">' . h($v) . '</option>';
                         } else {
-                            echo '<option value="' . $k . '">' . h($v) . '</option>';
+                            echo '<option value="' . h($k) . '">' . h($v) . '</option>';
                         }
                     }
                 ?>
