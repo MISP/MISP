@@ -788,7 +788,7 @@ class StixFromMISPParser(StixParser):
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
             if pattern_type in ("file:hashes.'md5'", 'file:name', 'file:content_ref.payload_bin'):
-                malware_sample[pattern_type] = pattern_value
+                malware_sample[pattern_type] = pattern_value.strip("'")
             if pattern_type not in stix2misp_mapping.file_mapping:
                 continue
             attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])

@@ -219,7 +219,6 @@ file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'file:mime_type': mime_type_attribute_mapping,
                 'name': filename_attribute_mapping,
                 'file:name': filename_attribute_mapping,
-                'file:content_ref.payload_bin': {'type': 'malware-sample', 'object_relation': 'malware-sample'},
                 'artifact:payoad:bin': {'type': 'attachment', 'object_relation': 'attachment'},
                 'file:parent_directory_ref.path': {'type': 'text', 'object_relation': 'path'},
                 'size': size_attribute_mapping,
@@ -266,6 +265,7 @@ for hash_type in hash_types:
     attribute = {'type': misp_hash_type, 'object_relation': misp_hash_type}
     file_mapping[hash_type] = attribute
     file_mapping[f"file:hashes.'{hash_type}'"] = attribute
+    file_mapping[f"file:hashes.'{misp_hash_type}'"] = attribute
     pe_section_mapping[hash_type] = attribute
 
 process_mapping = {'name': process_name_mapping,
