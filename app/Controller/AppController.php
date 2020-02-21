@@ -297,6 +297,14 @@ class AppController extends Controller
         }
 
         if ($this->Auth->user()) {
+            if (Configure::read('MISP.log_user_ips')) {
+                $redis = $this->{$this->modelClass}->setupRedis();
+                if ($redis) {
+                    $redis->set('misp:ip_user:' . trim($_SERVER['REMOTE_ADDR']), $this->Auth->user('id'));
+                    $redis->expire('misp:ip_user:' . trim($_SERVER['REMOTE_ADDR']), 60*60*24*30);
+                    $redis->sadd('misp:user_ip:' . $this->Auth->user('id'), trim($_SERVER['REMOTE_ADDR']));
+                }
+            }
             // update script
             if ($this->Auth->user('Role')['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
                 $this->{$this->modelClass}->runUpdates();

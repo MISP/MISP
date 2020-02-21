@@ -133,7 +133,9 @@ class Server extends AppModel
                     'Update object templates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
                     'Update Warninglists' => 'MISP/app/Console/cake Admin updateWarningLists',
                     'Update Noticelists' => 'MISP/app/Console/cake Admin updateNoticeLists',
-                    'Set default role' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]'
+                    'Set default role' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]',
+                    'Get IPs for user ID' => 'MISP/app/Console/cake Admin UserIP [user_id]',
+                    'Get user ID for user IP' => 'MISP/app/Console/cake Admin IPUser [ip]',
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')
@@ -806,6 +808,15 @@ class Server extends AppModel
                         'log_paranoid_include_post_body' => array(
                                 'level' => 0,
                                 'description' => __('If paranoid logging is enabled, include the POST body in the entries.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
+                        'log_user_ips' => array(
+                                'level' => 0,
+                                'description' => __('Log user IPs on each request. 30 day retention for lookups by IP to get the last authenticated user ID for the given IP, whilst on the reverse, indefinitely stores all associated IPs for a user ID.'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testBool',
@@ -4550,6 +4561,7 @@ class Server extends AppModel
                     WHERE table_schema = '%s' AND TABLE_NAME = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
                 $sqlResult = $this->query($sqlSchema);
                 foreach ($sqlResult as $column_schema) {
+                    $column_schema['columns'] = array_change_key_case($column_schema['columns'],CASE_LOWER);
                     $dbActualSchema[$table][] = $column_schema['columns'];
                 }
                 $dbActualIndexes[$table] = $this->getDatabaseIndexes($this->getDataSource()->config['database'], $table);
