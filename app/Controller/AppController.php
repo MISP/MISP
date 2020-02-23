@@ -1014,7 +1014,11 @@ class AppController extends Controller
                 !Configure::check('Plugin.CustomAuth_use_header_namespace') ||
                 (Configure::check('Plugin.CustomAuth_use_header_namespace') && Configure::read('Plugin.CustomAuth_use_header_namespace'))
             ) {
-                $headerNamespace = Configure::read('Plugin.CustomAuth_header_namespace');
+                if (Configure::check('Plugin.CustomAuth_header_namespace')) {
+                    $headerNamespace = Configure::read('Plugin.CustomAuth_header_namespace');
+                } else {
+                    $headerNamespace = 'HTTP_';
+                }
             } else {
                 $headerNamespace = '';
             }
