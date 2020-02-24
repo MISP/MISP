@@ -411,17 +411,11 @@ class StixBuilder():
         self.append_object(attack_pattern)
 
     def add_attack_pattern_object(self, misp_object, to_ids):
-        a_p_id = 'attack-pattern--{}'.format(misp_object['uuid'])
-        attributes_dict = {attribute['object_relation']: attribute['value'] for attribute in misp_object['Attribute']}
-        a_p_args = {'id': a_p_id, 'type': 'attack-pattern', 'created_by_ref': self.identity_id}
-        a_p_args['labels'] = self.create_object_labels(misp_object['name'], misp_object['meta-category'], to_ids)
-        for relation, key in attackPatternObjectMapping.items():
-            if relation in attributes_dict:
-                a_p_args[key] = attributes_dict[relation]
-        if 'id' in attributes_dict:
-            capec_id = "CAPEC-{}".format(attributes_dict['id'])
-            a_p_args['external_references'] = [{'source_name': 'capec', 'external_id': capec_id}]
-        attack_pattern = AttackPattern(**a_p_args)
+        attack_pattern_args = {'id': f'attack-pattern--{misp_object["uuid"]}', 'type': 'attack-pattern',
+                               'created_by_ref': self.identity_id, 'interoperability': True}
+        attack_pattern_args.update(self.parse_attack_pattern_fields(misp_object['Attribute']))
+        attack_pattern_args['labels'] = self.create_object_labels(misp_object['name'], misp_object['meta-category'], to_ids)
+        attack_pattern = AttackPattern(**attack_pattern_args)
         self.append_object(attack_pattern)
 
     def add_course_of_action(self, misp_object):
@@ -674,15 +668,10 @@ class StixBuilder():
 
     def add_object_vulnerability(self, misp_object, to_ids):
         vulnerability_id = 'vulnerability--{}'.format(misp_object['uuid'])
-        name, description, references = self.fetch_vulnerability_fields(misp_object['Attribute'])
-        labels = self.create_object_labels(misp_object['name'], misp_object['meta-category'], to_ids)
         vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
-                              'name': name, 'created_by_ref': self.identity_id,
-                              'labels': labels, 'interoperability': True}
-        if description:
-            vulnerability_args['description'] = description
-        if references:
-            vulnerability_args['external_references'] = references
+                              'created_by_ref': self.identity_id, 'interoperability': True}
+        vulnerability_args.update(self.parse_vulnerability_fields(misp_object['Attribute']))
+        vulnerability_args['labels'] = self.create_object_labels(misp_object['name'], misp_object['meta-category'], to_ids)
         vulnerability = Vulnerability(**vulnerability_args)
         self.append_object(vulnerability)
 
@@ -769,21 +758,6 @@ class StixBuilder():
                 return True
         return False
 
-    @staticmethod
-    def fetch_vulnerability_fields(attributes):
-        name = "Undefined name"
-        description = ""
-        references = []
-        for attribute in attributes:
-            if attribute['object_relation'] == 'id':
-                name = attribute['value']
-                references.append({'source_name': 'cve', 'external_id': name})
-            elif attribute['object_relation'] == 'summary':
-                description = attribute['value']
-            elif attribute['object_relation'] == 'references':
-                references.append({'source_name': 'url', 'url': attribute['value']})
-        return name, description, references
-
     def handle_tags(self, tags):
         marking_ids = []
         for tag in tags:
@@ -791,6 +765,46 @@ class StixBuilder():
             if marking_id:
                 marking_ids.append(marking_id)
         return marking_ids
+
+    @staticmethod
+    def parse_attack_pattern_fields(attributes):
+        attack_pattern = {}
+        weaknesses = []
+        for attribute in attributes:
+            relation = attribute['object_relation']
+            if relation in attackPatternObjectMapping:
+                attack_pattern[attackPatternObjectMapping[relation]] = attribute['value']
+            else:
+                if relation == 'related-weakness':
+                    weaknesses.append(attribute['value'])
+                else:
+                    attack_pattern[f'x_misp_{attribute["type"]}_{relation}'] = attribute['value']
+                    attack_pattern['allow_custom'] = True
+        if 'id' in attack_pattern:
+            attack_pattern['external_references'] = [{'source_name': 'capec', 'external_id': f'CAPEC-{attack_pattern["id"]}'}]
+        if weaknesses:
+            attack_pattern['x_misp_weakness_related_weakness'] = weaknesses[0] if len(weaknesses) == 1 else weaknesses
+        return attack_pattern
+
+    @staticmethod
+    def parse_vulnerability_fields(attributes):
+        vulnerability = {}
+        references = []
+        for attribute in attributes:
+            relation = attribute['object_relation']
+            if relation in vulnerabilityMapping:
+                vulnerability[vulnerabilityMapping[relation]] = attribute['value']
+            else:
+                if relation == 'references':
+                    references.append({'source_name': 'url', 'url': attribute['value']})
+                else:
+                    vulnerability[f'x_misp_{attribute["type"]}_{relation}'] = attribute['value']
+                    vulnerability['allow_custom'] = True
+        if 'name' in vulnerability:
+            references.append({'source_name': 'cve', 'external_id': vulnerability['name']})
+        if references:
+            vulnerability['external_references'] = references
+        return vulnerability
 
     def resolve_asn_observable(self, attributes, object_id):
         asn = objectsMapping['asn']['observable']

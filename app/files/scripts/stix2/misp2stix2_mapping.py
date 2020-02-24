@@ -370,6 +370,8 @@ userAccountMapping = {'account-type': 'account_type', 'can_escalate_privs': 'can
 
 unixAccountExtensionMapping = {'group': 'groups', 'group-id': 'gid', 'home_dir': 'home_dir', 'shell': 'shell'}
 
+vulnerabilityMapping = {'id': 'name', 'summary': 'description'}
+
 x509mapping = {'pubkey-info-algorithm': 'subject_public_key_algorithm', 'subject': 'subject',
                'pubkey-info-exponent': 'subject_public_key_exponent', 'issuer': 'issuer',
                'pubkey-info-modulus': 'subject_public_key_modulus', 'serial-number': 'serial_number',
