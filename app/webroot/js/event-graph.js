@@ -766,7 +766,7 @@ class EventGraph {
                     group: group,
                     mass: 5,
                 };
-                if (node.type == 'attachment') {
+                if (node.type == 'attachment' && isPicture(node.value)) {
                     // fetch picture via attributes/viewPicture
                     node_conf.group = 'attribute_image';
                     node_conf.size = $('#slider_display_picture_size').val();
@@ -1018,7 +1018,7 @@ class EventGraph {
                             color: getTextColour(parent_color)
                         }
                     };
-                    if (attr.type == 'attachment') {
+                    if (attr.type == 'attachment'  && isPicture(attr.value)) {
                         // fetch picture via attributes/viewPicture
                         node.group = 'obj_relation_image';
                         node.size = $('#slider_display_picture_size').val();
@@ -2500,4 +2500,10 @@ function global_processProperties(clusterOptions, childNodes) {
     clusterOptions.y = 0
     that.clusters.push({id:'cluster:' + that.cluster_index, scale: that.cur_scale, group: clusterOptions.group});
     return clusterOptions;
+}
+
+function isPicture(filename) {
+    var extension = filename.split('.').pop()
+    var validExtensions = ['jpg', 'jpeg', 'png', 'gif']
+    return validExtensions.includes(extension)
 }

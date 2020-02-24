@@ -6734,9 +6734,11 @@ class Event extends AppModel
         $i = 0;
         $current_chunk_size = 0;
         $largest_event = 0;
+        $largest_event_id = 0;
         foreach ($eventIds as $id => $count) {
             if ($count > $largest_event) {
                 $largest_event = $count;
+                $largest_event_id = $id;
             }
             if ($current_chunk_size == 0 && $count > $limit) {
                 $eventIdList[$i][] = $id;
@@ -6762,7 +6764,7 @@ class Event extends AppModel
                     'model_id' => 0,
                     'email' => 'SYSTEM',
                     'action' => 'error',
-                    'title' => sprintf('Event fetch potential memory exhaustion. During the fetching of events, a large event was detected that exceeds the available PHP memory. Consider rasing the PHP max_memory setting to at least %sM', ceil($largest_event/$memory_scaling_factor)),
+                    'title' => sprintf('Event fetch potential memory exhaustion. During the fetching of events, a large event (#%s) was detected that exceeds the available PHP memory. Consider raising the PHP max_memory setting to at least %sM', $largest_event_id, ceil($largest_event/$memory_scaling_factor)),
                     'change' => null,
             ));
         }
