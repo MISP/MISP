@@ -873,7 +873,7 @@ class StixFromMISPParser(StixParser):
                         continue
                     attribute = deepcopy(stix2misp_mapping.pe_mapping[pattern_type])
                     attribute['value'] = pattern_value.strip("'")
-                    attributes.append(attribute)
+                    pe.add_attribute(**attribute)
             else:
                 if pattern_type not in stix2misp_mapping.file_mapping:
                     if pattern_type.startswith('x_misp_'):
