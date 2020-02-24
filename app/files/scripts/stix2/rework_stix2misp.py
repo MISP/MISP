@@ -323,11 +323,21 @@ class StixFromMISPParser(StixParser):
             if feature not in mapping:
                 if feature.startswith('x_misp_'):
                     attribute = self.parse_custom_property(feature)
+                    if isinstance(value, list):
+                        self._fill_misp_object_from_list(misp_object, attribute, value)
+                        continue
                 else:
                     continue
             else:
                 attribute = deepcopy(mapping[feature])
             attribute.update({'value': value, 'to_ids': False})
+            misp_object.add_attribute(**attribute)
+
+    @staticmethod
+    def _fill_misp_object_from_list(misp_object, mapping, values):
+        for value in values:
+            attribute = {'value': value}
+            attribute.update(mapping)
             misp_object.add_attribute(**attribute)
 
     def parse_attack_pattern(self, attack_pattern):
@@ -843,6 +853,8 @@ class StixFromMISPParser(StixParser):
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
             if pattern_type not in stix2misp_mapping.network_traffic_mapping:
+                if 'protocol' in pattern_type:
+                    attributes.append({'type': 'text', 'object_relation': 'protocol', 'value': pattern_value.strip("'")})
                 continue
             attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
             if "network-traffic:extensions.'socket-ext'.is_" in pattern_type:
@@ -911,6 +923,8 @@ class StixFromMISPParser(StixParser):
             pattern_type, pattern_value = pattern_part.split(' = ')
             pattern_type = pattern_type.split('.')[-1].split('[')[0] if "extensions.'unix-account-ext'" in pattern_type else pattern_type.split(':')[-1]
             if pattern_type not in stix2misp_mapping.user_account_mapping:
+                if pattern_type.startswith('group'):
+                    attributes.append({'type': 'text', 'object_relation': 'group', 'value': pattern_value.strip("'")})
                 continue
             attribute = deepcopy(stix2misp_mapping.user_account_mapping[pattern_type])
             attribute['value'] = pattern_value.strip("'")
