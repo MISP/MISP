@@ -275,23 +275,24 @@ mispTypesMapping = {
 network_traffic_pattern = "network-traffic:{0} = '{1}'"
 network_traffic_src_ref = "src_{0}.type = '{1}' AND network-traffic:src_{0}.value"
 network_traffic_dst_ref = "dst_{0}.type = '{1}' AND network-traffic:dst_{0}.value"
+network_traffic_reference_mapping = {'': ''}
 
 objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                           'observable': {'type': 'autonomous-system'},
-                          'pattern': "autonomous-system:{0} = '{1}' AND "},
+                          'pattern': "autonomous-system:{0} = '{1}'"},
                   'attack-pattern': {'to_call': 'add_attack_pattern_object'},
                   'course-of-action': {'to_call': 'add_course_of_action_from_object'},
                   'credential': {'to_call': 'handle_usual_object_name',
                                  'observable': {'type': 'user-account'},
-                                 'pattern': "user-account:{0} = '{1}' AND "},
+                                 'pattern': "user-account:{0} = '{1}'"},
                   'domain-ip': {'to_call': 'handle_usual_object_name',
                                 'pattern': "domain-name:{0} = '{1}'"},
                   'email': {'to_call': 'handle_usual_object_name',
                             'observable': {'0': {'type': 'email-message'}},
-                            'pattern': "email-{0}:{1} = '{2}' AND "},
+                            'pattern': "email-{0}:{1} = '{2}'"},
                   'file': {'to_call': 'handle_usual_object_name',
                            'observable': {'0': {'type': 'file', 'hashes': {}}},
-                           'pattern': "file:{0} = '{1}' AND "},
+                           'pattern': "file:{0} = '{1}'"},
                   'ip-port': {'to_call': 'handle_usual_object_name',
                               'pattern': network_traffic_pattern},
                   'network-connection': {'to_call': 'handle_usual_object_name',
@@ -301,7 +302,7 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                   'pe': {'to_call': 'populate_objects_to_parse'},
                   'pe-section': {'to_call': 'populate_objects_to_parse'},
                   'process': {'to_call': 'handle_usual_object_name',
-                              'pattern': "process:{0} = '{1}' AND "},
+                              'pattern': "process:{0} = '{1}'"},
                   'registry-key': {'to_call': 'handle_usual_object_name',
                                    'observable': {'0': {'type': 'windows-registry-key'}},
                                    'pattern': "windows-registry-key:{0} = '{1}'"},
@@ -313,7 +314,7 @@ objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
                                    'pattern': "user-account:{0} = '{1}'"},
                   'vulnerability': {'to_call': 'add_object_vulnerability'},
                   'x509': {'to_call': 'handle_usual_object_name',
-                           'pattern': "x509-certificate:{0} = '{1}' AND "}
+                           'pattern': "x509-certificate:{0} = '{1}'"}
 }
 
 asnObjectMapping = {'asn': 'number', 'description': 'name', 'subnet-announced': 'value'}
@@ -336,7 +337,9 @@ emailObjectMapping = {'email-body': {'email_type': 'message', 'stix_type': 'body
                       'send-date': {'email_type': 'message', 'stix_type': 'date'},
                       'x-mailer': {'email_type': 'message', 'stix_type': 'additional_header_fields.x_mailer'}}
 
-fileMapping = {'hashes': "hashes.'{0}'", 'size-in-bytes': 'size', 'filename': 'name', 'mime-type': 'mime_type'}
+fileMapping = {'size-in-bytes': 'size', 'filename': 'name', 'mime-type': 'mime_type'}
+hash_types = ('MD5', 'SHA-1', 'SHA-256', 'SHA-224', 'SHA-384', 'SHA-512', 'ssdeep', 'tlsh')
+fileMapping.update({hash_type.replace('-', '').lower(): f"hashes.'{hash_type}'" for hash_type in hash_types})
 
 ipPortObjectMapping = {'ip': network_traffic_dst_ref,
                        'src-port': 'src_port', 'dst-port': 'dst_port',
