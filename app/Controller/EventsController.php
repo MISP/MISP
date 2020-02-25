@@ -730,7 +730,7 @@ class EventsController extends AppController
             if (isset($this->paginate['conditions'])) {
                 $rules['conditions'] = $this->paginate['conditions'];
             }
-            if (!empty($passedArgs['searchminimal'])) {
+            if (!empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal'])) {
                 unset($rules['contain']);
                 $rules['recursive'] = -1;
                 $rules['fields'] = array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid');
@@ -774,7 +774,7 @@ class EventsController extends AppController
                     unset($events[$k]['SharingGroup']);
                 }
             }
-            if (empty($passedArgs['searchminimal'])) {
+            if (empty($passedArgs['searchminimal']) && empty($passedArgs['minimal'])) {
                 $passes = ceil($total_events / 1000);
                 for ($i = 0; $i < $passes; $i++) {
                     $event_tag_objects = array();
