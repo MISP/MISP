@@ -353,7 +353,7 @@ class AdminShell extends AppShell
         $whoami = exec('whoami');
         if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun' || $whoami === 'travis') {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
-            $processId = $this->args[0];
+            $processId = empty($this->args[0]) ? false : $this->args[0];
             $this->Server->runUpdates(true, false, $processId);
             echo 'All updates completed.' . PHP_EOL;
         } else {

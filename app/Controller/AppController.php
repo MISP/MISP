@@ -47,7 +47,7 @@ class AppController extends Controller
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '98';
-    public $pyMispVersion = '2.4.121';
+    public $pyMispVersion = '2.4.122';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $pythonmin = '3.6';
@@ -1014,7 +1014,11 @@ class AppController extends Controller
                 !Configure::check('Plugin.CustomAuth_use_header_namespace') ||
                 (Configure::check('Plugin.CustomAuth_use_header_namespace') && Configure::read('Plugin.CustomAuth_use_header_namespace'))
             ) {
-                $headerNamespace = Configure::read('Plugin.CustomAuth_header_namespace');
+                if (Configure::check('Plugin.CustomAuth_header_namespace')) {
+                    $headerNamespace = Configure::read('Plugin.CustomAuth_header_namespace');
+                } else {
+                    $headerNamespace = 'HTTP_';
+                }
             } else {
                 $headerNamespace = '';
             }
