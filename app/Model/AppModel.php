@@ -77,7 +77,7 @@ class AppModel extends Model
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
-        45 => false, 46 => false, 47 => false
+        45 => false, 46 => false, 47 => false, 48 => false
     );
 
     public $advanced_updates_description = array(
@@ -236,6 +236,9 @@ class AppModel extends Model
                 break;
             case 46:
                 $dbUpdateSuccess = $this->updateDatabase('seenOnAttributeAndObject');
+                break;
+            case 48:
+                $dbUpdateSuccess = $this->__generateCorrelations();
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -2126,6 +2129,33 @@ class AppModel extends Model
             }
         }
         return $updates;
+    }
+
+    private function __generateCorrelations()
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $Job = ClassRegistry::init('Job');
+            $Job->create();
+            $data = array(
+                    'worker' => 'default',
+                    'job_type' => 'generate correlation',
+                    'job_input' => 'All attributes',
+                    'status' => 0,
+                    'retries' => 0,
+                    'org' => 'ADMIN',
+                    'message' => 'Job created.',
+            );
+            $Job->save($data);
+            $jobId = $Job->id;
+            $process_id = CakeResque::enqueue(
+                    'default',
+                    'AdminShell',
+                    array('jobGenerateCorrelation', $jobId),
+                    true
+            );
+            $Job->saveField('process_id', $process_id);
+        }
+        return true;
     }
 
     public function populateNotifications($user, $mode = 'full')
