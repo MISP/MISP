@@ -778,7 +778,7 @@ class StixBuilder():
                 if relation == 'related-weakness':
                     weaknesses.append(attribute['value'])
                 else:
-                    attack_pattern[f'x_misp_{attribute["type"]}_{relation}'] = attribute['value']
+                    attack_pattern[f"x_misp_{attribute['type']}_{relation.replace('-', '_')}"] = attribute['value']
                     attack_pattern['allow_custom'] = True
         if 'id' in attack_pattern:
             attack_pattern['external_references'] = [{'source_name': 'capec', 'external_id': f'CAPEC-{attack_pattern["id"]}'}]
@@ -798,7 +798,7 @@ class StixBuilder():
                 if relation == 'references':
                     references.append({'source_name': 'url', 'url': attribute['value']})
                 else:
-                    vulnerability[f'x_misp_{attribute["type"]}_{relation}'] = attribute['value']
+                    vulnerability[f"x_misp_{attribute['type']}_{relation.replace('-', '_')}"] = attribute['value']
                     vulnerability['allow_custom'] = True
         if 'name' in vulnerability:
             references.append({'source_name': 'cve', 'external_id': vulnerability['name']})
