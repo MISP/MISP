@@ -31,7 +31,7 @@ install:
     - sudo apt-get -y dist-upgrade
     - sudo pip3 install --upgrade pip setuptools requests pyzmq
     - sudo pip3 install --upgrade -r requirements.txt
-    - sudo pip3 install pipenv
+    - sudo pip3 install poetry
     - phpenv rehash
     - sudo mkdir $HOME/.composer ; sudo chown $USER:www-data $HOME/.composer
     - pushd app
@@ -151,13 +151,13 @@ script:
     - pushd PyMISP
     - git submodule init
     - git submodule update
-    - pipenv install -d
-    - pipenv run python tests/testlive_comprehensive.py
-    - pipenv run python tests/test_mispevent.py
+    - poetry install
+    - poetry run python tests/testlive_comprehensive.py
+    - poetry run python tests/test_mispevent.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
     - pushd PyMISP/examples/events/
-    - pipenv run python ./create_massive_dummy_events.py -l 5 -a 30
+    - poetry run python ./create_massive_dummy_events.py -l 5 -a 30
     - popd
     - pushd app/files/feed-metadata
     - jsonschema -i defaults.json schema.json
