@@ -152,8 +152,8 @@ script:
     - git submodule init
     - git submodule update
     - poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport
-    - poetry run nosetests-3.4 tests/testlive_comprehensive.py
-    - poetry run nosetests-3.4 tests/test_mispevent.py
+    - poetry run python tests/testlive_comprehensive.py
+    - poetry run python tests/test_mispevent.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
     - pushd PyMISP/examples/events/
