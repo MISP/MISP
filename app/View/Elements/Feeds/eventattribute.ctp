@@ -38,7 +38,8 @@
 <div id="attributeList" class="attributeListContainer">
     <table class="table table-striped table-condensed">
         <tr>
-            <th><?php echo $this->Paginator->sort('timestamp', 'Date');?></th>
+            <th><?php echo $this->Paginator->sort('timestamp', __('Date'));?></th>
+            <th><?php echo __('First seen') ?> <i class="fas fa-arrow-right"></i> <?php echo __('Last seen') ?></th>
             <th><?php echo $this->Paginator->sort('category');?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>
             <th><?php echo $this->Paginator->sort('value');?></th>

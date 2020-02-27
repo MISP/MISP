@@ -103,7 +103,7 @@ sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
 # Install PHP and dependencies
-sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-mbstring -y
+sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-mbstring php-gd -y
 
 # Apply all changes
 sudo systemctl restart apache2
@@ -160,8 +160,6 @@ cd /var/www/MISP/app
 # Make composer cache happy
 # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
 sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
-sudo -H -u www-data php composer.phar require kamisama/cake-resque:4.1.2
-sudo -H -u www-data php composer.phar config vendor-dir Vendor
 sudo -H -u www-data php composer.phar install
 
 # Enable CakeResque with php-redis
@@ -439,6 +437,13 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 ```bash
 sudo -H -u www-data /var/www/MISP/venv/bin/pip install pyzmq
+```
+
+#### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+```bash
+apt-get install librdkafka-dev php-dev
+pecl install rdkafka
+find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
 ```
 
 !!! warning

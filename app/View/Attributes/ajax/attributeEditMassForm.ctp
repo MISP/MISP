@@ -48,14 +48,36 @@
             ));
             ?>
             <div class="input clear"></div>
+
+            <div class="input clear" data-target="pickerContainerTagRemove">
+                <label><span class="fa fa-times-circle" style="margin-right: 5px;"></span><?php echo __('Tags to <b>remove</b>') ?></label>
+                <?php echo $this->Form->input('tags_ids_remove', array('style' => 'display:none;', 'label' => false)); ?>
+                <?php echo $this->element('generic_picker', array('items' => $tagItemsRemove)); ?>
+            </div>
+            <div class="input clear" style="margin-top: 20px;" data-target="pickerContainerTagAdd">
+                <label><span class="fa fa-plus-circle" style="margin-right: 5px;"></span><?php echo __('Tags to <b>add</b>') ?></label>
+                <?php echo $this->Form->input('tags_ids_add', array('style' => 'display:none;', 'label' => false)); ?>
+                <?php echo $this->element('generic_picker', array('items' => $tagItemsAdd)); ?>
+            </div>
+
+            <div class="input clear" style="margin-top: 20px;" data-target="pickerContainerClusterRemove">
+                <label><span class="fa fa-times-circle" style="margin-right: 5px;"></span><?php echo __('Clusters to <b>remove</b>') ?></label>
+                <?php echo $this->Form->input('clusters_ids_remove', array('style' => 'display:none;', 'label' => false)); ?>
+                <?php echo $this->element('generic_picker', array('items' => $clusterItemsRemove)); ?>
+            </div>
+            <div class="input clear" style="margin-top: 20px;" data-target="pickerContainerClusterAdd">
+                <label><span class="fa fa-plus-circle" style="margin-right: 5px;"></span><?php echo __('Clusters to <b>add</b>') ?></label>
+                <?php echo $this->Form->input('clusters_ids_add', array('style' => 'display:none;', 'label' => false)); ?>
+                <?php echo $this->element('generic_picker', array('items' => $clusterItemsAdd)); ?>
+            </div>
         </div>
     </fieldset>
     <p style="color:red;font-weight:bold;display:none;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.'); ?></p>
-        <div class="overlay_spacing">
+        <div class="overlay_spacing" style="margin-top: 20px;">
             <table>
                 <tr>
                 <td style="vertical-align:top">
-                    <span id="submitButton" class="btn btn-primary" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo $id;?>', 'massEdit')"><?php echo __('Submit'); ?></span>
+                    <span id="submitButton" class="btn btn-primary" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="syncMassEditFormAndSubmit(this)"><?php echo __('Submit'); ?></span>
                 </td>
                 <td style="width:540px;">&nbsp;</td>
                 <td style="vertical-align:top;">
@@ -82,6 +104,35 @@ foreach ($distributionDescriptions as $type => $def) {
     echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
 }
 ?>
+function syncMassEditFormAndSubmit(btn) {
+    // tag remove
+    var $form = $(btn).closest('form');
+    var $input = $form.find('#AttributeTagsIdsRemove');
+    var $select = $form.find('div[data-target="pickerContainerTagRemove"] select');
+    var val = $select.val();
+    val = val !== null && val !== "" && val !== undefined ? val : [];
+    $input.val(JSON.stringify(val));
+    // tag add
+    $input = $form.find('#AttributeTagsIdsAdd');
+    $select = $form.find('div[data-target="pickerContainerTagAdd"] select');
+    val = $select.val();
+    val = val !== null && val !== "" && val !== undefined ? val : [];
+    $input.val(JSON.stringify(val));
+    // cluster remove
+    $input = $form.find('#AttributeClustersIdsRemove');
+    $select = $form.find('div[data-target="pickerContainerClusterRemove"] select');
+    val = $select.val();
+    val = val !== null && val !== "" && val !== undefined ? val : [];
+    $input.val(JSON.stringify(val));
+    // cluster add
+    $input = $form.find('#AttributeClustersIdsAdd');
+    $select = $form.find('div[data-target="pickerContainerClusterAdd"] select');
+    val = $select.val();
+    val = val !== null && val !== "" && val !== undefined ? val : [];
+    $input.val(JSON.stringify(val));
+
+    submitPopoverForm('<?php echo $id;?>', 'massEdit');
+}
 
 $(document).ready(function() {
 

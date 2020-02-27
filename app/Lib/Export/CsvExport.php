@@ -201,7 +201,7 @@ class CsvExport
 		foreach ($requested_obj_attributes as $obj_att) {
 			$this->requested_fields[] = $obj_att;
 		}
-		if (isset($options['filters']['includeContext'])) {
+		if (!empty($options['filters']['includeContext'])) {
 			foreach ($this->event_context_fields as $event_context_field) {
 				$this->requested_fields[] = $event_context_field;
 			}
@@ -220,6 +220,9 @@ class CsvExport
 			$options['flatten'] = 1;
 		}
         $headers = implode(',', $headers) . PHP_EOL;
+        if (!empty($options['filters']['headerless'])) {
+            return '';
+        }
         return $headers;
     }
 

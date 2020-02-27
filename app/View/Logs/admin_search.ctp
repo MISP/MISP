@@ -22,10 +22,10 @@
     ?>
     </fieldset>
 <?php
-echo $this->Form->button('Search', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Search'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'logs', 'menuItem' => 'search'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'logs', 'menuItem' => 'search'));
 ?>

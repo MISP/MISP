@@ -143,6 +143,7 @@ mime_type_attribute_mapping = {'type': 'mime-type', 'relation': 'mimetype'}
 modified_attribute_mapping = {'type': 'datetime', 'relation': 'last-modified'}
 number_sections_mapping = {'type': 'counter', 'relation': 'number-sections'}
 password_mapping = {'type': 'text', 'relation': 'password'}
+path_attribute_mapping = {'type': 'text', 'relation': 'path'}
 pe_type_mapping = {'type': 'text', 'relation': 'type'}
 pid_attribute_mapping = {'type': 'text', 'relation': 'pid'}
 process_command_line_mapping = {'type': 'text', 'relation': 'command-line'}
@@ -180,6 +181,9 @@ asn_mapping = {'number': as_number_attribute_mapping,
                'ipv4-addr:value': asn_subnet_attribute_mapping,
                'ipv6-addr:value': asn_subnet_attribute_mapping}
 
+credential_mapping = {'credential': {'type': 'text', 'relation': 'password'},
+                      'user_id': {'type': 'text', 'relation': 'username'}}
+
 domain_ip_mapping = {'domain-name': domain_attribute_mapping,
                      'domain-name:value': domain_attribute_mapping,
                      'ipv4-addr': ip_attribute_mapping,
@@ -201,12 +205,15 @@ email_mapping = {'date': email_date_attribute_mapping,
                  'from_ref': from_attribute_mapping,
                  'email-message:from_ref': from_attribute_mapping,
                  'body_multipart': body_multipart_mapping,
-                 'email-message:body_multipart[*].body_raw_ref.name': body_multipart_mapping}
+                 'email-message:body_multipart[*].body_raw_ref.name': body_multipart_mapping,
+                 'email-addr:value': to_attribute_mapping}
 
 file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'file:mime_type': mime_type_attribute_mapping,
                 'name': filename_attribute_mapping,
                 'file:name': filename_attribute_mapping,
+                'path': path_attribute_mapping,
+                'directory:path': path_attribute_mapping,
                 'size': size_attribute_mapping,
                 'file:size': size_attribute_mapping}
 
@@ -220,7 +227,8 @@ network_traffic_mapping = {'src_port': src_port_attribute_mapping,
                            'network-traffic:end': end_datetime_attribute_mapping,
                            'value': domain_attribute_mapping,
                            'domain-name:value': domain_attribute_mapping,
-                           'network-traffic:dst_ref.value': ip_attribute_mapping,
+                           'network-traffic:dst_ref.value': {'type': 'ip-dst', 'relation': 'ip-dst'},
+                           'network-traffic:src_red.value': {'type': 'ip-src', 'relation': 'ip-src'},
                            'address_family': address_family_attribute_mapping,
                            "network-traffic:extensions.'socket-ext'.address_family": address_family_attribute_mapping,
                            'protocol_family': domain_family_attribute_mapping,
@@ -233,8 +241,7 @@ network_traffic_mapping = {'src_port': src_port_attribute_mapping,
 network_traffic_extensions = {'socket-ext': 'network-socket'}
 
 network_traffic_ip = ('ip-{}', 'ip-{}')
-ip_port_ip = ('ip-dst', 'ip')
-ip_port_types = {'domain-name': ('domain', 'domain'), 'ipv4-addr': ip_port_ip, 'ipv6-addr': ip_port_ip}
+ip_port_types = {'domain-name': ('domain', 'domain'), 'ipv4-addr': network_traffic_ip, 'ipv6-addr': network_traffic_ip}
 network_socket_types = {'domain-name': ('hostname', 'hostname-{}'), 'ipv4-addr': network_traffic_ip, 'ipv6-addr': network_traffic_ip}
 network_traffic_references_mapping = {'with_extensions': network_socket_types, 'without_extensions': ip_port_types}
 
@@ -254,13 +261,13 @@ process_mapping = {'name': process_name_mapping,
                    'process:child_refs': {'type': 'text', 'relation': 'child-pid'}}
 
 regkey_mapping = {'data': data_attribute_mapping,
-                  'windows-registry-key:data': data_attribute_mapping,
+                  'windows-registry-key:values.data': data_attribute_mapping,
                   'data_type': data_type_attribute_mapping,
-                  'windows-registry-key:data_type': data_type_attribute_mapping,
+                  'windows-registry-key:values.data_type': data_type_attribute_mapping,
                   'modified': modified_attribute_mapping,
                   'windows-registry-key:modified': modified_attribute_mapping,
                   'name': regkey_name_attribute_mapping,
-                  'windows-registry-key:name': regkey_name_attribute_mapping,
+                  'windows-registry-key:values.name': regkey_name_attribute_mapping,
                   'key': key_attribute_mapping,
                   'windows-registry-key:key': key_attribute_mapping,
                   'windows-registry-key:value': {'type': 'text', 'relation': 'hive'}
@@ -273,6 +280,24 @@ url_mapping = {'url': url_attribute_mapping,
                'network-traffic': url_port_attribute_mapping,
                'network-traffic:dst_port': url_port_attribute_mapping
                }
+
+user_account_mapping = {'account_created': {'type': 'datetime', 'object_relation': 'created', 'disable_correlation': True},
+                        'account_expires': {'type': 'datetime', 'object_relation': 'expires', 'disable_correlation': True},
+                        'account_first_login': {'type': 'datetime', 'object_relation': 'first_login', 'disable_correlation': True},
+                        'account_last_login': {'type': 'datetime', 'object_relation': 'last_login', 'disable_correlation': True},
+                        'account_login': {'type': 'text', 'object_relation': 'username'},
+                        'account_type': {'type': 'text', 'object_relation': 'account-type'},
+                        'can_escalate_privs': {'type': 'boolean', 'object_relation': 'can_escalate_privs', 'disable_correlation': True},
+                        'credential': {'type': 'text', 'object_relation': 'password'},
+                        'credential_last_changed': {'type': 'datetime', 'object_relation': 'password_last_changed', 'disable_correlation': True},
+                        'display_name': {'type': 'text', 'object_relation': 'display-name'},
+                        'gid': {'type': 'text', 'object_relation': 'group-id', 'disable_correlation': True},
+                        'home_dir': {'type': 'text', 'object_relation': 'home_dir', 'disable_correlation': True},
+                        'is_disabled': {'type': 'boolean', 'object_relation': 'disabled', 'disable_correlation': True},
+                        'is_privileged': {'type': 'boolean', 'object_relation': 'privileged', 'disable_correlation': True},
+                        'is_service_account': {'type': 'boolean', 'object_relation': 'is_service_account', 'disable_correlation': True},
+                        'shell': {'type': 'text', 'object_relation': 'shell', 'disable_correlation': True},
+                        'user_id': {'type': 'text', 'object_relation': 'user-id'}}
 
 x509_mapping = {'issuer': issuer_attribute_mapping,
                 'x509-certificate:issuer': issuer_attribute_mapping,
@@ -311,3 +336,7 @@ external_pattern_mapping = {'domain-name': domain_pattern_mapping,
                             'url': {'value':{'type': 'url'}},
                             'x509-certificate': x509_mapping
                             }
+
+connection_protocols = {"IP": "3", "ICMP": "3", "ARP": "3",
+                        "TCP": "4", "UDP": "4",
+                        "HTTP": "7", "HTTPS": "7", "FTP": "7"}

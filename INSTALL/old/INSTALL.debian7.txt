@@ -237,3 +237,8 @@ Optional features
 -------------------
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 pip install pyzmq
+
+# MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+apt-get install librdkafka-dev php-dev
+pecl install rdkafka
+find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done

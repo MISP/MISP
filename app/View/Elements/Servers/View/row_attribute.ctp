@@ -1,5 +1,4 @@
 <?php
-if ($object['value'] == 'MERGE') debug($object);
   $tr_class = '';
   $linkClass = 'blue';
   $otherColour = 'blue';
@@ -22,6 +21,9 @@ if ($object['value'] == 'MERGE') debug($object);
 <tr id = "Attribute_<?php echo h($object['id']); ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
     <td class="short">
       <?php echo date('Y-m-d', $object['timestamp']); ?>
+    </td>
+    <td class="short">
+      <?php echo $this->element('/Servers/View/seen_field', array('object' => $object)); ?>
     </td>
     <td class="short">
       <div id = "Attribute_<?php echo $object['id']; ?>_category_placeholder" class = "inline-field-placeholder"></div>
@@ -65,7 +67,7 @@ if ($object['value'] == 'MERGE') debug($object);
                 foreach ($object['warnings'][$component] as $warning) $temp .= '<span class=\'bold\'>' . h($valueParts[$valuePart]) . '</span>: <span class=\'red\'>' . h($warning) . '</span><br />';
               }
             }
-            echo ' <span class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
+            echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
           }
         ?>
       </div>

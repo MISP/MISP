@@ -1,21 +1,61 @@
 <div class="users form">
     <fieldset>
         <legend><?php echo __('Edit Sharing Group'); ?></legend>
-        <div class="tabMenuFixedContainer">
-            <span id="page1_tab" role="button" tabindex="0" aria-label="<?php echo __('General tab');?>" title="<?php echo __('General tab');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer tabMenuActive" onClick="simpleTabPage(1);"><?php echo __('General');?></span>
-            <span id="page2_tab" role="button" tabindex="0" aria-label="<?php echo __('Organisations tab');?>" title="<?php echo __('Organisations tab');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(2);"><?php echo __('Organisations');?></span>
-            <span id="page3_tab" role="button" tabindex="0" aria-label="<?php echo __('MISP instances tab');?>" title="<?php echo __('MISP instances tab');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(3);"><?php echo __('MISP Instances');?></span>
-            <span id="page4_tab" role="button" tabindex="0" aria-label="<?php echo __('Sharing group summary');?>" title="<?php echo __('Sharing group summary');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(4);"><?php echo __('Summary and Save');?></span>
-        </div>
+        <?php
+            $data = array(
+                'children' => array(
+                    array(
+                        'children' => array(
+                            array(
+                                'text' => __('General'),
+                                'title' => __('General tab'),
+                                'class' => 'progress_tab',
+                                'id' => 'page1_tab',
+                                'active' => true,
+                                'onClick' => 'simpleTabPage',
+                                'onClickParams' => array(1)
+                            ),
+                            array(
+                                'text' => __('Organisations'),
+                                'title' => __('Organisations tab'),
+                                'class' => 'progress_tab',
+                                'id' => 'page2_tab',
+                                'onClick' => 'simpleTabPage',
+                                'onClickParams' => array(2)
+                            ),
+                            array(
+                                'text' => __('MISP Instances'),
+                                'title' => __('MISP instances tab'),
+                                'class' => 'progress_tab',
+                                'id' => 'page3_tab',
+                                'onClick' => 'simpleTabPage',
+                                'onClickParams' => array(3)
+                            ),
+                            array(
+                                'text' => __('Summary and Save'),
+                                'title' => __('Sharing group summary'),
+                                'class' => 'progress_tab',
+                                'id' => 'page4_tab',
+                                'onClick' => 'simpleTabPage',
+                                'onClickParams' => array(4)
+                            )
+                        )
+                    )
+                )
+            );
+            if (!$ajax) {
+                echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+            }
+        ?>
         <div id="page1_content" class="multi-page-form-div tabContent" style="width:544px;">
             <label for="SharingGroupName"><?php echo __('Name');?></label>
-            <input type="text" class="input-xxlarge" placeholder="<?php echo __('Example: Multinational sharing group');?>" id="SharingGroupName" value="<?php echo h($sharingGroup['SharingGroup']['name']); ?>"></input>
+            <input type="text" class="input-xxlarge" placeholder="<?php echo __('Example: Multinational sharing group');?>" id="SharingGroupName" value="<?php echo h($sharingGroup['SharingGroup']['name']); ?>">
             <label for="SharingGroupReleasability"><?php echo __('Releasable to');?></label>
-            <input type="text" class="input-xxlarge" placeholder="<?php echo __('Example: Community1, Organisation1, Organisation2');?>" id="SharingGroupReleasability" value="<?php echo h($sharingGroup['SharingGroup']['releasability']); ?>"></input>
+            <input type="text" class="input-xxlarge" placeholder="<?php echo __('Example: Community1, Organisation1, Organisation2');?>" id="SharingGroupReleasability" value="<?php echo h($sharingGroup['SharingGroup']['releasability']); ?>">
             <label for="SharingGroupDescription"><?php echo __('Description');?></label>
             <textarea class="input-xxlarge" placeholder="<?php echo __('A description of the sharing group.');?>" cols="30" rows="6" id="SharingGroupDescription"><?php echo h($sharingGroup['SharingGroup']['description']); ?></textarea>
             <div style="display:block;">
-                <input type="checkbox" style="float:left;" title="<?php echo __('Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled.');?>" <?php if ($sharingGroup['SharingGroup']['active']) echo "checked"; ?> id="SharingGroupActive"></input>
+                <input type="checkbox" style="float:left;" title="<?php echo __('Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled.');?>" <?php if ($sharingGroup['SharingGroup']['active']) echo "checked"; ?> id="SharingGroupActive">
                 <label for="SharingGroupActive" style="padding-left:20px;"><?php echo __('Make the sharing group selectable (active)');?></label>
             </div>
             <span role="button" tabindex="0" aria-label="<?php echo __('Next page');?>" title="<?php echo __('Next page');?>" class="btn btn-inverse" onClick="simpleTabPage(2);"><?php echo __('Next page');?></span>
@@ -47,7 +87,7 @@
             }
         ?>
             <div style="display:block;">
-                <input type="checkbox" style="float:left;" title="<?php echo __('Enable roaming mode for this sharing group. Roaming mode will allow the sharing group to be passed to any instance where the remote recipient is contained in the organisation list. It is preferred to list the recipient instances instead.');?>" <?php echo $checked; ?> id="SharingGroupRoaming"></input>
+                <input type="checkbox" style="float:left;" title="<?php echo __('Enable roaming mode for this sharing group. Roaming mode will allow the sharing group to be passed to any instance where the remote recipient is contained in the organisation list. It is preferred to list the recipient instances instead.');?>" <?php echo $checked; ?> id="SharingGroupRoaming">
                 <label for="SharingGroupRoaming" style="padding-left:20px;"><?php echo __('<b>Enable roaming mode</b> for this sharing group (pass the event to any connected instance where the sync connection is tied to an organisation contained in the SG organisation list).');?></label>
             </div>
             <div id="serverList" <?php echo $serverDivVisibility; ?>>
@@ -84,7 +124,7 @@
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'editSG'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'editSG'));
 ?>
 <script type="text/javascript">
     var lastPage = 4;
@@ -115,7 +155,7 @@
                     servers.push({
                         id: '<?php echo h($s['server_id']);?>',
                         name: 'Local instance',
-                        url: '<?php echo h(Configure::read('MISP.baseurl'));?>',
+                        url: '<?php echo empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl');?>',
                         all_orgs: '<?php echo h($s['all_orgs']); ?>',
                         removable:0,
                     });

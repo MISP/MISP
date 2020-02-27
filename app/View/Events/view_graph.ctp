@@ -7,11 +7,12 @@
     echo $this->Html->css('correlation-graph');
     echo $this->Html->script('d3');
     echo $this->Html->script('correlation-graph');
+    echo $this->Html->script('font-awesome-helper');
 ?>
 <?php
     if (!$ajax):
 ?>
-    <div class="view">
+    <div class="graph-view">
 <?php endif; ?>
     <span id="fullscreen-btn-correlation" class="fullscreen-btn-correlation btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
     <div id="chart" style="width:100%;height:100%"></div>
@@ -29,6 +30,7 @@
             <li id="expand"><?php echo __('Expand');?></li>
             <li id="context-delete"><?php echo __('Delete');?></li>
         </ul>
+        <button class="correlation-stop-btn btn btn-inverse" onClick="togglePhysics();" title="<?php echo __('Toggle the physics engine on/off.');?> ">Toggle physics</button>
 <?php
     if (!$ajax):
 ?>
@@ -57,6 +59,6 @@
     }
 
     if (!$ajax) {
-        echo $this->element('side_menu', $params);
+        echo $this->element('/genericElements/SideMenu/side_menu', $params);
     }
 ?>

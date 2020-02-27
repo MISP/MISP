@@ -12,7 +12,7 @@
         'mayModify' => $mayModify,
         'isAclTagger' => $isAclTagger,
         'data' => $object['Galaxy'],
-        'target_id' => $object['Event']['id'],
+        'target_id' => $scope == 'event' ? $object['Event']['id'] : $object['Attribute']['id'],
         'target_type' => $scope
     ));
 ?>

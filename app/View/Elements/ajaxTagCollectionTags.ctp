@@ -1,8 +1,8 @@
 <div style="width:100%;display:inline-block;">
     <?php
-		if (empty($context)) {
-			$context = 'event';
-		}
+        if (empty($context)) {
+            $context = 'event';
+        }
         $full = $isAclTagger && $tagAccess;
         foreach ($tagCollection['TagCollectionTag'] as $tag):
             if (!isset($tag['Tag'])) $tag = array('Tag' => $tag);
@@ -13,7 +13,7 @@
                 <?php
                     if ($full):
                 ?>
-                        <div class="tagSecondHalf useCursorPointer noPrint" title="<?php echo __('Remove tag');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove tag');?>" onClick="removeObjectTagPopup('tag_collection', '<?php echo h($tagCollection['TagCollection']['id']); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
+                        <div class="tagSecondHalf useCursorPointer noPrint" title="<?php echo __('Remove tag');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove tag');?>" onClick="removeObjectTagPopup(this, 'tag_collection', '<?php echo h($tagCollection['TagCollection']['id']); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
                 <?php
                     endif;
                 ?>
@@ -22,15 +22,15 @@
         endforeach;
     ?>
         <div style="float:left">
-			<?php
-				$addTagButton = '&nbsp;';
-				if ($full) {
-					$addTagButton = sprintf(
-						'<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup(%s);">+</button>',
-						sprintf("'%s/tag_collection', 'tags', 'selectTaxonomy'", h($tagCollection['TagCollection']['id']))
-					);
-				}
-				echo $addTagButton;
-			?>
+            <?php
+                $addTagButton = '&nbsp;';
+                if ($full) {
+                    $addTagButton = sprintf(
+                        '<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 2px;" onClick="popoverPopup(this, %s);"><i class="fas fa-globe-americas"></i> +</button>',
+                        sprintf("'%s/tag_collection', 'tags', 'selectTaxonomy'", h($tagCollection['TagCollection']['id']))
+                    );
+                }
+                echo $addTagButton;
+            ?>
         </div>
 </div>

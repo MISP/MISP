@@ -12,13 +12,26 @@
             <div class = 'input clear'></div>
         <?php
             echo $this->Form->input('name');
-            echo $this->Form->input('permission', array('type' => 'select', 'options' => $options), array('value' => '3'));
+            echo $this->Form->input('permission', array('type' => 'select', 'label' => __('Permissions'), 'options' => $options), array('value' => '3'));
         ?>
         <div class = 'input clear'></div>
         <?php
             echo $this->Form->input('memory_limit', array('label' => __('Memory limit') .  ' (' . h($default_memory_limit) . ')'));
             echo $this->Form->input('max_execution_time', array('label' => __('Maximum execution time') . ' (' . h($default_max_execution_time) . ')'));
         ?>
+        <div class = 'input clear'></div>
+        <?php
+            echo $this->Form->input('enforce_rate_limit', array(
+                'type' => 'checkbox',
+                'label' => __('Enforce search rate limit')
+            ));
+        ?>
+        <div class = 'input clear'></div>
+        <div id="rateLimitCountContainer">
+            <?php
+                echo $this->Form->input('rate_limit_count', array('label' => __('# of searches / 15 min')));
+            ?>
+        </div>
         <div class = 'input clear'></div>
         <?php
             $counter = 1;
@@ -46,14 +59,18 @@ echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'addRole'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'addRole'));
 ?>
 
 <script type="text/javascript">
     $(document).ready(function() {
         checkRolePerms();
+        checkRoleEnforceRateLimit();
         $(".checkbox, #RolePermission").change(function() {
-        checkRolePerms();
+            checkRolePerms();
+        });
+        $("#RoleEnforceRateLimit").change(function() {
+            checkRoleEnforceRateLimit();
         });
     });
 </script>

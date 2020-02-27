@@ -36,5 +36,5 @@ if (!$isSiteAdmin) exit();
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'adminTools'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'adminTools'));
 ?>

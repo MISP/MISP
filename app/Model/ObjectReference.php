@@ -55,8 +55,10 @@ class ObjectReference extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_reference_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_reference_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_object_reference_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_object_reference_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             $object_reference = $this->find('first', array(
                 'conditions' => array('ObjectReference.id' => $this->id),
                 'recursive' => -1
@@ -65,7 +67,14 @@ class ObjectReference extends AppModel
             if (!empty($this->data['ObjectReference']['deleted'])) {
                 $action = 'soft-delete';
             }
-            $pubSubTool->object_reference_save($object_reference, $action);
+            if ($pubToZmq) {
+                $pubSubTool = $this->getPubSubTool();
+                $pubSubTool->object_reference_save($object_reference, $action);
+            }
+            if ($pubToKafka) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $object_reference, $action);
+            }
         }
         return true;
     }
@@ -252,5 +261,42 @@ class ObjectReference extends AppModel
         $reference['event_id'] = $eventId;
         $result = $this->save(array('ObjectReference' => $reference));
         return true;
+    }
+
+    public function getReferencedInfo($referencedUuid, $object, $strict = true)
+    {
+        $referenced_type = 1;
+        $target_object = $this->Object->find('first', array(
+            'conditions' => array('Object.uuid' => $referencedUuid, 'Object.deleted' => 0),
+            'recursive' => -1,
+            'fields' => array('Object.id', 'Object.uuid', 'Object.event_id')
+        ));
+        if (!empty($target_object)) {
+            $referenced_id = $target_object['Object']['id'];
+            $referenced_uuid = $target_object['Object']['uuid'];
+            if ($target_object['Object']['event_id'] != $object['Event']['id']) {
+                throw new NotFoundException('Invalid target. Target has to be within the same event.');
+            }
+        } else {
+            $target_attribute = $this->Object->Attribute->find('first', array(
+                'conditions' => array('Attribute.uuid' => $referencedUuid, 'Attribute.deleted' => 0),
+                'recursive' => -1,
+                'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
+            ));
+            if (empty($target_attribute)) {
+                if ($strict) {
+                    throw new NotFoundException('Invalid target.');
+                } else {
+                    return array(0, 0, 0);
+                }
+            }
+            if ($target_attribute['Attribute']['event_id'] != $object['Event']['id']) {
+                throw new NotFoundException('Invalid target. Target has to be within the same event.');
+            }
+            $referenced_id = $target_attribute['Attribute']['id'];
+            $referenced_uuid = $target_attribute['Attribute']['uuid'];
+            $referenced_type = 0;
+        }
+        return array($referenced_id, $referenced_uuid, $referenced_type);
     }
 }

@@ -19,7 +19,7 @@ class UsersController extends AppController
             ),
             'contain' => array(
                 'Organisation' => array('id', 'name'),
-                'Role' => array('id', 'name', 'perm_auth')
+                'Role' => array('id', 'name', 'perm_auth', 'perm_site_admin')
             )
     );
 
@@ -48,12 +48,19 @@ class UsersController extends AppController
             ));
             $id = $userid['User']['id'];
         }
-        $this->User->id = $id;
-        $this->User->recursive = 0;
-        if (!$this->User->exists()) {
+        $user = $this->User->read(null, $id);
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $id),
+            'contain' => array(
+                'UserSetting',
+                'Role',
+                'Organisation'
+            )
+        ));
+        if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
         }
-        $user = $this->User->read(null, $id);
         if (!empty($user['User']['gpgkey'])) {
             $pgpDetails = $this->User->verifySingleGPG($user);
             $user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
@@ -62,10 +69,28 @@ class UsersController extends AppController
         if ($this->_isRest()) {
             unset($user['User']['server_id']);
             $user['User']['password'] = '*****';
-            return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
+            $temp = array();
+            foreach ($user['UserSetting'] as $k => $v) {
+                $temp[$v['setting']] = $v['value'];
+            }
+            $user['UserSetting'] = $temp;
+            return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
         } else {
             $this->set('user', $user);
         }
+    }
+
+    private function __massageUserObject($user)
+    {
+        unset($user['User']['server_id']);
+        $user['User']['password'] = '*****';
+        $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
+        foreach ($objectsToInclude as $objectToInclude) {
+            if (isset($user[$objectToInclude])) {
+                $temp[$objectToInclude] = $user[$objectToInclude];
+            }
+        }
+        return $temp;
     }
 
     public function request_API()
@@ -92,14 +117,20 @@ class UsersController extends AppController
         if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
             throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
         }
-        $id = $this->Auth->user('id');
-        $this->User->read(null, $id);
-        if (!$this->User->exists()) {
+        $currentUser = $this->User->find('first', array(
+            'conditions' => array('User.id' => $this->Auth->user('id')),
+            'recursive' => -1
+        ));
+        if (empty($currentUser)) {
             throw new NotFoundException('Something went wrong. Your user account could not be accessed.');
         }
+        $id = $currentUser['User']['id'];
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (empty($this->request->data['User'])) {
+                $this->request->data = array('User' => $this->request->data);
+            }
             $abortPost = false;
-            if (!$this->_isSiteAdmin() && !empty($this->request->data['User']['email'])) {
+            if (!empty($this->request->data['User']['email']) && !$this->_isSiteAdmin()) {
                 $organisation = $this->User->Organisation->find('first', array(
                     'conditions' => array('Organisation.id' => $this->Auth->user('org_id')),
                     'recursive' => -1
@@ -116,7 +147,7 @@ class UsersController extends AppController
                         }
                     }
                     if ($abortPost) {
-                        $this->Flash->error(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
+                        $message = __('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']);
                     }
                 }
             }
@@ -138,17 +169,49 @@ class UsersController extends AppController
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
                 $fieldList = array('email', 'autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
-                if ("" != $this->request->data['User']['password']) {
+                if (!empty($this->request->data['User']['password'])) {
                     $fieldList[] = 'password';
+                    $fieldList[] = 'confirm_password';
+                }
+                foreach ($this->request->data['User'] as $k => $v) {
+                    $currentUser['User'][$k] = $v;
                 }
                 // Save the data
-                if ($this->User->save($this->request->data, true, $fieldList)) {
-                    $this->Flash->success(__('The profile has been updated'));
-                    $this->_refreshAuth();
-                    $this->redirect(array('action' => 'view', $id));
-                } else {
-                    $this->Flash->error(__('The profile could not be updated. Please, try again.'));
+                if ($this->_isRest()) {
+                    if (!empty($this->request->data['User']['password'])) {
+                        if ($this->request->data['User']['password'] === '*****') {
+                            unset($this->request->data['User']['password']);
+                        } else {
+                            $currentUser['User']['confirm_password'] = $this->request->data['User']['password'];
+                        }
+                    }
                 }
+                if ($this->User->save($currentUser, true, $fieldList)) {
+                    if ($this->_isRest()) {
+                        $user = $this->User->find('first', array(
+                            'conditions' => array('User.id' => $id),
+                            'recursive' => -1,
+                            'contain' => array(
+                                'Organisation',
+                                'Role',
+                                'UserSetting'
+                            )
+                        ));
+                        return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
+                    } else {
+                        $this->Flash->success(__('The profile has been updated'));
+                        $this->_refreshAuth();
+                        $this->redirect(array('action' => 'view', $id));
+                    }
+                } else {
+                    $message = __('The profile could not be updated. Please, try again.');
+                    $abortPost = true;
+                }
+            }
+            if ($abortPost) {
+                return $this->RestResponse->saveFailResponse('Users', 'edit', $id, $message, $this->response->type());
+            } else {
+                $this->Flash->error($message);
             }
         } else {
             $this->User->set('password', '');
@@ -173,36 +236,62 @@ class UsersController extends AppController
             'recursive' => -1
         ));
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (!isset($this->request->data['User'])) {
+                $this->request->data = array('User' => $this->request->data);
+            }
             $abortPost = false;
             if (Configure::read('Security.require_password_confirmation')) {
                 if (!empty($this->request->data['User']['current_password'])) {
                     $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
                     if (!$hashed) {
+                        $message = __('Invalid password. Please enter your current password to continue.');
+                        if ($this->_isRest()) {
+                            return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
+                        }
                         $abortPost = true;
-                        $this->Flash->error('Invalid password. Please enter your current password to continue.');
+                        $this->Flash->error($message);
                     }
                     unset($this->request->data['User']['current_password']);
-                } else {
+                } else if (!$this->_isRest()) {
+                    $message = __('Please enter your current password to continue.');
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
+                    }
                     $abortPost = true;
-                    $this->Flash->info('Please enter your current password to continue.');
+                    $this->Flash->info($message);
                 }
             }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
                 $user['User']['change_pw'] = 0;
                 $user['User']['password'] = $this->request->data['User']['password'];
-                $user['User']['confirm_password'] = $this->request->data['User']['confirm_password'];
+                if ($this->_isRest()) {
+                    $user['User']['confirm_password'] = $this->request->data['User']['password'];
+                } else {
+                    $user['User']['confirm_password'] = $this->request->data['User']['confirm_password'];
+                }
                 $temp = $user['User']['password'];
                 // Save the data
                 if ($this->User->save($user)) {
-                    $this->Flash->success(__('Password Changed.'));
+                    $message = __('Password Changed.');
+                    $this->User->extralog($this->Auth->user(), "change_pw", null, null, $user);
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveSuccessResponse('User', 'change_pw', false, $this->response->type(), $message);
+                    }
+                    $this->Flash->success($message);
                     $this->_refreshAuth();
-                    $this->__extralog("change_pw");
                     $this->redirect(array('action' => 'view', $id));
                 } else {
-                    $this->Flash->error(__('The password could not be updated. Make sure you meet the minimum password length / complexity requirements.'));
+                    $message = __('The password could not be updated. Make sure you meet the minimum password length / complexity requirements.');
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
+                    }
+                    $this->Flash->error($message);
                 }
             }
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->describe('Users', 'change_pw', false, $this->response->type());
         }
         $this->loadModel('Server');
         $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
@@ -324,11 +413,16 @@ class UsersController extends AppController
                     ),
                     'contain' => array(
                             'Organisation' => array('id', 'name'),
-                            'Role' => array('id', 'name', 'perm_auth')
+                            'Role' => array('id', 'name', 'perm_auth', 'perm_site_admin')
                     )
             ));
             foreach ($users as $key => $value) {
-                unset($users['User']['password']);
+                if (empty($this->Auth->user('Role')['perm_site_admin'])) {
+                    if ($value['Role']['perm_site_admin']) {
+                        $users[$key]['User']['authkey'] = __('Redacted');
+                    }
+                }
+                unset($users[$key]['User']['password']);
             }
             return $this->RestResponse->viewData($users, $this->response->type());
         } else {
@@ -340,7 +434,13 @@ class UsersController extends AppController
             } else {
                 $conditions['User.org_id'] = $this->Auth->user('org_id');
                 $this->paginate['conditions']['AND'][] = $conditions;
-                $this->set('users', $this->paginate());
+                $users = $this->paginate();
+                foreach ($users as $key => $value) {
+                    if ($value['Role']['perm_site_admin']) {
+                        $users[$key]['User']['authkey'] = __('Redacted');
+                    }
+                }
+                $this->set('users', $users);
             }
             if ($this->request->is('ajax')) {
                 $this->autoRender = false;
@@ -425,28 +525,48 @@ class UsersController extends AppController
 
     public function admin_view($id = null)
     {
-        $this->User->id = $id;
-        if (!$this->User->exists()) {
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $id),
+            'contain' => array(
+                'UserSetting',
+                'Role',
+                'Organisation'
+            )
+        ));
+        if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
         }
-        $user = $this->User->read(null, $id);
         if (!empty($user['User']['gpgkey'])) {
             $pgpDetails = $this->User->verifySingleGPG($user);
             $user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
             $user['User']['fingerprint'] = !empty($pgpDetails[4]) ? $pgpDetails[4] : 'N/A';
         }
         $user['User']['orgAdmins'] = $this->User->getOrgAdminsForOrg($user['User']['org_id'], $user['User']['id']);
+        if (empty($this->Auth->user('Role')['perm_site_admin']) && !(empty($user['Role']['perm_site_admin']))) {
+            $user['User']['authkey'] = __('Redacted');
+        }
         $this->set('user', $user);
         if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $user['User']['org_id'])) {
             throw new MethodNotAllowedException();
         }
         if ($this->_isRest()) {
             $user['User']['password'] = '*****';
+            $temp = array();
+            foreach ($user['UserSetting'] as $k => $v) {
+                $temp[$v['setting']] = $v['value'];
+            }
+            $user['UserSetting'] = $temp;
+            return $this->RestResponse->viewData(array(
+                'User' => $user['User'],
+                'Role' => $user['Role'],
+                'UserSetting' => $user['UserSetting']
+            ), $this->response->type());
             return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
         } else {
-            $temp = $this->User->data['User']['invited_by'];
+            $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
             $this->set('id', $id);
-            $this->set('user2', $this->User->read(null, $temp));
+            $this->set('user2', $user2);
         }
     }
 
@@ -474,8 +594,17 @@ class UsersController extends AppController
                 }
                 $required_fields = array('role_id', 'email');
                 foreach ($required_fields as $field) {
+                    $set_field_via_other_means = false;
                     if (empty($this->request->data['User'][$field])) {
-                        return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
+                        if ($field === 'role_id') {
+                            if (!empty($default_role_id)) {
+                                $this->request->data['User'][$field] = $default_role_id;
+                                $set_field_via_other_means = true;
+                            }
+                        }
+                        if (!$set_field_via_other_means) {
+                            return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
+                        }
                     }
                 }
                 if (isset($this->request->data['User']['password'])) {
@@ -659,9 +788,10 @@ class UsersController extends AppController
         $params = array();
         $allowedRole = '';
         $userToEdit = $this->User->find('first', array(
-                'conditions' => array('id' => $id),
+                'conditions' => array('User.id' => $id),
                 'recursive' => -1,
-                'fields' => array('id', 'role_id', 'email', 'org_id'),
+                'fields' => array('User.id', 'User.role_id', 'User.email', 'User.org_id', 'Role.perm_site_admin'),
+                'contain' => array('Role')
         ));
         if (!$this->_isSiteAdmin()) {
             // Org admins should be able to select the role that is already assigned to an org user when editing them.
@@ -671,8 +801,8 @@ class UsersController extends AppController
             // MISP automatically chooses the first available option for the user as the selected setting (usually user)
             // Org admin is downgraded to a user
             // Now we make an exception for the already assigned role, both in the form and the actual edit.
-            if ($userToEdit['User']['org_id'] != $this->Auth->user('org_id')) {
-                throw new Exception('Invalid user');
+            if ($userToEdit['User']['org_id'] != $this->Auth->user('org_id') || !empty($userToEdit['Role']['perm_site_admin'])) {
+                throw new NotFoundException(__('Invalid user'));
             }
             $allowedRole = $userToEdit['User']['role_id'];
             $params = array('conditions' => array(
@@ -708,7 +838,7 @@ class UsersController extends AppController
                 }
             }
             $fail = false;
-            if ($this->_isSiteAdmin() && !$abortPost && !empty($this->request->data['User']['email'])) {
+            if (!$this->_isSiteAdmin() && !$abortPost) {
                 $organisation = $this->User->Organisation->find('first', array(
                     'conditions' => array('Organisation.id' => $userToEdit['User']['org_id']),
                     'recursive' => -1
@@ -756,9 +886,9 @@ class UsersController extends AppController
                         continue;
                     }
                     if ($field != 'confirm_password') {
-                        array_push($fieldsOldValues, $this->User->field($field));
+                        $fieldsOldValues[$field] = $this->User->field($field);
                     } else {
-                        array_push($fieldsOldValues, $this->User->field('password'));
+                        $fieldsOldValues[$field] = $this->User->field('password');
                     }
                 }
                 if (
@@ -799,32 +929,29 @@ class UsersController extends AppController
                                     }
                                     $cP++;
                                 }
-                                array_push($fieldsNewValues, $newValueStr);
+                                $fieldsNewValues[$field] = $newValueStr;
                             } else {
-                                array_push($fieldsNewValues, $newValue);
+                                $fieldsNewValues[$field] = $newValue;
                             }
                         } else {
-                            array_push($fieldsNewValues, $this->data['User']['password']);
+                            $fieldsNewValues[$field] = $this->data['User']['password'];
                         }
                     }
                     // compare
-                    $fieldsResultStr = '';
-                    $c = 0;
+                    $fieldsResult = array();
                     foreach ($fields as $field) {
-                        if (isset($fieldsOldValues[$c]) && $fieldsOldValues[$c] != $fieldsNewValues[$c]) {
+                        if (isset($fieldsOldValues[$field]) && $fieldsOldValues[$field] != $fieldsNewValues[$field]) {
                             if ($field != 'confirm_password' && $field != 'enable_password') {
-                                $fieldsResultStr = $fieldsResultStr . ', ' . $field . ' (' . $fieldsOldValues[$c] . ') => (' . $fieldsNewValues[$c] . ')';
+                                $fieldsResult[$field] = array($fieldsOldValues[$field], $fieldsNewValues[$field]);
                             }
                         }
-                        $c++;
                     }
-                    $fieldsResultStr = substr($fieldsResultStr, 2);
-                    $this->__extralog("edit", "user", $fieldsResultStr);
+                    $user = $this->User->find('first', array(
+                        'recursive' => -1,
+                        'conditions' => array('User.id' => $this->User->id)
+                    ));
+                    $this->User->extralog($this->Auth->user(), "edit", "user", $fieldsResult, $user);
                     if ($this->_isRest()) {
-                        $user = $this->User->find('first', array(
-                                'conditions' => array('User.id' => $this->User->id),
-                                'recursive' => -1
-                        ));
                         $user['User']['password'] = '******';
                         return $this->RestResponse->viewData($user, $this->response->type());
                     } else {
@@ -884,8 +1011,8 @@ class UsersController extends AppController
 
     public function admin_delete($id = null)
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
+        if (!$this->request->is('post') && !$this->request->is('delete')) {
+            throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
         }
         if (!$this->_isAdmin()) {
             throw new Exception('Administrators only.');
@@ -904,7 +1031,7 @@ class UsersController extends AppController
         }
         $fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
         if ($this->User->delete($id)) {
-            $this->__extralog("delete", $fieldsDescrStr, '');
+            $this->User->extralog($this->Auth->user(), "delete", $fieldsDescrStr, '');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('User', 'admin_delete', $id, $this->response->type(), 'User deleted.');
             } else {
@@ -939,6 +1066,7 @@ class UsersController extends AppController
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
             if (!empty($this->request->data['User']['email'])) {
                 if ($this->Bruteforce->isBlacklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
+                    $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
                     throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . Configure::read('SecureAuth.expire') . ' seconds and try again.');
                 }
             }
@@ -960,7 +1088,7 @@ class UsersController extends AppController
             }
         }
         if ($this->Auth->login()) {
-            $this->__extralog("login");
+            $this->User->extralog($this->Auth->user(), "login");
             $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
             $this->User->id = $this->Auth->user('id');
             $user = $this->User->find('first', array(
@@ -989,7 +1117,7 @@ class UsersController extends AppController
                 $this->Session->delete('Message.auth');
             }
             // don't display "invalid user" before first login attempt
-            if ($this->request->is('post')) {
+            if ($this->request->is('post') || $this->request->is('put')) {
                 $this->Flash->error(__('Invalid username or password, try again'));
                 if (isset($this->request->data['User']['email'])) {
                     $this->Bruteforce->insert($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email']);
@@ -1065,13 +1193,17 @@ class UsersController extends AppController
     public function routeafterlogin()
     {
         // Events list
-        $this->redirect(array('controller' => 'events', 'action' => 'index'));
+        $url = $this->Session->consume('pre_login_requested_url');
+        if (empty($url)) {
+            $url = array('controller' => 'events', 'action' => 'index');
+        }
+        $this->redirect($url);
     }
 
     public function logout()
     {
         if ($this->Session->check('Auth.User')) {
-            $this->__extralog("logout");
+            $this->User->extralog($this->Auth->user(), "logout");
         }
         $this->Flash->info(__('Good-Bye'));
         $user = $this->User->find('first', array(
@@ -1086,7 +1218,7 @@ class UsersController extends AppController
         $this->redirect($this->Auth->logout());
     }
 
-    public function resetauthkey($id = null)
+    public function resetauthkey($id = null, $alert = false)
     {
         if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
             throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
@@ -1095,30 +1227,37 @@ class UsersController extends AppController
             $id = $this->Auth->user('id');
         }
         if (!$this->userRole['perm_auth']) {
-            throw new MethodNotAllowedException('Invalid action.');
+            throw new MethodNotAllowedException(__('Invalid action.'));
         }
-        $this->User->id = $id;
-        if (!$id || !$this->User->exists($id)) {
-            throw new MethodNotAllowedException('Invalid user.');
+        $newkey = $this->User->resetauthkey($this->Auth->user(), $id, $alert);
+        if ($newkey === false) {
+            throw new MethodNotAllowedException(__('Invalid user.'));
         }
-        $user = $this->User->read();
-        $oldKey = $this->User->data['User']['authkey'];
-        if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id']) && ($this->Auth->user('id') != $id)) {
-            throw new MethodNotAllowedException('Invalid user.');
-        }
-        $newkey = $this->User->generateAuthKey();
-        $this->User->saveField('authkey', $newkey);
-        $this->__extralog(
-                'reset_auth_key',
-                'Authentication key for user ' . $user['User']['id'] . ' (' . $user['User']['email'] . ')',
-                $fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')'
-        );
         if (!$this->_isRest()) {
             $this->Flash->success(__('New authkey generated.', true));
             $this->_refreshAuth();
             $this->redirect($this->referer());
         } else {
-            return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'User\'s authkey has been reset.');
+            return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'Authkey updated: ' . $newkey);
+        }
+    }
+
+    public function resetAllSyncAuthKeys()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This functionality is only accessible via POST requests.'));
+        }
+        $results = $this->User->resetAllSyncAuthKeysRouter($this->Auth->user());
+        if ($results === true) {
+            $message = __('Job initiated.');
+        } else {
+            $message = __('%s authkeys reset, %s could not be reset.', $results['success'], $results['fails']);
+        }
+        if (!$this->_isRest()) {
+            $this->Flash->info($message);
+            $this->redirect($this->referer());
+        } else {
+            return $this->RestResponse->saveSuccessResponse('User', 'resetAllSyncAuthKeys', false, $this->response->type(), $message);
         }
     }
 
@@ -1146,7 +1285,9 @@ class UsersController extends AppController
         ));
         $orgs = array(0 => 'All organisations');
         foreach ($org_ids as $v) {
-            $orgs[$v] = $orgs_temp[$v];
+            if (!empty($orgs_temp[$v])) {
+                $orgs[$v] = $orgs_temp[$v];
+            }
         }
         $data = array();
         $max = 1;
@@ -1195,6 +1336,7 @@ class UsersController extends AppController
         uasort($data, function ($a, $b) {
             return $b['total'] - $a['total'];
         });
+        $data = array_values($data);
         $this->set('data', $data);
         $this->set('max', $max);
         $this->set('selectedTypes', $selectedTypes);
@@ -1238,60 +1380,6 @@ class UsersController extends AppController
         }
         $this->response->file($termsFile, array('download' => true, 'name' => Configure::read('MISP.terms_file')));
         return $this->response;
-    }
-
-    private function __extralog($action = null, $description = null, $fieldsResult = null)
-    {
-        // new data
-        $model = 'User';
-        $modelId = $this->Auth->user('id');
-        if ($action == 'login') {
-            $description = "User (" . $this->Auth->user('id') . "): " . $this->data['User']['email'];
-        } elseif ($action == 'logout') {
-            $description = "User (" . $this->Auth->user('id') . "): " . $this->Auth->user('email');
-        } elseif ($action == 'edit') {
-            $description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
-        } elseif ($action == 'change_pw') {
-            $description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
-            $fieldsResult = "Password changed.";
-        }
-
-        // query
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        $this->Log->save(array(
-            'org' => $this->Auth->user('Organisation')['name'],
-            'model' => $model,
-            'model_id' => $modelId,
-            'email' => $this->Auth->user('email'),
-            'action' => $action,
-            'title' => $description,
-            'change' => isset($fieldsResult) ? $fieldsResult : ''));
-
-        // write to syslogd as well
-        App::import('Lib', 'SysLog.SysLog');
-        $syslog = new SysLog();
-        if (isset($fieldsResult) && $fieldsResult) {
-            $syslog->write('notice', $description . ' -- ' . $action . ' -- ' . $fieldsResult);
-        } else {
-            $syslog->write('notice', $description . ' -- ' . $action);
-        }
-    }
-
-    // Used for fields_before and fields for audit
-    public function arrayCopy(array $array)
-    {
-        $result = array();
-        foreach ($array as $key => $val) {
-            if (is_array($val)) {
-                $result[$key] = arrayCopy($val);
-            } elseif (is_object($val)) {
-                $result[$key] = clone $val;
-            } else {
-                $result[$key] = $val;
-            }
-        }
-        return $result;
     }
 
     public function checkAndCorrectPgps()
@@ -1523,7 +1611,13 @@ class UsersController extends AppController
     public function statistics($page = 'data')
     {
         $this->set('page', $page);
-        $pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'users' => 'User and Organisation statistics', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'attackMatrix' => 'ATT&CK Matrix');
+        $pages = array('data' => __('Usage data'),
+                       'orgs' => __('Organisations'),
+                       'users' => __('User and Organisation statistics'),
+                       'tags' => __('Tags'),
+                       'attributehistogram' => __('Attribute histogram'),
+                       'sightings' => __('Sightings toplists'),
+                       'galaxyMatrix' => __('Galaxy Matrix'));
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             unset($pages['orgs']);
         }
@@ -1548,8 +1642,8 @@ class UsersController extends AppController
             }
         } elseif ($page == 'sightings') {
             $result = $this->__statisticsSightings($this->params['named']);
-        } elseif ($page == 'attackMatrix') {
-            $result = $this->__statisticsAttackMatrix($this->params['named']);
+        } elseif ($page == 'galaxyMatrix') {
+            $result = $this->__statisticsGalaxyMatrix($this->params['named']);
         }
         if ($this->_isRest()) {
             return $result;
@@ -1708,10 +1802,12 @@ class UsersController extends AppController
             'group' => 'Event.orgc_id',
             'conditions' => array('Event.orgc_id' => array_keys($orgs)),
             'recursive' => -1,
-            'fields' => array('Event.orgc_id', 'count(*)')
+            'fields' => array('Event.orgc_id', 'count(*)', 'sum(Event.attribute_count) as attributeCount')
         ));
         foreach ($events as $event) {
             $orgs[$event['Event']['orgc_id']]['eventCount'] = $event[0]['count(*)'];
+            $orgs[$event['Event']['orgc_id']]['attributeCount'] = $event[0]['attributeCount'];
+            $orgs[$event['Event']['orgc_id']]['orgActivity'] = $this->User->getOrgActivity($event['Event']['orgc_id'], array('event_timestamp' => '365d'));
         }
         unset($events);
         $orgs = Set::combine($orgs, '{n}.name', '{n}');
@@ -1851,43 +1947,159 @@ class UsersController extends AppController
         }
     }
 
-    private function __statisticsAttackMatrix($params = array())
+    private function __statisticsGalaxyMatrix($params = array())
     {
         $this->loadModel('Event');
         $this->loadModel('Galaxy');
-        $attackTacticData = $this->Galaxy->getMitreAttackMatrix();
-        $attackTactic = $attackTacticData['attackTactic'];
-        $attackTags = $attackTacticData['attackTags'];
-        $killChainOrders = $attackTacticData['killChain'];
-        $instanceUUID = $attackTacticData['instance-uuid'];
-
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores(0, $attackTags);
-        $scoresDataEvent = $this->Event->EventTag->getTagScores(0, $attackTags);
-        $scoresData = array();
-        foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
-            $scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
-        }
-        $maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
-        $scores = $scoresData;
-
-        if ($this->_isRest()) {
-            $json = array('matrix' => $attackTactic, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
-            return $this->RestResponse->viewData($json, $this->response->type());
+        $mitre_galaxy_id = $this->Galaxy->getMitreAttackGalaxyId();
+        if (isset($params['galaxy_id'])) {
+            $galaxy_id = $params['galaxy_id'];
         } else {
-            App::uses('ColourGradientTool', 'Tools');
-            $gradientTool = new ColourGradientTool();
-            $colours = $gradientTool->createGradientFromValues($scores);
-
-            $this->set('target_type', 'attribute');
-            $this->set('killChainOrders', $killChainOrders);
-            $this->set('attackTactic', $attackTactic);
-            $this->set('scores', $scores);
-            $this->set('maxScore', $maxScore);
-            $this->set('colours', $colours);
-            $this->set('pickingMode', false);
-
-            $this->render('statistics_attackmatrix');
+            $galaxy_id = $mitre_galaxy_id;
         }
+        $organisations = $this->User->Organisation->find('all', array(
+                'recursive' => -1,
+        ));
+        array_unshift($organisations, array('Organisation' => array('id' => 0, 'name' => 'All')));
+        $this->set('organisations', $organisations);
+        $picked_organisation = 0;
+        if (isset($params['organisation']) && $params['organisation'] != 0) {
+            $org = $this->User->Organisation->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('id' => $params['organisation']),
+            ));
+            if (!empty($org)) {
+                $picked_organisation = $org;
+                $this->set('picked_organisation', $picked_organisation);
+            } else {
+                $this->set('picked_organisation', array('Organisation' => array('id' => '')));
+            }
+        } else {
+            $this->set('picked_organisation', array('Organisation' => array('id' => '')));
+        }
+
+        $rest_response_empty = true;
+        $ignore_score = false;
+        if (
+            isset($params['dateFrom'])
+            || isset($params['dateTo'])
+            || isset($params['organisation']) && $params['organisation'] != 0
+        ) { // use restSearch
+            $ignore_score = true;
+            $filters = array();
+            if (isset($params['dateFrom'])) {
+                $filters['from'] = $params['dateFrom'];
+                $this->set('dateFrom', $params['dateFrom']);
+            }
+            if (isset($params['dateTo'])) {
+                $filters['to'] = $params['dateTo'];
+                $this->set('dateTo', $params['dateTo']);
+            }
+            if (isset($params['organisation'])) {
+                $filters['org'] = $params['organisation'];
+            }
+            $elementCounter = 0;
+            $renderView = '';
+            $final = $this->Event->restSearch($this->Auth->user(), 'attack', $filters, false, false, $elementCounter, $renderView);
+
+            $final = json_decode($final, true);
+            if (!empty($final)) {
+                $rest_response_empty = false;
+                foreach ($final as $key => $data) {
+                    $this->set($key, $data);
+                }
+            }
+        }
+
+        // No need for restSearch or result is empty
+        if ($rest_response_empty) {
+            $matrixData = $this->Galaxy->getMatrix($galaxy_id);
+            $tabs = $matrixData['tabs'];
+            $matrixTags = $matrixData['matrixTags'];
+            $killChainOrders = $matrixData['killChain'];
+            $instanceUUID = $matrixData['instance-uuid'];
+            if ($ignore_score) {
+                $scores_uniform = array('scores' => array(), 'maxScore' => 0);
+            } else {
+                $scores_uniform = $this->Event->EventTag->getTagScoresUniform(0, $matrixTags);
+            }
+            $scores = $scores_uniform['scores'];
+            $maxScore = $scores_uniform['maxScore'];
+            // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
+            if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
+                $mergedScore = array();
+                foreach ($scores as $tag => $v) {
+                    $predicateValue = explode(':', $tag, 2)[1];
+                    $predicateValue = explode('=', $predicateValue, 2);
+                    $predicate = $predicateValue[0];
+                    $clusterValue = $predicateValue[1];
+                    $mappedTag = '';
+                    $mappingWithoutExternalId = array();
+                    if ($predicate == 'mitre-attack-pattern') {
+                        $mappedTag = $tag;
+                        $name = explode(" ", $tag);
+                        $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                        $mappingWithoutExternalId[$name] = $tag;
+                    } else {
+                        $name = explode(" ", $clusterValue);
+                        $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                        if (isset($mappingWithoutExternalId[$name])) {
+                            $mappedTag = $mappingWithoutExternalId[$name];
+                        } else {
+                            $adjustedTagName = $this->Galaxy->GalaxyCluster->find('list', array(
+                                'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name'),
+                                'conditions' => array('GalaxyCluster.tag_name LIKE' => 'misp-galaxy:mitre-attack-pattern=' . $name . '% T%'),
+                                'fields' => array('GalaxyCluster.tag_name')
+                            ));
+                            if (!empty($adjustedTagName)) {
+                                $adjustedTagName = array_values($adjustedTagName)[0];
+                                $mappingWithoutExternalId[$name] = $adjustedTagName;
+                                $mappedTag = $mappingWithoutExternalId[$name];
+                            }
+                        }
+                    }
+                    if (isset($mergedScore[$mappedTag])) {
+                        $mergedScore[$mappedTag] += $v;
+                    } else {
+                        $mergedScore[$mappedTag] = $v;
+                    }
+                }
+                $scores = $mergedScore;
+                $maxScore = !empty($mergedScore) ? max(array_values($mergedScore)) : 0;
+            }
+            // end FIXME
+
+            $this->Galaxy->sortMatrixByScore($tabs, $scores);
+            if ($this->_isRest()) {
+                $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
+                return $this->RestResponse->viewData($json, $this->response->type());
+            } else {
+                App::uses('ColourGradientTool', 'Tools');
+                $gradientTool = new ColourGradientTool();
+                $colours = $gradientTool->createGradientFromValues($scores);
+
+                $this->set('target_type', 'attribute');
+                $this->set('columnOrders', $killChainOrders);
+                $this->set('tabs', $tabs);
+                $this->set('scores', $scores);
+                $this->set('maxScore', $maxScore);
+                if (!empty($colours)) {
+                    $this->set('colours', $colours['mapping']);
+                    $this->set('interpolation', $colours['interpolation']);
+                }
+                $this->set('pickingMode', false);
+                if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
+                    $this->set('defaultTabName', "mitre-attack");
+                    $this->set('removeTrailling', 2);
+                }
+
+                $this->set('galaxyName', $matrixData['galaxy']['name']);
+                $this->set('galaxyId', $matrixData['galaxy']['id']);
+                $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
+                $this->set('matrixGalaxies', $matrixGalaxies);
+            }
+        }
+        $this->render('statistics_galaxymatrix');
     }
 
     public function verifyGPG($full = false)
@@ -1917,19 +2129,31 @@ class UsersController extends AppController
         $this->Auth->login($newUser['User']);
     }
 
-    public function fetchPGPKey($email = false)
+    public function searchGpgKey($email = false)
     {
-        if ($email == false) {
+        if (!$email) {
             throw new NotFoundException('No email provided.');
         }
-        $keys = $this->User->fetchPGPKey($email);
-        if (is_numeric($keys)) {
-            throw new NotFoundException('Could not retrieved any keys from the key server.');
+        $keys = $this->User->searchGpgKey($email);
+        if (empty($keys)) {
+            throw new NotFoundException('No keys found for given email at keyserver.');
         }
         $this->set('keys', $keys);
         $this->autorender = false;
         $this->layout = false;
         $this->render('ajax/fetchpgpkey');
+    }
+
+    public function fetchGpgKey($fingerprint = null)
+    {
+        if (!$fingerprint) {
+            throw new NotFoundException('No fingerprint provided.');
+        }
+        $key = $this->User->fetchGpgKey($fingerprint);
+        if (!$key) {
+            throw new NotFoundException('No key with given fingerprint found.');
+        }
+        return new CakeResponse(array('body' => $key));
     }
 
     public function dashboard()

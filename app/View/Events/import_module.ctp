@@ -2,6 +2,9 @@
 <?php echo $this->Form->create('', array('type' => 'file'));?>
     <fieldset>
         <legend><?php echo h(Inflector::humanize($module['name']));?></legend>
+        <?php if (isset($module['meta']['description'])) {
+            echo '<p>'.h($module['meta']['description']).'</p>';
+        } ?>
         <?php
             if (isset($module['mispattributes']['userConfig']) && !empty($module['mispattributes']['userConfig'])) {
                 foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
@@ -15,10 +18,17 @@
                     if (isset($configTypes[$config['type']]['field'])) {
                         $settings['type'] = $configTypes[$config['type']]['field'];
                     }
-                    if ($settings['type'] == 'select') {
-                        if (isset($config['options'])) {
-                            $settings['options'] = $config['options'];
-                        }
+                    switch($settings['type']) {
+                        case 'select':
+                            if (isset($config['options'])) {
+                                $settings['options'] = $config['options'];
+                            }
+                            break;
+                        case 'checkbox':
+                            if (isset($config['checked'])) {
+                                $settings['checked'] = $config['checked'];
+                            }
+                            break;
                     }
                     ?>
                     <span class="bold">
@@ -110,7 +120,7 @@ echo $this->Form->end();
 </div>
 
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'import'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'import'));
 ?>
 <script type="text/javascript">
 $(document).ready(function() {

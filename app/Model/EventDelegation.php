@@ -51,7 +51,7 @@ class EventDelegation extends AppModel
     {
         $event = $this->Event->fetchEvent($user, array('eventid' => $delegation['EventDelegation']['event_id']));
         if (empty($event)) {
-            throw new MethodNotFoundException('Invalid event.');
+            throw new NotFoundException('Invalid event.');
         }
         $event = $event[0];
         $event['Event']['user_id'] = $user['id'];

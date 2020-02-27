@@ -17,8 +17,8 @@
                     'rows' => 2,
                     'class' => 'input-xxlarge'));
             echo $this->Form->input('type', array(
-            	'div' => 'input clear',
-				'required' => false
+                'div' => 'input clear',
+                'required' => false
             ));
             echo $this->Form->input('category', array('required' => false));
         ?>
@@ -32,13 +32,27 @@
                     'type' => 'checkbox',
                     'label' => __('Alternate Search Result (Events)')
             ));
+            echo $this->Form->input('first_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+            ));
+            echo $this->Form->input('last_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+            ));
         ?>
+        <div class="clear">
+        <h3><?php echo __('First seen and Last seen.'); ?></h3>
+        <p><?php echo __('Attributes not having first seen or last seen set might not appear in the search'); ?></p>
+    </div>
     </fieldset>
-<?php
-	echo $this->Form->button('Search', array('class' => 'btn btn-primary'));
-	echo $this->Form->end();
-?>
+    <?php echo $this->Form->end(); ?>
+    <div id="bothSeenSliderContainer"></div>
+    <button onclick="$('#AttributeSearchForm').submit();" class="btn btn-primary">Submit</button>
 </div>
+<?php echo $this->element('form_seen_input'); ?>
 <script type="text/javascript">
 //
 // Generate Category / Type filtering array
@@ -200,6 +214,6 @@ $('.input-xxlarge').keydown(function (e) {
 });
 </script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'searchAttributes'));
-	echo $this->Js->writeBuffer();
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'searchAttributes'));
+    echo $this->Js->writeBuffer();
 ?>

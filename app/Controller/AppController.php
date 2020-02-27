@@ -44,12 +44,15 @@ class AppController extends Controller
 
     public $debugMode = false;
 
-    public $helpers = array('Utility', 'OrgImg');
+    public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '51';
-    public $pyMispVersion = '2.4.99';
-    public $phpmin = '5.6.5';
-    public $phprec = '7.0.16';
+    private $__queryVersion = '98';
+    public $pyMispVersion = '2.4.122';
+    public $phpmin = '7.2';
+    public $phprec = '7.4';
+    public $pythonmin = '3.6';
+    public $pythonrec = '3.7';
+    public $isApiAuthed = false;
 
     public $baseurl = '';
     public $sql_dump = false;
@@ -60,6 +63,8 @@ class AppController extends Controller
         'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
         'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
     );
+
+    protected $_legacyParams = array();
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -75,8 +80,6 @@ class AppController extends Controller
             'Session',
             'Auth' => array(
                 'authError' => 'Unauthorised access.',
-                'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
-                'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
                 'authenticate' => array(
                     'Form' => array(
                         'passwordHasher' => 'Blowfish',
@@ -89,7 +92,12 @@ class AppController extends Controller
             'Security',
             'ACL',
             'RestResponse',
-            'Flash'
+            'Flash',
+            'Toolbox',
+            'RateLimit',
+            'IndexFilter',
+            'Deprecation',
+            'RestSearch'
             //,'DebugKit.Toolbar'
     );
 
@@ -103,20 +111,37 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        $this->Auth->loginRedirect = Configure::read('MISP.baseurl') . '/users/routeafterlogin';
+
+        $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
+        if ($customLogout) {
+            $this->Auth->logoutRedirect = $customLogout;
+        } else {
+            $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
+        }
+
+        $this->__sessionMassage();
+        if (Configure::read('Security.allow_cors')) {
+            // Add CORS headers
+            $this->response->cors($this->request,
+                    explode(',', Configure::read('Security.cors_origins')),
+                    ['*'],
+                    ['Origin', 'Content-Type', 'Authorization', 'Accept']);
+
+            if ($this->request->is('options')) {
+                // Stop here!
+                // CORS only needs the headers
+                $this->response->send();
+                $this->_stop();
+            }
+        }
+
         if (!empty($this->params['named']['sql'])) {
-            $this->sql_dump = 1;
+            $this->sql_dump = intval($this->params['named']['sql']);
         }
-        // check for a supported datasource configuration
-        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-        if (!isset($dataSourceConfig['encoding'])) {
-            $db = ConnectionManager::getDataSource('default');
-            $db->setConfig(array('encoding' => 'utf8'));
-            ConnectionManager::create('default', $db->config);
-        }
-        $dataSource = $dataSourceConfig['datasource'];
-        if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
-            throw new Exception('datasource not supported: ' . $dataSource);
-        }
+
+        $this->_setupDatabaseConnection();
+        $this->_setupDebugMode();
 
         $this->set('ajax', $this->request->is('ajax'));
         $this->set('queryVersion', $this->__queryVersion);
@@ -153,24 +178,13 @@ class AppController extends Controller
         } else {
             $this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
         }
+        if (!empty($this->params['named']['disable_background_processing'])) {
+            Configure::write('MISP.background_jobs', 0);
+        }
         $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         $this->mispVersion = implode('.', array_values($versionArray));
-
         $this->Security->blackHoleCallback = 'blackHole';
-
-        // Let us access $baseurl from all views
-        $baseurl = Configure::read('MISP.baseurl');
-        if (substr($baseurl, -1) == '/') {
-            // if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
-            $baseurl = rtrim($baseurl, '/');
-            $this->loadModel('Server');
-            $this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
-        }
-        if (trim($baseurl) == 'http://') {
-            $this->Server->serverSettingsSaveValue('MISP.baseurl', '');
-        }
-        $this->baseurl = $baseurl;
-        $this->set('baseurl', h($baseurl));
+        $this->_setupBaseurl();
 
         // send users away that are using ancient versions of IE
         // Make sure to update this if IE 20 comes out :)
@@ -186,6 +200,7 @@ class AppController extends Controller
         if ($this->_isRest()) {
             $this->Security->unlockedActions = array($this->action);
         }
+
         if (!$userLoggedIn) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
@@ -236,22 +251,28 @@ class AppController extends Controller
                             }
                             $this->Session->renew();
                             $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+                            $this->isApiAuthed = true;
                         } else {
                             // User not authenticated correctly
                             // reset the session information
-                            $this->Session->destroy();
-                            $this->Log = ClassRegistry::init('Log');
-                            $this->Log->create();
-                            $log = array(
-                                    'org' => 'SYSTEM',
-                                    'model' => 'User',
-                                    'model_id' => 0,
-                                    'email' => 'SYSTEM',
-                                    'action' => 'auth_fail',
-                                    'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
-                                    'change' => null,
-                            );
-                            $this->Log->save($log);
+                            $redis = $this->{$this->modelClass}->setupRedis();
+                            if ($redis && !$redis->exists('misp:auth_fail_throttling:' . trim($auth_key))) {
+                                $redis->set('misp:auth_fail_throttling:' . trim($auth_key), 1);
+                                $redis->expire('misp:auth_fail_throttling:' . trim($auth_key), 3600);
+                                $this->Session->destroy();
+                                $this->Log = ClassRegistry::init('Log');
+                                $this->Log->create();
+                                $log = array(
+                                        'org' => 'SYSTEM',
+                                        'model' => 'User',
+                                        'model_id' => 0,
+                                        'email' => 'SYSTEM',
+                                        'action' => 'auth_fail',
+                                        'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
+                                        'change' => null,
+                                );
+                                $this->Log->save($log);
+                            }
                             throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                         }
                         unset($user);
@@ -261,28 +282,14 @@ class AppController extends Controller
                     throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                 }
             } elseif (!$this->Session->read(AuthComponent::$sessionKey)) {
-                // load authentication plugins from Configure::read('Security.auth')
-                $auth = Configure::read('Security.auth');
-                if ($auth) {
-                    $this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
-                    if ($this->Auth->startup($this)) {
-                        $user = $this->Auth->user();
-                        if ($user) {
-                            // User found in the db, add the user info to the session
-                            $this->Session->renew();
-                            $this->Session->write(AuthComponent::$sessionKey, $user);
-                        }
-                        unset($user);
-                    }
-                }
-                unset($auth);
+                $this->_loadAuthenticationPlugins();
             }
         }
         $this->set('externalAuthUser', $userLoggedIn);
         // user must accept terms
         //
         // grab the base path from our base url for use in the following checks
-        $base_dir = parse_url($baseurl, PHP_URL_PATH);
+        $base_dir = parse_url($this->baseurl, PHP_URL_PATH);
 
         // if MISP is running out of the web root already, just set this variable to blank so we don't wind up with '//' in the following if statements
         if ($base_dir == '/') {
@@ -290,8 +297,18 @@ class AppController extends Controller
         }
 
         if ($this->Auth->user()) {
+            if (Configure::read('MISP.log_user_ips')) {
+                $redis = $this->{$this->modelClass}->setupRedis();
+                if ($redis) {
+                    $redis->set('misp:ip_user:' . trim($_SERVER['REMOTE_ADDR']), $this->Auth->user('id'));
+                    $redis->expire('misp:ip_user:' . trim($_SERVER['REMOTE_ADDR']), 60*60*24*30);
+                    $redis->sadd('misp:user_ip:' . $this->Auth->user('id'), trim($_SERVER['REMOTE_ADDR']));
+                }
+            }
             // update script
-            $this->{$this->modelClass}->runUpdates();
+            if ($this->Auth->user('Role')['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
+                $this->{$this->modelClass}->runUpdates();
+            }
             $user = $this->Auth->user();
             if (!isset($user['force_logout']) || $user['force_logout']) {
                 $this->loadModel('User');
@@ -316,7 +333,7 @@ class AppController extends Controller
                     throw new ForbiddenException('Authentication failed. Your user account has been disabled.');
                 } else {
                     $this->Flash->error('Your user account has been disabled.', array('key' => 'error'));
-                    $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+                    $this->_redirectToLogin();
                 }
             }
             $this->set('default_memory_limit', ini_get('memory_limit'));
@@ -333,7 +350,10 @@ class AppController extends Controller
             }
         } else {
             if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
-                $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+                if (!$this->request->is('ajax')) {
+                    $this->Session->write('pre_login_requested_url', $this->here);
+                }
+                $this->_redirectToLogin();
             }
         }
 
@@ -354,17 +374,16 @@ class AppController extends Controller
                 $this->Auth->logout();
                 throw new MethodNotAllowedException($message);//todo this should pb be removed?
             } else {
-                $this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)', array('clear' => 1));
+                $this->Flash->error(__('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ') , array('params' => array('url' => $this->baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
             }
         }
-
         if ($this->Session->check(AuthComponent::$sessionKey)) {
             if ($this->action !== 'checkIfLoggedIn' || $this->request->params['controller'] !== 'users') {
                 $this->User->id = $this->Auth->user('id');
                 if (!$this->User->exists()) {
                     $message = __('Something went wrong. Your user account that you are authenticated with doesn\'t exist anymore.');
                     if ($this->_isRest) {
-                        $this->RestResponse->throwException(
+                        echo $this->RestResponse->throwException(
                             401,
                             $message
                         );
@@ -372,7 +391,7 @@ class AppController extends Controller
                         $this->Flash->info($message);
                     }
                     $this->Auth->logout();
-                    $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+                    $this->_redirectToLogin();
                 }
                 if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login', $base_dir.'/users/downloadTerms')))) {
                     //if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
@@ -399,14 +418,13 @@ class AppController extends Controller
         // instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
         // getActions returns all the flags in a single SQL query
         if ($this->Auth->user()) {
-            $versionArray = $this->{$this->modelClass}->checkMISPVersion();
-            $this->mispVersionFull = implode('.', array_values($versionArray));
             $this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
-            $this->set('mispVersionFull', $this->mispVersionFull);
+            $this->set('mispVersionFull', $this->mispVersion);
             $role = $this->getActions();
             $this->set('me', $this->Auth->user());
             $this->set('isAdmin', $role['perm_admin']);
             $this->set('isSiteAdmin', $role['perm_site_admin']);
+            $this->set('hostOrgUser', $this->Auth->user('org_id') == Configure::read('MISP.host_org_id'));
             $this->set('isAclAdd', $role['perm_add']);
             $this->set('isAclModify', $role['perm_modify']);
             $this->set('isAclModifyOrg', $role['perm_modify_org']);
@@ -423,7 +441,31 @@ class AppController extends Controller
             $this->set('isAclSharingGroup', $role['perm_sharing_group']);
             $this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
+            $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
+            $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
             $this->userRole = $role;
+            if (Configure::read('MISP.log_paranoid')) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
+                if (($this->request->is('post') || $this->request->is('put')) && !empty(Configure::read('MISP.log_paranoid_include_post_body'))) {
+                    $payload = $this->request->input();
+                    if (!empty($payload['_Token'])) {
+                        unset($payload['_Token']);
+                    }
+                    $change .= PHP_EOL . 'Request body: ' . json_encode($payload);
+                }
+                $log = array(
+                        'org' => $this->Auth->user('Organisation')['name'],
+                        'model' => 'User',
+                        'model_id' => $this->Auth->user('id'),
+                        'email' => $this->Auth->user('email'),
+                        'action' => 'request',
+                        'title' => 'Paranoid log entry',
+                        'change' => $change,
+                );
+                $this->Log->save($log);
+            }
         } else {
             $this->set('me', false);
         }
@@ -443,22 +485,64 @@ class AppController extends Controller
             }
         }
 
-        $this->debugMode = 'debugOff';
-        if (Configure::read('debug') > 1) {
-            $this->debugMode = 'debugOn';
-        }
         $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-        $this->set('debugMode', $this->debugMode);
-        $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+        if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
+            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+        } else {
+            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+        }
         $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
+        if ($this->_isRest()) {
+            $this->__rateLimitCheck();
+        }
+        if ($this->modelClass !== 'CakeError') {
+            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->action, $this->{$this->modelClass}, $this->Auth->user('id'));
+            if ($deprecationWarnings) {
+                $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
+                if ($this->_isRest()) {
+                    $this->response->header('X-Deprecation-Warning', $deprecationWarnings);
+                    $this->components['RestResponse']['deprecationWarnings'] = $deprecationWarnings;
+                } else {
+                    $this->Flash->warning($deprecationWarnings);
+                }
+            }
+        }
+        $this->components['RestResponse']['sql_dump'] = $this->sql_dump;
+    }
+
+    private function __rateLimitCheck()
+    {
+        $info = array();
+        $rateLimitCheck = $this->RateLimit->check(
+            $this->Auth->user(),
+            $this->request->params['controller'],
+            $this->action,
+            $this->{$this->modelClass},
+            $info,
+            $this->response->type()
+        );
+        if (!empty($info)) {
+            $this->RestResponse->setHeader('X-Rate-Limit-Limit', $info['limit']);
+            $this->RestResponse->setHeader('X-Rate-Limit-Remaining', $info['remaining']);
+            $this->RestResponse->setHeader('X-Rate-Limit-Reset', $info['reset']);
+        }
+        if ($rateLimitCheck !== true) {
+            $this->response->header('X-Rate-Limit-Limit', $info['limit']);
+            $this->response->header('X-Rate-Limit-Remaining', $info['remaining']);
+            $this->response->header('X-Rate-Limit-Reset', $info['reset']);
+            $this->response->body($rateLimitCheck);
+            $this->response->statusCode(429);
+            $this->response->send();
+            $this->_stop();
+        }
+        return true;
     }
 
     public function afterFilter()
     {
-        if (Configure::read('debug') > 1 && !empty($this->sql_dump) && $this->_isRest()) {
-            $this->Log = ClassRegistry::init('Log');
-            echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
+        if ($this->isApiAuthed && $this->_isRest()) {
+            $this->Session->destroy();
         }
     }
 
@@ -476,9 +560,53 @@ class AppController extends Controller
         $this->render('/Servers/json/simple');
     }
 
+    /*
+     * Configure the debugMode view parameter
+     */
+    protected function _setupDebugMode() {
+        $this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
+    }
+
+    /*
+     * Setup & validate the database connection configuration
+     * @throws Exception if the configured database is not supported.
+     */
+    protected function _setupDatabaseConnection() {
+        // check for a supported datasource configuration
+        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+        if (!isset($dataSourceConfig['encoding'])) {
+            $db = ConnectionManager::getDataSource('default');
+            $db->setConfig(array('encoding' => 'utf8'));
+            ConnectionManager::create('default', $db->config);
+        }
+        $dataSource = $dataSourceConfig['datasource'];
+        if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
+            throw new Exception('datasource not supported: ' . $dataSource);
+        }
+    }
+
+    /*
+     * Sanitize the configured `MISP.baseurl` and expose it to the view as `baseurl`.
+     */
+    protected function _setupBaseurl() {
+        // Let us access $baseurl from all views
+        $baseurl = Configure::read('MISP.baseurl');
+        if (substr($baseurl, -1) == '/') {
+            // if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
+            $baseurl = rtrim($baseurl, '/');
+            $this->loadModel('Server');
+            $this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
+        }
+        if (trim($baseurl) == 'http://') {
+            $this->Server->serverSettingsSaveValue('MISP.baseurl', '');
+        }
+        $this->baseurl = $baseurl;
+        $this->set('baseurl', h($baseurl));
+    }
+
     private function __convertEmailToName($email)
     {
-        $name = explode('@', $email);
+        $name = explode('@', (string)$email);
         $name = explode('.', $name[0]);
         foreach ($name as $key => $value) {
             $name[$key] = ucfirst($value);
@@ -487,7 +615,7 @@ class AppController extends Controller
         return $name;
     }
 
-    public function blackhole($type)
+    public function blackhole($type=false)
     {
         if ($type === 'csrf') {
             throw new BadRequestException($type);
@@ -598,9 +726,8 @@ class AppController extends Controller
     }
 
     // generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
-    protected function _harvestParameters($options, &$exception)
+    protected function _harvestParameters($options, &$exception, $data = array())
     {
-        $data = array();
         if (!empty($options['request']->is('post'))) {
             if (empty($options['request']->data)) {
                 $exception = $this->RestResponse->throwException(
@@ -611,29 +738,45 @@ class AppController extends Controller
                 return false;
             } else {
                 if (isset($options['request']->data['request'])) {
-                    $data = $options['request']->data['request'];
+                    $data = array_merge($data, $options['request']->data['request']);
                 } else {
-                    $data = $options['request']->data;
+                    $data = array_merge($data, $options['request']->data);
                 }
             }
+        }
+        /*
+         * If we simply capture ordered URL params with func_get_args(), reassociate them.
+         * We can easily detect this by having ordered_url_params passed as a list instead of a dict.
+         */
+        if (isset($options['ordered_url_params'][0])) {
+            $temp = array();
+            foreach ($options['ordered_url_params'] as $k => $url_param) {
+                if (!empty($options['paramArray'][$k])) {
+                    $temp[$options['paramArray'][$k]] = $url_param;
+                }
+            }
+            $options['ordered_url_params'] = $temp;
         }
         if (!empty($options['paramArray'])) {
             foreach ($options['paramArray'] as $p) {
                 if (
                     isset($options['ordered_url_params'][$p]) &&
-                    (!in_array(strtolower($options['ordered_url_params'][$p]), array('null', '0', false, 'false', null)))
+                    (!in_array(strtolower((string)$options['ordered_url_params'][$p]), array('null', '0', false, 'false', null)))
                 ) {
                     $data[$p] = $options['ordered_url_params'][$p];
                     $data[$p] = str_replace(';', ':', $data[$p]);
                 }
                 if (isset($options['named_params'][$p])) {
-                    $data[$p] = $options['named_params'][$p];
+                    $data[$p] = str_replace(';', ':', $options['named_params'][$p]);
                 }
             }
         }
         foreach ($data as $k => $v) {
             if (!is_array($data[$k])) {
                 $data[$k] = trim($data[$k]);
+                if (strpos($data[$k], '||')) {
+                    $data[$k] = explode('||', $data[$k]);
+                }
             }
         }
         if (!empty($options['additional_delimiters'])) {
@@ -641,9 +784,17 @@ class AppController extends Controller
                 $options['additional_delimiters'] = array($options['additional_delimiters']);
             }
             foreach ($data as $k => $v) {
-                $data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
-                foreach ($data[$k] as $k2 => $value) {
-                    $data[$k][$k2] = trim($data[$k][$k2]);
+                $found = false;
+                foreach ($options['additional_delimiters'] as $delim) {
+                    if (strpos($v, $delim) !== false) {
+                        $found = true;
+                    }
+                }
+                if ($found) {
+                    $data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
+                    foreach ($data[$k] as $k2 => $value) {
+                        $data[$k][$k2] = trim($data[$k][$k2]);
+                    }
                 }
             }
         }
@@ -804,7 +955,11 @@ class AppController extends Controller
         }
         $this->Server->updateDatabase($command);
         $this->Flash->success('Done.');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        if ($liveOff) {
+            $this->redirect(array('controller' => 'servers', 'action' => 'updateProgress'));
+        } else {
+            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        }
     }
 
     public function upgrade2324()
@@ -845,7 +1000,6 @@ class AppController extends Controller
 
     private function __preAuthException($message)
     {
-        $this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
         $this->set('me', array());
         throw new ForbiddenException($message);
     }
@@ -856,7 +1010,18 @@ class AppController extends Controller
         if (Configure::read('Plugin.CustomAuth_enable')) {
             $header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
             $authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-            $headerNamespace = Configure::read('Plugin.CustomAuth_use_header_namespace') ? (Configure::read('Plugin.CustomAuth_header_namespace') ? Configure::read('Plugin.CustomAuth_header_namespace') : 'HTTP_') : '';
+            if (
+                !Configure::check('Plugin.CustomAuth_use_header_namespace') ||
+                (Configure::check('Plugin.CustomAuth_use_header_namespace') && Configure::read('Plugin.CustomAuth_use_header_namespace'))
+            ) {
+                if (Configure::check('Plugin.CustomAuth_header_namespace')) {
+                    $headerNamespace = Configure::read('Plugin.CustomAuth_header_namespace');
+                } else {
+                    $headerNamespace = 'HTTP_';
+                }
+            } else {
+                $headerNamespace = '';
+            }
             if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
                 if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $server['REMOTE_ADDR']) {
                     $this->Log = ClassRegistry::init('Log');
@@ -929,5 +1094,138 @@ class AppController extends Controller
         $this->Server->cleanCacheFiles();
         $this->Flash->success('Caches cleared.');
         $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
+    }
+
+    private function __sessionMassage()
+    {
+        if (!empty(Configure::read('MISP.uuid'))) {
+            Configure::write('Session.cookie', 'MISP-' . Configure::read('MISP.uuid'));
+        }
+        if (!empty(Configure::read('Session.cookieTimeout')) || !empty(Configure::read('Session.timeout'))) {
+            $session = Configure::read('Session');
+            if (!empty($session['cookieTimeout'])) {
+                $value = 60 * intval($session['cookieTimeout']);
+            } else if (!empty($session['timeout'])) {
+                $value = 60 * intval($session['timeout']);
+            } else {
+                $value = 3600;
+            }
+            $session['ini']['session.gc_maxlifetime'] = $value;
+            Configure::write('Session', $session);
+        }
+    }
+
+    private function _redirectToLogin() {
+        $targetRoute = $this->Auth->loginAction;
+        $targetRoute['admin'] = false;
+        $this->redirect($targetRoute);
+    }
+
+    protected function _loadAuthenticationPlugins() {
+        // load authentication plugins from Configure::read('Security.auth')
+        $auth = Configure::read('Security.auth');
+
+        if (!$auth) return;
+
+        $this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+        if ($this->Auth->startup($this)) {
+            $user = $this->Auth->user();
+            if ($user) {
+                // User found in the db, add the user info to the session
+                $this->Session->renew();
+                $this->Session->write(AuthComponent::$sessionKey, $user);
+            }
+        }
+    }
+
+    protected function _legacyAPIRemap($options = array())
+    {
+        $ordered_url_params = array();
+        foreach ($options['paramArray'] as $k => $param) {
+            if (isset($options['ordered_url_params'][$k])) {
+                $ordered_url_params[$param] = $options['ordered_url_params'][$k];
+            } else {
+                $ordered_url_params[$param] = false;
+            }
+        }
+        $filterData = array(
+            'request' => $options['request'],
+            'named_params' => $options['named_params'],
+            'paramArray' => $options['paramArray'],
+            'ordered_url_params' => $ordered_url_params
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if (!empty($options['injectedParams'])) {
+            foreach ($options['injectedParams'] as $injectedParam => $injectedValue) {
+                $filters[$injectedParam] = $injectedValue;
+            }
+        }
+        if (!empty($options['alias'])) {
+            foreach ($options['alias'] as $from => $to) {
+                if (!empty($filters[$from])) {
+                    $filters[$to] = $filters[$from];
+                }
+            }
+        }
+        $this->_legacyParams = $filters;
+        return true;
+    }
+
+    public function restSearch()
+    {
+        if (empty($this->RestSearch->paramArray[$this->modelClass])) {
+            throw new NotFoundException(__('RestSearch is not implemented (yet) for this scope.'));
+        }
+        $scope = empty($this->scopeOverride) ? $this->modelClass : $this->scopeOverride;
+        if (!isset($this->$scope)) {
+            $this->loadModel($scope);
+        }
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => $this->RestSearch->paramArray[$scope],
+            'ordered_url_params' => func_get_args()
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception, $this->_legacyParams);
+        if (empty($filters['returnFormat'])) {
+            $filters['returnFormat'] = 'json';
+        }
+        unset($filterData);
+        if ($filters === false) {
+            return $exception;
+        }
+        $key = empty($filters['key']) ? $filters['returnFormat'] : $filters['key'];
+        $user = $this->_getApiAuthUser($key, $exception);
+        if ($user === false) {
+            return $exception;
+        }
+        if (isset($filters['returnFormat'])) {
+            $returnFormat = $filters['returnFormat'];
+        } else {
+            $returnFormat = 'json';
+        }
+        if ($returnFormat === 'download') {
+            $returnFormat = 'json';
+        }
+        if ($returnFormat === 'stix' && $this->_isJson()) {
+            $returnFormat = 'stix-json';
+        }
+        $elementCounter = 0;
+        $renderView = false;
+        $final = $this->$scope->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        if (!empty($renderView) && !empty($final)) {
+            $this->layout = false;
+            $final = json_decode($final, true);
+            foreach ($final as $key => $data) {
+                $this->set($key, $data);
+            }
+            $this->render('/Events/module_views/' . $renderView);
+        } else {
+            $responseType = $this->$scope->validFormats[$returnFormat][0];
+            $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
+            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+        }
     }
 }

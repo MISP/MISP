@@ -141,7 +141,7 @@ Also make sure the variable ${VIRT_USER} is set to the user you created when you
 
 #### Install PHP and dependencies
 ```bash
-sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-mbstring -y
+sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-mbstring php-gd -y
 ```
 
 # Apply all changes
@@ -202,8 +202,6 @@ ${PATH_TO_MISP}/venv/bin/pip install .
 
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd ${PATH_TO_MISP}/app
-php composer.phar require kamisama/cake-resque:4.1.2
-php composer.phar config vendor-dir Vendor
 php composer.phar install
 
 # Enable CakeResque with php-redis
@@ -442,6 +440,13 @@ sudo systemctl status rc-local.service
 sudo pip3 install pyzmq
 # ZeroMQ depends on the Python client for Redis
 sudo pip3 install redis
+```
+
+#### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+```bash
+apt-get install librdkafka-dev php-dev
+pecl install rdkafka
+find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
 ```
 
 #### Experimental ssdeep correlations

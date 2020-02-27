@@ -55,7 +55,7 @@
                 <b><?php echo __('Organisation to be merged');?></b><br />
                 <b><?php echo __('ID');?>: </b><span class="red"><?php echo h($currentOrg['Organisation']['id']);?></span><br />
                 <b><?php echo __('Name');?>: </b><span class="red"><?php echo h($currentOrg['Organisation']['name']);?></span><br />
-                <b><?php echo __('Uuid');?>: </b><span class="red"><?php echo h($currentOrg['Organisation']['uuid']);?></span><br />
+                <b><?php echo __('UUID');?>: </b><span class="red"><?php echo h($currentOrg['Organisation']['uuid']);?></span><br />
                 <b><?php echo __('Type');?>: </b><span class="red"><?php echo h($currentOrg['Organisation']['local']) ? 'Local' : 'External';?></span>
             </div>
             <div class="span6 highlightedBlock">

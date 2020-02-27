@@ -4,7 +4,7 @@
     <?php endif; ?>
     <h2><?php echo __('Server Settings & Maintenance');?></h2>
     <?php
-        echo $this->element('healthElements/tabs');
+        echo $this->element('healthElements/tabs', array('active_tab' => $tab));
         if (in_array($tab, array('MISP', 'Security', 'Encryption', 'Proxy', 'Plugin'))) {
             echo $this->element('healthElements/settings_tab');
         } else if ($tab == 'diagnostics') {
@@ -19,6 +19,15 @@
     ?>
     <div style="font-style: italic;"><?php echo __('To edit a setting, simply double click it.');?></div>
 </div>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#liveFilterField').focus();
+        $('#liveFilterField').keyup(function() {
+            liveFilter();
+        });
+    });
+
+</script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'serverSettings'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'serverSettings'));
 ?>

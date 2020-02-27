@@ -3,7 +3,7 @@
         echo '<h2>' . __('Scheduled Tasks') . '</h2>';
         echo '<p>' . __('Here you can schedule pre-defined tasks that will be executed every x hours. You can alter the date and time of the next scheduled execution and the frequency at which it will be repeated (expressed in hours). If you set the frequency to 0 then the task will not be repeated. To change and of the above mentioned settings just click on the appropriate field and hit update all when you are done editing the scheduled tasks.') . '</p>';
         echo '<p class="red bold">' . __('Warning: Scheduled tasks come with a lot of caveats and little in regards of customisations / granularity. You can instead simply create cron jobs out of the console commands as described here: ');
-        echo '<a href="' . $baseurl . '/events/automation/#console_tasks">' . __('Automating certain console tasks') . '</a>' . '</p>';
+        echo '<a href="' . $baseurl . '/events/automation/#console_admin_tasks">' . __('Automating certain console tasks') . '</a>' . '</p>';
     ?>
     <div class="pagination">
         <ul>
@@ -33,7 +33,7 @@
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>
-            <th><?php echo $this->Paginator->sort('timer', 'Frequency (h)');?></th>
+            <th><?php echo $this->Paginator->sort('timer', __('Frequency (h)'));?></th>
             <th><?php echo $this->Paginator->sort('scheduled_time');?></th>
             <th><?php echo $this->Paginator->sort('next_execution_time', __('Next Run'));?></th>
             <th><?php echo $this->Paginator->sort('description');?></th>
@@ -67,7 +67,7 @@ foreach ($list as $item):?>
                     ));
                 ?>
             </div>
-            <div id="<?php echo $item['Task']['id'];?>-scheduled_time-passive" role="button" tabindex="0" aria-label="<?php echo h($item['Task']['scheduled_time']); ?>" title="set scheduled time for task" onClick="activate2(<?php echo $item['Task']['id'];?>, 'scheduled_time', '<?php echo h($item['Task']['scheduled_time']);?>')">
+            <div id="<?php echo $item['Task']['id'];?>-scheduled_time-passive" role="button" tabindex="0" aria-label="<?php echo h($item['Task']['scheduled_time']); ?>" title="<?php echo __('Set scheduled time for task');?>" onClick="activate2(<?php echo $item['Task']['id'];?>, 'scheduled_time', '<?php echo h($item['Task']['scheduled_time']);?>')">
                 <?php echo h($item['Task']['scheduled_time']); ?>
             </div>
         </td>
@@ -111,7 +111,7 @@ endforeach; ?>
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'tasks'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'tasks'));
 ?>
 <script type="text/javascript">
     function activate1(id, type){

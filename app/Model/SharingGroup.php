@@ -5,7 +5,7 @@ class SharingGroup extends AppModel
 {
     public $actsAs = array(
             'Containable',
-            'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'SharingGroup',
                     'roleKey' => 'sharing_group_id',
                     'change' => 'full'
@@ -34,12 +34,12 @@ class SharingGroup extends AppModel
         'SharingGroupOrg' => array(
             'className' => 'SharingGroupOrg',
             'foreignKey' => 'sharing_group_id',
-            'dependent' => true,	// cascade deletes
+            'dependent' => true,    // cascade deletes
         ),
         'SharingGroupServer' => array(
             'className' => 'SharingGroupServer',
             'foreignKey' => 'sharing_group_id',
-            'dependent' => true,	// cascade deletes
+            'dependent' => true,    // cascade deletes
         ),
         'Event',
         'Attribute',
@@ -181,24 +181,24 @@ class SharingGroup extends AppModel
                 'fields' => $fieldsSharingGroup[$permissionTree]['fields'],
                 'order' => 'SharingGroup.name ASC'
             ));
-            foreach ($sgs as &$sg) {
-                if (!isset($this->__sgoCache[$sg['SharingGroup']['org_id']])) {
-                    $this->__sgoCache[$sg['SharingGroup']['org_id']] = $this->Organisation->find('first', array(
-                        'recursive' => -1,
-                        'fields' => $fieldsOrg,
-                        'conditions' => array('id' => $sg['SharingGroup']['org_id'])
-                    ));
+            if (empty($this->__sgoCache)) {
+                $temp = $this->Organisation->find('all', array(
+                    'recursive' => -1,
+                    'fields' => $fieldsOrg
+                ));
+                $this->__sgoCache = array();
+                foreach ($temp as $o) {
+                    $this->__sgoCache[$o['Organisation']['id']] = $o;
                 }
-                $sg['Organisation'] = $this->__sgoCache[$sg['SharingGroup']['org_id']]['Organisation'];
+            }
+            foreach ($sgs as &$sg) {
+                if(isset($this->__sgoCache[$sg['SharingGroup']['org_id']]['Organisation'])) {
+                        $sg['Organisation'] = $this->__sgoCache[$sg['SharingGroup']['org_id']]['Organisation'];
+                } else {
+                        $sg['Organisation'] = '';
+                }
                 if (!empty($sg['SharingGroupOrg'])) {
                     foreach ($sg['SharingGroupOrg'] as &$sgo) {
-                        if (!isset($this->__sgoCache[$sgo['org_id']])) {
-                            $this->__sgoCache[$sgo['org_id']] = $this->Organisation->find('first', array(
-                                'recursive' => -1,
-                                'fields' => $fieldsOrg,
-                                'conditions' => array('id' => $sgo['org_id'])
-                            ));
-                        }
                         if (!empty($this->__sgoCache[$sgo['org_id']]['Organisation'])) {
                             $sgo['Organisation'] = $this->__sgoCache[$sgo['org_id']]['Organisation'];
                         }
@@ -270,7 +270,10 @@ class SharingGroup extends AppModel
                     if (isset($server['Server'][0])) {
                         $server['Server'] = $server['Server'][0];
                     }
-                    if ($server['Server']['url'] == Configure::read('MISP.baseurl')) {
+                    if (
+                        $server['Server']['url'] == Configure::read('MISP.baseurl') ||
+                        (!empty(Configure::read('MISP.external_baseurl')) && Configure::read('MISP.external_baseurl') === $server['Server']['url'])
+                    ) {
                         $serverCheck = true;
                         if ($user['Role']['perm_sync'] && $server['all_orgs']) {
                             $orgCheck = true;
@@ -577,7 +580,7 @@ class SharingGroup extends AppModel
                 if ($force) {
                     $sgids = $existingSG['SharingGroup']['id'];
                     $editedSG = $existingSG['SharingGroup'];
-                    $attributes = array('name',	'releasability', 'description', 'created', 'modified', 'active');
+                    $attributes = array('name', 'releasability', 'description', 'created', 'modified', 'active');
                     foreach ($attributes as $a) {
                         if (isset($sg[$a])) {
                             $editedSG[$a] = $sg[$a];

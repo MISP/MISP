@@ -7,7 +7,7 @@ class NewsController extends AppController
 
     public $paginate = array(
             'limit' => 5,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'order' => array(
                 'News.id' => 'DESC'
             ),
@@ -48,10 +48,10 @@ class NewsController extends AppController
                 $this->request->data['News']['user_id'] = 0;
             }
             if ($this->News->save($this->request->data)) {
-                $this->Flash->success('News item added.');
+                $this->Flash->success(__('News item added.'));
                 $this->redirect(array('action' => 'index'));
             } else {
-                $this->Flash->error('The news item could not be added.');
+                $this->Flash->error(__('The news item could not be added.'));
             }
         }
     }
@@ -65,10 +65,10 @@ class NewsController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $this->request->data['News']['id'] = $id;
             if ($this->News->save($this->request->data)) {
-                $this->Flash->success('News item updated.');
+                $this->Flash->success(__('News item updated.'));
                 $this->redirect(array('action' => 'index'));
             } else {
-                $this->Flash->error('Could not update news item.');
+                $this->Flash->error(__('Could not update news item.'));
             }
         } else {
             $this->request->data = $this->News->read(null, $id);
@@ -86,10 +86,10 @@ class NewsController extends AppController
             throw new NotFoundException('Invalid news item');
         }
         if ($this->News->delete()) {
-            $this->Flash->success('News item deleted.');
+            $this->Flash->success(__('News item deleted.'));
             $this->redirect(array('action' => 'index'));
         }
-        $this->Flash->error('News item could not be deleted.');
+        $this->Flash->error(__('News item could not be deleted.'));
         $this->redirect(array('action' => 'index'));
     }
 }

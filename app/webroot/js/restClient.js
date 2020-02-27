@@ -31,6 +31,61 @@ function setApiInfoBox(isTyping) {
     }
 }
 
+function loadRestClientHistory(k, data_container) {
+    $('#ServerMethod').val(data_container[k]['RestClientHistory']['http_method']);
+    $('#ServerUseFullPath').prop("checked", data_container[k]['RestClientHistory']['use_full_path']);
+    $('#ServerShowResult').prop("checked", data_container[k]['RestClientHistory']['show_result']);
+    $('#ServerSkipSslValidation').prop("checked", data_container[k]['RestClientHistory']['skip_ssl_validation']);
+    $('#ServerUrl').val(data_container[k]['RestClientHistory']['url']);
+    $('#ServerHeader').val(data_container[k]['RestClientHistory']['headers']);
+    toggleRestClientBookmark();
+    $('#ServerBody').val(data_container[k]['RestClientHistory']['body']);
+    $('#TemplateSelect').val(data_container[k]['RestClientHistory']['url']).trigger("chosen:updated");
+    updateQueryTool(data_container[k]['RestClientHistory']['url'], false);
+    $('#querybuilder').find('select').trigger('chosen:updated');
+    setApiInfoBox(false);
+}
+
+function populate_rest_history(scope) {
+    if (scope === 'history') {
+        scope = '';
+        var container_class = 'history_queries';
+    } else {
+        scope = '1';
+        var container_class = 'bookmarked_queries';
+    }
+    $.get("/rest_client_history/index/" + scope, function(data) {
+        $('.' + container_class).html(data);
+    });
+}
+
+function toggleRestClientBookmark() {
+    if ($('#ServerBookmark').prop("checked") == true) {
+        $('#bookmark-name').css('display', 'block');
+    } else {
+        $('#bookmark-name').css('display', 'none');
+    }
+}
+
+function removeRestClientHistoryItem(id) {
+    $.ajax({
+        data: '[]',
+        success:function (data, textStatus) {
+            populate_rest_history('bookmark');
+            populate_rest_history('history');
+        },
+        error:function() {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+        },
+        type:"post",
+        cache: false,
+        url: '/rest_client_history/delete/' + id,
+    });
+}
+
+
+
+
     var allValidApis;
     var fieldsConstraint;
     var querybuilderTool;
@@ -43,28 +98,55 @@ function setApiInfoBox(isTyping) {
     $(document).ready(function () {
         insertRawRestResponse();
         $('.format-toggle-button').bind('click', function() {
-            $('#rest-response-container').empty();
             if ($(this).data('toggle-type') == 'Raw') {
+                $('#rest-response-container').empty();
                 insertRawRestResponse();
             } else if ($(this).data('toggle-type') == 'HTML') {
+                $('#rest-response-container').empty();
                 insertHTMLRestResponse();
             } else if ($(this).data('toggle-type') == 'JSON') {
+                $('#rest-response-container').empty();
                 insertJSONRestResponse();
+            } else if ($(this).data('toggle-type') == 'Download') {
+                var download_content = $('#rest-response-hidden-container').text();
+                var extension = 'json';
+                var export_type = 'json';
+                var mime = 'application/json';
+                if ($('#header-X-Response-Format').length != 0) {
+                    extension = $('#header-X-Response-Format').text();
+                }
+                if ($('#header-Content-Type').length != 0) {
+                    mime = $('#header-Content-Type').text();
+                }
+                if ($('#header-X-Export-Module-Used').length != 0) {
+                    export_type = $('#header-X-Export-Module-Used').text();
+                }
+                var filename = export_type + '.result.' + extension;
+                var blob = new Blob([download_content], {
+                    type: mime
+                });
+                saveAs(blob, filename);
             }
         });
+
         $('#ServerUrl').keyup(function() {
             $('#TemplateSelect').val($(this).val()).trigger("chosen:updated").trigger("change");
         });
+
         $('#TemplateSelect').change(function() {
             var selected_template = $('#TemplateSelect').val();
             if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
                 $('#template_description').show();
                 $('#ServerMethod').val('POST');
+                var server_url_changed = $('#ServerUrl').val() != allValidApis[selected_template].url;
                 $('#ServerUrl').val(allValidApis[selected_template].url);
                 $('#ServerUrl').data('urlWithoutParam', selected_template);
-                $('#ServerBody').val(allValidApis[selected_template].body);
+                var body_value = $('#ServerBody').val();
+                if (body_value === '' || server_url_changed) {
+                    $('#ServerBody').val(allValidApis[selected_template].body);
+                }
                 setApiInfoBox(false);
-                updateQueryTool(selected_template);
+                updateQueryTool(selected_template, true);
             }
         });
 
@@ -110,10 +192,10 @@ function setApiInfoBox(isTyping) {
             }
         });
         querybuilderTool = querybuilderTool[0].queryBuilder;
-        
+
         $('#btn-apply').on('click', function() {
             var result = querybuilderTool.getRules();
-            
+
             if (!$.isEmptyObject(result)) {
                 alert(JSON.stringify(result, null, 2));
             }
@@ -127,9 +209,18 @@ function setApiInfoBox(isTyping) {
     });
 
 
-function updateQueryTool(url) {
+function updateQueryTool(url, isEmpty) {
     var apiJson = allValidApis[url];
     var filtersJson = fieldsConstraint[url];
+
+    isEmpty = isEmpty === undefined ? false : isEmpty;
+    var body = $('#ServerBody').val();
+    if (!isEmpty && body !== undefined && body.length > 0) {
+        body = JSON.parse(body);
+    } else {
+        body = {};
+    }
+
     var filters = [];
     for (var k in filtersJson) {
         if (filtersJson.hasOwnProperty(k)) {
@@ -173,6 +264,11 @@ function updateQueryTool(url) {
         };
         mandatoryFields.forEach(function(mandatory) {
             var r = filtersJson[mandatory];
+            var action = r.id.split('.')[1];
+            if (body[action] !== undefined) {
+                r.value = body[action];
+                delete body[action];
+            }
             r.flags = {
                 no_delete: true,
                 filter_readonly: true
@@ -187,6 +283,21 @@ function updateQueryTool(url) {
             "valid": true
         };
     }
+
+    Object.keys(body).forEach(function(k) {
+        var values = body[k];
+        if (Array.isArray(values)) {
+            values.forEach(function(value) {
+                var r = $.extend({}, filtersJson[k], true);
+                r.value = value;
+                rules.rules[0].rules.push(r);
+            });
+        } else {
+            var r = filtersJson[k];
+            r.value = values;
+            rules.rules[0].rules.push(r);
+        }
+    });
 
     // add Params input field
     var paramFields = apiJson.params;

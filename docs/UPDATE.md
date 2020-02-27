@@ -1,3 +1,8 @@
+**Important Note**
+
+It is **very strongly recommended** to upgrade MISP via the web interface. This documentation may not always be up-to-date and will require you to fix permissions if you want to use the web interface to run the updates in the future.
+
+
 # Point release updates
 !!! notice
     In general, updating MISP between point releases (for exampe 2.4.50 -> 2.4.53) happens with one of the following two options (both are to be executed as root).
@@ -7,8 +12,9 @@
 To update to the latest commit from the 2.4 branch simply pull the latest commit
 ```bash
 cd /var/www/MISP
-git pull origin 2.4
-git submodule update --init --recursive
+# Replace www-data with whoever is your webserver user (apache/httpd)
+sudo -u www-data git pull origin 2.4
+sudo -u www-data git submodule update --init --recursive
 ```
 
 ## Option 2

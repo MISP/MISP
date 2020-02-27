@@ -38,7 +38,7 @@
 <tr id = "proposal<?php echo '_' . $object['id'] . '_tr'; ?>" class="<?php echo $tr_class; ?>" <?php echo $identifier; ?>>
   <?php if ($mayModify): ?>
     <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
-      <input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
+      <input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal row_checkbox" type="checkbox" aria-label="<?php __('Select proposal');?>" data-id="<?php echo $object['id'];?>" />
     </td>
   <?php endif; ?>
   <td class="short context hidden">
@@ -48,6 +48,9 @@
   </td>
   <td class="short context hidden">
     <?php echo $object['objectType'] == 0 ? h($object['uuid']) : '&nbsp;'; ?>
+  </td>
+  <td class="short context hidden">
+      <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
   <td class="short">
     <div id = "<?php echo $currentType . '_' . $object['id'] . '_timestamp_solid'; ?>">
@@ -107,7 +110,7 @@
               foreach ($object['warnings'][$component] as $warning) $temp .= '<span class=\'bold\'>' . h($valueParts[$valuePart]) . '</span>: <span class=\'red\'>' . h($warning) . '</span><br />';
             }
           }
-          echo ' <span class="icon-warning-sign icon-white" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
+          echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="fa fa-exclamation-triangle white" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
         }
       ?>
     </div>
@@ -174,6 +177,14 @@
   <td class="shortish">&nbsp;</td>
   <td class="shortish">&nbsp;</td>
   <td class="short">&nbsp;</td>
+  <?php
+    $paddedFields = array('includeSightingdb', 'includeDecayScore');
+    foreach ($paddedFields as $paddedField) {
+        if (!empty(${$paddedField})) {
+            echo '<td>&nbsp;</td>';
+        }
+    }
+  ?>
   <td class="short action-links">
     <?php
         if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin) {
@@ -185,7 +196,7 @@
         }
         if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin || ($object['org_id'] == $me['org_id'])) {
         ?>
-          <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Discard proposal');?>" role="button" tabindex="0" aria-label="<?php echo __('Discard proposal');?>" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+          <span class="fa fa-trash white useCursorPointer" title="<?php echo __('Discard proposal');?>" role="button" tabindex="0" aria-label="<?php echo __('Discard proposal');?>" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
         <?php
         }
     ?>

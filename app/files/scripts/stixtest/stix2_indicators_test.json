@@ -1,1 +1,1145 @@
-{"type": "bundle", "spec_version": "2.0", "objects": [{"type": "identity", "id": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "name": "ORGNAME_387", "identity_class": "organization", "created": "2018-06-19T14:31:27.201Z", "modified": "2018-06-19T14:31:27.201Z"}, {"type": "report", "id": "report--5abb8534-ba9c-48cd-bb63-02480a00020f", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "name": "STIX indicators test event", "published": "2018-06-15T14:51:58Z", "object_refs": ["indicator--5abb8534-4368-4bb2-adf1-02480a00020f", "indicator--5abb8534-123c-4ed4-8e80-02480a00020f", "indicator--5abb8534-1014-4283-a1fc-02480a00020f", "indicator--5abb8534-d930-4139-8263-02480a00020f", "x-misp-object--5abb8534-dc80-455e-93b3-02480a00020f", "indicator--5abb8534-4840-4087-a16a-02480a00020f", "indicator--5abb8534-a8d0-4956-812f-02480a00020f", "indicator--5abb8534-1ab4-4eb2-8056-02480a00020f", "indicator--5abb8534-8b88-4566-983f-02480a00020f", "indicator--5abb8534-9e40-467d-b334-02480a00020f", "indicator--5abb8534-8f7c-4c92-aaec-02480a00020f", "indicator--5abb8534-dd0c-4f8f-8f31-02480a00020f", "indicator--5abb8534-a800-479d-bb5c-02480a00020f", "indicator--5abb8534-e5a8-49ee-8952-02480a00020f", "indicator--5abb8534-d3c4-40fc-8723-02480a00020f", "indicator--5abb8534-453c-4543-80a6-02480a00020f", "indicator--5abb8534-5bf8-4072-946b-02480a00020f", "x-misp-object--5abb8534-a2c0-49a8-b9e7-02480a00020f", "indicator--5abb8534-5d70-47cd-a543-02480a00020f", "x-misp-object--5abb8534-5a88-4669-bc80-02480a00020f", "x-misp-object--5abb8534-7d60-4252-ad06-02480a00020f", "vulnerability--5abb8534-8264-4041-b3e3-02480a00020f", "indicator--5abb8534-0514-48e7-9f3b-02480a00020f", "indicator--5abb8534-d8c4-4a6f-a58a-02480a00020f", "indicator--5b239e0f-d7fc-4426-b92b-02740a00020f", "indicator--5b239f8e-20d8-4880-ad38-02740a00020f", "indicator--5ac3379c-3e74-44ba-9160-04120a00020f", "indicator--5ac337df-e078-4e99-8b17-02550a00020f", "indicator--5ac3444e-145c-4749-8467-02550a00020f", "indicator--5ac347ca-dac4-4562-9775-04120a00020f", "indicator--5ac37bdf-b19c-4826-b953-02520a00020f", "indicator--5ac47782-e1b8-40b6-96b4-02510a00020f", "indicator--5ac47edc-31e4-4402-a7b6-040d0a00020f", "x-misp-object--5afacc53-c0b0-4825-a6ee-03c80a00020f", "indicator--5afb3223-0988-4ef1-a920-02070a00020f", "indicator--5afbeb3e-1b04-4195-b5e2-021e0a00020f", "x-misp-object--5b0d1b61-6c00-4387-a5fa-04370a00020f", "x-misp-object--5b1f9378-46d4-494b-a4c1-044e0a00020f", "indicator--5b23c82b-6508-4bdc-b580-045b0a00020f", "attack-pattern--dcb864dc-775f-11e7-9fbb-1f41b4996683", "malware--d752161c-78f6-11e7-a0ea-bfa79b407ce4", "intrusion-set--10df003c-7831-11e7-bdb9-971cdd1218df", "tool--d700dc5c-78f6-11e7-a476-5f748c8e4fe0"], "labels": ["misp-galaxy:mitre-attack-pattern=\"DLL Injection\"", "misp-galaxy:mitre-malware=\"Elise\"", "misp-galaxy:mitre-intrusion-set=\"APT16\"", "misp-galaxy:mitre-tool=\"ifconfig\"", "misp:tool=\"misp2stix2\""], "external_references": [{"source_name": "url", "url": "https://www.circl.lu"}], "created": "2018-06-19T14:31:27.290Z", "modified": "2018-06-19T14:31:27.290Z"}, {"id": "indicator--5abb8534-4368-4bb2-adf1-02480a00020f", "type": "indicator", "labels": ["misp:type=\"md5\"", "misp:category=\"Payload delivery\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Payload delivery"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"file:hashes.'md5' = 'b2a5abfeef9e36964281a31e17b57c97'\"]", "created": "2018-06-19T14:31:27.201Z", "modified": "2018-06-19T14:31:27.201Z"}, {"id": "indicator--5abb8534-123c-4ed4-8e80-02480a00020f", "type": "indicator", "labels": ["misp:type=\"sha1\"", "misp:category=\"Payload delivery\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Payload delivery"}], "valid_from": "2018-06-15T11:10:21Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"file:hashes.'sha1' = '5898fc860300e228dcd54c0b1045b5fa0dcda502'\"]", "created": "2018-06-19T14:31:27.214Z", "modified": "2018-06-19T14:31:27.214Z"}, {"id": "indicator--5abb8534-1014-4283-a1fc-02480a00020f", "type": "indicator", "labels": ["misp:type=\"sha256\"", "misp:category=\"Payload delivery\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Payload delivery"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"file:hashes.'sha256' = '3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8'\"]", "created": "2018-06-19T14:31:27.215Z", "modified": "2018-06-19T14:31:27.215Z"}, {"id": "indicator--5abb8534-d930-4139-8263-02480a00020f", "type": "indicator", "labels": ["misp:type=\"filename|sha1\"", "misp:category=\"Payload delivery\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Payload delivery"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"file:name = 'oui' AND file:hashes.'sha1' = '5898fc860300e228dcd54c0b1045b5fa0dcda502'\"]", "created": "2018-06-19T14:31:27.216Z", "modified": "2018-06-19T14:31:27.216Z"}, {"id": "x-misp-object--5abb8534-dc80-455e-93b3-02480a00020f", "x_misp_timestamp": "2018-03-28 12:06:12+00:00", "labels": ["misp:type=\"malware-sample\"", "misp:category=\"Payload delivery\"", "misp:to_ids=\"True\""], "x_misp_value": "oui|b2a5abfeef9e36964281a31e17b57c97", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "x_misp_category": "Payload delivery", "type": "x-misp-object-malware-sample", "created": "2018-06-19T14:31:27.221Z", "modified": "2018-06-19T14:31:27.221Z"}, {"id": "indicator--5abb8534-4840-4087-a16a-02480a00020f", "type": "indicator", "labels": ["misp:type=\"ip-src\"", "misp:category=\"Network activity\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Network activity"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"network-traffic:src_ref.type = 'ipv4-addr' AND network-traffic:src_ref.value = '1.2.3.4'\"]", "created": "2018-06-19T14:31:27.221Z", "modified": "2018-06-19T14:31:27.221Z"}, {"id": "indicator--5abb8534-a8d0-4956-812f-02480a00020f", "type": "indicator", "labels": ["misp:type=\"hostname\"", "misp:category=\"Network activity\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Network activity"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"domain-name:value = 'www.circl.lu'\"]", "created": "2018-06-19T14:31:27.226Z", "modified": "2018-06-19T14:31:27.226Z"}, {"id": "indicator--5abb8534-1ab4-4eb2-8056-02480a00020f", "type": "indicator", "labels": ["misp:type=\"domain|ip\"", "misp:category=\"Network activity\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Network activity"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"domain-name:value = 'www.circl.lu' AND domain-name:resolves_to_refs[*].value = '1.2.3.4'\"]", "created": "2018-06-19T14:31:27.228Z", "modified": "2018-06-19T14:31:27.228Z"}, {"id": "indicator--5abb8534-8b88-4566-983f-02480a00020f", "type": "indicator", "labels": ["misp:type=\"port\"", "misp:category=\"Network activity\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Network activity"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"network-traffic:dst_port = '2510'\"]", "created": "2018-06-19T14:31:27.233Z", "modified": "2018-06-19T14:31:27.233Z"}, {"id": "indicator--5abb8534-9e40-467d-b334-02480a00020f", "type": "indicator", "labels": ["misp:type=\"email-src\"", "misp:category=\"Payload delivery\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Payload delivery"}], "valid_from": "2018-06-15T08:40:38Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"email-message:from_ref = 'src@email.test'\"]", "created": "2018-06-19T14:31:27.234Z", "modified": "2018-06-19T14:31:27.234Z"}, {"id": "indicator--5abb8534-8f7c-4c92-aaec-02480a00020f", "type": "indicator", "labels": ["misp:type=\"email-subject\"", "misp:category=\"Payload delivery\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Payload delivery"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"email-message:subject = 'Oui'\"]", "created": "2018-06-19T14:31:27.235Z", "modified": "2018-06-19T14:31:27.235Z"}, {"id": "indicator--5abb8534-dd0c-4f8f-8f31-02480a00020f", "type": "indicator", "labels": ["misp:type=\"url\"", "misp:category=\"External analysis\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "External analysis"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"url:value = 'https://www.circl.lu/team'\"]", "created": "2018-06-19T14:31:27.236Z", "modified": "2018-06-19T14:31:27.236Z"}, {"id": "indicator--5abb8534-a800-479d-bb5c-02480a00020f", "type": "indicator", "labels": ["misp:type=\"regkey\"", "misp:category=\"Persistence mechanism\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Persistence mechanism"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"windows-registry-key:key = 'HKEY_CURRENT_USER\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run'\"]", "created": "2018-06-19T14:31:27.237Z", "modified": "2018-06-19T14:31:27.237Z"}, {"id": "indicator--5abb8534-e5a8-49ee-8952-02480a00020f", "type": "indicator", "labels": ["misp:type=\"regkey|value\"", "misp:category=\"Persistence mechanism\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Persistence mechanism"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"windows-registry-key:key = 'HKEY_CURRENT_USER\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run' AND windows-registry-key:values = '%TEMP%\\\\seagate.exe'\"]", "created": "2018-06-19T14:31:27.241Z", "modified": "2018-06-19T14:31:27.241Z"}, {"id": "indicator--5abb8534-d3c4-40fc-8723-02480a00020f", "type": "indicator", "labels": ["misp:type=\"mutex\"", "misp:category=\"Artifacts dropped\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Artifacts dropped"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"mutex:name = 'no idea'\"]", "created": "2018-06-19T14:31:27.243Z", "modified": "2018-06-19T14:31:27.243Z"}, {"id": "indicator--5abb8534-453c-4543-80a6-02480a00020f", "type": "indicator", "labels": ["misp:type=\"filename|ssdeep\"", "misp:category=\"Payload delivery\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Payload delivery"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"file:name = 'oui' AND file:hashes.'ssdeep' = '12288:LLaIgXMVvf2u/n42bDaxGrAz1N4QiqPW44NGMJw3:LLFgXMVvf2cDaxG0N4RPK'\"]", "created": "2018-06-19T14:31:27.244Z", "modified": "2018-06-19T14:31:27.244Z"}, {"id": "indicator--5abb8534-5bf8-4072-946b-02480a00020f", "type": "indicator", "labels": ["misp:type=\"ip-dst|port\"", "misp:category=\"Network activity\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Network activity"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"network-traffic:dst_port = '2510' AND network-traffic:dst_ref.type = 'ipv4-addr' AND network-traffic:dst_ref.value = '12.34.56.78'\"]", "created": "2018-06-19T14:31:27.247Z", "modified": "2018-06-19T14:31:27.247Z"}, {"id": "x-misp-object--5abb8534-a2c0-49a8-b9e7-02480a00020f", "x_misp_timestamp": "2018-03-28 12:06:12+00:00", "labels": ["misp:type=\"attachment\"", "misp:category=\"External analysis\"", "misp:to_ids=\"True\""], "x_misp_value": "oui.oui", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "x_misp_category": "External analysis", "type": "x-misp-object-attachment", "created": "2018-06-19T14:31:27.249Z", "modified": "2018-06-19T14:31:27.249Z"}, {"id": "indicator--5abb8534-5d70-47cd-a543-02480a00020f", "type": "indicator", "labels": ["misp:type=\"mac-address\"", "misp:category=\"Network activity\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Network activity"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"mac-addr:value = '5E:FF:56:A2:AF:15'\"]", "created": "2018-06-19T14:31:27.249Z", "modified": "2018-06-19T14:31:27.249Z"}, {"id": "x-misp-object--5abb8534-5a88-4669-bc80-02480a00020f", "x_misp_timestamp": "2018-06-15 08:49:55+00:00", "labels": ["misp:type=\"comment\"", "misp:category=\"Other\"", "misp:to_ids=\"True\""], "x_misp_value": "It is a comment, indeed", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "x_misp_category": "Other", "type": "x-misp-object-comment", "created": "2018-06-19T14:31:27.250Z", "modified": "2018-06-19T14:31:27.250Z"}, {"id": "x-misp-object--5abb8534-7d60-4252-ad06-02480a00020f", "x_misp_timestamp": "2018-03-28 12:06:12+00:00", "labels": ["misp:type=\"other\"", "misp:category=\"Other\"", "misp:to_ids=\"True\""], "x_misp_value": "bla", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "x_misp_category": "Other", "type": "x-misp-object-other", "created": "2018-06-19T14:31:27.250Z", "modified": "2018-06-19T14:31:27.250Z"}, {"id": "vulnerability--5abb8534-8264-4041-b3e3-02480a00020f", "type": "vulnerability", "name": "CVE-2010-4444", "external_references": [{"source_name": "cve", "external_id": "CVE-2010-4444"}], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "labels": ["misp:type=\"vulnerability\"", "misp:category=\"External analysis\"", "misp:to_ids=\"True\""], "created": "2018-06-19T14:31:27.251Z", "modified": "2018-06-19T14:31:27.251Z"}, {"id": "indicator--5abb8534-0514-48e7-9f3b-02480a00020f", "type": "indicator", "labels": ["misp:type=\"x509-fingerprint-sha1\"", "misp:category=\"Network activity\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Network activity"}], "valid_from": "2018-03-28T12:06:12Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"x509-certificate:hashes = 'fa3d5d670dc1d153b999c3aec7b1d815cc33c4dc'\"]", "created": "2018-06-19T14:31:27.251Z", "modified": "2018-06-19T14:31:27.251Z"}, {"id": "indicator--5abb8534-d8c4-4a6f-a58a-02480a00020f", "type": "indicator", "labels": ["misp:type=\"email-reply-to\"", "misp:category=\"Payload delivery\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Payload delivery"}], "valid_from": "2018-06-15T08:38:00Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"email-message:additional_header_fields.reply_to = 'reply.to@email.test'\"]", "created": "2018-06-19T14:31:27.252Z", "modified": "2018-06-19T14:31:27.252Z"}, {"id": "indicator--5b239e0f-d7fc-4426-b92b-02740a00020f", "type": "indicator", "labels": ["misp:type=\"sha1\"", "misp:category=\"Payload delivery\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Payload delivery"}], "valid_from": "2018-06-15T11:07:59Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"file:hashes.'sha1' = '08a2fc565a1389a511ab9206b9a1e6b4b433486a'\"]", "created": "2018-06-19T14:31:27.254Z", "modified": "2018-06-19T14:31:27.254Z"}, {"id": "indicator--5b239f8e-20d8-4880-ad38-02740a00020f", "type": "indicator", "labels": ["misp:type=\"AS\"", "misp:category=\"Network activity\"", "misp:to_ids=\"True\""], "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "Network activity"}], "valid_from": "2018-06-15T11:14:22Z", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "pattern": "[\"autonomous-system:number = '66642'\"]", "created": "2018-06-19T14:31:27.255Z", "modified": "2018-06-19T14:31:27.255Z"}, {"id": "indicator--5ac3379c-3e74-44ba-9160-04120a00020f", "valid_from": "2018-04-03T08:13:16Z", "type": "indicator", "labels": ["misp:type=\"registry-key\"", "misp:category=\"file\"", "misp:to_ids=\"True\"", "from_object"], "description": "Registry key object describing a Windows registry key with value and last-modified timestamp", "pattern": "[\"windows-registry-key:data = 'qwertyuiop' AND windows-registry-key:name = 'Oui' AND windows-registry-key:key = 'hkey_local_machine\\\\\\\\system\\\\\\\\bar\\\\\\\\foo' AND windows-registry-key:data_type = 'REG_SZ'\"]", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "file"}], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.256Z", "modified": "2018-06-19T14:31:27.256Z"}, {"id": "indicator--5ac337df-e078-4e99-8b17-02550a00020f", "valid_from": "2018-04-03T08:14:23Z", "type": "indicator", "labels": ["misp:type=\"domain-ip\"", "misp:category=\"network\"", "misp:to_ids=\"True\"", "from_object"], "description": "A domain and IP address seen as a tuple in a specific time frame.", "pattern": "[\"domain-name:value = 'www.circl.lu' AND domain-name:resolves_to_refs[*].value = '8.8.8.8'\"]", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "network"}], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.259Z", "modified": "2018-06-19T14:31:27.259Z"}, {"id": "indicator--5ac3444e-145c-4749-8467-02550a00020f", "valid_from": "2018-04-03T09:08:02Z", "type": "indicator", "labels": ["misp:type=\"x509\"", "misp:category=\"network\"", "misp:to_ids=\"True\"", "from_object"], "description": "x509 object describing a X.509 certificate", "pattern": "[\"x509-certificate:hashes.'md5' = 'b2a5abfeef9e36964281a31e17b57c97' AND x509-certificate:hashes.'sha1' = '5898fc860300e228dcd54c0b1045b5fa0dcda502' AND x509-certificate:subject_public_key_algorithm = 'oui algo' AND x509-certificate:issuer = 'mr oui' AND x509-certificate:serial_number = '1234567890' AND x509-certificate:version = '1'\"]", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "network"}], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.260Z", "modified": "2018-06-19T14:31:27.260Z"}, {"id": "indicator--5ac347ca-dac4-4562-9775-04120a00020f", "valid_from": "2018-04-03T09:22:18Z", "type": "indicator", "labels": ["misp:type=\"url\"", "misp:category=\"network\"", "misp:to_ids=\"True\"", "from_object"], "description": "url object describes an url along with its normalized field (like extracted using faup parsing library) and its metadata.", "pattern": "[\"url:value = 'https://www.circl.lu' AND network-traffic:dst_port = '443' AND domain-name:value = 'www.circl.lu'\"]", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "network"}], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.265Z", "modified": "2018-06-19T14:31:27.265Z"}, {"id": "indicator--5ac37bdf-b19c-4826-b953-02520a00020f", "valid_from": "2018-04-03T13:04:31Z", "type": "indicator", "labels": ["misp:type=\"email\"", "misp:category=\"network\"", "misp:to_ids=\"True\"", "from_object"], "description": "Email object describing an email with meta-information", "pattern": "[\"email-message:additional_header_fields.reply_to = 'oui@reply.com' AND email-message:from_ref = 'oui@source.com' AND email-message:subject = 'Le Oui' AND email-message:cc_refs = 'oui1@cc.com' AND email-message:cc_refs = 'oui2@cc.com' AND email-message:to_refs = 'oui@to.lu' AND email-message:body_multipart[*].body_raw_ref.name = 'oui.jpg' AND email-message:body_multipart[*].body_raw_ref.name = 'oui.png' AND email-message:additional_header_fields.x_mailer = 'oui_X-mailer'\"]", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "network"}], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.267Z", "modified": "2018-06-19T14:31:27.267Z"}, {"id": "indicator--5ac47782-e1b8-40b6-96b4-02510a00020f", "valid_from": "2018-04-04T06:58:10Z", "type": "indicator", "labels": ["misp:type=\"file\"", "misp:category=\"file\"", "misp:to_ids=\"True\"", "from_object"], "description": "File object describing a file with meta-information", "pattern": "[\"file:hashes.'md5' = 'b2a5abfeef9e36964281a31e17b57c97' AND file:hashes.'sha256' = '3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8' AND file:name = 'oui' AND file:hashes.'sha1' = '5898fc860300e228dcd54c0b1045b5fa0dcda502' AND file:size = '1234'\"]", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "file"}], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.273Z", "modified": "2018-06-19T14:31:27.273Z"}, {"id": "indicator--5ac47edc-31e4-4402-a7b6-040d0a00020f", "valid_from": "2018-04-04T07:29:32Z", "type": "indicator", "labels": ["misp:type=\"ip-port\"", "misp:category=\"network\"", "misp:to_ids=\"True\"", "from_object"], "description": "An IP address (or domain) and a port seen as a tuple (or as a triple) in a specific time frame.", "pattern": "[\"network-traffic:dst_port = '443' AND domain-name:value = 'www.circl.lu' AND network-traffic:dst_ref.type = 'ipv4-addr' AND network-traffic:dst_ref.value = '8.8.8.8' AND network-traffic:src_port = '443'\"]", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "network"}], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.275Z", "modified": "2018-06-19T14:31:27.275Z"}, {"id": "x-misp-object--5afacc53-c0b0-4825-a6ee-03c80a00020f", "x_misp_values": {"ip-src_ip-src": "1.2.3.4", "ip-dst_ip-dst": "8.8.8.8", "port_src-port": "2510", "port_dst-port": "443", "hostname_hostname-dst": "www.hostname.circl.lu", "text_layer3-protocol": "IP", "text_layer4-protocol": "TCP", "text_layer7-protocol": "HTTP"}, "labels": ["misp:type=\"network-connection\"", "misp:category=\"network\"", "misp:to_ids=\"True\"", "from_object"], "x_misp_category": "network", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "x_misp_timestamp": "2018-05-15 12:02:27", "type": "x-misp-object-network-connection", "created": "2018-06-19T14:31:27.278Z", "modified": "2018-06-19T14:31:27.278Z"}, {"id": "indicator--5afb3223-0988-4ef1-a920-02070a00020f", "valid_from": "2018-05-15T19:16:51Z", "type": "indicator", "labels": ["misp:type=\"network-socket\"", "misp:category=\"network\"", "misp:to_ids=\"True\"", "from_object"], "description": "Network socket object describes a local or remote network connections based on the socket data structure.", "pattern": "[\"network-traffic:src_port = '2510' AND network-traffic:dst_port = '443' AND network-traffic:extensions.'socket-ext'.address_family = 'AF_FILE' AND network-traffic:extensions.'socket-ext'.protocol_family = 'PF_INET' AND network-traffic:extensions.'socket-ext'.is_listening = 'True' AND network-traffic:protocols[0] = 'TCP' AND network-traffic:src_ref.type = 'ipv4-addr' AND network-traffic:src_ref.value = '1.2.3.4' AND network-traffic:dst_ref.type = 'ipv4-addr' AND network-traffic:dst_ref.value = '8.8.8.8'\"]", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "network"}], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.279Z", "modified": "2018-06-19T14:31:27.279Z"}, {"id": "indicator--5afbeb3e-1b04-4195-b5e2-021e0a00020f", "valid_from": "2018-06-15T08:44:16Z", "type": "indicator", "labels": ["misp:type=\"process\"", "misp:category=\"misc\"", "misp:to_ids=\"True\"", "from_object"], "description": "Object describing a system process.", "pattern": "[\"process:name = 'Process_in_progress' AND process:pid = '2510'\"]", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "misc"}], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.285Z", "modified": "2018-06-19T14:31:27.285Z"}, {"id": "x-misp-object--5b0d1b61-6c00-4387-a5fa-04370a00020f", "x_misp_values": {"whois-registrant-email_registrant-email": "registant@email.com", "whois-registrant-org_registrant-org": "Registrant Org", "whois-registrant-name_registrant-name": "Registrant Name", "whois-registrant-phone_registrant-phone": "0123456789", "datetime_creation-date": "2017-05-22T02:26:15", "hostname_nameserver": "circl.lu", "domain_domain": "www.circl.lu", "ip-src_ip-address": "1.2.3.4"}, "labels": ["misp:type=\"whois\"", "misp:category=\"network\"", "misp:to_ids=\"True\"", "from_object"], "x_misp_category": "network", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "x_misp_timestamp": "2018-05-29 09:20:33", "type": "x-misp-object-whois", "created": "2018-06-19T14:31:27.286Z", "modified": "2018-06-19T14:31:27.286Z"}, {"id": "x-misp-object--5b1f9378-46d4-494b-a4c1-044e0a00020f", "x_misp_values": {"text_text": "MISP default credentials", "text_username": "misp", "text_password": "Password1234", "text_type": "password", "text_origin": "malware-analysis", "text_format": "clear-text", "text_notification": "victim-notified"}, "labels": ["misp:type=\"credential\"", "misp:category=\"misc\"", "misp:to_ids=\"True\"", "from_object"], "x_misp_category": "misc", "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "x_misp_timestamp": "2018-06-12 09:34:08", "type": "x-misp-object-credential", "created": "2018-06-19T14:31:27.287Z", "modified": "2018-06-19T14:31:27.287Z"}, {"id": "indicator--5b23c82b-6508-4bdc-b580-045b0a00020f", "valid_from": "2018-06-15T14:07:39Z", "type": "indicator", "labels": ["misp:type=\"asn\"", "misp:category=\"network\"", "misp:to_ids=\"True\"", "from_object"], "description": "Autonomous system object describing an autonomous system which can include one or more network operators management an entity (e.g. ISP) along with their routing policy, routing prefixes or alike.", "pattern": "[\"autonomous-system:number = 'AS66642' AND autonomous-system:name = 'AS name' AND ipv4-addr:value = '1.2.3.4' AND ipv4-addr:value = '8.8.8.8'\"]", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "network"}], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.287Z", "modified": "2018-06-19T14:31:27.287Z"}, {"id": "attack-pattern--dcb864dc-775f-11e7-9fbb-1f41b4996683", "type": "attack-pattern", "name": "Attack Pattern", "description": "ATT&CK Tactic | DLL injection is used to run code in the context of another process by causing the other process to load and execute code. Running code in the context of another process provides adversaries many benefits, such as access to the process's memory and permissions. It also allows adversaries to mask their actions under a legitimate process. A more sophisticated kind of DLL injection, reflective DLL injection, loads code without calling the normal Windows API calls, potentially bypassing DLL load monitoring. Numerous methods of DLL injection exist on Windows, including modifying the Registry, creating remote threads, Windows hooking APIs, and DLL pre-loading.PowerShell with tools such as PowerSploit,[[Citation: Powersploit]] so additional PowerShell monitoring may be required to cover known implementations of this behavior.\n\nPlatforms: Windows Server 2003, Windows Server 2008, Windows Server 2012, Windows XP, Windows 7, Windows 8, Windows Server 2003 R2, Windows Server 2008 R2, Windows Server 2012 R2, Windows Vista, Windows 8.1, Windows 10\n\nData Sources: API monitoring, Windows Registry, File monitoring, Process monitoring\n\nEffective Permissions: User, Administrator, SYSTEM", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "mitre-attack-pattern"}], "labels": ["misp:type=\"mitre-attack-pattern\"", "misp-galaxy:mitre-attack-pattern=\"DLL Injection\""], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.289Z", "modified": "2018-06-19T14:31:27.289Z"}, {"id": "malware--d752161c-78f6-11e7-a0ea-bfa79b407ce4", "type": "malware", "name": "Malware", "description": "Name of ATT&CK software | Elise is a custom backdoor Trojan that appears to be used exclusively by Lotus Blossom. It is part of a larger group of\ntools referred to as LStudio, ST Group, and APT0LSTU.[[Citation: Lotus Blossom Jun 2015]]\n\nAliases: Elise, BKDR_ESILE, Page", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "mitre-malware"}], "labels": ["misp:type=\"mitre-malware\"", "misp-galaxy:mitre-malware=\"Elise\""], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.289Z", "modified": "2018-06-19T14:31:27.289Z"}, {"id": "intrusion-set--10df003c-7831-11e7-bdb9-971cdd1218df", "type": "intrusion-set", "name": "Intrusion Set", "description": "Name of ATT&CK Group | APT16 is a China-based threat group that has launched spearphishing campaigns targeting Japanese and Taiwanese organizations.[[Citation: FireEye EPS Awakens Part 2]]", "aliases": ["APT16"], "labels": ["misp:type=\"mitre-intrusion-set\"", "misp-galaxy:mitre-intrusion-set=\"APT16\""], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.289Z", "modified": "2018-06-19T14:31:27.289Z"}, {"id": "tool--d700dc5c-78f6-11e7-a476-5f748c8e4fe0", "type": "tool", "name": "Tool", "description": "Name of ATT&CK software | ifconfig is a Unix-based utility used to gather information about and interact with the TCP/IP settings on a system.[[Citation: Wikipedia Ifconfig]]", "kill_chain_phases": [{"kill_chain_name": "misp-category", "phase_name": "mitre-tool"}], "labels": ["misp:type=\"mitre-tool\"", "misp-galaxy:mitre-tool=\"ifconfig\""], "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985", "created": "2018-06-19T14:31:27.289Z", "modified": "2018-06-19T14:31:27.289Z"}], "id": "bundle--5abb8534-ba9c-48cd-bb63-02480a00020f"}
+{
+    "type": "bundle",
+    "spec_version": "2.0",
+    "id": "bundle--5d894441-ae14-4984-8537-1489a964451a",
+    "objects": [
+        {
+            "type": "identity",
+            "id": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "name": "ORGNAME_387",
+            "identity_class": "organization",
+            "created": "2019-09-23T09:03:45.739Z",
+            "modified": "2019-09-23T09:03:45.739Z"
+        },
+        {
+            "type": "report",
+            "id": "report--5abb8534-ba9c-48cd-bb63-02480a00020f",
+            "name": "STIX indicators test event",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2018-03-28T00:00:00.000Z",
+            "published": "2019-09-23T16:22:29Z",
+            "object_marking_refs": [
+                "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9"
+            ],
+            "labels": [
+                "Threat-Report",
+                "misp:tool=\"misp2stix2\"",
+                "misp-galaxy:mitre-attack-pattern=\"DLL Injection\"",
+                "misp-galaxy:mitre-malware=\"Elise\"",
+                "misp-galaxy:mitre-intrusion-set=\"APT16\"",
+                "misp-galaxy:mitre-tool=\"ifconfig\"",
+                "misp-galaxy:mitre-attack-pattern=\"DLL Search Order Hijacking - T1038\"",
+                "misp-galaxy:mitre-intrusion-set=\"APT16 - G0023\"",
+                "misp-galaxy:mitre-malware=\"Elise - S0081\"",
+                "misp-galaxy:mitre-tool=\"ifconfig - S0101\"",
+                "misp-galaxy:mitre-course-of-action=\"Access Token Manipulation Mitigation - T1134\"",
+                "misp-galaxy:threat-actor=\"APT 16\""
+            ],
+            "external_references": [
+                {
+                    "source_name": "url",
+                    "url": "https://www.circl.lu"
+                }
+            ],
+            "object_refs": [
+                "indicator--5abb8534-4368-4bb2-adf1-02480a00020f",
+                "indicator--5abb8534-123c-4ed4-8e80-02480a00020f",
+                "indicator--5abb8534-1014-4283-a1fc-02480a00020f",
+                "indicator--5abb8534-d930-4139-8263-02480a00020f",
+                "indicator--5abb8534-dc80-455e-93b3-02480a00020f",
+                "indicator--5abb8534-4840-4087-a16a-02480a00020f",
+                "indicator--5abb8534-a8d0-4956-812f-02480a00020f",
+                "indicator--5abb8534-1ab4-4eb2-8056-02480a00020f",
+                "indicator--5abb8534-8b88-4566-983f-02480a00020f",
+                "indicator--5abb8534-9e40-467d-b334-02480a00020f",
+                "indicator--5abb8534-8f7c-4c92-aaec-02480a00020f",
+                "indicator--5abb8534-dd0c-4f8f-8f31-02480a00020f",
+                "indicator--5abb8534-a800-479d-bb5c-02480a00020f",
+                "indicator--5abb8534-e5a8-49ee-8952-02480a00020f",
+                "indicator--5abb8534-d3c4-40fc-8723-02480a00020f",
+                "indicator--5abb8534-453c-4543-80a6-02480a00020f",
+                "indicator--5abb8534-5bf8-4072-946b-02480a00020f",
+                "indicator--5abb8534-a2c0-49a8-b9e7-02480a00020f",
+                "indicator--5abb8534-5d70-47cd-a543-02480a00020f",
+                "x-misp-object--5abb8534-5a88-4669-bc80-02480a00020f",
+                "x-misp-object--5abb8534-7d60-4252-ad06-02480a00020f",
+                "vulnerability--5abb8534-8264-4041-b3e3-02480a00020f",
+                "indicator--5abb8534-0514-48e7-9f3b-02480a00020f",
+                "indicator--5abb8534-d8c4-4a6f-a58a-02480a00020f",
+                "indicator--5b239f8e-20d8-4880-ad38-02740a00020f",
+                "x-misp-object--5d886bd1-136c-4ced-8566-0e42a964451a",
+                "indicator--5ac3379c-3e74-44ba-9160-04120a00020f",
+                "indicator--5ac337df-e078-4e99-8b17-02550a00020f",
+                "indicator--5ac3444e-145c-4749-8467-02550a00020f",
+                "indicator--5ac347ca-dac4-4562-9775-04120a00020f",
+                "indicator--5ac37bdf-b19c-4826-b953-02520a00020f",
+                "indicator--5ac47edc-31e4-4402-a7b6-040d0a00020f",
+                "indicator--5afacc53-c0b0-4825-a6ee-03c80a00020f",
+                "indicator--5afb3223-0988-4ef1-a920-02070a00020f",
+                "indicator--5afbeb3e-1b04-4195-b5e2-021e0a00020f",
+                "x-misp-object--5b0d1b61-6c00-4387-a5fa-04370a00020f",
+                "indicator--5b1f9378-46d4-494b-a4c1-044e0a00020f",
+                "indicator--5b23c82b-6508-4bdc-b580-045b0a00020f",
+                "indicator--5d234f25-539c-4d12-bf93-2c46a964451a",
+                "course-of-action--5d514ff9-ac30-4fb5-b9e7-3eb4a964451a",
+                "vulnerability--57683cf6-f4d0-42b8-9a8f-d5dcc12c3534",
+                "x-misp-object--a1285743-3962-40e3-a824-0f21f10f3e19",
+                "attack-pattern--7205da54-70de-4fa7-9b34-e14e63fe6787",
+                "indicator--5ac47782-e1b8-40b6-96b4-02510a00020f",
+                "attack-pattern--dcb864dc-775f-11e7-9fbb-1f41b4996683",
+                "intrusion-set--10df003c-7831-11e7-bdb9-971cdd1218df",
+                "malware--d752161c-78f6-11e7-a0ea-bfa79b407ce4",
+                "tool--d700dc5c-78f6-11e7-a476-5f748c8e4fe0",
+                "course-of-action--a8825ae8-6dea-11e7-8d57-7728f3cfe086",
+                "threat-actor--7cdff317-a673-4474-84ec-4f1754947823",
+                "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9",
+                "relationship--e95c06b9-cea0-4cee-a8da-16a990b68035",
+                "relationship--da702173-8f2a-4ce2-b7eb-731e400bc2b4",
+                "relationship--56e8d252-4791-43cd-a60a-e18acec72d0d"
+            ],
+            "modified": "2019-09-23T22:16:33.927Z"
+        },
+        {
+            "id": "indicator--5abb8534-4368-4bb2-adf1-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"md5\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Payload delivery"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[file:hashes.'md5' = 'b2a5abfeef9e36964281a31e17b57c97']",
+            "created": "2019-09-23T09:03:45.739Z",
+            "modified": "2019-09-23T09:03:45.739Z"
+        },
+        {
+            "id": "indicator--5abb8534-123c-4ed4-8e80-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"sha1\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Payload delivery"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[file:hashes.'sha1' = '5898fc860300e228dcd54c0b1045b5fa0dcda502']",
+            "created": "2019-09-23T09:03:45.750Z",
+            "modified": "2019-09-23T09:03:45.750Z"
+        },
+        {
+            "id": "indicator--5abb8534-1014-4283-a1fc-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"sha256\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Payload delivery"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[file:hashes.'sha256' = '3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8']",
+            "created": "2019-09-23T09:03:45.751Z",
+            "modified": "2019-09-23T09:03:45.751Z"
+        },
+        {
+            "id": "indicator--5abb8534-d930-4139-8263-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"filename|sha1\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Payload delivery"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[file:name = 'oui' AND file:hashes.'sha1' = '5898fc860300e228dcd54c0b1045b5fa0dcda502']",
+            "created": "2019-09-23T09:03:45.752Z",
+            "modified": "2019-09-23T09:03:45.752Z"
+        },
+        {
+            "id": "indicator--5abb8534-dc80-455e-93b3-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"malware-sample\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Payload delivery"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[file:name = 'oui' AND file:hashes.'md5' = 'b2a5abfeef9e36964281a31e17b57c97']",
+            "created": "2019-09-23T09:03:45.755Z",
+            "modified": "2019-09-23T09:03:45.755Z"
+        },
+        {
+            "id": "indicator--5abb8534-4840-4087-a16a-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"ip-src\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Network activity"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[network-traffic:src_ref.type = 'ipv4-addr' AND network-traffic:src_ref.value = '1.2.3.4']",
+            "created": "2019-09-23T09:03:45.757Z",
+            "modified": "2019-09-23T09:03:45.757Z"
+        },
+        {
+            "id": "indicator--5abb8534-a8d0-4956-812f-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"hostname\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Network activity"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[domain-name:value = 'www.circl.lu']",
+            "created": "2019-09-23T09:03:45.761Z",
+            "modified": "2019-09-23T09:03:45.761Z"
+        },
+        {
+            "id": "indicator--5abb8534-1ab4-4eb2-8056-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"domain|ip\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Network activity"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[domain-name:value = 'www.circl.lu' AND domain-name:resolves_to_refs[*].value = '1.2.3.4']",
+            "created": "2019-09-23T09:03:45.763Z",
+            "modified": "2019-09-23T09:03:45.763Z"
+        },
+        {
+            "id": "indicator--5abb8534-8b88-4566-983f-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"port\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Network activity"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[network-traffic:dst_port = '2510']",
+            "created": "2019-09-23T09:03:45.767Z",
+            "modified": "2019-09-23T09:03:45.767Z"
+        },
+        {
+            "id": "indicator--5abb8534-9e40-467d-b334-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"email-src\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Payload delivery"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[email-message:from_ref = 'src@email.test']",
+            "created": "2019-09-23T09:03:45.768Z",
+            "modified": "2019-09-23T09:03:45.768Z"
+        },
+        {
+            "id": "indicator--5abb8534-8f7c-4c92-aaec-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"email-subject\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Payload delivery"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[email-message:subject = 'Oui']",
+            "created": "2019-09-23T09:03:45.769Z",
+            "modified": "2019-09-23T09:03:45.769Z"
+        },
+        {
+            "id": "indicator--5abb8534-dd0c-4f8f-8f31-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"url\"",
+                "misp:category=\"External analysis\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "External analysis"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[url:value = 'https://www.circl.lu/team']",
+            "created": "2019-09-23T09:03:45.771Z",
+            "modified": "2019-09-23T09:03:45.771Z"
+        },
+        {
+            "id": "indicator--5abb8534-a800-479d-bb5c-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"regkey\"",
+                "misp:category=\"Persistence mechanism\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Persistence mechanism"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[windows-registry-key:key = 'HKEY_CURRENT_USER\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run']",
+            "created": "2019-09-23T09:03:45.772Z",
+            "modified": "2019-09-23T09:03:45.772Z"
+        },
+        {
+            "id": "indicator--5abb8534-e5a8-49ee-8952-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"regkey|value\"",
+                "misp:category=\"Persistence mechanism\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Persistence mechanism"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[windows-registry-key:key = 'HKEY_CURRENT_USER\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run' AND windows-registry-key:values = '%TEMP%\\\\seagate.exe']",
+            "created": "2019-09-23T09:03:45.775Z",
+            "modified": "2019-09-23T09:03:45.775Z"
+        },
+        {
+            "id": "indicator--5abb8534-d3c4-40fc-8723-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"mutex\"",
+                "misp:category=\"Artifacts dropped\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Artifacts dropped"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[mutex:name = 'no idea']",
+            "created": "2019-09-23T09:03:45.776Z",
+            "modified": "2019-09-23T09:03:45.776Z"
+        },
+        {
+            "id": "indicator--5abb8534-453c-4543-80a6-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"filename|ssdeep\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Payload delivery"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[file:name = 'oui' AND file:hashes.'ssdeep' = '12288:LLaIgXMVvf2u/n42bDaxGrAz1N4QiqPW44NGMJw3:LLFgXMVvf2cDaxG0N4RPK']",
+            "created": "2019-09-23T09:03:45.778Z",
+            "modified": "2019-09-23T09:03:45.778Z"
+        },
+        {
+            "id": "indicator--5abb8534-5bf8-4072-946b-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"ip-dst|port\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Network activity"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[network-traffic:dst_port = '2510' AND network-traffic:dst_ref.type = 'ipv4-addr' AND network-traffic:dst_ref.value = '12.34.56.78']",
+            "created": "2019-09-23T09:03:45.780Z",
+            "modified": "2019-09-23T09:03:45.780Z"
+        },
+        {
+            "id": "indicator--5abb8534-a2c0-49a8-b9e7-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"attachment\"",
+                "misp:category=\"External analysis\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "External analysis"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[file:name = 'oui.oui']",
+            "created": "2019-09-23T09:03:45.781Z",
+            "modified": "2019-09-23T09:03:45.781Z"
+        },
+        {
+            "id": "indicator--5abb8534-5d70-47cd-a543-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"mac-address\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Network activity"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[mac-addr:value = '5e:ff:56:a2:af:15']",
+            "created": "2019-09-23T09:03:45.782Z",
+            "modified": "2019-09-23T09:03:45.782Z"
+        },
+        {
+            "id": "x-misp-object--5abb8534-5a88-4669-bc80-02480a00020f",
+            "x_misp_category": "Other",
+            "labels": [
+                "misp:type=\"comment\"",
+                "misp:category=\"Other\"",
+                "misp:to_ids=\"True\""
+            ],
+            "x_misp_timestamp": "2018-06-15 08:49:55",
+            "x_misp_value": "It is a comment, indeed",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "type": "x-misp-object-comment",
+            "created": "2019-09-23T09:03:45.783Z",
+            "modified": "2019-09-23T09:03:45.783Z"
+        },
+        {
+            "id": "x-misp-object--5abb8534-7d60-4252-ad06-02480a00020f",
+            "x_misp_category": "Other",
+            "labels": [
+                "misp:type=\"other\"",
+                "misp:category=\"Other\"",
+                "misp:to_ids=\"True\""
+            ],
+            "x_misp_timestamp": "2018-03-28 12:06:12",
+            "x_misp_value": "bla",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "type": "x-misp-object-other",
+            "created": "2019-09-23T09:03:45.783Z",
+            "modified": "2019-09-23T09:03:45.783Z"
+        },
+        {
+            "id": "vulnerability--5abb8534-8264-4041-b3e3-02480a00020f",
+            "type": "vulnerability",
+            "name": "CVE-2017-11774",
+            "external_references": [
+                {
+                    "source_name": "cve",
+                    "external_id": "CVE-2017-11774"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"vulnerability\"",
+                "misp:category=\"External analysis\"",
+                "misp:to_ids=\"True\""
+            ],
+            "created": "2019-09-23T09:03:45.783Z",
+            "modified": "2019-09-23T09:03:45.783Z"
+        },
+        {
+            "id": "indicator--5abb8534-0514-48e7-9f3b-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"x509-fingerprint-sha1\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Network activity"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[x509-certificate:hashes = 'fa3d5d670dc1d153b999c3aec7b1d815cc33c4dc']",
+            "created": "2019-09-23T09:03:45.784Z",
+            "modified": "2019-09-23T09:03:45.784Z"
+        },
+        {
+            "id": "indicator--5abb8534-d8c4-4a6f-a58a-02480a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"email-reply-to\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Payload delivery"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[email-message:additional_header_fields.reply_to = 'reply.to@email.test']",
+            "created": "2019-09-23T09:03:45.785Z",
+            "modified": "2019-09-23T09:03:45.785Z"
+        },
+        {
+            "id": "indicator--5b239f8e-20d8-4880-ad38-02740a00020f",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"AS\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"True\""
+            ],
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "Network activity"
+                }
+            ],
+            "valid_from": "2018-03-28T00:00:00Z",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "pattern": "[autonomous-system:number = '66642']",
+            "created": "2019-09-23T09:03:45.786Z",
+            "modified": "2019-09-23T09:03:45.786Z"
+        },
+        {
+            "id": "x-misp-object--5d886bd1-136c-4ced-8566-0e42a964451a",
+            "x_misp_category": "Artifacts dropped",
+            "labels": [
+                "misp:type=\"named pipe\"",
+                "misp:category=\"Artifacts dropped\"",
+                "misp:to_ids=\"True\""
+            ],
+            "x_misp_timestamp": "2019-09-23 06:53:05",
+            "x_misp_value": "\\\\.\\pipe\\testpipe",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "type": "x-misp-object-named-pipe",
+            "created": "2019-09-23T09:03:45.787Z",
+            "modified": "2019-09-23T09:03:45.787Z"
+        },
+        {
+            "id": "indicator--5ac3379c-3e74-44ba-9160-04120a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"registry-key\"",
+                "misp:category=\"file\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[windows-registry-key:values.data = 'qwertyuiop' AND windows-registry-key:values.name = 'Oui' AND windows-registry-key:key = 'hkey_local_machine\\\\system\\\\bar\\\\foo' AND windows-registry-key:values.data_type = 'REG_SZ']",
+            "description": "Registry key object describing a Windows registry key with value and last-modified timestamp",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "file"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.788Z",
+            "modified": "2019-09-23T09:03:45.788Z"
+        },
+        {
+            "id": "indicator--5ac337df-e078-4e99-8b17-02550a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"domain-ip\"",
+                "misp:category=\"network\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[domain-name:value = 'www.circl.lu' AND domain-name:resolves_to_refs[*].value = '8.8.8.8']",
+            "description": "A domain and IP address seen as a tuple in a specific time frame.",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "network"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.790Z",
+            "modified": "2019-09-23T09:03:45.790Z"
+        },
+        {
+            "id": "indicator--5ac3444e-145c-4749-8467-02550a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"x509\"",
+                "misp:category=\"network\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[x509-certificate:hashes.'md5' = 'b2a5abfeef9e36964281a31e17b57c97' AND x509-certificate:hashes.'sha1' = '5898fc860300e228dcd54c0b1045b5fa0dcda502' AND x509-certificate:subject_public_key_algorithm = 'oui algo' AND x509-certificate:issuer = 'mr oui' AND x509-certificate:serial_number = '1234567890' AND x509-certificate:version = '1']",
+            "description": "x509 object describing a X.509 certificate",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "network"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.792Z",
+            "modified": "2019-09-23T09:03:45.792Z"
+        },
+        {
+            "id": "indicator--5ac347ca-dac4-4562-9775-04120a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"url\"",
+                "misp:category=\"network\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[url:value = 'https://www.circl.lu' AND network-traffic:dst_port = '443' AND domain-name:value = 'www.circl.lu']",
+            "description": "url object describes an url along with its normalized field (like extracted using faup parsing library) and its metadata.",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "network"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.795Z",
+            "modified": "2019-09-23T09:03:45.795Z"
+        },
+        {
+            "id": "indicator--5ac37bdf-b19c-4826-b953-02520a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"email\"",
+                "misp:category=\"network\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[email-message:additional_header_fields.reply_to = 'oui@reply.com' AND email-message:from_ref = 'oui@source.com' AND email-message:subject = 'Le Oui' AND email-message:cc_refs = 'oui1@cc.com' AND email-message:cc_refs = 'oui2@cc.com' AND email-message:to_refs = 'oui@to.lu' AND email-message:body_multipart[*].body_raw_ref.name = 'oui.jpg' AND email-message:body_multipart[*].body_raw_ref.name = 'oui.png' AND email-message:additional_header_fields.x_mailer = 'oui_X-mailer']",
+            "description": "Email object describing an email with meta-information",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "network"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.797Z",
+            "modified": "2019-09-23T09:03:45.797Z"
+        },
+        {
+            "id": "indicator--5ac47edc-31e4-4402-a7b6-040d0a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"ip-port\"",
+                "misp:category=\"network\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[network-traffic:dst_port = '443' AND domain-name:value = 'www.circl.lu' AND network-traffic:dst_ref.type = 'ipv4-addr' AND network-traffic:dst_ref.value = '8.8.8.8' AND network-traffic:src_port = '443']",
+            "description": "An IP address (or domain) and a port seen as a tuple (or as a triple) in a specific time frame.",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "network"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.806Z",
+            "modified": "2019-09-23T09:03:45.806Z"
+        },
+        {
+            "id": "indicator--5afacc53-c0b0-4825-a6ee-03c80a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"network-connection\"",
+                "misp:category=\"network\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[network-traffic:src_ref.type = 'ipv4-addr' AND network-traffic:src_ref.value = '1.2.3.4' AND network-traffic:src_port = '2510' AND network-traffic:dst_ref.type = 'ipv4-addr' AND network-traffic:dst_ref.value = '8.8.8.8' AND network-traffic:dst_ref.type = 'domain-name' AND network-traffic:dst_ref.value = 'www.hostname.circl.lu' AND network-traffic:dst_port = '443' AND network-traffic:protocols[0] = 'IP' AND network-traffic:protocols[1] = 'TCP' AND network-traffic:protocols[2] = 'HTTP']",
+            "description": "A local or remote network connection.",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "network"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.808Z",
+            "modified": "2019-09-23T09:03:45.808Z"
+        },
+        {
+            "id": "indicator--5afb3223-0988-4ef1-a920-02070a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"network-socket\"",
+                "misp:category=\"network\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[network-traffic:src_ref.type = 'ipv4-addr' AND network-traffic:src_ref.value = '1.2.3.4' AND network-traffic:src_port = '2510' AND network-traffic:dst_ref.type = 'ipv4-addr' AND network-traffic:dst_ref.value = '8.8.8.8' AND network-traffic:dst_port = '443' AND network-traffic:protocols[0] = 'TCP' AND network-traffic:extensions.'socket-ext'.address_family = 'AF_FILE' AND network-traffic:extensions.'socket-ext'.protocol_family = 'PF_INET' AND network-traffic:extensions.'socket-ext'.is_listening = 'True']",
+            "description": "Network socket object describes a local or remote network connections based on the socket data structure.",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "network"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.815Z",
+            "modified": "2019-09-23T09:03:45.815Z"
+        },
+        {
+            "id": "indicator--5afbeb3e-1b04-4195-b5e2-021e0a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"process\"",
+                "misp:category=\"misc\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[process:name = 'Process_in_progress' AND process:pid = '2510']",
+            "description": "Object describing a system process.",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "misc"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.821Z",
+            "modified": "2019-09-23T09:03:45.821Z"
+        },
+        {
+            "id": "x-misp-object--5b0d1b61-6c00-4387-a5fa-04370a00020f",
+            "x_misp_values": {
+                "whois-registrant-email_registrant-email": "registant@email.com",
+                "whois-registrant-org_registrant-org": "Registrant Org",
+                "whois-registrant-name_registrant-name": "Registrant Name",
+                "whois-registrant-phone_registrant-phone": "0123456789",
+                "datetime_creation-date": "2017-05-22T02:26:15",
+                "hostname_nameserver": "circl.lu",
+                "domain_domain": "www.circl.lu",
+                "ip-src_ip-address": "1.2.3.4"
+            },
+            "labels": [
+                "misp:type=\"whois\"",
+                "misp:category=\"network\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "x_misp_category": "network",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "x_misp_timestamp": "2018-05-29 09:20:33",
+            "type": "x-misp-object-whois",
+            "created": "2019-09-23T09:03:45.823Z",
+            "modified": "2019-09-23T09:03:45.823Z"
+        },
+        {
+            "id": "indicator--5b1f9378-46d4-494b-a4c1-044e0a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"credential\"",
+                "misp:category=\"misc\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[user-account:x_misp_text_text = 'MISP default credentials' AND user-account:user_id = 'misp' AND user-account:credential = 'Password1234' AND user-account:x_misp_text_type = 'password' AND user-account:x_misp_text_origin = 'malware-analysis' AND user-account:x_misp_text_format = 'clear-text' AND user-account:x_misp_text_notification = 'victim-notified']",
+            "description": "Credential describes one or more credential(s) including password(s), api key(s) or decryption key(s).",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "misc"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.823Z",
+            "modified": "2019-09-23T09:03:45.823Z"
+        },
+        {
+            "id": "indicator--5b23c82b-6508-4bdc-b580-045b0a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"asn\"",
+                "misp:category=\"network\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[autonomous-system:number = 'AS66642' AND autonomous-system:name = 'AS name' AND ipv4-addr:value = '1.2.3.4' AND ipv4-addr:value = '8.8.8.8']",
+            "description": "Autonomous system object describing an autonomous system which can include one or more network operators management an entity (e.g. ISP) along with their routing policy, routing prefixes or alike.",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "network"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.827Z",
+            "modified": "2019-09-23T09:03:45.827Z"
+        },
+        {
+            "id": "indicator--5d234f25-539c-4d12-bf93-2c46a964451a",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"user-account\"",
+                "misp:category=\"misc\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[user-account:extensions.'unix-account-ext'.groups[0] = 'www-data' AND user-account:extensions.'unix-account-ext'.groups[1] = 'misp' AND user-account:extensions.'unix-account-ext'.home_dir = '/home/misp' AND user-account:extensions.'unix-account-ext'.gid = '1002' AND user-account:account_login = 'misp' AND user-account:account_type = 'unix' AND user-account:credential = 'P4ssw0rd1234!' AND user-account:user_id = 'misp' AND user-account:display_name = 'Misp']",
+            "description": "",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "misc"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.829Z",
+            "modified": "2019-09-23T09:03:45.829Z"
+        },
+        {
+            "id": "course-of-action--5d514ff9-ac30-4fb5-b9e7-3eb4a964451a",
+            "type": "course-of-action",
+            "name": "Block traffic to PIVY C2 Server (10.10.10.10)",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.837Z",
+            "modified": "2019-09-23T09:03:45.837Z"
+        },
+        {
+            "id": "vulnerability--57683cf6-f4d0-42b8-9a8f-d5dcc12c3534",
+            "type": "vulnerability",
+            "name": "CVE-2017-11774",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"vulnerability\"",
+                "misp:category=\"vulnerability\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "description": "Microsoft Outlook 2010 SP2, Outlook 2013 SP1 and RT SP1, and Outlook 2016 allow an attacker to execute arbitrary commands, due to how Microsoft Office handles objects in memory, aka \"Microsoft Outlook Security Feature Bypass Vulnerability.\"",
+            "external_references": [
+                {
+                    "source_name": "cve",
+                    "external_id": "CVE-2017-11774"
+                },
+                {
+                    "source_name": "url",
+                    "url": "http://www.securityfocus.com/bid/101098"
+                },
+                {
+                    "source_name": "url",
+                    "url": "http://www.securitytracker.com/id/1039542"
+                },
+                {
+                    "source_name": "url",
+                    "url": "https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2017-11774"
+                },
+                {
+                    "source_name": "url",
+                    "url": "https://sensepost.com/blog/2017/outlook-home-page-another-ruler-vector/"
+                }
+            ],
+            "created": "2019-09-23T09:03:45.837Z",
+            "modified": "2019-09-23T09:03:45.837Z"
+        },
+        {
+            "id": "x-misp-object--a1285743-3962-40e3-a824-0f21f10f3e19",
+            "x_misp_values": {
+                "text_id": "CWE-119",
+                "text_name": "Improper Restriction of Operations within the Bounds of a Memory Buffer",
+                "text_description": "The software performs operations on a memory buffer, but it can read from or write to a memory location that is outside of the intended boundary of the buffer.The software performs operations on a memory buffer, but it can read from or write to a memory location that is outside of the intended boundary of the buffer.",
+                "text_status": "Usable",
+                "text_weakness-abs": "Class"
+            },
+            "labels": [
+                "misp:type=\"weakness\"",
+                "misp:category=\"vulnerability\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "x_misp_category": "vulnerability",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "x_misp_timestamp": "2019-08-12 12:16:50",
+            "type": "x-misp-object-weakness",
+            "created": "2019-09-23T09:03:45.837Z",
+            "modified": "2019-09-23T09:03:45.837Z"
+        },
+        {
+            "id": "attack-pattern--7205da54-70de-4fa7-9b34-e14e63fe6787",
+            "type": "attack-pattern",
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"attack-pattern\"",
+                "misp:category=\"vulnerability\"",
+                "misp:to_ids=\"False\"",
+                "from_object"
+            ],
+            "name": "Buffer Overflow in Local Command-Line Utilities",
+            "description": "This attack targets command-line utilities available in a number of shells. An attacker can leverage a vulnerability found in a command-line utility to escalate privilege to root.",
+            "external_references": [
+                {
+                    "source_name": "capec",
+                    "external_id": "CAPEC-9"
+                }
+            ],
+            "created": "2019-09-23T09:03:45.838Z",
+            "modified": "2019-09-23T09:03:45.838Z"
+        },
+        {
+            "id": "indicator--5ac47782-e1b8-40b6-96b4-02510a00020f",
+            "valid_from": "2018-03-28T00:00:00Z",
+            "type": "indicator",
+            "labels": [
+                "misp:type=\"WindowsPEBinaryFile\"",
+                "misp:category=\"file\"",
+                "misp:to_ids=\"True\"",
+                "from_object"
+            ],
+            "pattern": "[file:hashes.'sha256' = '3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8' AND file:hashes.'sha1' = '5898fc860300e228dcd54c0b1045b5fa0dcda502' AND file:size = '1234' AND file:'x_misp_text_state' = 'Trusted' AND file:name = 'oui' AND file:hashes.'md5' = 'b2a5abfeef9e36964281a31e17b57c97' AND file:extensions.'windows-pebinary-ext'.pe_type = 'exe' AND file:extensions.'windows-pebinary-ext.x_misp_text_entrypoint_address' = '5369222868' AND file:extensions.'windows-pebinary-ext.x_misp_datetime_compilation_timestamp' = '2019-03-16T12:31:22' AND file:extensions.'windows-pebinary-ext.x_misp_filename_original_filename' = 'PuTTY' AND file:extensions.'windows-pebinary-ext.x_misp_filename_internal_filename' = 'PuTTY' AND file:extensions.'windows-pebinary-ext.x_misp_text_file_description' = 'SSH, Telnet and Rlogin client' AND file:extensions.'windows-pebinary-ext.x_misp_text_file_version' = 'Release 0.71 (with embedded help)' AND file:extensions.'windows-pebinary-ext.x_misp_text_lang_id' = '080904B0' AND file:extensions.'windows-pebinary-ext.x_misp_text_product_name' = 'PuTTY suite' AND file:extensions.'windows-pebinary-ext.x_misp_text_product_version' = 'Release 0.71' AND file:extensions.'windows-pebinary-ext.x_misp_text_company_name' = 'Simon Tatham' AND file:extensions.'windows-pebinary-ext.x_misp_text_legal_copyright' = 'Copyright \u00a9 1997-2019 Simon Tatham.' AND file:extensions.'windows-pebinary-ext'.number_of_sections = '8' AND file:extensions.'windows-pebinary-ext'.sections[0].name = '.rsrc' AND file:extensions.'windows-pebinary-ext'.sections[0].size = '305152' AND file:extensions.'windows-pebinary-ext'.sections[0].entropy = '7.836462238824369' AND file:extensions.'windows-pebinary-ext'.sections[0].hashes.'md5' = '8a2a5fc2ce56b3b04d58539a95390600' AND file:extensions.'windows-pebinary-ext'.sections[0].hashes.'sha1' = '0aeb9def096e9f73e9460afe6f8783a32c7eabdf' AND file:extensions.'windows-pebinary-ext'.sections[0].hashes.'sha256' = 'c6b3ac8303a72be90b0e47f69977e6f5665693d4ea0aa93e5c27b5c556c7cf9b' AND file:extensions.'windows-pebinary-ext'.sections[0].hashes.'sha512' = '98fce208e6ed9612db53725fe03b73ab7cb1b487814d521c3c218273cad33891ce832c4f842c6f492d92df1e78414c82a00ddb91a1f8ec7d67325231a597a78f' AND file:extensions.'windows-pebinary-ext'.sections[0].hashes.'ssdeep' = '6144:BvqbV6zoA5yJJ1entjx+UJlVshhKuqMrgyNhahL2uSvhM:BvuVy5UJUtwUJ/UjHSEuSvK']",
+            "description": "File object describing a file with meta-information",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "file"
+                }
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T22:16:33.904Z",
+            "modified": "2019-09-23T22:16:33.904Z"
+        },
+        {
+            "id": "attack-pattern--dcb864dc-775f-11e7-9fbb-1f41b4996683",
+            "type": "attack-pattern",
+            "name": "DLL Search Order Hijacking - T1038",
+            "description": "ATT&CK Tactic | Windows systems use a common method to look for required DLLs to load into a program. (Citation: Microsoft DLL Search) Adversaries may take advantage of the Windows DLL search order and programs that ambiguously specify DLLs to gain privilege escalation and persistence. \n\nAdversaries may perform DLL preloading, also called binary planting attacks, (Citation: OWASP Binary Planting) by placing a malicious DLL with the same name as an ambiguously specified DLL in a location that Windows searches before the legitimate DLL. Often this location is the current working directory of the program. Remote DLL preloading attacks occur when a program sets its current directory to a remote location such as a Web share before loading a DLL. (Citation: Microsoft 2269637) Adversaries may use this behavior to cause the program to load a malicious DLL. \n\nAdversaries may also directly modify the way a program loads DLLs by replacing an existing DLL or modifying a .manifest or .local redirection file, directory, or junction to cause the program to load a different DLL to maintain persistence or privilege escalation. (Citation: Microsoft DLL Redirection) (Citation: Microsoft Manifests) (Citation: Mandiant Search Order)\n\nIf a search order-vulnerable program is configured to run at a higher privilege level, then the adversary-controlled DLL that is loaded will also be executed at the higher level. In this case, the technique could be used for privilege escalation from user to administrator or SYSTEM or from administrator to SYSTEM, depending on the program.\n\nPrograms that fall victim to path hijacking may appear to behave normally because malicious DLLs may be configured to also load the legitimate DLLs they were meant to replace.",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "mitre-attack-pattern"
+                }
+            ],
+            "labels": [
+                "misp:name=\"Attack Pattern\"",
+                "misp-galaxy:mitre-attack-pattern=\"DLL Search Order Hijacking - T1038\""
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.838Z",
+            "modified": "2019-09-23T09:03:45.838Z"
+        },
+        {
+            "id": "intrusion-set--10df003c-7831-11e7-bdb9-971cdd1218df",
+            "type": "intrusion-set",
+            "name": "APT16 - G0023",
+            "description": "Name of ATT&CK Group | [APT16](https://attack.mitre.org/groups/G0023) is a China-based threat group that has launched spearphishing campaigns targeting Japanese and Taiwanese organizations. (Citation: FireEye EPS Awakens Part 2)",
+            "aliases": [
+                "APT16"
+            ],
+            "labels": [
+                "misp:name=\"Intrusion Set\"",
+                "misp-galaxy:mitre-intrusion-set=\"APT16 - G0023\""
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.838Z",
+            "modified": "2019-09-23T09:03:45.838Z"
+        },
+        {
+            "id": "malware--d752161c-78f6-11e7-a0ea-bfa79b407ce4",
+            "type": "malware",
+            "name": "Elise - S0081",
+            "description": "Name of ATT&CK software | [Elise](https://attack.mitre.org/software/S0081) is a custom backdoor Trojan that appears to be used exclusively by [Lotus Blossom](https://attack.mitre.org/groups/G0030). It is part of a larger group of\ntools referred to as LStudio, ST Group, and APT0LSTU. (Citation: Lotus Blossom Jun 2015)(Citation: Accenture Dragonfish Jan 2018)",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "mitre-malware"
+                }
+            ],
+            "labels": [
+                "misp:name=\"Malware\"",
+                "misp-galaxy:mitre-malware=\"Elise - S0081\""
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.838Z",
+            "modified": "2019-09-23T09:03:45.838Z"
+        },
+        {
+            "id": "tool--d700dc5c-78f6-11e7-a476-5f748c8e4fe0",
+            "type": "tool",
+            "name": "ifconfig - S0101",
+            "description": "Name of ATT&CK software | [ifconfig](https://attack.mitre.org/software/S0101) is a Unix-based utility used to gather information about and interact with the TCP/IP settings on a system. (Citation: Wikipedia Ifconfig)",
+            "kill_chain_phases": [
+                {
+                    "kill_chain_name": "misp-category",
+                    "phase_name": "mitre-tool"
+                }
+            ],
+            "labels": [
+                "misp:name=\"Tool\"",
+                "misp-galaxy:mitre-tool=\"ifconfig - S0101\""
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.838Z",
+            "modified": "2019-09-23T09:03:45.838Z"
+        },
+        {
+            "id": "course-of-action--a8825ae8-6dea-11e7-8d57-7728f3cfe086",
+            "type": "course-of-action",
+            "name": "Access Token Manipulation Mitigation - T1134",
+            "description": "ATT&CK Mitigation | Access tokens are an integral part of the security system within Windows and cannot be turned off. However, an attacker must already have administrator level access on the local system to make full use of this technique; be sure to restrict users and accounts to the least privileges they require to do their job.\n\nAny user can also spoof access tokens if they have legitimate credentials. Follow mitigation guidelines for preventing adversary use of [Valid Accounts](https://attack.mitre.org/techniques/T1078). Limit permissions so that users and user groups cannot create tokens. This setting should be defined for the local system account only. GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Create a token object. (Citation: Microsoft Create Token) Also define who can create a process level token to only the local and network service through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Replace a process level token. (Citation: Microsoft Replace Process Token)\n\nAlso limit opportunities for adversaries to increase privileges by limiting Privilege Escalation opportunities.",
+            "labels": [
+                "misp:name=\"Course of Action\"",
+                "misp-galaxy:mitre-course-of-action=\"Access Token Manipulation Mitigation - T1134\""
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.838Z",
+            "modified": "2019-09-23T09:03:45.838Z"
+        },
+        {
+            "id": "threat-actor--7cdff317-a673-4474-84ec-4f1754947823",
+            "type": "threat-actor",
+            "name": "APT 16",
+            "description": "Threat actors are characteristics of malicious actors (or adversaries) representing a cyber attack threat including presumed intent and historically observed behaviour. | Between November 26, 2015, and December 1, 2015, known and suspected China-based APT groups launched several spear-phishing attacks targeting Japanese and Taiwanese organizations in the high-tech, government services, media and financial services industries. Each campaign delivered a malicious Microsoft Word document exploiting the aforementioned EPS dict copy use-after-free vulnerability, and the local Windows privilege escalation vulnerability CVE-2015-1701. The successful exploitation of both vulnerabilities led to the delivery of either a downloader that we refer to as IRONHALO, or a backdoor that we refer to as ELMER.",
+            "aliases": [
+                "APT16",
+                "SVCMONDR"
+            ],
+            "labels": [
+                "misp:name=\"Threat Actor\"",
+                "misp-galaxy:threat-actor=\"APT 16\""
+            ],
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "created": "2019-09-23T09:03:45.838Z",
+            "modified": "2019-09-23T09:03:45.838Z"
+        },
+        {
+            "id": "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9",
+            "created": "2017-01-20T00:00:00.000Z",
+            "definition_type": "tlp",
+            "definition": {
+                "tlp": "white"
+            },
+            "type": "marking-definition"
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e95c06b9-cea0-4cee-a8da-16a990b68035",
+            "created": "2019-09-23T22:16:33.926Z",
+            "modified": "2019-09-23T22:16:33.926Z",
+            "source_ref": "vulnerability--57683cf6-f4d0-42b8-9a8f-d5dcc12c3534",
+            "relationship_type": "related-to",
+            "target_ref": "vulnerability--5abb8534-8264-4041-b3e3-02480a00020f"
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--da702173-8f2a-4ce2-b7eb-731e400bc2b4",
+            "created": "2019-09-23T22:16:33.926Z",
+            "modified": "2019-09-23T22:16:33.926Z",
+            "source_ref": "vulnerability--57683cf6-f4d0-42b8-9a8f-d5dcc12c3534",
+            "relationship_type": "weakened-by",
+            "target_ref": "x-misp-object--a1285743-3962-40e3-a824-0f21f10f3e19"
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--56e8d252-4791-43cd-a60a-e18acec72d0d",
+            "created": "2019-09-23T22:16:33.926Z",
+            "modified": "2019-09-23T22:16:33.926Z",
+            "source_ref": "vulnerability--57683cf6-f4d0-42b8-9a8f-d5dcc12c3534",
+            "relationship_type": "targeted-by",
+            "target_ref": "attack-pattern--7205da54-70de-4fa7-9b34-e14e63fe6787"
+        }
+    ]
+}

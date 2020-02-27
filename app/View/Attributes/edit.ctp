@@ -59,6 +59,10 @@
                         'type' => 'checkbox',
                 ));
             }
+            echo '<div class="input clear"></div>';
+            echo $this->Form->input('disable_correlation', array(
+                    'type' => 'checkbox'
+            ));
         ?>
     </fieldset>
         <p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;";?> " id="warning-message"><?php echo __('Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.'); ?></p>
@@ -71,7 +75,7 @@
     if (!$ajax) {
         $event['Event']['id'] = $this->request->data['Attribute']['event_id'];
         $event['Event']['published'] = $published;
-        echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
     }
 ?>
 <script type="text/javascript">

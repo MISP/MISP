@@ -1,16 +1,16 @@
 # INSTALLATION INSTRUCTIONS
-## for OpenBSD 6.4-amd64
+## for OpenBSD 6.5-amd64
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
-		LIEF, will probably not be available for a long long time on OpenBSD, until someone is brave enough to make it work.
-		GnuPG also needs some more TLC.
+    LIEF, will probably not be available for a long long time on OpenBSD, until someone is brave enough to make it work.
+    GnuPG also needs some more TLC.
+    misp-modules are broken because of the python-opencv dependency.
 
-### 0/ WIP! You are warned, this does not work yet!
+### 0/ WIP! You are warned, this does only partially work!
 ------------
 
 !!! notice
-    Current issues: php-redis only available in binary for php-56, workaround: use OpenBSD 6.4.
     This guide attempts to offer native httpd or apache2/nginx.
 
 !!! warning
@@ -39,17 +39,33 @@ export AUTOCONF_VERSION=2.69
 
 #### doas & pkg (as root)
 ```bash
-echo https://cdn.openbsd.org/pub/OpenBSD/ > /etc/installurl
+if [[ ! -e /etc/installurl ]]; then
+  echo https://cdn.openbsd.org/pub/OpenBSD/ > /etc/installurl
+fi
 echo "permit keepenv setenv { PKG_PATH ENV PS1 SSH_AUTH_SOCK } :wheel" > /etc/doas.conf
+## FIXME: this does NOT set the HOME env correctly, please fix to make pip happier
+echo "permit nopass setenv { ENV PS1 HOME=/var/www } www" >> /etc/doas.conf
 ```
 
 ##### In case you forgot to fetch ports (optional)
 
 ```bash
 cd /tmp
-ftp https://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/{ports.tar.gz,SHA256.sig}
+ftp https://cdn.openbsd.org/pub/OpenBSD/$(uname -r)/{ports.tar.gz,SHA256.sig}
 signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig ports.tar.gz
 doas tar -x -z -f /tmp/ports.tar.gz -C /usr
+```
+
+##### If you want to use php-gd (resizing of images) you need X (optional)
+
+```bash
+cd /tmp
+ftp https://cdn.openbsd.org/pub/OpenBSD/$(uname -r)/$(uname -m)/{xbase$(uname -r| tr -d \.).tgz,SHA256.sig}
+signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig xbase$(uname -r |tr -d \.).tgz
+doas tar -xzphf /tmp/xbase$(uname -r| tr -d \.).tgz -C /
+ftp https://cdn.openbsd.org/pub/OpenBSD/$(uname -r)/$(uname -m)/{xshare$(uname -r| tr -d \.).tgz,SHA256.sig}
+signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig xshare$(uname -r |tr -d \.).tgz
+doas tar -xzphf /tmp/xshare$(uname -r| tr -d \.).tgz -C /
 ```
 
 #### Update system
@@ -75,7 +91,7 @@ doas pkg_add -v mariadb-server
     automake wants to be version 1.16, option 7
 
 ```bash
-doas pkg_add -v curl git python redis libmagic autoconf automake libtool
+doas pkg_add -v curl git python redis libmagic autoconf automake libtool unzip
 ```
 
 !!! notice
@@ -117,10 +133,14 @@ doas /usr/local/sbin/ntpd -p /var/run/ntpd.pid
 
 #### misp user
 ```bash
-doas useradd -m -s /usr/local/bin/bash -G wheel,www misp
+if [[ -z $(id misp 2>/dev/null) ]]; then
+  doas useradd -m -s /usr/local/bin/bash -G wheel,www misp
+else
+  doas usermod -G www misp
+fi
 ```
 
-#### /etc/httpd.conf
+#### /etc/httpd.conf (native httpd)
 ```bash
 doas cp /etc/examples/httpd.conf /etc # adjust by hand, or copy/paste the config example below
 ```
@@ -230,16 +250,8 @@ doas virtualenv -ppython3 /usr/local/virtualenvs/MISP
 ```
 
 #### Install ssdeep
-```
-doas mkdir /usr/local/src
-doas chown misp:misp /usr/local/src
-cd /usr/local/src
-git clone https://github.com/ssdeep-project/ssdeep.git
-cd ssdeep
-./bootstrap
-./configure --prefix=/usr
-make
-doas make install
+```bash
+doas pkg_add -v ssdeep
 ```
 
 #### Apache2 only
@@ -252,32 +264,33 @@ doas pkg_add -v fcgi-cgi fcgi
 !!! notice
     php-5.6 is marked as end-of-life starting December 2018, use php 7.0 instead.
     Option 2.
-    If on OpenBSD 6.3, upgrade to 6.4 to make your life much easier.
+    If on OpenBSD 6.3, upgrade to 6.5 to make your life much easier.
 
 ```
-doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl70-redis
+doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl73-redis php-gd
 ```
 
-#### /etc/php-7.0.ini 
+#### /etc/php-7.3.ini 
 ```
+## TODO: sed foo as .ini exists
 allow_url_fopen = On
 ```
 
 ```bash
-cd /etc/php-7.0
-doas cp ../php-7.0.sample/* .
+cd /etc/php-7.3
+doas cp ../php-7.3.sample/* .
 ```
 
 #### php symlinks
 ```bash
-doas ln -s /usr/local/bin/php-7.0 /usr/local/bin/php
-doas ln -s /usr/local/bin/phpize-7.0 /usr/local/bin/phpize
-doas ln -s /usr/local/bin/php-config-7.0 /usr/local/bin/php-config
+doas ln -s /usr/local/bin/php-7.3 /usr/local/bin/php
+doas ln -s /usr/local/bin/phpize-7.3 /usr/local/bin/phpize
+doas ln -s /usr/local/bin/php-config-7.3 /usr/local/bin/php-config
 ```
 
 #### Enable php fpm 
 ```bash
-doas rcctl enable php70_fpm
+doas rcctl enable php73_fpm
 ```
 
 #### Configure fpm
@@ -286,9 +299,28 @@ doas vi /etc/php-fpm.conf
 
 # pid = /var/www/run/php-fpm.pid
 # error_log = /var/www/logs/php-fpm.log
-# listen = /var/www/run/php-fpm.sock
 
-doas /etc/rc.d/php70_fpm start 
+doas mkdir /etc/php-fpm.d
+doas vi /etc/php-fpm.d/default.conf
+echo ";;;;;;;;;;;;;;;;;;;;
+; Pool Definitions ;
+;;;;;;;;;;;;;;;;;;;;
+
+[www]
+user = www
+group = www
+listen = /var/www/run/php-fpm.sock
+listen.owner = www
+listen.group = www
+listen.mode = 0660
+pm = dynamic
+pm.max_children = 5
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+chroot = /var/www" | doas tee /etc/php-fpm.d/default.conf
+
+doas /etc/rc.d/php73_fpm start 
 ```
 
 !!! notice
@@ -329,16 +361,21 @@ doas pkg_add py-pip py3-pip libxml libxslt py3-jsonschema
 doas /usr/local/virtualenvs/MISP/bin/pip install -U pip
 
 cd /var/www/htdocs/MISP/app/files/scripts
+doas -u www git clone https://github.com/CybOXProject/mixbox.git
 doas -u www git clone https://github.com/CybOXProject/python-cybox.git
 doas -u www git clone https://github.com/STIXProject/python-stix.git
+doas -u www git clone https://github.com/MAECProject/python-maec.git
+
 cd /var/www/htdocs/MISP/app/files/scripts/python-cybox
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
+
 cd /var/www/htdocs/MISP/app/files/scripts/python-stix
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
+cd /var/www/htdocs/MISP/app/files/scripts/python-maec
+doas /usr/local/virtualenvs/MISP/bin/python setup.py install
+
 # install mixbox to accommodate the new STIX dependencies:
-cd /var/www/htdocs/MISP/app/files/scripts/
-doas -u www git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/htdocs/MISP/app/files/scripts/mixbox
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
@@ -346,13 +383,16 @@ doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 cd /var/www/htdocs/MISP/PyMISP
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install support for STIX 2.0
-doas /usr/local/virtualenvs/MISP/bin/pip install stix2
+# FIXME: Remove once stix-fixed
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
 
-# install python-magic, pydeep and maec
+# install support for STIX 2.0
+cd /var/www/htdocs/MISP/cti-python-stix2
+doas /usr/local/virtualenvs/MISP/bin/python setup.py install
+
+# install python-magic and pydeep
 doas /usr/local/virtualenvs/MISP/bin/pip install python-magic
 doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/pydeep.git
-doas /usr/local/virtualenvs/MISP/bin/pip install maec
 ```
 
 ### 3/ CakePHP
@@ -361,10 +401,13 @@ doas /usr/local/virtualenvs/MISP/bin/pip install maec
 # CakePHP is included as a submodule of MISP and has been fetched earlier.
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app
-mkdir /var/www/.composer ; chown www:www /var/www/.composer
-doas -u www php composer.phar require kamisama/cake-resque:4.1.2
-doas -u www php composer.phar config vendor-dir Vendor
-doas -u www php composer.phar install
+doas mkdir /var/www/.composer ; doas chown www:www /var/www/.composer
+EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
+doas -u www php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+doas -u www php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+doas -u www env HOME=/var/www php composer-setup.php
+doas -u www php -r "unlink('composer-setup.php');"
+doas -u www env HOME=/var/www php composer.phar install
 
 # To use the scheduler worker for scheduled tasks, do the following:
 doas -u www cp -f /var/www/htdocs/MISP/INSTALL/setup/config.php /var/www/htdocs/MISP/app/Plugin/CakeResque/Config/config.php
@@ -485,7 +528,7 @@ DirectoryIndex index.php
 ```
 
 ```bash
-doas ln -sf /var/www/conf/modules.sample/php-7.0.conf /var/www/conf/modules/php.conf
+doas ln -sf /var/www/conf/modules.sample/php-7.3.conf /var/www/conf/modules/php.conf
 # Restart apache
 doas /etc/rc.d/apache2 restart
 ``` 
@@ -584,7 +627,7 @@ doas -u www bash /var/www/htdocs/MISP/app/Console/worker/start.sh
 ```
 doas pkg_add -v jpeg yara
 cd /usr/local/src/
-git clone https://github.com/MISP/misp-modules.git
+doas -u misp git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip3 install
 doas /usr/local/virtualenvs/MISP/bin/pip install -I -r REQUIREMENTS

@@ -60,7 +60,6 @@
             echo $this->Form->input('malware', array(
                     'type' => 'checkbox',
                     'checked' => false,
-                    'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
                     'label' => __('Is a malware sample (encrypt and hash)')
             ));
         ?>
@@ -69,20 +68,20 @@
             echo $this->Form->input('advanced', array(
                     'type' => 'checkbox',
                     'checked' => false,
-                    'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
+                    'div' => array('id' => 'advanced_input', 'style' => 'display:none'),
                     'label' => __('Advanced extraction (if installed)'),
             ));
         ?>
     </fieldset>
 <?php
-echo $this->Form->button('Upload', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Upload'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
 <?php
     $event['Event']['id'] = $this->request->data['Attribute']['event_id'];
     $event['Event']['published'] = $published;
-    echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttachment', 'event' => $event));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttachment', 'event' => $event));
 ?>
 <script type="text/javascript">
 <?php
@@ -114,35 +113,32 @@ var formZipTypeValues = new Array();
     }
 ?>
 
-var formAttTypeValues = new Array();
-<?php
-    foreach ($categoryDefinitions as $category => $def) {
-        $types = $def['types'];
-        $alreadySet = false;
-        foreach ($types as $type) {
-            if (in_array($type, $uploadDefinitions) && !$alreadySet) {
-                $alreadySet = true;
-                echo "formAttTypeValues['$category'] = \"true\";\n";
-            }
-        }
-        if (!$alreadySet) {
-            echo "formAttTypeValues['$category'] = \"false\";\n";
-        }
-    }
-?>
 $(document).ready(function() {
     initPopoverContent('Attribute');
     $('#AttributeCategory').change(function() {
         malwareCheckboxSetter("Attribute");
+        $("#AttributeMalware").change();
     });
+
     $('#AttributeDistribution').change(function() {
-        if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
-        else $('#SGContainer').hide();
-    });
+        if ($(this).val() == 4) {
+            $('#SGContainer').show();
+        } else {
+            $('#SGContainer').hide();
+        }
+    }).change();
 
     $("#AttributeCategory, #AttributeDistribution").change(function() {
         initPopoverContent('Attribute');
     });
+    
+    $("#AttributeMalware").change(function () {
+        if (this.checked) {
+            $('#advanced_input').show();
+        } else {
+            $('#advanced_input').hide();
+        }
+    }).change();
 });
 
 </script>
