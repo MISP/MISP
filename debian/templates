@@ -33,3 +33,9 @@ Template: misp/mariadb_setmisppwd
 Type: password
 Description: Set your MariaDB MISP user password
 
+Template: misp/base_url
+Type: string
+Default: http://127.0.0.1
+Description: MISP Base URL.
+ The Base URL is where MISP points to when it redirects to another page.
+

@@ -1,5 +1,9 @@
 #### MISP Dashboard
 --------------
+
+!!! warning
+    Currently defunct due to upstream dependency changes
+
 ```bash
 # <snippet-begin 4_misp-dashboard.sh>
 # Main MISP Dashboard install function

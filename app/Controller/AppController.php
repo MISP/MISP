@@ -47,7 +47,7 @@ class AppController extends Controller
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '98';
-    public $pyMispVersion = '2.4.121';
+    public $pyMispVersion = '2.4.122';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $pythonmin = '3.6';
@@ -297,6 +297,14 @@ class AppController extends Controller
         }
 
         if ($this->Auth->user()) {
+            if (Configure::read('MISP.log_user_ips')) {
+                $redis = $this->{$this->modelClass}->setupRedis();
+                if ($redis) {
+                    $redis->set('misp:ip_user:' . trim($_SERVER['REMOTE_ADDR']), $this->Auth->user('id'));
+                    $redis->expire('misp:ip_user:' . trim($_SERVER['REMOTE_ADDR']), 60*60*24*30);
+                    $redis->sadd('misp:user_ip:' . $this->Auth->user('id'), trim($_SERVER['REMOTE_ADDR']));
+                }
+            }
             // update script
             if ($this->Auth->user('Role')['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
                 $this->{$this->modelClass}->runUpdates();
@@ -1006,7 +1014,11 @@ class AppController extends Controller
                 !Configure::check('Plugin.CustomAuth_use_header_namespace') ||
                 (Configure::check('Plugin.CustomAuth_use_header_namespace') && Configure::read('Plugin.CustomAuth_use_header_namespace'))
             ) {
-                $headerNamespace = Configure::read('Plugin.CustomAuth_header_namespace');
+                if (Configure::check('Plugin.CustomAuth_header_namespace')) {
+                    $headerNamespace = Configure::read('Plugin.CustomAuth_header_namespace');
+                } else {
+                    $headerNamespace = 'HTTP_';
+                }
             } else {
                 $headerNamespace = '';
             }

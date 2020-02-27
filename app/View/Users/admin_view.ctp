@@ -41,6 +41,17 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         'key' => __('Authkey'),
         'html' => $authkey_data
     );
+    if (Configure::read('Plugin.CustomAuth_enable') && !empty($user['User']['external_auth_key'])) {
+        $header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
+        $table_data[] = array(
+            'key' => __('Customauth header'),
+            'html' => sprintf(
+                '%s: <span class="green bold">%s</span>',
+                h($header),
+                h($user['User']['external_auth_key'])
+            )
+        );
+    }
     $table_data[] = array('key' => __('Invited By'), 'value' => empty($user2['User']['email']) ? 'N/A' : $user2['User']['email']);
     $org_admin_data = array();
     foreach ($user['User']['orgAdmins'] as $orgAdminId => $orgAdminEmail) {

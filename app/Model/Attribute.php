@@ -652,11 +652,6 @@ class Attribute extends AppModel
         }
 
         $this->data = $this->ISODatetimeToUTC($this->data, $this->alias);
-
-        // update correlation... (only needed here if there's an update)
-        if ($this->id || !empty($this->data['Attribute']['id'])) {
-            $this->__beforeSaveCorrelation($this->data['Attribute']);
-        }
         // always return true after a beforeSave()
         return true;
     }
@@ -3464,7 +3459,7 @@ class Attribute extends AppModel
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
                     $include_full_model = isset($options['includeFullModel']) && $options['includeFullModel'] ? 1 : 0;
                     $results[$key]['Attribute'] = $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides'], $include_full_model);
-                    if ($options['excludeDecayed']) { // filter out decayed attribute
+                    if ($options['excludeDecayed'] && !empty($results[$key]['Attribute']['decay_score'])) { // filter out decayed attribute
                         $decayed_flag = true;
                         foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) { // remove attribute if ALL score results in a decay
                             $decayed_flag = $decayed_flag && $decayResult['decayed'];

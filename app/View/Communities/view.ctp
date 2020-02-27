@@ -4,6 +4,7 @@
         $table_data[] = array('key' => __('Id'), 'value' => $community['id']);
         $table_data[] = array('key' => __('UUID'), 'value' => $community['uuid']);
         $table_data[] = array('key' => __('Name'), 'value' => $community['name']);
+        $table_data[] = array('key' => __('Url'), 'url' => $community['url']);
         $table_data[] = array('key' => __('Host organisation'), 'value' => $community['org_name'] . ' (' . $community['org_uuid'] . ')');
         $table_data[] = array(
             'key' => __('Vetted by MISP-project'),
@@ -28,13 +29,12 @@
                 'element_params' => array('key' => $community['pgp_key']),
             );
         }
-        //misp-project.org/org-logos/uuid.png
         echo sprintf(
             '<div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>',
             sprintf(
                 '%s<h2>%s</h2>%s',
                 sprintf(
-                    '<img src="https://misp-project.org/org-logos/%s.png" title="%s" aria-label="%s"/>',
+                    '<img src="https://misp-project.org/org-logos/%s.png" title="%s" aria-label="%s" style="max-height: 100px;"/>',
                     h($community['org_uuid']),
                     h($community['org_name']),
                     h($community['org_name'])

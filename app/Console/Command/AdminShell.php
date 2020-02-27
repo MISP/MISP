@@ -353,7 +353,7 @@ class AdminShell extends AppShell
         $whoami = exec('whoami');
         if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun' || $whoami === 'travis') {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
-            $processId = $this->args[0];
+            $processId = empty($this->args[0]) ? false : $this->args[0];
             $this->Server->runUpdates(true, false, $processId);
             echo 'All updates completed.' . PHP_EOL;
         } else {
@@ -588,5 +588,55 @@ class AdminShell extends AppShell
         } else {
             echo __("Something went wrong. Could not find the existing db version or fetch the current database schema.") . PHP_EOL;
         }
+    }
+
+    public function UserIP()
+    {
+        $this->ConfigLoad->execute();
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get IPs for user ID'] . PHP_EOL);
+            die();
+        }
+        $user_id = trim($this->args[0]);
+        $redis = $this->Server->setupRedis();
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $user_id)
+        ));
+        if (empty($user)) {
+            echo PHP_EOL . 'Invalid user ID.';
+            die();
+        }
+        $ips = $redis->smembers('misp:user_ip:' . $user_id);
+        $ips = implode(PHP_EOL, $ips);
+        echo sprintf(
+            '%s==============================%sUser #%s: %s%s==============================%s%s%s==============================%s',
+            PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL, $ips, PHP_EOL, PHP_EOL
+        );
+    }
+
+    public function IPUser()
+    {
+        $this->ConfigLoad->execute();
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get user ID for user IP'] . PHP_EOL);
+            die();
+        }
+        $ip = trim($this->args[0]);
+        $redis = $this->Server->setupRedis();
+        $user_id = $redis->get('misp:ip_user:' . $ip);
+        if (empty($user_id)) {
+            echo PHP_EOL . 'No hits.' . PHP_EOL;
+            die();
+        }
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $user_id)
+        ));
+
+        echo sprintf(
+            '%s==============================%sIP: %s%s==============================%sUser #%s: %s%s==============================%s',
+            PHP_EOL, PHP_EOL, $ip, PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL
+        );
     }
 }

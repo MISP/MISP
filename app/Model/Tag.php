@@ -299,14 +299,14 @@ class Tag extends AppModel
         return $ids;
     }
 
-    public function captureTag($tag, $user)
+    public function captureTag($tag, $user, $force=false)
     {
         $existingTag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('LOWER(name)' => strtolower($tag['name']))
         ));
         if (empty($existingTag)) {
-            if ($user['Role']['perm_tag_editor']) {
+            if ($force || $user['Role']['perm_tag_editor']) {
                 $this->create();
                 if (!isset($tag['colour']) || empty($tag['colour'])) {
                     $tag['colour'] = $this->random_color();
