@@ -797,7 +797,7 @@ class StixFromMISPParser(StixParser):
         malware_sample = {}
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
-            if pattern_type in ("file:hashes.'md5'", 'file:name', 'file:content_ref.payload_bin'):
+            if pattern_type in ("file:hashes.'MD5'", 'file:name', 'file:content_ref.payload_bin'):
                 malware_sample[pattern_type] = pattern_value.strip("'")
             if pattern_type not in stix2misp_mapping.file_mapping:
                 continue
@@ -808,13 +808,13 @@ class StixFromMISPParser(StixParser):
             attributes.append({
                 'type': 'malware-sample',
                 'object_relation': 'malware-sample',
-                'value': '|'.join(malware_sample[feature] for feature in ('file:name', "file:hashes.'md5'")),
+                'value': '|'.join(malware_sample[feature] for feature in ('file:name', "file:hashes.'MD5'")),
                 'data': malware_sample['file:content_ref.payload_bin']
             })
         return attributes
 
     def parse_ip_port_pattern(self, pattern):
-        return self.fill_pattern_attributes(pattern, stix2misp_mapping.network_traffic_mapping)
+        return self.fill_pattern_attributes(pattern, 'network_traffic_mapping')
 
     def parse_network_connection_pattern(self, pattern):
         attributes = []
