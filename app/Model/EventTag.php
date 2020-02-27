@@ -110,6 +110,15 @@ class EventTag extends AppModel
         return $eventIDs;
     }
 
+    public function handleEventTag($event_id, $tag)
+    {
+        if (empty($tag['deleted'])) {
+            $this->attachTagToEvent($event_id, $tag['id']);
+        } else {
+            $this->detachTagFromEvent($event_id, $tag['id']);
+        }
+    }
+
     public function attachTagToEvent($event_id, $tag_id)
     {
         $existingAssociation = $this->find('first', array(

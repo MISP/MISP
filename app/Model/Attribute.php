@@ -4257,14 +4257,9 @@ class Attribute extends AppModel
                     foreach ($attribute['Tag'] as $tag) {
                         $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
                         if ($tag_id) {
+                            $tag['id'] = $tag_id;
                             // fix the IDs here
-                            if (!isset($tag['deleted'])) {
-                                // fix the IDs here
-                                $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
-                            } else {
-                                // Delete the tag
-                                $this->AttributeTag->detachTagFromAttribute($this->id, $attribute['event_id'], $tag_id);
-                            }
+                            $this->AttributeTag->handleAttributeTag($this->id, $attribute['event_id'], $tag);
                         } else {
                             // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
                             // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor

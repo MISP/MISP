@@ -893,9 +893,15 @@ class AttributesController extends AppController
             }
             if ($existingAttribute['Attribute']['object_id']) {
                 $result = $this->Attribute->save($this->request->data, array('Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.comment', 'Attribute.distribution', 'Attribute.sharing_group_id'));
+                if ($result) {
+                    $this->Attribute->AttributeTag->handleAttributeTags($this->request->data['Attribute'], $event['Event']['id']);
+                }
                 $this->Attribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
             } else {
-                $result = $this->Attribute->editAttribute($this->request->data['Attribute'], $event['Event']['id'], $this->Auth->user(), 0);
+                $result = $this->Attribute->save($this->request->data);
+                if ($result) {
+                    $this->Attribute->AttributeTag->handleAttributeTags($this->request->data['Attribute'], $event['Event']['id']);
+                }
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
                     if ($result) {
