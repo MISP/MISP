@@ -49,10 +49,11 @@
                 'children' => array(
                     array(
                         'id' => 'create-button',
-                        'title' => __('Add attribute'),
+                        'title' => $possibleAction === 'Attribute' ? __('Add attribute') : __('Add proposal'),
                         'fa-icon' => 'plus',
-                        'onClick' => 'clickCreateButton',
-                        'onClickParams' => array($event['Event']['id'], $possibleAction)
+                        //'onClick' => 'clickCreateButton',
+                        'onClick' => 'openGenericModal',
+                        'onClickParams' => array('/' . $possibleAction . 's/add/' . h($event['Event']['id']))
                     ),
                     array(
                         'id' => 'multi-edit-button',
@@ -80,6 +81,15 @@
                         'onClickParams' => array('this', 'selected/attribute', 'galaxies', 'selectGalaxyNamespace')
                     ),
                     array(
+                        'id' => 'group-into-object-button',
+                        'title' => __('Group selected Attributes into an Object'),
+                        'class' => 'mass-select hidden',
+                        'fa-icon' => 'object-group',
+                        'fa-source' => 'fa',
+                        'onClick' => 'proposeObjectsFromSelectedAttributes',
+                        'onClickParams' => array('this', $event['Event']['id'])
+                    ),
+                    array(
                         'id' => 'multi-delete-button',
                         'title' => __('Delete selected Attributes'),
                         'class' => 'mass-select hidden',
@@ -91,7 +101,7 @@
                         'id' => 'multi-accept-button',
                         'title' => __('Accept selected Proposals'),
                         'class' => 'mass-proposal-select hidden',
-                        'fa-icon' => 'check-circl',
+                        'fa-icon' => 'check-circle',
                         'onClick' => 'multiSelectAction',
                         'onClickParams' => array($event['Event']['id'], 'acceptProposals')
                     ),
@@ -160,11 +170,38 @@
                         'requirement' => ($me['Role']['perm_sync'] || $event['Orgc']['id'] == $me['org_id'])
                     ),
                     array(
+                        'id' => 'show_attribute_decaying_score',
+                        'title' => __('Show attribute decaying score'),
+                        'fa-icon' => 'chart-line',
+                        'text' => __('Decay score'),
+                        'active' => $includeDecayScore,
+                        'onClick' => 'toggleBoolFilter',
+                        'onClickParams' => array($urlHere, 'includeDecayScore')
+                    ),
+                    array(
+                        'id' => 'show_attribute_sightingdb',
+                        'title' => __('Show SightingDB lookup results'),
+                        'fa-icon' => 'binoculars',
+                        'text' => __('SightingDB'),
+                        'active' => empty($includeSightingdb) ? false : true,
+                        'onClick' => 'toggleBoolFilter',
+                        'onClickParams' => array($urlHere, 'includeSightingdb')
+                    ),
+                    array(
                         'id' => 'show_attribute_context',
                         'title' => __('Show attribute context fields'),
                         'fa-icon' => 'info-circle',
                         'text' => __('Context'),
                         'onClick' => 'toggleContextFields'
+                    ),
+                    array(
+                        'id' => 'show_related_tags',
+                        'title' => __('Show related tags'),
+                        'fa-icon' => 'project-diagram',
+                        'text' => __('Related Tags'),
+                        'active' => $includeRelatedTags,
+                        'onClick' => 'toggleBoolFilter',
+                        'onClickParams' => array($urlHere, 'includeRelatedTags')
                     ),
                     array(
                         'id' => 'advanced_filtering',

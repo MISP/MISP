@@ -46,7 +46,8 @@
                 <th><?php echo __('Similar Attributes');?></th>
                 <th><?php echo __('Category');?></th>
                 <th><?php echo __('Type');?></th>
-                <th><?php echo __('IDS');?><input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
+                <th><?php echo __('IDS');?><input type="checkbox" id="checkAllIDS" style="margin-top:23px;margin-left:3px;"/></th>
+                <th style="text-align:center;"><?php echo __('Disable Correlation');?><input type="checkbox" id="checkAllDC" style="margin:0px;"/></th>
                 <th><?php echo __('Distribution');?></th>
                 <th><?php echo __('Comment');?></th>
                 <th><?php echo __('Tags');?></th>
@@ -160,6 +161,9 @@
             </td>
             <td class="short" style="width:40px;text-align:center;">
                 <input type="checkbox" id="<?php echo 'Attribute' . $k . 'To_ids'; ?>" <?php if ($item['to_ids']) echo 'checked'; ?> class="idsCheckbox" />
+            </td>
+            <td class="short" style="width:40px;text-align:center;">
+                <input type="checkbox" id="<?php echo 'Attribute' . $k . 'Disable_correlation'; ?>" <?php if (isset($item['disable_correlation']) && $item['disable_correlation']) echo 'checked'; ?> class="dcCheckbox" />
             </td>
             <td class="short" style="width:40px;text-align:center;">
                 <select id = "<?php echo 'Attribute' . $k . 'Distribution'; ?>" class='distributionToggle' style='padding:0px;height:20px;margin-bottom:0px;'>
@@ -277,8 +281,11 @@
         <?php
             endif;
         ?>
-            $('#checkAll').change(function() {
-                $('.idsCheckbox').prop('checked', $('#checkAll').is(':checked'));
+            $('#checkAllIDS').change(function() {
+                $('.idsCheckbox').prop('checked', $('#checkAllIDS').is(':checked'));
+            });
+            $('#checkAllDC').change(function() {
+                $('.dcCheckbox').prop('checked', $('#checkAllDC').is(':checked'));
             });
             $('.distributionToggle').change(function() {
                 if ($(this).val() == 4) {

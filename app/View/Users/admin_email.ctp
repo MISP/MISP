@@ -27,10 +27,10 @@
         <div class="row-fluid">
             <?php echo $this->Form->input('recipient', array('type' => 'select', 'options' => $recipientOptions, 'id' => 'recipient')); ?>
             <div id="recipientEmailList" class="hideAble">
-                <?php echo $this->Form->input('recipientEmailList', array('type' => 'select', 'options' => $recipientEmail, 'label' => 'Recipient Email')); ?>
+                <?php echo $this->Form->input('recipientEmailList', array('type' => 'select', 'options' => $recipientEmail, 'label' => __('Recipient Email'))); ?>
             </div>
             <div id="orgNameList" class="hideAble">
-                <?php echo $this->Form->input('orgNameList', array('type' => 'select', 'options' => $orgName, 'label' => 'Recipient Organisation Name')); ?>
+                <?php echo $this->Form->input('orgNameList', array('type' => 'select', 'options' => $orgName, 'label' => __('Recipient Organisation Name'))); ?>
             </div>
         </div>
         <div id="customMessage" class="row-fluid hideAble">

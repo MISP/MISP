@@ -80,5 +80,3 @@ App::uses('AppHelper', 'View/Helper');
             return $height + $heightToAdd;
         }
     }
-
-?>

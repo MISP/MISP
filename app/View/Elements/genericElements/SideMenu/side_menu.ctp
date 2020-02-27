@@ -143,6 +143,16 @@
                         'class' => (isset($event['Event']['published']) && (1 == $event['Event']['published'] && $mayModify)) ? '' : 'hidden',
                         'text' => __('Unpublish')
                     ));
+                    if (!empty($event['Event']['published']) && $me['Role']['perm_sighting']) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'onClick' => array(
+                                'function' => 'publishPopup',
+                                'params' => array($event['Event']['id'], 'sighting')
+                            ),
+                            'class' => 'publishButtons',
+                            'text' => __('Publish Sightings')
+                        ));
+                    }
                     if (Configure::read('MISP.delegation')) {
                         if ((Configure::read('MISP.unpublishedprivate') || (isset($event['Event']['distribution']) && $event['Event']['distribution'] == 0)) && (!isset($delegationRequest) || !$delegationRequest) && ($isSiteAdmin || (isset($isAclDelegate) && $isAclDelegate))) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -191,11 +201,13 @@
                             'message' => __('Are you sure you wish to republish the current event to the Kafka topic?')
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'contact',
-                        'url' => '/events/contact/' . $event['Event']['id'],
-                        'text' => __('Contact Reporter')
-                    ));
+                    if (!empty($event['Orgc']['local'])) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'contact',
+                            'url' => '/events/contact/' . $event['Event']['id'],
+                            'text' => __('Contact Reporter')
+                        ));
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'onClick' => array(
                             'function' => 'getPopup',
@@ -294,13 +306,18 @@
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'viewProposals',
-                        'url' => '/shadow_attributes/index',
+                        'url' => '/shadow_attributes/index/all:0',
                         'text' => __('View Proposals')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'viewProposalIndex',
                         'url' => '/events/proposalEventIndex',
                         'text' => __('Events with proposals')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'viewDelegations',
+                        'url' => '/event_delegations/index/context:pending',
+                        'text' => __('View delegation requests')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -430,7 +447,7 @@
                     } else if((Configure::read('Plugin.CustomAuth_custom_password_reset'))) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'custom_pw_reset',
-                            'url' => h(Configure::read('Plugin.CustomAuth_custom_password_reset')),
+                            'url' => Configure::read('Plugin.CustomAuth_custom_password_reset'),
                             'text' => __('Reset Password')
                         ));
                     }
@@ -438,6 +455,16 @@
                         'element_id' => 'view',
                         'url' => '/users/view/me',
                         'text' => __('My Profile')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'user_settings_index_me',
+                        'url' => '/user_settings/index/user_id:me',
+                        'text' => __('My Settings')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'user_settings_set',
+                        'url' => '/user_settings/setSetting',
+                        'text' => __('Set Setting')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/users/dashboard',
@@ -503,6 +530,18 @@
                     break;
 
                 case 'sync':
+                    if ($me['Role']['perm_sync']) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/servers/createSync',
+                            'text' => __('Create Sync Config')
+                        ));
+                    }
+                    if ($menuItem === 'import' && ($me['Role']['perm_site_admin'])) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/servers/import',
+                            'text' => __('Import Server Settings')
+                        ));
+                    }
                     if ($menuItem === 'previewEvent' && ($isSiteAdmin || $hostOrg)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => sprintf(
@@ -526,7 +565,7 @@
                             'url' => sprintf(
                                 '/servers/pull/%s/%s',
                                 h($server['Server']['id']),
-                                h($server['Event']['id'])
+                                h($event['Event']['id'])
                             ),
                             'text' => __('Fetch This Event'),
                             'message' => __('Are you sure you want to fetch and save this event on your instance?')
@@ -568,12 +607,34 @@
                             'url' => '/servers/add',
                             'text' => __('New Servers')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/communities/index',
+                            'text' => __('List Communities'),
+                            'element_id' => 'list_communities'
+                        ));
+                        if ($menuItem === 'view_community' || $menuItem === 'request_community_access') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'text' => __('Request Access'),
+                                'url' => '/communities/requestAccess/' . h($community['uuid']),
+                                'element_id' => 'request_community_access'
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'text' => __('View community'),
+                                'url' => '/communities/view/' . h($community['uuid']),
+                                'element_id' => 'view_community'
+
+                            ));
+                        }
+                        if ($menuItem === 'view_email') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'text' => __('Request E-mail'),
+                                'element_id' => 'view_email'
+                            ));
+                        }
                     }
                     break;
 
                 case 'admin':
-
-
                     if ($menuItem === 'editUser' || $menuItem === 'viewUser') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewUser',
@@ -594,7 +655,7 @@
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'event_id' => 'deleteUser',
-                            'url' => '/admin/delete/' . h($id),
+                            'url' => '/admin/users/delete/' . h($id),
                             'text' => __('Delete User'),
                             'message' => __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id))
                         ));
@@ -627,6 +688,16 @@
                         ));
                     }
                     if ($isAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'user_settings_index',
+                            'url' => '/user_settings/index/user_id:all',
+                            'text' => __('User settings')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'user_settings_set',
+                            'url' => '/user_settings/setSetting',
+                            'text' => __('Set Setting')
+                        ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'contact',
                             'url' => '/admin/users/email',
@@ -684,6 +755,10 @@
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/servers/serverSettings',
                             'text' => __('Server Settings & Maintenance')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/servers/updateProgress',
+                            'text' => __('Update Progress')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         if (Configure::read('MISP.background_jobs')) {
@@ -868,11 +943,63 @@
                         }
                     }
                     break;
+                case 'decayingModel':
+                    if ($isAdmin) {
+                        if ($isSiteAdmin && ($menuItem === 'view' || $menuItem === 'index')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                                'event_id' => 'update',
+                                'url' => '/decayingModel/update',
+                                'text' => __('Update Default Models')
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                                'event_id' => 'update',
+                                'url' => '/decayingModel/update/true',
+                                'text' => __('Force Update Default Models')
+                            ));
+                        }
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/decayingModel/import',
+                            'text' => __('Import Decaying Model')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/decayingModel/add',
+                            'text' => __('Add Decaying Model')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/decayingModel/decayingTool',
+                            'text' => __('Decaying Tool')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                    }
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/decayingModel/index',
+                        'text' => __('List Decaying Models')
+                    ));
+                    if (($menuItem === 'view' || $menuItem === 'edit')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => '/decayingModel/view/' . h($id),
+                            'text' => __('View Decaying Model')
+                        ));
+                        if ($isSiteAdmin) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => '/decayingModel/edit/' . h($id),
+                                'text' => __('Edit Decaying Model')
+                            ));
+                        }
+                    }
+                    break;
 
                 case 'feeds':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/feeds/index',
                         'text' => __('List Feeds')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/feeds/searchCaches',
+                        'text' => __('Search Feed Caches')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -919,6 +1046,15 @@
                                 'element_id' => 'previewEvent',
                                 'url' => '/feeds/previewEvent/' . h($feed['Feed']['id']) . '/' . h($id),
                                 'text' => __('PreviewEvent')
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                                'url' => sprintf(
+                                    '/feeds/getEvent/%s/%s',
+                                    h($feed['Feed']['id']),
+                                    h($event['Event']['uuid'])
+                                ),
+                                'text' => __('Fetch This Event'),
+                                'message' => __('Are you sure you want to fetch and save this event on your instance?')
                             ));
                         }
                     }
@@ -1003,6 +1139,27 @@
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
                             'text' => __('View Object Template')
+                        ));
+                    }
+                    break;
+
+                case 'sightingdb':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/sightingdb/add',
+                        'text' => __('Add SightingDB connection')
+                    ));
+                    if ($isSiteAdmin) {
+                        if ($menuItem === 'edit') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => '/sightingdb/edit/' . $id,
+                                'element_id' => 'editSightingDB',
+                                'class' => 'active',
+                                'text' => __('Edit SightingDB connection')
+                            ));
+                        }
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/sightingdb/index',
+                            'text' => __('List SightingDB connections')
                         ));
                     }
                     break;

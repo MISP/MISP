@@ -36,7 +36,7 @@ App::uses('AppHelper', 'View/Helper');
             $closing = preg_match('%\[/' . $trigger . '\]%isU', $string, $closing_matches, PREG_OFFSET_CAPTURE);
             $opening_len = strlen($trigger) + 2;
             $closing_len = $opening_len + 1;
-            if ((count($opening) !== count($closing))) return false;
+            if ((count($opening_matches) !== count($closing_matches))) return false;
             $pairs = array();
             $rearrangedTags = array();
             foreach ($opening_matches as $opening_tag) {
@@ -67,11 +67,16 @@ App::uses('AppHelper', 'View/Helper');
                         if (!is_numeric($data) && ($trigger == 'event' || $trigger == 'thread')) {
                             $replacement = '%MALFORMED URL%';
                         } else {
+                            $url = str_replace('$1', $data, $this->__replacement[$trigger]['url']);
                             if (filter_var(str_replace('$1', $data, $this->__replacement[$trigger]['url']), FILTER_VALIDATE_URL)) {
-                                $replacement = $this->Html->link(
-                                    str_replace('$1', $data, $this->__replacement[$trigger]['text']),
-                                    str_replace('$1', $data, $this->__replacement[$trigger]['url'])
-                                );
+                                if (substr($url, 0, 7) === 'http://' || substr($url, 0, 8) === 'https://') {
+                                    $replacement = $this->Html->link(
+                                        str_replace('$1', $data, $this->__replacement[$trigger]['text']),
+                                        $url
+                                    );
+                                } else {
+                                    $replacement = '%MALFORMED URL%';
+                                }
                             } else {
                                 $replacement = '%MALFORMED URL%';
                             }

@@ -4,6 +4,7 @@
             $context = 'event';
         }
         $full = $isAclTagger && $tagAccess;
+        $host_org_user = (int)$me['org_id'] === Configure::read('MISP.host_org_id');
         foreach ($attributeTags as $tag):
             if (!isset($tag['Tag'])) $tag = array('Tag' => $tag);
             $tagClass = $full ? 'tagFirstHalf' : 'tag';

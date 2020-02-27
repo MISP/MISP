@@ -27,8 +27,11 @@ App::uses('AppModel', 'Model');
  * @package       app.Console.Command
  */
 class AppShell extends Shell {
-	public function perform() {
-		$this->initialize();
-		$this->{array_shift($this->args)}();
-	}
+
+    public $tasks = array('ConfigLoad');
+    
+    public function perform() {
+        $this->initialize();
+        $this->{array_shift($this->args)}();
+    }
 }

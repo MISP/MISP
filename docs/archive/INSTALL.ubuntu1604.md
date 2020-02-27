@@ -103,7 +103,7 @@ sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
 # Install PHP and dependencies
-sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-mbstring -y
+sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-mbstring php-gd -y
 
 # Apply all changes
 sudo systemctl restart apache2
@@ -160,8 +160,6 @@ cd /var/www/MISP/app
 # Make composer cache happy
 # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
 sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
-sudo -H -u www-data php composer.phar require kamisama/cake-resque:4.1.2
-sudo -H -u www-data php composer.phar config vendor-dir Vendor
 sudo -H -u www-data php composer.phar install
 
 # Enable CakeResque with php-redis

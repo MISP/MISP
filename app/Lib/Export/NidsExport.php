@@ -344,7 +344,7 @@ class NidsExport
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-        $content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value'], 'hostname') . '"; fast_pattern; nocase;';
+        $content = 'content:"|01 00 00 01 00 00 00 00 00 01|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value'], 'hostname') . '"; fast_pattern; nocase;';
         $this->rules[] = sprintf(
             $ruleFormat,
                 ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -400,7 +400,7 @@ class NidsExport
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-        $content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value']) . '"; fast_pattern; nocase;';
+        $content = 'content:"|01 00 00 01 00 00 00 00 00 01|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value']) . '"; fast_pattern; nocase;';
         $this->rules[] = sprintf(
             $ruleFormat,
                 ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -565,7 +565,7 @@ class NidsExport
 
     /**
      * Converts a DNS name to a raw format usable in NIDS like Snort.
-     *   example host: foobar.com becomes |00||06|foobar|03|com|00|
+     *   example host: foobar.com becomes |01||06|foobar|03|com|00|
      *   example domain: foobar.com becomes |06|foobar|03|com|00|
      * @param string $name dns name to be converted
      * @param string $type the type of dns name - domain (default) or hostname
@@ -575,13 +575,13 @@ class NidsExport
     {
         $rawName = "";
         if ('hostname' == $type) {
-            $rawName = '|00|';
+            $rawName = '|01|';
         }
         // explode using the dot
         $explodedNames = explode('.', $name);
         // for each part
         foreach ($explodedNames as $explodedName) {
-            // count the lenght of the part, and add |length| before
+            // count the length of the part, and add |length| before
             $length = strlen($explodedName);
             if ($length > 255) {
                 log('WARNING: DNS name is too long for RFC: '.$name);
@@ -613,7 +613,7 @@ class NidsExport
         $explodedNames = explode('.', $name);
         // for each part
         foreach ($explodedNames as $explodedName) {
-            // count the lenght of the part, and add |length| before
+            // count the length of the part, and add |length| before
             $length = strlen($explodedName);
             if ($length > 255) {
                 log('WARNING: DNS name is too long for RFC: '.$name);
@@ -647,7 +647,7 @@ class NidsExport
 
     public function checkWhitelist($value)
     {
-		if ($this->checkWhitelist) {
+		if ($this->checkWhitelist && is_array($this->whitelist)) {
 	        foreach ($this->whitelist as $wlitem) {
 	            if (preg_match($wlitem, $value)) {
 	                return true;

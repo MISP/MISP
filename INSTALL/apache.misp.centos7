@@ -24,7 +24,7 @@
     ServerSignature Off
 
     Header always set X-Content-Type-Options nosniff
-    Header always set X-Frame-Options DENY
+    Header always set X-Frame-Options SAMEORIGIN 
     Header always unset "X-Powered-By"
 
     # TODO: Think about X-XSS-Protection, Content-Security-Policy, Referrer-Policy & Feature-Policy

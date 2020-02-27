@@ -40,6 +40,7 @@
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
+            <th><?php echo __('UUID');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo $this->Paginator->sort('Creator');?></th>
             <th><?php echo __('Description');?></th>
@@ -51,6 +52,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
 ?>
     <tr>
         <td class="short"><?php echo h($sharingGroup['SharingGroup']['id']); ?></td>
+        <td class="short"><?php echo h($sharingGroup['SharingGroup']['uuid']); ?></td>
         <td class="short"><?php echo h($sharingGroup['SharingGroup']['name']); ?></td>
         <td class="short"><a href="/organisations/view/<?php echo h($sharingGroup['Organisation']['id']);?>"><?php echo h($sharingGroup['Organisation']['name']); ?></a></td>
         <td><?php echo h($sharingGroup['SharingGroup']['description']); ?></td>
@@ -83,10 +85,10 @@ foreach ($sharingGroups as $k => $sharingGroup):
         </td>
         <td class="action">
         <?php if ($isSiteAdmin || $sharingGroup['editable']): ?>
-            <?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-edit', 'title' => 'Edit')); ?>
-            <?php echo $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
+            <?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit'))); ?>
+            <?php echo $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
         <?php endif; ?>
-            <a href="/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="black fa fa-eye"></a>
+            <a href="/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="black fa fa-eye" title="<?php echo __('View');?>" aria-label="<?php echo __('View');?>"></a>
         </td>
     </tr>
     <?php

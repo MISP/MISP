@@ -9,6 +9,7 @@
     <?php
         echo $this->Form->input('contents', array(
                 'type' => 'textarea',
+                'label' => __('Contents'),
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
                 'default' => $contents
@@ -16,7 +17,7 @@
     ?>
     </fieldset>
 <?php
-echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>

@@ -38,7 +38,7 @@
     <span style="border-right:0px !important;">
         <span id="quickFilterButton" role="button" tabindex="0" aria-label="Filter value galaxie cluster" class="tabMenuFilterFieldButton useCursorPointer"
             onClick="quickFilter('', '<?php echo $baseurl . '/galaxies/view/' . $galaxy_id; ?>');"><?php echo __('Filter');?></span>
-        <input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+        <input class="tabMenuFilterField" type="text" id="quickFilterField">
     </span>
 </div>
 <table class="table table-striped table-hover table-condensed">
@@ -77,8 +77,8 @@
             </td>
             <td><?php echo h($item['GalaxyCluster']['description']); ?>&nbsp;</td>
             <td class="short action-links">
-                <?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'viewGraph', $item['GalaxyCluster']['id']), array('class' => 'fa fa-share-alt', 'title' => __('View graph')));?>
-                <?php echo $this->Html->link('', array('action' => 'view', $item['GalaxyCluster']['id']), array('class' => 'fa fa-eye', 'title' => __('View')));?>
+                <?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'viewGraph', $item['GalaxyCluster']['id']), array('class' => 'fa fa-share-alt', 'title' => __('View graph'), 'aria-label' => __('View graph')));?>
+                <?php echo $this->Html->link('', array('action' => 'view', $item['GalaxyCluster']['id']), array('class' => 'fa fa-eye', 'title' => __('View'), 'aria-label' => __('View')));?>
                 <span class="fa fa-trash useCursorPointer" title="<?php echo __('Delete galaxy cluster');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete galaxy cluster');?>" onClick="deleteObject('galaxy_clusters', 'delete', '<?php echo h($item['GalaxyCluster']['id']); ?>', '<?php echo h($item['GalaxyCluster']['id']); ?>');"></span>
             </td>
         </tr>

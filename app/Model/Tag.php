@@ -196,6 +196,19 @@ class Tag extends AppModel
     }
 
     // find all of the tag Ids that belong to the accepted tags and the rejected tags
+    public function fetchTagIdsSimple($tags = array())
+    {
+        $results = array();
+        if (!empty($tags)) {
+            $results = $this->findTagIdsByTagNames($tags);
+            if (empty($results)) {
+                $results[] = -1;
+            }
+        }
+        return $results;
+    }
+
+    // find all of the tag Ids that belong to the accepted tags and the rejected tags
     public function fetchTagIds($accept = array(), $reject = array())
     {
         $acceptIds = array();
@@ -286,14 +299,14 @@ class Tag extends AppModel
         return $ids;
     }
 
-    public function captureTag($tag, $user)
+    public function captureTag($tag, $user, $force=false)
     {
         $existingTag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('LOWER(name)' => strtolower($tag['name']))
         ));
         if (empty($existingTag)) {
-            if ($user['Role']['perm_tag_editor']) {
+            if ($force || $user['Role']['perm_tag_editor']) {
                 $this->create();
                 if (!isset($tag['colour']) || empty($tag['colour'])) {
                     $tag['colour'] = $this->random_color();
@@ -314,10 +327,16 @@ class Tag extends AppModel
         } else {
             if (
                 !$user['Role']['perm_site_admin'] &&
-                $existingTag['Tag']['org_id'] != 0 &&
-                $existingTag['Tag']['org_id'] != $user['org_id'] &&
-                $existingTag['Tag']['user_id'] != 0 &&
-                $existingTag['Tag']['user_id'] != $user['id']
+                (
+                    (
+                        $existingTag['Tag']['org_id'] != 0 &&
+                        $existingTag['Tag']['org_id'] != $user['org_id']
+                    ) ||
+                    (
+                        $existingTag['Tag']['user_id'] != 0 &&
+                        $existingTag['Tag']['user_id'] != $user['id']
+                    )
+                )
             ) {
                 return false;
             }
@@ -353,7 +372,7 @@ class Tag extends AppModel
         return $colour;
     }
 
-    public function quickAdd($name, $colour = false, $returnId = false)
+    public function quickAdd($name, $colour = false, $numerical_value = null)
     {
         $this->create();
         if ($colour === false) {
@@ -364,16 +383,22 @@ class Tag extends AppModel
             'colour' => $colour,
             'exportable' => 1
         );
+        if (!is_null($numerical_value)) {
+            $data['numerical_value'] = $numerical_value;
+        }
         return ($this->save($data));
     }
 
-    public function quickEdit($tag, $name, $colour, $hide = false)
+    public function quickEdit($tag, $name, $colour, $hide = false, $numerical_value = null)
     {
-        if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false) {
+        if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false || $tag['Tag']['numerical_value'] !== $numerical_value) {
             $tag['Tag']['name'] = $name;
             $tag['Tag']['colour'] = $colour;
             if ($hide !== false) {
                 $tag['Tag']['hide_tag'] = $hide;
+            }
+            if (!is_null($numerical_value)) {
+                $tag['Tag']['numerical_value'] = $numerical_value;
             }
             return ($this->save($tag['Tag']));
         }
@@ -388,11 +413,28 @@ class Tag extends AppModel
         return ($this->saveAll($tags));
     }
 
+    public function getTagsByName($tag_names, $containTagConnectors = true)
+    {
+        $contain = array('EventTag', 'AttributeTag');
+        $tag_params = array(
+                'recursive' => -1,
+                'conditions' => array('name' => $tag_names)
+        );
+        if ($containTagConnectors) {
+            $tag_params['contain'] = $contain;
+        }
+        $tags_temp = $this->find('all', $tag_params);
+        $tags = array();
+        foreach ($tags_temp as $temp) {
+            $tags[strtoupper($temp['Tag']['name'])] = $temp;
+        }
+        return $tags;
+    }
+
     public function getTagsForNamespace($namespace, $containTagConnectors = true)
     {
 
-        $contain = array('EventTag');
-        $contain[] = 'AttributeTag';
+        $contain = array('EventTag', 'AttributeTag');
         $tag_params = array(
                 'recursive' => -1,
                 'conditions' => array('UPPER(name) LIKE' => strtoupper($namespace) . '%'),

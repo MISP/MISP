@@ -7,3 +7,4 @@ requests-mock
 pip
 nose
 jsonschema
+plyara >= 2.0.2

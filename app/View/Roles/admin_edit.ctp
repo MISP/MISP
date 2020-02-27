@@ -20,6 +20,20 @@
         ?>
         <div class = 'input clear'></div>
         <?php
+            echo $this->Form->input('enforce_rate_limit', array(
+                'type' => 'checkbox',
+                'checked' => $this->request->data['Role']['enforce_rate_limit'],
+                'label' => __('Enforce search rate limit')
+            ));
+        ?>
+        <div class = 'input clear'></div>
+        <div id="rateLimitCountContainer">
+            <?php
+                echo $this->Form->input('rate_limit_count', array('label' => __('# of searches / 15 min')));
+            ?>
+        </div>
+        <div class = 'input clear'></div>
+        <?php
             $counter = 1;
             foreach ($permFlags as $k => $flag):
         ?>
@@ -50,8 +64,12 @@
 <script type="text/javascript">
     $(document).ready(function() {
         checkRolePerms();
+        checkRoleEnforceRateLimit();
         $(".checkbox, #RolePermission").change(function() {
-        checkRolePerms();
+            checkRolePerms();
+        });
+        $("#RoleEnforceRateLimit").change(function() {
+            checkRoleEnforceRateLimit();
         });
     });
 </script>

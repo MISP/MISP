@@ -36,11 +36,15 @@
                     ),
                     array(
                         'text' => __('View Proposals'),
-                        'url' => '/shadow_attributes/index'
+                        'url' => '/shadow_attributes/index/all:0'
                     ),
                     array(
                         'text' => __('Events with proposals'),
                         'url' => '/events/proposalEventIndex'
+                    ),
+                    array(
+                        'url' => '/event_delegations/index/context:pending',
+                        'text' => __('View delegation requests')
                     ),
                     array(
                         'type' => 'separator'
@@ -144,6 +148,14 @@
                         'url' => '/users/view/me'
                     ),
                     array(
+                        'text' => __('My Settings'),
+                        'url' => '/user_settings/index/user_id:me'
+                    ),
+                    array(
+                        'text' => __('Set Setting'),
+                        'url' => '/user_settings/setSetting'
+                    ),
+                    array(
                         'text' => __('Dashboard'),
                         'url' => '/users/dashboard'
                     ),
@@ -174,6 +186,18 @@
                         'text' => __('Add Sharing Group'),
                         'url' => '/sharing_groups/add',
                         'requirement' => $isAclSharingGroup
+                    ),
+                    array(
+                        'type' => 'separator'
+                    ),
+                    array(
+                        'text' => __('Decaying Models Tool'),
+                        'url' => '/decayingModel/decayingTool',
+                        'requirement' => $isAdmin
+                    ),
+                    array(
+                        'text' => __('List Decaying Models'),
+                        'url' => '/decayingModel/index',
                     ),
                     array(
                         'type' => 'separator'
@@ -213,6 +237,16 @@
                 'requirement' =>  ($isAclSync || $isAdmin || $hostOrgUser),
                 'children' => array(
                     array(
+                        'text' => __('Create Sync Config'),
+                        'url' => '/servers/createSync',
+                        'requirement' => ($isAclSync && !$isSiteAdmin)
+                    ),
+                    array(
+                        'text' => __('Import Server Settings'),
+                        'url' => '/servers/import',
+                        'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
                         'text' => __('List Servers'),
                         'url' => '/servers/index',
                         'requirement' => ($isAclSync || $isAdmin)
@@ -221,6 +255,26 @@
                         'text' => __('List Feeds'),
                         'url' => '/feeds/index',
                         'requirement' => ($isSiteAdmin || $hostOrgUser)
+                    ),
+                    array(
+                        'text' => __('Search Feed Caches'),
+                        'url' => '/feeds/searchCaches',
+                        'requirement' => ($isSiteAdmin || $hostOrgUser)
+                    ),
+                    array(
+                        'text' => __('List SightingDB Connections'),
+                        'url' => '/sightingdb/index',
+                        'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
+                        'text' => __('Add SightingDB Connection'),
+                        'url' => '/sightingdb/add',
+                        'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
+                        'text' => __('List Communities'),
+                        'url' => '/communities/index',
+                        'requirement' => ($isSiteAdmin)
                     )
                 )
             ),
@@ -233,6 +287,14 @@
                     array(
                         'text' => __('List Users'),
                         'url' => '/admin/users/index'
+                    ),
+                    array(
+                        'text' => __('List User Settings'),
+                        'url' => '/user_settings/index/user_id:all'
+                    ),
+                    array(
+                        'text' => __('Set User Setting'),
+                        'url' => '/user_settings/setSetting'
                     ),
                     array(
                         'text' => __('Add User'),
@@ -267,7 +329,6 @@
                     ),
                     array(
                         'type' => 'separator',
-                        'requirement' => $isSiteAdmin
                     ),
                     array(
                         'text' => __('Server Settings & Maintenance'),
@@ -348,8 +409,9 @@
                 'type' => 'root',
                 'url' => '/users/dashboard',
                 'html' => sprintf(
-                    '<span class="white" title="%s">%s&nbsp;&nbsp;&nbsp;%s</span>',
+                    '<span class="white" title="%s">%s%s&nbsp;&nbsp;&nbsp;%s</span>',
                     h($me['email']),
+                    $this->UserName->prepend($me['email']),
                     h($loggedInUserName),
                     sprintf(
                         '<i class="fa fa-envelope %s"></i>',
@@ -358,14 +420,9 @@
                 )
             ),
             array(
-                'url' => h(Configure::read('Plugin.CustomAuth_custom_logout')),
-                'text' => __('Log out'),
-                'requirement' => (Configure::read('Plugin.CustomAuth_custom_logout') && empty(Configure::read('Plugin.CustomAuth_disable_logout')))
-            ),
-            array(
                 'url' => '/users/logout',
                 'text' => __('Log out'),
-                'requirement' => (!$externalAuthUser && empty(Configure::read('Plugin.CustomAuth_disable_logout')))
+                'requirement' => empty(Configure::read('Plugin.CustomAuth_disable_logout'))
             )
         );
     }

@@ -43,7 +43,7 @@
                 )
             )
         );
-        echo $this->Form->create('Server');
+        echo $this->Form->create('Server', array('novalidate' => true));
     ?>
     <fieldset>
         <?php
@@ -51,7 +51,8 @@
                 'label' => __('HTTP method to use'),
                 'options' => array(
                     'GET' => 'GET',
-                    'POST' => 'POST'
+                    'POST' => 'POST',
+                    'DELETE' => 'DELETE'
                 )
             ));
         ?>

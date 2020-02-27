@@ -74,26 +74,6 @@
     - "/opt/misp-server/tmp"
     - "/opt/misp-server/backup"
 
-######### PEAR: CRYPTPGP #########
-- name: Configure PEAR proxy
-  shell: "{{ item }}"
-  args:
-    creates: /home/misp/ansible/ansible_shell_pear_configure_proxy.log
-  with_items:
-    - "pear config-set http_proxy http://{{proxy_host}}:{{proxy_port}} > /home/misp/ansible/ansible_shell_pear_configure_proxy.log"
-
-- name: Configure PEAR tmp
-  shell: "{{ item }}"
-  args:
-    creates: /home/misp/ansible/ansible_shell_pear_configure_tmp.log
-  with_items:
-    - pear config-set temp_dir /opt/misp-server/tmp/ > /home/misp/ansible/ansible_shell_pear_configure_tmp.log
-
-- name: Install CryptGPG
-  pear:
-    name: Crypt_GPG
-    state: present
-
 ######### MISP REPOSITORY #########
 
 - name: Clone MISP repository
@@ -183,20 +163,6 @@
     owner: root
     group: root
     mode: 0755
-
-- name: Cake-resque installation
-  composer:
-    command: "require"
-    arguments: "kamisama/cake-resque:4.1.2"
-    working_dir: "/opt/misp-server/misp/app"
-  register: cakeresque_install
-
-- name: Vendor configure
-  composer:
-    command: "config"
-    arguments: "vendor-dir Vendor"
-    working_dir: "/opt/misp-server/misp/app"
-  when: cakeresque_install.changed
 
 - name: PHP composer install
   composer:

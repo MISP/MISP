@@ -1,6 +1,16 @@
 <?php
 $i = 0;
 $linkColour = ($scope == 'Attribute') ? 'red' : 'white';
+// remove duplicates
+$relatedEvents = array();
+foreach ($event['Related' . $scope][$object['id']] as $k => $relatedAttribute) {
+    if (isset($relatedEvents[$relatedAttribute['id']])) {
+        unset($event['Related' . $scope][$object['id']][$k]);
+    } else {
+        $relatedEvents[$relatedAttribute['id']] = true;
+    }
+}
+$event['Related' . $scope][$object['id']] = array_values($event['Related' . $scope][$object['id']]);
 $count = count($event['Related' . $scope][$object['id']]);
 foreach ($event['Related' . $scope][$object['id']] as $relatedAttribute) {
   if ($i == 4 && $count > 5) {

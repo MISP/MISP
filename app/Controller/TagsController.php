@@ -289,6 +289,9 @@ class TagsController extends AppController
             throw new NotFoundException('You don\'t have permission to do that.');
         }
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (!isset($this->request->data['Tag'])) {
+                $this->request->data = array('Tag' => $this->request->data);
+            }
             $this->request->data['Tag']['id'] = $id;
             if ($this->Tag->save($this->request->data)) {
                 if ($this->_isRest()) {
@@ -456,20 +459,28 @@ class TagsController extends AppController
     public function showEventTag($id)
     {
         $this->loadModel('EventTag');
+        $this->loadModel('Taxonomy');
         if (!$this->EventTag->Event->checkIfAuthorised($this->Auth->user(), $id)) {
             throw new MethodNotAllowedException('Invalid event.');
         }
         $this->loadModel('GalaxyCluster');
-        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')));
-        $this->helpers[] = 'TextColour';
-        $tags = $this->EventTag->find('all', array(
-                'conditions' => array(
-                        'event_id' => $id,
-                        'Tag.name !=' => $cluster_names
-                ),
-                'contain' => array('Tag'),
-                'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+        $cluster_names = $this->GalaxyCluster->find('list', array(
+            'fields' => array('GalaxyCluster.tag_name'),
+            'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')
         ));
+        $this->helpers[] = 'TextColour';
+        $conditions = array(
+                'event_id' => $id,
+                'Tag.name !=' => $cluster_names
+        );
+        $tags = $this->EventTag->find('all', array(
+                'conditions' => $conditions,
+                'contain' => array('Tag'),
+                'fields' => array('Tag.id', 'Tag.colour', 'Tag.name', 'EventTag.local'),
+        ));
+        foreach ($tags as $k => $tag) {
+            $tags[$k]['local'] = $tag['EventTag']['local'];
+        }
         $this->set('tags', $tags);
         $event = $this->Tag->EventTag->Event->find('first', array(
                 'recursive' => -1,
@@ -477,6 +488,8 @@ class TagsController extends AppController
                 'conditions' => array('Event.id' => $id)
         ));
         $this->set('required_taxonomies', $this->EventTag->Event->getRequiredTaxonomies());
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($tags);
+        $this->set('tagConflicts', $tagConflicts);
         $this->set('event', $event);
         $this->layout = 'ajax';
         $this->render('/Events/ajax/ajaxTags');
@@ -486,6 +499,7 @@ class TagsController extends AppController
     {
         $this->helpers[] = 'TextColour';
         $this->loadModel('AttributeTag');
+        $this->loadModel('Taxonomy');
 
         $this->Tag->AttributeTag->Attribute->id = $id;
         if (!$this->Tag->AttributeTag->Attribute->exists()) {
@@ -494,13 +508,15 @@ class TagsController extends AppController
         $this->Tag->AttributeTag->Attribute->read();
         $eventId = $this->Tag->AttributeTag->Attribute->data['Attribute']['event_id'];
 
+        $conditions = array('attribute_id' => $id);
         $attributeTags = $this->AttributeTag->find('all', array(
-            'conditions' => array(
-                'attribute_id' => $id
-            ),
+            'conditions' => $conditions,
             'contain' => array('Tag'),
-            'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+            'fields' => array('Tag.id', 'Tag.colour', 'Tag.name', 'AttributeTag.local'),
         ));
+        foreach ($attributeTags as $k => $at) {
+            $attributeTags[$k]['local'] = $at['AttributeTag']['local'];
+        }
         $this->loadModel('GalaxyCluster');
         $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
         foreach ($attributeTags as $k => $attributeTag) {
@@ -516,6 +532,8 @@ class TagsController extends AppController
         $this->set('event', $event);
         $this->set('attributeTags', $attributeTags);
         $this->set('attributeId', $id);
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attributeTags);
+        $this->set('tagConflicts', $tagConflicts);
         $this->layout = 'ajax';
         $this->render('/Attributes/ajax/ajaxAttributeTags');
     }
@@ -573,42 +591,43 @@ class TagsController extends AppController
         if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
             throw new NotFoundException('You don\'t have permission to do that.');
         }
-
+        $localFlag = !empty($this->params['named']['local']) ? '/local:1' : '';
         $items = array();
         $favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
         if ($favourites) {
             $items[] = array(
                 'name' => __('Favourite Tags'),
-                'value' => "/tags/selectTag/" . h($id) . "/favourites/" . h($scope)
+                'value' => "/tags/selectTag/" . h($id) . "/favourites/" . h($scope) . $localFlag
             );
         }
         if ($scope !== 'tag_collection') {
             $items[] = array(
                 'name' => __('Tag Collections'),
-                'value' => "/tags/selectTag/" . h($id) . "/collections/" . h($scope)
+                'value' => "/tags/selectTag/" . h($id) . "/collections/" . h($scope) . $localFlag
             );
         }
         $items[] = array(
+            'name' => __('Custom Tags'),
+            'value' => "/tags/selectTag/" . h($id) . "/0/" . h($scope) . $localFlag
+        );
+        $items[] = array(
             'name' => __('All Tags'),
-            'value' => "/tags/selectTag/" . h($id) . "/all/" . h($scope)
+            'value' => "/tags/selectTag/" . h($id) . "/all/" . h($scope) . $localFlag
         );
 
         $this->loadModel('Taxonomy');
         $options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
         foreach ($options as $k => $option) {
-            $tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
-            if (!empty($tags)) {
-                $items[] = array(
-                    'name' => __('Taxonomy Library') . ":" . h($option),
-                    'value' => "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope)
-                );
-            }
+            $items[] = array(
+                'name' => __('Taxonomy Library') . ":" . h($option),
+                'value' => "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope . $localFlag)
+            );
         }
         $this->set('items', $items);
         $this->set('options', array( // set chosen (select picker) options
             'select_options' => array(
                 'multiple' => 0,
-            ),
+            )
         ));
         $this->render('/Elements/generic_picker');
     }
@@ -662,7 +681,12 @@ class TagsController extends AppController
             }
         } else {
             if ($taxonomy_id === '0') {
-                $tags = $this->Taxonomy->getAllTaxonomyTags(true);
+                $temp = $this->Taxonomy->getAllTaxonomyTags(true, false, true);
+                $tags = array();
+                foreach ($temp as $tag) {
+                    $tags[$tag['Tag']['id']] = $tag['Tag'];
+                }
+                unset($temp);
                 $expanded = $tags;
             } elseif ($taxonomy_id === 'favourites') {
                 $tags = array();
@@ -678,15 +702,25 @@ class TagsController extends AppController
                     $expanded = $tags;
                 }
             } elseif ($taxonomy_id === 'all') {
-                $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
-                $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
+                if (!$this->_isSiteAdmin()) {
+                    $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
+                    $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
+                }
                 $conditions['Tag.hide_tag'] = 0;
-                $allTags = $this->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1, 'order' => array('name asc')));
-                $allTags = $this->Tag->EventTag->Event->massageTags(array('EventTag' => $allTags), 'Event', false);
-                $allTags = $allTags['EventTag'];
+                $allTags = $this->Tag->find('all', array(
+                    'conditions' => $conditions,
+                    'recursive' => -1,
+                    'order' => array('name asc'),
+                    'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
+                ));
                 $tags = array();
-                foreach ($allTags as $i => $tag) {
-                    if (!empty($tag['Tag'])) {
+                foreach ($allTags as $k => $tag) {
+                    $temp = explode(':', $tag['Tag']['name']);
+                    if (count($temp) > 1) {
+                        if ($temp[0] !== 'misp-galaxy') {
+                            $tags[$tag['Tag']['id']] = $tag['Tag'];
+                        }
+                    } else {
                         $tags[$tag['Tag']['id']] = $tag['Tag'];
                     }
                 }
@@ -731,7 +765,6 @@ class TagsController extends AppController
         } else {
             $onClickForm = 'quickSubmitTagForm';
         }
-
         $items = array();
         foreach ($tags as $k => $tag) {
             $tagName = $tag['name'];
@@ -764,10 +797,12 @@ class TagsController extends AppController
             'multiple' => -1,
             'select_options' => array(
                 'additionalData' => array(
-                    'id' => $id
+                    'id' => $id,
+                    'local' => !empty($this->params['named']['local'])
                 ),
             ),
         ));
+        $this->set('local', !empty($this->params['named']['local']));
         $this->render('ajax/select_tag');
     }
 
@@ -825,47 +860,62 @@ class TagsController extends AppController
         $this->render('/Servers/json/simple');
     }
 
-    private function __findObjectByUuid($object_uuid, &$type)
+    private function __findObjectByUuid($object_uuid, &$type, $scope = 'modify')
     {
         $this->loadModel('Event');
-        $object = $this->Event->find('first', array(
-            'conditions' => array(
-                'Event.uuid' => $object_uuid,
-            ),
-            'fields' => array('Event.orgc_id', 'Event.id'),
-            'recursive' => -1
+        if (!$this->userRole['perm_tagger']) {
+            throw new MethodNotAllowedException(__('This functionality requires tagging permission.'));
+        }
+        $object = $this->Event->fetchEvent($this->Auth->user(), array(
+            'event_uuid' => $object_uuid,
+            'metadata' => 1
         ));
         $type = 'Event';
         if (!empty($object)) {
+            $object = $object[0];
             if (
+                $scope !== 'view' &&
                 !$this->_isSiteAdmin() &&
-                !$this->userRole['perm_tagger'] &&
                 $object['Event']['orgc_id'] != $this->Auth->user('org_id')
             ) {
-                throw new MethodNotAllowedException('Invalid Target.');
+                $message = __('Cannot alter the tags of this data, only the organisation that has created the data (orgc) can modify global tags.');
+                if ($this->Auth->user('org_id') === Configure::read('MISP.host_org_id')) {
+                    $message .= ' ' . __('Please consider using local tags if you are in the host organisation of the instance.');
+                }
+                throw new MethodNotAllowedException($message);
             }
         } else {
             $type = 'Attribute';
-            $object = $this->Event->Attribute->find('first', array(
-                'conditions' => array(
-                    'Attribute.uuid' => $object_uuid,
-                ),
-                'fields' => array('Attribute.id'),
-                'recursive' => -1,
-                'contain' => array('Event.orgc_id')
-            ));
+            $object = $this->Event->Attribute->fetchAttributes(
+                $this->Auth->user(),
+                array(
+                    'conditions' => array(
+                        'Attribute.uuid' => $object_uuid
+                    ),
+                    'flatten' => 1
+                )
+            );
             if (!empty($object)) {
-                if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'] && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
-                    throw new MethodNotAllowedException('Invalid Target.');
+                $object = $object[0];
+                if (
+                    $scope !== 'view' &&
+                    !$this->_isSiteAdmin() &&
+                    $object['Event']['orgc_id'] != $this->Auth->user('org_id')
+                ) {
+                    $message = __('Cannot alter the tags of this data, only the organisation that has created the data (orgc) can modify global tags.');
+                    if ($this->Auth->user('org_id') === Configure::read('MISP.host_org_id')) {
+                        $message .= ' ' . __('Please consider using local tags if you are in the host organisation of the instance.');
+                    }
+                    throw new MethodNotAllowedException($message);
                 }
             } else {
-                throw new MethodNotAllowedException('Invalid Target.');
+                throw new MethodNotAllowedException(__('Invalid Target.'));
             }
         }
         return $object;
     }
 
-    public function attachTagToObject($uuid = false, $tag = false)
+    public function attachTagToObject($uuid = false, $tag = false, $local = false)
     {
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This method is only accessible via POST requests.');
@@ -892,8 +942,16 @@ class TagsController extends AppController
         } else {
             $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
         }
+        if (empty($local)) {
+            if (!empty($this->request->data['local'])) {
+                $local = $this->request->data['local'];
+            }
+        }
+        if (!empty($local) && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
+            throw new MethodNotAllowedException(__('Local tags can only be added by users of the host organisation.'));
+        }
         $objectType = '';
-        $object = $this->__findObjectByUuid($uuid, $objectType);
+        $object = $this->__findObjectByUuid($uuid, $objectType, $local ? 'view' : 'modify');
         $existingTag = $this->Tag->find('first', array('conditions' => $conditions, 'recursive' => -1));
         if (empty($existingTag)) {
             if (!is_numeric($tag)) {
@@ -901,7 +959,10 @@ class TagsController extends AppController
                     throw new MethodNotAllowedException('Tag not found and insufficient privileges to create it.');
                 }
                 $this->Tag->create();
-                $this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
+                $result = $this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
+                if (!$result) {
+                    return $this->RestResponse->saveFailResponse('Tags', 'attachTagToObject', false, __('Unable to create tag. Reason: ' . json_encode($this->Tag->validationErrors)), $this->response->type());
+                }
                 $existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
             } else {
                 throw new NotFoundException('Invalid Tag.');
@@ -909,33 +970,28 @@ class TagsController extends AppController
         }
         if (!$this->_isSiteAdmin()) {
             if (!in_array($existingTag['Tag']['org_id'], array(0, $this->Auth->user('org_id')))) {
-                throw new MethodNotAllowedException('Invalid Tag.');
+                throw new MethodNotAllowedException('Invalid Tag. This tag can only be set by a fixed organisation.');
             }
             if (!in_array($existingTag['Tag']['user_id'], array(0, $this->Auth->user('id')))) {
-                throw new MethodNotAllowedException('Invalid Tag.');
+                throw new MethodNotAllowedException('Invalid Tag. This tag can only be set by a fixed user.');
             }
         }
         $this->loadModel($objectType);
         $connectorObject = $objectType . 'Tag';
         $conditions = array(
             strtolower($objectType) . '_id' => $object[$objectType]['id'],
-            'tag_id' => $existingTag['Tag']['id']
+            'tag_id' => $existingTag['Tag']['id'],
+            'local' => ($local ? 1 : 0)
         );
         $existingAssociation = $this->$objectType->$connectorObject->find('first', array(
-            'conditions' => array(
-                strtolower($objectType) . '_id' => $object[$objectType]['id'],
-                'tag_id' => $existingTag['Tag']['id']
-            )
+            'conditions' => $conditions
         ));
         if (!empty($existingAssociation)) {
             return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $objectType . ' already has the requested tag attached, no changes had to be made.');
         }
         $this->$objectType->$connectorObject->create();
         $data = array(
-            $connectorObject => array(
-                strtolower($objectType) . '_id' => $object[$objectType]['id'],
-                'tag_id' => $existingTag['Tag']['id']
-            )
+            $connectorObject => $conditions
         );
         if ($objectType == 'Attribute') {
             $data[$connectorObject]['event_id'] = $object['Event']['id'];
@@ -949,12 +1005,16 @@ class TagsController extends AppController
             $date = new DateTime();
             $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
             $this->$objectType->save($tempObject);
-            if ($objectType === 'Attribute') {
-                $this->$objectType->Event->unpublishEvent($object['Event']['id']);
-            } else if ($objectType === 'Event') {
-                $this->Event->unpublishEvent($object['Event']['id']);
+            if($local) {
+                $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
+            } else {
+                if ($objectType === 'Attribute') {
+                    $this->$objectType->Event->unpublishEvent($object['Event']['id']);
+                } else if ($objectType === 'Event') {
+                    $this->Event->unpublishEvent($object['Event']['id']);
+                }
+                $message = 'Global tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
             }
-            $message = 'Tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
             return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $message);
         } else {
             return $this->RestResponse->saveFailResponse('Tags', 'attachTagToObject', false, 'Failed to attach tag to object.', $this->response->type());
@@ -993,9 +1053,9 @@ class TagsController extends AppController
             throw new MethodNotAllowedException('Invalid Tag.');
         }
         $objectType = '';
-        $object = $this->__findObjectByUuid($uuid, $objectType);
+        $object = $this->__findObjectByUuid($uuid, $objectType, 'view');
         if (empty($object)) {
-            throw new MethodNotAllowedException('Invalid Target.');
+            throw new MethodNotAllowedException(__('Invalid Target.'));
         }
         $connectorObject = $objectType . 'Tag';
         $this->loadModel($objectType);
@@ -1007,6 +1067,14 @@ class TagsController extends AppController
         ));
         if (empty($existingAssociation)) {
             throw new MethodNotAllowedException('Could not remove tag as it is not attached to the target ' . $objectType);
+        } else {
+            if (empty($existingAssociation[$objectType . 'Tag']['local'])) {
+                $object = $this->__findObjectByUuid($uuid, $objectType);
+            } else {
+                if ($object['Event']['orgc_id'] !== $this->Auth->user('org_id') && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
+                    throw new MethodNotAllowedException(__('Insufficient privileges to remove local tags from events you do not own.'));
+                }
+            }
         }
         $result = $this->$objectType->$connectorObject->delete($existingAssociation[$connectorObject]['id']);
         if ($result) {
@@ -1049,14 +1117,15 @@ class TagsController extends AppController
         if (!is_array($tag)) {
             $tag = array($tag);
         }
+        $conditions = array();
         foreach ($tag as $k => $t) {
             $tag[$k] = strtolower($t);
+            $conditions['OR'][] = array('LOWER(GalaxyCluster.value)' => $tag[$k]);
+        }
+        foreach ($tag as $k => $t) {
+            $conditions['OR'][] = array('AND' => array('GalaxyElement.key' => 'synonyms', 'LOWER(GalaxyElement.value) LIKE' => $t));
         }
         $this->loadModel('GalaxyCluster');
-        $conditions = array('OR' => array('LOWER(GalaxyCluster.value) LIKE' => $t, array('GalaxyElement.key' => 'synonyms', 'OR' => array())));
-        foreach ($tag as $k => $t) {
-            $conditions['OR'][0]['OR'][] = array('LOWER(GalaxyElement.value) LIKE' => $t);
-        }
         $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,

@@ -42,7 +42,7 @@ class Job extends AppModel
         $this->save($data);
         $id = $this->id;
         $this->Event = ClassRegistry::init('Event');
-        if (in_array($type, array_keys($this->Event->export_types))) {
+        if (in_array($type, array_keys($this->Event->export_types)) && $type !== 'bro') {
             $process_id = CakeResque::enqueue(
                     'cache',
                     $shell . 'Shell',
@@ -50,13 +50,11 @@ class Job extends AppModel
                     true
             );
         } elseif ($type === 'bro') {
-            $extra = $type;
             $type = 'bro';
-            $extra2 = isset($user['nids_sid']) ? $user['nids_sid'] : 0;
             $process_id = CakeResque::enqueue(
                     'cache',
                     $shell . 'Shell',
-                    array('cachebro' . $type, $user['id'], $id, $extra, $extra2),
+                    array('cachebro', $user['id'], $id),
                     true
             );
         } else {
