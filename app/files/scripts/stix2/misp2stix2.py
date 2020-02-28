@@ -287,7 +287,7 @@ class StixBuilder():
                     to_ids_list.append(to_ids_section)
                     sections.append(section_object)
             if True in to_ids_list:
-                patterns = self.resolve_file_pattern(file_object['Attribute'], file_id)[1:-1]
+                patterns = self.resolve_file_pattern(file_object['Attribute'], file_id)
                 patterns.extend(self.parse_pe_extensions_pattern(pe_object, sections))
                 self.add_object_indicator(file_object, pattern_arg=f"[{' AND '.join(patterns)}]")
             else:
@@ -340,13 +340,13 @@ class StixBuilder():
         pe_mapping = "extensions.'windows-pebinary-ext'"
         for attribute in pe_object['Attribute']:
             try:
-                stix_type = "{}.{}".format(pe_mapping, peMapping[attribute['object_relation']])
+                stix_type = f"{pe_mapping}.{peMapping[attribute['object_relation']]}"
             except KeyError:
-                stix_type = "{}.{}'".format(pe_mapping[:-1], "x_misp_{}_{}".format(attribute['type'], attribute['object_relation'].replace('-', '_')))
+                stix_type = f"{pe_mapping}.x_misp_{attribute['type']}_{attribute['object_relation'].replace('-', '_')}"
             pattern.append(mapping.format(stix_type, attribute['value']))
         n_section = 0
         for section in sections:
-            section_mapping = "{}.sections[{}]".format(pe_mapping, str(n_section))
+            section_mapping = f"{pe_mapping}.sections[{str(n_section)}]"
             for attribute in section['Attribute']:
                 relation = attribute['object_relation']
                 if relation in misp_hash_types:
@@ -790,6 +790,7 @@ class StixBuilder():
     def parse_vulnerability_fields(attributes):
         vulnerability = {}
         references = []
+        custom_args = defaultdict(list)
         for attribute in attributes:
             relation = attribute['object_relation']
             if relation in vulnerabilityMapping:
@@ -798,12 +799,14 @@ class StixBuilder():
                 if relation == 'references':
                     references.append({'source_name': 'url', 'url': attribute['value']})
                 else:
-                    vulnerability[f"x_misp_{attribute['type']}_{relation.replace('-', '_')}"] = attribute['value']
+                    custom_args[f"x_misp_{attribute['type']}_{relation.replace('-', '_')}"].append(attribute['value'])
                     vulnerability['allow_custom'] = True
         if 'name' in vulnerability:
             references.append({'source_name': 'cve', 'external_id': vulnerability['name']})
         if references:
             vulnerability['external_references'] = references
+        if custom_args:
+            vulnerability.update({key: value[0] if len(value) == 1 else value for key, value in custom_args.items()})
         return vulnerability
 
     def resolve_asn_observable(self, attributes, object_id):
