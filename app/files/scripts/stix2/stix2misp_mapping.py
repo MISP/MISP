@@ -219,7 +219,6 @@ file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'file:mime_type': mime_type_attribute_mapping,
                 'name': filename_attribute_mapping,
                 'file:name': filename_attribute_mapping,
-                'artifact:payoad:bin': {'type': 'attachment', 'object_relation': 'attachment'},
                 'file:parent_directory_ref.path': {'type': 'text', 'object_relation': 'path'},
                 'size': size_attribute_mapping,
                 'file:size': size_attribute_mapping}
@@ -267,6 +266,7 @@ for hash_type in hash_types:
     file_mapping[f"file:hashes.'{hash_type}'"] = attribute
     file_mapping[f"file:hashes.'{misp_hash_type}'"] = attribute
     pe_section_mapping[hash_type] = attribute
+    pe_section_mapping[misp_hash_type] = attribute
 
 process_mapping = {'name': process_name_mapping,
                    'process:name': process_name_mapping,

@@ -509,7 +509,12 @@ class StixFromMISPParser(StixParser):
     def parse_asn_observable(self, observable):
         attributes = []
         for observable_object in observable.values():
-            attributes.extend(self.fill_observable_attributes(observable_object, stix2misp_mapping.asn_mapping))
+            for key, value in observable_object.items():
+                if key in stix2misp_mapping.asn_mapping:
+                    attribute = deepcopy(stix2misp_mapping.asn_mapping[key])
+                    attribute.update({'value': f'AS{value}' if key == 'number' else value,
+                                      'to_ids': False})
+                    attributes.append(attribute)
         return attributes
 
     def parse_credential_observable(self, observable):
@@ -794,22 +799,33 @@ class StixFromMISPParser(StixParser):
 
     def parse_file_pattern(self, pattern):
         attributes = []
-        malware_sample = {}
+        attachment = {}
+        attachment_types = ('file:content_ref.name', 'file:content_ref.payload_bin',
+                            'artifact:name', 'artifact:payload_bin',
+                            "file:hashes.'MD5'", 'file:name')
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
-            if pattern_type in ("file:hashes.'MD5'", 'file:name', 'file:content_ref.payload_bin'):
-                malware_sample[pattern_type] = pattern_value.strip("'")
+            if pattern_type in attachment_types:
+                attachment[pattern_type] = pattern_value.strip("'")
             if pattern_type not in stix2misp_mapping.file_mapping:
                 continue
             attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
             attribute['value'] = pattern_value.strip("'")
             attributes.append(attribute)
-        if 'file:content_ref.payload_bin' in malware_sample:
+        if 'file:content_ref.payload_bin' in attachment:
+            filename = attachment['file:content_ref.name'] if 'file:content_ref.name' in attachment else attachment['file:name']
             attributes.append({
                 'type': 'malware-sample',
                 'object_relation': 'malware-sample',
-                'value': '|'.join(malware_sample[feature] for feature in ('file:name', "file:hashes.'MD5'")),
-                'data': malware_sample['file:content_ref.payload_bin']
+                'value': '|'.join((filename, attachment["file:hashes.'MD5'"])),
+                'data': attachment['file:content_ref.payload_bin']
+            })
+        if 'artifact:payload_bin' in attachment:
+            attributes.append({
+                'type': 'attachment',
+                'object_relation': 'attachment',
+                'value': attachment['artifact:name'] if 'artifact:name' in attachment else attachment['file:name'],
+                'data': attachment['artifact:payload_bin']
             })
         return attributes
 
