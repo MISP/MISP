@@ -1713,7 +1713,7 @@ class EventsController extends AppController
         $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
         if (!$this->_isRest()) {
             if ($this->_isSiteAdmin() && $results[0]['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
-                $this->Flash->info(__('You are currently logged in as a site administrator and editing an event not belonging to your organisation, which goes against the sharing model of MISP. Please only use this as a last resort and use normal user account for day to day work.'));
+                $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
             }
             $this->__viewUI($event, $continue, $fromEvent);
         }
@@ -2224,7 +2224,7 @@ class EventsController extends AppController
         $this->Event->read(null, $target_id);
         // check if private and user not authorised to edit
         if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !($this->userRole['perm_modify']))) {
-            $this->Flash->error(__("You are not authorised to do that. Please consider using the 'propose attribute' feature."));
+            $this->Flash->error(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
             $this->redirect(array('action' => 'view', $target_id));
         }
         $this->Event->insertLock($this->Auth->user(), $target_id);
@@ -2802,7 +2802,7 @@ class EventsController extends AppController
             }
             $message = $this->request->data['Event']['message'];
             if (empty($message)) {
-                $error = __("You must specify a message.");
+                $error = __('You must specify a message.');
                 if ($this->_isRest()) {
                     throw new MethodNotAllowedException($error);
                 } else {
@@ -3115,7 +3115,7 @@ class EventsController extends AppController
             $iocFile = new File($destPath . DS . $this->data['Event']['submittedioc']['name']);
             $result = $iocFile->write($iocData);
             if (!$result) {
-                $this->Flash->error(__('Problem with writing the ioc file. Please report to administrator.'));
+                $this->Flash->error(__('Problem with writing the IoC file. Please report to site admin.'));
             }
 
             // open the xml
@@ -4111,33 +4111,32 @@ class EventsController extends AppController
                 throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
             }
             $event = $event[0];
-            // #TODO i18n
             $imports = array(
                     'freetext' => array(
                             'url' => '/events/freeTextImport/' . $id,
-                            'text' => 'Freetext Import',
+                            'text' => __('Freetext Import'),
                             'ajax' => true,
                             'target' => 'popover_form'
                     ),
                     'template' => array(
                             'url' => '/templates/templateChoices/' . $id,
-                            'text' => 'Populate using a Template',
+                            'text' => __('Populate using a Template'),
                             'ajax' => true,
                             'target' => 'popover_form'
                     ),
                     'OpenIOC' => array(
                             'url' => '/events/addIOC/' . $id,
-                            'text' => 'OpenIOC Import',
+                            'text' => __('OpenIOC Import'),
                             'ajax' => false,
                     ),
                     'ThreatConnect' => array(
                             'url' => '/attributes/add_threatconnect/' . $id,
-                            'text' => 'ThreatConnect Import',
+                            'text' => __('ThreatConnect Import'),
                             'ajax' => false
                     ),
                     'Forensic analysis' => array(
                         'url' => '/events/upload_analysis_file/'.$id,
-                        'text' => '(Experimental) Forensic analysis - Mactime',
+                        'text' => __('(Experimental) Forensic analysis - Mactime'),
                         'ajax' => false,
                 )
             );
@@ -4156,18 +4155,18 @@ class EventsController extends AppController
             $imports = array(
                 'MISP' => array(
                         'url' => '/events/add_misp_export',
-                        'text' => 'MISP standard (recommended exchange format - lossless)',
+                        'text' => __('MISP standard (recommended exchange format - lossless)'),
                         'ajax' => false,
                         'bold' => true
                 ),
                 'STIX' => array(
                         'url' => '/events/upload_stix',
-                        'text' => 'STIX 1.1.1 format (lossy)',
+                        'text' => __('STIX 1.1.1 format (lossy)'),
                         'ajax' => false,
                 ),
                 'STIX2' => array(
                         'url' => '/events/upload_stix/2',
-                        'text' => 'STIX 2.0 format (lossy)',
+                        'text' => __('STIX 2.0 format (lossy)'),
                         'ajax' => false,
                 )
             );

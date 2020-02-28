@@ -13,6 +13,10 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
+#: Model/Datasource/Database/MysqlExtendedLogging.php:350
+msgid "Could not describe table for %s"
+msgstr ""
+
 #: View/Layouts/error.ctp:19
 msgid "CakePHP: the rapid development php framework"
 msgstr ""
