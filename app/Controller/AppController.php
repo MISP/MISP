@@ -62,6 +62,7 @@ class AppController extends Controller
     public $automationArray = array(
         'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
         'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
+        'objects' => array('restSearch')
     );
 
     protected $_legacyParams = array();
@@ -1174,10 +1175,13 @@ class AppController extends Controller
 
     public function restSearch()
     {
-        if (empty($this->RestSearch->paramArray[$this->modelClass])) {
+        $scope = empty($this->scopeOverride) ? $this->modelClass : $this->scopeOverride;
+        if ($scope === 'MispObject') {
+            $scope = 'Object';
+        }
+        if (empty($this->RestSearch->paramArray[$scope])) {
             throw new NotFoundException(__('RestSearch is not implemented (yet) for this scope.'));
         }
-        $scope = empty($this->scopeOverride) ? $this->modelClass : $this->scopeOverride;
         if (!isset($this->$scope)) {
             $this->loadModel($scope);
         }

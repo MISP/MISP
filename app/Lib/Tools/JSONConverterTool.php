@@ -11,6 +11,28 @@ class JSONConverterTool
         return ']}' . PHP_EOL;
     }
 
+    public function convertObject($object, $isSiteAdmin = false, $raw = false)
+    {
+        $toRearrange = array('SharingGroup', 'Attribute', 'ShadowAttribute', 'Event');
+        foreach ($toRearrange as $element) {
+            if (isset($object[$element])) {
+                $object['Object'][$element] = $object[$element];
+                unset($object[$element]);
+            }
+            if ($element == 'SharingGroup' && isset($object['Object']['SharingGroup']) && empty($object['Object']['SharingGroup'])) {
+                unset($object['Object']['SharingGroup']);
+            }
+        }
+        $result = array('Object' => $object['Object']);
+        if (isset($event['errors'])) {
+            $result = array_merge($result, array('errors' => $event['errors']));
+        }
+        if ($raw) {
+            return $result;
+        }
+        return json_encode($result, JSON_PRETTY_PRINT);
+    }
+
     public function convert($event, $isSiteAdmin=false, $raw = false)
     {
         $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object');

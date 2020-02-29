@@ -11,6 +11,8 @@ class JsonExport
 			return $this->__attributeHandler($data, $options);
 		} else if($options['scope'] === 'Event') {
 			return $this->__eventHandler($data, $options);
+        } else if($options['scope'] === 'Object') {
+            return $this->__eventHandler($data, $options);
 		} else if($options['scope'] === 'Sighting') {
 			return $this->__sightingsHandler($data, $options);
 		}
@@ -21,8 +23,16 @@ class JsonExport
 			App::uses('JSONConverterTool', 'Tools');
 			$this->__converter = new JSONConverterTool();
 		}
-		return json_encode($this->__converter->convert($event, false, true));
+		return json_encode($this->__converter->convertObject($event, false, true));
 	}
+
+    private function __objectHandler($object, $options = array()) {
+        if ($this->__converter === false) {
+            App::uses('JSONConverterTool', 'Tools');
+            $this->__converter = new JSONConverterTool();
+        }
+        return json_encode($this->__converter->convert($object, false, true));
+    }
 
 	private function __attributeHandler($attribute, $options = array())
 	{

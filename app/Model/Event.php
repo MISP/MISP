@@ -1656,6 +1656,8 @@ class Event extends AppModel
                 ),
                 'Object' => array(
                     'object_name' => array('function' => 'set_filter_object_name'),
+                    'object_template_uuid' => array('function' => 'set_filter_object_template_uuid'),
+                    'object_template_version' => array('function' => 'set_filter_object_template_version'),
                     'deleted' => array('function' => 'set_filter_deleted')
                 ),
                 'Attribute' => array(
@@ -2688,6 +2690,36 @@ class Event extends AppModel
         if (!empty($params['value'])) {
             $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
             $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], $keys);
+
+        }
+        return $conditions;
+    }
+
+    public function set_filter_object_name(&$params, $conditions, $options)
+    {
+        if (!empty($params['object_name'])) {
+            $params['object_name'] = $this->convert_filters($params['object_name']);
+            $conditions = $this->generic_add_filter($conditions, $params['object_name'], 'Object.name');
+
+        }
+        return $conditions;
+    }
+
+    public function set_filter_object_template_uuid(&$params, $conditions, $options)
+    {
+        if (!empty($params['object_template_uuid'])) {
+            $params['object_template_uuid'] = $this->convert_filters($params['object_template_uuid']);
+            $conditions = $this->generic_add_filter($conditions, $params['object_template_uuid'], 'Object.template_uuid');
+
+        }
+        return $conditions;
+    }
+
+    public function set_filter_object_template_version(&$params, $conditions, $options)
+    {
+        if (!empty($params['object_template_version'])) {
+            $params['object_template_version'] = $this->convert_filters($params['object_template_version']);
+            $conditions = $this->generic_add_filter($conditions, $params['object_template_version'], 'Object.template_version');
 
         }
         return $conditions;
