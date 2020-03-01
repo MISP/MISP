@@ -4896,7 +4896,7 @@ function submitDashboardAddWidget() {
     var width = $('#DashboardWidth').val();
     var height = $('#DashboardHeight').val();
     var el = null;
-    var k = $('#last-element-counter').data('data-element-counter');
+    var k = $('#last-element-counter').data('element-counter');
     $.ajax({
         url: baseurl + '/dashboards/getEmptyWidget/' + widget + '/' + (k+1),
         type: 'GET',
@@ -4911,6 +4911,11 @@ function submitDashboardAddWidget() {
                     "autoposition": 1
                 }
             );
+            config = JSON.parse(config);
+            config = JSON.stringify(config);
+            $('#widget_' + (k+1)).attr('config', config);
+            updateDashboardWidget($('#widget_' + (k+1)));
+            saveDashboardState();
         },
         complete: function(data) {
             $('#genericModal').modal('hide');
