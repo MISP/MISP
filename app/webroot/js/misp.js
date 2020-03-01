@@ -4916,6 +4916,7 @@ function submitDashboardAddWidget() {
             $('#widget_' + (k+1)).attr('config', config);
             updateDashboardWidget($('#widget_' + (k+1)));
             saveDashboardState();
+            $('#last-element-counter').data('element-counter', (k+1));
         },
         complete: function(data) {
             $('#genericModal').modal('hide');
