@@ -69,7 +69,7 @@ class DashboardsController extends AppController
                 $data['config'] = '';
             }
             if ($action === 'add') {
-                $data['widget_options'] = $this->Dashboard->loadAllWidgets();
+                $data['widget_options'] = $this->Dashboard->loadAllWidgets($this->Auth->user());
             } else {
                 $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $data['widget']);
                 $data['description'] = empty($dashboardWidget->description) ? '' : $dashboardWidget->description;

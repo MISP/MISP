@@ -22,7 +22,7 @@ class Dashboard extends AppModel
         return $widget;
     }
 
-    public function loadAllWidgets()
+    public function loadAllWidgets($user)
     {
         $dir = new Folder(APP . 'Lib/Dashboard');
         $customdir = new Folder(APP . 'Lib/Dashboard/Custom');
@@ -31,14 +31,14 @@ class Dashboard extends AppModel
         $widgets = array();
         foreach ($widgetFiles as $widgetFile) {
             $className = substr($widgetFile, 0, strlen($widgetFile) -4);
-            $temp = $this->__extractMeta($className, false);
+            $temp = $this->__extractMeta($user, $className, false);
             if ($temp !== false) {
                 $widgets[$className] = $temp;
             }
         }
         foreach ($customWidgetFiles as $widgetFile) {
             $className = substr($widgetFile, 0, strlen($widgetFile) -4);
-            $temp = $this->__extractMeta($className, true);
+            $temp = $this->__extractMeta($user, $className, true);
             if ($temp !== false) {
                 $widgets[$className] = $temp;
             }
@@ -46,7 +46,7 @@ class Dashboard extends AppModel
         return $widgets;
     }
 
-    private function __extractMeta($className, $custom)
+    private function __extractMeta($user, $className, $custom)
     {
         App::uses($className, 'Dashboard' . ($custom ? '/Custom' : ''));
         $widgetClass = new $className();
