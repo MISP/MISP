@@ -3,7 +3,7 @@
         $menu = array(
             array(
                 'type' => 'root',
-                'url' => $baseurl . '/',
+                'url' =>empty($homepage['path']) ? '$baseurl' : $baseurl . h($homepage['path']),
                 'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : __('Home'))
             ),
             array(
@@ -402,12 +402,17 @@
         $menu_right = array(
             array(
                 'type' => 'root',
-                'url' => $baseurl . '/',
+                'url' => '#',
+                'html' => '<span class="fas fa-star" id="setHomePage" onClick="setHomePage();" title="Set the current page as your home page in MISP"></span>'
+            ),
+            array(
+                'type' => 'root',
+                'url' =>empty($homepage['path']) ? '$baseurl' : $baseurl . h($homepage['path']),
                 'html' => '<span class="logoBlueStatic bold" id="smallLogo">MISP</span>'
             ),
             array(
                 'type' => 'root',
-                'url' => '/users/dashboard',
+                'url' => '/dashboards',
                 'html' => sprintf(
                     '<span class="white" title="%s">%s%s&nbsp;&nbsp;&nbsp;%s</span>',
                     h($me['email']),

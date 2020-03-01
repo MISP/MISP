@@ -1717,6 +1717,9 @@ class Event extends AppModel
             'recursive' => -1,
             'fields' => $fields
         );
+        if (isset($params['order'])) {
+            $find_params['order'] = $params['order'];
+        }
         if (isset($params['limit'])) {
             // Get the count (but not the actual data) of results for paginators
             $result_count = $this->find('count', $find_params);

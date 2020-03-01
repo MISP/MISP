@@ -46,7 +46,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '98';
+    private $__queryVersion = '99';
     public $pyMispVersion = '2.4.122';
     public $phpmin = '7.2';
     public $phprec = '7.4';
@@ -510,6 +510,18 @@ class AppController extends Controller
             }
         }
         $this->components['RestResponse']['sql_dump'] = $this->sql_dump;
+        $this->loadModel('UserSetting');
+        $homepage = $this->UserSetting->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'UserSetting.user_id' => $this->Auth->user('id'),
+                'UserSetting.setting' => 'homepage'
+            ),
+            'contain' => array('User.id', 'User.org_id')
+        ));
+        if (!empty($homepage)) {
+            $this->set('homepage', $homepage['UserSetting']['value']);
+        }
     }
 
     private function __rateLimitCheck()
