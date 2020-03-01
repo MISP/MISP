@@ -23,7 +23,7 @@ class JsonExport
 			App::uses('JSONConverterTool', 'Tools');
 			$this->__converter = new JSONConverterTool();
 		}
-		return json_encode($this->__converter->convertObject($event, false, true));
+		return json_encode($this->__converter->convert($event, false, true));
 	}
 
     private function __objectHandler($object, $options = array()) {
@@ -31,7 +31,7 @@ class JsonExport
             App::uses('JSONConverterTool', 'Tools');
             $this->__converter = new JSONConverterTool();
         }
-        return json_encode($this->__converter->convert($object, false, true));
+        return json_encode($this->__converter->convertObject($object, false, true));
     }
 
 	private function __attributeHandler($attribute, $options = array())
