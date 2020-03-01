@@ -28,11 +28,17 @@ class Dashboard extends AppModel
             $className = substr($widgetFile, 0, strlen($widgetFile) -4);
             $widgets[$className] = $this->__extractMeta($className, false);
         }
+        foreach ($customWidgetFiles as $widgetFile) {
+            $className = substr($widgetFile, 0, strlen($widgetFile) -4);
+            $widgets[$className] = $this->__extractMeta($className, true);
+        }
         return $widgets;
     }
 
     private function __extractMeta($className, $custom)
     {
+        debug($className);
+        debug('Dashboard' . $custom ? '/Custom' : '');
         App::uses($className, 'Dashboard' . $custom ? '/Custom' : '');
         $widgetClass = new $className();
         $widget = array(
