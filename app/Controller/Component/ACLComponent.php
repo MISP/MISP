@@ -71,6 +71,13 @@ class ACLComponent extends Component
                     'view' => array('*'),
                     'viewPicture' => array('*'),
             ),
+            'dashboards' => array(
+                'getForm' => array('*'),
+                'index' => array('*'),
+                'updateSettings' => array('*'),
+                'getEmptyWidget' => array('*'),
+                'renderWidget' => array('*')
+            ),
             'decayingModel' => array(
                 "update" => array(),
                 "export" => array('*'),
@@ -575,7 +582,8 @@ class ACLComponent extends Component
                     'view' => array('*'),
                     'setSetting' => array('*'),
                     'getSetting' => array('*'),
-                    'delete' => array('*')
+                    'delete' => array('*'),
+                    'setHomePage' => array('*')
             ),
             'warninglists' => array(
                     'checkValue' => array('perm_auth'),

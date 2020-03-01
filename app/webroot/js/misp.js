@@ -1185,6 +1185,22 @@ function openGenericModal(url) {
     });
 }
 
+function openGenericModalPost(url, body) {
+    $.ajax({
+        data: body,
+        type: "post",
+        url: url,
+        success: function (data) {
+            $('#genericModal').remove();
+            $('body').append(data);
+            $('#genericModal').modal();
+        },
+        error: function (data, textStatus, errorThrown) {
+            showMessage('fail', textStatus + ": " + errorThrown);
+        }
+    });
+}
+
 function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dissmis_id_to_close) {
     var url = null;
     var context = 'event';
@@ -4859,3 +4875,119 @@ function queryDeprecatedEndpointUsage() {
         format: 'yyyy-mm-dd',
     });
 }());
+
+function submitDashboardForm(id) {
+    var configData = $('#DashboardConfig').val();
+    if (configData != '') {
+        configData = JSON.parse(configData);
+    } else {
+        configData = {};
+    }
+    configData = JSON.stringify(configData);
+    $('#' + id).attr('config', configData);
+    updateDashboardWidget($('#' + id));
+    $('#genericModal').modal('hide');
+    saveDashboardState();
+}
+
+function submitDashboardAddWidget() {
+    var widget = $('#DashboardWidget').val();
+    var config = $('#DashboardConfig').val();
+    var width = $('#DashboardWidth').val();
+    var height = $('#DashboardHeight').val();
+    var el = null;
+    var k = $('#last-element-counter').data('element-counter');
+    $.ajax({
+        url: baseurl + '/dashboards/getEmptyWidget/' + widget + '/' + (k+1),
+        type: 'GET',
+        success: function(data) {
+            el = data;
+            var grid = GridStack.init();
+            grid.addWidget(
+                el,
+                {
+                    "width": width,
+                    "height": height,
+                    "autoposition": 1
+                }
+            );
+            config = JSON.parse(config);
+            config = JSON.stringify(config);
+            $('#widget_' + (k+1)).attr('config', config);
+            updateDashboardWidget($('#widget_' + (k+1)));
+            saveDashboardState();
+            $('#last-element-counter').data('element-counter', (k+1));
+        },
+        complete: function(data) {
+            $('#genericModal').modal('hide');
+        },
+        error: function(data) {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Could not fetch empty widget.']});
+        }
+    });
+}
+
+function saveDashboardState() {
+    var dashBoardSettings = [];
+    $('.grid-stack-item').each(function(index) {
+        if ($(this).attr('config') !== undefined && $(this).attr('widget') !== undefined) {
+            var config = $(this).attr('config');
+            config = JSON.parse(config);
+            var temp = {
+                'widget': $(this).attr('widget'),
+                'config': config,
+                'position': {
+                    'x': $(this).attr('data-gs-x'),
+                    'y': $(this).attr('data-gs-y'),
+                    'width': $(this).attr('data-gs-width'),
+                    'height': $(this).attr('data-gs-height')
+                }
+            };
+            dashBoardSettings.push(temp);
+        }
+    });
+    $.ajax({
+        data: {value: dashBoardSettings},
+        success:function (data, textStatus) {
+            showMessage('success', 'Dashboard settings saved.');
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            showMessage('fail', textStatus + ": " + errorThrown);
+        },
+        type: "post",
+        url: baseurl + '/dashboards/updateSettings',
+    });
+}
+
+function updateDashboardWidget(element) {
+    var container = $(element).find('.widgetContent');
+    var titleText = $(element).find('.widgetTitleText');
+    var temp = JSON.parse($(element).attr('config'));
+    if (temp['alias'] !== undefined) {
+        titleText.text(temp['alias']);
+    }
+    $.ajax({
+        type: 'POST',
+        url: baseurl + '/dashboards/renderWidget',
+        data: {
+            config: $(element).attr('config'),
+            widget: $(element).attr('widget')
+        },
+        success:function (data, textStatus) {
+            container.html(data);
+        },
+    });
+}
+
+function setHomePage() {
+    $.ajax({
+        type: 'POST',
+        url: baseurl + '/userSettings/setHomePage',
+        data: {
+            path: window.location.pathname
+        },
+        success:function (data, textStatus) {
+            showMessage('success', 'Homepage set.');
+        },
+    });
+}
