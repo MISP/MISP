@@ -37,9 +37,7 @@ class Dashboard extends AppModel
 
     private function __extractMeta($className, $custom)
     {
-        debug($className);
-        debug('Dashboard' . $custom ? '/Custom' : '');
-        App::uses($className, 'Dashboard' . $custom ? '/Custom' : '');
+        App::uses($className, 'Dashboard' . ($custom ? '/Custom' : ''));
         $widgetClass = new $className();
         $widget = array(
             'widget' => $className,
