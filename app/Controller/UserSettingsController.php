@@ -28,7 +28,7 @@ class UserSettingsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        $this->Security->unlockedActions = array('setHomePage');
+        $this->Security->unlockedActions = array_merge($this->Security->unlockedActions, array('setHomePage'));
     }
 
     public function index()
