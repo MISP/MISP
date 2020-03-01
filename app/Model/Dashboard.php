@@ -4,7 +4,7 @@ class Dashboard extends AppModel
 {
     public $useTable = false;
 
-    public function loadWidget($name)
+    public function loadWidget($user, $name)
     {
         if (file_exists(APP . 'Lib/Dashboard/' . $name . '.php')) {
             App::uses($name, 'Dashboard');
@@ -14,6 +14,11 @@ class Dashboard extends AppModel
             throw new NotFoundException(__('Invalid widget or widget not found.'));
         }
         $widget = new $name();
+        if (method_exists($widget, 'checkPermissions')) {
+            if (!$widget->checkPermissions($user)) {
+                throw new NotFoundException(__('Invalid widget or widget not found.'));
+            }
+        }
         return $widget;
     }
 
@@ -26,11 +31,17 @@ class Dashboard extends AppModel
         $widgets = array();
         foreach ($widgetFiles as $widgetFile) {
             $className = substr($widgetFile, 0, strlen($widgetFile) -4);
-            $widgets[$className] = $this->__extractMeta($className, false);
+            $temp = $this->__extractMeta($className, false);
+            if ($temp !== false) {
+                $widgets[$className] = $temp;
+            }
         }
         foreach ($customWidgetFiles as $widgetFile) {
             $className = substr($widgetFile, 0, strlen($widgetFile) -4);
-            $widgets[$className] = $this->__extractMeta($className, true);
+            $temp = $this->__extractMeta($className, true);
+            if ($temp !== false) {
+                $widgets[$className] = $temp;
+            }
         }
         return $widgets;
     }
@@ -39,6 +50,11 @@ class Dashboard extends AppModel
     {
         App::uses($className, 'Dashboard' . ($custom ? '/Custom' : ''));
         $widgetClass = new $className();
+        if (method_exists($widgetClass, 'checkPermissions')) {
+            if (!$widgetClass->checkPermissions($user)) {
+                return false;
+            }
+        }
         $widget = array(
             'widget' => $className,
             'title' => $widgetClass->title,

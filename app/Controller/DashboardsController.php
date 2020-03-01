@@ -48,7 +48,7 @@ class DashboardsController extends AppController
         }
         $widgets = array();
         foreach ($userSettings['UserSetting']['value'] as $widget) {
-            $dashboardWidget = $this->Dashboard->loadWidget($widget['widget']);
+            $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $widget['widget']);
             $widget['width'] = $dashboardWidget->width;
             $widget['height'] = $dashboardWidget->height;
             $widget['title'] = $dashboardWidget->title;
@@ -71,7 +71,7 @@ class DashboardsController extends AppController
             if ($action === 'add') {
                 $data['widget_options'] = $this->Dashboard->loadAllWidgets();
             } else {
-                $dashboardWidget = $this->Dashboard->loadWidget($data['widget']);
+                $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $data['widget']);
                 $data['description'] = empty($dashboardWidget->description) ? '' : $dashboardWidget->description;
                 $data['params'] = empty($dashboardWidget->params) ? array() : $dashboardWidget->params;
                 $data['params'] = array_merge(array('alias' => __('Alias to use as the title of the widget')), $data['params']);
@@ -106,7 +106,7 @@ class DashboardsController extends AppController
 
     public function getEmptyWidget($widget, $k = 1)
     {
-        $dashboardWidget = $this->Dashboard->loadWidget($widget);
+        $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $widget);
         if (empty($dashboardWidget)) {
             throw new NotFoundException(__('Invalid widget.'));
         }
@@ -132,7 +132,7 @@ class DashboardsController extends AppController
                 throw new MethodNotAllowedException(__('You need to specify the widget to use along with the configuration.'));
             }
             $value = $this->request->data['data'];
-            $dashboardWidget = $this->Dashboard->loadWidget($value['widget']);
+            $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $value['widget']);
             $this->layout = false;
             $this->set('title', $dashboardWidget->title);
             $redis = $this->Dashboard->setupRedis();
