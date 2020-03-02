@@ -2,6 +2,22 @@
     <ul class="nav nav-list">
         <?php
             switch ($menuList) {
+                case 'dashboard':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'dashboardIndex',
+                        'url' => '/dashboards',
+                        'text' => __('View Dashboard')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'dashboardAdd',
+                        'url' => '#',
+                        'text' => __('Add Widget'),
+                        'onClick' => array(
+                            'function' => 'openGenericModalPost',
+                            'params' => array($baseurl . '/dashboards/getForm/add')
+                        ),
+                    ));
+                    break;
                 case 'event':
                     $dataEventId = isset($event['Event']['id']) ? h($event['Event']['id']) : 0;
                     echo '<div id="hiddenSideMenuData" class="hidden" data-event-id="' . $dataEventId . '"></div>';

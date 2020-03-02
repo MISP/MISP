@@ -2515,3 +2515,11 @@ table tr:hover .down-expand-button {
     color: white;
     border-radius: 3px;
 }
+
+.widgetTitle {
+    font-weight: bold;
+    color: #0088cc;
+    width: 100%;
+    font-size: 125%;
+    margin:5px;
+}

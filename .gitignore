@@ -103,3 +103,5 @@ tools/mkdocs
 .ropeproject/
 vagrant/.vagrant/
 vagrant/*.log
+/app/Lib/Dashboard/Custom/*
+!/app/Lib/Dashboard/Custom/empty
