@@ -649,21 +649,26 @@ class StixBuilder():
 
     @staticmethod
     def fix_enumeration_issues(name, args):
-        enumeration_fails = {}
         if name == 'network-socket':
-            ns_args = deepcopy(args)
-            observable_object = ns_args['objects']
-            n = sorted(observable_object.keys())[-1]
-            current_dict = observable_object[n]['extensions']['socket-ext']
-            for field in ('address_family', 'protocol_family'):
-                enumeration_fails[field] = current_dict.pop(field)
-                try:
-                    return ObservedData(**ns_args)
-                except (exceptions.InvalidValueError, exceptions.MissingPropertiesError):
-                    current_dict[field] = enumeration_fails[field]
-            for field in enumeration_fails:
-                current_dict.pop(field)
-            return ObservedData(**ns_args)
+            socket_args = deepcopy(args)
+            n = None
+            for index, observable_object in socket_args['objects'].items():
+                if observable_object['type'] == 'network-traffic':
+                    n = index
+                    break
+            if n is not None:
+                extension = socket_args['objects'][n]['extensions']['socket-ext']
+                feature = 'address_family'
+                if feature not in extension:
+                    extension[feature] = 'AF_UNSPEC'
+                elif extension[feature] not in SocketExt._properties[feature].allowed:
+                    extension[f'x_misp_text_{feature}'] = extension[feature]
+                    extension[feature] = 'AF_UNSPEC'
+                feature = 'protocol_family'
+                if feature in extension and extension[feature] not in SocketExt._properties[feature].allowed:
+                    extension['x_misp_text_domain_family'] = extension.pop(feature)
+            return ObservedData(**socket_args)
+            # If there is still an issue at this point, well at least we tried to fix it
         return ObservedData(**args)
 
     def add_object_vulnerability(self, misp_object, to_ids):
