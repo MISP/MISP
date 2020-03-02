@@ -8,6 +8,7 @@ class MispAdminResourceWidget
     public $height = 2;
     public $params = array();
     public $description = 'Basic widget showing some server statistics in regards to MISP.';
+    public $cacheLifetime = 5;
 
 
 	public function handler($user, $options = array())
@@ -18,7 +19,12 @@ class MispAdminResourceWidget
         if ($redis) {
             $memory_stats = round($redis->rawCommand('memory', 'stats')[3] / 1024 / 1024) . 'M';
             $data[] = array(
-                'title' => __('Redis memory usage'),
+                'title' => __('Current Redis memory usage'),
+                'value' => h($memory_stats)
+            );
+            $memory_stats = round($redis->rawCommand('memory', 'stats')[1] / 1024 / 1024) . 'M';
+            $data[] = array(
+                'title' => __('Peak Redis memory usage'),
                 'value' => h($memory_stats)
             );
         }
