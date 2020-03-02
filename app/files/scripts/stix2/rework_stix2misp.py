@@ -329,8 +329,9 @@ class StixFromMISPParser(StixParser):
                 else:
                     continue
             else:
-                attribute = deepcopy(mapping[feature])
-            attribute.update({'value': value, 'to_ids': False})
+                attribute = deepcopy(getattr(stix2misp_mapping, mapping)[feature])
+            attribute.update({'value': str(value) if feature in ('entropy', 'size') else value,
+                              'to_ids': False})
             misp_object.add_attribute(**attribute)
 
     @staticmethod
@@ -605,6 +606,9 @@ class StixFromMISPParser(StixParser):
         network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
         references = {key: {'object': value, 'used': False} for key, value in references.items()}
         attributes = self._parse_network_traffic(network_traffic, references)
+        if hasattr(network_traffic, 'protocols'):
+            attributes.append({'type': 'text', 'object_relation': 'protocol', 'to_ids': False,
+                               'value': network_traffic.protocols[0].strip("'")})
         if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
             attributes.extend(self._parse_socket_extension(network_traffic.extensions['socket-ext']))
         attributes.extend(self._parse_network_traffic_references(references))
@@ -698,19 +702,24 @@ class StixFromMISPParser(StixParser):
             attributes.extend(self.fill_observable_attributes(observable['0'].values[0], stix2misp_mapping.regkey_mapping))
         return attributes
 
-    @staticmethod
-    def _parse_socket_extension(extension):
+    def _parse_socket_extension(self, extension):
         attributes = []
-        for element in extension:
+        extension = {key: value for key, value in extension.items()}
+        if 'x_misp_text_address_family' in extension:
+            extension.pop('address_family')
+        for element, value in extension.items():
             if element in stix2misp_mapping.network_traffic_mapping:
                 attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[element])
-                value = extension[element]
                 if element in ('is_listening', 'is_blocking'):
                     if value is False:
                         continue
                     value = element.split('_')[1]
-                attribute.update({'value': value, 'to_ids': False})
-                attributes.append(attribute)
+            elif element.startswith('x_misp_'):
+                attribute = self.parse_custom_property(element)
+            else:
+                continue
+            attribute.update({'value': value, 'to_ids': False})
+            attributes.append(attribute)
         return attributes
 
     def parse_url_observable(self, observable):
@@ -750,7 +759,7 @@ class StixFromMISPParser(StixParser):
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
             if pattern_type not in object_mapping:
-                if pattern_type.startswith('x_misp_'):
+                if 'x_misp_' in pattern_type:
                     attribute = self.parse_custom_property(pattern_type)
                     attribute['value'] = pattern_value.strip("'")
                     attributes.append(attribute)
