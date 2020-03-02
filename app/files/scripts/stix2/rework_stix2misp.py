@@ -320,7 +320,7 @@ class StixFromMISPParser(StixParser):
 
     def fill_misp_object(self, misp_object, stix_object, mapping):
         for feature, value in stix_object.items():
-            if feature not in mapping:
+            if feature not in getattr(stix2misp_mapping, mapping):
                 if feature.startswith('x_misp_'):
                     attribute = self.parse_custom_property(feature)
                     if isinstance(value, list):
@@ -348,12 +348,12 @@ class StixFromMISPParser(StixParser):
                 'type': 'text', 'object_relation': 'id',
                 'value': attack_pattern.external_references[0]['external_id'].split('-')[1]
             })
-        self.fill_misp_object(misp_object, attack_pattern, stix2misp_mapping.attack_pattern_mapping)
+        self.fill_misp_object(misp_object, attack_pattern, 'attack_pattern_mapping')
         self.misp_event.add_object(**misp_object)
 
     def parse_course_of_action(self, course_of_action):
         misp_object, _ = self.create_misp_object(course_of_action)
-        self.fill_misp_object(misp_object, course_of_action, stix2misp_mapping.course_of_action_mapping)
+        self.fill_misp_object(misp_object, course_of_action, 'course_of_action_mapping')
         self.misp_event.add_object(**misp_object)
 
     def parse_custom_attribute(self, custom):
@@ -458,7 +458,7 @@ class StixFromMISPParser(StixParser):
         self.misp_event.add_object(**misp_object)
 
     def parse_vulnerability(self, vulnerability):
-        attributes = self.fill_observable_attributes(vulnerability, stix2misp_mapping.vulnerability_mapping)
+        attributes = self.fill_observable_attributes(vulnerability, 'vulnerability_mapping')
         if hasattr(vulnerability, 'external_references'):
             for reference in vulnerability.external_references:
                 if reference['source_name'] == 'url':
@@ -480,8 +480,8 @@ class StixFromMISPParser(StixParser):
     def fill_observable_attributes(self, observable, object_mapping):
         attributes = []
         for key, value in observable.items():
-            if key in object_mapping:
-                attribute = deepcopy(object_mapping[key])
+            if key in getattr(stix2misp_mapping, object_mapping):
+                attribute = deepcopy(getattr(stix2misp_mapping, object_mapping)[key])
             elif key.startswith('x_misp_'):
                 attribute = self.parse_custom_property(key)
                 if isinstance(value, list):
@@ -519,7 +519,7 @@ class StixFromMISPParser(StixParser):
         return attributes
 
     def parse_credential_observable(self, observable):
-        return self.fill_observable_attributes(observable['0'], stix2misp_mapping.credential_mapping)
+        return self.fill_observable_attributes(observable['0'], 'credential_mapping')
 
     @staticmethod
     def parse_domain_ip_observable(observable):
@@ -532,7 +532,7 @@ class StixFromMISPParser(StixParser):
 
     def parse_email_observable(self, observable):
         email, references = self.filter_main_object(observable, 'EmailMessage')
-        attributes = self.fill_observable_attributes(email, stix2misp_mapping.email_mapping)
+        attributes = self.fill_observable_attributes(email, 'email_mapping')
         if hasattr(email, 'from_ref'):
             reference = references[email.from_ref]
             attributes.append({'type': 'email-src', 'object_relation': 'from',
@@ -544,7 +544,7 @@ class StixFromMISPParser(StixParser):
                     attributes.append({'type': 'email-dst', 'object_relation': feature.split('_')[0],
                                        'value': reference.value, 'to_ids': False})
         if hasattr(email, 'additional_header_fields'):
-            attributes.extend(self.fill_observable_attributes(email.additional_header_fields, stix2misp_mapping.email_mapping))
+            attributes.extend(self.fill_observable_attributes(email.additional_header_fields, 'email_mapping'))
         if hasattr(email, 'body_multipart'):
             for body_multipart in email.body_multipart:
                 reference = references[body_multipart['body_raw_ref']]
@@ -559,9 +559,9 @@ class StixFromMISPParser(StixParser):
 
     def parse_file_observable(self, observable):
         file, references = self.filter_main_object(observable, 'File')
-        attributes = self.fill_observable_attributes(file, stix2misp_mapping.file_mapping)
+        attributes = self.fill_observable_attributes(file, 'file_mapping')
         if hasattr(file, 'hashes'):
-            attributes.extend(self.fill_observable_attributes(file.hashes, stix2misp_mapping.file_mapping))
+            attributes.extend(self.fill_observable_attributes(file.hashes, 'file_mapping'))
         if hasattr(file, 'content_ref'):
             reference = references[file.content_ref]
             value, type = (f'{file.name}|{file.hashes["MD5"]}', 'malware-sample') if 'MD5' in file.hashes else (file.name, 'attachment')
@@ -654,12 +654,12 @@ class StixFromMISPParser(StixParser):
     def parse_pe_observable(self, observable):
         pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
         extension = observable['0']['extensions']['windows-pebinary-ext']
-        self.fill_misp_object(pe_object, extension, stix2misp_mapping.pe_mapping)
+        self.fill_misp_object(pe_object, extension, 'pe_mapping')
         for section in extension['sections']:
             section_object = MISPObject('pe-section', misp_objects_path_custom=self._misp_objects_path)
-            self.fill_misp_object(section_object, section, stix2misp_mapping.pe_section_mapping)
+            self.fill_misp_object(section_object, section, 'pe_section_mapping')
             if hasattr(section, 'hashes'):
-                self.fill_misp_object(section_object, section.hashes, stix2misp_mapping.pe_section_mapping)
+                self.fill_misp_object(section_object, section.hashes, 'pe_section_mapping')
             pe_object.add_reference(section_object.uuid, 'includes')
             self.misp_event.add_object(**section_object)
         self.misp_event.add_object(**pe_object)
@@ -672,7 +672,7 @@ class StixFromMISPParser(StixParser):
                 process = value
             else:
                 references[key] = value
-        attributes = self.fill_observable_attributes(process, stix2misp_mapping.process_mapping)
+        attributes = self.fill_observable_attributes(process, 'process_mapping')
         if hasattr(process, 'parent_ref'):
             attributes.append(self._parse_process_reference(references[process.parent_ref], 'parent'))
         if hasattr(process, 'child_refs'):
@@ -699,7 +699,7 @@ class StixFromMISPParser(StixParser):
                 attribute.update({'value': value.replace('\\\\', '\\'), 'to_ids': False})
                 attributes.append(attribute)
         if 'values' in observable['0']:
-            attributes.extend(self.fill_observable_attributes(observable['0'].values[0], stix2misp_mapping.regkey_mapping))
+            attributes.extend(self.fill_observable_attributes(observable['0'].values[0], 'regkey_mapping'))
         return attributes
 
     def _parse_socket_extension(self, extension):
@@ -733,7 +733,7 @@ class StixFromMISPParser(StixParser):
 
     def parse_user_account_observable(self, observable):
         observable = observable['0']
-        attributes = self.fill_observable_attributes(observable, stix2misp_mapping.user_account_mapping)
+        attributes = self.fill_observable_attributes(observable, 'user_account_mapping')
         if 'extensions' in observable and 'unix-account-ext' in observable['extensions']:
             extension = observable['extensions']['unix-account-ext']
             if 'groups' in extension:
@@ -741,13 +741,13 @@ class StixFromMISPParser(StixParser):
                     attributes.append({'type': 'text', 'object_relation': 'group',
                                        'to_ids': False, 'disable_correlation': True,
                                        'value': group})
-            attributes.extend(self.fill_observable_attributes(extension, stix2misp_mapping.user_account_mapping))
+            attributes.extend(self.fill_observable_attributes(extension, 'user_account_mapping'))
         return attributes
 
     def parse_x509_observable(self, observable):
-        attributes = self.fill_observable_attributes(observable['0'], stix2misp_mapping.x509_mapping)
+        attributes = self.fill_observable_attributes(observable['0'], 'x509_mapping')
         if hasattr(observable['0'], 'hashes') and observable['0'].hashes:
-            attributes.extend(self.fill_observable_attributes(observable['0'].hashes, stix2misp_mapping.x509_mapping))
+            attributes.extend(self.fill_observable_attributes(observable['0'].hashes, 'x509_mapping'))
         return attributes
 
     ################################################################################
@@ -758,25 +758,25 @@ class StixFromMISPParser(StixParser):
         attributes = []
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
-            if pattern_type not in object_mapping:
+            if pattern_type not in getattr(stix2misp_mapping, object_mapping):
                 if 'x_misp_' in pattern_type:
                     attribute = self.parse_custom_property(pattern_type)
                     attribute['value'] = pattern_value.strip("'")
                     attributes.append(attribute)
                 continue
-            attribute = deepcopy(object_mapping[pattern_type])
+            attribute = deepcopy(getattr(stix2misp_mapping, object_mapping)[pattern_type])
             attribute['value'] = pattern_value.strip("'")
             attributes.append(attribute)
         return attributes
 
     def parse_asn_pattern(self, pattern):
-        return self.fill_pattern_attributes(pattern, stix2misp_mapping.asn_mapping)
+        return self.fill_pattern_attributes(pattern, 'asn_mapping')
 
     def parse_credential_pattern(self, pattern):
-        return self.fill_pattern_attributes(pattern, stix2misp_mapping.credential_mapping)
+        return self.fill_pattern_attributes(pattern, 'credential_mapping')
 
     def parse_domain_ip_pattern(self, pattern):
-        return self.fill_pattern_attributes(pattern, stix2misp_mapping.domain_ip_mapping)
+        return self.fill_pattern_attributes(pattern, 'domain_ip_mapping')
 
     def parse_email_pattern(self, pattern):
         attributes = []
@@ -933,13 +933,13 @@ class StixFromMISPParser(StixParser):
         return attributes, pe.uuid
 
     def parse_process_pattern(self, pattern):
-        return self.fill_pattern_attributes(pattern, stix2misp_mapping.process_mapping)
+        return self.fill_pattern_attributes(pattern, 'process_mapping')
 
     def parse_regkey_pattern(self, pattern):
-        return self.fill_pattern_attributes(pattern, stix2misp_mapping.regkey_mapping)
+        return self.fill_pattern_attributes(pattern, 'regkey_mapping')
 
     def parse_url_pattern(self, pattern):
-        return self.fill_pattern_attributes(pattern, stix2misp_mapping.url_mapping)
+        return self.fill_pattern_attributes(pattern, 'url_mapping')
 
     @staticmethod
     def parse_user_account_pattern(pattern):
@@ -957,7 +957,7 @@ class StixFromMISPParser(StixParser):
         return attributes
 
     def parse_x509_pattern(self, pattern):
-        return self.fill_pattern_attributes(pattern, stix2misp_mapping.x509_mapping)
+        return self.fill_pattern_attributes(pattern, 'x509_mapping')
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
