@@ -3,7 +3,7 @@
         $menu = array(
             array(
                 'type' => 'root',
-                'url' =>empty($homepage['path']) ? '$baseurl' : $baseurl . h($homepage['path']),
+                'url' =>empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
                 'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : __('Home'))
             ),
             array(
@@ -407,7 +407,7 @@
             ),
             array(
                 'type' => 'root',
-                'url' =>empty($homepage['path']) ? '$baseurl' : $baseurl . h($homepage['path']),
+                'url' =>empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
                 'html' => '<span class="logoBlueStatic bold" id="smallLogo">MISP</span>'
             ),
             array(
