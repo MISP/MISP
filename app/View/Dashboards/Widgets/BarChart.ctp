@@ -12,18 +12,19 @@
         }
         echo sprintf(
             '<tr><td style="%s">%s</td><td style="%s">%s</td></tr>',
-            'text-align:right;width:33%;',
+            'text-align:right;width:33%;white-space:nowrap;',
             h($entry),
             'width:100%',
             sprintf(
-                '<div title="%s" style="%s">%s</div>',
+                '<div title="%s" style="%s">%s%s</div>',
                 h($entry) . ': ' . h($count),
                 sprintf(
                     'background-color:%s; width:%s; color:white; text-align:center;',
                     (empty($data['colours'][$entry]) ? '#0088cc' : h($data['colours'][$entry])),
-                    100 * h($value) / $max . '%;'
+                    ($max == 0 ? 0 : 100 * h($value) / $max) . '%;'
                 ),
-                h($count)
+                h($count),
+                !empty($data['output_decorator']) ? '%' : ''
             ),
             '&nbsp;'
         );
