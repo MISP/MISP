@@ -4990,6 +4990,7 @@ function setHomePage() {
         },
         success:function (data, textStatus) {
             showMessage('success', 'Homepage set.');
+            $('#setHomePage').addClass('orange');
         },
     });
 }
