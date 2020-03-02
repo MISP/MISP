@@ -1276,7 +1276,7 @@ class StixBuilder():
         for feature in ('src', 'dst'):
             index = 0
             references = {ftype: attributes[ftype] for ftype in (f_type.format(feature) for f_type in features) if ftype in attributes}
-            ref  = 'ref' if len(references) == 1 else 'refs[{}]'
+            ref  = 'ref' if len(references) == 1 else 'ref[{}]'
             if f'ip-{feature}' in attributes:
                 value = references[f'ip-{feature}']
                 pattern.append(mapping.format(networkTrafficMapping[f'ip-{feature}'].format(ref.format(index), define_address_type(value)), value))
