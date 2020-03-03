@@ -580,15 +580,15 @@ class StixFromMISPParser(StixParser):
         for feature in ('src', 'dst'):
             port = f'{feature}_port'
             if hasattr(network_traffic, port):
-                attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[port])
+                attribute = deepcopy(stix2misp_mapping.ip_port_mapping[port])
                 attribute.update({'value': getattr(network_traffic, port), 'to_ids': False})
                 attributes.append(attribute)
             ref = f'{feature}_ref'
             if hasattr(network_traffic, ref):
-                attributes.append(self._parse_network_traffic_reference(references[getattr(network_traffic, ref)], feature, 'ip_port_mapping'))
+                attributes.append(self._parse_network_traffic_reference(references[getattr(network_traffic, ref)], feature, 'ip_port_references_mapping'))
         for reference in references.values():
             if not reference['used']:
-                attribute = deepcopy(stix2misp_mapping.ip_port_mapping[reference['object']._type])
+                attribute = deepcopy(stix2misp_mapping.ip_port_references_mapping[reference['object']._type])
                 attribute.update({'value': reference['object'].value, 'to_ids': False})
                 attributes.append(attribute)
         return attributes
@@ -624,9 +624,9 @@ class StixFromMISPParser(StixParser):
                 attributes.append(attribute)
             ref = f'{feature}_ref'
             if hasattr(network_traffic, ref):
-                attributes.append(self._parse_network_traffic_reference(references[getattr(network_traffic, ref)], feature, 'network_connection_mapping'))
+                attributes.append(self._parse_network_traffic_reference(references[getattr(network_traffic, ref)], feature, 'network_traffic_references_mapping'))
             if hasattr(network_traffic, f'{ref}s'):
-                attributes.extend(self._parse_network_traffic_reference(references[ref], feature, 'network_connection_mapping') for ref in getattr(network_traffic, f'{ref}s'))
+                attributes.extend(self._parse_network_traffic_reference(references[ref], feature, 'network_traffic_references_mapping') for ref in getattr(network_traffic, f'{ref}s'))
         return attributes
 
     @staticmethod
@@ -708,8 +708,8 @@ class StixFromMISPParser(StixParser):
         if 'x_misp_text_address_family' in extension:
             extension.pop('address_family')
         for element, value in extension.items():
-            if element in stix2misp_mapping.network_traffic_mapping:
-                attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[element])
+            if element in stix2misp_mapping.network_socket_extension_mapping:
+                attribute = deepcopy(stix2misp_mapping.network_socket_extension_mapping[element])
                 if element in ('is_listening', 'is_blocking'):
                     if value is False:
                         continue
@@ -839,7 +839,7 @@ class StixFromMISPParser(StixParser):
         return attributes
 
     def parse_ip_port_pattern(self, pattern):
-        return self.fill_pattern_attributes(pattern, 'network_traffic_mapping')
+        return self.fill_pattern_attributes(pattern, 'ip_port_mapping')
 
     def parse_network_connection_pattern(self, pattern):
         attributes = []
@@ -853,11 +853,10 @@ class StixFromMISPParser(StixParser):
                         'type': 'text', 'value': pattern_value,
                         'object_relation': f'layer{stix2misp_mapping.connection_protocols[pattern_value]}-protocol'
                     })
-                    continue
-                if any(pattern_type.startswith(f'network-traffic:{feature}_ref') for feature in ('src', 'dst')):
+                elif any(pattern_type.startswith(f'network-traffic:{feature}_ref') for feature in ('src', 'dst')):
                     feature_type, ref = pattern_type.split(':')[1].split('_')
                     ref, feature = ref.split('.')
-                    ref = f"{feature_type}_{'0' if ref == 'ref' else ref.strip('refs[]')}"
+                    ref = f"{feature_type}_{'0' if ref == 'ref' else ref.strip('ref[]')}"
                     references[ref].update(self._parse_network_connection_reference(feature_type, feature, pattern_value))
                 continue
             attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
@@ -869,23 +868,36 @@ class StixFromMISPParser(StixParser):
     @staticmethod
     def _parse_network_connection_reference(feature_type, feature, value):
         if feature == 'type':
-            return {type: value.format(feature_type) for type, value in stix2misp_mapping.network_connection_mapping[value].items()}
+            return {type: value.format(feature_type) for type, value in stix2misp_mapping.network_traffic_references_mapping[value].items()}
         return {feature: value}
 
-    @staticmethod
-    def parse_network_socket_pattern(pattern):
+    def parse_network_socket_pattern(self, pattern):
         attributes = []
+        references = defaultdict(dict)
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
+            pattern_value = pattern_value.strip("'")
             if pattern_type not in stix2misp_mapping.network_traffic_mapping:
-                if 'protocol' in pattern_type:
-                    attributes.append({'type': 'text', 'object_relation': 'protocol', 'value': pattern_value.strip("'")})
-                continue
-            attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
-            if "network-traffic:extensions.'socket-ext'.is_" in pattern_type:
-                pattern_value = pattern_type.split('_')[1]
-            attribute['value'] = pattern_value.strip("'")
+                if pattern_type in stix2misp_mapping.network_socket_extension_mapping:
+                    attribute = deepcopy(stix2misp_mapping.network_socket_extension_mapping[pattern_type])
+                    if pattern_type.startswith("network-traffic:extensions.'socket-ext'.is_"):
+                        if pattern_value != 'True':
+                            continue
+                        pattern_value = pattern_type.split('_')[1]
+                else:
+                    if pattern_type.startswith('network-traffic:protocols['):
+                        attributes.append({'type': 'text', 'object_relation': 'protocol', 'value': pattern_value})
+                    elif any(pattern_type.startswith(f'network-traffic:{feature}_ref') for feature in ('src', 'dst')):
+                        feature_type, ref = pattern_type.split(':')[1].split('_')
+                        ref, feature = ref.split('.')
+                        ref = f"{feature_type}_{'0' if ref == 'ref' else ref.strip('ref[]')}"
+                        references[ref].update(self._parse_network_connection_reference(feature_type, feature, pattern_value))
+                    continue
+            else:
+                attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
+            attribute['value'] = pattern_value
             attributes.append(attribute)
+        attributes.extend(attribute for attribute in references.values())
         return attributes
 
     def parse_pe_pattern(self, pattern):

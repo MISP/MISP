@@ -143,6 +143,7 @@ malware_sample_attribute_mapping = {'type': 'malware-sample', 'object_relation':
 mime_type_attribute_mapping = {'type': 'mime-type', 'object_relation': 'mimetype'}
 modified_attribute_mapping = {'type': 'datetime', 'object_relation': 'last-modified'}
 name_attribute_mapping = {'type': 'text', 'object_relation': 'name'}
+network_traffic_ip = {'type': 'ip-{}', 'object_relation': 'ip-{}'}
 number_sections_mapping = {'type': 'counter', 'object_relation': 'number-sections'}
 password_mapping = {'type': 'text', 'object_relation': 'password'}
 pe_type_mapping = {'type': 'text', 'object_relation': 'type'}
@@ -223,36 +224,33 @@ file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'size': size_attribute_mapping,
                 'file:size': size_attribute_mapping}
 
-network_traffic_mapping = {'src_port': src_port_attribute_mapping,
-                           'network-traffic:src_port': src_port_attribute_mapping,
-                           'dst_port': dst_port_attribute_mapping,
+network_traffic_mapping = {'dst_port':dst_port_attribute_mapping,
+                           'src_port': src_port_attribute_mapping,
                            'network-traffic:dst_port': dst_port_attribute_mapping,
-                           'start': start_datetime_attribute_mapping,
-                           'network-traffic:start': start_datetime_attribute_mapping,
-                           'end': end_datetime_attribute_mapping,
-                           'network-traffic:end': end_datetime_attribute_mapping,
-                           'value': domain_attribute_mapping,
-                           'domain-name:value': domain_attribute_mapping,
-                           'network-traffic:dst_ref.value': {'type': 'ip-dst', 'object_relation': 'ip-dst'},
-                           'network-traffic:src_ref.value': {'type': 'ip-src', 'object_relation': 'ip-src'},
-                           'address_family': address_family_attribute_mapping,
-                           "network-traffic:extensions.'socket-ext'.address_family": address_family_attribute_mapping,
-                           'protocol_family': domain_family_attribute_mapping,
-                           "network-traffic:extensions.'socket-ext'.protocol_family": domain_family_attribute_mapping,
-                           'is_blocking': state_attribute_mapping,
-                           "network-traffic:extensions.'socket-ext'.is_blocking": state_attribute_mapping,
-                           'is_listening': state_attribute_mapping,
-                           "network-traffic:extensions.'socket-ext'.is_listening": state_attribute_mapping}
+                           'network-traffic:src_port': src_port_attribute_mapping}
 
-network_traffic_extensions = {'socket-ext': 'network-socket'}
+ip_port_mapping = {'value': domain_attribute_mapping,
+                   'domain-name:value': domain_attribute_mapping,
+                   'network-traffic:dst_ref.value': {'type': 'ip-dst', 'object_relation': 'ip-dst'},
+                   'network-traffic:src_ref.value': {'type': 'ip-src', 'object_relation': 'ip-src'}}
+ip_port_mapping.update(network_traffic_mapping)
 
-network_traffic_ip = {'type': 'ip-{}', 'object_relation': 'ip-{}'}
-ip_port_mapping = {'domain-name': domain_attribute_mapping,
-                   'ipv4-addr': network_traffic_ip,
-                   'ipv6-addr': network_traffic_ip}
-network_connection_mapping = {'domain-name': {'type': 'hostname', 'object_relation': 'hostname-{}'},
+ip_port_references_mapping = {'domain-name': domain_attribute_mapping,
                               'ipv4-addr': network_traffic_ip,
                               'ipv6-addr': network_traffic_ip}
+
+network_socket_extension_mapping = {'address_family': address_family_attribute_mapping,
+                                    "network-traffic:extensions.'socket-ext'.address_family": address_family_attribute_mapping,
+                                    'protocol_family': domain_family_attribute_mapping,
+                                    "network-traffic:extensions.'socket-ext'.protocol_family": domain_family_attribute_mapping,
+                                    'is_blocking': state_attribute_mapping,
+                                    "network-traffic:extensions.'socket-ext'.is_blocking": state_attribute_mapping,
+                                    'is_listening': state_attribute_mapping,
+                                    "network-traffic:extensions.'socket-ext'.is_listening": state_attribute_mapping}
+
+network_traffic_references_mapping = {'domain-name': {'type': 'hostname', 'object_relation': 'hostname-{}'},
+                                      'ipv4-addr': network_traffic_ip,
+                                      'ipv6-addr': network_traffic_ip}
 
 pe_mapping = {'pe_type': pe_type_mapping, 'number_of_sections': number_sections_mapping, 'imphash': imphash_mapping}
 
