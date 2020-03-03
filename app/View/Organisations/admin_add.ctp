@@ -15,7 +15,6 @@
             echo $this->Form->input('name', array('div' => 'clear', 'style' => 'width:320px;','label' => __('Organisation Identifier'), 'placeholder' => __('Brief organisation identifier')));
         ?>
         </div>
-        <div id="logoDiv" style="margin-top:40px;"><?php echo __('No image uploaded for this identifier');?></div>
         <div class="clear"></div>
         <div style="float:left;width:425px;">
         <?php
@@ -52,8 +51,3 @@
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'addOrg'));
 ?>
-<script type="text/javascript">
-    $("#OrganisationName").on('input propertychange paste focusout', function() {
-        updateOrgCreateImageField($("#OrganisationName").val());
-    });
-</script>

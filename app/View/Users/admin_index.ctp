@@ -1,5 +1,25 @@
 <div class="users index">
     <h2><?php echo __('Users');?></h2>
+    <?php
+        if ($isSiteAdmin) {
+            echo sprintf(
+                '<span>%s</span>',
+                __(
+                    'Click %s to reset the API keys of all sync and org admin users in one shot. This will also automatically inform them of their new API keys.',
+                    $this->Form->postLink(
+                        __('here'),
+                        $baseurl . '/users/resetAllSyncAuthKeys',
+                        array(
+                            'title' => __('Reset all sync user API keys'),
+                            'aria-label' => __('Reset all sync user API keys'),
+                            'class' => 'bold'
+                        ),
+                        __('Are you sure you wish to reset the API keys of all users with sync privileges?')
+                    )
+                )
+            );
+        }
+    ?>
     <div class="pagination">
         <ul>
         <?php

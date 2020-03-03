@@ -4,7 +4,7 @@
     echo $this->Html->css('cal-heatmap');
 ?>
 <div class = "index">
-<h2>Statistics</h2>
+<h2><?php echo __('Statistics');?></h2>
 <?php echo $this->element('Users/statisticsMenu'); ?>
 <div id = "histogram"></div>
 </div>

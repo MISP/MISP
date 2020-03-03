@@ -29,7 +29,7 @@
         <tr>
                 <th><?php echo $this->Paginator->sort('id'); ?></th>
                 <th><?php echo $this->Paginator->sort('name'); ?></th>
-                <th><?php echo $this->Paginator->sort('expanded_name'); ?></th>
+                <th><?php echo $this->Paginator->sort('expanded_name', __('Expanded name')); ?></th>
                 <th><?php echo __('ref');?></th>
                 <th><?php echo __('geographical_area');?></th>
                 <th><?php echo __('version');?></th>
@@ -60,10 +60,10 @@
                 } else {
                     $onClick = 'disabled';
                 }
-                $input = '<input id="checkBox_' . h($item['Noticelist']['id']) . '" type="checkbox" ' . $onClick . ' ' . ($item['Noticelist']['enabled'] ? 'checked' : '') . ' />';
+                $input = '<input id="checkBox_' . h($item['Noticelist']['id']) . '" type="checkbox" aria-label="' . __('Enabled') . '" ' . $onClick . ' ' . ($item['Noticelist']['enabled'] ? 'checked' : '') . ' />';
                 echo '<td class="short" id="checkbox_row_' . h($item['Noticelist']['id']) . '">' . $input . '</td>';
                 $actions = '';
-                $actions .= '<a href="' . $baseurl . "/noticelists/view/" . h($item['Noticelist']['id']) . '" class="fa fa-eye" title="' . __('View') . '"></a>';
+                $actions .= '<a href="' . $baseurl . "/noticelists/view/" . h($item['Noticelist']['id']) . '" class="fa fa-eye" title="' . __('View') . '" aria-label="' . __('View') . '"></a>';
                 echo '<td class="short action-links">' . $actions . '</td>';
                 echo '</tr>';
 

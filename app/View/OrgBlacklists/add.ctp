@@ -6,6 +6,7 @@
     <?php
         echo $this->Form->input('uuids', array(
                 'type' => 'textarea',
+                'label' => __('UUIDs'),
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
                 'placeholder' => __('Enter a single or a list of UUIDs')

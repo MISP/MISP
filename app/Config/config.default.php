@@ -17,14 +17,15 @@ $config = array(
 			'org'                            => 'ORGNAME',
 			'showorg'                        => true,
 			'threatlevel_in_email_subject'   => true,
-			'email_subject_TLP_string'       => 'TLP Amber',
+            'email_subject_TLP_string'       => 'tlp:amber',
 			'email_subject_tag'              => 'tlp',
 			'email_subject_include_tag_name' => true,
 			'background_jobs'                => true,
 			'cached_attachments'             => true,
 			'email'                          => 'email@address.com',
 			'contact'                        => 'email@address.com',
-			'cveurl'                         => 'http://cve.circl.lu/cve/',
+			'cveurl'                         => 'https://cve.circl.lu/cve/',
+			'cweurl'                         => 'https://cve.circl.lu/cwe/',
 			'disablerestalert'               => false,
 			'default_event_distribution'     => '1',
 			'default_attribute_distribution' => 'event',
@@ -109,7 +110,6 @@ $config = array(
 	'ApacheShibbAuth'  =>                      // Configuration for shibboleth authentication
 		array(
 			'apacheEnv'         => 'REMOTE_USER',        // If proxy variable = HTTP_REMOTE_USER
-			'ssoAuth'           => 'AUTH_TYPE',
 			'MailTag'           => 'EMAIL_TAG',
 			'OrgTag'            => 'FEDERATION_TAG',
 			'GroupTag'          => 'GROUP_TAG',
@@ -119,9 +119,17 @@ $config = array(
 				'group_two'   => 2,
 				'group_one'   => 1,
 			),
-			'DefaultRoleId'     => 3,
 			'DefaultOrg'        => 'DEFAULT_ORG',
 		),
+	*/
+	/*
+	'LinOTPAuth' => // Configuration for the LinOTP authentication
+	    array(
+	        'baseUrl' => 'https://linotp', // The base URL of LinOTP
+	        'realm' => 'lino', // the (default) realm of all the users logging in through this system
+	        'userModel' => 'User', // name of the User class (MISP class) to check if the user exists
+            'userModelKey' => 'email', // User field that will be used for querying.
+        ),
 	*/
 	// Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.
 	// Feel free to enable it and report back to us if you run into any issues.
@@ -131,14 +139,14 @@ $config = array(
 	/*
 	'ApacheSecureAuth' => // Configuration for kerberos authentication
 		array(
-			'apacheEnv'          => 'REMOTE_USER',           // If proxy variable = HTTP_REMOTE_USER
+			'apacheEnv'          => 'REMOTE_USER',           // If proxy variable = HTTP_REMOTE_USER, If BasicAuth ldap = PHP_AUTH_USER
 			'ldapServer'         => 'ldap://example.com',   // FQDN or IP
 			'ldapProtocol'       => 3,
 			'ldapNetworkTimeout' => -1,  // use -1 for unlimited network timeout
 			'ldapReaderUser'     => 'cn=userWithReadAccess,ou=users,dc=example,dc=com', // DN ou RDN LDAP with reader user right
 			'ldapReaderPassword' => 'UserPassword', // the LDAP reader user password
 			'ldapDN'             => 'dc=example,dc=com',
-			'ldapSearchFilter'   => '', // Search filter to limit results from ldapsearh fx to specfic group. FX
+			'ldapSearchFilter'   => '', // Search filter to limit results from ldapsearh fx to specific group. FX
 	 		//'ldapSearchFilter'   => '(objectclass=InetOrgPerson)(!(nsaccountlock=True))(memberOf=cn=misp,cn=groups,cn=accounts,dc=example,dc=com)',
 			'ldapSearchAttribut' => 'uid',          // filter for search
 			'ldapFilter'         => array(
@@ -160,6 +168,7 @@ $config = array(
 			'ldapDefaultOrg'     => '1',      // uses 1st local org in MISP if undefined,
 			'ldapAllowReferrals' => true,   // allow or disallow chasing LDAP referrals
 			//'ldapEmailField' => array('emailAddress, 'mail'), // Optional : fields from which the email address should be retrieved. Default to 'mail' only. If more than one field is set (e.g. 'emailAddress' and 'mail' in this example), only the first one will be used.
+			//'updateUser' => true, // Optional : Will update user on LDAP login to update user fields (e.g. role)
 		),
 	*/
 );

@@ -9,7 +9,7 @@
         );
         if ($setting['type'] == 'boolean') $setting['value'] = ($setting['value'] === true ? 'true' : 'false');
         if (isset($setting['options'])) {
-            $setting['value'] = $setting['options'][$setting['value']];
+            $setting['value'] = empty($setting['options'][$setting['value']]) ? null : $setting['options'][$setting['value']];
         }
         if (!empty($setting['redacted'])) {
             $setting['value'] = '*****';
@@ -22,11 +22,13 @@
             'setting' => array(
                 'html' => h($setting['setting']),
                 'class' => 'short live_filter_target',
+                'ondblclick' => 'serverSettingsActivateField',
+                'ondblclickParams' => array(h($setting['setting']), h($k))
             ),
             'value_passive' => array(
                 'html' => nl2br(h($setting['value'])),
                 'class' => 'inline-field-solid live_filter_target',
-                'requirement' => ((isset($setting['editable']) && !$setting['editable'])),
+                'requirement' => ((isset($setting['editable']) && !$setting['editable']) || !empty($setting['cli_only'])),
                 'style' => 'width:500px;',
                 'id' => sprintf(
                     'setting_%s_%s_passive',
@@ -37,7 +39,7 @@
             'value_solid' => array(
                 'html' => nl2br(h($setting['value'])),
                 'class' => 'inline-field-solid live_filter_target',
-                'requirement' => ((!isset($setting['editable']) || $setting['editable'])),
+                'requirement' => ((!isset($setting['editable']) || $setting['editable']) && empty($setting['cli_only'])),
                 'style' => 'width:500px;',
                 'id' => sprintf(
                     'setting_%s_%s_solid',
@@ -49,7 +51,7 @@
             ),
             'value_placeholder' => array(
                 'class' => 'inline-field-placeholder hidden',
-                'requirement' => ((!isset($setting['editable']) || $setting['editable'])),
+                'requirement' => ((!isset($setting['editable']) || $setting['editable']) && empty($setting['cli_only'])),
                 'style' => 'width:500px;',
                 'id' => sprintf(
                     'setting_%s_%s_placeholder',
@@ -58,11 +60,15 @@
                 )
             ),
             'description' => array(
-                'html' => h($setting['description']),
+                'html' => sprintf(
+                    '%s%s',
+                    !empty($setting['cli_only']) ? sprintf('<span class="bold">[<span class="red">%s</span>]</span> ', __('CLI only')) : '',
+                    h($setting['description'])
+                ),
                 'class' => 'live_filter_target'
             ),
             'error' => array(
-                'html' => isset($setting['error']) ? h($setting['errorMessage']) : ''
+                'html' => isset($setting['errorMessage']) ? h($setting['errorMessage']) : ''
             )
         );
         $columns = '';

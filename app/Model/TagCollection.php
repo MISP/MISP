@@ -162,7 +162,6 @@ class TagCollection extends AppModel
                 if (!empty($collection['Galaxy'])) {
                     foreach ($collection['Galaxy'] as $galaxy) {
                         foreach ($galaxy['GalaxyCluster'] as $cluster) {
-                            debug($galaxy);
                             $tag_id = $this->TagCollectionTag->Tag->lookupTagIdFromName($cluster['tag_name']);
                             if ($tag_id === -1) {
                                 $tag = array(

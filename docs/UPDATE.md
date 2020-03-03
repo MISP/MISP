@@ -12,8 +12,9 @@ It is **very strongly recommended** to upgrade MISP via the web interface. This 
 To update to the latest commit from the 2.4 branch simply pull the latest commit
 ```bash
 cd /var/www/MISP
-git pull origin 2.4
-git submodule update --init --recursive
+# Replace www-data with whoever is your webserver user (apache/httpd)
+sudo -u www-data git pull origin 2.4
+sudo -u www-data git submodule update --init --recursive
 ```
 
 ## Option 2

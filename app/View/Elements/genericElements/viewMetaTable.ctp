@@ -39,15 +39,16 @@
                 empty($row['value_class']) ? '' : h($row['value_class'])
             ),
             sprintf(
-                '%s%s%s%s',
+                '%s%s%s%s%s',
                 !isset($row['boolean']) ? '' : sprintf(
                     '<span class="%s">%s</span>',
                     (empty($row['class']) && empty($row['value_class'])) ?
                         (empty($row['boolean']) ? 'bold red' : 'bold green') : '',
                     empty($row['boolean']) ? 'No' : 'Yes'
                 ),
-                empty($row['value']) ? '' : h($row['value']),
+                empty($row['value']) ? '' : nl2br(h(trim($row['value']))),
                 empty($row['html']) ? '' : $row['html'],
+                empty($row['url']) ? '' : sprintf('<a href="%s">%s</a>', h($row['url']), h($row['url'])),
                 empty($element) ? '' : $element
             )
         );

@@ -55,8 +55,8 @@
             );
             $row .= sprintf(
                 '<td class="short action-links">%s%s</td></tr>',
-                $this->Form->postLink('', array('action' => 'delete', $item['Galaxy']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), sprintf(__('Are you sure you want to delete the Galaxy (%s)?'), $item['Galaxy']['name'])),
-                $this->Html->link('', array('action' => 'view', $item['Galaxy']['id']), array('class' => 'fa fa-eye', 'title' => __('View')))
+                $this->Form->postLink('', array('action' => 'delete', $item['Galaxy']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), sprintf(__('Are you sure you want to delete the Galaxy (%s)?'), $item['Galaxy']['name'])),
+                $this->Html->link('', array('action' => 'view', $item['Galaxy']['id']), array('class' => 'fa fa-eye', 'title' => __('View'), 'aria-label' => __('View')))
             );
             echo $row;
         }

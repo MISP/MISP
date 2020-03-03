@@ -43,11 +43,17 @@ tools/mkdocs
 !/app/files/misp-galaxy/*
 !/app/files/misp-objects
 !/app/files/misp-objects/*
+!/app/files/misp-decaying-models
+!/app/files/misp-decaying-models/*
 /app/files/scripts/python-stix/
 /app/files/scripts/python-cybox/
 /app/files/scripts/mixbox/
 /app/files/scripts/*.pyc
 /app/files/scripts/*.py~
+/app/files/scripts/__pycache__
+/app/files/scripts/yara/__pycache__
+/app/files/scripts/yara/*.pyc
+/app/files/scripts/yara/*.py~
 /app/files/scripts/mispzmq/*
 !/app/files/scripts/mispzmq/mispzmq.py
 !/app/files/scripts/mispzmq/mispzmqtest.py
@@ -97,3 +103,5 @@ tools/mkdocs
 .ropeproject/
 vagrant/.vagrant/
 vagrant/*.log
+/app/Lib/Dashboard/Custom/*
+!/app/Lib/Dashboard/Custom/empty

@@ -1,0 +1,20 @@
+#!/bin/sh -e
+
+. /usr/share/debconf/confmodule
+
+db_input critical misp/configure_mariadb || true
+db_go
+
+db_get misp/configure_mariadb
+if [ "$RET" = "Yes" ]; then
+    db_input critical misp/mariadb_host || true
+    db_go
+    db_input critical misp/mariadb_rootpwd || true
+    db_go
+    db_input critical misp/mariadb_mispdb || true
+    db_go
+    db_input critical misp/mariadb_mispdbuser || true
+    db_go
+    db_input critical misp/mariadb_setmisppwd || true
+    db_go
+fi

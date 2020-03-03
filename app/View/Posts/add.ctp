@@ -63,7 +63,7 @@
         }
     </script>
 <?php
-echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>

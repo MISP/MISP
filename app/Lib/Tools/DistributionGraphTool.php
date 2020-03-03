@@ -83,6 +83,7 @@
             // community
             $orgs = $this->__organisationModel->find('list', array(
                 'fields' => array('name'),
+                'conditions' => array('local' => true)
             ));
             $thisOrg = $this->__user['Organisation']['name'];
             $this->__addAdditionalDistributionInfo(1, $thisOrg); // add current community

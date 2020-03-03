@@ -3,19 +3,72 @@
 class ComplexTypeTool
 {
     private $__refangRegexTable = array(
-        '/^hxxp/i' => 'http',
-        '/^meow/i' => 'http',
-        '/^h\[tt\]p/i' => 'http',
-        '/\[\.\]/' => '.',
-        '/\[dot\]/' => '.',
-        '/\(dot\)/' => '.',
-        '/\\\\\./' => '.',
-        '/\.+/' => '.',
-        '/\[hxxp:\/\/\]/' => 'http://',
-        '/\\\/' => '',
-        '/[\@]/' => '@',
-        '/\[:\]/' => ':'
+        array(
+            'from' => '/^hxxp/i',
+            'to' => 'http',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/^meow/i',
+            'to' => 'http',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/^h\[tt\]p/i',
+            'to' => 'http',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/\[\.\]/',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\[dot\]/',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\(dot\)/',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\\\\\./',
+            'to' => '.',
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\.+/',
+            'to' => '.',
+            'types' => array('ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+        ),
+        array(
+            'from' => '/\[hxxp:\/\/\]/',
+            'to' => 'http://',
+            'types' => array('link', 'url')
+        ),
+        array(
+            'from' => '/[\@]/',
+            'to' => '@',
+            'types' => array('email-src', 'email-dst')
+        ),
+        array(
+            'from' => '/\[:\]/',
+            'to' => ':',
+            'types' => array('url', 'link')
+        )
     );
+
+    public function refangValue($value, $type)
+    {
+        foreach ($this->__refangRegexTable as $regex) {
+            if (!isset($regex['types']) || in_array($type, $regex['types'])) {
+                $value = preg_replace($regex['from'], $regex['to'], $value);
+            }
+        }
+        return $value;
+    }
 
     private $__tlds = array();
 
@@ -116,12 +169,6 @@ class ComplexTypeTool
         return array_values($array);
     }
 
-    private function __parse_row($row, $delimiter)
-    {
-        $columns = str_getcsv($row, $delimiter);
-        return $columns;
-    }
-
     /*
      * parse a CSV file with the given settings
      * All lines starting with # are stripped
@@ -176,7 +223,7 @@ class ComplexTypeTool
 
     public function checkFreeText($input, $settings = array())
     {
-        $charactersToTrim = array('\'', '"', ',', '(', ')');
+        $charactersToTrim = array('\'', '"', ',', '(', ')', ' ');
         $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
         $quotedText = explode('"', $input);
         foreach ($quotedText as $k => $temp) {
@@ -192,6 +239,7 @@ class ComplexTypeTool
         if (!empty($iocArray)) {
             foreach ($iocArray as $ioc) {
                 $ioc = trim($ioc);
+                $ioc = str_replace("\xc2\xa0", '', $ioc);
                 foreach ($charactersToTrim as $c) {
                     $ioc = trim($ioc, $c);
                 }
@@ -329,8 +377,8 @@ class ComplexTypeTool
     private function __refangInput($input)
     {
         $input['refanged'] = $input['raw'];
-        foreach ($this->__refangRegexTable as $regex => $replacement) {
-            $input['refanged'] = preg_replace($regex, $replacement, $input['refanged']);
+        foreach ($this->__refangRegexTable as $regex) {
+            $input['refanged'] = preg_replace($regex['from'], $regex['to'], $input['refanged']);
         }
         $input['refanged'] = rtrim($input['refanged'], ".");
 		$input['refanged'] = preg_replace_callback(

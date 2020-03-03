@@ -19,7 +19,7 @@
                 $domains[$k] = h($domain);
             }
             $domains = implode("<br />", $domains);
-            $table_data[] = array('key' => __('Domain restrictions'), 'value' => $domains);
+            $table_data[] = array('key' => __('Domain restrictions'), 'html' => $domains);
         }
         $table_data[] = array('key' => __('UUID'), 'value' => !empty(trim($org['Organisation']['uuid'])) ? $org['Organisation']['uuid'] : '');
         if ($isSiteAdmin) {
@@ -29,7 +29,7 @@
         }
         foreach (array('sector' => __('Sector'), 'nationality' => __('Nationality'), 'type' => __('Organisation type'), 'contacts' => __('Contact information')) as $k => $field) {
             if (!empty(trim($org['Organisation'][$k]))) {
-                $table_data[] = array('key' => $field, 'value' => trim(h($org['Organisation'][$k])));
+                $table_data[] = array('key' => $field, 'html' => nl2br(trim(h($org['Organisation'][$k]))));
             }
         }
         echo sprintf(
@@ -67,6 +67,12 @@
         <button id="button_events_active" style="display:none;" class="btn btn-primary toggle-right qet orgViewButtonActive" onClick="organisationViewContent('events', '<?php echo $id;?>');"><?php echo __('Events');?></button>
     <br /><br />
     <?php endif;?>
+    <?php
+        echo $this->Html->script('vis');
+        echo $this->Html->css('vis');
+        echo $this->Html->css('distribution-graph');
+        echo $this->Html->script('network-distribution-graph');
+    ?>
     <div id="ajaxContent" style="width:100%;"></div>
 </div>
 <?php

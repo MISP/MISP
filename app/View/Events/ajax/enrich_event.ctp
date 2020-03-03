@@ -14,7 +14,7 @@
             <tr>
                 <td style="vertical-align:top">
                     <?php
-                        echo $this->Form->submit('Enrich', array('class' => 'btn btn-primary'));
+                        echo $this->Form->submit(__('Enrich'), array('class' => 'btn btn-primary'));
                     ?>
                 </td>
                 <td style="width:540px;"></td>

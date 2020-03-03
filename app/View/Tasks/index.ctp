@@ -33,7 +33,7 @@
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>
-            <th><?php echo $this->Paginator->sort('timer', 'Frequency (h)');?></th>
+            <th><?php echo $this->Paginator->sort('timer', __('Frequency (h)'));?></th>
             <th><?php echo $this->Paginator->sort('scheduled_time');?></th>
             <th><?php echo $this->Paginator->sort('next_execution_time', __('Next Run'));?></th>
             <th><?php echo $this->Paginator->sort('description');?></th>
@@ -67,7 +67,7 @@ foreach ($list as $item):?>
                     ));
                 ?>
             </div>
-            <div id="<?php echo $item['Task']['id'];?>-scheduled_time-passive" role="button" tabindex="0" aria-label="<?php echo h($item['Task']['scheduled_time']); ?>" title="set scheduled time for task" onClick="activate2(<?php echo $item['Task']['id'];?>, 'scheduled_time', '<?php echo h($item['Task']['scheduled_time']);?>')">
+            <div id="<?php echo $item['Task']['id'];?>-scheduled_time-passive" role="button" tabindex="0" aria-label="<?php echo h($item['Task']['scheduled_time']); ?>" title="<?php echo __('Set scheduled time for task');?>" onClick="activate2(<?php echo $item['Task']['id'];?>, 'scheduled_time', '<?php echo h($item['Task']['scheduled_time']);?>')">
                 <?php echo h($item['Task']['scheduled_time']); ?>
             </div>
         </td>

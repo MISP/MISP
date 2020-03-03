@@ -1,7 +1,3 @@
-/*
-*
-*/
-
 (function(factory) {
         "use strict";
         if (typeof define === 'function' && define.amd) {
@@ -63,10 +59,10 @@
                         'root': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
-                                code: '\uf10c',
+                                face: '"Font Awesome 5 Free"',
+                                code: '\uf111',
                                 color: '#000000',
-                                size: 50
+                                size: 50,
                             },
                             font: {size: 30},
                             color: '#000000',
@@ -74,7 +70,7 @@
                         'org-only': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
+                                face: '"Font Awesome 5 Free"',
                                 code: '\uf2c2',
                                 color: '#ff0000',
                                 size: 30
@@ -89,7 +85,7 @@
                         'root-this-community': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
+                                face: '"Font Awesome 5 Free"',
                                 code: '\uf1e1',
                                 color: '#ff9725',
                                 size: 70
@@ -116,7 +112,7 @@
                         'root-connected-community': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
+                                face: '"Font Awesome 5 Free"',
                                 code: '\uf0e8',
                                 color: '#9b6e1b',
                                 size: 70
@@ -135,7 +131,7 @@
                         'web': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
+                                face: '"Font Awesome 5 Free"',
                                 code: '\uf0ac',
                                 color: '#007d20',
                                 size: 70
@@ -150,7 +146,7 @@
                         'root-sharing-group': {
                             shape: 'icon',
                             icon: {
-                                face: 'FontAwesome',
+                                face: '"Font Awesome 5 Free"',
                                 code: '\uf0c0',
                                 color: '#1369a0',
                                 size: 70
@@ -255,10 +251,10 @@
 
                 var allow_interactive_picking = $('#attributes_div table tr').length > 0;
 
-                var $div = '<div id="sharingNetworkWrapper" class="advancedSharingNetwork hidden">'
+                var $div = '<div id="sharingNetworkWrapper" class="fixedRightPanel hidden">'
                     + '<div class="eventgraph_header" style="border-radius: 5px; display: flex;">'
                     + '<it class="fa fa-circle-o" style="margin: auto 10px; font-size: x-large"></it>'
-                    + '<input type="text" id="sharingNetworkTargetId" class="center-in-network-header network-typeahead" style="width: 200px;" disabled></input>';
+                    + '<input type="text" id="sharingNetworkTargetId" class="center-in-network-header network-typeahead" style="width: 200px;" disabled>';
                 if (allow_interactive_picking) {
                     $div += '<div class="form-group" style="margin: auto 10px;"><div class="checkbox">'
                         + '<label style="user-select: none;"><input id="interactive_picking_mode" type="checkbox" title="Click on a element to see how it is distributed" style="margin-top: 4px;">Enable interactive picking mode</label>'

@@ -61,12 +61,12 @@
     ?>
         </div>
     <?php
-        echo $this->Form->input('gpgkey', array('label' => __('GnuPG key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s GnuPG key here or try to retrieve it from the MIT key server by clicking on "Fetch GnuPG key" below.')));
+        echo $this->Form->input('gpgkey', array('label' => __('GnuPG key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s GnuPG key here or try to retrieve it from the CIRCL key server by clicking on "Fetch GnuPG key" below.')));
     ?>
         <div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch the user\'s GnuPG key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GnuPG key');?></span></div>
     <?php
         if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('SMIME key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s SMIME public key in PEM format here.')));
-        echo $this->Form->input('termsaccepted', array('label' => __('Terms accepted')));
+        echo $this->Form->input('termsaccepted', array('type' => 'checkbox', 'label' => __('Terms accepted')));
         echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => __('Change Password')));
         echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
         echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
@@ -75,7 +75,7 @@
     ?>
         <div class="clear"></div>
     <?php
-        echo $this->Form->input('disabled', array('label' => __('Disable this user account')));
+        echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Disable this user account')));
 
     ?>
     </fieldset>

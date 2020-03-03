@@ -14,7 +14,11 @@ class QueryTool
     {
         $db = $model->getDataSource();
         $connection = $db->getConnection();
-        $query = $connection->prepare('DELETE FROM ' . $table . ' WHERE ' . $field . ' = :value');
+        if ($db->config['datasource'] == 'Database/Mysql' ) {
+            $query = $connection->prepare('DELETE FROM ' . $table . ' WHERE ' . $field . ' = :value');
+        } elseif ($db->config['datasource'] == 'Database/Postgres' ) {
+            $query = $connection->prepare('DELETE FROM "' . $table . '" WHERE "' . $field . '" = :value');
+        }
         $query->bindValue(':value', $value, $this->__pdoMap[$db->introspectType($value)]);
         $query->execute();
     }
