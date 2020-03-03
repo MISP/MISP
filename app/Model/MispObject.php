@@ -46,6 +46,10 @@ class MispObject extends AppModel
         ),
     );
 
+    public $validFormats = array(
+        'json' => array('json', 'JsonExport', 'json')
+    );
+
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
 
     public $validate = array(
@@ -71,6 +75,81 @@ class MispObject extends AppModel
             'message' => array('Invalid ISO 8601 format')
         )
     );
+
+    public function buildFilterConditions($user, &$params)
+    {
+        $conditions = $this->buildConditions($user);
+        if (isset($params['wildcard'])) {
+            $temp = array();
+            $options = array(
+                'filter' => 'wildcard',
+                'scope' => 'Object',
+                'pop' => false,
+                'context' => 'Event'
+            );
+            $conditions['AND'][] = array('OR' => $this->Event->set_filter_wildcard_attributes($params, $temp, $options));
+        } else {
+            $attribute_conditions = array();
+            $object_conditions = array();
+            if (isset($params['ignore'])) {
+                $params['to_ids'] = array(0, 1);
+                $params['published'] = array(0, 1);
+            }
+            $simple_params = array(
+                'Object' => array(
+                    'object_name' => array('function' => 'set_filter_object_name'),
+                    'object_template_uuid' => array('function' => 'set_filter_object_template_uuid'),
+                    'object_template_version' => array('function' => 'set_filter_object_template_version'),
+                    'deleted' => array('function' => 'set_filter_deleted')
+                ),
+                'Event' => array(
+                    'eventid' => array('function' => 'set_filter_eventid'),
+                    'eventinfo' => array('function' => 'set_filter_eventinfo'),
+                    'ignore' => array('function' => 'set_filter_ignore'),
+                    'from' => array('function' => 'set_filter_timestamp'),
+                    'to' => array('function' => 'set_filter_timestamp'),
+                    'date' => array('function' => 'set_filter_date'),
+                    'tags' => array('function' => 'set_filter_tags'),
+                    'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'publish_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'org' => array('function' => 'set_filter_org'),
+                    'uuid' => array('function' => 'set_filter_uuid'),
+                    'published' => array('function' => 'set_filter_published')
+                ),
+                'Attribute' => array(
+                    'value' => array('function' => 'set_filter_value'),
+                    'category' => array('function' => 'set_filter_simple_attribute'),
+                    'type' => array('function' => 'set_filter_simple_attribute'),
+                    'object_relation' => array('function' => 'set_filter_simple_attribute'),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
+                    'uuid' => array('function' => 'set_filter_uuid'),
+                    'deleted' => array('function' => 'set_filter_deleted'),
+                    'timestamp' => array('function' => 'set_filter_timestamp'),
+                    'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'first_seen' => array('function' => 'set_filter_seen'),
+                    'last_seen' => array('function' => 'set_filter_seen'),
+                    'to_ids' => array('function' => 'set_filter_to_ids'),
+                    'comment' => array('function' => 'set_filter_comment')
+                )
+            );
+            foreach ($params as $param => $paramData) {
+                foreach ($simple_params as $scope => $simple_param_scoped) {
+                    if (isset($simple_param_scoped[$param]) && isset($params[$param]) && $params[$param] !== false) {
+                        $options = array(
+                            'filter' => $param,
+                            'scope' => $scope,
+                            'pop' => !empty($simple_param_scoped[$param]['pop']),
+                            'context' => 'Attribute'
+                        );
+                        $conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
+                    }
+                }
+            }
+        }
+        return $conditions;
+    }
 
      // check whether the variable is null or datetime
      public function datetimeOrNull($fields)
@@ -425,7 +504,7 @@ class MispObject extends AppModel
                         'Tag'
                     )
                 )
-            )
+            ),
         );
         if (empty($options['includeAllTags'])) {
             $params['contain']['Attribute']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
@@ -453,9 +532,6 @@ class MispObject extends AppModel
             );
             $params['contain'] = array_merge($params['contain']['Attribute'], $proposalRestriction);
         }
-        if (isset($options['fields'])) {
-            $params['fields'] = $options['fields'];
-        }
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
         }
@@ -473,6 +549,12 @@ class MispObject extends AppModel
         }
         if (isset($options['group'])) {
             $params['group'] = array_merge(array('Object.id'), $options['group']);
+        }
+        if (isset($options['limit'])) {
+            $params['limit'] = $options['limit'];
+            if (isset($options['page'])) {
+                $params['page'] = $options['page'];
+            }
         }
         if (Configure::read('MISP.unpublishedprivate')) {
             $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
@@ -1208,5 +1290,169 @@ class MispObject extends AppModel
             'object' => $object,
             'revised_object_both' => $revised_object_both
         );
+    }
+
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
+    {
+        if (!isset($this->validFormats[$returnFormat][1])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        App::uses($this->validFormats[$returnFormat][1], 'Export');
+        $exportTool = new $this->validFormats[$returnFormat][1]();
+        if (empty($exportTool->non_restrictive_export)) {
+            if (!isset($filters['to_ids'])) {
+                $filters['to_ids'] = 1;
+            }
+            if (!isset($filters['published'])) {
+                $filters['published'] = 1;
+            }
+            $filters['allow_proposal_blocking'] = 1;
+        }
+        if (!empty($filters['quickFilter'])) {
+            $filters['searchall'] = $filters['quickFilter'];
+            if (!empty($filters['value'])) {
+                unset($filters['value']);
+            }
+        }
+        if (!empty($exportTool->renderView)) {
+            $renderView = $exportTool->renderView;
+        }
+        if (isset($filters['searchall'])) {
+            if (!empty($filters['value'])) {
+                $filters['wildcard'] = $filters['value'];
+                unset($filters['value']);
+            } else {
+                $filters['wildcard'] = $filters['searchall'];
+            }
+        }
+        $subqueryElements = $this->Event->harvestSubqueryElements($filters);
+        $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
+        $conditions = $this->buildFilterConditions($user, $filters);
+        $params = array(
+                'conditions' => $conditions,
+                'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Object.*'),
+                'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
+                'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
+                'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
+                'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
+                'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
+                'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
+                'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
+                'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
+                'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
+                'includeSightingdb' => !empty($filters['includeSightingdb']) ? $filters['includeSightingdb'] : 0,
+                'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
+                'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
+                'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
+                'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0
+        );
+        if (!empty($filters['attackGalaxy'])) {
+            $params['attackGalaxy'] = $filters['attackGalaxy'];
+        }
+        if (isset($filters['include_event_uuid'])) {
+            $params['includeEventUuid'] = $filters['include_event_uuid'];
+        }
+        if (isset($filters['limit'])) {
+            $params['limit'] = $filters['limit'];
+            if (!isset($filters['page'])) {
+                $filters['page'] = 1;
+            }
+        }
+        if (isset($filters['page'])) {
+            $params['page'] = $filters['page'];
+        }
+        if (!empty($filters['deleted'])) {
+            $params['deleted'] = $filters['deleted'];
+        }
+        if (!empty($filters['excludeDecayed'])) {
+            $params['excludeDecayed'] = $filters['excludeDecayed'];
+            $params['includeDecayScore'] = 1;
+        }
+        if (!empty($filters['decayingModel'])) {
+            $params['decayingModel'] = $filters['decayingModel'];
+        }
+        if (!empty($filters['modelOverrides'])) {
+            $params['modelOverrides'] = $filters['modelOverrides'];
+        }
+        if (!empty($filters['score'])) {
+            $params['score'] = $filters['score'];
+        }
+        if ($paramsOnly) {
+            return $params;
+        }
+        if (method_exists($exportTool, 'modify_params')) {
+            $params = $exportTool->modify_params($user, $params);
+        }
+        $exportToolParams = array(
+            'user' => $user,
+            'params' => $params,
+            'returnFormat' => $returnFormat,
+            'scope' => 'Object',
+            'filters' => $filters
+        );
+        if (!empty($exportTool->additional_params)) {
+            $params = array_merge_recursive(
+                $params,
+                $exportTool->additional_params
+            );
+        }
+        $tmpfile = tmpfile();
+        fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $loop = false;
+        if (empty($params['limit'])) {
+            $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
+            $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
+            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
+            $params['limit'] = $memory_in_mb * $memory_scaling_factor / 10;
+            $loop = true;
+            $params['page'] = 1;
+        }
+        $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+        fwrite($tmpfile, $exportTool->footer($exportToolParams));
+        fseek($tmpfile, 0);
+        if (fstat($tmpfile)['size']) {
+            $final = fread($tmpfile, fstat($tmpfile)['size']);
+        } else {
+            $final = '';
+        }
+        fclose($tmpfile);
+        return $final;
+    }
+
+    private function __iteratedFetch($user, &$params, &$loop, &$tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
+    {
+        $continue = true;
+        while ($continue) {
+            $this->Whitelist = ClassRegistry::init('Whitelist');
+            $results = $this->fetchObjects($user, $params, $continue);
+            if ($params['includeSightingdb']) {
+                $this->Sightingdb = ClassRegistry::init('Sightingdb');
+                $results = $this->Sightingdb->attachToObjects($results, $user);
+            }
+            $params['page'] += 1;
+            $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+            $results = array_values($results);
+            $i = 0;
+            $temp = '';
+            foreach ($results as $object) {
+                $elementCounter++;
+                $handlerResult = $exportTool->handler($object, $exportToolParams);
+                $temp .= $handlerResult;
+                if ($handlerResult !== '') {
+                    if ($i != count($results) -1) {
+                        $temp .= $exportTool->separator($exportToolParams);
+                    }
+                }
+                $i++;
+            }
+            if (!$loop) {
+                $continue = false;
+            }
+            if ($continue) {
+                $temp .= $exportTool->separator($exportToolParams);
+            }
+            fwrite($tmpfile, $temp);
+        }
+        return true;
     }
 }

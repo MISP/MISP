@@ -3,7 +3,7 @@
 class SyncTool
 {
     // take a server as parameter and return a HttpSocket object using the ssl options defined in the server settings
-    public function setupHttpSocket($server = null)
+    public function setupHttpSocket($server = null, $timeout = false)
     {
         $params = array();
         if (!empty($server)) {
@@ -22,6 +22,9 @@ class SyncTool
             }
             if (!empty($server['Server']['skip_proxy'])) {
                 $params['skip_proxy'] = 1;
+            }
+            if (!empty($timeout)) {
+                $params['timeout'] = $timeout;
             }
         }
 

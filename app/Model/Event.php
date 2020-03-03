@@ -1656,6 +1656,8 @@ class Event extends AppModel
                 ),
                 'Object' => array(
                     'object_name' => array('function' => 'set_filter_object_name'),
+                    'object_template_uuid' => array('function' => 'set_filter_object_template_uuid'),
+                    'object_template_version' => array('function' => 'set_filter_object_template_version'),
                     'deleted' => array('function' => 'set_filter_deleted')
                 ),
                 'Attribute' => array(
@@ -1715,6 +1717,9 @@ class Event extends AppModel
             'recursive' => -1,
             'fields' => $fields
         );
+        if (isset($params['order'])) {
+            $find_params['order'] = $params['order'];
+        }
         if (isset($params['limit'])) {
             // Get the count (but not the actual data) of results for paginators
             $result_count = $this->find('count', $find_params);
@@ -2693,6 +2698,36 @@ class Event extends AppModel
         return $conditions;
     }
 
+    public function set_filter_object_name(&$params, $conditions, $options)
+    {
+        if (!empty($params['object_name'])) {
+            $params['object_name'] = $this->convert_filters($params['object_name']);
+            $conditions = $this->generic_add_filter($conditions, $params['object_name'], 'Object.name');
+
+        }
+        return $conditions;
+    }
+
+    public function set_filter_object_template_uuid(&$params, $conditions, $options)
+    {
+        if (!empty($params['object_template_uuid'])) {
+            $params['object_template_uuid'] = $this->convert_filters($params['object_template_uuid']);
+            $conditions = $this->generic_add_filter($conditions, $params['object_template_uuid'], 'Object.template_uuid');
+
+        }
+        return $conditions;
+    }
+
+    public function set_filter_object_template_version(&$params, $conditions, $options)
+    {
+        if (!empty($params['object_template_version'])) {
+            $params['object_template_version'] = $this->convert_filters($params['object_template_version']);
+            $conditions = $this->generic_add_filter($conditions, $params['object_template_version'], 'Object.template_version');
+
+        }
+        return $conditions;
+    }
+
     public function set_filter_comment(&$params, $conditions, $options)
     {
         if (!empty($params['comment'])) {
@@ -3103,15 +3138,15 @@ class Event extends AppModel
         $body .= "\n";
         $body .= "Someone wants to get in touch with you concerning a MISP event. \n";
         $body .= "\n";
-        $body .= "You can reach him at " . $user['User']['email'] . "\n";
+        $body .= "You can reach them at " . $user['User']['email'] . "\n";
         if (!$user['User']['gpgkey']) {
-            $body .= "His GnuPG key is added as attachment to this email. \n";
+            $body .= "Their GnuPG key is added as attachment to this email. \n";
         }
         if (!$user['User']['certif_public']) {
-            $body .= "His Public certificate is added as attachment to this email. \n";
+            $body .= "Their Public certificate is added as attachment to this email. \n";
         }
         $body .= "\n";
-        $body .= "He wrote the following message: \n";
+        $body .= "They wrote the following message: \n";
         $body .= $message . "\n";
         $body .= "\n";
         $body .= "\n";

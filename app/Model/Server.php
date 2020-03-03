@@ -113,9 +113,19 @@ class Server extends AppModel
         ),
     );
 
+    public $syncTestErrorCodes = array();
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
+
+        $this->syncTestErrorCodes = array(
+            2 => __('Server unreachable'),
+            3 => __('Unexpected error'),
+            4 => __('Authentication failed'),
+            5 => __('Password change required'),
+            6 => __('Terms not accepted')
+        );
 
         $this->command_line_functions = array(
             'console_admin_tasks' => array(
@@ -4064,7 +4074,7 @@ class Server extends AppModel
     public function runConnectionTest($id)
     {
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        $HttpSocket = $this->setupHttpSocket($server);
+        $HttpSocket = $this->setupHttpSocket($server, null, 5);
         $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/servers/getVersion';
         try {
