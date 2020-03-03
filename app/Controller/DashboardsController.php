@@ -140,9 +140,10 @@ class DashboardsController extends AppController
             $lookup_hash = hash('sha256', $value['widget'] . $value['config']);
             $data = $redis->get('misp:dashboard:' . $org_scope . ':' . $lookup_hash);
             if (empty($data)) {
+                $cacheLifetime = isset($dashboardWidget->cacheLifetime) ? $dashboardWidget->cacheLifetime : 300;
                 $data = $dashboardWidget->handler($this->Auth->user(), json_decode($value['config'], true));
                 $redis->set('misp:dashboard:' . $org_scope . ':' . $lookup_hash, json_encode(array('data' => $data)));
-                $redis->expire('misp:dashboard:' . $org_scope . ':' . $lookup_hash, 60);
+                $redis->expire('misp:dashboard:' . $org_scope . ':' . $lookup_hash, $cacheLifetime);
             } else {
                 $data = json_decode($data, true)['data'];
             }

@@ -286,7 +286,7 @@ class AppModel extends Model
     public function updateDatabase($command)
     {
         $this->Log = ClassRegistry::init('Log');
-    
+
         $liveOff = false;
         $exitOnError = false;
         if (isset($this->advanced_updates_description[$command])) {
@@ -2494,12 +2494,12 @@ class AppModel extends Model
         return true;
     }
 
-    public function setupHttpSocket($server, $HttpSocket = null)
+    public function setupHttpSocket($server, $HttpSocket = null, $timeout = false)
     {
         if (empty($HttpSocket)) {
             App::uses('SyncTool', 'Tools');
             $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
+            $HttpSocket = $syncTool->setupHttpSocket($server, $timeout);
         }
         return $HttpSocket;
     }

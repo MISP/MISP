@@ -137,7 +137,7 @@
             array(
                 'type' => 'root',
                 'text' => __('Global Actions'),
-                'url' => '/users/dashboard',
+                'url' => '/dashboards',
                 'children' => array(
                     array(
                         'text' => __('News'),
@@ -157,7 +157,7 @@
                     ),
                     array(
                         'text' => __('Dashboard'),
-                        'url' => '/users/dashboard'
+                        'url' => '/dashboards'
                     ),
                     array(
                         'text' => __('Organisations'),
@@ -403,7 +403,10 @@
             array(
                 'type' => 'root',
                 'url' => '#',
-                'html' => '<span class="fas fa-star" id="setHomePage" onClick="setHomePage();" title="Set the current page as your home page in MISP"></span>'
+                'html' => sprintf(
+                    '<span class="fas fa-star %s" id="setHomePage" title="Set the current page as your home page in MISP"></span>',
+                    (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : ''
+                )
             ),
             array(
                 'type' => 'root',
@@ -455,3 +458,11 @@
   </div>
 </div>
 <input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#setHomePage').click(function(event) {
+            event.preventDefault();
+            setHomePage();
+        })
+    });
+</script>
