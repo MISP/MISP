@@ -699,7 +699,7 @@ class StixFromMISPParser(StixParser):
                 attribute.update({'value': value.replace('\\\\', '\\'), 'to_ids': False})
                 attributes.append(attribute)
         if 'values' in observable['0']:
-            attributes.extend(self.fill_observable_attributes(observable['0'].values[0], 'regkey_mapping'))
+            attributes.extend(self.fill_observable_attributes(observable['0']['values'][0], 'regkey_mapping'))
         return attributes
 
     def _parse_socket_extension(self, extension):
