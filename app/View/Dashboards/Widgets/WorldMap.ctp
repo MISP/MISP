@@ -30,11 +30,11 @@
             el.html(el.html()+' (<?= h($data['scope']) ?> - '+mapData[code]+')');
         }
     });
-    var container = $('#world-map-<?= $randomNumber ?>').parent().parent();
+    var container_<?= $randomNumber ?> = $('#world-map-<?= $randomNumber ?>').parent().parent();
 
     function resizeDashboardWorldMap() {
-        var width = container.width();
-        var height = container.height() - 60;
+        var width = container_<?= $randomNumber ?>.width();
+        var height = container_<?= $randomNumber ?>.height() - 60;
         $('#world-map-<?= $randomNumber ?>').css('width', width + 'px');
         $('#world-map-<?= $randomNumber ?>').css('height', height + 'px');
         $('#world-map-<?= $randomNumber ?>').vectorMap('get','mapObject').updateSize();
