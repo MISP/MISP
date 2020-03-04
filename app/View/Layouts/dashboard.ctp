@@ -18,7 +18,7 @@
             'jquery-ui',
             'chosen.min',
             'main',
-            'jquery-jvectormap-2.0.5',
+            'gridstack.min',
             array('print', array('media' => 'print'))
         );
         if (Configure::read('MISP.custom_css')) {
@@ -28,7 +28,8 @@
             'jquery',
             'misp-touch',
             'jquery-ui',
-            'chosen.jquery.min'
+            'chosen.jquery.min',
+            'gridstack.all'
         );
         echo $this->element('genericElements/assetLoader', array(
             'css' => $css_collection,

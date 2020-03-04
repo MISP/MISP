@@ -96,7 +96,8 @@
             sprintf(
                 '<div class="modal-body modal-body-long">%s</div>',
                 sprintf(
-                    '%s<fieldset>%s%s</fieldset>%s%s',
+                    '%s%s<fieldset>%s%s</fieldset>%s%s',
+                    empty($data['description']) ? '' : $data['description'],
                     $formCreate,
                     $ajaxFlashMessage,
                     $fieldsString,
