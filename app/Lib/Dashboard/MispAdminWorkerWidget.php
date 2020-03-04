@@ -8,7 +8,8 @@ class MispAdminWorkerWidget
     public $height = 2;
     public $params = array();
     public $description = 'Basic widget showing some server statistics in regards to MISP.';
-    public $cacheLifetime = 5;
+    public $cacheLifetime = false;
+    public $autoRefreshDelay = 5;
 
 
 	public function handler($user, $options = array())
@@ -23,11 +24,13 @@ class MispAdminWorkerWidget
             }
             $total = 0;
             $alive = 0;
-            foreach ($queue['workers'] as $worker) {
-                if ($worker['alive']) {
-                    $alive += 1;
+            if (!empty($queue['workers'])) {
+                foreach ($queue['workers'] as $worker) {
+                    if ($worker['alive']) {
+                        $alive += 1;
+                    }
+                    $total += 1;
                 }
-                $total += 1;
             }
             $colour = 'green';
             if ($alive == 0) {

@@ -80,7 +80,8 @@ class Dashboard extends AppModel
             'description' => empty($widgetClass->description) ?  $widgetClass->title : $widgetClass->description,
             'height' => empty($widgetClass->height) ? 1 : $widgetClass->height,
             'width' => empty($widgetClass->width) ? 1 : $widgetClass->width,
-            'placeholder' => empty($widgetClass->placeholder) ? '' : $widgetClass->placeholder
+            'placeholder' => empty($widgetClass->placeholder) ? '' : $widgetClass->placeholder,
+            'autoRefreshDelay' => empty($widgetClass->autoRefreshDelay) ? false : $widgetClass->autoRefreshDelay,
         );
         return $widget;
     }

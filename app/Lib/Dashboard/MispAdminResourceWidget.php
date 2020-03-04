@@ -8,7 +8,8 @@ class MispAdminResourceWidget
     public $height = 2;
     public $params = array();
     public $description = 'Basic widget showing some server statistics in regards to MISP.';
-    public $cacheLifetime = 5;
+    public $cacheLifetime = false;
+    public $autoRefreshDelay = 3;
 
 
 	public function handler($user, $options = array())
