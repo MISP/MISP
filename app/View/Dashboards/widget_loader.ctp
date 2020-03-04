@@ -8,14 +8,11 @@
 </div>
 <script type="text/javascript">
     $(document).ready(function() {
-        <?php
-            if ($config['autoRefreshDelay']) {
-                echo sprintf(
-                    'setTimeout( function(){ updateDashboardWidget($("#widgetContentInner%s").parent().parent().parent())}, %s);',
-                    $randomId,
-                    $config['autoRefreshDelay'] . '000'
-                );
-            }
-        ?>
+        if (<?= $config['autoRefreshDelay'] ?>) {
+            setTimeout( function(){
+                updateDashboardWidget($("#widgetContentInner<?= $randomId ?>").closest('.grid-stack-item'))},
+                <?= $config['autoRefreshDelay'] ?> * 1000
+            );
+        }
     });
 </script>
