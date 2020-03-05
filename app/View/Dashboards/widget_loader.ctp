@@ -8,10 +8,10 @@
 </div>
 <script type="text/javascript">
     $(document).ready(function() {
-        if (<?= $config['autoRefreshDelay'] ?>) {
+        if (<?= $config['autoRefreshDelay'] ? 'true' : 'false' ?>) {
             setTimeout( function(){
                 updateDashboardWidget($("#widgetContentInner<?= $randomId ?>").closest('.grid-stack-item'))},
-                <?= $config['autoRefreshDelay'] ?> * 1000
+                <?= $config['autoRefreshDelay'] ? $config['autoRefreshDelay'] : 1 ?> * 1000
             );
         }
     });
