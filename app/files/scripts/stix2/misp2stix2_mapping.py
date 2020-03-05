@@ -201,7 +201,7 @@ def observable_x509(_, attribute_value):
     return {'0': {'type': 'x509-certificate', 'hashes': {'sha1': attribute_value}}}
 
 def pattern_x509(_, attribute_value):
-    return "[x509-certificate:hashes = '{}']".format(attribute_value)
+    return f"[x509-certificate:hashes.'sha1' = '{attribute_value}']"
 
 def return_vulnerability(name):
     return {'source_name': 'cve', 'external_id': name}
