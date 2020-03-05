@@ -38,7 +38,7 @@ function resetDashboardGrid(grid) {
 }
 
 $(document).ready(function () {
-    var grid = GridStack.init();
+    var grid = GridStack.init({verticalMargin: 2});
     resetDashboardGrid(grid);
     grid.on('change', function(event, items) {
         saveDashboardState();

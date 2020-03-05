@@ -19,6 +19,7 @@ class MispAdminSyncTestWidget
             'conditions' => array('OR' => array('pull' => 1, 'push' => 1, 'caching_enabled' => 1)),
             'recursive' => -1
         ));
+        $data = array();
         $syncTestErrorCodes = $this->Server->syncTestErrorCodes;
         foreach ($servers as $server) {
             $result = $this->Server->runConnectionTest($server['Server']['id']);
