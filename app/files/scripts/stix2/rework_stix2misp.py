@@ -61,7 +61,7 @@ class StixParser():
 
     def handler(self, event, filename, args):
         self.filename = filename
-        self.stix_version = 'STIX {}'.format(event.get('spec_version'))
+        self.stix_version = f"STIX {event['spec_version'] if event.get('spec_version') else '2.1'}"
         try:
             event_distribution = args[0]
             if not isinstance(event_distribution, int):
@@ -254,12 +254,6 @@ class StixFromMISPParser(StixParser):
                                                  'pattern': 'parse_pe_pattern'},
                          'x509': {'observable': 'parse_x509_observable',
                                   'pattern': 'parse_x509_pattern'}}
-    _object_from_refs = {'course-of-action': 'parse_MISP_course_of_action', 'vulnerability': 'parse_vulnerability',
-                          'custom_object': 'parse_custom'}
-    _object_from_refs.update(dict.fromkeys(['indicator', 'observed-data'], 'parse_usual_object'))
-    _attributes_fetcher_mapping = {'indicator': 'fetch_attributes_from_indicator',
-                                    'observed-data': 'fetch_attributes_from_observable',
-                                    'vulnerability': 'fetch_attributes_from_vulnerability'}
 
     def __init__(self):
         super().__init__()
