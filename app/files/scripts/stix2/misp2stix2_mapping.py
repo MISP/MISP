@@ -179,12 +179,10 @@ def observable_regkey_value(_, attribute_value):
     return regkey
 
 def pattern_regkey_value(_, attribute_value):
+    if '\\\\' not in attribute_value:
+        attribute_value = attribute_value.replace('\\', '\\\\')
     key, value = attribute_value.split('|')
-    if '\\\\' not in value:
-        value = value.replace('\\', '\\\\')
-    regkey = pattern_regkey(_, key)[1:-1]
-    regkey += " AND windows-registry-key:values = '{}'".format(value.strip())
-    return "[{}]".format(regkey)
+    return f"[windows-registry-key:key = '{key.strip()}' AND windows-registry-key:values.data = '{value.strip()}']"
 
 def observable_reply_to(_, attribute_value):
     return {'0': {'type': 'email-addr', 'value': attribute_value},
