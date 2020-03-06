@@ -136,6 +136,7 @@ class AppController extends Controller
                 $this->_stop();
             }
         }
+        $this->response->header('X-XSS-Protection', '1; mode=block');
 
         if (!empty($this->params['named']['sql'])) {
             $this->sql_dump = intval($this->params['named']['sql']);
