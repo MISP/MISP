@@ -401,6 +401,7 @@ class ACLComponent extends Component
                     'releaseUpdateLock' => array(),
                     'resetRemoteAuthKey' => array(),
                     'rest' => array('perm_auth'),
+                    'restartDeadWorkers' => array(),
                     'restartWorkers' => array(),
                     'serverSettings' => array(),
                     'serverSettingsEdit' => array(),
