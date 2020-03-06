@@ -266,6 +266,11 @@ class UsersController extends AppController
                     $this->Flash->info($message);
                 }
             }
+            $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['password']);
+            if ($hashed) {
+                $message = __('Submitted new password cannot be the same as the current one');
+                $abortPost = true;
+            }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
                 $user['User']['change_pw'] = 0;
@@ -293,6 +298,8 @@ class UsersController extends AppController
                     }
                     $this->Flash->error($message);
                 }
+            } else {
+                $this->Flash->error($message);
             }
         }
         if ($this->_isRest()) {
