@@ -5119,6 +5119,7 @@ class Server extends AppModel
         } else {
             $currentUser = trim(shell_exec('whoami'));
         }
+        $killed = array();
         foreach ($workers as $pid => $worker) {
             if (!is_numeric($pid)) {
                 throw new MethodNotAllowedException('Non numeric PID found!');
@@ -5127,8 +5128,14 @@ class Server extends AppModel
             if ($worker['user'] == $currentUser && !$pidTest) {
                 $this->ResqueStatus->removeWorker($pid);
                 $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
+                if (empty($killed[$worker['queue']])) {
+                    $killed[$worker['queue']] = 1;
+                } else {
+                    $killed[$worker['queue']] += 1;
+                }
             }
         }
+        return $killed;
     }
 
     private function __logRemoveWorker($user, $pid, $queue, $dead = false)
@@ -5589,6 +5596,19 @@ class Server extends AppModel
             $this->workerRemoveDead($user);
             $prepend = '';
             shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
+        }
+        return true;
+    }
+
+    public function restartDeadWorkers($user=false)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $killed = $this->workerRemoveDead($user);
+            foreach ($killed as $queue => $count) {
+                for ($i = 0; $i < $count; $i++) {
+                    $this->startWorker($queue);
+                }
+            }
         }
         return true;
     }
