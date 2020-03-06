@@ -56,7 +56,7 @@ function fetchAddSightingForm(type, attribute_id, page, onvalue) {
     });
 }
 
-function flexibleAddSighting(clicked, type, attribute_id, event_id, value, page, placement) {
+function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placement) {
     var $clicked = $(clicked);
     var hoverbroken = false;
     $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
