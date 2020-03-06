@@ -1097,6 +1097,7 @@ class UsersController extends AppController
                 ),
                 'recursive' => -1
             ));
+            $lastUserLogin = $user['User']['last_login'];
             unset($user['User']['password']);
             $user['User']['action'] = 'login';
             $user['User']['last_login'] = $this->Auth->user('current_login');
@@ -1106,6 +1107,10 @@ class UsersController extends AppController
                 $this->User->saveField('password', $passwordToSave);
             }
             $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
+            if ($lastUserLogin) {
+                $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format(DateTimeInterface::RFC822);
+                $this->Flash->info(sprintf('Welcome! Last login was on %s', $readableDatetime));
+            }
             // no state changes are ever done via GET requests, so it is safe to return to the original page:
             $this->redirect($this->Auth->redirectUrl());
         // $this->redirect(array('controller' => 'events', 'action' => 'index'));
