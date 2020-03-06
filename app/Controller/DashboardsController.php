@@ -139,16 +139,25 @@ class DashboardsController extends AppController
             $org_scope = $this->_isSiteAdmin() ? 0 : $this->Auth->user('org_id');
             $lookup_hash = hash('sha256', $value['widget'] . $value['config']);
             $data = $redis->get('misp:dashboard:' . $org_scope . ':' . $lookup_hash);
-            if (empty($data)) {
-                $cacheLifetime = isset($dashboardWidget->cacheLifetime) ? $dashboardWidget->cacheLifetime : 300;
+            if (!isset($dashboardWidget->cacheLifetime)) {
+                $dashboardWidget->cacheLifetime = false;
+            }
+            if (empty($dashboardWidget->cacheLifetime) || empty($data)) {
                 $data = $dashboardWidget->handler($this->Auth->user(), json_decode($value['config'], true));
-                $redis->set('misp:dashboard:' . $org_scope . ':' . $lookup_hash, json_encode(array('data' => $data)));
-                $redis->expire('misp:dashboard:' . $org_scope . ':' . $lookup_hash, $cacheLifetime);
+                if (!empty($dashboardWidget->cacheLifetime)) {
+                    $redis->set('misp:dashboard:' . $org_scope . ':' . $lookup_hash, json_encode(array('data' => $data)));
+                    $redis->expire('misp:dashboard:' . $org_scope . ':' . $lookup_hash, $dashboardWidget->cacheLifetime);
+                }
             } else {
                 $data = json_decode($data, true)['data'];
             }
+            $config = array(
+                'render' => $dashboardWidget->render,
+                'autoRefreshDelay' => empty($dashboardWidget->autoRefreshDelay) ? false : $dashboardWidget->autoRefreshDelay
+            );
             $this->set('data', $data);
-            $this->render('/Dashboards/Widgets/' . $dashboardWidget->render);
+            $this->set('config', $config);
+            $this->render('widget_loader');
         } else {
             throw new MethodNotAllowedException(__('This endpoint can only be reached via POST requests.'));
         }
