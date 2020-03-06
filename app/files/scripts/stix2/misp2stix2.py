@@ -1026,7 +1026,7 @@ class StixBuilder():
                         value, md5 = value.split('|')
                         if 'md5' not in attributes_dict or md5 not in attributes_dict['md5']:
                             patterns.append(pattern.format('MD5', md5))
-                    patterns.append(f"{pattern_part}name = '{value}'")
+                    patterns.append(f"{pattern_part}{'' if 'file:' in pattern_part else 'x_text_'}name = '{value}'")
         return patterns
 
     def resolve_ip_port_observable(self, attributes, object_id):
