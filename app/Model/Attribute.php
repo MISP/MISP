@@ -843,7 +843,7 @@ class Attribute extends AppModel
         App::uses('ComplexTypeTool', 'Tools');
         $this->complexTypeTool = new ComplexTypeTool();
         $this->data['Attribute']['value'] = $this->complexTypeTool->refangValue($this->data['Attribute']['value'], $this->data['Attribute']['type']);
-
+        
         if (!empty($this->data['Attribute']['object_id']) && empty($this->data['Attribute']['object_relation'])) {
             $this->validationErrors['type'] = ['Object attribute sent, but no object_relation set.'];
             return false;
@@ -1555,9 +1555,28 @@ class Attribute extends AppModel
                 break;
             case 'ip-dst|port':
             case 'ip-src|port':
-                    if (strpos($value, ':')) {
+                    if (substr_count($value, ':') >= 2) { // (ipv6|port) - tokenize ip and port
+                        if (strpos($value, '|')) { // 2001:db8::1|80
+                            $parts = explode('|', $value);
+                        } elseif (strpos($value, '[') === 0 && strpos($value, ']') !== false) { // [2001:db8::1]:80
+                            $ipv6 = substr($value, 1, strpos($value, ']')-1);
+                            $port = explode(':', substr($value, strpos($value, ']')))[1];
+                            $parts = array($ipv6, $port);
+                        } elseif (strpos($value, '.')) { // 2001:db8::1.80
+                            $parts = explode('.', $value);
+                        } elseif (strpos($value, ' port ')) { // 2001:db8::1 port 80
+                            $parts = explode(' port ', $value);
+                        } elseif (strpos($value, 'p')) { // 2001:db8::1p80
+                            $parts = explode('p', $value);
+                        } elseif (strpos($value, '#')) { // 2001:db8::1#80
+                            $parts = explode('#', $value);
+                        } else { // 2001:db8::1:80 this one is ambiguous
+                            $temp = explode(':', $value);
+                            $parts = array(implode(':', array_slice($temp, 0, count($temp)-1)), end($temp));
+                        }
+                    } elseif (strpos($value, ':')) { // (ipv4:port)
                         $parts = explode(':', $value);
-                    } elseif (strpos($value, '|')) {
+                    } elseif (strpos($value, '|')) { // (ipv4|port)
                         $parts = explode('|', $value);
                     } else {
                         return $value;
