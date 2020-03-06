@@ -209,11 +209,16 @@ class UsersController extends AppController
                 }
             }
             if ($abortPost) {
-                return $this->RestResponse->saveFailResponse('Users', 'edit', $id, $message, $this->response->type());
-            } else {
-                $this->Flash->error($message);
+                $this->request->data['User']['password'] = '';
+                $this->request->data['User']['confirm_password'] = '';
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Users', 'edit', $id, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
             }
         } else {
+            $this->User->data = $currentUser;
             $this->User->set('password', '');
             $this->request->data = $this->User->data;
         }
