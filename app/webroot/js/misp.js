@@ -4459,6 +4459,14 @@ function checkNoticeList(type) {
 
 }
 
+function quickSelect(target) {
+    var range = document.createRange();
+    var selection = window.getSelection();
+    range.selectNodeContents(target);
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
 $(document).ready(function() {
     $('#quickFilterField').bind("enterKey",function(e){
         $('#quickFilterButton').trigger("click");
@@ -4499,11 +4507,7 @@ $(document).ready(function() {
     // clicking on an element with this class will select all of its contents in a
     // single click
     $('.quickSelect').click(function() {
-        var range = document.createRange();
-        var selection = window.getSelection();
-        range.selectNodeContents(this);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        quickSelect(this);
     });
     $(".cortex-json").click(function() {
         var cortex_data = $(this).data('cortex-json');

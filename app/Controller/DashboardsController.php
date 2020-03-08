@@ -16,43 +16,65 @@ class DashboardsController extends AppController
             'maxLimit' => 9999
     );
 
-    public function index()
+    public function index($template_id = false)
     {
         $this->loadModel('UserSetting');
-        $params = array(
-            'conditions' => array(
-                'UserSetting.user_id' => $this->Auth->user('id'),
-                'UserSetting.setting' => 'dashboard'
-            )
-        );
-        $userSettings = $this->UserSetting->find('first', $params);
+        if (empty($template_id)) {
+            $params = array(
+                'conditions' => array(
+                    'UserSetting.user_id' => $this->Auth->user('id'),
+                    'UserSetting.setting' => 'dashboard'
+                )
+            );
+            $userSettings = $this->UserSetting->find('first', $params);
+        } else {
+            $dashboardTemplate = $this->Dashboard->getDashboardTemplate($this->Auth->user(), $template_id);
+            if (empty($dashboardTemplate)) {
+                throw new NotFoundException(__('Invalid dashboard template.'));
+            }
+        }
         if (empty($userSettings)) {
+            $dashboardTemplate = $this->Dashboard->getDashboardTemplate($this->Auth->user());
+        }
+        if (empty($userSettings)) {
+            if (empty($dashboardTemplate)) {
+                $value = array(
+                    array(
+                        'widget' => 'MispStatusWidget',
+                        'config' => array(
+                        ),
+                        'position' => array(
+                            'x' => 0,
+                            'y' => 0,
+                            'width' => 2,
+                            'height' => 2
+                        )
+                    )
+                );
+            } else {
+                $value = $dashboardTemplate['Dashboard']['value'];
+                if (!is_array($value)) {
+                    $value = json_decode($value, true);
+                }
+            }
             $userSettings = array(
                 'UserSetting' => array(
                     'setting' => 'dashboard',
-                    'value' => array(
-                        array(
-                            'widget' => 'MispStatusWidget',
-                            'config' => array(
-                            ),
-                            'position' => array(
-                                'x' => 0,
-                                'y' => 0,
-                                'width' => 2,
-                                'height' => 2
-                            )
-                        )
-                    )
+                    'value' => $value
                 )
             );
         }
         $widgets = array();
         foreach ($userSettings['UserSetting']['value'] as $widget) {
-            $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $widget['widget']);
-            $widget['width'] = $dashboardWidget->width;
-            $widget['height'] = $dashboardWidget->height;
-            $widget['title'] = $dashboardWidget->title;
-            $widgets[] = $widget;
+            try {
+                $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $widget['widget']);
+                $widget['width'] = $dashboardWidget->width;
+                $widget['height'] = $dashboardWidget->height;
+                $widget['title'] = $dashboardWidget->title;
+                $widgets[] = $widget;
+            } catch (Exception $e) {
+                // continue, we just don't load the widget
+            }
         }
         $this->layout = 'dashboard';
         $this->set('widgets', $widgets);
@@ -160,6 +182,204 @@ class DashboardsController extends AppController
             $this->render('widget_loader');
         } else {
             throw new MethodNotAllowedException(__('This endpoint can only be reached via POST requests.'));
+        }
+    }
+
+    public function import()
+    {
+        if ($this->request->is('post')) {
+            if (!empty($this->request->data['Dashboard'])) {
+                $this->request->data = json_decode($this->request->data['Dashboard']['value'], true);
+            }
+            if (!empty($this->request->data['UserSetting'])) {
+                $this->request->data = $this->request->data['UserSetting']['value'];
+            }
+            $result = $this->Dashboard->import($this->Auth->user(), $this->request->data);
+            if ($this->_isRest()) {
+                if ($result) {
+                    return $this->RestResponse->saveSuccessResponse('Dashboard', 'import', false, false, __('Settings updated.'));
+                }
+                return $this->RestResponse->saveFailResponse('Dashboard', 'import', false, __('Settings could not be updated.'), $this->response->type());
+            } else {
+                if ($result) {
+                    $this->Flash->success(__('Settings updated.'));
+                } else {
+                    $this->Flash->error(__('Settings could not be updated.'));
+                }
+                $this->redirect($this->baseurl . '/dashboards');
+            }
+        }
+        $this->layout = false;
+    }
+
+    public function export()
+    {
+        $data = $this->Dashboard->export($this->Auth->user());
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($data, $this->response->type());
+        } else {
+            $this->set('data', $data);
+            $this->layout = false;
+        }
+    }
+
+    public function saveTemplate($update = false)
+    {
+        if (!empty($update)) {
+            $conditions = array('Dashboard.id' => $update);
+            if (Validation::uuid($update)) {
+                $conditions = array('Dashboard.uuid' => $update);
+            }
+            $existingDashboard = $this->Dashboard->find('first', array(
+                'recursive' => -1,
+                'conditions' => $conditions
+            ));
+            if (
+                empty($existingDashboard) ||
+                (!$this->_isSiteAdmin() && $existingDashboard['Dashboard']['user_id'] != $this->Auth->user('id'))
+            ) {
+                throw new NotFoundException(__('Invalid dashboard template.'));
+            }
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            if (isset($this->request->data['Dashboard'])) {
+                $this->request->data = $this->request->data['Dashboard'];
+            }
+            $data = $this->request->data;
+            $data['value'] = $this->UserSetting->getSetting($this->Auth->user('id'), 'dashboard');
+            $result = $this->Dashboard->saveDashboardTemplate($this->Auth->user(), $data, $update);
+            if ($this->_isRest()) {
+                if ($result) {
+                    return $this->RestResponse->saveSuccessResponse('Dashboard', 'saveDashboardTemplate', false, false, __('Dashboard template updated.'));
+                }
+                return $this->RestResponse->saveFailResponse('Dashboard', 'import', false, __('Dashboard template could not be updated.'), $this->response->type());
+            } else {
+                if ($result) {
+                    $this->Flash->success(__('Dashboard template updated.'));
+                } else {
+                    $this->Flash->error(__('Dashboard template could not be updated.'));
+                }
+                $this->redirect($this->baseurl . '/dashboards/listTemplates');
+            }
+        } else {
+            $this->layout = false;
+        }
+        $this->loadModel('User');
+        $permFlags = array(0 => __('Unrestricted'));
+        foreach ($this->User->Role->permFlags as $perm_flag => $perm_data) {
+            $permFlags[$perm_flag] = $perm_data['text'];
+        }
+        $options = array(
+            'org_id' => array_merge(
+                array(
+                    0 => __('Unrestricted')
+                ),
+                $this->User->Organisation->find('list', array(
+                    'fields' => array(
+                        'Organisation.id', 'Organisation.name'
+                    ),
+                    'conditions' => array('Organisation.local' => 1)
+                ))
+            ),
+            'role_id' => array_merge(
+                array(
+                    0 => __('Unrestricted')
+                ),
+                $this->User->Role->find('list', array(
+                    'fields' => array(
+                        'Role.id', 'Role.name'
+                    )
+                ))
+            ),
+            'role_perms' => $permFlags
+        );
+        if (!empty($update)) {
+            $this->request->data = $existingDashboard;
+        }
+        $this->set('options', $options);
+    }
+
+    public function listTemplates()
+    {
+        $conditions = array();
+        if (!$this->_isSiteAdmin()) {
+            $permission_flags = array();
+            foreach ($this->Auth->user('Role') as $perm => $value) {
+                if (strpos($perm, 'perm_') !== false && !empty($value)) {
+                    $permission_flags[] = $perm;
+                }
+            }
+            $conditions['AND'] = array(
+                array(
+                    'OR' => array(
+                        'Dashboard.user_id' => $this->Auth->user('id'),
+                        'AND' => array(
+                            'Dashboard.selectable' => 1,
+                            array(
+                                'OR' => array(
+                                    array('Dashboard.restrict_to_org_id' => $this->Auth->user('org_id')),
+                                    array('Dashboard.restrict_to_org_id' => 0)
+                                )
+                            ),
+                            array(
+                                'OR' => array(
+                                    array('Dashboard.restrict_to_role_id' => $this->Auth->user('role_id')),
+                                    array('Dashboard.restrict_to_role_id' => 0)
+                                )
+                            ),
+                            array(
+                                'OR' => array(
+                                    array('Dashboard.restrict_to_permission_flag' => $permission_flags),
+                                    array('Dashboard.restrict_to_permission_flag' => 0)
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        }
+        if (!empty($this->passedArgs['value'])) {
+            $conditions['AND'][] = array(
+                'OR' => array(
+                    'LOWER(Dashboard.name) LIKE' => '%' . strtolower(trim($this->passedArgs['value'])) . '%',
+                    'LOWER(Dashboard.description) LIKE' => '%' . strtolower(trim($this->passedArgs['value'])) . '%',
+                    'LOWER(Dashboard.uuid) LIKE' => strtolower(trim($this->passedArgs['value']))
+                )
+            );
+        }
+        $this->paginate['conditions'] = $conditions;
+        if ($this->_isRest()) {
+            $params = array(
+                'conditions' => $conditions,
+                'recursive' => -1
+            );
+            $paramsToPass = array('limit', 'page');
+            foreach ($paramsToPass as $p) {
+                if (!empty($this->passedArgs[$p])) {
+                    $params[$p] = $this->passedArgs[$p];
+                }
+            }
+            $data = $this->Dashboard->find('all', $params);
+            foreach ($data as &$element) {
+                $element['Dashboard']['value'] = json_decode($element['Dashboard']['value'], true);
+            }
+            return $this->RestResponse->viewData(
+                $data,
+                $this->response->type()
+            );
+        } else {
+            $data = $this->paginate();
+            foreach ($data as &$element) {
+                $element['Dashboard']['value'] = json_decode($element['Dashboard']['value'], true);
+                $widgets = array();
+                foreach ($element['Dashboard']['value'] as $val) {
+                    $widgets[$val['widget']] = 1;
+                }
+                $element['Dashboard']['widgets'] = array_keys($widgets);
+                sort($element['Dashboard']['widgets']);
+            }
+            $this->set('passedArgs', $this->passedArgs);
+            $this->set('data', $data);
         }
     }
 }
