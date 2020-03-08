@@ -382,4 +382,32 @@ class DashboardsController extends AppController
             $this->set('data', $data);
         }
     }
+
+    public function deleteTemplate($id)
+    {
+        $conditions = array();
+        if (Validation::uuid($id)) {
+            $conditions['AND'][] = array('Dashboard.uuid' => $id);
+        } else {
+            $conditions['AND'][] = array('Dashboard.id' => $id);
+        }
+        if (!$this->_isSiteAdmin()) {
+            $conditions['AND'][] = array('Dashboard.user_id' => $this->Auth->user('id'));
+        }
+        $dashboard = $this->Dashboard->find('first', array(
+            'conditions' => $conditions,
+            'recursive' => -1
+        ));
+        if (empty($dashboard)) {
+            throw new NotFoundException(__('Invalid dashboard template.'));
+        }
+        $this->Dashboard->delete($dashboard['Dashboard']['id']);
+        $message = __('Dashboard template removed.');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Dashboard', 'delete', $id, false, $message);
+        } else {
+            $this->Flash->success($message);
+            $this->redirect($this->baseurl . '/dashboards/listTemplates');
+        }
+    }
 }

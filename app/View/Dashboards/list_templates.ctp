@@ -76,6 +76,8 @@
                     'url_params_data_paths' => array(
                         'Dashboard.uuid'
                     ),
+                    'postLink' => 1,
+                    'postLinkConfirm' => __('Are you sure you want to remove this dashboard template?'),
                     'icon' => 'trash'
                 )
             )
