@@ -28,6 +28,12 @@
                     'data_path' => 'Dashboard.uuid',
                 ),
                 array(
+                    'name' => __('Owner'),
+                    'sort' => 'User.email',
+                    'class' => 'short',
+                    'data_path' => 'User.email',
+                ),
+                array(
                     'name' => __('Name'),
                     'sort' => 'name',
                     'class' => 'short',

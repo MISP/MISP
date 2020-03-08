@@ -368,6 +368,9 @@ class DashboardsController extends AppController
                 $this->response->type()
             );
         } else {
+            $this->paginate['contain'] = array(
+                'User.id', 'User.email'
+            );
             $data = $this->paginate();
             foreach ($data as &$element) {
                 $element['Dashboard']['value'] = json_decode($element['Dashboard']['value'], true);
@@ -377,6 +380,9 @@ class DashboardsController extends AppController
                 }
                 $element['Dashboard']['widgets'] = array_keys($widgets);
                 sort($element['Dashboard']['widgets']);
+                if ($element['Dashboard']['user_id'] != $this->Auth->user('id')) {
+                    $element['User']['email'] = '';
+                }
             }
             $this->set('passedArgs', $this->passedArgs);
             $this->set('data', $data);

@@ -23,7 +23,10 @@ class Dashboard extends AppModel
     public $belongsTo = array(
         'User',
         'Role',
-        'Organisation',
+        'Organisation' => array(
+            'className' => 'Organisation',
+            'foreignKey' => 'org_id'
+        )
     );
 
     public function loadWidget($user, $name, $returnOnException = false)
