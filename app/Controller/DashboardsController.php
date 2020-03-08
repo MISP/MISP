@@ -33,7 +33,7 @@ class DashboardsController extends AppController
                 throw new NotFoundException(__('Invalid dashboard template.'));
             }
         }
-        if (empty($userSettings)) {
+        if (empty($userSettings) && empty($dashboardTemplate)) {
             $dashboardTemplate = $this->Dashboard->getDashboardTemplate($this->Auth->user());
         }
         if (empty($userSettings)) {
