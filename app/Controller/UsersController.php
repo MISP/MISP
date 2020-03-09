@@ -1252,7 +1252,7 @@ class UsersController extends AppController
         if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
             throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
         }
-        if (!$this->request->is('post') || !$this->request->is('put')) {
+        if (!$this->request->is('post') && !$this->request->is('put')) {
             throw new MethodNotAllowedException(__('This functionality is only accessible via POST requests.'));
         }
         if ($id == 'me') {
