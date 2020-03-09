@@ -32,14 +32,14 @@
     });
     var container_<?= $randomNumber ?> = $('#world-map-<?= $randomNumber ?>').parent().parent();
 
-    function resizeDashboardWorldMap() {
-        var width = container_<?= $randomNumber ?>.width();
-        var height = container_<?= $randomNumber ?>.height() - 60;
-        $('#world-map-<?= $randomNumber ?>').css('width', width + 'px');
-        $('#world-map-<?= $randomNumber ?>').css('height', height + 'px');
-        $('#world-map-<?= $randomNumber ?>').vectorMap('get','mapObject').updateSize();
+    function resizeDashboardWorldMap(id) {
+        var width = eval('container_' + id + '.width()');
+        var height = eval('container_' + id + '.height() - 60');
+        $('#world-map-' + id).css('width', width + 'px');
+        $('#world-map-' + id).css('height', height + 'px');
+        $('#world-map-' + id).vectorMap('get','mapObject').updateSize();
     }
     $(document).ready(function() {
-        resizeDashboardWorldMap();
+        resizeDashboardWorldMap(<?= $randomNumber ?>);
     });
 </script>

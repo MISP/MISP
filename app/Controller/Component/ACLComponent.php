@@ -76,7 +76,11 @@ class ACLComponent extends Component
                 'index' => array('*'),
                 'updateSettings' => array('*'),
                 'getEmptyWidget' => array('*'),
-                'renderWidget' => array('*')
+                'renderWidget' => array('*'),
+                'listTemplates' => array('*'),
+                'saveTemplate' => array('*'),
+                'export' => array('*'),
+                'import' => array('*')
             ),
             'decayingModel' => array(
                 "update" => array(),

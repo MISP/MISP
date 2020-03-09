@@ -10,7 +10,8 @@
                     'field' => $field,
                     'row' => $row,
                     'column' => $column,
-                    'data_path' => empty($field['data_path']) ? '' : $field['data_path'], 'k' => $k
+                    'data_path' => empty($field['data_path']) ? '' : $field['data_path'],
+                    'k' => $k
                 )
             );
         }

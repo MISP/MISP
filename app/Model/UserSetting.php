@@ -349,4 +349,19 @@ class UserSetting extends AppModel
         $result = $this->save(array('UserSetting' => $userSetting));
         return true;
     }
+
+    public function getSetting($user_id, $setting)
+    {
+        $setting = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'UserSetting.user_id' => $user_id,
+                'UserSetting.setting' => $setting
+            )
+        ));
+        if (empty($setting)) {
+            return array();
+        }
+        return $setting['UserSetting']['value'];
+    }
 }
