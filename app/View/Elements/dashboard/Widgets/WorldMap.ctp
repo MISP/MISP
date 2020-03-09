@@ -12,11 +12,18 @@
         'meta' => 'icon'
     ));
     $randomNumber = rand();
+    if (empty($data['colour_scale'])) {
+        $data['colour_scale'] = json_encode(array(
+            '#003FBF','#0063BF','#0087BF','#00ACBF','#00BFAD','#00BF89','#00BF64',
+            '#00BF40','#00BF1C','#08BF00','#2CBF00','#51BF00','#75BF00','#99BF00',
+            '#BEBF00','#BF9B00','#BF7700','#BF5200','#BF2E00','#BF0900'
+        ), true);
+    }
 ?>
 
 <div id="world-map-<?= $randomNumber ?>" style="width: 600px; height: 400px"></div>
 <script>
-    (function() { // variables and functions have their own scope (no override) 
+    (function() { // variables and functions have their own scope (no override)
         'use strict';
         var randomNumber = "<?= $randomNumber ?>";
         var scope = "<?= h($data['scope']) ?>";
@@ -29,7 +36,8 @@
             series: {
                 regions: [{
                     values: mapData,
-                    scale: ['#003FBF','#0063BF','#0087BF','#00ACBF','#00BFAD','#00BF89','#00BF64','#00BF40','#00BF1C','#08BF00','#2CBF00','#51BF00','#75BF00','#99BF00','#BEBF00','#BF9B00','#BF7700','#BF5200','#BF2E00','#BF0900'], //  gradient blue->green->yellow->red
+                    scale:
+                    <?= $data['colour_scale'] ?>, //  gradient blue->green->yellow->red
                     normalizeFunction: 'polynomial'
                 }]
             },
