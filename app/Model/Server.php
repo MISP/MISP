@@ -1262,7 +1262,7 @@ class Server extends AppModel
                         'require_password_confirmation' => array(
                             'level' => 1,
                             'description' => __('Enabling this setting will require users to submit their current password on any edits to their profile (including a triggered password change). For administrators, the confirmation will be required when changing the profile of any user. Could potentially mitigate an attacker trying to change a compromised user\'s password in order to establish persistance, however, enabling this feature will be highly annoying to users.'),
-                            'value' => false,
+                            'value' => true,
                             'errorMessage' => '',
                             'test' => 'testBool',
                             'type' => 'boolean',

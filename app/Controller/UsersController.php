@@ -209,11 +209,16 @@ class UsersController extends AppController
                 }
             }
             if ($abortPost) {
-                return $this->RestResponse->saveFailResponse('Users', 'edit', $id, $message, $this->response->type());
-            } else {
-                $this->Flash->error($message);
+                $this->request->data['User']['password'] = '';
+                $this->request->data['User']['confirm_password'] = '';
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Users', 'edit', $id, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
             }
         } else {
+            $this->User->data = $currentUser;
             $this->User->set('password', '');
             $this->request->data = $this->User->data;
         }
@@ -261,6 +266,11 @@ class UsersController extends AppController
                     $this->Flash->info($message);
                 }
             }
+            $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['password']);
+            if ($hashed) {
+                $message = __('Submitted new password cannot be the same as the current one');
+                $abortPost = true;
+            }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
                 $user['User']['change_pw'] = 0;
@@ -288,6 +298,8 @@ class UsersController extends AppController
                     }
                     $this->Flash->error($message);
                 }
+            } else {
+                $this->Flash->error($message);
             }
         }
         if ($this->_isRest()) {
@@ -1097,6 +1109,7 @@ class UsersController extends AppController
                 ),
                 'recursive' => -1
             ));
+            $lastUserLogin = $user['User']['last_login'];
             unset($user['User']['password']);
             $user['User']['action'] = 'login';
             $user['User']['last_login'] = $this->Auth->user('current_login');
@@ -1106,6 +1119,10 @@ class UsersController extends AppController
                 $this->User->saveField('password', $passwordToSave);
             }
             $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
+            if ($lastUserLogin) {
+                $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format(DateTimeInterface::RFC822);
+                $this->Flash->info(sprintf('Welcome! Last login was on %s', $readableDatetime));
+            }
             // no state changes are ever done via GET requests, so it is safe to return to the original page:
             $this->redirect($this->Auth->redirectUrl());
         // $this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -1234,6 +1251,9 @@ class UsersController extends AppController
     {
         if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
             throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
+        }
+        if (!$this->request->is('post') && !$this->request->is('put')) {
+            throw new MethodNotAllowedException(__('This functionality is only accessible via POST requests.'));
         }
         if ($id == 'me') {
             $id = $this->Auth->user('id');
