@@ -22,7 +22,9 @@
         var scope = "<?= h($data['scope']) ?>";
         var resize_timeout;
         var mapData = <?= json_encode($data['data']); ?>;
-        $('#world-map-'+randomNumber).vectorMap({
+        var $worldmap = $('#world-map-'+randomNumber);
+        var $container = $worldmap.closest('div.widgetContent');
+        $worldmap.vectorMap({
             map: 'world_mill',
             series: {
                 regions: [{
@@ -36,8 +38,6 @@
                 el.html(el.html()+' (' + scope + ' - '+amount+')');
             }
         });
-        var $worldmap = $('#world-map-'+randomNumber);
-        var $container = $worldmap.closest('div.widgetContent');
 
         function resizeDashboardWorldMap() {
             var width = $container.width();
