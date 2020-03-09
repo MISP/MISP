@@ -392,7 +392,7 @@ class LogsController extends AppController
 
                 // re-get pagination
                 $this->{$this->defaultModel}->recursive = 0;
-                $this->paginate = $this->Session->read('paginate_conditions_log');
+                $this->paginate = array_merge_recursive($this->Session->read('paginate_conditions_log'), $this->paginate);
                 if (!isset($this->paginate['order'])) {
                     $this->paginate['order'] = array('Log.id' => 'DESC');
                 }
