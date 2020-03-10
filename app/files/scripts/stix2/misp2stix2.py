@@ -292,14 +292,15 @@ class StixBuilder():
                 self.add_object_indicator(file_object, pattern_arg=f"[{' AND '.join(patterns)}]")
             else:
                 observable = self.resolve_file_observable(file_object['Attribute'], file_id)
-                pe_type = self._get_pe_type_from_filename(observable['0'])
-                observable['0']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections, pe_type)
+                key = '0' if len(observable) == 1 else self._fetch_file_observable(observable)
+                pe_type = self._get_pe_type_from_filename(observable[key])
+                observable[key]['extensions'] = self.parse_pe_extensions_observable(pe_object, sections, pe_type)
                 self.add_object_observable(file_object, observable_arg=observable)
 
     @staticmethod
     def _create_pe_type_test(observable, extension):
         return [
-            ('name' in observable and observable['name'].endswith('.%s' % extension)),
+            ('name' in observable and observable['name'].endswith(f'.{extension}')),
             ('mime_type' in observable and re.compile(".* .+{0}.+ .*|.* {0} .*".format(extension)).match(observable['mime_type'].lower()))]
 
     def _get_pe_type_from_filename(self, observable):
@@ -307,6 +308,13 @@ class StixBuilder():
             if any(self._create_pe_type_test(observable, extension)):
                 return extension
         return 'sys'
+
+    @staticmethod
+    def _fetch_file_observable(observable_objects):
+        for key, observable in observable_objects.items():
+            if observable['type'] == 'file':
+                return key
+        return '0'
 
     def parse_pe_extensions_observable(self, pe_object, sections, pe_type):
         extension = defaultdict(list)
