@@ -246,7 +246,9 @@ class DashboardsController extends AppController
                 $this->request->data = $this->request->data['Dashboard'];
             }
             $data = $this->request->data;
-            $data['value'] = $this->UserSetting->getSetting($this->Auth->user('id'), 'dashboard');
+            if (empty($update)) { // save the template stored in user setting and make it persistent
+                $data['value'] = $this->UserSetting->getSetting($this->Auth->user('id'), 'dashboard');
+            }
             $result = $this->Dashboard->saveDashboardTemplate($this->Auth->user(), $data, $update);
             if ($this->_isRest()) {
                 if ($result) {
