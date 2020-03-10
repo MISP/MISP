@@ -4889,7 +4889,6 @@ function submitDashboardForm(id) {
     }
     configData = JSON.stringify(configData);
     $('#' + id).attr('config', configData);
-    updateDashboardWidget($('#' + id));
     $('#genericModal').modal('hide');
     saveDashboardState();
 }
@@ -4917,10 +4916,11 @@ function submitDashboardAddWidget() {
             );
             if (config !== '') {
                 config = JSON.parse(config);
+                config = JSON.stringify(config);
+            } else {
+                config = '[]';
             }
-            config = JSON.stringify(config);
             $('#widget_' + (k+1)).attr('config', config);
-            updateDashboardWidget($('#widget_' + (k+1)));
             saveDashboardState();
             $('#last-element-counter').data('element-counter', (k+1));
         },
@@ -4966,23 +4966,27 @@ function saveDashboardState() {
 }
 
 function updateDashboardWidget(element) {
-    var container = $(element).find('.widgetContent');
-    var titleText = $(element).find('.widgetTitleText');
-    var temp = JSON.parse($(element).attr('config'));
-    if (temp['alias'] !== undefined) {
-        titleText.text(temp['alias']);
+    element = $(element);
+    if (element.length) {
+        var container_id = $(element).attr('id').substring(7);
+        var container = $(element).find('.widgetContent');
+        var titleText = $(element).find('.widgetTitleText');
+        var temp = JSON.parse($(element).attr('config'));
+        if (temp['alias'] !== undefined) {
+            titleText.text(temp['alias']);
+        }
+        $.ajax({
+            type: 'POST',
+            url: baseurl + '/dashboards/renderWidget/' + container_id,
+            data: {
+                config: $(element).attr('config'),
+                widget: $(element).attr('widget')
+            },
+            success:function (data, textStatus) {
+                container.html(data);
+            }
+        });
     }
-    $.ajax({
-        type: 'POST',
-        url: baseurl + '/dashboards/renderWidget',
-        data: {
-            config: $(element).attr('config'),
-            widget: $(element).attr('widget')
-        },
-        success:function (data, textStatus) {
-            container.html(data);
-        },
-    });
 }
 
 function setHomePage() {
