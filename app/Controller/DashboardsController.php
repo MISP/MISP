@@ -247,7 +247,9 @@ class DashboardsController extends AppController
                 $this->request->data = $this->request->data['Dashboard'];
             }
             $data = $this->request->data;
-            $data['value'] = $this->UserSetting->getSetting($this->Auth->user('id'), 'dashboard');
+            if (empty($update)) { // save the template stored in user setting and make it persistent
+                $data['value'] = $this->UserSetting->getSetting($this->Auth->user('id'), 'dashboard');
+            }
             $result = $this->Dashboard->saveDashboardTemplate($this->Auth->user(), $data, $update);
             if ($this->_isRest()) {
                 if ($result) {
@@ -271,10 +273,10 @@ class DashboardsController extends AppController
             $permFlags[$perm_flag] = $perm_data['text'];
         }
         $options = array(
-            'org_id' => array_merge(
+            'org_id' => (
                 array(
                     0 => __('Unrestricted')
-                ),
+                ) + // avoid re-indexing
                 $this->User->Organisation->find('list', array(
                     'fields' => array(
                         'Organisation.id', 'Organisation.name'
@@ -282,10 +284,10 @@ class DashboardsController extends AppController
                     'conditions' => array('Organisation.local' => 1)
                 ))
             ),
-            'role_id' => array_merge(
+            'role_id' => (
                 array(
                     0 => __('Unrestricted')
-                ),
+                ) + // avoid re-indexing
                 $this->User->Role->find('list', array(
                     'fields' => array(
                         'Role.id', 'Role.name'
