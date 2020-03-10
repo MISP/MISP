@@ -80,7 +80,8 @@ class ACLComponent extends Component
                 'listTemplates' => array('*'),
                 'saveTemplate' => array('*'),
                 'export' => array('*'),
-                'import' => array('*')
+                'import' => array('*'),
+                'deleteTemplate' => array('*')
             ),
             'decayingModel' => array(
                 "update" => array(),
