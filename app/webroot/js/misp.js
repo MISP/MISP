@@ -4905,7 +4905,6 @@ function submitDashboardAddWidget() {
         type: 'GET',
         success: function(data) {
             el = data;
-            var grid = GridStack.init();
             grid.addWidget(
                 el,
                 {
@@ -4987,6 +4986,28 @@ function updateDashboardWidget(element) {
             }
         });
     }
+}
+
+function resetDashboardGrid(grid) {
+    $('.grid-stack-item').each(function() {
+        updateDashboardWidget(this);
+    });
+    saveDashboardState();
+    $('.edit-widget').click(function() {
+        el = $(this).closest('.grid-stack-item');
+        data = {
+            id: el.attr('id'),
+            config: JSON.parse(el.attr('config')),
+            widget: el.attr('widget'),
+            alias: el.attr('alias')
+        }
+        openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
+    });
+    $('.remove-widget').click(function() {
+        el = $(this).closest('.grid-stack-item');
+        grid.removeWidget(el);
+        saveDashboardState();
+    });
 }
 
 function setHomePage() {
