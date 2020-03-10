@@ -129,6 +129,7 @@ function removeRestClientHistoryItem(id) {
             }
         });
 
+        $('#TemplateSelect').val($('#ServerUrl').val()).trigger("chosen:updated").trigger("change");
         $('#ServerUrl').keyup(function() {
             $('#TemplateSelect').val($(this).val()).trigger("chosen:updated").trigger("change");
         });
@@ -142,11 +143,12 @@ function removeRestClientHistoryItem(id) {
                 $('#ServerUrl').val(allValidApis[selected_template].url);
                 $('#ServerUrl').data('urlWithoutParam', selected_template);
                 var body_value = $('#ServerBody').val();
-                if (body_value === '' || server_url_changed) {
+                var refreshBody = (body_value === '' || server_url_changed)
+                if (refreshBody) {
                     $('#ServerBody').val(allValidApis[selected_template].body);
                 }
                 setApiInfoBox(false);
-                updateQueryTool(selected_template, true);
+                updateQueryTool(selected_template, refreshBody);
             }
         });
 
@@ -294,8 +296,10 @@ function updateQueryTool(url, isEmpty) {
             });
         } else {
             var r = filtersJson[k];
-            r.value = values;
-            rules.rules[0].rules.push(r);
+            if (r !== undefined) { // rule is not defined in the description
+                r.value = values;
+                rules.rules[0].rules.push(r);
+            }
         }
     });
 
@@ -313,7 +317,6 @@ function updateQueryTool(url, isEmpty) {
             + '</div>');
         div.append(additionalInput);
     }
-
     querybuilderTool.setRules(rules, false);
 }
 

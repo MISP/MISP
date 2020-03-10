@@ -1367,6 +1367,18 @@ class ServersController extends AppController
         $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
     }
 
+    public function restartDeadWorkers()
+    {
+        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
+        $this->Server->restartDeadWorkers($this->Auth->user());
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'restartDeadWorkers', false, $this->response->type(), __('Restarting workers.'));
+        }
+        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
+    }
+
     private function __manageFiles()
     {
         if (!$this->_isSiteAdmin()) {

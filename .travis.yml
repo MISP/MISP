@@ -131,7 +131,6 @@ install:
     - pip install .[fileobjects]
     - popd
     - pip install stix zmq redis plyara
-    - pip install -I antlr4-python3-runtime==4.7.2 # antlr4-python3-runtime==4.8 causes issues
     - deactivate
 
 before_script:
@@ -169,6 +168,7 @@ after_failure:
     - cat /etc/apache2/sites-available/misp.local.conf
     - sudo ls -l /var/log/apache2
     - sudo cat `pwd`/app/tmp/logs/error.log
+    - sudo cat `pwd`/app/tmp/logs/exec-errors.log
     - sudo cat `pwd`/app/tmp/logs/debug.log
     - sudo cat /var/log/apache2/error.log
     - sudo cat /var/log/apache2/misp.local_error.log

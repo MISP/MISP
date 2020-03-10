@@ -15,30 +15,9 @@
 ?>
 <script type="text/javascript">
 
-function resetDashboardGrid(grid) {
-    $('.grid-stack-item').each(function() {
-        updateDashboardWidget(this);
-    });
-    saveDashboardState();
-    $('.edit-widget').click(function() {
-        el = $(this).closest('.grid-stack-item');
-        data = {
-            id: el.attr('id'),
-            config: JSON.parse(el.attr('config')),
-            widget: el.attr('widget'),
-            alias: el.attr('alias')
-        }
-        openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
-    });
-    $('.remove-widget').click(function() {
-        el = $(this).closest('.grid-stack-item');
-        grid.removeWidget(el);
-        saveDashboardState();
-    });
-}
-
+var grid = false;
 $(document).ready(function () {
-    var grid = GridStack.init();
+    grid = GridStack.init({verticalMargin: 2});
     resetDashboardGrid(grid);
     grid.on('change', function(event, items) {
         saveDashboardState();

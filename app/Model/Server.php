@@ -1262,7 +1262,7 @@ class Server extends AppModel
                         'require_password_confirmation' => array(
                             'level' => 1,
                             'description' => __('Enabling this setting will require users to submit their current password on any edits to their profile (including a triggered password change). For administrators, the confirmation will be required when changing the profile of any user. Could potentially mitigate an attacker trying to change a compromised user\'s password in order to establish persistance, however, enabling this feature will be highly annoying to users.'),
-                            'value' => false,
+                            'value' => true,
                             'errorMessage' => '',
                             'test' => 'testBool',
                             'type' => 'boolean',
@@ -5119,6 +5119,7 @@ class Server extends AppModel
         } else {
             $currentUser = trim(shell_exec('whoami'));
         }
+        $killed = array();
         foreach ($workers as $pid => $worker) {
             if (!is_numeric($pid)) {
                 throw new MethodNotAllowedException('Non numeric PID found!');
@@ -5127,8 +5128,14 @@ class Server extends AppModel
             if ($worker['user'] == $currentUser && !$pidTest) {
                 $this->ResqueStatus->removeWorker($pid);
                 $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
+                if (empty($killed[$worker['queue']])) {
+                    $killed[$worker['queue']] = 1;
+                } else {
+                    $killed[$worker['queue']] += 1;
+                }
             }
         }
+        return $killed;
     }
 
     private function __logRemoveWorker($user, $pid, $queue, $dead = false)
@@ -5589,6 +5596,19 @@ class Server extends AppModel
             $this->workerRemoveDead($user);
             $prepend = '';
             shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
+        }
+        return true;
+    }
+
+    public function restartDeadWorkers($user=false)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $killed = $this->workerRemoveDead($user);
+            foreach ($killed as $queue => $count) {
+                for ($i = 0; $i < $count; $i++) {
+                    $this->startWorker($queue);
+                }
+            }
         }
         return true;
     }

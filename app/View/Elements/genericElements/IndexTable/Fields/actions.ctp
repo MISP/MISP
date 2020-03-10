@@ -8,7 +8,9 @@
      *    - title: title of the action. Automatically generates aria labels too
      *    - postLink: convert the button into a POST request
      *    - postLinkConfirm: As the user to confirm the POST before submission with the given message
-     *    - onClick: custom onClick action instead of a simple GET/POST request
+     *    - onclick: custom onclick action instead of a simple GET/POST request
+     *    - onclick_params_data_path: pass a data path param to the onclick field. requires [onclick_params_data_path] in the onclick field
+     *      as a needle for replacement
      *    - icon: FA icon (added using the helper, knowing the fa domain is not needed, just add the short name such as "edit")
      *  - requirement evaluates to true/false
      *  - complex_requirement - add complex requirements via lambda functions:
@@ -55,12 +57,20 @@
                 empty($action['postLinkConfirm'])? '' : $action['postLinkConfirm']
             );
         } else {
+            if (!empty($action['onclick']) && !empty($action['onclick_params_data_path'])) {
+                $action['onclick'] = str_replace(
+                    '[onclick_params_data_path]',
+                    h(Hash::extract($row, $action['onclick_params_data_path'])[0]),
+                    $action['onclick']
+                );
+
+            }
             echo sprintf(
                 '<a href="%s" title="%s" aria-label="%s" %s><i class="black %s"></i></a> ',
                 $url,
                 empty($action['title']) ? '' : h($action['title']),
                 empty($action['title']) ? '' : h($action['title']),
-                empty($action['onclick']) ? '' : sprintf('onclick="%s"', $action['onclick']),
+                empty($action['onclick']) ? '' : sprintf('onClick="%s"', $action['onclick']),
                 $this->FontAwesome->getClass($action['icon'])
             );
         }

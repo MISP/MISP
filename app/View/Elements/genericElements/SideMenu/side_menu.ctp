@@ -17,6 +17,38 @@
                             'params' => array($baseurl . '/dashboards/getForm/add')
                         ),
                     ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'dashboardImport',
+                        'url' => '#',
+                        'text' => __('Import Config JSON'),
+                        'onClick' => array(
+                            'function' => 'openGenericModal',
+                            'params' => array($baseurl . '/dashboards/import')
+                        ),
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'dashboardExport',
+                        'url' => '#',
+                        'text' => __('Export Config JSON'),
+                        'onClick' => array(
+                            'function' => 'openGenericModal',
+                            'params' => array($baseurl . '/dashboards/export')
+                        ),
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'dashboardSave',
+                        'url' => '#',
+                        'text' => __('Save Dashboard Config'),
+                        'onClick' => array(
+                            'function' => 'openGenericModal',
+                            'params' => array($baseurl . '/dashboards/saveTemplate')
+                        ),
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'dashboardTemplateIndex',
+                        'url' => '/dashboards/listTemplates',
+                        'text' => __('List Dashboard Templates')
+                    ));
                     break;
                 case 'event':
                     $dataEventId = isset($event['Event']['id']) ? h($event['Event']['id']) : 0;

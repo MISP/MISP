@@ -8,7 +8,7 @@ class MispAdminSyncTestWidget
     public $height = 2;
     public $params = array();
     public $description = 'Basic widget showing some server statistics in regards to MISP.';
-    public $cacheLifetime = 5;
+    public $cacheLifetime = 1;
 
 
 	public function handler($user, $options = array())
@@ -19,6 +19,10 @@ class MispAdminSyncTestWidget
             'conditions' => array('OR' => array('pull' => 1, 'push' => 1, 'caching_enabled' => 1)),
             'recursive' => -1
         ));
+        $data = array();
+        if (empty($servers)) {
+            return array();
+        }
         $syncTestErrorCodes = $this->Server->syncTestErrorCodes;
         foreach ($servers as $server) {
             $result = $this->Server->runConnectionTest($server['Server']['id']);

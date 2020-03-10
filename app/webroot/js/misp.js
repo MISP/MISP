@@ -56,7 +56,7 @@ function fetchAddSightingForm(type, attribute_id, page, onvalue) {
     });
 }
 
-function flexibleAddSighting(clicked, type, attribute_id, event_id, value, page, placement) {
+function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placement) {
     var $clicked = $(clicked);
     var hoverbroken = false;
     $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
@@ -4459,6 +4459,14 @@ function checkNoticeList(type) {
 
 }
 
+function quickSelect(target) {
+    var range = document.createRange();
+    var selection = window.getSelection();
+    range.selectNodeContents(target);
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
 $(document).ready(function() {
     $('#quickFilterField').bind("enterKey",function(e){
         $('#quickFilterButton').trigger("click");
@@ -4499,11 +4507,7 @@ $(document).ready(function() {
     // clicking on an element with this class will select all of its contents in a
     // single click
     $('.quickSelect').click(function() {
-        var range = document.createRange();
-        var selection = window.getSelection();
-        range.selectNodeContents(this);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        quickSelect(this);
     });
     $(".cortex-json").click(function() {
         var cortex_data = $(this).data('cortex-json');
@@ -4885,7 +4889,6 @@ function submitDashboardForm(id) {
     }
     configData = JSON.stringify(configData);
     $('#' + id).attr('config', configData);
-    updateDashboardWidget($('#' + id));
     $('#genericModal').modal('hide');
     saveDashboardState();
 }
@@ -4902,7 +4905,6 @@ function submitDashboardAddWidget() {
         type: 'GET',
         success: function(data) {
             el = data;
-            var grid = GridStack.init();
             grid.addWidget(
                 el,
                 {
@@ -4913,10 +4915,11 @@ function submitDashboardAddWidget() {
             );
             if (config !== '') {
                 config = JSON.parse(config);
+                config = JSON.stringify(config);
+            } else {
+                config = '[]';
             }
-            config = JSON.stringify(config);
             $('#widget_' + (k+1)).attr('config', config);
-            updateDashboardWidget($('#widget_' + (k+1)));
             saveDashboardState();
             $('#last-element-counter').data('element-counter', (k+1));
         },
@@ -4962,22 +4965,48 @@ function saveDashboardState() {
 }
 
 function updateDashboardWidget(element) {
-    var container = $(element).find('.widgetContent');
-    var titleText = $(element).find('.widgetTitleText');
-    var temp = JSON.parse($(element).attr('config'));
-    if (temp['alias'] !== undefined) {
-        titleText.text(temp['alias']);
+    element = $(element);
+    if (element.length) {
+        var container_id = $(element).attr('id').substring(7);
+        var container = $(element).find('.widgetContent');
+        var titleText = $(element).find('.widgetTitleText');
+        var temp = JSON.parse($(element).attr('config'));
+        if (temp['alias'] !== undefined) {
+            titleText.text(temp['alias']);
+        }
+        $.ajax({
+            type: 'POST',
+            url: baseurl + '/dashboards/renderWidget/' + container_id,
+            data: {
+                config: $(element).attr('config'),
+                widget: $(element).attr('widget')
+            },
+            success:function (data, textStatus) {
+                container.html(data);
+            }
+        });
     }
-    $.ajax({
-        type: 'POST',
-        url: baseurl + '/dashboards/renderWidget',
-        data: {
-            config: $(element).attr('config'),
-            widget: $(element).attr('widget')
-        },
-        success:function (data, textStatus) {
-            container.html(data);
-        },
+}
+
+function resetDashboardGrid(grid) {
+    $('.grid-stack-item').each(function() {
+        updateDashboardWidget(this);
+    });
+    saveDashboardState();
+    $('.edit-widget').click(function() {
+        el = $(this).closest('.grid-stack-item');
+        data = {
+            id: el.attr('id'),
+            config: JSON.parse(el.attr('config')),
+            widget: el.attr('widget'),
+            alias: el.attr('alias')
+        }
+        openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
+    });
+    $('.remove-widget').click(function() {
+        el = $(this).closest('.grid-stack-item');
+        grid.removeWidget(el);
+        saveDashboardState();
     });
 }
 

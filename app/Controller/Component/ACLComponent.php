@@ -76,7 +76,12 @@ class ACLComponent extends Component
                 'index' => array('*'),
                 'updateSettings' => array('*'),
                 'getEmptyWidget' => array('*'),
-                'renderWidget' => array('*')
+                'renderWidget' => array('*'),
+                'listTemplates' => array('*'),
+                'saveTemplate' => array('*'),
+                'export' => array('*'),
+                'import' => array('*'),
+                'deleteTemplate' => array('*')
             ),
             'decayingModel' => array(
                 "update" => array(),
@@ -401,6 +406,7 @@ class ACLComponent extends Component
                     'releaseUpdateLock' => array(),
                     'resetRemoteAuthKey' => array(),
                     'rest' => array('perm_auth'),
+                    'restartDeadWorkers' => array(),
                     'restartWorkers' => array(),
                     'serverSettings' => array(),
                     'serverSettingsEdit' => array(),
