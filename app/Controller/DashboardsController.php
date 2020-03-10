@@ -143,7 +143,7 @@ class DashboardsController extends AppController
         $this->set('widget', $widget);
     }
 
-    public function renderWidget($force = false)
+    public function renderWidget($widget_id, $force = false)
     {
         if ($this->request->is('post')) {
             if (empty($this->request->data['data'])) {
@@ -177,6 +177,7 @@ class DashboardsController extends AppController
                 'render' => $dashboardWidget->render,
                 'autoRefreshDelay' => empty($dashboardWidget->autoRefreshDelay) ? false : $dashboardWidget->autoRefreshDelay
             );
+            $this->set('widget_id', $widget_id);
             $this->set('data', $data);
             $this->set('config', $config);
             $this->render('widget_loader');

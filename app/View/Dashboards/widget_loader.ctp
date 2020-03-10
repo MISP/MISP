@@ -1,7 +1,4 @@
-<?php
-    $randomId = rand();
-?>
-<div id="widgetContentInner<?= $randomId ?>">
+<div id="widgetContentInner_<?= h($widget_id) ?>">
     <?php
         echo $this->element('/dashboard/Widgets/' . $config['render']);
     ?>
@@ -10,7 +7,7 @@
     $(document).ready(function() {
         if (<?= $config['autoRefreshDelay'] ? 'true' : 'false' ?>) {
             setTimeout( function(){
-                updateDashboardWidget($("#widgetContentInner<?= $randomId ?>").closest('.grid-stack-item'))},
+                updateDashboardWidget("#widget_<?= h($widget_id) ?>")},
                 <?= $config['autoRefreshDelay'] ? $config['autoRefreshDelay'] : 1 ?> * 1000
             );
         }
