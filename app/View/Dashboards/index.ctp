@@ -20,7 +20,6 @@ $(document).ready(function () {
     grid = GridStack.init({verticalMargin: 2});
     resetDashboardGrid(grid);
     grid.on('change', function(event, items) {
-        alert(1);
         saveDashboardState();
     });
     grid.on('added', function(event, items) {
