@@ -973,60 +973,79 @@ class StixBuilder():
 
     def resolve_file_observable(self, attributes, object_id):
         observable = {}
-        observable_file = defaultdict(dict)
-        observable_file['type'] = 'file'
-        malware_sample = {}
-        d_observable = {}
+        file_observable = defaultdict(dict)
+        file_observable['type'] = 'file'
         n_object = 0
-        for attribute in attributes:
-            self.parse_galaxies(attribute['Galaxy'], object_id)
-            attribute_type = attribute['type']
-            if attribute_type == 'malware-sample':
-                filename, md5 = attribute['value'].split('|')
-                malware_sample['filename'] = filename
-                malware_sample['md5'] = md5
-                if attribute.get('data'):
-                    observable[str(n_object)] = {'type': 'artifact', 'payload_bin': attribute['data']}
-                    observable_file['content_ref'] = str(n_object)
-                    n_object += 1
-            elif attribute_type in ('filename', 'md5'):
-                d_observable[attribute_type] = attribute['value']
-            elif attribute_type in misp_hash_types:
-                observable_file['hashes'][attribute_type] = attribute['value']
+        attributes_dict = self.create_file_attributes_dict(attributes, object_id)
+        attributes_dict.update({'path': ['/home/chrisr3d/git/'], 'fullpath': ['/home/chrisr3d/git/MISP/cleanMISP/app/files/scripts/stix2']})
+        for key, feature in fileMapping.items():
+            if key in attributes_dict:
+                if key in hash_types:
+                    file_observable['hashes'][feature] = attributes_dict[key]
+                else:
+                    file_observable[feature] = attributes_dict[key]
+        if 'filename' in attributes_dict:
+            file_observable['name'] = attributes_dict['filename'][0]
+            if len(attributes_dict['filename']) > 1:
+                self._handle_multiple_file_fields_observable(file_observable, attributes_dict['filename'][1:], 'filename')
+        if 'path' in attributes_dict:
+            observable[str(n_object)] = {'type': 'directory', 'path': attributes_dict['path'][0]}
+            file_observable['parent_directory_ref'] = str(n_object)
+            n_object += 1
+            if len(attributes_dict['path']) > 1:
+                self._handle_multiple_file_fields_observable(file_obsevrable, attributes_dict['path'][1:], 'path')
+        if 'fullpath' in attributes_dict:
+            if 'parent_directory_ref' not in file_observable:
+                observable[str(n_object)] = {'type': 'directory', 'path': attributes_dict['fullpath'][0]}
+                file_observable['parent_directory_ref'] = str(n_object)
+                n_object += 1
+                if len(attributes_dict['path']) > 1:
+                    self._handle_multiple_file_fields_observable(file_obsevrable, attributes_dict['fullpath'][1:], 'fullpath')
             else:
-                try:
-                    observable_type = fileMapping[attribute_type]
-                except KeyError:
-                    observable_type = "x_misp_{}_{}".format(attribute_type, attribute['object_relation'])
-                observable_file[observable_type] = attribute['value']
-        if 'md5' in d_observable:
-            observable_file['hashes']['MD5'] = malware_sample['md5'] if 'md5' in malware_sample else d_observable['md5']
-        if 'filename' in d_observable:
-            observable_file['name'] = malware_sample['filename'] if 'filename' in malware_sample else d_observable['filename']
-        observable[str(n_object)] = observable_file
+                self._handle_multiple_file_fields_observable(file_observable, attributes_dict['fullpath'], 'fullpath')
+        if 'malware-sample' in attributes_dict:
+            artifact, value = self._create_artifact_observable(attributes_dict['malware-sample'])
+            filename, md5 = value.split('|')
+            artifact['name'] = filename
+            artifact['hashes'] = {'MD5': md5}
+            observable[str(n_object)] = artifact
+            file_observable['content_ref'] = str(n_object)
+            n_object += 1
+        if 'attachment' in attributes_dict:
+            artifact, value = self._create_artifact_observable(attributes_dict['attachment'])
+            artifact['name'] = value
+            observable[str(n_object)] = artifact
+            n_object += 1
+        observable[str(n_object)] = file_observable
         return observable
 
     def resolve_file_pattern(self, attributes, object_id):
         patterns = []
         pattern = objectsMapping['file']['pattern']
         attributes_dict = self.create_file_attributes_dict(attributes, object_id)
+        attributes_dict.update({'path': ['/home/chrisr3d/git/'], 'fullpath': ['/home/chrisr3d/git/MISP/cleanMISP/app/files/scripts/stix2']})
         for key, feature in fileMapping.items():
             if key in attributes_dict:
-                for value in attributes_dict[key]:
-                    patterns.append(pattern.format(feature, value))
+                if key in hash_types:
+                    feature = f"hashes.'{feature}'"
+                patterns.append(pattern.format(feature, attributes_dict[key]))
+        if 'filename' in attributes_dict:
+            self._handle_multiple_file_fields_pattern(patterns, attributes_dict['filename'], 'name')
+        for feature in ('path', 'fullpath'):
+            if feature in attributes_dict:
+                self._handle_multiple_file_fields_pattern(patterns, attributes_dict[feature], 'parent_directory_ref.path')
         for feature, pattern_part in zip(('attachment', 'malware-sample'), ('artifact:', 'file:content_ref.')):
             if feature in attributes_dict:
-                for attachment in attributes_dict[feature]:
-                    if ' | ' in attachment:
-                        value, data = attachment.split(' | ')
-                        patterns.append(f"{pattern_part}payload_bin = '{data}'")
-                    else:
-                        value = attachment
-                    if '|' in value:
-                        value, md5 = value.split('|')
-                        if 'md5' not in attributes_dict or md5 not in attributes_dict['md5']:
-                            patterns.append(pattern.format('MD5', md5))
-                    patterns.append(f"{pattern_part}{'' if 'file:' in pattern_part else 'x_text_'}name = '{value}'")
+                value = attributes_dict[feature]
+                if ' | ' in value:
+                    value, data = value.split(' | ')
+                    patterns.append(f"{pattern_part}payload_bin = '{data}'")
+                if feature == 'malware-sample':
+                    value, md5 = value.split('|')
+                    patterns.append(f"{pattern_part}hashes.'MD5' = '{md5}'")
+                    patterns.append(f"{pattern_part}name = '{value}'")
+                else:
+                    patterns.append(f"{pattern_part}x_misp_text_name = '{value}'")
         return patterns
 
     def resolve_ip_port_observable(self, attributes, object_id):
@@ -1428,17 +1447,40 @@ class StixBuilder():
             pattern.append(mapping.format(stix_type, value))
         return pattern
 
+    @staticmethod
+    def _create_artifact_observable(value):
+        artifact = {'type': 'artifact'}
+        if ' | ' in value:
+            value, data = value.split(' | ')
+            artifact['payload_bin'] = data
+        return artifact, value
+
     def create_file_attributes_dict(self, attributes, object_id):
+        multiple_fields = ('filename', 'path', 'fullpath')
         attributes_dict = defaultdict(list)
         for attribute in attributes:
             attributes_dict[attribute['object_relation']].append(self._parse_attribute(attribute))
             self.parse_galaxies(attribute['Galaxy'], object_id)
-        return attributes_dict
+        return {key: value[0] if key not in multiple_fields and len(value) == 1 else value for key, value in attributes_dict.items()}
+
+    @staticmethod
+    def _handle_multiple_file_fields_observable(file_observable, values, feature):
+        if len(values) > 1:
+            file_observable[f'x_misp_multiple_{feature}s'] = values
+        else:
+            file_observable[f'x_misp_multiple_{feature}'] = values[0]
+
+    @staticmethod
+    def _handle_multiple_file_fields_pattern(patterns, values, feature):
+        if len(values) > 1:
+            patterns.extend([f"file:{feature} = '{value}'" for value in values])
+        else:
+            patterns.append(f"file:{feature} = '{values[0]}'")
 
     @staticmethod
     def _parse_attribute(attribute):
         if attribute['type'] in ('attachment', 'malware-sample') and attribute.get('data') is not None:
-            return f"{attribute['value']} | {attribute['data']}"
+            return f"{attribute['value'].replace(' | ', '|')} | {attribute['data']}"
         return attribute['value']
 
     @staticmethod
