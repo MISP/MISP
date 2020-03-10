@@ -38,7 +38,7 @@ from cybox.objects.whois_object import WhoisEntry, WhoisRegistrants, WhoisRegist
 from cybox.objects.win_executable_file_object import WinExecutableFile, PEHeaders, PEFileHeader, PESectionList, PESection, PESectionHeaderStruct, Entropy
 from cybox.objects.win_registry_key_object import RegistryValue, RegistryValues, WinRegistryKey
 from cybox.objects.win_service_object import WinService
-from cybox.objects.win_user_object import WinUser
+from cybox.objects.win_user_account_object import WinUser
 from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
 from cybox.utils import Namespace
 from stix.coa import CourseOfAction
