@@ -515,7 +515,7 @@
                         'text' => __('Set Setting')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/users/dashboard',
+                        'url' => '/dashboards',
                         'text' => __('Dashboard')
                     ));
                     if ($isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))) {
