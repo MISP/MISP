@@ -54,6 +54,9 @@
     <td class="short context hidden">
       <?php echo h($object['uuid']); ?>
     </td>
+    <td class="short context hidden">
+        <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
+    </td>
     <td class="short">
       <?php echo date('Y-m-d', $object['timestamp']); ?>
     </td>
@@ -154,9 +157,9 @@
         ?>
       </div>
     </td>
-    <td class="shortish">
+    <td class="short">
       <div class="attributeTagContainer" id="#Attribute_<?php echo h($object['id']);?>_tr .attributeTagContainer">
-        <?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']), 'context' => $context)); ?>
+        <?php echo $this->element('ajaxTags', array('attributeId' => $object['id'], 'tags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']), 'context' => $context, 'scope' => 'attribute', 'tagConflicts' => isset($object['tagConflicts']) ? $object['tagConflicts'] : array())); ?>
       </div>
     </td>
     <?php
@@ -255,9 +258,10 @@
                             $liContents .= sprintf(
                                 '<form>%s</form>',
                                 sprintf(
-                                    '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;">%s</a>',
+                                    '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
                                     $baseurl,
                                     h($feed['id']),
+                                    h($popover),
                                     h($feed['id'])
                                 )
                             );
@@ -317,37 +321,54 @@
       </ul>
     </td>
     <td class="short">
-      <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_solid" class="inline-field-solid">
-        <input type="checkbox" class="toids-toggle" id="toids_toggle_<?php echo h($object['id']); ?>" data-attribute-id="<?php echo h($object['id']); ?>" aria-label="<?php echo __('Toggle IDS flag');?>" title="<?php echo __('Toggle IDS flag');?>" <?php echo $object['to_ids'] ? 'checked' : ''; ?> ></input>
-      </div>
+        <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_placeholder" class = "inline-field-placeholder"></div>
+        <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_solid" class="inline-field-solid">
+            <input type="checkbox" class="toids-toggle" id="toids_toggle_<?php echo h($object['id']); ?>" data-attribute-id="<?php echo h($object['id']); ?>" aria-label="<?php echo __('Toggle IDS flag');?>" title="<?php echo __('Toggle IDS flag');?>" <?php echo $object['to_ids'] ? 'checked' : ''; ?> >
+        </div>
     </td>
     <td class="short" onmouseenter="quickEditHover(this, '<?php echo $editScope; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
-      <?php
-        $turnRed = '';
-        if ($object['distribution'] == 0) $turnRed = 'style="color:red"';
-      ?>
-      <div id = "Attribute_<?php echo $object['id']; ?>_distribution_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_distribution_solid" <?php echo $turnRed; ?> class="inline-field-solid">
         <?php
-          if ($object['distribution'] == 4):
+            $turnRed = '';
+            if ($object['distribution'] == 0) {
+                $turnRed = 'style="color:red"';
+            }
         ?>
-            <a href="/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
-        <?php
-          else:
-            echo h($shortDist[$object['distribution']]);
-          endif;
-        ?>
-      </div>
+        <div id = "Attribute_<?php echo $object['id']; ?>_distribution_placeholder" class = "inline-field-placeholder"></div>
+        <div id = "Attribute_<?php echo $object['id']; ?>_distribution_solid" <?php echo $turnRed; ?> class="inline-field-solid">
+            <?php
+                if ($object['distribution'] == 4):
+            ?>
+                <a href="/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
+            <?php
+                else:
+                    echo h($shortDist[$object['distribution']]);
+                endif;
+            ?>
+        </div>
     </td>
-  <?php
-    echo $this->element('/Events/View/sighting_field', array(
-      'object' => $object,
-      'tr_class' => $tr_class,
-      'page' => $page
-    ));
-  ?>
-  <td class="short action-links">
+    <?php
+        echo $this->element('/Events/View/sighting_field', array(
+          'object' => $object,
+          'tr_class' => $tr_class,
+          'page' => $page
+        ));
+        if (!empty($includeSightingdb)) {
+            echo $this->element('/Events/View/sightingdb_field', array(
+              'object' => $object,
+              'tr_class' => $tr_class,
+              'page' => $page
+            ));
+        }
+        if (!empty($includeDecayScore)): ?>
+            <td class="decayingScoreField">
+                  <div id = "Attribute_<?php echo h($object['id']); ?>_score_solid" class="inline-field-solid">
+                    <?php echo $this->element('DecayingModels/View/attribute_decay_score', array('scope' => 'object', 'object' => $object, 'uselink' => true)); ?>
+                  </div>
+            </td>
+    <?php
+        endif;
+    ?>
+    <td class="short action-links">
     <?php
         if ($object['deleted']):
           if ($isSiteAdmin || $mayModify):

@@ -18,10 +18,8 @@ class FuzzyCorrelateSsdeep extends AppModel
 
     public function ssdeep_prepare($hash)
     {
-        $hash = explode(':', $hash);
-        $block_size = $hash[0];
-        unset($hash[0]);
-        $hash = implode(':', $hash);
+        list($block_size, $hash) = explode(':', $hash, 2);
+        
         $chars = array();
         for ($i = 0; $i < strlen($hash); $i++) {
             if (!in_array($hash[$i], $chars)) {
@@ -53,7 +51,6 @@ class FuzzyCorrelateSsdeep extends AppModel
 
     public function get_all_7_char_chunks($hash)
     {
-        $result = '';
         $results = array();
         for ($i = 0; $i < strlen($hash) - 6; $i++) {
             $current = substr($hash, $i, 7);

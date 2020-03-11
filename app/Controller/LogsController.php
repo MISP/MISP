@@ -173,7 +173,7 @@ class LogsController extends AppController
             )
         );
         if (empty($event)) {
-            throw new MethodNotFoundException('Invalid event.');
+            throw new NotFoundException('Invalid event.');
         }
         $event = $event[0];
         $attribute_ids = array();
@@ -343,7 +343,11 @@ class LogsController extends AppController
                     'conditions' => $conditions,
                     'order' => array('Log.id' => 'DESC')
                 );
-                $this->set('list', $this->paginate());
+                $list = $this->paginate();
+                if (empty($this->Auth->user('Role')['perm_site_admin'])) {
+                    $list = $this->Log->filterSiteAdminSensitiveLogs($list);
+                }
+                $this->set('list', $list);
 
                 // and store into session
                 $this->Session->write('paginate_conditions_log', $this->paginate);
@@ -388,13 +392,17 @@ class LogsController extends AppController
 
                 // re-get pagination
                 $this->{$this->defaultModel}->recursive = 0;
-                $this->paginate = $this->Session->read('paginate_conditions_log');
+                $this->paginate = array_merge_recursive($this->Session->read('paginate_conditions_log'), $this->paginate);
                 if (!isset($this->paginate['order'])) {
                     $this->paginate['order'] = array('Log.id' => 'DESC');
                 }
                 $conditions = $this->__buildSearchConditions($filters);
                 $this->paginate['conditions'] = $conditions;
-                $this->set('list', $this->paginate());
+                $list = $this->paginate();
+                if (empty($this->Auth->user('Role')['perm_site_admin'])) {
+                    $list = $this->Log->filterSiteAdminSensitiveLogs($list);
+                }
+                $this->set('list', $list);
 
                 // set the same view as the index page
                 $this->render('admin_index');
@@ -408,7 +416,7 @@ class LogsController extends AppController
             $this->set('actions', $actions);
 
             // combobox for models
-            $models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
+            $models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'Feed', 'DecayingModel', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
             $models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
             $this->set('models', $models);
             $this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);

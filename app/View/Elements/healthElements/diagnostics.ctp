@@ -66,7 +66,7 @@
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
-        <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><?php echo __('Update Progress');?></a>
+        <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" style="margin-left: 5px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><i class="fas fa-tasks"></i> <?php echo __('View Update Progress');?></a>
     </div>
     <h3><?php echo __('Submodules version');?>
         <it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Refresh submodules version.'); ?>"></it>
@@ -159,7 +159,7 @@
     <p><span class="bold"><?php echo __('PHP ini path');?></span>:… <span class="green"><?php echo h($php_ini); ?></span><br />
     <span class="bold"><?php echo __('PHP Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['web']['phpcolour']; ?>"><?php echo h($phpversions['web']['phpversion']) . ' (' . $phpversions['web']['phptext'] . ')';?></span><br />
     <span class="bold"><?php echo __('PHP CLI Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['cli']['phpcolour']; ?>"><?php echo h($phpversions['cli']['phpversion']) . ' (' . $phpversions['cli']['phptext'] . ')';?></span></p>
-    <p class="red bold"><?php echo __('Please note that the we will be dropping support for Python 2.7 and PHP 7.1 as of 2020-01-01 and are henceforth considered deprecated (but supported until the end of 2019). Both of these versions will by then reached End of Life and will become a liability. Furthermore, by dropping support for these outdated versions of the languages, we\'ll be able to phase out support for legacy code that exists solely to support them. Make sure that you plan ahead accordingly. More info: ');?><a href="https://secure.php.net/supported-versions.php">PHP</a>, <a href="https://www.python.org/dev/peps/pep-0373">Python</a>.</p>
+    <p class="red bold"><?php echo __('Please note that the support for Python versions below 3.6 and below PHP 7.2 has been dropped as of 2020-01-01 and are henceforth considered unsupported. More info: ');?><a href="https://secure.php.net/supported-versions.php">PHP</a>, <a href="https://www.python.org/dev/peps/pep-0373">Python</a>.</p>
     <p><?php echo __('The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.');?></p>
     <?php
         foreach ($phpSettings as $settingName => &$phpSetting):
@@ -194,6 +194,68 @@
         <?php
             endforeach;
         ?>
+    <?php
+        echo '<div style="width:400px;">';
+        echo $this->element('/genericElements/IndexTable/index_table', array(
+            'data' => array(
+                'data' => $dbDiagnostics,
+                'skip_pagination' => 1,
+                'max_height' => '400px',
+                'fields' => array(
+                    array(
+                        'name' => __('Table'),
+                        'class' => 'bold',
+                        'data_path' => 'table'
+                    ),
+                    array(
+                        'name' => __('Used'),
+                        'class' => 'align-right short',
+                        'header_class' => 'align-right',
+                        'data_path' => 'used'
+                    ),
+                    array(
+                        'name' => __('Reclaimable'),
+                        'data_path' => 'reclaimable',
+                        'class' => 'align-right',
+                        'header_class' => 'align-right'
+                    )
+                ),
+                'title' => __('SQL database status'),
+                'description' => __('Size of each individual table on disk, along with the size that can be freed via SQL optimize. Make sure that you always have at least 3x the size of the largest table in free space in order for the update scripts to work as expected.')
+            )
+        ));
+        echo '</div>';
+    ?>
+        <h4><?php echo __('Schema status');?></h4>
+        <div id="schemaStatusDiv" style="width: 70vw; padding-left: 10px;">
+            <?php echo $this->element('/healthElements/db_schema_diagnostic', array(
+                'checkedTableColumn' => $dbSchemaDiagnostics['checked_table_column'],
+                'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'],
+                'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
+                'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version'],
+                'error' => $dbSchemaDiagnostics['error'],
+                'remainingLockTime' => $dbSchemaDiagnostics['remaining_lock_time'],
+                'updateFailNumberReached' => $dbSchemaDiagnostics['update_fail_number_reached'],
+                'updateLocked' => $dbSchemaDiagnostics['update_locked'],
+                'dataSource' => $dbSchemaDiagnostics['dataSource'],
+                'columnPerTable' => $dbSchemaDiagnostics['columnPerTable'],
+                'dbIndexDiagnostics' => $dbSchemaDiagnostics['diagnostic_index'],
+                'indexes' => $dbSchemaDiagnostics['indexes'],
+            )); ?>
+        </div>
+    <h3><?= __("Redis info") ?></h3>
+    <div style="background-color:#f7f7f9;width:400px;">
+        <b><?= __('PHP extension version') ?>:</b> <?= $redisInfo['extensionVersion'] ?: ('<span class="red bold">' . __('Not installed.') . '</span>') ?><br>
+        <?php if ($redisInfo['connection']): ?>
+        <b><?= __('Redis version') ?>:</b> <?= $redisInfo['redis_version'] ?><br>
+        <b><?= __('Memory allocator') ?>:</b> <?= $redisInfo['mem_allocator'] ?><br>
+        <b><?= __('Memory usage') ?>:</b> <?= $redisInfo['used_memory_human'] ?>B<br>
+        <b><?= __('Peak memory usage') ?>:</b> <?= $redisInfo['used_memory_peak_human'] ?>B<br>
+        <b><?= __('Total system memory') ?>:</b> <?= $redisInfo['total_system_memory_human'] ?>B
+        <?php elseif ($redisInfo['extensionVersion']): ?>
+        <span class="red bold">Redis is not available. <?= $redisInfo['connection_error'] ?></span>
+        <?php endif; ?>
+    </div>
     <h3><?php echo __('Advanced attachment handler');?></h3>
         <?php echo __('The advanced attachment tools are used by the add attachment functionality to extract additional data about the uploaded sample.');?>
         <div style="background-color:#f7f7f9;width:400px;">
@@ -359,9 +421,20 @@
     <h3><?php echo __('Clean model cache');?></h3>
     <p><?php echo __('If you ever run into issues with missing database fields / tables, please run the following script to clean the model cache.');?></p>
     <?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">' . __('Clean cache') . '</span>', $baseurl . '/events/cleanModelCaches', array('escape' => false));?>
-    <h3><?php echo __('Overwritten objects');?></h3>
-    <p><?php echo __('Prior to 2.4.89, due to a bug a situation could occur where objects got overwritten on a sync pull. This tool allows you to inspect whether you are affected and if yes, remedy the issue.');?></p>
-    <a href="<?php echo $baseurl; ?>/objects/orphanedObjectDiagnostics"><span class="btn btn-inverse"><?php echo __('Reconstruct overwritten objects');?></span></a>
+    <?php
+        echo sprintf(
+            '<h3>%s</h3><p>%s</p><div id="deprecationResults"></div>%s',
+            __('Check for deprecated function usage'),
+            __('In an effort to identify the usage of deprecated functionalities, MISP has started aggregating the count of access requests to these endpoints. Check the frequency of their use below along with the users to potentially warn about better ways of achieving their goals.'),
+            sprintf(
+                '<span class="btn btn-inverse" role="button" tabindex="0" aria-label="%s" title="%s" onClick="%s">%s</span>',
+                __('View deprecated endpoint usage'),
+                __('View deprecated endpoint usage'),
+                'queryDeprecatedEndpointUsage();',
+                __('View deprecated endpoint usage')
+            )
+        );
+    ?>
     <h3><?php echo __('Orphaned attributes');?></h3>
     <p><?php echo __('In some rare cases attributes can remain in the database after an event is deleted becoming orphaned attributes. This means that they do not belong to any event, which can cause issues with the correlation engine (known cases include event deletion directly in the database without cleaning up the attributes and situations involving a race condition with an event deletion happening before all attributes are synchronised over).');?></p>
     <div style="background-color:#f7f7f9;width:400px;">
@@ -369,6 +442,7 @@
     </div><br />
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
     <?php echo $this->Form->postButton(__('Remove orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+    <?php echo $this->Form->postButton(__('Remove published empty events'), $baseurl . '/events/cullEmptyEvents', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
     <h3><?php echo __('Administrator On-demand Action');?></h3>
     <p><?php echo __('Click the following button to go to the Administrator On-demand Action page.');?></p>
     <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/servers/ondemandAction/';"><?php echo __('Administrator On-demand Action');?></span>

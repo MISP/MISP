@@ -5,23 +5,34 @@
 ------------------------------------
 
 !!! notice
-    Maintained and tested by @SteveClement on 20190425
+    Please use [Debian 10](https://misp.github.io/MISP/xINSTALL.debian10/) as everything works as expected.
+
+
+!!! notice
+    Maintained and tested by @SteveClement on 20190702
 
 !!! warning
-    This install document is **NOT** working as expected. There are Python issues as we "only" have python 3.5 but need at least python 3.6
+    This install document is compiles a custom Python 3.7 meaning some things might be unexpected.
+    Debian stretch has Python 3.5 but we need at least python 3.6
+
 
 ### 1/ Minimal Debian install
 -------------------------
 
-#### Install a minimal Debian 9 "stretch" server system with the software:
+#### Install a minimal Debian 9.9 "stretch" server system with the software:
 - OpenSSH server
 - This guide assumes a user name of 'misp' with sudo working
+
+{!generic/known-issues-debian.md!}
 
 {!generic/globalVariables.md!}
 
 ```bash
 PHP_ETC_BASE=/etc/php/7.0
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+
+sudo adduser $MISP_USER staff
+sudo adduser $MISP_USER $WWW_USER
 ```
 
 {!generic/sudo_etckeeper.md!}
@@ -31,7 +42,7 @@ PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 #### Make sure your system is up2date
 ```bash
 sudo apt update
-sudo apt -y dist-upgrade
+sudo apt dist-upgrade -y
 ```
 
 #### install postfix, there will be some questions. (optional)
@@ -51,21 +62,23 @@ sudo postfix reload
 
 #### Install all the dependencies (some might already be installed)
 
-You need to update python3.5 to python3.7 for [PyMISP](https://github.com/MISP/PyMISP) to work properly.
-
-FIXME: The below breaks redis-server and mariadb-server
+You need to use at least Python3.6 for [PyMISP](https://github.com/MISP/PyMISP) to work properly.
 
 ```bash
-# Manual Python3.7.3 install
-sudo apt update
-sudo apt install make build-essential libssl-dev zlib1g-dev libbz2-dev \
+# Manual Python3.7.3 install in $HOME
+sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev \
 libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
 xz-utils tk-dev libffi-dev liblzma-dev -qqy
-mkdir -p code ; cd code ; wget https://www.python.org/ftp/python/3.7.3/Python-3.7.3.tar.xz ; tar xfvJ Python-3.7.3.tar.xz ; cd Python-3.7.3 ; ./configure --enable-optimizations ; make -j8 ; sudo make altinstall
-sudo update-alternatives --install /usr/bin/python python /usr/local/bin/python3.7 50
-sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 40
-sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.5 30
-
+mkdir -p ~/opt/python3
+cd /tmp
+wget https://www.python.org/ftp/python/3.7.3/Python-3.7.3.tar.xz
+tar xvfJ Python-3.7.3.tar.xz
+rm Python-3.7.3.tar.xz
+cd Python-3.7.3
+# --enable-optimizations will run tests to optimize the resulting python binary, this takes time and is expected
+./configure --enable-optimizations --with-ensurepip=install --prefix="$HOME"/opt/python3
+make -j3
+make altinstall
 sudo apt install virtualenv -qqy
 ```
 
@@ -78,7 +91,7 @@ jq ntp ntpdate imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev \
 net-tools -qqy
 
-sudo apt install libapache2-mod-php php php-cli php-mbstring php-dev php-json php-xml php-mysql php-opcache php-readline php-redis php-gnupg php-gd -qqy
+sudo apt install libapache2-mod-php php php-cli php-mbstring php-dev php-json php-xml php-mysql php7.0-opcache php-readline php-redis php-gnupg php-gd -qqy
 
 sudo apt install \
 mariadb-client \
@@ -150,7 +163,7 @@ $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 $SUDO_WWW git config core.filemode false
 
 # Create a python3 virtualenv
-$SUDO_WWW virtualenv -p python3.7 ${PATH_TO_MISP}/venv
+$SUDO_WWW virtualenv -p ~/opt/python3/bin/python3.7 ${PATH_TO_MISP}/venv
 
 # make pip happy
 sudo mkdir /var/www/.cache/
@@ -170,14 +183,30 @@ cd $PATH_TO_MISP/app/files/scripts/python-stix
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+# FIXME: Remove once stix-fixed
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
+# install STIX2.0 library to support STIX 2.0 export:
+cd ${PATH_TO_MISP}/cti-python-stix2
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
-# Install Crypt_GPG and Console_CommandLine
-sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
+# install pydeep
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+
+# install lief
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+
+# install zmq needed by mispzmq
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq redis
+
+# install python-magic
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
+
+# install plyara
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
 ```
 
 ### 4/ CakePHP
@@ -190,12 +219,11 @@ cd $PATH_TO_MISP/app
 # Make composer cache happy
 sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
 # Update composer.phar
+#EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
 # $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-# $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+# $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 # $SUDO_WWW php composer-setup.php
 # $SUDO_WWW php -r "unlink('composer-setup.php');"
-$SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-$SUDO_WWW php composer.phar config vendor-dir Vendor
 $SUDO_WWW php composer.phar install
 
 # Enable CakeResque with php-redis
@@ -314,7 +342,7 @@ sudo a2ensite misp-ssl
 
 # Recommended: Change some PHP settings in /etc/php/7.3/apache2/php.ini
 # max_execution_time = 300
-# memory_limit = 512M
+# memory_limit = 2048M
 # upload_max_filesize = 50M
 # post_max_size = 50M
 for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
@@ -394,8 +422,8 @@ $SUDO_WWW sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_
 sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
 
 echo "[Unit]
-Description=MISP's background workers
-After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
+Description=MISP background workers
+After=mariadb.service redis-server.service
 
 [Service]
 Type=forking

@@ -190,9 +190,14 @@ class Warninglist extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            $redis->del('misp:warninglist_entries_cache:');
-            foreach ($warninglistEntries as $entry) {
-                $redis->sAdd('misp:warninglist_entries_cache:' . $id, $entry);
+            $key = 'misp:warninglist_entries_cache:' . $id;
+            $redis->del($key);
+            if (method_exists($redis, 'saddArray')) {
+                $redis->sAddArray($key, $warninglistEntries);
+            } else {
+                foreach ($warninglistEntries as $entry) {
+                    $redis->sAdd('misp:warninglist_entries_cache:' . $id, $entry);
+                }
             }
             return true;
         }
@@ -203,7 +208,7 @@ class Warninglist extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            if (!$redis->exists('misp:warninglist_cache') || $redis->sCard('misp:warninglist_cache') == 0) {
+            if ($redis->sCard('misp:warninglist_cache') === 0) {
                 if (!empty($conditions)) {
                     $warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => $conditions));
                 } else {
@@ -237,7 +242,7 @@ class Warninglist extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            if (!$redis->exists('misp:warninglist_entries_cache:' . $id) || $redis->sCard('misp:warninglist_entries_cache:' . $id) == 0) {
+            if ($redis->sCard('misp:warninglist_entries_cache:' . $id) === 0) {
                 $entries = $this->WarninglistEntry->find('list', array(
                         'recursive' => -1,
                         'conditions' => array('warninglist_id' => $id),
@@ -257,6 +262,38 @@ class Warninglist extends AppModel
         return $entries;
     }
 
+    /**
+     * Filter out invalid IPv4 or IPv4 CIDR and append maximum netmaks if no netmask is given.
+     * @param array $inputValues
+     * @return array
+     */
+    private function filterCidrList($inputValues)
+    {
+        $outputValues = [];
+        foreach ($inputValues as $v) {
+            $parts = explode('/', $v, 2);
+            if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $maximumNetmask = 32;
+            } else if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                $maximumNetmask = 128;
+            } else {
+                // IP address part of CIDR is invalid
+                continue;
+            }
+
+            if (!isset($parts[1])) {
+                // If CIDR doesnt contains '/', we will consider CIDR as /32 for IPv4 or /128 for IPv6
+                $v = "$v/$maximumNetmask";
+            } else if ($parts[1] > $maximumNetmask || $parts[1] < 0) {
+                // Netmask part of CIDR is invalid
+                continue;
+            }
+
+            $outputValues[$v] = $v;
+        }
+        return $outputValues;
+    }
+
     public function fetchForEventView()
     {
         $warninglists = $this->getWarninglists(array('enabled' => 1));
@@ -266,15 +303,21 @@ class Warninglist extends AppModel
         foreach ($warninglists as $k => &$t) {
             $t['values'] = $this->getWarninglistEntries($t['Warninglist']['id']);
             $t['values'] = array_values($t['values']);
-            if ($t['Warninglist']['type'] == 'hostname') {
-                foreach ($t['values'] as $vk => $v) {
-                    $t['values'][$vk] = rtrim($v, '.');
+
+            if ($t['Warninglist']['type'] === 'hostname') {
+                $values = [];
+                foreach ($t['values'] as $v) {
+                    $v = rtrim($v, '.');
+                    $values[$v] = $v;
                 }
-            }
-            if ($t['Warninglist']['type'] == 'string' || $t['Warninglist']['type'] == 'hostname') {
+                $t['values'] = $values;
+            } else if ($t['Warninglist']['type'] === 'string') {
                 $t['values'] = array_combine($t['values'], $t['values']);
+            } else if ($t['Warninglist']['type'] === 'cidr') {
+                $t['values'] = $this->filterCidrList($t['values']);
             }
-            foreach ($t['WarninglistType'] as &$wt) {
+
+            foreach ($t['WarninglistType'] as $wt) {
                 $t['types'][] = $wt['type'];
             }
             unset($warninglists[$k]['WarninglistType']);
@@ -358,7 +401,7 @@ class Warninglist extends AppModel
 
     private function __checkValue($listValues, $value, $type, $listType, $returnVerboseValue = false)
     {
-        if (strpos($type, '|') || $type = 'malware-sample') {
+        if ($type === 'malware-sample' || strpos($type, '|') !== false) {
             $value = explode('|', $value);
         } else {
             $value = array($value);
@@ -382,9 +425,8 @@ class Warninglist extends AppModel
             if (!empty($result)) {
                 if ($returnVerboseValue) {
                     return $value[$component];
-                } else {
                 }
-                    return ($component + 1);
+                return ($component + 1);
             }
         }
         return false;
@@ -407,74 +449,49 @@ class Warninglist extends AppModel
     // For the future we can expand this to look for CIDR overlaps?
     private function __evalCIDRList($listValues, $value)
     {
-        $ipv4cidrlist = array();
-        $ipv6cidrlist = array();
-        // separate the CIDR list into IPv4 and IPv6
-        foreach ($listValues as $lv) {
-            $base = substr($lv, 0, strpos($lv, '/'));
-            if (filter_var($base, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                $ipv4cidrlist[] = $lv;
-            } elseif (filter_var($base, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                $ipv6cidrlist[] = $lv;
-            }
-        }
-        // evaluate the value separately for IPv4 and IPv6
         if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            return $this->__evalCIDR($value, $ipv4cidrlist, '__ipv4InCidr');
-        } elseif (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            return $this->__evalCIDR($value, $ipv6cidrlist, '__ipv6InCidr');
-        }
-        return false;
-    }
+            // This code converts IP address to all possible CIDRs that can contains given IP address
+            // and then check if given hash table contains that CIDR.
+            $ip = ip2long($value);
+            for ($bits = 0; $bits <= 32; $bits++) {
+                $mask = -1 << (32 - $bits);
+                $needle = long2ip($ip & $mask) . "/$bits";
+                if (isset($listValues[$needle])) {
+                    return true;
+                }
+            }
 
-    private function __evalCIDR($value, $listValues, $function)
-    {
-        $found = false;
-        foreach ($listValues as $lv) {
-            if ($this->$function($value, $lv)) {
-                $found = true;
+        } elseif (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            foreach ($listValues as $lv) {
+                if (strpos($lv, ':') !== false) { // IPv6 CIDR must contain dot
+                    if ($this->__ipv6InCidr($value, $lv)) {
+                        return true;
+                    }
+                }
             }
         }
-        if ($found) {
-            return true;
-        }
+
         return false;
     }
 
-    // using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5
-    private function __ipv4InCidr($ip, $cidr)
-    {
-        list($subnet, $bits) = explode('/', $cidr);
-        $ip = ip2long($ip);
-        $subnet = ip2long($subnet);
-        $mask = -1 << (32 - $bits);
-        $subnet &= $mask; # nb: in case the supplied subnet wasn't correctly aligned
-        return ($ip & $mask) == $subnet;
-    }
-
-    // using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
+    // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
     private function __ipv6InCidr($ip, $cidr)
     {
-        $ip = inet_pton($ip);
-        $binaryip = $this->__inet_to_bits($ip);
-        list($net, $maskbits) = explode('/', $cidr);
-        $net = inet_pton($net);
-        $binarynet = $this->__inet_to_bits($net);
-        $ip_net_bits = substr($binaryip, 0, $maskbits);
-        $net_bits = substr($binarynet, 0, $maskbits);
-        return ($ip_net_bits === $net_bits);
-    }
+        list($address, $netmask) = explode('/', $cidr);
 
-    // converts inet_pton output to string with bits
-    private function __inet_to_bits($inet)
-    {
-        $unpacked = unpack('A16', $inet);
-        $unpacked = str_split($unpacked[1]);
-        $binaryip = '';
-        foreach ($unpacked as $char) {
-            $binaryip .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
+        $bytesAddr = unpack('n*', inet_pton($address));
+        $bytesTest = unpack('n*', inet_pton($ip));
+
+        for ($i = 1, $ceil = ceil($netmask / 16); $i <= $ceil; ++$i) {
+            $left = $netmask - 16 * ($i - 1);
+            $left = ($left <= 16) ? $left : 16;
+            $mask = ~(0xffff >> $left) & 0xffff;
+            if (($bytesAddr[$i] & $mask) != ($bytesTest[$i] & $mask)) {
+                return false;
+            }
         }
-        return $binaryip;
+
+        return true;
     }
 
     private function __evalString($listValues, $value)

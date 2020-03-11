@@ -78,11 +78,8 @@
             ?>
             <?php foreach ($event['RelatedEvent'] as $i => $relatedEvent): ?>
             <li class="<?php echo $i > $display_threshold ? 'correlation-expanded-area' : ''; ?>" style="<?php echo $i > $display_threshold ? 'display: none;' : ''; ?>">
-            <div title="<?php echo h($relatedEvent['Event'][0]['info']); ?>">
-            <a href = "<?php echo '/feeds/previewEvent/' . $feed['Feed']['id'] . '/' . $relatedEvent['Event'][0]['uuid']; ?>">
-                <?php echo h($relatedEvent['Event'][0]['date']) . ' (' . h($relatedEvent['Event'][0]['uuid']) . ')'; ?>
-            </a>
-            </div></li>
+                <?php echo $this->element('/Events/View/related_event', array('related' => $relatedEvent['Event'])); ?>
+            </li>
             <?php if ($i == $display_threshold+1 && $total > $display_threshold): ?>
                 <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - $i);?></div>
             <?php endif; ?>
@@ -105,7 +102,6 @@
 <script type="text/javascript">
 // tooltips
 $(document).ready(function () {
-    //loadEventTags("<?php echo $event['Event']['id']; ?>");
     $("th, td, dt, div, span, li").tooltip({
         'placement': 'top',
         'container' : 'body',

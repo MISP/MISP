@@ -145,11 +145,6 @@ $SUDO_WWW git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
 $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
-# Install packaged pears
-sudo $RUN_PHP "pear channel-update pear.php.net"
-sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml"
-sudo $RUN_PHP "pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml"
-
 # Create a python3 virtualenv
 $SUDO_WWW $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
 sudo mkdir /var/www/.cache
@@ -214,6 +209,9 @@ $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 cd $PATH_TO_MISP/app/files/scripts/mixbox
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
+# FIXME: Remove once stix-fixed
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
+
 # install STIX2.0 library to support STIX 2.0 export:
 cd $PATH_TO_MISP/cti-python-stix2
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
@@ -245,12 +243,11 @@ sudo mkdir /var/www/.composer/
 sudo chown apache:apache /var/www/.composer/
 cd $PATH_TO_MISP/app
 # Update composer.phar (optional)
+#EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
 #$SUDO_WWW $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-#$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+#$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 #$SUDO_WWW $RUN_PHP "php composer-setup.php"
 #$SUDO_WWW $RUN_PHP -- php -r "unlink('composer-setup.php');"
-$SUDO_WWW $RUN_PHP "php composer.phar require kamisama/cake-resque:4.1.2"
-$SUDO_WWW $RUN_PHP "php composer.phar config vendor-dir Vendor"
 $SUDO_WWW $RUN_PHP "php composer.phar install"
 
 sudo yum install php-redis -y
@@ -262,7 +259,7 @@ sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php70/php.d/99-timezone.ini
 
 # Recommended: Change some PHP settings in /etc/opt/rh/rh-php70/php.ini
 # max_execution_time=300
-# memory_limit=512M
+# memory_limit=2048M
 # upload_max_filesize=50M
 # post_max_size=50M
 for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit

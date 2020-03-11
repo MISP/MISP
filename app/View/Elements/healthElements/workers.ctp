@@ -126,8 +126,8 @@
 
 <?php
 if ($worker_array['controls']) {
-    echo $this->Form->create('Server', array('url' => '/servers/restartWorkers'));
-    echo $this->Form->button(__('Restart all workers'), array('class' => 'btn btn-primary'));
+    echo $this->Form->create('Server', array('url' => '/servers/restartDeadWorkers'));
+    echo $this->Form->button(__('Restart dead workers'), array('class' => 'btn btn-primary'));
     echo $this->Form->end();
 }
 ?>

@@ -41,7 +41,7 @@ class ComplexTypeTool
         array(
             'from' => '/\.+/',
             'to' => '.',
-            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+            'types' => array('ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
         ),
         array(
             'from' => '/\[hxxp:\/\/\]/',
@@ -167,12 +167,6 @@ class ComplexTypeTool
             }
         }
         return array_values($array);
-    }
-
-    private function __parse_row($row, $delimiter)
-    {
-        $columns = str_getcsv($row, $delimiter);
-        return $columns;
     }
 
     /*

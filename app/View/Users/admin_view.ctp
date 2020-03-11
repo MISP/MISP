@@ -34,14 +34,25 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         h($user['User']['authkey']),
         sprintf(
             ' (%s)',
-            $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']))
+            $this->Form->postLink(__('reset'), array('action' => 'resetauthkey', $user['User']['id']))
         )
     );
     $table_data[] = array(
         'key' => __('Authkey'),
         'html' => $authkey_data
     );
-    $table_data[] = array('key' => __('Invited By'), 'value' => $user2['User']['email']);
+    if (Configure::read('Plugin.CustomAuth_enable') && !empty($user['User']['external_auth_key'])) {
+        $header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
+        $table_data[] = array(
+            'key' => __('Customauth header'),
+            'html' => sprintf(
+                '%s: <span class="green bold">%s</span>',
+                h($header),
+                h($user['User']['external_auth_key'])
+            )
+        );
+    }
+    $table_data[] = array('key' => __('Invited By'), 'value' => empty($user2['User']['email']) ? 'N/A' : $user2['User']['email']);
     $org_admin_data = array();
     foreach ($user['User']['orgAdmins'] as $orgAdminId => $orgAdminEmail) {
         $org_admin_data[] = sprintf(
@@ -59,8 +70,8 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     $table_data[] = array('key' => __('Password change'), 'boolean' => $user['User']['change_pw']);
     $table_data[] = array(
         'key' => __('GnuPG key'),
-        'class_value' => "quickSelect " . $user['User']['gpgkey'] ? 'green' : 'bold red',
-        'html' => $user['User']['gpgkey'] ? nl2br(h($user['User']['gpgkey'])) : __("N/A")
+        'element' => 'genericElements/key',
+        'element_params' => array('key' => $user['User']['gpgkey']),
     );
     if (!empty($user['User']['gpgkey'])) {
         $table_data[] = array(
@@ -76,9 +87,9 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     }
     if (Configure::read('SMIME.enabled')) {
         $table_data[] = array(
-            'key' => __('SMIME Public certificate'),
-            'class_value' => "red quickSelect",
-            'html' => (h($user['User']['certif_public'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['certif_public']))) : "N/A"
+            'key' => __('S/MIME Public certificate'),
+            'element' => 'genericElements/key',
+            'element_params' => array('key' => $user['User']['certif_public']),
         );
     }
     $table_data[] = array('key' => __('Newsread'), 'html' => $user['User']['newsread'] ? date('Y/m/d H:i:s', h($user['User']['newsread'])) : __('N/A'));

@@ -128,7 +128,7 @@ generateInstaller () {
   cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
+  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
     xsnippet . ../../docs/${f}
   done
 
@@ -182,7 +182,7 @@ generateInstaller () {
 # Simple debug function with message
 
 # Make sure no alias exists
-if [[ $(type -t debug) == "alias" ]]; then unalias debug; fi
+[[ $(type -t debug) == "alias" ]] && unalias debug
 debug () {
   echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}" > /dev/tty
   if [ ! -z $DEBUG ]; then
@@ -220,7 +220,7 @@ installSupported () {
 
   # TODO: Double check how the user is added and subsequently used during the install.
   # TODO: Work on possibility to install as user X and install MISP for user Y
-  # TODO: Check if logout needed. (run SUDO_USER in installer)
+  # TODO: Check if logout needed. (run SUDO_CMD in installer)
   # <snippet-begin add-user.sh>
   # TODO: Double check how to properly handle postfix
   # <snippet-begin postfix.sh>
@@ -324,16 +324,18 @@ installSupported () {
   progress 4
 
   # Install Viper - functionLocation('generic/viper-debian.md')
-  [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
-  progress 4
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##[[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+  ##progress 4
 
   # Install ssdeep - functionLocation('generic/ssdeep-debian.md')
   [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
   progress 4
 
   # Install misp-dashboard - functionLocation('generic/misp-dashboard-debian.md')
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
-  progress 4
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##[[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
+  ##progress 4
 
   # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
@@ -427,8 +429,9 @@ installMISPonKali () {
   # Needs virtualenv
   $SUDO_WWW virtualenv -p python3 ${PATH_TO_MISP}/venv
 
-  debug "Installing MISP dashboard"
-  mispDashboard
+  ## FIXME: The current stat of misp-dashboard is broken, disabling any use.
+  ##debug "Installing MISP dashboard"
+  ##mispDashboard
 
   debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
@@ -444,6 +447,7 @@ installMISPonKali () {
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I antlr4-python3-runtime==4.7.2 2> /dev/null > /dev/null
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
 
@@ -464,6 +468,12 @@ installMISPonKali () {
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
+
+  # install plyara
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara 2> /dev/null > /dev/null
+
+  # install zmq needed by mispzmq
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq 2> /dev/null > /dev/null
 
   # Install Crypt_GPG and Console_CommandLine
   debug "Installing pear Console_CommandLine"
@@ -581,7 +591,8 @@ installMISPonKali () {
 
   debug "Running Core Cake commands"
   coreCAKE 2> /dev/null > /dev/null
-  dashboardCAKE 2> /dev/null > /dev/null
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##dashboardCAKE 2> /dev/null > /dev/null
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT 2> /dev/null > /dev/null
@@ -593,8 +604,9 @@ installMISPonKali () {
   debug "Installing misp-modules"
   mispmodules
 
-  debug "Installing Viper"
-  viper
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##debug "Installing Viper"
+  ##viper
 
   debug "Installing ssdeep"
   ssdeep
@@ -661,9 +673,46 @@ fi
 
 [[ -n $NUKE ]] && nuke && exit
 
+# TODO: Move support map to top
+
+SUPPORT_MAP="
+x86_64-centos-8
+x86_64-rhel-7
+x86_64-rhel-8
+x86_64-fedora-30
+x86_64-debian-stretch
+x86_64-debian-buster
+x86_64-ubuntu-bionic
+x86_64-kali-2019.1
+x86_64-kali-2019.2
+x86_64-kali-2019.3
+x86_64-kali-2019.4
+x86_64-kali-2020.1
+x86_64-kali-2020.2
+x86_64-kali-2020.3
+x86_64-kali-2020.4
+armv6l-raspbian-stretch
+armv7l-raspbian-stretch
+armv7l-debian-jessie
+armv7l-debian-stretch
+armv7l-debian-buster
+armv7l-ubuntu-bionic
+"
+
+# Check if we actually support this configuration
+if ! echo "$SUPPORT_MAP" | grep "$(uname -m)-$FLAVOUR-$dist_version" >/dev/null; then
+  cat >&2 <<-'EOF'
+    Either your platform is not easily detectable or is not supported by this
+    installer script.
+    Please visit the following URL for more detailed installation instructions:
+    https://misp.github.io/MISP/
+EOF
+  exit 1
+fi
+
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
-  RELEASE=$(lsb_release -s -r| tr [A-Z] [a-z])
+  RELEASE=$(lsb_release -s -r| tr '[:upper:]' '[:lower:]')
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
@@ -689,7 +738,7 @@ fi
 
 # If Debian is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "debian" ]; then
-  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [ "${CODE}" == "buster" ]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
@@ -711,7 +760,7 @@ fi
 
 # If Tsurugi is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "tsurugi" ]; then
-  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [ "${CODE}" == "bamboo" ]; then
     echo "Install on Tsurugi Lab partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"

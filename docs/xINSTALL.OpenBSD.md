@@ -5,6 +5,7 @@
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
     LIEF, will probably not be available for a long long time on OpenBSD, until someone is brave enough to make it work.
     GnuPG also needs some more TLC.
+    misp-modules are broken because of the python-opencv dependency.
 
 ### 0/ WIP! You are warned, this does only partially work!
 ------------
@@ -50,7 +51,7 @@ echo "permit nopass setenv { ENV PS1 HOME=/var/www } www" >> /etc/doas.conf
 
 ```bash
 cd /tmp
-ftp https://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/{ports.tar.gz,SHA256.sig}
+ftp https://cdn.openbsd.org/pub/OpenBSD/$(uname -r)/{ports.tar.gz,SHA256.sig}
 signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig ports.tar.gz
 doas tar -x -z -f /tmp/ports.tar.gz -C /usr
 ```
@@ -59,10 +60,10 @@ doas tar -x -z -f /tmp/ports.tar.gz -C /usr
 
 ```bash
 cd /tmp
-ftp https://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/$(uname -m)/{xbase$(uname -r| tr -d \.).tgz,SHA256.sig}
+ftp https://cdn.openbsd.org/pub/OpenBSD/$(uname -r)/$(uname -m)/{xbase$(uname -r| tr -d \.).tgz,SHA256.sig}
 signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig xbase$(uname -r |tr -d \.).tgz
 doas tar -xzphf /tmp/xbase$(uname -r| tr -d \.).tgz -C /
-ftp https://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/$(uname -m)/{xshare$(uname -r| tr -d \.).tgz,SHA256.sig}
+ftp https://cdn.openbsd.org/pub/OpenBSD/$(uname -r)/$(uname -m)/{xshare$(uname -r| tr -d \.).tgz,SHA256.sig}
 signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig xshare$(uname -r |tr -d \.).tgz
 doas tar -xzphf /tmp/xshare$(uname -r| tr -d \.).tgz -C /
 ```
@@ -249,18 +250,8 @@ doas virtualenv -ppython3 /usr/local/virtualenvs/MISP
 ```
 
 #### Install ssdeep
-```
-doas mkdir /usr/local/src
-doas chown misp:misp /usr/local/src
-cd /usr/local/src
-doas -u misp git clone https://github.com/ssdeep-project/ssdeep.git
-cd ssdeep
-export AUTOMAKE_VERSION=1.16
-export AUTOCONF_VERSION=2.69
-doas -u misp ./bootstrap
-doas -u misp ./configure --prefix=/usr
-doas -u misp make
-doas make install
+```bash
+doas pkg_add -v ssdeep
 ```
 
 #### Apache2 only
@@ -392,6 +383,9 @@ doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 cd /var/www/htdocs/MISP/PyMISP
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
+# FIXME: Remove once stix-fixed
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
+
 # install support for STIX 2.0
 cd /var/www/htdocs/MISP/cti-python-stix2
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
@@ -408,9 +402,12 @@ doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app
 doas mkdir /var/www/.composer ; doas chown www:www /var/www/.composer
-doas -u www php composer.phar require kamisama/cake-resque:4.1.2
-doas -u www php composer.phar config vendor-dir Vendor
-doas -u www php composer.phar install
+EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
+doas -u www php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+doas -u www php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+doas -u www env HOME=/var/www php composer-setup.php
+doas -u www php -r "unlink('composer-setup.php');"
+doas -u www env HOME=/var/www php composer.phar install
 
 # To use the scheduler worker for scheduled tasks, do the following:
 doas -u www cp -f /var/www/htdocs/MISP/INSTALL/setup/config.php /var/www/htdocs/MISP/app/Plugin/CakeResque/Config/config.php

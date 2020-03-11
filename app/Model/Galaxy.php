@@ -199,13 +199,14 @@ class Galaxy extends AppModel
         return true;
     }
 
-    private function __attachClusterToEvent($user, $target_id, $cluster_id) {
-
-    }
-
-    public function attachCluster($user, $target_type, $target_id, $cluster_id)
+    public function attachCluster($user, $target_type, $target_id, $cluster_id, $local = false)
     {
         $connectorModel = Inflector::camelize($target_type) . 'Tag';
+        if ($local == 1 || $local === true) {
+            $local = 1;
+        } else {
+            $local = 0;
+        }
         $cluster = $this->GalaxyCluster->find('first', array('recursive' => -1, 'conditions' => array('id' => $cluster_id), 'fields' => array('tag_name', 'id', 'value')));
         $this->Tag = ClassRegistry::init('Tag');
         if ($target_type === 'event') {
@@ -219,13 +220,13 @@ class Galaxy extends AppModel
             throw new NotFoundException(__('Invalid %s.', $target_type));
         }
         $target = $target[0];
-        $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
+        $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user, true);
         $existingTag = $this->Tag->$connectorModel->find('first', array('conditions' => array($target_type . '_id' => $target_id, 'tag_id' => $tag_id)));
         if (!empty($existingTag)) {
             return 'Cluster already attached.';
         }
         $this->Tag->$connectorModel->create();
-        $toSave = array($target_type . '_id' => $target_id, 'tag_id' => $tag_id);
+        $toSave = array($target_type . '_id' => $target_id, 'tag_id' => $tag_id, 'local' => $local);
         if ($target_type === 'attribute') {
             $event = $this->Tag->EventTag->Event->find('first', array(
                 'conditions' => array(
@@ -377,8 +378,12 @@ class Galaxy extends AppModel
     {
         $galaxy = $this->find('first', array(
                 'recursive' => -1,
-                'fields' => 'id',
-                'conditions' => array('Galaxy.type' => $type, 'Galaxy.namespace' => $namespace),
+                'fields' => array('MAX(Galaxy.version) as latest_version', 'id'),
+                'conditions' => array(
+                    'Galaxy.type' => $type,
+                    'Galaxy.namespace' => $namespace
+                ),
+                'group' => array('name', 'id')
         ));
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
     }
@@ -397,7 +402,7 @@ class Galaxy extends AppModel
         return $galaxies;
     }
 
-    public function getMatrix($galaxy_id)
+    public function getMatrix($galaxy_id, $scores=array())
     {
         $conditions = array('Galaxy.id' => $galaxy_id);
         $contains = array(
@@ -454,19 +459,8 @@ class Galaxy extends AppModel
         }
         $matrixData['tabs'] = $cols;
 
-        foreach ($matrixData['tabs'] as $k => $v) {
-            foreach ($matrixData['tabs'][$k] as $kc => $v2) {
-                // sort clusters in the kill chains
-                usort(
-                    $matrixData['tabs'][$k][$kc],
-                    function($a, $b) {
-                        return strcmp($a['value'], $b['value']);
-                    }
-                );
-            }
-        }
-
-        // #FIXME temporary fix: retreive tag name of deprecated mitre galaxies (for the stats)
+        $this->sortMatrixByScore($matrixData['tabs'], $scores);
+        // #FIXME temporary fix: retrieve tag name of deprecated mitre galaxies (for the stats)
         if ($galaxy['Galaxy']['id'] == $this->getMitreAttackGalaxyId()) {
             $names = array('Enterprise Attack - Attack Pattern', 'Pre Attack - Attack Pattern', 'Mobile Attack - Attack Pattern');
             $tag_names = array();
@@ -485,5 +479,35 @@ class Galaxy extends AppModel
 
         $matrixData['matrixTags'] = array_keys($matrixData['matrixTags']);
         return $matrixData;
+    }
+
+    public function sortMatrixByScore(&$tabs, $scores)
+    {
+        foreach (array_keys($tabs) as $i) {
+            foreach (array_keys($tabs[$i]) as $j) {
+                // major ordering based on score, minor based on alphabetical
+                usort($tabs[$i][$j], function ($a, $b) use($scores) {
+                    if ($a['tag_name'] == $b['tag_name']) {
+                        return 0;
+                    }
+                    if (isset($scores[$a['tag_name']]) && isset($scores[$b['tag_name']])) {
+                        if ($scores[$a['tag_name']] < $scores[$b['tag_name']]) {
+                            $ret = 1;
+                        } else if ($scores[$a['tag_name']] == $scores[$b['tag_name']]) {
+                            $ret = strcmp($a['value'], $b['value']);
+                        } else {
+                            $ret = -1;
+                        }
+                    } else if (isset($scores[$a['tag_name']])) {
+                        $ret = -1;
+                    } else if (isset($scores[$b['tag_name']])) {
+                        $ret = 1;
+                    } else { // none are set
+                        $ret = strcmp($a['value'], $b['value']);
+                    }
+                    return $ret;
+                });
+            }
+        }
     }
 }

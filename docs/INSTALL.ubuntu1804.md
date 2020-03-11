@@ -1,11 +1,11 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 18.04.2-server
+## for Ubuntu 18.04.3-server
 
 ### -1/ Installer and Manual install instructions
 
 Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
 
-To install MISP on a fresh Ubuntu install all you need to do is:
+To install MISP on a fresh Ubuntu 18.04, all you need to do is the following:
 
 ```bash
 # Please check the installer options first to make the best choice for your install
@@ -46,7 +46,16 @@ aptUpgrade () {
   debug "Upgrading system"
   checkAptLock
   sudo apt-get update
-  sudo apt-get upgrade -qy
+
+  # If we run in non-interactive mode, make sure we do not stop all of a sudden
+  if [[ "${PACKER}" == "1" || "${UNATTENDED}" == "1" ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    export DEBIAN_PRIORITY=critical
+    sudo -E apt-get -qy -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" upgrade
+    sudo -E apt-get -qy autoclean
+  else
+    sudo apt-get upgrade -qy
+  fi
 }
 # <snippet-end 0_apt-upgrade.sh>
 ```
@@ -80,7 +89,7 @@ Once the system is installed you can perform the following steps.
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 -qy
+  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 moreutils -qy
 
   # Install MariaDB (a MySQL fork/alternative)
   sudo apt-get install mariadb-client mariadb-server -qy
@@ -106,8 +115,7 @@ installDepsPhp72 () {
   libapache2-mod-php \
   php php-cli \
   php-dev \
-  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
-  php-pear \
+  php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring \
   php-redis php-gnupg \
   php-gd
 
@@ -159,6 +167,8 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   cd $PATH_TO_MISP/app/files/scripts/python-maec
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  # FIXME: Remove once stix-fixed
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
@@ -173,15 +183,14 @@ installCore () {
   # install lief
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
 
+  # install zmq needed by mispzmq
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq redis
+
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
 
   # install plyara
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
-
-  # Install Crypt_GPG and Console_CommandLine
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 }
 # <snippet-end 1_mispCoreInstall.sh>
 ```
@@ -199,8 +208,6 @@ installCake () {
   # Make composer cache happy
   # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
   sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 
   # Enable CakeResque with php-redis
@@ -304,7 +311,7 @@ Now configure your Apache webserver with the DocumentRoot ${PATH_TO_MISP}/app/we
 ```bash
 # <snippet-begin 1_apacheConfig.sh>
 apacheConfig () {
-  debug "Generating Apache config"
+  debug "Generating Apache config, if this hangs, make sure you have enough entropy (install: haveged or wait)"
   sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
   if [[ ! -z ${MISP_BASEURL} ]] && [[ "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "http" || "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "https" ]]; then

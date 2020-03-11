@@ -43,6 +43,6 @@
 [submodule "INSTALL/Console_CommandLine"]
 	path = INSTALL/dependencies/Console_CommandLine
 	url = https://github.com/pear/Console_CommandLine
-[submodule "INSTALL/dependencies/Net_GeoIP"]
-	path = INSTALL/dependencies/Net_GeoIP
-	url = https://github.com/pear/Net_GeoIP
+[submodule "app/files/misp-decaying-models"]
+	path = app/files/misp-decaying-models
+	url = https://github.com/MISP/misp-decaying-models.git

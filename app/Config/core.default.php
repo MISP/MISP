@@ -76,6 +76,7 @@ Configure::write('Exception', array(
 	'log'      => true,
 	'skipLog'  => array(
 		'NotFoundException',
+		'ForbiddenException',
 	)
 ));
 

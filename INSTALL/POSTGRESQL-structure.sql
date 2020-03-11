@@ -335,6 +335,7 @@ CREATE TABLE public.events (
     locked boolean DEFAULT false NOT NULL,
     threat_level_id bigint NOT NULL,
     publish_timestamp bigint DEFAULT '0'::bigint NOT NULL,
+    sighting_timestamp bigint DEFAULT '0'::bigint NOT NULL,
     disable_correlation boolean DEFAULT false NOT NULL,
     extends_uuid character varying(40) DEFAULT ''::character varying
 );
@@ -1135,7 +1136,8 @@ CREATE TABLE public.roles (
     max_execution_time character varying(255) DEFAULT ''::character varying,
     restricted_to_site_admin boolean DEFAULT false NOT NULL,
     perm_publish_zmq boolean DEFAULT false NOT NULL,
-    perm_publish_kafka boolean DEFAULT false NOT NULL
+    perm_publish_kafka boolean DEFAULT false NOT NULL,
+    perm_decaying boolean DEFAULT false NOT NULL
 );
 
 
@@ -1170,6 +1172,7 @@ CREATE TABLE public.servers (
     org_id bigint NOT NULL,
     push boolean NOT NULL,
     pull boolean NOT NULL,
+    push_sightings boolean DEFAULT false NOT NULL,
     lastpulledid bigint,
     lastpushedid bigint,
     organization character varying(10),

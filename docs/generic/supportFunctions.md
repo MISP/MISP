@@ -25,8 +25,10 @@ usage () {
   space
   echo -e "${SCRIPT_NAME} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
   echo -e "                -M | ${LBLUE}MISP${NC} modules"        # modules
-  echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
-  echo -e "                -V | Viper"                            # viper
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##echo -e "                -V | Viper"                            # viper
   echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"         # mail2
   echo -e "                -S | Experimental ssdeep correlations" # ssdeep
   echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
@@ -37,7 +39,7 @@ usage () {
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
-  echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
+  echo -e "Options can be combined: ${SCRIPT_NAME} -c -D # Will install Core+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
   echo -e "MISP + modules - ${SCRIPT_NAME} -c -M"
@@ -78,9 +80,14 @@ setOpt () {
   done
 }
 
+# check if command_exists
+command_exists () {
+  command -v "$@" > /dev/null 2>&1
+}
+
+# TODO: fix os detection mess
 # Try to detect what we are running on
 checkCoreOS () {
-
   # lsb_release can exist on any platform. RedHat package: redhat-lsb
   LSB_RELEASE=$(which lsb_release > /dev/null ; echo $?)
   APT=$(which apt > /dev/null 2>&1; echo -n $?)
@@ -95,24 +102,114 @@ checkCoreOS () {
   if [[ -f "/etc/redhat-release" ]]; then
     echo "This is some redhat flavour"
     REDHAT=1
-    RHfla=$(cat /etc/redhat-release | cut -f 1 -d\ | tr [A-Z] [a-z])
+    RHfla=$(cat /etc/redhat-release | cut -f 1 -d\ | tr '[:upper:]' '[:lower:]')
   fi
-
 }
 
 # Extract debian flavour
 checkFlavour () {
-  if [ -z $(which lsb_release) ]; then
-    checkAptLock
-    sudo apt install lsb-release dialog -y
+  FLAVOUR=""
+  # Every system that we officially support has /etc/os-release
+  if [ -r /etc/os-release ]; then
+    FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
   fi
 
-  FLAVOUR=$(lsb_release -s -i |tr [A-Z] [a-z])
-  if [ FLAVOUR == "ubuntu" ]; then
+  case "$FLAVOUR" in
+    ubuntu)
+      if command_exists lsb_release; then
+        dist_version="$(lsb_release --codename | cut -f2)"
+      fi
+      if [ -z "$dist_version" ] && [ -r /etc/lsb-release ]; then
+        dist_version="$(. /etc/lsb-release && echo "$DISTRIB_CODENAME")"
+      fi
+    ;;
+    debian|raspbian)
+      dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
+      case "$dist_version" in
+        10)
+          dist_version="buster"
+        ;;
+        9)
+          dist_version="stretch"
+        ;;
+      esac
+    ;;
+    centos)
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+      echo "$FLAVOUR not supported at the moment"
+      exit 1
+    ;;
+    rhel|ol|sles)
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+      echo "$FLAVOUR not supported at the moment"
+      exit 1
+    ;;
+    *)
+      if command_exists lsb_release; then
+        dist_version="$(lsb_release --release | cut -f2)"
+      fi
+      if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+      fi
+    ;;
+  esac
+
+  # FIXME: The below want to be refactored
+  if [ "$FLAVOUR" == "ubuntu" ]; then
     RELEASE=$(lsb_release -s -r)
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
   else
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1}${NC}"
+  fi
+}
+
+
+# Check if this is a forked Linux distro
+check_forked () {
+  # Check for lsb_release command existence, it usually exists in forked distros
+  if command_exists lsb_release; then
+    # Check if the `-u` option is supported
+    set +e
+    lsb_release -a -u > /dev/null 2>&1
+    lsb_release_exit_code=$?
+    set -e
+
+    # Check if the command has exited successfully, it means we're in a forked distro
+    if [ "$lsb_release_exit_code" = "0" ]; then
+      # Print info about current distro
+      cat <<-EOF
+      You're using '$FLAVOUR' version '$dist_version'.
+EOF
+      # Get the upstream release info
+      FLAVOUR=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
+      dist_version=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'codename' | cut -d ':' -f 2 | tr -d '[:space:]')
+
+      # Print info about upstream distro
+      cat <<-EOF
+      Upstream release is '$FLAVOUR' version '$dist_version'.
+EOF
+    else
+      if [ -r /etc/debian_version ] && [ "$FLAVOUR" != "ubuntu" ] && [ "$FLAVOUR" != "raspbian" ]; then
+        # We're Debian and don't even know it!
+        FLAVOUR=debian
+        dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
+        case "$dist_version" in
+          10)
+            dist_version="buster"
+          ;;
+          9)
+            dist_version="stretch"
+          ;;
+          8|'Kali Linux 2')
+            dist_version="jessie"
+          ;;
+        esac
+      fi
+    fi
   fi
 }
 
@@ -225,17 +322,44 @@ checkFail () {
   fi
 }
 
+ask_o () {
+
+  ANSWER=""
+
+  if [ -z "${1}" ]; then
+    echo "This function needs at least 1 parameter."
+    exit 1
+  fi
+
+  [ -z "${2}" ] && OPT1="y" || OPT1="${2}"
+  [ -z "${3}" ] && OPT2="n" || OPT2="${3}"
+
+  while true; do
+    case "${ANSWER}" in "${OPT1}" | "${OPT2}") break ;; esac
+    echo -e -n "${1} (${OPT1}/${OPT2}) "
+    read ANSWER
+    ANSWER=$(echo "${ANSWER}" |  tr '[:upper:]' '[:lower:]')
+  done
+
+}
+
+clean () {
+  rm /tmp/INSTALL.stat
+  rm /tmp/INSTALL.sh.*
+}
+
 # Check if misp user is present and if run as root
 checkID () {
   debug "Checking if run as root and $MISP_USER is present"
   if [[ $EUID == 0 ]]; then
     echo "This script cannot be run as a root"
+    clean > /dev/null 2>&1
     exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
     if [[ "$UNATTENDED" != "1" ]]; then 
       echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' (y) or continue as $USER (n)? (y/n) "
       read ANSWER
-      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+      ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
     else
       ANSWER="y"
     fi
@@ -263,12 +387,12 @@ checkID () {
     sudo adduser $MISP_USER $WWW_USER
   fi
 
-  # FIXME: the below SUDO_USER check is a duplicate from global variables, try to have just one check
+  # FIXME: the below SUDO_CMD check is a duplicate from global variables, try to have just one check
   # sudo config to run $LUSER commands
   if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
-    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+    SUDO_CMD="sudo -H -u ${MISP_USER} -g staff"
   else
-    SUDO_USER="sudo -H -u ${MISP_USER}"
+    SUDO_CMD="sudo -H -u ${MISP_USER}"
   fi
 
 }
@@ -343,8 +467,10 @@ checkUsrLocalSrc () {
     echo "/usr/local/src does not exist, creating."
     mkdir -p /usr/local/src
     sudo chmod 2775 /usr/local/src
-    # FIXME: This might fail on distros with no staff user
-    sudo chown root:staff /usr/local/src
+    # TODO: Better handling /usr/local/src permissions
+    if [[ "$(cat /etc/group |grep staff > /dev/null 2>&1)" == "0" ]]; then
+      sudo chown root:staff /usr/local/src
+    fi
   fi
 }
 
@@ -372,13 +498,14 @@ setBaseURL () {
   CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
   IFACE=`echo $CONN |awk {'print $1'}`
   IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
+  # TODO: Consider "QEMU"
   if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
-      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+      ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
       if [[ "$ANSWER" == "y" ]]; then
         if [[ ! -z $IP ]]; then
           echo "It seems you have an interface called $IFACE UP with the following IP: $IP - FYI"
@@ -480,7 +607,6 @@ installDepsPhp70 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 
@@ -504,7 +630,6 @@ installDepsPhp73 () {
   php7.3 php7.3-cli \
   php7.3-dev \
   php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-  php-pear \
   php-redis php-gnupg \
   php-gd
 }
@@ -665,8 +790,6 @@ alias composer70='composer72'
 composer72 () {
   cd $PATH_TO_MISP/app
   mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 }
 
@@ -677,14 +800,13 @@ composer73 () {
   # Update composer.phar
   # If hash changes, check here: https://getcomposer.org/download/ and replace with the correct one
   # Current Sum for: v1.8.3
-  SHA384_SUM='48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5'
+  SHA384_SUM="$(wget -q -O - https://composer.github.io/installer.sig)"
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
   checkFail "composer.phar checksum failed, please investigate manually. " $?
   $SUDO_WWW php composer-setup.php
   $SUDO_WWW php -r "unlink('composer-setup.php');"
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
 }
 
@@ -706,12 +828,13 @@ genRCLOCAL () {
   sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
+  sed -i -e '$i \[ -f /etc/init.d/firstBoot ] && bash /etc/init.d/firstBoot\n' /etc/rc.local
 }
 
 # Run PyMISP tests
 runTests () {
-  sudo sed -i -E "s~url\ =\ (.*)~url\ =\ '${MISP_BASEURL}'~g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
-  sudo sed -i -E "s/key\ =\ (.*)/key\ =\ '${AUTH_KEY}'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
+  echo "url = '${MISP_BASEURL}'
+key = '${AUTH_KEY}'" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
   sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
@@ -733,25 +856,26 @@ nuke () {
 # Final function to let the user know what happened
 theEnd () {
   space
-  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_USER tee /home/${MISP_USER}/mysql.txt
-  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_USER tee -a /home/${MISP_USER}/mysql.txt
-  echo "Authkey: $AUTH_KEY" |$SUDO_USER tee -a /home/${MISP_USER}/MISP-authkey.txt
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_CMD tee /home/${MISP_USER}/mysql.txt
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_CMD tee -a /home/${MISP_USER}/mysql.txt
+  echo "Authkey: $AUTH_KEY" |$SUDO_CMD tee -a /home/${MISP_USER}/MISP-authkey.txt
 
-  clear
+  # Commenting out, see: https://github.com/MISP/MISP/issues/5368
+  # clear -x
   space
   echo -e "${LBLUE}MISP${NC} Installed, access here: ${MISP_BASEURL}"
   echo
   echo "User: admin@admin.test"
   echo "Password: admin"
   space
-  [[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
-  [[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && space
+  ##[[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
+  ##[[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && space
   echo -e "The following files were created and need either ${RED}protection or removal${NC} (${YELLOW}shred${NC} on the CLI)"
   echo "/home/${MISP_USER}/mysql.txt"
   echo -e "${RED}Contents:${NC}"
@@ -785,7 +909,7 @@ theEnd () {
     space
   fi
 
-  if [[ "$USER" != "$MISP_USER" ]]; then
+  if [[ "$USER" != "$MISP_USER" && "$UNATTENDED" != "1" ]]; then
     sudo su - ${MISP_USER}
   fi
 }

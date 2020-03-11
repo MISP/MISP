@@ -134,6 +134,7 @@
     <?php
         if (isset($currentEvent)) $url = '/posts/add/event/' . $currentEvent;
         else $url = '/posts/add/thread/' . $thread['Thread']['id'];
+        $url = h($url);
         echo $this->Form->create('Post', array('url' => $url));
     ?>
         <fieldset>
@@ -153,7 +154,7 @@
             ));
         ?>
         </fieldset>
-        <button class="btn btn-primary" onClick="submitMessageForm('<?php echo h($url);?>', 'PostViewForm', 'top'); return false;"><?php echo __('Send');?></button>
+        <button class="btn btn-primary" onClick="submitMessageForm('<?php echo $url;?>', 'PostViewForm', 'top'); return false;"><?php echo __('Send');?></button>
     <?php
         echo $this->Form->end();
     ?>

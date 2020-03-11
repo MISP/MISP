@@ -22,7 +22,18 @@ class TaxonomiesController extends AppController
     public function index()
     {
         $this->paginate['recursive'] = -1;
-        $taxonomies = $this->paginate();
+        if ($this->_isRest()) {
+            $keepFields = array('conditions', 'contain', 'recursive', 'sort');
+            $searchParams = array();
+            foreach ($keepFields as $field) {
+                if (!empty($this->paginate[$field])) {
+                    $searchParams[$field] = $this->paginate[$field];
+                }
+            }
+            $taxonomies = $this->Taxonomy->find('all', $searchParams);
+        } else {
+            $taxonomies = $this->paginate();
+        }
         $this->loadModel('Tag');
         foreach ($taxonomies as $key => $taxonomy) {
             $total = 0;
@@ -262,9 +273,17 @@ class TaxonomiesController extends AppController
             $result = $this->Taxonomy->addTags($this->request->data['Tag']['taxonomy_id'], $this->request->data['Tag']['nameList']);
         }
         if ($result) {
-            $this->Flash->success(__('The tag(s) has been saved.'));
+            $message = __('The tag(s) has been saved.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Taxonomy', 'addTag', $taxonomy_id, $this->response->type(), $message);
+            }
+            $this->Flash->success($message);
         } else {
-            $this->Flash->error(__('The tag(s) could not be saved. Please, try again.'));
+            $message = __('The tag(s) could not be saved. Please, try again.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Taxonomy', 'addTag', $taxonomy_id, $message, $this->response->type());
+            }
+            $this->Flash->error($message);
         }
         $this->redirect($this->referer());
     }

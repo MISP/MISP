@@ -133,7 +133,8 @@
                         'event' => $event,
                         'tags' => $event['EventTag'],
                         'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id']),
-                        'required_taxonomies' => $required_taxonomies
+                        'required_taxonomies' => $required_taxonomies,
+                        'tagConflicts' => $tagConflicts
                     )
                 )
             )
@@ -197,7 +198,7 @@
         );
         $table_data[] = array(
             'key' => __('First recorded change'),
-            'value' => date('Y-m-d H:i:s', $oldest_timestamp)
+            'value' => (!$oldest_timestamp) ? '' : date('Y-m-d H:i:s', $oldest_timestamp)
         );
         $table_data[] = array(
             'key' => __('Last change'),
@@ -330,46 +331,76 @@
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>
         <div class="related span4">
+
+            <?php if (!empty($warningTagConflicts)): ?>
+                <div class="warning_container" style="width:80%;">
+                    <h4 class="red"><?php echo __('Warning: Taxonomy inconsistencies');?></h4>
+                    <?php echo '<ul>'; ?>
+                    <?php
+                        foreach ($warningTagConflicts as $taxonomy) {
+                            echo sprintf('<li><a href="%s/taxonomies/view/%s" title="">%s</a></li>', $baseurl, h($taxonomy['Taxonomy']['id']), h($taxonomy['Taxonomy']['namespace']), h($taxonomy['Taxonomy']['description']));
+                            echo '<ul>';
+                            if ($taxonomy['Taxonomy']['exclusive']) {
+                                echo sprintf(
+                                    '<li>%s</li>', 
+                                    sprintf(
+                                        ('%s is an exclusive taxonomy. Only one Tag of this taxonomy is allowed on an element.'),
+                                        sprintf('<strong>%s</strong>', h($taxonomy['Taxonomy']['namespace']))
+                                    )
+                                );
+                            } else {
+                                foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+                                    echo sprintf(
+                                        '<li>%s</li>', 
+                                        sprintf(
+                                            ('%s is an exclusive taxonomy predicate. Only one Tag of this predicate is allowed on an element'),
+                                            sprintf('<strong>%s</strong>', h($predicate['value']))
+                                        )
+                                    );
+                                }
+                            }
+                            echo '</ul>';
+                        }
+                    ?>
+                    <?php echo '</ul>' ?>
+                </div>
+            <?php endif; ?>
+
             <?php
                 if (!empty($event['RelatedEvent'])):
             ?>
                     <h3><?php echo __('Related Events');?></h3>
-                    <span class="inline">
+                    <div class="inline correlation-container">
                         <?php
                             $count = 0;
+                            $display_threshold = 10;
                             $total = count($event['RelatedEvent']);
                             foreach ($event['RelatedEvent'] as $relatedEvent):
                                 $count++;
-                                $relatedData = array('Orgc' => $relatedEvent['Event']['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
-                                $popover = '';
-                                foreach ($relatedData as $k => $v) {
-                                    $popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
-                                }
-                                if ($count == 11 && $total > 10):
+                                if ($count == $display_threshold+1 && $total > $display_threshold):
                                     ?>
                                         <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - $count);?></div>
                                     <?php
                                 endif;
                         ?>
-                                <span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" class="<?php if ($count > 11) echo 'correlation-expanded-area'; ?>" style="white-space: nowrap;<?php echo ($count > 10) ? 'display:none;' : ''; ?>">
-                        <?php
-                                $linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-                                if ($relatedEvent['Event']['orgc_id'] == $me['org_id']) {
-                                    echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
-                                } else {
-                                    echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
-                                }
-                        ?>
-                                </span>&nbsp;
+                            <?php
+                                echo $this->element('/Events/View/related_event', array(
+                                    'related' => $relatedEvent['Event'],
+                                    'color_red' => $relatedEvent['Event']['orgc_id'] == $me['org_id'],
+                                    'hide' => $count > $display_threshold,
+                                    'relatedEventCorrelationCount' => $relatedEventCorrelationCount,
+                                    'from_id' => $event['Event']['id']
+                                ));
+                            ?>
                         <?php
                             endforeach;
-                            if ($total > 10):
+                            if ($total > $display_threshold):
                         ?>
                             <div class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;"><?php echo __('Collapse…');?></div>
                         <?php
                             endif;
                         ?>
-                    </span>
+                    </div>
             <?php
                 endif;
                 if (!empty($event['Feed']) || !empty($event['Event']['FeedCount'])):
@@ -377,6 +408,9 @@
                     <h3>Related Feeds</h3>
             <?php
                     if (!empty($event['Feed'])):
+            ?>
+            <div class="correlation-container">
+                <?php
                         foreach ($event['Feed'] as $relatedFeed):
                             $relatedData = array('Name' => $relatedFeed['name'], 'URL' => $relatedFeed['url'], 'Provider' => $relatedFeed['provider'], 'Source Format' => $relatedFeed['source_format'] == 'misp' ? 'MISP' : $relatedFeed['source_format']);
                             $popover = '';
@@ -400,8 +434,9 @@
                                         endif;
                                     ?>
                                 </span>
+                <?php endforeach; ?>
+            </div>
                 <?php
-                        endforeach;
                     elseif (!empty($event['Event']['FeedCount'])):
                 ?>
                         <span>
@@ -416,6 +451,9 @@
                     <h3>Related Server</h3>
             <?php
                     if (!empty($event['Server'])):
+            ?>
+                    <div class="correlation-container" style="margin-bottom: 15px;">
+            <?php
                         foreach ($event['Server'] as $relatedServer):
                             if (empty($relatedServer['id'])) {
                                 continue;
@@ -426,11 +464,14 @@
                                 $popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
                             }
                 ?>
-                                <span style="white-space: nowrap;">
+                                <span style="white-space: nowrap; display: inline-block">
                                     <a href="<?php echo $baseurl; ?>/servers/previewIndex/<?php echo h($relatedServer['id']); ?>" class="linkButton useCursorPointer" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover"><?php echo h($relatedServer['name']) . ' (' . $relatedServer['id'] . ')'; ?></a>&nbsp;
                                 </span>
                 <?php
                         endforeach;
+                ?>
+                    </div>
+                <?php
                     elseif (!empty($event['Event']['FeedCount'])):
                 ?>
                         <span>
@@ -467,6 +508,9 @@
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventgraph_toggle" data-toggle-type="eventgraph" onclick="enable_interactive_graph();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle Event graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event graph');?>" style="vertical-align:top;"></span><?php echo __('Event graph');?>
         </button>
+        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventtimeline_toggle" data-toggle-type="eventtimeline" onclick="enable_timeline();">
+            <span class="icon-plus icon-white" title="<?php echo __('Toggle Event timeline');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event timeline');?>" style="vertical-align:top;"></span><?php echo __('Event timeline');?>
+        </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="correlationgraph_toggle" data-toggle-type="correlationgraph" onclick="enable_correlation_graph();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle Correlation graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Correlation graph');?>" style="vertical-align:top;"></span><?php echo __('Correlation graph');?>
         </button>
@@ -491,6 +535,9 @@
     </div>
     <div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
         <?php echo $this->element('view_event_graph'); ?>
+    </div>
+    <div id="eventtimeline_div" class="info_container_eventtimeline" style="display: none;" data-fullscreen="false">
+        <?php echo $this->element('view_timeline'); ?>
     </div>
     <div id="correlationgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>

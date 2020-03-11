@@ -11,6 +11,7 @@ class AttackExport
     public $non_restrictive_export = true;
     public $renderView = 'attack_view';
 
+    private $__matrixData = null;
     private $__clusterCounts = array();
     private $__attackGalaxy = 'mitre-attack-pattern';
     private $__galaxy_id = 0;
@@ -20,7 +21,6 @@ class AttackExport
     private $__matrixTags = false;
     private $__killChainOrders = false;
     private $__instanceUUID = false;
-    private $__scope = 'Event';
 
     public function handler($data, $options = array())
     {
@@ -28,35 +28,34 @@ class AttackExport
             $this->__GalaxyModel = ClassRegistry::init('Galaxy');
         }
         $this->__attackGalaxy = empty($options['filters']['attackGalaxy']) ? $this->__attackGalaxy : $options['filters']['attackGalaxy'];
-        $temp = $this->__GalaxyModel->find('first', array(
+        if (empty($this->__galaxy_id)) {
+            $temp = $this->__GalaxyModel->find('first', array(
                 'recursive' => -1,
                 'fields' => array('id', 'name'),
                 'conditions' => array('Galaxy.type' => $this->__attackGalaxy, 'Galaxy.namespace !=' => 'deprecated'),
-        ));
-        if (empty($temp)) {
-            return '';
-        } else {
-            $this->__galaxy_id = $temp['Galaxy']['id'];
-            $this->__galaxy_name = $temp['Galaxy']['name'];
-        }
-        $matrixData = $this->__GalaxyModel->getMatrix($this->__galaxy_id);
-        if (empty($this->__tabs)) {
-            $this->__tabs = $matrixData['tabs'];
-            $this->__matrixTags = $matrixData['matrixTags'];
-            $this->__killChainOrders = $matrixData['killChain'];
-            $this->__instanceUUID = $matrixData['instance-uuid'];
-        }
-        $this->__scope = empty($options['scope']) ? 'Event' : $options['scope'];
-        $clusterData = array();
-        if ($this->__scope === 'Event') {
-            $clusterData = $this->__aggregate($data, $clusterData);
-            if (!empty($data['Attribute'])) {
-                foreach ($data['Attribute'] as $attribute) {
-                    $clusterData = $this->__aggregate($attribute, $clusterData);
-                }
+            ));
+            if (empty($temp)) {
+                return '';
+            } else {
+                $this->__galaxy_id = $temp['Galaxy']['id'];
+                $this->__galaxy_name = $temp['Galaxy']['name'];
             }
-        } else {
-            $clusterData = $this->__aggregate($data, $clusterData);
+        }
+        if (empty($this->__matrixData)) {
+            $this->__matrixData = $this->__GalaxyModel->getMatrix($this->__galaxy_id);
+        }
+        if (empty($this->__tabs)) {
+            $this->__tabs = $this->__matrixData['tabs'];
+            $this->__matrixTags = $this->__matrixData['matrixTags'];
+            $this->__killChainOrders = $this->__matrixData['killChain'];
+            $this->__instanceUUID = $this->__matrixData['instance-uuid'];
+        }
+
+        $clusterData = $this->__aggregate($data, array());
+        if (!empty($data['Attribute'])) {
+            foreach ($data['Attribute'] as $attribute) {
+                $clusterData = $this->__aggregate($attribute, $clusterData);
+            }
         }
 
         foreach ($clusterData as $key => $value) {
@@ -99,11 +98,12 @@ class AttackExport
                 $maxScore = $clusterCount;
             }
         }
+        $this->__GalaxyModel->sortMatrixByScore($this->__tabs, $this->__clusterCounts);
         App::uses('ColourGradientTool', 'Tools');
         $gradientTool = new ColourGradientTool();
         $colours = $gradientTool->createGradientFromValues($this->__clusterCounts);
         $result = array(
-            'target_type' => strtolower($this->__scope),
+            'target_type' => 'event',
             'columnOrders' => $this->__killChainOrders,
             'tabs' => $this->__tabs,
             'scores' => $this->__clusterCounts,
@@ -113,6 +113,10 @@ class AttackExport
         if (!empty($colours)) {
             $result['colours'] = $colours['mapping'];
             $result['interpolation'] = $colours['interpolation'];
+        }
+        if ($this->__galaxy_id == $this->__GalaxyModel->getMitreAttackGalaxyId()) {
+            $result['defaultTabName'] = 'mitre-attack';
+            $result['removeTrailling'] = 2;
         }
         $result['galaxyName'] = $this->__galaxy_name;
         $result['galaxyId'] = $this->__galaxy_id;

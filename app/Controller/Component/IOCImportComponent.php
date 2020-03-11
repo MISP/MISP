@@ -262,7 +262,12 @@ class IOCImportComponent extends Component
     private function __analyseIndicator($attribute)
     {
         $attribute['distribution'] = $this->distribution;
-        $temp = $this->__checkType($attribute['search'], $attribute['type']);
+        if (isset($attribute['type'])) {
+            $type = $attribute['type'];
+        } else {
+            $type = '';
+        }
+        $temp = $this->__checkType($attribute['search'], $type);
         if ($attribute['condition'] !== 'containsnot') {
             if (!$temp) {
                 return false;

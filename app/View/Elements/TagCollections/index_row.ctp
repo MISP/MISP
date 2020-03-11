@@ -22,10 +22,11 @@
           <?php
             echo $this->element('galaxyQuickViewMini', array(
               'mayModify' => ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']),
-              'isAclTagger' => true,
+              'isAclTagger' => $me['Role']['perm_tagger'],
               'data' => $item['Galaxy'],
               'target_id' => h($item['TagCollection']['id']),
-              'target_type' => 'tag_collection'
+              'target_type' => 'tag_collection',
+              'local_tag_off' => true,
             ));
           ?>
         </td>
@@ -44,9 +45,10 @@
                     echo $this->Form->postLink('', array('action' => 'delete', $item['TagCollection']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['TagCollection']['name']));
                 }
                 echo sprintf(
-                    '<a href="%s/tag_collections/view/%s.json" class="fa fa-cloud-download black" title="%s" aria-label="%s" download="tag_collection_%s.json"></a>',
+                    '<a href="%s/tag_collections/view/%s.json" class="fa fa-cloud-download-alt black" title="%s" aria-label="%s" download="tag_collection_%s.json"></a>',
                     $baseurl,
                     h($item['TagCollection']['id']),
+                    __('Download configuration'),
                     __('Download configuration'),
                     h($item['TagCollection']['id'])
                 );

@@ -5,7 +5,7 @@
     <div class="row-fluid">
         <div class="span8">
             <h2>
-                <span class="fa fa-<?php echo h($galaxy['Galaxy']['icon']); ?>"></span>&nbsp;
+                <span class="<?php echo $this->FontAwesome->findNamespace($galaxy['Galaxy']['icon']); ?> fa-<?php echo h($galaxy['Galaxy']['icon']); ?>"></span>&nbsp;
                 <?php echo h($galaxy['Galaxy']['name']); ?> galaxy
             </h2>
             <dl>
@@ -41,7 +41,7 @@ $(document).ready(function () {
     $uri = "/galaxy_clusters/index/" . $galaxy['Galaxy']['id'];
     if (isset($passedArgsArray)) $uri .= '/searchall:' . $passedArgsArray['all'];
     ?>
-    $.get("<?php echo $uri;?>", function(data) {
+    $.get("<?php echo h($uri);?>", function(data) {
         $("#clusters_div").html(data);
     });
 
