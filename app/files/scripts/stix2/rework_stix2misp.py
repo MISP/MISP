@@ -471,6 +471,20 @@ class StixFromMISPParser(StixParser):
     ##                        OBSERVABLE PARSING FUNCTIONS                        ##
     ################################################################################
 
+    @staticmethod
+    def _fetch_file_observable(observable_objects):
+        for key, observable in observable_objects.items():
+            if observable['type'] == 'file':
+                return key
+        return '0'
+
+    @staticmethod
+    def _fill_observable_attribute(attribute_type, object_relation, value):
+        return {'type': attribute_type,
+                'object_relation': object_relation,
+                'value': value,
+                'to_ids': False}
+
     def fill_observable_attributes(self, observable, object_mapping):
         attributes = []
         for key, value in observable.items():
@@ -500,6 +514,17 @@ class StixFromMISPParser(StixParser):
             else:
                 references[key] = value
         return main_objects[0], references
+
+    def _handle_multiple_file_fields(self, file):
+        attributes = []
+        for feature, attribute_type in zip(('filename', 'path', 'fullpath'), ('filename', 'text', 'text')):
+            key = f'x_misp_multiple_{feature}'
+            if key in file:
+                attributes.append(self._fill_observable_attribute(attribute_type, feature, file.pop(key)))
+            elif f'{key}s' in file:
+                attributes.extend(self._fill_observable_attribute(attribute_type, feature, value) for value in file.pop(key))
+        attributes.extend(self.fill_observable_attributes(file, 'file_mapping'))
+        return attributes
 
     def parse_asn_observable(self, observable):
         attributes = []
@@ -553,18 +578,32 @@ class StixFromMISPParser(StixParser):
 
     def parse_file_observable(self, observable):
         file, references = self.filter_main_object(observable, 'File')
-        attributes = self.fill_observable_attributes(file, 'file_mapping')
-        if hasattr(file, 'hashes'):
-            attributes.extend(self.fill_observable_attributes(file.hashes, 'file_mapping'))
-        if hasattr(file, 'content_ref'):
-            reference = references[file.content_ref]
-            value, type = (f'{file.name}|{file.hashes["MD5"]}', 'malware-sample') if 'MD5' in file.hashes else (file.name, 'attachment')
-            attributes.append({'type': type, 'object_relation': type, 'value': value,
-                               'to_ids': False, 'data': reference.payload_bin})
-        if hasattr(file, 'parent_directory_ref'):
-            reference = references[file.parent_directory_ref]
+        references = {key: {'object': value, 'used': False} for key, value in references.items()}
+        file = {key: value for key, value in file.items()}
+        multiple_fields = any(f'x_misp_multiple_{feature}' in file for feature in ('filename', 'path', 'fullpath'))
+        attributes = self._handle_multiple_file_fields(file) if multiple_fields else self.fill_observable_attributes(file, 'file_mapping')
+        if 'hashes' in file:
+            attributes.extend(self.fill_observable_attributes(file['hashes'], 'file_mapping'))
+        if 'content_ref' in file:
+            reference = references[file['content_ref']]
+            value = f'{reference["object"].name}|{reference["object"].hashes["MD5"]}'
+            attributes.append({'type': 'malware-sample', 'object_relation': 'malware-sample', 'value': value,
+                               'to_ids': False, 'data': reference['object'].payload_bin})
+            reference['used'] = True
+        if 'parent_directory_ref' in file:
+            reference = references[file['parent_directory_ref']]
             attributes.append({'type': 'text', 'object_relation': 'path',
-                               'value': reference.path, 'to_ids': False})
+                               'value': reference['object'].path, 'to_ids': False})
+            reference['used'] = True
+        for reference in references.values():
+            if not reference['used']:
+                attributes.append({
+                    'type': 'attachment',
+                    'object_relation': 'attachment',
+                    'value': reference['object'].name,
+                    'data': reference['object'].payload_bin,
+                    'to_ids': False
+                })
         return attributes
 
     def parse_ip_port_observable(self, observable):
@@ -647,7 +686,8 @@ class StixFromMISPParser(StixParser):
 
     def parse_pe_observable(self, observable):
         pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
-        extension = observable['0']['extensions']['windows-pebinary-ext']
+        key = self._fetch_file_observable(observable)
+        extension = observable[key]['extensions']['windows-pebinary-ext']
         self.fill_misp_object(pe_object, extension, 'pe_mapping')
         for section in extension['sections']:
             section_object = MISPObject('pe-section', misp_objects_path_custom=self._misp_objects_path)
@@ -804,8 +844,9 @@ class StixFromMISPParser(StixParser):
         attributes = []
         attachment = {}
         attachment_types = ('file:content_ref.name', 'file:content_ref.payload_bin',
-                            'artifact:name', 'artifact:payload_bin',
-                            "file:hashes.'MD5'", 'file:name')
+                            'artifact:x_misp_text_name', 'artifact:payload_bin',
+                            "file:hashes.'MD5'", "file:content_ref.hashes.'MD5'",
+                            'file:name')
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
             if pattern_type in attachment_types:
@@ -817,17 +858,18 @@ class StixFromMISPParser(StixParser):
             attributes.append(attribute)
         if 'file:content_ref.payload_bin' in attachment:
             filename = attachment['file:content_ref.name'] if 'file:content_ref.name' in attachment else attachment['file:name']
+            md5 = attachment["file:content_ref.hashes.'MD5'"] if "file:content_ref.hashes.'MD5'" in attachment else attachment["file:hashes.'MD5'"]
             attributes.append({
                 'type': 'malware-sample',
                 'object_relation': 'malware-sample',
-                'value': '|'.join((filename, attachment["file:hashes.'MD5'"])),
+                'value': '|'.join((filename, md5)),
                 'data': attachment['file:content_ref.payload_bin']
             })
         if 'artifact:payload_bin' in attachment:
             attributes.append({
                 'type': 'attachment',
                 'object_relation': 'attachment',
-                'value': attachment['artifact:name'] if 'artifact:name' in attachment else attachment['file:name'],
+                'value': attachment['artifact:x_misp_text_name'] if 'artifact:x_misp_text_name' in attachment else attachment['file:name'],
                 'data': attachment['artifact:payload_bin']
             })
         return attributes
