@@ -133,6 +133,12 @@ class StixParser():
                 for tag_name in galaxy['tag_names']:
                     self.tags.add(tag_name)
 
+    @staticmethod
+    def _parse_network_connection_reference(feature_type, feature, value):
+        if feature == 'type':
+            return {type: value.format(feature_type) for type, value in stix2misp_mapping.network_traffic_references_mapping[value].items()}
+        return {feature: value}
+
     def parse_relationships(self):
         attribute_uuids = (attribute.uuid for attribute in self.misp_event.attributes)
         object_uuids = (object.uuid for object in self.misp_event.objects)
@@ -901,12 +907,6 @@ class StixFromMISPParser(StixParser):
         attributes.extend(attribute for attribute in references.values())
         return attributes
 
-    @staticmethod
-    def _parse_network_connection_reference(feature_type, feature, value):
-        if feature == 'type':
-            return {type: value.format(feature_type) for type, value in stix2misp_mapping.network_traffic_references_mapping[value].items()}
-        return {feature: value}
-
     def parse_network_socket_pattern(self, pattern):
         attributes = []
         references = defaultdict(dict)
@@ -1112,6 +1112,8 @@ class ExternalStixParser(StixParser):
                         ('domain-name',): 'parse_domain_ip_port_pattern',
                         ('domain-name', 'ipv4-addr', 'url'): 'parse_domain_ip_port_pattern',
                         ('domain-name', 'ipv6-addr', 'url'): 'parse_domain_ip_port_pattern',
+                        ('domain-name', 'network-traffic'): 'parse_domain_ip_port_pattern',
+                        ('domain-name', 'network-traffic', 'url'): 'parse_url_pattern',
                         ('email-addr',): 'parse_email_address_pattern',
                         ('email-message',): 'parse_email_message_pattern',
                         ('file',): 'parse_file_pattern',
@@ -1212,7 +1214,23 @@ class ExternalStixParser(StixParser):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'asn_mapping')
 
     def parse_domain_ip_port_pattern(self, indicator):
-        attributes = self.get_attributes_from_pattern(indicator.pattern, 'domain_ip_mapping')
+        attributes = []
+        references = defaultdict(dict)
+        for pattern_part in indicator.pattern.strip('[]').split(' AND '):
+            pattern_type, pattern_value = pattern_part.split(' = ')
+            pattern_value = pattern_value.strip("'")
+            if pattern_type not in stix2misp_mapping.domain_ip_mapping:
+                if any(pattern_type.startswith(f'network-traffic:{feature}_ref') for feature in ('src', 'dst')):
+                    feature_type, ref = pattern_type.split(':')[1].split('_')
+                    ref, feature = ref.split('.')
+                    ref = f"{feature_type}_{'0' if ref == 'ref' else ref.strip('ref[]')}"
+                    references[ref].update(self._parse_network_connection_reference(feature_type, feature, pattern_value))
+                continue
+            attribute = deepcopy(stix2misp_mapping.domain_ip_mapping[pattern_type])
+            attribute['value'] = pattern_value
+            attributes.append(attribute)
+        if references:
+            attributes.extend(attribute for attribute in references.values())
 
     def parse_email_message_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'email_mapping')
@@ -1228,6 +1246,7 @@ class ExternalStixParser(StixParser):
 
     def parse_network_traffic_pattern(self, indicator):
         attributes = defaultdict(dict)
+        extensions = defaultdict(dict)
         for pattern_part in indicator.pattern.strip('[]').split(' AND '):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type not in stix2misp_mapping.network_traffic_mapping:
@@ -1239,6 +1258,9 @@ class ExternalStixParser(StixParser):
                     ref, feature = ref.split('.')
                     ref = f"{feature_type}_{'0' if ref == 'ref' else ref.strip('ref[]')}"
                     attributes[ref].update({feature: pattern_value})
+                elif pattern_type.startswith('network-traffic:extensions.'):
+                    _, extension_type, feature = pattern_type.split('.')
+                    extensions[extension_type.strip("'")][feature] = pattern_value
                 else:
                     print(f'Pattern type not supported at the moment: {pattern_type}', file=sys.stderr)
                 continue
@@ -1249,6 +1271,21 @@ class ExternalStixParser(StixParser):
 
     def parse_url_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'url_mapping')
+
+    def parse_user_account_pattern(self, indicator):
+        print(f'user account pattern: {indicator.pattern}')
+        attributes = []
+        for pattern_part in indicator.pattern.strip('[]').plit(' AND '):
+            pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
+            pattern_type = pattern_type.split(':')[1]
+            if pattern_type.startswith('extension.'):
+                pattern_type = pattern_type.split('.')[-1]
+                if pattern_type not in stix2misp_mapping.user_account_mapping:
+                    if '[' in pattern_type:
+                        pattern_type = pattern_type.split('[')[0]
+                    if pattern_type in ('group', 'groups'):
+                        attributes.append({'type': 'text', 'object_relation': 'group', 'value': pattern_value})
+                    continue
 
     def parse_x509_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'x509_mapping')

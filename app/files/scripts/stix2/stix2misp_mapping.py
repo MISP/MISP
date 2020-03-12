@@ -201,7 +201,9 @@ domain_ip_mapping = {'domain-name': domain_attribute_mapping,
                      'domain-name:value': domain_attribute_mapping,
                      'ipv4-addr': ip_attribute_mapping,
                      'ipv6-addr': ip_attribute_mapping,
-                     'domain-name:resolves_to_refs[*].value': ip_attribute_mapping}
+                     'domain-name:resolves_to_refs[*].value': ip_attribute_mapping,
+                     'network-traffic:dst_port': dst_port_attribute_mapping,
+                     'network-traffic:src_port': src_port_attribute_mapping}
 
 email_mapping = {'date': email_date_attribute_mapping,
                  'email-message:date': email_date_attribute_mapping,
