@@ -45,6 +45,16 @@
             }
             $url .= '/' . $url_param_data_paths;
         }
+        if (!empty($action['url_named_params_data_paths'])) {
+            if (is_array($action['url_named_params_data_paths'])) {
+                $temp = array();
+                foreach ($action['url_named_params_data_paths'] as $namedParam => $path) {
+                    $temp[] = sprintf('%s:%s', h($namedParam), h(Hash::extract($row, $path)[0]));
+                }
+                $url_param_data_paths = implode('/', $temp);
+            }
+            $url .= '/' . $url_param_data_paths;
+        }
         if (isset($action['postLink'])) {
             echo $this->Form->postLink(
                 '',
@@ -66,10 +76,11 @@
 
             }
             echo sprintf(
-                '<a href="%s" title="%s" aria-label="%s" %s><i class="black %s"></i></a> ',
+                '<a href="%s" title="%s" aria-label="%s" %s %s><i class="black %s"></i></a> ',
                 $url,
                 empty($action['title']) ? '' : h($action['title']),
                 empty($action['title']) ? '' : h($action['title']),
+                empty($action['dbclickAction']) ? '' : 'class="dblclickActionElement"',
                 empty($action['onclick']) ? '' : sprintf('onClick="%s"', $action['onclick']),
                 $this->FontAwesome->getClass($action['icon'])
             );

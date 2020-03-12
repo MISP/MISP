@@ -1,6 +1,9 @@
 <?php
     $rowHtml = '';
     foreach ($fields as $column => $field) {
+        if (isset($field['requirement']) && $field['requirement'] === false) {
+            continue;
+        }
         if (empty($field['element'])) {
             $valueField = $this->element('/genericElements/IndexTable/Fields/generic_field', array('field' => $field, 'row' => $row, 'data_path' => empty($field['data_path']) ? '' : $field['data_path'], 'k' => $k, 'column' => $column));
         } else {
