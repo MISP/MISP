@@ -9,12 +9,12 @@
                         'children' => array(
                             array(
                                 'active' => $context === 'all',
-                                'url' => sprintf('%s/galaxy_clusters/index/%s/context:all', $baseurl, $galaxy_id),
+                                'url' => sprintf('%s/galaxies/view/%s/context:all', $baseurl, $galaxy_id),
                                 'text' => __('All'),
                             ),
                             array(
                                 'active' => $context === 'altered',
-                                'url' => sprintf('%s/galaxy_clusters/index/%s/context:altered', $baseurl, $galaxy_id),
+                                'url' => sprintf('%s/galaxies/view/%s/context:altered', $baseurl, $galaxy_id),
                                 'text' => __('Altered Galaxy Clusters'),
                             )
                         )
