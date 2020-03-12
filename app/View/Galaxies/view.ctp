@@ -1,8 +1,6 @@
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view'));
-?>
 
-<?php
     $table_data = array();
     $table_data[] = array('key' => __('Galaxy ID'), 'value' => $galaxy['Galaxy']['id']);
     $table_data[] = array('key' => __('Name'), 'value' => $galaxy['Galaxy']['name']);
