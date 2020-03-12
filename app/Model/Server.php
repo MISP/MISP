@@ -2407,7 +2407,7 @@ class Server extends AppModel
                 $eventId,
                 $server
         );
-        ;
+
         if (!empty($event)) {
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;

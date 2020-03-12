@@ -140,16 +140,16 @@ class GalaxyCluster extends AppModel
      *   - In the future, once we move to galaxy 2.0, pass a user along for access control
      *   - maybe in the future remove the galaxy itself once we have logos with each galaxy
     */
-    public function getCluster($name)
+    public function getCluster($name, $user)
     {
         if (isset($this->__clusterCache[$name])) {
             return $this->__clusterCache[$name];
         }
-
+        $conditions = $this->Galaxy->buildConditions($user);
         if (is_numeric($name)) {
-            $conditions = array('GalaxyCluster.id' => $name);
+            $conditions['AND'] = array('GalaxyCluster.id' => $name);
         } else {
-            $conditions = array('LOWER(GalaxyCluster.tag_name)' => strtolower($name));
+            $conditions['AND'] = array('LOWER(GalaxyCluster.tag_name)' => strtolower($name));
         }
 
         $cluster = $this->find('first', array(
@@ -160,9 +160,32 @@ class GalaxyCluster extends AppModel
         if (!empty($cluster)) {
             $cluster = $this->postprocess($cluster);
         }
-
-        $this->__clusterCache[$name] = $cluster;
+        if ($cluster['GalaxyCluster']['default']) { // only cache default clusters
+            $this->__clusterCache[$name] = $cluster;
+        }
         return $cluster;
+    }
+
+    public function getClusters($names, $user, $postProcess=true)
+    {
+        $conditions = $this->Galaxy->buildConditions($user);
+        if (count(array_filter($names, 'is_numeric' )) === count($names)) { // all elements are numeric
+            $conditions['AND'] = array('GalaxyCluster.id' => $names);
+        } else {
+            $names = array_map('strtolower', $names);
+            $conditions['AND'] = array('LOWER(GalaxyCluster.tag_name)' => $names);
+        }
+
+        $clusters = $this->find('all', array(
+            'conditions' => $conditions,
+            'contain' => array('Galaxy', 'GalaxyElement')
+        ));
+
+        if (!empty($clusters) && $postProcess) {
+            $clusters = $this->postprocess($clusters);
+        }
+
+        return $clusters;
     }
 
     /**
@@ -170,21 +193,18 @@ class GalaxyCluster extends AppModel
      * @param bool $replace
      * @return array
      */
-    public function attachClustersToEventIndex(array $events, $replace = false)
+    public function attachClustersToEventIndex($user, array $events, $replace = false)
     {
         $clusterTagNames = array();
         foreach ($events as $event) {
             foreach ($event['EventTag'] as $k2 => $eventTag) {
                 if (substr($eventTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
-                    $clusterTagNames[] = strtolower($eventTag['Tag']['name']);
+                    $clusterTagNames[] = $eventTag['Tag']['name'];
                 }
             }
         }
 
-        $clusters = $this->find('all', array(
-            'conditions' => array('LOWER(GalaxyCluster.tag_name)' => $clusterTagNames),
-            'contain' => array('Galaxy', 'GalaxyElement'),
-        ));
+        $clusters = $this->getCluster($eventTag['Tag']['name'], $user, false);
 
         $clustersByTagName = array();
         foreach ($clusters as $cluster) {
@@ -253,7 +273,7 @@ class GalaxyCluster extends AppModel
         return $cluster;
     }
 
-    public function getClusterTagsFromMeta($galaxyElements)
+    public function getClusterTagsFromMeta($galaxyElements, $user)
     {
         // AND operator between cluster metas
         $tmpResults = array();
@@ -281,6 +301,7 @@ class GalaxyCluster extends AppModel
                 'fields' => array('GalaxyCluster.tag_name'),
                 'recursive' => -1
             ));
+            // TODO: Apply ACL
         }
         return array_values($clusterTags);
     }

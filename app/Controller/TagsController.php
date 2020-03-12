@@ -1148,7 +1148,7 @@ class TagsController extends AppController
             if (!empty($taxonomy)) {
                 $tags[$k]['Taxonomy'] = $taxonomy['Taxonomy'];
             }
-            $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name']);
+            $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name'], $this->Auth->user);
             if (!empty($cluster)) {
                 $tags[$k]['GalaxyCluster'] = $cluster['GalaxyCluster'];
             }

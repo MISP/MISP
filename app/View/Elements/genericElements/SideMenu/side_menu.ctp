@@ -1133,7 +1133,21 @@
                         'url' => '/galaxies/index',
                         'text' => __('List Galaxies')
                     ));
+                    if ($hostOrgUser) { //  TODO: Use correct permission
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/galaxies/import',
+                            'text' => __('Import Galaxy')
+                        ));
+                        if ($menuItem === 'view') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => '/galaxies/add/forkId:' . h($galaxy['Galaxy']['id']),
+                                'text' => __('Add Galaxy Cluster')
+                            ));
+                        }
+                    }
                     if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'element_id' => 'update',
                             'url' => '/galaxies/update',
@@ -1148,6 +1162,7 @@
                         ));
                     }
                     if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
                             'url' => '/galaxies/view/' . h($galaxy_id),
@@ -1159,6 +1174,11 @@
                             'text' => __('View Cluster')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/galaxy_clusters/add/forkId:' . h($id),
+                            'text' => __('Fork Cluster')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewGraph',
                             'url' => '/galaxies/viewGraph/' . h($id),
                             'text' => __('View Correlation Graph')
@@ -1168,6 +1188,11 @@
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
                             'text' => __('View Galaxy')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'export',
+                            'url' => '/galaxies/export/' . h($galaxy['Galaxy']['id']),
+                            'text' => __('Export Galaxy')
                         ));
                     }
                     break;

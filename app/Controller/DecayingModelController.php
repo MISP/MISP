@@ -651,7 +651,7 @@ class DecayingModelController extends AppController
             $eventTags = array();
             foreach ($attributes as $k => $attribute) {
                 $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
-                $attributes[$k]['Attribute'] = $this->User->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
+                $attributes[$k]['Attribute'] = $this->User->Event->massageTags($this->Auth->user(), $attributes[$k]['Attribute'], 'Attribute');
                 unset($attributes[$k]['AttributeTag']);
                 foreach ($attributes[$k]['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
                     if (in_array($attributeTag['Tag']['name'], $cluster_names)) {

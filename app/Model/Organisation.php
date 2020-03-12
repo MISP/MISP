@@ -387,33 +387,33 @@ class Organisation extends AppModel
         return (empty($org)) ? false : $org[$this->alias];
     }
 
-    public function attachOrgsToEvent($event, $fields)
+    public function attachOrgs($data, $fields, $scope = 'Event')
     {
-        if (empty($this->__orgCache[$event['Event']['orgc_id']])) {
+        if (empty($this->__orgCache[$data[$scope]['orgc_id']])) {
             $temp = $this->find('first', array(
-                'conditions' => array('id' => $event['Event']['orgc_id']),
+                'conditions' => array('id' => $data[$scope]['orgc_id']),
                 'recursive' => -1,
                 'fields' => $fields
             ));
             if (!empty($temp)) {
                 $temp = $temp[$this->alias];
             }
-            $this->__orgCache[$event['Event']['orgc_id']] = $temp;
+            $this->__orgCache[$data[$scope]['orgc_id']] = $temp;
         }
-        $event['Orgc'] = $this->__orgCache[$event['Event']['orgc_id']];
-        if (empty($this->__orgCache[$event['Event']['org_id']])) {
+        $data['Orgc'] = $this->__orgCache[$data[$scope]['orgc_id']];
+        if (empty($this->__orgCache[$data[$scope]['org_id']])) {
             $temp = $this->find('first', array(
-                'conditions' => array('id' => $event['Event']['org_id']),
+                'conditions' => array('id' => $data[$scope]['org_id']),
                 'recursive' => -1,
                 'fields' => $fields
             ));
             if (!empty($temp)) {
                 $temp = $temp[$this->alias];
             }
-            $this->__orgCache[$event['Event']['org_id']] = $temp;
+            $this->__orgCache[$data[$scope]['org_id']] = $temp;
         }
-        $event['Org'] = $this->__orgCache[$event['Event']['org_id']];
-        return $event;
+        $data['Org'] = $this->__orgCache[$data[$scope]['org_id']];
+        return $data;
     }
 
     public function getOrgIdsFromMeta($metaConditions)
