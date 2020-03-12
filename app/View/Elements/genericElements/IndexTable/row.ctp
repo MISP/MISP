@@ -1,6 +1,7 @@
 <?php
     $rowHtml = '';
     foreach ($fields as $column => $field) {
+        $field['data_path'] = empty($field['data_path']) ? '' : $field['data_path'];
         if (isset($field['requirement']) && $field['requirement'] === false) {
             continue;
         }
@@ -13,7 +14,7 @@
                     'field' => $field,
                     'row' => $row,
                     'column' => $column,
-                    'data_path' => empty($field['data_path']) ? '' : $field['data_path'],
+                    'data_path' => $field['data_path'],
                     'k' => $k
                 )
             );
