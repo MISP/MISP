@@ -24,25 +24,6 @@
                 <span class="<?php echo $this->FontAwesome->findNamespace($galaxy['Galaxy']['icon']); ?> fa-<?php echo h($galaxy['Galaxy']['icon']); ?>"></span>&nbsp;
                 <?php echo h($galaxy['Galaxy']['name']); ?> galaxy
             </h2>
-            <?php if (!empty($galaxy['Galaxy']['extended_from'])): ?>
-                <h5 style="padding-left: 10px;">
-                    <?php 
-                        echo $this->element('genericElements/IndexTable/Fields/extended_by', array(
-                            'row' => $galaxy,
-                            'field' => array(
-                                'parent' => '',
-                                'url' => $baseurl . '/galaxies/view/%s',
-                                'data_path' => 'Galaxy.extended_from.Galaxy.uuid',
-                                'title' => sprintf('%s > %s', $galaxy['Galaxy']['extended_from']['Galaxy']['namespace'], $galaxy['Galaxy']['extended_from']['Galaxy']['name']),
-                                'fields' => array(
-                                    'extend_data_path' => 'Galaxy.extended_from',
-                                    'extend_link_path' => 'Galaxy.uuid',
-                                )
-                            )
-                        ));
-                    ?>
-                </h5>
-            <?php endif; ?>
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
             <?php echo $kco; ?>
         </div>

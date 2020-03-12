@@ -19,17 +19,10 @@ class GalaxiesController extends AppController
     public function index()
     {
         $aclConditions = array();
-        // $aclConditions = $this->Galaxy->buildConditions($this->Auth->user());
         $filters = $this->IndexFilter->harvestParameters(array('context', 'value'));
         $contextConditions = array();
         if (empty($filters['context'])) {
             $filters['context'] = 'all';
-        } else {
-            if ($filters['context'] == 'altered') { // only include galaxies that have modified galaxyCluster
-                $contextConditions = array(
-                    'GalaxyCluster.default' => false
-                );
-            }
         }
         $searchConditions = array();
         if (empty($filters['value'])) {
@@ -47,7 +40,7 @@ class GalaxiesController extends AppController
             );
         }
         if ($this->_isRest()) {
-            $galaxies = $this->Galaxy->find('all', 
+            $galaxies = $this->Galaxy->find('all',
                 array(
                     'recursive' => -1,
                     'conditions' => array(
@@ -60,12 +53,7 @@ class GalaxiesController extends AppController
             $this->paginate['conditions']['AND'][] = $contextConditions;
             $this->paginate['conditions']['AND'][] = $searchConditions;
             $this->paginate['conditions']['AND'][] = $aclConditions;
-            // $this->paginate['contain'] = array('Org', 'Orgc');
             $galaxies = $this->paginate();
-            // foreach ($galaxies as $k => $galaxy) {
-            //     $galaxies[$k] = $this->Galaxy->attachExtendByInfo($this->Auth->user(), $galaxies[$k]);
-            //     $galaxies[$k] = $this->Galaxy->attachExtendFromInfo($this->Auth->user(), $galaxies[$k]);
-            // }
             $this->set('galaxyList', $galaxies);
             $this->set('context', $filters['context']);
             $this->set('searchall', $filters['value']);
