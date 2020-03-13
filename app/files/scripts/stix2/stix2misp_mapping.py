@@ -178,6 +178,9 @@ x509_version_attribute_mapping = {'type': 'text', 'object_relation': 'version'}
 x509_vna_attribute_mapping = {'type': 'datetime', 'object_relation': 'validity-not-after'} # x509 validity not after
 x509_vnb_attribute_mapping = {'type': 'datetime', 'object_relation': 'validity-not-before'} # x509 validity not before
 
+artifact_mapping = {'artifact:mime_type': mime_type_attribute_mapping,
+                    'file:content_ref.mime_type': mime_type_attribute_mapping}
+
 asn_mapping = {'number': as_number_attribute_mapping,
                'autonomous-system:number': as_number_attribute_mapping,
                'name': description_attribute_mapping,
@@ -263,10 +266,12 @@ for hash_type in hash_types:
     misp_hash_type = hash_type.replace('-', '').lower()
     attribute = {'type': misp_hash_type, 'object_relation': misp_hash_type}
     file_mapping[hash_type] = attribute
-    file_mapping[f"file:hashes.'{hash_type}'"] = attribute
-    file_mapping[f"file:hashes.'{misp_hash_type}'"] = attribute
+    for object_type in ('artifact:', 'file:content_ref.'):
+        artifact_mapping.update({f"{object_type}hashes.'{feature}'": attribute for feature in (hash_type, misp_hash_type)})
+    file_mapping.update({f"file:hashes.'{feature}'": attribute for feature in (hash_type, misp_hash_type)})
     pe_section_mapping[hash_type] = attribute
     pe_section_mapping[misp_hash_type] = attribute
+artifact_mapping.update(file_mapping)
 
 process_mapping = {'name': process_name_mapping,
                    'process:name': process_name_mapping,

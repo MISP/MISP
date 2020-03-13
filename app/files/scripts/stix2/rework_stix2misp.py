@@ -1107,6 +1107,8 @@ class ExternalStixParser(StixParser):
                             ('windows-registry-key',): 'parse_regkey_observable'}
     _pattern_mapping = {('artifact', 'file'): 'parse_artifact_pattern',
                         ('autonomous-system', ): 'parse_as_pattern',
+                        ('autonomous-system', 'ipv4-addr'): 'parse_as_pattern',
+                        ('autonomous-system', 'ipv6-addr'): 'parse_as_pattern',
                         ('directory',): 'parse_file_pattern',
                         ('directory', 'file'): 'parse_file_pattern',
                         ('domain-name',): 'parse_domain_ip_port_pattern',
@@ -1199,16 +1201,18 @@ class ExternalStixParser(StixParser):
 
     def parse_artifact_pattern(self, indicator):
         attributes = defaultdict(list)
+        attachments = []
         for pattern_part in indicator.pattern.strip('[]').split(' AND '):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
-            if pattern_type.startswith('file:'):
-                try:
-                    attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
-                except KeyError:
+            if pattern_type not in stix2misp_mapping.artifact_mapping:
+                if pattern_type.endswith('payload_bin'):
+                    attachments.append((pattern_type, pattern_value))
+                else:
                     print(f'Pattern type not supported at the moment: {pattern_type}', file=sys.stderr)
-                    continue
-                attribute['value'] = pattern_value
-                attributes[attribute['type']].append(attribute)
+                continue
+            attribute = deepcopy(stix2misp_mapping.artifact_mapping[pattern_type])
+            attribute['value'] = pattern_value
+            attributes[attribute['object_relation']].append(attribute)
 
     def parse_as_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'asn_mapping')
@@ -1217,8 +1221,7 @@ class ExternalStixParser(StixParser):
         attributes = []
         references = defaultdict(dict)
         for pattern_part in indicator.pattern.strip('[]').split(' AND '):
-            pattern_type, pattern_value = pattern_part.split(' = ')
-            pattern_value = pattern_value.strip("'")
+            pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type not in stix2misp_mapping.domain_ip_mapping:
                 if any(pattern_type.startswith(f'network-traffic:{feature}_ref') for feature in ('src', 'dst')):
                     feature_type, ref = pattern_type.split(':')[1].split('_')
@@ -1233,7 +1236,23 @@ class ExternalStixParser(StixParser):
             attributes.extend(attribute for attribute in references.values())
 
     def parse_email_message_pattern(self, indicator):
-        attributes = self.get_attributes_from_pattern(indicator.pattern, 'email_mapping')
+        attributes = []
+        attachments = defaultdict(dict)
+        for pattern_part in indicator.pattern.strip('[]').split(' AND '):
+            pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
+            if pattern_type not in stix2misp_mapping.email_mapping:
+                if pattern_type.startswith('email-message:body_multipart'):
+                    features = pattern_type.split('.')
+                    if len(features) == 3 and features[1] == 'body_raw_ref':
+                        index = features[0].split('[')[1].strip(']') if '[' in features[0] else '0'
+                        key = 'data' if features[2] == 'payload_bin' else 'value'
+                        attachments[key][key] = pattern_value
+                        continue
+                print(f'Pattern type not supported at the moment: {pattern_type}', file=sys.stderr)
+                continue
+            attribute = deepcopy(stix2misp_mapping.email_mapping[pattern_type])
+            attribute['value'] = pattern_value
+            attributes.append(attribute)
 
     def parse_file_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'file_mapping')
@@ -1266,6 +1285,9 @@ class ExternalStixParser(StixParser):
                 continue
             attributes[pattern_type.split(':')[1]] = pattern_value
 
+    def parse_process_pattern(self, indicator):
+        attributes = self.get_attributes_from_pattern(indicator.pattern, 'process_mapping')
+
     def parse_regkey_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'regkey_mapping')
 
@@ -1273,19 +1295,21 @@ class ExternalStixParser(StixParser):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'url_mapping')
 
     def parse_user_account_pattern(self, indicator):
-        print(f'user account pattern: {indicator.pattern}')
         attributes = []
-        for pattern_part in indicator.pattern.strip('[]').plit(' AND '):
+        for pattern_part in indicator.pattern.strip('[]').split(' AND '):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             pattern_type = pattern_type.split(':')[1]
-            if pattern_type.startswith('extension.'):
+            if pattern_type.startswith('extensions.'):
                 pattern_type = pattern_type.split('.')[-1]
-                if pattern_type not in stix2misp_mapping.user_account_mapping:
-                    if '[' in pattern_type:
-                        pattern_type = pattern_type.split('[')[0]
-                    if pattern_type in ('group', 'groups'):
-                        attributes.append({'type': 'text', 'object_relation': 'group', 'value': pattern_value})
+                if '[' in pattern_type:
+                    pattern_type = pattern_type.split('[')[0]
+                if pattern_type in ('group', 'groups'):
+                    attributes.append({'type': 'text', 'object_relation': 'group', 'value': pattern_value})
                     continue
+            if pattern_type in stix2misp_mapping.user_account_mapping:
+                attribute = deepcopy(stix2misp_mapping.user_account_mapping[pattern_type])
+                attribute['value'] = pattern_value
+                attributes.append(attribute)
 
     def parse_x509_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'x509_mapping')
