@@ -1120,7 +1120,7 @@ class UsersController extends AppController
             }
             $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
             if ($lastUserLogin) {
-                $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format(DateTimeInterface::RFC822);
+                $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
                 $this->Flash->info(sprintf('Welcome! Last login was on %s', $readableDatetime));
             }
             // no state changes are ever done via GET requests, so it is safe to return to the original page:

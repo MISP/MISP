@@ -66,6 +66,7 @@ class ThreadsController extends AppController
         $conditions = array('id' => $thread_id);
         if ($eventView) {
             $event_id = $thread_id;
+            $thread_id = false;
             if (!$this->request->is('ajax')) {
                 $this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));
             }
