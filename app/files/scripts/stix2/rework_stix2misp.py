@@ -43,7 +43,6 @@ class StixParser():
                              'indicator': '_parse_indicator',
                              'observed-data': '_parse_observable',
                              'identity': '_load_identity'}
-    _stix2misp_mapping.update({special_type: '_parse_undefined' for special_type in ('attack-pattern', 'course-of-action', 'vulnerability')})
     _stix2misp_mapping.update({galaxy_type: '_load_galaxy' for galaxy_type in _galaxy_types})
     _special_mapping = {'attack-pattern': 'parse_attack_pattern',
                         'course-of-action': 'parse_course_of_action',
@@ -264,6 +263,7 @@ class StixFromMISPParser(StixParser):
     def __init__(self):
         super().__init__()
         self._stix2misp_mapping.update({'custom_object': '_parse_custom'})
+        self._stix2misp_mapping.update({special_type: '_parse_undefined' for special_type in ('attack-pattern', 'course-of-action', 'vulnerability')})
 
     def parse_event(self, stix_objects):
         for stix_object in stix_objects:
@@ -1134,6 +1134,9 @@ class ExternalStixParser(StixParser):
 
     def __init__(self):
         super().__init__()
+        self._stix2misp_mapping.update({'attack-pattern': 'parse_attack_pattern',
+                                        'course-of-action': 'parse_course_of_action',
+                                        'vulnerability': 'parse_vulnerability'})
 
     def parse_event(self, stix_objects):
         for stix_object in stix_objects:
@@ -1255,7 +1258,17 @@ class ExternalStixParser(StixParser):
             attributes.append(attribute)
 
     def parse_file_pattern(self, indicator):
-        attributes = self.get_attributes_from_pattern(indicator.pattern, 'file_mapping')
+        attributes = []
+        extensions = defaultdict(dict)
+        for pattern_part in indicator.pattern.strip('[]').split(' AND '):
+            pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
+            if pattern_type not in stix2misp_mapping.file_mapping:
+                features = pattern_type.split('.')[1:]
+                extension_type = features.pop(0)
+                continue
+            attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
+            attribute['value'] = pattern_value
+            attributes.append(attribute)
 
     def parse_mac_address_pattern(self, indicator):
         self.add_single_attribute(indicator, 'mac-address')
