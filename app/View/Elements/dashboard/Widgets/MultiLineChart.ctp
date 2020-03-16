@@ -1,6 +1,5 @@
 <?php
     echo $this->Html->script('d3');
-    echo $this->Html->css('multi-line-chart');
     $seed = rand();
     if (!empty($data['formula'])) {
         echo sprintf(
@@ -72,12 +71,12 @@ var insight = "<?= h($data['insight']) ?>";
   ]);
 
   svg.append("g")
-      .attr("class", "x axis")
+      .attr("class", "x axis axis_multi_line_chart")
       .attr("transform", "translate(0," + height + ")")
       .call(xAxis);
 
   svg.append("g")
-      .attr("class", "y axis")
+      .attr("class", "y axis axis_multi_line_chart")
       .call(yAxis)
 
   var data_node = svg.selectAll(".data-node-<?= $seed ?>")
@@ -86,7 +85,7 @@ var insight = "<?= h($data['insight']) ?>";
       .attr("class", "data-node-<?= $seed ?>");
 
   data_node.append("path")
-      .attr("class", "line")
+      .attr("class", "line path_multi_line_chart")
       .attr("d", function(d) { return line(d.values); })
       .style("stroke", function(d) { return color(d.name); });
 
@@ -96,5 +95,4 @@ var insight = "<?= h($data['insight']) ?>";
       .attr("x", 3)
       .attr("dy", ".35em")
       .text(function(d) { return d.name; });
-
 </script>
