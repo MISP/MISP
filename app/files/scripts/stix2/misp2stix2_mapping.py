@@ -319,6 +319,9 @@ asnObjectMapping = {'asn': 'number', 'description': 'name', 'subnet-announced': 
 
 attackPatternObjectMapping = {'name': 'name', 'summary': 'description'}
 
+attack_pattern_reference_mapping = {'id': ('capec', 'external_id'),
+                                    'references': ('mitre-attack', 'url')}
+
 credentialObjectMapping = {'password': 'credential', 'username': 'user_id'}
 
 domainIpObjectMapping = {'ip-dst': 'resolves_to_refs[*].value', 'domain': 'value'}

@@ -779,25 +779,36 @@ class StixBuilder():
                 marking_ids.append(marking_id)
         return marking_ids
 
-    @staticmethod
-    def parse_attack_pattern_fields(attributes):
+    def parse_attack_pattern_fields(self, attributes):
         attack_pattern = {}
         weaknesses = []
+        references = []
         for attribute in attributes:
             relation = attribute['object_relation']
             if relation in attackPatternObjectMapping:
                 attack_pattern[attackPatternObjectMapping[relation]] = attribute['value']
             else:
-                if relation == 'related-weakness':
+                if relation in ('id', 'references'):
+                    references.append(self._parse_attack_pattern_reference(attribute))
+                elif relation == 'related-weakness':
                     weaknesses.append(attribute['value'])
                 else:
                     attack_pattern[f"x_misp_{attribute['type']}_{relation.replace('-', '_')}"] = attribute['value']
                     attack_pattern['allow_custom'] = True
-        if 'id' in attack_pattern:
-            attack_pattern['external_references'] = [{'source_name': 'capec', 'external_id': f'CAPEC-{attack_pattern["id"]}'}]
+        if references:
+            attack_pattern['external_references'] = references
         if weaknesses:
             attack_pattern['x_misp_weakness_related_weakness'] = weaknesses[0] if len(weaknesses) == 1 else weaknesses
         return attack_pattern
+
+    @staticmethod
+    def _parse_attack_pattern_reference(attribute):
+        object_relation = attribute['object_relation']
+        source_name, key = attack_pattern_reference_mapping[object_relation]
+        value = attribute['value']
+        if object_relation == 'id' and 'CAPEC' not in value:
+            value = f'CAPEC-{value}'
+        return {'source_name': source_name, key: value}
 
     @staticmethod
     def parse_vulnerability_fields(attributes):
