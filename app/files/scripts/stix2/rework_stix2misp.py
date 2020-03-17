@@ -318,7 +318,8 @@ class StixFromMISPParser(StixParser):
     ##                             PARSING FUNCTIONS.                             ##
     ################################################################################
 
-    def fill_misp_object(self, misp_object, stix_object, mapping):
+    def fill_misp_object(self, misp_object, stix_object, mapping,
+                         to_call='_fill_observable_object_attribute'):
         for feature, value in stix_object.items():
             if feature not in getattr(stix2misp_mapping, mapping):
                 if feature.startswith('x_misp_'):
@@ -330,8 +331,7 @@ class StixFromMISPParser(StixParser):
                     continue
             else:
                 attribute = deepcopy(getattr(stix2misp_mapping, mapping)[feature])
-            attribute.update({'value': str(value) if feature in ('entropy', 'size') else value,
-                              'to_ids': False})
+            attribute.update(getattr(self, to_call)(feature, value))
             misp_object.add_attribute(**attribute)
 
     @staticmethod
@@ -350,12 +350,14 @@ class StixFromMISPParser(StixParser):
                     'type': 'text', 'object_relation': 'id',
                     'value': value
                 })
-        self.fill_misp_object(misp_object, attack_pattern, 'attack_pattern_mapping')
+        self.fill_misp_object(misp_object, attack_pattern, 'attack_pattern_mapping',
+                              '_fill_observable_object_attribute')
         self.misp_event.add_object(**misp_object)
 
     def parse_course_of_action(self, course_of_action):
         misp_object, _ = self.create_misp_object(course_of_action)
-        self.fill_misp_object(misp_object, course_of_action, 'course_of_action_mapping')
+        self.fill_misp_object(misp_object, course_of_action, 'course_of_action_mapping',
+                              '_fill_observable_object_attribute')
         self.misp_event.add_object(**misp_object)
 
     def parse_custom_attribute(self, custom):
@@ -1033,6 +1035,15 @@ class StixFromMISPParser(StixParser):
         misp_object.uuid = stix_object.id.split('--')[1]
         misp_object.update(self.parse_timeline(stix_object))
         return misp_object, object_type
+
+    @staticmethod
+    def _fill_object_attribute(feature, value):
+        return {'value': str(value) if feature in ('entropy', 'size') else value}
+
+    @staticmethod
+    def _fill_observable_object_attribute(feature, value):
+        return {'value': str(value) if feature in ('entropy', 'size') else value,
+                'to_ids': False}
 
     @staticmethod
     def get_misp_category(labels):
