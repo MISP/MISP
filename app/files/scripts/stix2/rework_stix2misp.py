@@ -344,10 +344,12 @@ class StixFromMISPParser(StixParser):
     def parse_attack_pattern(self, attack_pattern):
         misp_object, _ = self.create_misp_object(attack_pattern)
         if hasattr(attack_pattern, 'external_references'):
-            misp_object.add_attribute(**{
-                'type': 'text', 'object_relation': 'id',
-                'value': attack_pattern.external_references[0]['external_id'].split('-')[1]
-            })
+            for reference in attack_pattern.external_references:
+                value = reference['external_id'].split('-')[1] if reference['source_name'] == 'capec' else reference['url']
+                misp_object.add_attribute(**{
+                    'type': 'text', 'object_relation': 'id',
+                    'value': value
+                })
         self.fill_misp_object(misp_object, attack_pattern, 'attack_pattern_mapping')
         self.misp_event.add_object(**misp_object)
 
