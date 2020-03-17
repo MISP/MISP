@@ -136,6 +136,7 @@ entropy_mapping = {'type': 'float', 'object_relation': 'entropy'}
 filename_attribute_mapping = {'type': 'filename', 'object_relation': 'filename'}
 from_attribute_mapping = {'type': 'email-src', 'object_relation': 'from'}
 imphash_mapping = {'type': 'imphash', 'object_relation': 'imphash'}
+id_attribute_mapping = {'type': 'text', 'object_relation': 'id'}
 ip_attribute_mapping = {'type': 'ip-dst', 'object_relation': 'ip'}
 issuer_attribute_mapping = {'type': 'text', 'object_relation': 'issuer'}
 key_attribute_mapping = {'type': 'regkey', 'object_relation': 'key'}
@@ -153,6 +154,7 @@ process_creation_time_mapping = {'type': 'datetime', 'object_relation': 'creatio
 process_image_mapping = {'type': 'filename', 'object_relation': 'image'}
 process_name_mapping = {'type': 'text', 'object_relation': 'name'}
 regkey_name_attribute_mapping = {'type': 'text', 'object_relation': 'name'}
+references_attribute_mapping = {'type': 'link', 'object_relation': 'references'}
 reply_to_attribute_mapping = {'type': 'email-reply-to', 'object_relation': 'reply-to'}
 section_name_mapping = {'type': 'text', 'object_relation': 'name'}
 serial_number_attribute_mapping = {'type': 'text', 'object_relation': 'serial-number'}
@@ -191,6 +193,9 @@ asn_mapping = {'number': as_number_attribute_mapping,
 
 attack_pattern_mapping = {'name': name_attribute_mapping,
                           'description': summary_attribute_mapping}
+
+attack_pattern_references_mapping = {'mitre-attack': references_attribute_mapping,
+                                     'capec': id_attribute_mapping}
 
 course_of_action_mapping = {'description': description_attribute_mapping,
                             'name': name_attribute_mapping}
@@ -324,7 +329,7 @@ user_account_mapping = {'account_created': {'type': 'datetime', 'object_relation
                         'shell': {'type': 'text', 'object_relation': 'shell'},
                         'user_id': {'type': 'text', 'object_relation': 'user-id'}}
 
-vulnerability_mapping = {'name': {'type': 'text', 'object_relation': 'id'},
+vulnerability_mapping = {'name': id_attribute_mapping,
                          'description': summary_attribute_mapping}
 
 x509_mapping = {'issuer': issuer_attribute_mapping,

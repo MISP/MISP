@@ -1189,6 +1189,30 @@ class ExternalStixParser(StixParser):
                                      'value': indicator.pattern})
         self.misp_event.add_object(**misp_object)
 
+    def fill_misp_object(self, misp_object, stix_object, mapping):
+        for feature, attribute in getattr(stix2misp_mapping, mapping).items():
+            if hasattr(stix_object, feature):
+                attribute = deepcopy(attribute)
+                attribute['value'] = getattr(stix_object, feature)
+                misp_object.add_attribute(**attribute)
+
+    def parse_attack_pattern(self, attack_pattern):
+        misp_object = self.create_misp_object(attack_pattern)
+        if hasattr(attack_pattern, 'external_references'):
+            for reference in attack_pattern.external_references:
+                source_name = reference['source_name']
+                value = reference['external_id'].split('-')[1] if source_name == 'capec' else reference['url']
+                attribute = deepcopy(stix2misp_mapping.attack_pattern_references_mapping[source_name])
+                attribute['value'] = value
+                misp_object.add_attribute(**attribute)
+        self.fill_misp_object(misp_object, attack_pattern, 'attack_pattern_mapping')
+        self.misp_event.add_object(**misp_object)
+
+    def parse_course_of_action(self, course_of_action):
+        misp_object = self.create_misp_object(course_of_action)
+        self.fill_misp_object(misp_object, course_of_action, 'course_of_action_mapping')
+        self.misp_event.add_object(**misp_object)
+
     def parse_usual_indicator(self, indicator):
         pattern = tuple(part.strip() for part in indicator.pattern.strip('[]').split(' AND '))
         types = self.parse_pattern_types(pattern)
@@ -1197,6 +1221,17 @@ class ExternalStixParser(StixParser):
         except KeyError:
             print(f'Type(s) not supported at the moment: {types}\n', file=sys.stderr)
             self.add_stix2_pattern_object(indicator)
+
+    def parse_vulnerability(self, vulnerability):
+        misp_object = self.create_misp_object(vulnerability)
+        self.fill_misp_object(misp_object, vulnerability, 'vulnerability_mapping')
+        if hasattr(vulnerability, 'external_references'):
+            for reference in vulnerability.external_references:
+                if reference['source_name'] == 'url':
+                    attribute = deepcopy(stix2misp_mapping.references_attribute_mapping)
+                    attribute['value'] = reference['url']
+                    misp_object.add_attribute(**attribute)
+        self.misp_event.add_object(**misp_object)
 
     ################################################################################
     ##                         PATTERN PARSING FUNCTIONS.                         ##
@@ -1354,6 +1389,13 @@ class ExternalStixParser(StixParser):
         })
         attribute.update(self.parse_timeline(indicator))
         self.misp_event.add_attribute(**attribute)
+
+    def create_misp_object(self, stix_object, name=None):
+        misp_object = MISPObject(name if name is not None else stix_object.type,
+                                 misp_objects_path_custom=self._misp_objects_path)
+        misp_object.uuid = stix_object.id.split('--')[1]
+        misp_object.update(self.parse_timeline(stix_object))
+        return misp_object
 
     @staticmethod
     def get_type_and_value_from_pattern(pattern):
