@@ -137,16 +137,17 @@ checkFlavour () {
     centos)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+        dist_version=${dist_version:0:1}
       fi
-      echo "$FLAVOUR not supported at the moment"
-      exit 1
+      echo "$FLAVOUR support is experimental at the moment"
     ;;
     rhel|ol|sles)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+	dist_version=${dist_version:0:1}  # Only interested about major version
       fi
-      echo "$FLAVOUR not supported at the moment"
-      exit 1
+      # Only tested for RHEL 7 so far 
+      echo "$FLAVOUR support is experimental at the moment"
     ;;
     *)
       if command_exists lsb_release; then
@@ -214,25 +215,38 @@ EOF
 }
 
 checkInstaller () {
-  # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
-  if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
-    sudo apt install libdigest-sha-perl -qyy
-  fi
-  # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
-  SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
-  for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
-    /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
-    INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
-    chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
-
-    if [[ "${chsum}" == "${INSTsum}" ]]; then
-      echo "sha${sum} matches"
-    else
-      echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
-      echo "Delete installer, re-download and please run again."
-      exit 1
+  # Workaround: shasum is not available on RHEL, only checking sha512
+  if [[ $FLAVOUR == "rhel" ]] || [[ $FLAVOUR == "centos" ]]; then
+	INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
+	/usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
+        chsum=$(cat /tmp/INSTALL.sh.sha512)
+	if [[ "${chsum}" == "${INSTsum}" ]]; then
+		echo "SHA512 matches"
+	else
+		echo "SHA512: ${chsum} does not match the installer sum of: ${INSTsum}"
+		# exit 1 # uncomment when/if PR is merged
+	fi
+  else
+    # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
+    if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
+      sudo apt install libdigest-sha-perl -qyy
     fi
-  done
+    # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
+    SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
+    for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
+      /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
+      INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
+      chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
+
+      if [[ "${chsum}" == "${INSTsum}" ]]; then
+        echo "sha${sum} matches"
+      else
+        echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
+        echo "Delete installer, re-download and please run again."
+        exit 1
+      fi
+    done
+  fi
 }
 
 # Extract manufacturer
