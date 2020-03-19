@@ -723,7 +723,7 @@ class UsersController extends AppController
                             $user = $this->User->find('first', array('conditions' => array('User.id' => $this->User->id), 'recursive' => -1));
                             $password = isset($this->request->data['User']['password']) ? $this->request->data['User']['password'] : false;
                             $result = $this->User->initiatePasswordReset($user, true, true, $password);
-                            if ($result) {
+                            if ($result && empty(Configure::read('MISP.disable_emailing'))) {
                                 $notification_message .= ' User notified of new credentials.';
                             }
                         }

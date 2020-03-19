@@ -109,7 +109,6 @@ class NidsSuricataExport extends NidsExport
                 $data['host'] = '';
             }
         }
-
         switch ($scheme) {
             case "http":
                 $data['host'] = NidsExport::replaceIllegalChars($data['host']);
@@ -126,26 +125,18 @@ class NidsSuricataExport extends NidsExport
                 } else {
                     $content = 'flow:to_server,established; content:"' . $data['host'] . '"; fast_pattern; nocase; http_header; content:"' . $data['path'] . '"; nocase; http_uri;';
                 }
-
                 break;
 
             case "https":
                 $data['host'] = NidsExport::replaceIllegalChars($data['host']);
                 $tag = 'tag:session,600,seconds;';
-
                 # IP: classic IP rule for HTTPS
-                if (filter_var($data['host'], FILTER_VALIDATE_IP)) {
-                    $suricata_protocol = 'tcp';
-                    $suricata_src_ip = '$HOME_NET';
-                    $suricata_src_port = 'any';
-                    $suricata_dst_ip = $data['host'];
-                    $suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
-                    $content = 'flow:to_server; app-layer-protocol:tls;';
-                }
-                # Domain: rule on https certificate subject
-                else {
-                    $createRule = false;
-                }
+                $suricata_protocol = 'tcp';
+                $suricata_src_ip = '$HOME_NET';
+                $suricata_src_port = 'any';
+                $suricata_dst_ip = $data['host'];
+                $suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
+                $content = 'flow:to_server; app-layer-protocol:tls;';
                 break;
 
             case "ssh":
@@ -196,7 +187,6 @@ class NidsSuricataExport extends NidsExport
 
                 break;
         }
-
         if ($createRule) {
             $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
             $this->rules[] = sprintf(
