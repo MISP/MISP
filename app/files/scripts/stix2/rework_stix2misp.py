@@ -1157,6 +1157,11 @@ class ExternalStixParser(StixParser):
             if object_type in self._stix2misp_mapping:
                 getattr(self, self._stix2misp_mapping[object_type])(stix_object)
 
+    def parse_galaxy(self, galaxy):
+        if galaxy.name in self._synonyms_to_tag_names:
+            return self._synonyms_to_tag_names[galaxy.name]
+        return [f'misp-galaxy:{galaxy._type}="{galaxy.name}"']
+
     def _parse_indicator(self, indicator):
         pattern = indicator.pattern
         if any(relation in pattern for relation in self._pattern_forbidden_relations) or all(relation in pattern for relation in (' OR ', ' AND ')):
@@ -1202,7 +1207,7 @@ class ExternalStixParser(StixParser):
             for reference in attack_pattern.external_references:
                 source_name = reference['source_name']
                 value = reference['external_id'].split('-')[1] if source_name == 'capec' else reference['url']
-                attribute = deepcopy(stix2misp_mapping.attack_pattern_references_mapping[source_name])
+                attribute = deepcopy(stix2misp_mapping.attack_pattern_references_mapping[source_name]) if source_name in stix2misp_mapping.attack_pattern_references_mapping else stix2misp_mapping.references_attribute_mapping
                 attribute['value'] = value
                 misp_object.add_attribute(**attribute)
         self.fill_misp_object(misp_object, attack_pattern, 'attack_pattern_mapping')
