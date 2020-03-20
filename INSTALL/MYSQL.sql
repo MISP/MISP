@@ -916,7 +916,7 @@ CREATE TABLE IF NOT EXISTS `shadow_attribute_correlations` (
 -- Table structure for table `sharing_group_orgs`
 --
 
-CREATE TABLE `sharing_group_orgs` (
+CREATE TABLE IF NOT EXISTS `sharing_group_orgs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `sharing_group_id` int(11) NOT NULL,
   `org_id` int(11) NOT NULL,
@@ -932,7 +932,7 @@ CREATE TABLE `sharing_group_orgs` (
 -- Table structure for table `sharing_group_servers`
 --
 
-CREATE TABLE `sharing_group_servers` (
+CREATE TABLE IF NOT EXISTS `sharing_group_servers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `sharing_group_id` int(11) NOT NULL,
   `server_id` int(11) NOT NULL,
@@ -948,7 +948,7 @@ CREATE TABLE `sharing_group_servers` (
 -- Table structure for table `sharing_groups`
 --
 
-CREATE TABLE `sharing_groups` (
+CREATE TABLE IF NOT EXISTS `sharing_groups` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `releasability` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
