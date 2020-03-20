@@ -1,14 +1,10 @@
 <?php
     $widgetHtml = $this->element('/dashboard/Widgets/' . $config['render']);
-    $result = $this->ScopedCSS->createScopedCSS($widgetHtml);
-    $seed = $result['seed'];
-    $widgetHtml = $result['html'];
-    $widgetCSS = $result['css'];
+    $scopedHtml = $this->ScopedCSS->createScopedCSS($widgetHtml);
 ?>
-<div id="widgetContentInner_<?= h($widget_id) ?>" <?php echo !empty($seed) ? sprintf("data-scoped=\"%s\" ", $seed) : "" ?>>
+<div id="widgetContentInner_<?= h($widget_id) ?>">
     <?php
-        echo $widgetHtml;
-        echo $widgetCSS;
+        echo $scopedHtml['bundle'];
     ?>
 </div>
 <script type="text/javascript">

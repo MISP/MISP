@@ -28,10 +28,25 @@ App::uses('AppHelper', 'View/Helper');
             return sprintf("<style>%s%s%s</style>", PHP_EOL, $cssScopedLines, PHP_EOL);
         }
 
-        public function createScopedCSS($html)
+
+         /**
+         * Replace a declared CSS scoped style and prepend a random CSS data filter to any CSS selector discovered
+         * @param string $param1 HTML potentially containing scoped CSS
+         * @return array Return an array composed of 3 keys (html, css and seed) 
+         *      - bundle:       Include both scoped HTML and scoped CSS or the original html if the scoped feature is not requested
+         *      - html:         Untouched HTML including nested in a scoped DIV or original html if the scoped feature is not requested
+         *      - css:          CSS with an additional filter rule prepended to every selectors or the empty string if the scoped feature is not requested
+         *      - seed:         The random generated number
+         *      - originalHtml: Untouched HTML
+         */
+        public function createScopedCSS(string $html) : array
         {
             $css = "";
             $seed = "";
+            $originalHtml = $html;
+            $bundle = $originalHtml;
+            $scopedHtml = $html;
+            $scopedCss = "";
             $htmlStyleTag = "<style widget-scoped>";
             $styleClosingTag = "</style>";
             $styleTagIndex = strpos($html, $htmlStyleTag);
@@ -39,15 +54,19 @@ App::uses('AppHelper', 'View/Helper');
             if ($styleTagIndex !== false && $closingStyleTagIndex !== false && $closingStyleTagIndex > $styleTagIndex) { // enforced scoped css
                 $seed = rand();
                 $css = substr($html, $styleTagIndex, $closingStyleTagIndex);
-                $html = str_replace($css, "", $html);           // remove CSS part
-                $css = str_replace($htmlStyleTag, "", $css);    // remove the style node
+                $html = str_replace($css, "", $html); // remove CSS part
+                $css = str_replace($htmlStyleTag, "", $css); // remove the style node
                 $css = str_replace($styleClosingTag, "", $css); // remove closing style node
-                $css = $this->preppendScopedId($css, $seed);
+                $scopedCss = $this->preppendScopedId($css, $seed);
+                $scopedHtml = sprintf("<div %s>%s</div>", sprintf("data-scoped=\"%s\" ", $seed), $html);
+                $bundle = sprintf("%s %s", $scopedHtml, $scopedCss);
             }
             return array(
+                "bundle" => $bundle,
+                "html" => $scopedHtml,
+                "css" => $scopedCss,
                 "seed" => $seed,
-                "html" => $html,
-                "css" => $css
+                "originalHtml" => $originalHtml,
             );
         }
 
