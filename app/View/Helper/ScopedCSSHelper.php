@@ -30,7 +30,27 @@ App::uses('AppHelper', 'View/Helper');
 
 
          /**
-         * Replace a declared CSS scoped style and prepend a random CSS data filter to any CSS selector discovered
+         * Replace a declared CSS scoped style and prepend a random CSS data filter to any CSS selector discovered.
+         * Usage: Add the following style tag `<style widget-scoped>` to use the scoped feature. Nearly every selector path will have their rule modified to adhere to the scope
+         * Restrictions:
+         *      - Applying class to the root document (i.e. `body`) will not work
+         *      - Selector rules must end with either `{` or `,`, their content MUST be put in a new line:
+         *          [bad]
+         *              element { ... }
+         *          [good] 
+         *              element {
+         *                  ...
+         *              }
+         *      - Selectors with the `and` (`,`) rule MUST be split in multiple lines:
+         *          [bad]
+         *              element,element {
+         *                  ...
+         *              }
+         *          [good] 
+         *              element,
+         *              element {
+         *                  ...
+         *              }
          * @param string $param1 HTML potentially containing scoped CSS
          * @return array Return an array composed of 3 keys (html, css and seed) 
          *      - bundle:       Include both scoped HTML and scoped CSS or the original html if the scoped feature is not requested
@@ -50,7 +70,7 @@ App::uses('AppHelper', 'View/Helper');
             $htmlStyleTag = "<style widget-scoped>";
             $styleClosingTag = "</style>";
             $styleTagIndex = strpos($html, $htmlStyleTag);
-            $closingStyleTagIndex = strpos($html, $styleClosingTag) + strlen($styleClosingTag);
+            $closingStyleTagIndex = strpos($html, $styleClosingTag, $styleTagIndex) + strlen($styleClosingTag);
             if ($styleTagIndex !== false && $closingStyleTagIndex !== false && $closingStyleTagIndex > $styleTagIndex) { // enforced scoped css
                 $seed = rand();
                 $css = substr($html, $styleTagIndex, $closingStyleTagIndex);
