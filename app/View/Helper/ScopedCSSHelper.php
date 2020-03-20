@@ -16,7 +16,7 @@ App::uses('AppHelper', 'View/Helper');
         private function preppendScopedId($css, $seed)
         {
             $prependSelector = sprintf('[data-scoped="%s"]', $seed);
-            $cssLines = explode("\n", $css);
+            $cssLines = explode(PHP_EOL, $css);
             foreach ($cssLines as $i => $line) {
                 if (strlen($line) > 0) {
                     if ($this->endsWith($line, "{") || $this->endsWith($line, ",")) {
