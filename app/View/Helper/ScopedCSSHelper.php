@@ -19,7 +19,7 @@ App::uses('AppHelper', 'View/Helper');
             $cssLines = explode("\n", $css);
             foreach ($cssLines as $i => $line) {
                 if (strlen($line) > 0) {
-                    if (endsWith($line, "{")) {
+                    if ($this->endsWith($line, "{") || $this->endsWith($line, ",")) {
                         $cssLines[$i] = sprintf("%s %s", $prependSelector, $line);
                     }
                 }
@@ -32,7 +32,7 @@ App::uses('AppHelper', 'View/Helper');
         {
             $css = "";
             $seed = "";
-            $htmlStyleTag = "<style scoped>";
+            $htmlStyleTag = "<style widget-scoped>";
             $styleClosingTag = "</style>";
             $styleTagIndex = strpos($html, $htmlStyleTag);
             $closingStyleTagIndex = strpos($html, $styleClosingTag) + strlen($styleClosingTag);
@@ -42,7 +42,7 @@ App::uses('AppHelper', 'View/Helper');
                 $html = str_replace($css, "", $html);           // remove CSS part
                 $css = str_replace($htmlStyleTag, "", $css);    // remove the style node
                 $css = str_replace($styleClosingTag, "", $css); // remove closing style node
-                $css = preppendScopedId($css, $seed);
+                $css = $this->preppendScopedId($css, $seed);
             }
             return array(
                 "seed" => $seed,
