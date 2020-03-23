@@ -1355,14 +1355,14 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
 -- Default values for initial installation
 --
 
-INSERT INTO `admin_settings` (`id`, `setting`, `value`) VALUES
+INSERT IGNORE INTO `admin_settings` (`id`, `setting`, `value`) VALUES
 (1, 'db_version', '40');
 
-INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`, `enabled`) VALUES
+INSERT IGNORE INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`, `enabled`) VALUES
 (1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint', 3, 1, 0),
 (2, 'Botvrij.eu', 'The Botvrij.eu Data', 'https://www.botvrij.eu/data/feed-osint', 3, 1, 0);
 
- INSERT INTO `regexp` (`id`, `regexp`, `replacement`, `type`) VALUES
+INSERT IGNORE INTO `regexp` (`id`, `regexp`, `replacement`, `type`) VALUES
  (1, '/.:.ProgramData./i', '%ALLUSERSPROFILE%\\\\', 'ALL'),
  (2, '/.:.Documents and Settings.All Users./i', '%ALLUSERSPROFILE%\\\\', 'ALL'),
  (3, '/.:.Program Files.Common Files./i', '%COMMONPROGRAMFILES%\\\\', 'ALL'),
@@ -1407,22 +1407,22 @@ INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`,
 -- 7. Read Only - read
 --
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
+INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
 VALUES (1, 'admin', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0);
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
+INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
 VALUES (2, 'Org Admin', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0);
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
+INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
 VALUES (3, 'User', NOW(), NOW(), 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1);
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
+INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
 VALUES (4, 'Publisher', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0);
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
+INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
 VALUES (5, 'Sync user', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0);
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
+INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
 VALUES (6, 'Read Only', NOW(), NOW(), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
@@ -1431,7 +1431,7 @@ VALUES (6, 'Read Only', NOW(), NOW(), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 
 -- Initial threat levels
 --
 
-INSERT INTO `threat_levels` (`id`, `name`, `description`, `form_description`)
+INSERT IGNORE INTO `threat_levels` (`id`, `name`, `description`, `form_description`)
 VALUES
   (1, 'High', '*high* means sophisticated APT malware or 0-day attack', 'Sophisticated APT malware or 0-day attack'),
   (2, 'Medium', '*medium* means APT malware', 'APT malware'),
@@ -1444,13 +1444,13 @@ VALUES
 -- Default templates
 --
 
-INSERT INTO `templates` (`id`, `name`, `description`, `org`, `share`) VALUES
+INSERT IGNORE INTO `templates` (`id`, `name`, `description`, `org`, `share`) VALUES
 (1, 'Phishing E-mail', 'Create a MISP event about a Phishing E-mail.', 'MISP', 1),
 (2, 'Phishing E-mail with malicious attachment', 'A MISP event based on Spear-phishing containing a malicious attachment. This event can include anything from the description of the e-mail itself, the malicious attachment and its description as well as the results of the analysis done on the malicious f', 'MISP', 1),
 (3, 'Malware Report', 'This is a template for a generic malware report. ', 'MISP', 1),
 (4, 'Indicator List', 'A simple template for indicator lists.', 'MISP', 1);
 
-INSERT INTO `template_elements` (`id`, `template_id`, `position`, `element_definition`) VALUES
+INSERT IGNORE INTO `template_elements` (`id`, `template_id`, `position`, `element_definition`) VALUES
 (1, 1, 2, 'attribute'),
 (2, 1, 3, 'attribute'),
 (3, 1, 1, 'text'),
@@ -1497,7 +1497,7 @@ INSERT INTO `template_elements` (`id`, `template_id`, `position`, `element_defin
 (46, 4, 2, 'attribute'),
 (47, 4, 3, 'attribute');
 
-INSERT INTO `template_element_attributes` (`id`, `template_element_id`, `name`, `description`, `to_ids`, `category`, `complex`, `type`, `mandatory`, `batch`) VALUES
+INSERT IGNORE INTO `template_element_attributes` (`id`, `template_element_id`, `name`, `description`, `to_ids`, `category`, `complex`, `type`, `mandatory`, `batch`) VALUES
 (1, 1, 'From address', 'The source address from which the e-mail was sent.', 1, 'Payload delivery', 0, 'email-src', 1, 1),
 (2, 2, 'Malicious url', 'The malicious url in the e-mail body.', 1, 'Payload delivery', 0, 'url', 1, 1),
 (3, 4, 'E-mail subject', 'The subject line of the e-mail.', 0, 'Payload delivery', 0, 'email-subject', 1, 0),
@@ -1529,13 +1529,13 @@ INSERT INTO `template_element_attributes` (`id`, `template_element_id`, `name`, 
 (29, 46, 'Network Indicators', 'Paste any combination of IP addresses, hostnames, domains or URL', 1, 'Network activity', 1, 'CnC', 0, 1),
 (30, 47, 'File Indicators', 'Paste any file hashes that you have (MD5, SHA1, SHA256) or filenames below. You can also add filename and hash pairs by using the following syntax for each applicable column: filename|hash ', 1, 'Payload installation', 1, 'File', 0, 1);
 
-INSERT INTO `template_element_files` (`id`, `template_element_id`, `name`, `description`, `category`, `malware`, `mandatory`, `batch`) VALUES
+INSERT IGNORE INTO `template_element_files` (`id`, `template_element_id`, `name`, `description`, `category`, `malware`, `mandatory`, `batch`) VALUES
 (1, 14, 'Malicious Attachment', 'The file (or files) that was (were) attached to the e-mail itself.', 'Payload delivery', 1, 0, 1),
 (2, 21, 'Payload installation', 'Payload installation detected during the analysis', 'Payload installation', 1, 0, 1),
 (3, 30, 'Malware sample', 'The sample that the report is based on', 'Payload delivery', 1, 0, 0),
 (4, 40, 'Artifacts dropped (Sample)', 'Upload any files that were dropped during the analysis.', 'Artifacts dropped', 1, 0, 1);
 
-INSERT INTO `template_element_texts` (`id`, `name`, `template_element_id`, `text`) VALUES
+INSERT IGNORE INTO `template_element_texts` (`id`, `name`, `template_element_id`, `text`) VALUES
 (1, 'Required fields', 3, 'The fields below are mandatory.'),
 (2, 'Optional information', 5, 'All of the fields below are optional, please fill out anything that''s applicable.'),
 (4, 'Required Fields', 11, 'The following fields are mandatory'),
@@ -1548,6 +1548,6 @@ INSERT INTO `template_element_texts` (`id`, `name`, `template_element_id`, `text
 (11, 'Persistence mechanism', 41, 'The following fields allow you to describe the persistence mechanism used by the malware'),
 (12, 'Indicators', 45, 'Just paste your list of indicators based on type into the appropriate field. All of the fields are optional, so inputting a list of IP addresses into the Network indicator field for example is sufficient to complete this template.');
 
-INSERT INTO `org_blacklists` (`org_uuid`, `created`, `org_name`, `comment`) VALUES
+INSERT IGNORE INTO `org_blacklists` (`org_uuid`, `created`, `org_name`, `comment`) VALUES
 ('58d38339-7b24-4386-b4b4-4c0f950d210f', NOW(), 'Setec Astrononomy', 'default example'),
 ('58d38326-eda8-443a-9fa8-4e12950d210f', NOW(), 'Acme Finance', 'default example');
