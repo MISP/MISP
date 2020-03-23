@@ -96,3 +96,24 @@ var insight = "<?= h($data['insight']) ?>";
       .attr("dy", ".35em")
       .text(function(d) { return d.name; });
 </script>
+
+<style widget-scoped>
+.path_multi_line_chart {
+    stroke-width: 1;
+    fill: none;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.path_multi_line_chart {
+    stroke-width: 1;
+}
+
+.axis_multi_line_chart path,
+.axis_multi_line_chart line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+</style>

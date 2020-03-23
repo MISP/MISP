@@ -58,7 +58,7 @@
                 </table>
                 <div>
                     <p style="color:green;font-weight:bold;"><?php echo __('Additional sync parameters (based on the event index filters)');?></p>
-                    <input style="width:650px;" placeholder='{"timestamp": "30d"}' maxlength="40" type="text" value="" id="urlParams" required="required" data-original-title="" title="">
+                    <input style="width:650px;" placeholder='{"timestamp": "30d"}' type="text" value="" id="urlParams" required="required" data-original-title="" title="">
                 </div>
             </div>
             <div>
