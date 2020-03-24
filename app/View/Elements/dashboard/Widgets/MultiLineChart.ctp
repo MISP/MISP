@@ -438,7 +438,7 @@
                     var xpos = newxpos;
     
                     if (width < (options.margin.left+offsetLeftMargin) + options.margin.right + xpos + length) {
-                        newxpos = xpos = 5;
+                        newxpos = xpos = 20;
                         ypos += 20;
                     }
     
