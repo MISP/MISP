@@ -22,18 +22,36 @@
     ));
 ?>
 <!-- <svg id="svg-<?= $seed ?>" width="960" height="500"></svg> -->
-<div id="chartContainer-<?= $seed ?>" style="flex-grow: 1;"></div>
+<div id="chartContainer-<?= $seed ?>" style="flex-grow: 1; position:relative;"></div>
 <script>
 (function() { // variables and functions have their own scope (no override)
     'use strict';
+
+    var data = <?= json_encode($data['data']) ?>;
+    var default_options = {
+        time_format: '%Y-%m-%d',
+        abscissa_linear: false,
+        show_crossair: true,
+        show_datapoints: true,
+        show_legend: true,
+        style: {
+            xlabel: "Date",
+            ylabel: "Count"
+        },
+        max_datapoints: null,
+        margin: {top: 10, right: 20, bottom: 35, left: 40},
+        animation_short_duration: 100,
+        redraw_timeout: 300, // used after resize
+    };
     var container_id = "#chartContainer-<?= $seed ?>";
+
     var $container = $(container_id);
     var $loadingContainer, tooltip_container;
     var resize_timeout;
     var timeFormatter;
     var svg;
     var width, height, svg_width, svg_height;
-    var xAxis, yAxis;
+    var xAxis, yAxis, cursorX, cursorY;
     var x, y, xGrid, yGrid, value_line
     var series, line_guides, points, pointsGroup, labels
     var colors = d3.scale.category10();
@@ -45,24 +63,6 @@
     var chart_data = [];
     var legend_labels = [];
     var raw_data;
-    var data = <?= json_encode($data['data']) ?>;
-    var default_options = {
-        tick_num: 300,
-        margin: {top: 10, right: 20, bottom: 35, left: 35},
-        animation_duration: 250,
-        animation_short_duration: 100,
-        redraw_timeout: 300,
-        time_format: '%Y-%m-%d',
-        abscissa_linear: false,
-        style: {
-            x: {
-                label: "Date"
-            },
-            y: {
-                label: "Count"
-            }
-        }
-    };
     var options = $.extend(true, {}, default_options, options);
     _init();
     _init_canvas();
@@ -155,7 +155,7 @@
             .attr("x", width / 2)
             .attr("y", height)
             .attr("dy", '30px')
-            .text(options.style.x.label);
+            .text(options.style.xlabel);
         svg.append("text")
             .classed('axis-label', true)
             .attr("text-anchor", "middle")
@@ -163,16 +163,67 @@
             .attr("x", 0)
             .attr("dy", '-25px')
             .attr("y", height / 2)
-            .text(options.style.y.label);
+            .text(options.style.ylabel);
 
         svg.append('g')
             .classed('line-group', true);
 
-        svg.append('g')
-            .classed('point-group', true);
+        if (options.show_crossair) {
+            var cursorStrokeConfig = {
+                dasharray: 5,
+                opacity: 0.3,
+                width: 0.5
+            };
+            cursorX = svg.append('line')
+                .attr('class', 'cursor-x')
+                .attr("stroke-width", cursorStrokeConfig.width)
+                .attr("stroke-dasharray", cursorStrokeConfig.dasharray)
+                .style("stroke", "#000")
+                .style('opacity', cursorStrokeConfig.opacity)
+                .attr('x1', 0)
+                .attr('y1', height)
+                .attr('x2', width)
+                .attr('y2', height)
+            cursorY = svg.append('line')
+                .attr('class', 'cursor-x')
+                .attr("stroke-width", cursorStrokeConfig.width)
+                .attr("stroke-dasharray", cursorStrokeConfig.dasharray)
+                .style("stroke", "#000")
+                .style('opacity', cursorStrokeConfig.opacity)
+                .attr('x1', 0)
+                .attr('y1', 0)
+                .attr('x2', 0)
+                .attr('y2', height)
+            
+            var eventContainer = svg.append('rect')
+                .attr('class', 'overlay')
+                .attr('width', width)
+                .attr('height', height)
+                .on("mousemove", function(e) {
+                    var d3Mouse = d3.mouse(this)
+                    cursorX
+                        .attr('y1', d3Mouse[1])
+                        .attr('y2', d3Mouse[1])
+                    cursorY
+                        .attr('x1', d3Mouse[0])
+                        .attr('x2', d3Mouse[0])
+                })
+                .on("mouseenter", function(e) {
+                    cursorX.style('opacity', cursorStrokeConfig.opacity)
+                    cursorY.style('opacity', cursorStrokeConfig.opacity)
+                })
+                .on("mouseleave", function(e) {
+                    cursorX.style('opacity', 0)
+                    cursorY.style('opacity', 0)
+                })
+        }
+
 
         svg.append('g')
             .classed('legend', true);
+
+        svg.append('g')
+            .classed('point-group', true);
 
         window.addEventListener("resize", function() {
             if (resize_timeout !== undefined) {
@@ -192,26 +243,43 @@
         raw_data = data;
         chart_data = data;
         _parseDataset();
-        colors.domain(d3.keys(data[0]).filter(function(key) { return key !== "date"; })); // fetch all lines keys
-        legend_labels = colors.domain().map(function(label) {
+        var labelDomain = d3.keys(data[0]).filter(function(key) { return key !== "date"; });  // fetch all lines keys
+        var totalValues = []
+        data_nodes = labelDomain.map(function(label) { // generate line data for each lines key
             return {
-                text: label,
-                disabled: false
-            };
-        });
-        data_nodes = legend_labels.map(function(label) { // generate line data for each lines key
-            return {
-                name: label.text,
-                values: data.map(function(d) {
+                name: label,
+                values: data.map(function(d, index) {
+                    if (totalValues[index] === undefined) {
+                        totalValues[index] = {
+                            date: d.date,
+                            count: +d[label],
+                            name: "Total"
+                        }
+                    } else {
+                        totalValues[index].count += d[label];
+                    }
                     return {
                         date: d.date,
-                        count: +d[label.text],
-                        name: label.text
+                        count: +d[label],
+                        name: label
                     };
                 }),
                 disabled: false
             };
         });
+        data_nodes.push({
+            name: "Total",
+            values: totalValues,
+            disabled: true
+        });
+        labelDomain.unshift("Total");
+        legend_labels = labelDomain.map(function(label) {
+            return {
+                text: label,
+                disabled: label === "Total" ? true : false
+            };
+        });
+        colors.domain(labelDomain);
         data_nodes_active = data_nodes;
         _draw();
     }
@@ -259,85 +327,95 @@
             .attr("fill", "none")
             .attr("stroke-width", 2.5);
         series
-            .style("stroke", function(d) { console.log(d);return colors(d.name); })
+            .style("stroke", function(d) { ;return colors(d.name); })
             .attr("d", function(d) { return value_line(d.values); });
         series.exit().remove();
 
 
-
-        pointsGroup = svg.select('.point-group')
-            .selectAll('.line-point')
-            .data(data_nodes_active)
-        var pointsGroupEnter = pointsGroup
-            .enter()
-            .append('g')
-            .attr('class', 'line-point')
-        points = pointsGroup
-            .selectAll('.d3-line-circle')
-            .data(function(d){return d.values})
-        points
-            .enter()
-            .append('circle')
-            .attr('class', 'decayingGraphHandleDot useCursorPointer d3-line-circle')
-            .attr('r', 5)
-        points // Update
-            .attr('cx', function (d) { return x(d.date); })
-            .attr('cy', function (d) { return y(d.count); })
-            .style("fill", function(d) { return colors(d.name); })
-            .on('mouseover', function(d) {
-                tooltipDate(true, this, d);
-            })
-            .on('mouseout', function() {
-                tooltipDate(false);
-            })
-        pointsGroup.exit().remove();
-
-        labels = svg.select('.legend')
-            .selectAll('.labels')
-            .data(legend_labels);
-        var label = labels.enter()
-            .append('g')
-            .attr('class', 'labels')
-        label.append('circle')
-        label.append('text')
-
-        labels.selectAll('circle')
-            .style('fill', function(d, i){ return colors(d.text) })
-            .style('stroke', function(d, i){ return colors(d.text) })
-            .attr('r', 5);
-        labels.selectAll('text')
-            .text(function(d) { return d.text })
-            .style('font-size', '16px')
-            .style('text-decoration', function(d) { return d.disabled ? 'line-through' : '' })
-            .attr('fill', function(d) { return d.disabled ? 'gray' : '' })
-            .attr('text', 'start')
-            .attr('dy', '.32em')
-            .attr('dx', '8');
-        labels.exit().remove();
-        var ypos = 5, newxpos = 20, xpos;
-        label
-            .attr('transform', function(d, i) {
-                var length = d3.select(this).select('text').node().getComputedTextLength() + 28;
-                var xpos = newxpos;
-
-                if (width < options.margin.left + options.margin.right + xpos + length) {
-                    newxpos = xpos = 5;
-                    ypos += 20;
-                }
-
-                newxpos += length;
-
-                return 'translate(' + xpos + ',' + ypos + ')';
-            })
-            .on('click', function(d, i) { 
-                d.disabled = !d.disabled;
-                var label_text = d.text;
-                var label_disabled = d.disabled;
-                data_nodes.filter(function(d) { return d.name === label_text; }).forEach(function(data) {
-                    data.disabled = label_disabled
+        if (options.show_datapoints) {
+            pointsGroup = svg.select('.point-group')
+                .selectAll('.line-point')
+                .data(data_nodes_active)
+            var pointsGroupEnter = pointsGroup
+                .enter()
+                .append('g')
+                .attr('class', 'line-point')
+            points = pointsGroup
+                .selectAll('.d3-line-circle')
+                .data(function(d){
+                    return options.max_datapoints === null ? d.values :
+                        d.values.filter(function(v, index) {
+                            var split_threshold = Math.ceil(d.values.length / (options.max_datapoints-1)); // -1 to always have first and last points
+                            return (index % (split_threshold-1) == 0) || (index == d.values.length-1); // -1 to center the split in the middle
+                        })
                 })
-                _draw()
-            });
+            points
+                .enter()
+                .append('circle')
+                .attr('class', 'decayingGraphHandleDot d3-line-circle')
+                .attr('r', 5)
+            points // Update
+                .attr('cx', function (d) { return x(d.date); })
+                .attr('cy', function (d) { return y(d.count); })
+                .style("fill", function(d) { return colors(d.name); })
+                .on('mouseover', function(d) {
+                    tooltipDate(true, this, d);
+                })
+                .on('mouseout', function() {
+                    tooltipDate(false);
+                })
+            pointsGroup.exit().remove();
+        }
+
+
+        if (options.show_legend) {
+            labels = svg.select('.legend')
+                .selectAll('.labels')
+                .data(legend_labels);
+            var label = labels.enter()
+                .append('g')
+                .attr('class', 'labels')
+            label.append('circle')
+            label.append('text')
+    
+            labels.selectAll('circle')
+                .style('fill', function(d, i){ return colors(d.text) })
+                .style('stroke', function(d, i){ return colors(d.text) })
+                .attr('r', 5);
+            labels.selectAll('text')
+                .text(function(d) { return d.text })
+                .style('font-size', '16px')
+                .style('text-decoration', function(d) { return d.disabled ? 'line-through' : '' })
+                .attr('fill', function(d) { return d.disabled ? 'gray' : '' })
+                .attr('text', 'start')
+                .attr('dy', '.32em')
+                .attr('dx', '8');
+            labels.exit().remove();
+            var ypos = 5, newxpos = 20, xpos;
+            label
+                .attr('transform', function(d, i) {
+                    var length = d3.select(this).select('text').node().getComputedTextLength() + 28;
+                    var xpos = newxpos;
+    
+                    if (width < options.margin.left + options.margin.right + xpos + length) {
+                        newxpos = xpos = 5;
+                        ypos += 20;
+                    }
+    
+                    newxpos += length;
+    
+                    return 'translate(' + xpos + ',' + ypos + ')';
+                })
+                .on('click', function(d, i) { 
+                    d.disabled = !d.disabled;
+                    var label_text = d.text;
+                    var label_disabled = d.disabled;
+                    data_nodes.filter(function(d) { return d.name === label_text; }).forEach(function(data) {
+                        data.disabled = label_disabled
+                    })
+                    _draw()
+                });
+        }
     }
 
     function tooltipDate(show, d3Element, datum) {
@@ -372,7 +450,7 @@
 
     function _generate_tooltip(datum) {
         var formated_date = d3.time.format(options.time_format)(datum.date);
-        var html = $('<p></p>').text(datum.name).html() + ': <strong>' + $('<p></p>').text(datum.count).html() + '</strong>' + ' @ ' + formated_date;
+        var html = $('<p></p>').text(datum.name).html() + ' (' + formated_date + ', <strong>' + $('<p></p>').text(datum.count).html() + '</strong>) ';
         return html;
     }
 }());
@@ -401,5 +479,11 @@
 .labels {
     cursor: pointer;
     background-color: white;
+}
+
+.overlay {
+    fill: none;
+    stroke: none;
+    pointer-events: all;
 }
 </style>
