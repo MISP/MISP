@@ -143,7 +143,7 @@
             .tickFormat("");
 
         value_line = d3.svg.line()
-            .x(function(d) { return x(d.date); })
+            .x(function(d) { return x(options.abscissa_linear ? d.index : d.date); })
             .y(function(d) { return y(d.count); });
 
         svg = d3.select(container_id)
@@ -269,6 +269,7 @@
                 values: data.map(function(d, index) {
                     if (totalValues[index] === undefined) {
                         totalValues[index] = {
+                            index: d.index,
                             date: d.date,
                             count: +d[label],
                             name: "Total"
@@ -278,6 +279,7 @@
                         totalMax = totalMax > totalValues[index].count ? totalMax : totalValues[index].count;
                     }
                     return {
+                        index: d.index,
                         date: d.date,
                         count: +d[label],
                         name: label
@@ -328,7 +330,7 @@
         data_nodes_active = data_nodes.filter(function(d) {
             return !d.disabled;
         })
-        x.domain(d3.extent(chart_data, function(d) { return d.date; }))
+        x.domain(d3.extent(chart_data, function(d) { return options.abscissa_linear ? d.index : d.date; }))
         y.domain([
             d3.min(data_nodes_active, function(c) { return d3.min(c.values, function(v) { return v.count; }); }),
             d3.max(data_nodes_active, function(c) { return d3.max(c.values, function(v) { return v.count; }); })
@@ -382,7 +384,7 @@
                 .attr('class', 'decayingGraphHandleDot d3-line-circle')
                 .attr('r', 5)
             points // Update
-                .attr('cx', function (d) { return x(d.date); })
+                .attr('cx', function (d) { return x(options.abscissa_linear ? d.index : d.date); })
                 .attr('cy', function (d) { return y(d.count); })
                 .style("fill", function(d) { return colors(d.name); })
                 .on('mouseover', function(d) {
