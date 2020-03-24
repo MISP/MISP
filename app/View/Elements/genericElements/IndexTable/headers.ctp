@@ -1,6 +1,9 @@
 <?php
     $headersHtml = '';
     foreach ($fields as $k => $header) {
+        if (isset($header['requirement']) && $header['requirement'] === false) {
+            continue;
+        }
         $header_data = '';
         if (!empty($header['sort'])) {
             if (!empty($header['name'])) {

@@ -11,5 +11,12 @@
             }
         }
     }
+    if (is_bool($data)) {
+        echo sprintf(
+            '<i class="black fa fa-%s"></i>',
+            $data ? 'check' : 'times'
+        );
+        $data = '';
+    }
     echo h($data);
 ?>
