@@ -89,6 +89,7 @@
         tooltip_container = d3.select('body').append('div')
             .classed('tooltip', true)
             .style('opacity', 0)
+            .style('min-width', '100px')
             .style('padding', '3px')
             .style('background-color', '#000')
             .style('color', 'white')
@@ -433,6 +434,15 @@
         var tooltip = _toggleTooltip(show, d3Element);
         if (show) {
             tooltip.html(_generate_tooltip(datum));
+            // Flip tooltip position if necessary
+            var tooltipBR = tooltip.node().getBoundingClientRect();
+            var tooltipWidth = tooltipBR.width;
+            var tooltipcx = parseInt(d3.select(d3Element).attr('cx'));
+            var dcx = 17;
+            if (width < options.margin.right + tooltipcx - dcx + tooltipWidth) {
+                var tooltipLeft = parseInt(tooltip.style('left').split('px')[0]);
+                tooltip.style('left', (tooltipLeft - (17 + tooltipWidth + 15)) + 'px')
+            }
         }
     }
 
