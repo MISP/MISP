@@ -70,6 +70,7 @@
     if (data !== undefined) {
         update(data)
     }
+    registerListener();
 
     function __parseTextBoolean(text) {
         if (text === "true" || text === "1") {
@@ -88,6 +89,13 @@
         options.show_legend = __parseTextBoolean(options.show_legend);
         options.max_datapoints = (options.max_datapoints === null || options.max_datapoints === "null") ? null : parseInt(options.max_datapoints);
         return options;
+    }
+
+    function registerListener() {
+        $container.closest('.widgetContentInner').on('widget-resized', function() {
+            _init_canvas();
+            _draw();
+        })
     }
 
     function _init() {
@@ -249,7 +257,7 @@
             resize_timeout = setTimeout(function() { redraw_timeout_handler() }, options.redraw_timeout);
         });
     }
-
+    
     function redraw_timeout_handler(inst) {
         clearTimeout(resize_timeout);
         _init_canvas();
