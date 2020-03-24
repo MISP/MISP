@@ -86,6 +86,8 @@
         options.show_crossair = __parseTextBoolean(options.show_crossair);
         options.show_datapoints = __parseTextBoolean(options.show_datapoints);
         options.show_legend = __parseTextBoolean(options.show_legend);
+        options.style.hideXAxis = __parseTextBoolean(options.style.hideXAxis);
+        options.style.hideYAxis = __parseTextBoolean(options.style.hideYAxis);
         options.max_datapoints = (options.max_datapoints === null || options.max_datapoints === "null") ? null : parseInt(options.max_datapoints);
         return options;
     }
