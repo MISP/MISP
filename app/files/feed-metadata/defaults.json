@@ -1799,7 +1799,7 @@
       "id": "114",
       "name": "DigitalSide Threat-Intel OSINT Feed",
       "provider": "osint.digitalside.it",
-      "url": "https:\/\/osint.digitalside.it\/Threat-Intel\/digitalside-misp-feed\/",
+      "url": "https://osint.digitalside.it/Threat-Intel/digitalside-misp-feed/",
       "rules": "",
       "enabled": false,
       "distribution": "0",
@@ -1827,7 +1827,7 @@
       "id": "115",
       "name": "Metasploit exploits with CVE assigned",
       "provider": "eCrimeLabs",
-      "url": "https:\/\/feeds.ecrimelabs.net\/data\/metasploit-cve",
+      "url": "https://feeds.ecrimelabs.net/data/metasploit-cve",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "0",
@@ -1858,12 +1858,12 @@
       "hide_tag": false
     }
   },
-  {  
+  {
     "Feed": {
       "id": "116",
       "name": "Malware Bazaar",
       "provider": "abuse.ch",
-      "url": "https:\/\/bazaar.abuse.ch\/export\/txt\/md5\/full\/",
+      "url": "https://bazaar.abuse.ch/export/txt/md5/full/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"url_params\":\"\"}",
       "enabled": false,
       "distribution": "0",
@@ -1876,14 +1876,14 @@
       "event_id": "0",
       "publish": false,
       "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\\\/^#.*\\\/i\"}}",
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\\/^#.*\\/i\"}}",
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": true,
       "headers": "",
       "caching_enabled": false,
       "force_to_ids": false,
-      "cache_timestamp": false
+      "cache_timestamp": "1571206806"
     },
     "Tag": {
       "id": "615",
