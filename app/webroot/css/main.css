@@ -2523,3 +2523,14 @@ table tr:hover .down-expand-button {
     font-size: 125%;
     margin:5px;
 }
+
+.grid-stack-item-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.widgetContent, .widgetContentInner, .widgetContentInner > div {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
