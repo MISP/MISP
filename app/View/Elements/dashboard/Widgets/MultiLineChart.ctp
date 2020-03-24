@@ -43,6 +43,7 @@
         animation_short_duration: 100,
         redraw_timeout: 300, // used after resize
     };
+    var offsetLeftMargin = 0;
     var container_id = "#chartContainer-<?= $seed ?>";
 
     var $container = $(container_id);
@@ -101,7 +102,7 @@
         $container.empty();
         svg_width = $container.width();
         svg_height = $container.height();
-        width = svg_width - options.margin.left - options.margin.right;
+        width = svg_width - (options.margin.left+offsetLeftMargin) - options.margin.right;
         height = svg_height - options.margin.top - options.margin.bottom;
 
         if (options.abscissa_linear) {
@@ -135,7 +136,7 @@
             .attr("width", svg_width)
             .attr("height", svg_height)
             .append("g")
-            .attr("transform", "translate(" + options.margin.left + "," + options.margin.top + ")");
+            .attr("transform", "translate(" + (options.margin.left+offsetLeftMargin) + "," + options.margin.top + ")");
 
         svg.append("g")
                 .attr('class', 'decayingGraphAxis axis-x')
@@ -161,7 +162,7 @@
             .attr("text-anchor", "middle")
             .attr("transform", "rotate(-90 0 " + height / 2 + ")")
             .attr("x", 0)
-            .attr("dy", '-25px')
+            .attr("dy", '-30px')
             .attr("y", height / 2)
             .text(options.style.ylabel);
 
@@ -244,7 +245,8 @@
         chart_data = data;
         _parseDataset();
         var labelDomain = d3.keys(data[0]).filter(function(key) { return key !== "date"; });  // fetch all lines keys
-        var totalValues = []
+        var totalValues = [];
+        var totalMax = 0;
         data_nodes = labelDomain.map(function(label) { // generate line data for each lines key
             return {
                 name: label,
@@ -257,6 +259,7 @@
                         }
                     } else {
                         totalValues[index].count += d[label];
+                        totalMax = totalMax > totalValues[index].count ? totalMax : totalValues[index].count;
                     }
                     return {
                         date: d.date,
@@ -281,6 +284,14 @@
         });
         colors.domain(labelDomain);
         data_nodes_active = data_nodes;
+
+        // adapt margin left for big numbers
+        var tmp = svg.append('text').text(totalMax);
+        offsetLeftMargin = tmp.node().getComputedTextLength() - 25;
+        if (offsetLeftMargin > 0) {
+            _init_canvas()
+        }
+        tmp.remove();
         _draw();
     }
 
@@ -397,7 +408,7 @@
                     var length = d3.select(this).select('text').node().getComputedTextLength() + 28;
                     var xpos = newxpos;
     
-                    if (width < options.margin.left + options.margin.right + xpos + length) {
+                    if (width < (options.margin.left+offsetLeftMargin) + options.margin.right + xpos + length) {
                         newxpos = xpos = 5;
                         ypos += 20;
                     }
