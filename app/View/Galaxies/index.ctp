@@ -13,11 +13,11 @@
                                 'url' => $baseurl . '/galaxies/index/context:all',
                                 'text' => __('All'),
                             ),
-                            array(
-                                'active' => $context === 'altered',
-                                'url' => $baseurl . '/galaxies/index/context:altered',
-                                'text' => __('Altered Galaxies'),
-                            )
+                            // array(
+                            //     'active' => $context === 'altered',
+                            //     'url' => $baseurl . '/galaxies/index/context:altered',
+                            //     'text' => __('Altered Galaxies'),
+                            // )
                         )
                     ),
                     array(
