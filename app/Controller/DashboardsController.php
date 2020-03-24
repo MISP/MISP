@@ -4,6 +4,7 @@ App::uses('AppController', 'Controller');
 class DashboardsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
+    public $helpers = array('ScopedCSS');
 
     public function beforeFilter()
     {

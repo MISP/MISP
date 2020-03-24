@@ -124,7 +124,7 @@
         echo 'Accept: application/json' . PHP_EOL;
         echo 'Content-type: application/json';
     ?></pre>
-    <code>{"request": {"type":"ip", "eventid":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
+    <code>{"request": {"type": "ip", "eventid": ["!51","!62"],"withAttachment": false,"tags": ["APT1","!OSINT"],"from": false,"to": "2015-02-15"}}</code><br /><br />
     <p>XML:</p>
     <pre><?php
         echo 'Headers' . PHP_EOL;
