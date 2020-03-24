@@ -57,22 +57,37 @@
     var series, line_guides, points, pointsGroup, labels
     var colors = d3.scale.category10();
 
-    var options = <?= json_encode(isset($data['options']) ? $data['options'] : array()) ?>;
-    _validateOptions(options);
+    var options = <?= json_encode(isset($config['widget_config']) ? $config['widget_config'] : array()) ?>;
+    var options = $.extend(true, {}, default_options, options);
+    options = _validateOptions(options);
     var data_nodes = [];
     var data_nodes_active = [];
     var chart_data = [];
     var legend_labels = [];
     var raw_data;
-    var options = $.extend(true, {}, default_options, options);
     _init();
     _init_canvas();
     if (data !== undefined) {
         update(data)
     }
 
-    function _validateOptions() {
-        return true;
+    function __parseTextBoolean(text) {
+        if (text === "true" || text === "1") {
+            return true;
+        } else if (text === "false" || text === "0") {
+            return false;
+        } else {
+            return text;
+        }
+    }
+
+    function _validateOptions(options) {
+        options.abscissa_linear = __parseTextBoolean(options.abscissa_linear);
+        options.show_crossair = __parseTextBoolean(options.show_crossair);
+        options.show_datapoints = __parseTextBoolean(options.show_datapoints);
+        options.show_legend = __parseTextBoolean(options.show_legend);
+        options.max_datapoints = (options.max_datapoints === null || options.max_datapoints === "null") ? null : parseInt(options.max_datapoints);
+        return options;
     }
 
     function _init() {
