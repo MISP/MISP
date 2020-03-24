@@ -1,14 +1,4 @@
 <?php
-    /**
-     * 
-     * Data expected format: Array({
-     *      date: "time_format",
-     *      line1: value1,
-     *      line2: value2,
-     *      ...
-     * })
-     * For abscissa linear scale, replace the date key by index
-     */
     echo $this->Html->script('d3');
     $seed = rand();
     if (!empty($data['formula'])) {
@@ -17,16 +7,23 @@
             h($data['formula'])
         );
     }
-    echo $this->element('genericElements/assetLoader', array(
-        'css' => array('treemap', 'decayingTool'),
-    ));
 ?>
-<!-- <svg id="svg-<?= $seed ?>" width="960" height="500"></svg> -->
 <div id="chartContainer-<?= $seed ?>" style="flex-grow: 1; position:relative;"></div>
 <script>
 (function() { // variables and functions have their own scope (no override)
     'use strict';
 
+    /**
+     * 
+     * Data expected format: Array({
+     *      date: (string) "time_format",
+     *      index: (int),
+     *      line1: (int),
+     *      line2: (int),
+     *      ...
+     * })
+     * For abscissa linear scale, replace the date key by index
+     */
     var data = <?= json_encode($data['data']) ?>;
     var default_options = {
         time_format: '%Y-%m-%d',
@@ -36,7 +33,9 @@
         show_legend: true,
         style: {
             xlabel: "Date",
-            ylabel: "Count"
+            ylabel: "Count",
+            hideXAxis: false,
+            hideYAxis: false,
         },
         max_datapoints: null,
         margin: {top: 10, right: 20, bottom: 35, left: 40},
@@ -112,7 +111,7 @@
         tooltip_container = d3.select('body').append('div')
             .classed('tooltip', true)
             .style('opacity', 0)
-            .style('min-width', '100px')
+            .style('min-width', '120px')
             .style('padding', '3px')
             .style('background-color', '#000')
             .style('color', 'white')
@@ -162,33 +161,36 @@
             .append("g")
             .attr("transform", "translate(" + (options.margin.left+offsetLeftMargin) + "," + options.margin.top + ")");
 
-        svg.append("g")
-                .attr('class', 'decayingGraphAxis axis-x')
+        if (!options.style.hideXAxis) {
+            svg.append("g")
+                .attr('class', 'axis axis-x')
                 .attr("transform", "translate(0," + height + ")")
-        svg.append("g")
-            .attr('class', 'decayingGraphAxis axis-y')
+            svg.append("g")
+                .attr("class", "axis grid grid-y")
+                .attr("transform", "translate(0," + height + ")");
+            svg.append("text")
+                .classed('axis-label', true)
+                .attr("text-anchor", "end")
+                .attr("x", width / 2)
+                .attr("y", height)
+                .attr("dy", '30px')
+                .text(options.style.xlabel);
+        }
+        if (!options.style.hideYAxis) {
+            svg.append("g")
+                .attr('class', 'axis axis-y')
 
-        svg.append("g")
-            .attr("class", "decayingGraphAxis grid grid-x");
-        svg.append("g")
-            .attr("class", "decayingGraphAxis grid grid-y")
-            .attr("transform", "translate(0," + height + ")");
-
-        svg.append("text")
-            .classed('axis-label', true)
-            .attr("text-anchor", "end")
-            .attr("x", width / 2)
-            .attr("y", height)
-            .attr("dy", '30px')
-            .text(options.style.xlabel);
-        svg.append("text")
-            .classed('axis-label', true)
-            .attr("text-anchor", "middle")
-            .attr("transform", "rotate(-90 0 " + height / 2 + ")")
-            .attr("x", 0)
-            .attr("dy", '-30px')
-            .attr("y", height / 2)
-            .text(options.style.ylabel);
+            svg.append("g")
+                .attr("class", "axis grid grid-x");
+            svg.append("text")
+                .classed('axis-label', true)
+                .attr("text-anchor", "middle")
+                .attr("transform", "rotate(-90 0 " + height / 2 + ")")
+                .attr("x", 0)
+                .attr("dy", '-30px')
+                .attr("y", height / 2)
+                .text(options.style.ylabel);
+        }
 
         svg.append('g')
             .classed('line-group', true);
@@ -204,7 +206,7 @@
                 .attr("stroke-width", cursorStrokeConfig.width)
                 .attr("stroke-dasharray", cursorStrokeConfig.dasharray)
                 .style("stroke", "#000")
-                .style('opacity', cursorStrokeConfig.opacity)
+                .style('opacity', 0)
                 .attr('x1', 0)
                 .attr('y1', height)
                 .attr('x2', width)
@@ -214,13 +216,14 @@
                 .attr("stroke-width", cursorStrokeConfig.width)
                 .attr("stroke-dasharray", cursorStrokeConfig.dasharray)
                 .style("stroke", "#000")
-                .style('opacity', cursorStrokeConfig.opacity)
+                .style('opacity', 0)
                 .attr('x1', 0)
                 .attr('y1', 0)
                 .attr('x2', 0)
                 .attr('y2', height)
             
             var eventContainer = svg.append('rect')
+                .attr('fill', 'white')
                 .attr('class', 'overlay')
                 .attr('width', width)
                 .attr('height', height)
@@ -389,7 +392,7 @@
             points
                 .enter()
                 .append('circle')
-                .attr('class', 'decayingGraphHandleDot d3-line-circle')
+                .attr('class', 'datapoint d3-line-circle')
                 .attr('r', 5)
             points // Update
                 .attr('cx', function (d) { return x(options.abscissa_linear ? d.index : d.date); })
@@ -503,6 +506,11 @@
 </script>
 
 <style widget-scoped>
+.svg-content-responsive {
+    display: inline-block;
+    position: absolute;
+    left: 0;
+}
 .path_multi_line_chart {
     stroke-width: 1;
     fill: none;
@@ -514,12 +522,17 @@
     stroke-width: 1;
 }
 
-.axis_multi_line_chart path,
-.axis_multi_line_chart line {
+.path,
+.line {
     fill: none;
     stroke: grey;
-    stroke-width: 1;
-    shape-rendering: crispEdges;
+    stroke-width: 2;
+}
+
+.datapoint {
+    stroke: #ffffff;
+    fill: steelblue;
+    stroke-width: 2px;
 }
 
 .labels {
@@ -531,5 +544,29 @@
     fill: none;
     stroke: none;
     pointer-events: all;
+}
+
+.axis path {
+    stroke-width: 2px;
+    stroke: #000;
+    fill: none;
+}
+
+.axis line {
+  stroke: #000;
+}
+
+.axis text {
+    user-select: none;
+}
+
+.axis.grid line {
+    stroke: lightgrey;
+    stroke-opacity: 0.7;
+    shape-rendering: crispEdges;
+}
+
+.axis.grid path {
+    stroke-width: 0;
 }
 </style>
