@@ -1312,16 +1312,26 @@ class ExternalStixParser(StixParser):
 
     def parse_file_pattern(self, indicator):
         attributes = []
-        extensions = defaultdict(dict)
+        extensions = defaultdict(lambda: defaultdict(dict))
         for pattern_part in indicator.pattern.strip('[]').split(' AND '):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type not in stix2misp_mapping.file_mapping:
-                features = pattern_type.split('.')[1:]
-                extension_type = features.pop(0)
+                if 'extensions' in pattern_type:
+                    features = pattern_type.split('.')[1:]
+                    extension_type = features.pop(0)
+                    if 'section' in features[0]:
+                        index = features[0].split('[')[1].strip(']') if '[' in features[0] else '0'
+                        extensions[extension_type][f'section_{index}']['.'.join(features[1:])] = pattern_value
+                    else:
+                        extensions[extension_type]['.'.join(features[1:])] = pattern_value
                 continue
             attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
             attribute['value'] = pattern_value
             attributes.append(attribute)
+        if extensions:
+            self._parse_file_extension(attributes, extensions)
+        else:
+            self.handle_import_case(attributes)
 
     def parse_mac_address_pattern(self, indicator):
         self.add_single_attribute(indicator, 'mac-address')
