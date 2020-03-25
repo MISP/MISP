@@ -39,7 +39,8 @@
                     'element' => 'links',
                     'class' => 'short',
                     'data_path' => 'GalaxyCluster.value',
-                    'url' => $baseurl . '/galaxy_clusters/view/%s'
+                    'url_params_data_paths' => 'GalaxyCluster.id',
+                    'url' => $baseurl . '/galaxy_clusters/view'
                 ),
                 array(
                     'name' => __('Synonyms'),
