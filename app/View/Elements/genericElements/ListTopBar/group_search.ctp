@@ -22,11 +22,12 @@
             $button .= $this->element('/genericElements/ListTopBar/element_simple', array('data' => $data['cancel']));
         }
         $input = sprintf(
-            '<input type="text" class="span3 input-small" placeholder="%s" aria-label="%s" style="padding: 2px 6px;" id="%s" data-searchkey="%s">',
+            '<input type="text" class="span3 input-small" placeholder="%s" aria-label="%s" style="padding: 2px 6px;" id="%s" data-searchkey="%s" value="%s">',
             empty($data['placeholder']) ? '' : h($data['placeholder']),
             empty($data['placeholder']) ? '' : h($data['placeholder']),
             empty($data['id']) ? 'quickFilterField' : h($data['id']),
-            empty($data['searchKey']) ? 'searchall' : h($data['searchKey'])
+            empty($data['searchKey']) ? 'searchall' : h($data['searchKey']),
+            empty($data['value']) ? '' : h($data['value'])
         );
         echo sprintf(
             '<div class="btn-group pull-right"><div class="input-append" style="margin-bottom:0px;">%s%s</div></div>',

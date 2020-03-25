@@ -18,12 +18,45 @@ class GalaxiesController extends AppController
 
     public function index()
     {
+        $aclConditions = array();
+        $filters = $this->IndexFilter->harvestParameters(array('context', 'value'));
+        $contextConditions = array();
+        if (empty($filters['context'])) {
+            $filters['context'] = 'all';
+        }
+        $searchConditions = array();
+        if (empty($filters['value'])) {
+            $filters['value'] = '';
+        } else {
+            $searchall = '%' . strtolower($filters['value']) . '%';
+            $searchConditions = array(
+                'OR' => array(
+                    'LOWER(Galaxy.name) LIKE' => $searchall,
+                    'LOWER(Galaxy.namespace) LIKE' => $searchall,
+                    'LOWER(Galaxy.description) LIKE' => $searchall,
+                    'LOWER(Galaxy.kill_chain_order) LIKE' => $searchall,
+                    'Galaxy.uuid LIKE' => $searchall
+                )
+            );
+        }
         if ($this->_isRest()) {
-            $galaxies = $this->Galaxy->find('all', array('recursive' => -1));
+            $galaxies = $this->Galaxy->find('all',
+                array(
+                    'recursive' => -1,
+                    'conditions' => array(
+                        'AND' => array($contextConditions, $searchConditions, $aclConditions)
+                    )
+                )
+            );
             return $this->RestResponse->viewData($galaxies, $this->response->type());
         } else {
+            $this->paginate['conditions']['AND'][] = $contextConditions;
+            $this->paginate['conditions']['AND'][] = $searchConditions;
+            $this->paginate['conditions']['AND'][] = $aclConditions;
             $galaxies = $this->paginate();
-            $this->set('list', $galaxies);
+            $this->set('galaxyList', $galaxies);
+            $this->set('context', $filters['context']);
+            $this->set('searchall', $filters['value']);
         }
     }
 

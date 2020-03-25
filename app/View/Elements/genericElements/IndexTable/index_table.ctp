@@ -29,11 +29,8 @@
     }
     $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
     if (!$skipPagination) {
-        $paginationData = array();
-        if (!empty($data['paginationBaseurl'])) {
-            $paginationData['paginationBaseurl'] = $data['paginationBaseurl'];
-        }
-        echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
+        $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : array();
+        echo $this->element('/genericElements/IndexTable/pagination', array('paginationOptions' => $paginationData));
     }
     if (!empty($data['top_bar'])) {
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data['top_bar']));
@@ -42,10 +39,16 @@
     $row_element = isset($data['row_element']) ? $data['row_element'] : 'row';
     $options = isset($data['options']) ? $data['options'] : array();
     $actions = isset($data['actions']) ? $data['actions'] : array();
+    $dblclickActionArray = isset($data['actions']) ? Hash::extract($data['actions'], '{n}[dbclickAction]') : array();
+    $dbclickAction = '';
     foreach ($data['data'] as $k => $data_row) {
+        if (!empty($dblclickActionArray)) {
+            $dbclickAction = sprintf("changeLocationFromIndexDblclick(%s)", $k);
+        }
         $rows .= sprintf(
-            '<tr data-row-id="%s">%s</tr>',
+            '<tr data-row-id="%s" ondblclick="%s">%s</tr>',
             h($k),
+            $dbclickAction,
             $this->element(
                 '/genericElements/IndexTable/' . $row_element,
                 array(
