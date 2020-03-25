@@ -26,11 +26,8 @@
     }
     $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
     if (!$skipPagination) {
-        $paginationData = array();
-        if (!empty($data['paginationBaseurl'])) {
-            $paginationData['paginationBaseurl'] = $data['paginationBaseurl'];
-        }
-        echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
+        $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : array();
+        echo $this->element('/genericElements/IndexTable/pagination', array('paginationOptions' => $paginationData));
     }
     if (!empty($data['top_bar'])) {
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data['top_bar']));

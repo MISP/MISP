@@ -1,6 +1,9 @@
 <?php
     echo $this->element('/genericElements/IndexTable/index_table', array(
         'data' => array(
+            'paginatorOptions' => array(
+                'update' => '#clusters_div',
+            ),
             'data' => $list,
             'top_bar' => array(
                 'children' => array(
