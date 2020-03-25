@@ -12,6 +12,9 @@
         }
     }
     $data = h($data);
+    if (is_numeric($data)) {
+        $data = date('Y-m-d H:i:s', $data);
+    }
     if (!empty($field['onClick'])) {
         $data = sprintf(
             '<span onClick="%s">%s</span>',

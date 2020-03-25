@@ -19,10 +19,13 @@
         echo sprintf('<h2>%s</h2>', h($data['title']));
     }
     if (!empty($data['description'])) {
-        echo sprintf('<p>%s</p>', h($data['description']));
+        echo sprintf(
+            '<div>%s</div>',
+            empty($data['description']) ? '' : h($data['description'])
+        );
     }
     if (!empty($data['html'])) {
-        echo sprintf('<p>%s</p>', $data['html']);
+        echo sprintf('<div>%s</div>', $data['html']);
     }
     $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
     if (!$skipPagination) {
