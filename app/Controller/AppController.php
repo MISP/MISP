@@ -406,6 +406,12 @@ class AppController extends Controller
                     if (!$this->_isRest()) {
                         $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
                     }
+                } elseif (Configure::read('Security.email_otp_enabled') && !$this->_isRest() && !in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/email_otp', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login'))) {
+                    $redis = $this->{$this->modelClass}->setupRedis();
+                    $otp_authed = $redis->get('misp:otp_authed:'.$this->Auth->user('id'));
+                    if (empty($otp_authed)) {
+                      $this->redirect(array('controller' => 'users', 'action' => 'email_otp', 'admin' => false));
+                    }
                 } elseif (!$this->_isRest() && !($this->params['controller'] == 'news' && $this->params['action'] == 'index') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
                     $newsread = $this->User->field('newsread', array('User.id' => $this->Auth->user('id')));
                     $this->loadModel('News');

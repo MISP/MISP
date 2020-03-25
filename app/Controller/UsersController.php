@@ -1254,6 +1254,8 @@ class UsersController extends AppController
             'recursive' => -1
         ));
         unset($user['User']['password']);
+        $redis = $this->User->setupRedis();
+        $redis->delete('misp:otp_authed:'.$this->Auth->user('id'));
         $user['User']['action'] = 'logout';
         $this->User->save($user['User'], true, array('id'));
         $this->redirect($this->Auth->logout());
@@ -1649,6 +1651,97 @@ class UsersController extends AppController
             $this->set('firstTime', $firstTime);
             $this->render('ajax/passwordResetConfirmationForm');
         }
+    }
+
+    public function email_otp()
+    {
+      $redis = $this->User->setupRedis();
+      $user_id = $this->Auth->user('id');
+
+      if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
+        $stored_otp = $redis->get('misp:otp:'.$user_id);
+        if (!empty($stored_otp) && $this->request->data['User']['otp'] == $stored_otp) {
+            // we invalidate the previously generated OTP
+            $redis->delete('misp:otp:'.$user_id);
+            // We store in redis the success of the OTP step
+            $redis->set('misp:otp_authed:'.$user_id, 1);
+            // After this time, the user will need to redo the OTP step
+            // We use the same time as for the session expiration
+            $redis->expire('misp:otp_authed:'.$user_id, intval(Configure::read('Session.cookieTimeout')) * 60);
+            $this->Flash->success(__("You are now logged in."));
+            $this->redirect($this->Auth->redirectUrl());
+        } else {
+            $this->Flash->error("The OTP is incorrect or has expired");
+        }
+      } else {
+        // GET Request
+
+        // If the OTP is still valid, we redirect
+        if (!Configure::read('Security.email_otp_enabled') || !empty($redis->get('misp:otp_authed:'.$user_id))) {
+          $this->redirect($this->Auth->redirectUrl());
+        }
+
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $user_id)
+        ));
+
+        // We check for exceptions
+        $exception_list = Configure::read('Security.email_otp_exceptions');
+        if (!empty($exception_list)) {
+          $exceptions = explode(",", $exception_list);
+          foreach ($exceptions as &$exception) {
+            if ($user['User']['email'] == trim($exception)) {
+              $redis->set('misp:otp_authed:'.$user_id, 1);
+              // It will take maximum this time (in seconds) to ask a OTP for someone removed from the exception list
+              $redis->expire('misp:otp_authed:'.$user_id, 3600);
+              $this->redirect($this->Auth->redirectUrl());
+            }
+          }
+        }
+        $this->loadModel('Server');
+
+        // Generating the OTP
+        $digits = !empty(Configure::read('Security.email_otp_length')) ? Configure::read('Security.email_otp_length') : $this->Server->serverSettings['Security']['email_otp_length']['value'];
+        $otp = "";
+        for ($i=0; $i<$digits; $i++) {
+          $otp.= random_int(0,9);
+        }
+        // We use Redis to cache the OTP
+        $redis->set('misp:otp:'.$user_id, $otp);
+        $validity = !empty(Configure::read('Security.email_otp_validity')) ? Configure::read('Security.email_otp_validity') : $this->Server->serverSettings['Security']['email_otp_validity']['value'];
+        $redis->expire('misp:otp:'.$user_id, intval($validity) * 60);
+
+        // Email construction
+        $body = !empty(Configure::read('Security.email_otp_text')) ? Configure::read('Security.email_otp_text') : $this->Server->serverSettings['Security']['email_otp_text']['value'];
+        $body = str_replace('$misp', Configure::read('MISP.baseurl'), $body);
+        $body = str_replace('$org', Configure::read('MISP.org'), $body);
+        $body = str_replace('$contact', Configure::read('MISP.contact'), $body);
+        $body = str_replace('$validity', $validity, $body);
+        $body = str_replace('$otp', $otp, $body);
+        $body = str_replace('$ip', $this->_getClientIP(), $body);
+        $body = str_replace('$username', $user['User']['email'], $body);
+        $result = $this->User->sendEmail($user, $body, false, "[MISP] Email OTP");
+
+        if ( $result ) {
+          $this->Flash->success(__("An email containing a OTP has been sent."));
+        } else {
+          $this->Flash->error("The email couldn't be sent, please reach out to your administrator.");
+        }
+      }
+    }
+
+
+    /**
+    * Helper function to determine the IP of a client (proxy aware)
+    */
+    private function _getClientIP() {
+      if(!empty($_SERVER['HTTP_CLIENT_IP'])){
+        return $_SERVER['HTTP_CLIENT_IP'];
+      }elseif(!empty($_SERVER['HTTP_X_FORWARDED_FOR'])){
+          return $_SERVER['HTTP_X_FORWARDED_FOR'];
+      }
+      return $_SERVER['REMOTE_ADDR'];
     }
 
     // shows some statistics about the instance
