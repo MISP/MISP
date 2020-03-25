@@ -1,5 +1,4 @@
 <?php
-    echo $this->Html->script('d3');
     $seed = rand();
     if (!empty($data['formula'])) {
         echo sprintf(
@@ -10,7 +9,15 @@
 ?>
 <div id="chartContainer-<?= $seed ?>" style="flex-grow: 1; position:relative;"></div>
 <script>
-(function() { // variables and functions have their own scope (no override)
+if (typeof d3 === "undefined") { // load d3.js once. This is necessary as d3.js is using global variables for its event listeners (d3.mouse & d3.event)
+    $.getScript("/js/d3.js", function() {
+        init();
+    })
+} else { // d3.js is already loaded
+    init();
+}
+
+function init() { // variables and functions have their own scope (no override)
     'use strict';
 
     /**
@@ -229,8 +236,8 @@
                 .attr('class', 'overlay')
                 .attr('width', width)
                 .attr('height', height)
-                .on("mousemove", function(e) {
-                    var d3Mouse = d3.mouse(this)
+                .on("mousemove", function() {
+                    var d3Mouse = d3.mouse(this);
                     cursorX
                         .attr('y1', d3Mouse[1])
                         .attr('y2', d3Mouse[1])
@@ -504,7 +511,7 @@
         var html = $('<p></p>').text(datum.name).html() + ' (' + formated_date + ', <strong>' + $('<p></p>').text(datum.count).html() + '</strong>) ';
         return html;
     }
-}());
+};
 </script>
 
 <style widget-scoped>
