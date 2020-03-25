@@ -471,27 +471,27 @@ function init() { // variables and functions have their own scope (no override)
         var tooltip = _toggleTooltip(show, d3Element);
         if (show) {
             tooltip.html(_generate_tooltip(datum));
-            // Flip tooltip position if necessary
             var tooltipBR = tooltip.node().getBoundingClientRect();
+            var tooltipHeight = tooltipBR.height;
             var tooltipWidth = tooltipBR.width;
             var tooltipcx = parseInt(d3.select(d3Element).attr('cx'));
             var dcx = 17;
+            // Flip tooltip position if necessary
             if (width < options.margin.right + tooltipcx - dcx + tooltipWidth) {
                 var tooltipLeft = parseInt(tooltip.style('left').split('px')[0]);
-                tooltip.style('left', (tooltipLeft - (17 + tooltipWidth + 15)) + 'px')
+                tooltip.style('left', (tooltipLeft - (dcx + tooltipWidth + 15)) + 'px')
             }
+            var tooltipTop = parseInt(tooltip.style('top').split('px')[0]);
+            tooltip.style('top', (tooltipTop - tooltipHeight/2) + 'px')
         }
     }
 
     function _toggleTooltip(show, d3Element) {
         if (show) {
-            var bb_rect = d3.select(d3Element)[0][0].getBoundingClientRect();
-            var cx = bb_rect.left;
-            var cy = bb_rect.top;
             tooltip_container
                 .style('display', 'block')
-                .style('left', (cx + 17) + 'px')
-                .style('top', (cy - 6) + 'px')
+                .style('left', (d3.event.pageX + 17) + 'px')
+                .style('top', (d3.event.pageY) + 'px')
                 .transition()
                 .duration(options.animation_short_duration)
                 .delay(options.animation_short_duration/2)
