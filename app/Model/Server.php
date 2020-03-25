@@ -1321,6 +1321,15 @@ class Server extends AppModel
                             'test' => 'testBoolFalse',
                             'type' => 'boolean',
                             'null' => true
+                        ),
+                        'user_monitoring_enabled' => array(
+                            'level' => 1,
+                            'description' => __('Enables the functionality to monitor users - thereby enabling all logging functionalities for a single user. This functionality is intrusive and potentially heavy on the system - use it with care.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
                         )
                 ),
                 'SecureAuth' => array(

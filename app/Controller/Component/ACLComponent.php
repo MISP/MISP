@@ -555,6 +555,7 @@ class ACLComponent extends Component
                     'admin_email' => array('perm_admin'),
                     'admin_filterUserIndex' => array('perm_admin'),
                     'admin_index' => array('perm_admin'),
+                    'admin_monitor' => array('perm_site_admin'),
                     'admin_quickEmail' => array('perm_admin'),
                     'admin_view' => array('perm_admin'),
                     'attributehistogram' => array('*'),
