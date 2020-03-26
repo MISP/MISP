@@ -2617,7 +2617,6 @@ class Server extends AppModel
                     }
                 }
                 if (!empty($temp)) {
-                    $temp = implode('|', $temp);
                     $final[substr($field, 0, strlen($field) -1)] = $temp;
                 }
             }
