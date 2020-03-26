@@ -332,6 +332,9 @@ class UsersController extends AppController
         }
         $this->set('passedArgs', json_encode($this->passedArgs));
         // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
+        if (!empty($this->passedArgs['value'])) {
+            $this->passedArgs['searchall'] = $this->passedArgs['value'];
+        }
         foreach ($this->passedArgs as $k => $v) {
             if (substr($k, 0, 6) === 'search') {
                 if ($v != "") {
@@ -388,6 +391,7 @@ class UsersController extends AppController
                 $passedArgsArray[$searchTerm] = $v;
             }
         }
+        $redis = $this->User->setupRedis();
         if ($this->_isRest()) {
             $conditions = array();
             if (isset($this->paginate['conditions'])) {
@@ -433,6 +437,8 @@ class UsersController extends AppController
                     if ($value['Role']['perm_site_admin']) {
                         $users[$key]['User']['authkey'] = __('Redacted');
                     }
+                } else if (!empty(Configure::read('Security.user_monitoring_enabled'))) {
+                    $users[$key]['User']['monitored'] = $redis->sismember('misp:monitored_users', $id);
                 }
                 unset($users[$key]['User']['password']);
             }
@@ -442,7 +448,13 @@ class UsersController extends AppController
             $this->set('passedArgsArray', $passedArgsArray);
             $conditions = array();
             if ($this->_isSiteAdmin()) {
-                $this->set('users', $this->paginate());
+                $users = $this->paginate();
+                if (!empty(Configure::read('Security.user_monitoring_enabled'))) {
+                    foreach ($users as $key => $value) {
+                        $users[$key]['User']['monitored'] = $redis->sismember('misp:monitored_users', $users[$key]['User']['id']);
+                    }
+                }
+                $this->set('users', $users);
             } else {
                 $conditions['User.org_id'] = $this->Auth->user('org_id');
                 $this->paginate['conditions']['AND'][] = $conditions;
@@ -2191,5 +2203,41 @@ class UsersController extends AppController
     public function checkIfLoggedIn()
     {
         return new CakeResponse(array('body'=> 'OK','status' => 200));
+    }
+
+    public function admin_monitor($id)
+    {
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $id),
+            'fields' => array('User.id')
+        ));
+        if (empty($user)) {
+            throw new NotFoundException(__('Invalid user.'));
+        }
+        $redis = $this->User->setupRedis();
+        $alreadyMonitored = $redis->sismember('misp:monitored_users', $id);
+        if ($this->request->is('post')) {
+            if (isset($this->request->data['User'])) {
+                $this->request->data = $this->request->data['User'];
+            }
+            if (isset($this->request->data['value'])) {
+                $this->request->data = $this->request->data['value'];
+            }
+            if (empty($this->request->data)) {
+                $redis->srem('misp:monitored_users', $id);
+            } else {
+                $redis->sadd('misp:monitored_users', $id);
+            }
+            return $this->RestResponse->viewData($alreadyMonitored ? 0 : 1, $this->response->type());
+        } else {
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData($alreadyMonitored ? 0 : 1, $this->response->type());
+            } else {
+                $this->set('data', $alreadyMonitored);
+                $this->layout = false;
+                $this->render('/Elements/genericElements/toggleForm');
+            }
+        }
     }
 }
