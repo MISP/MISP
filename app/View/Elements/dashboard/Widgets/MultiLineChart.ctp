@@ -10,14 +10,25 @@
 <div id="chartContainer-<?= $seed ?>" style="flex-grow: 1; position:relative;"></div>
 <script>
 if (typeof d3 === "undefined") { // load d3.js once. This is necessary as d3.js is using global variables for its event listeners (d3.mouse & d3.event)
+    d3 = 'loading';
     $.getScript("/js/d3.js", function() {
-        init();
+        init<?= $seed ?>();
     })
-} else { // d3.js is already loaded
-    init();
+} else { // d3.js is already loaded or is loading
+    runInitWhenReady()
 }
 
-function init() { // variables and functions have their own scope (no override)
+function runInitWhenReady() {
+    if (d3.version === undefined) { // d3.js not loaded yet
+        setTimeout(function() {
+            runInitWhenReady();
+        }, 50);
+    } else {
+        init<?= $seed ?>();
+    }
+}
+
+function init<?= $seed ?>() { // variables and functions have their own scope (no override)
     'use strict';
 
     /**
@@ -643,7 +654,7 @@ function init() { // variables and functions have their own scope (no override)
                     $('<span class="bold"></span>').text(xValueEnd)
                 )
         );
-        var $table = $('<table class="table table-condensed"></table>').append(
+        var $table = $('<table class="table table-condensed" style="margin-bottom: 0;"></table>').append(
                 $('<thead></thead>').append($('<tr></tr>').append(
                         $('<th></th>').text('Name'),
                         $('<th></th>').text('Delta'),
