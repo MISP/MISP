@@ -332,6 +332,10 @@ installCake_RHEL ()
   sudo scl enable rh-php72 'yes no|pecl install redis'
   echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-redis.ini
 
+  sudo ln -s /usr/lib64/libfuzzy.so /usr/lib/libfuzzy.so
+  sudo scl enable rh-php72 'pecl install ssdeep'
+  echo "extension=ssdeep.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-ssdeep.ini
+
   # Install gnupg extension
   sudo yum install gpgme-devel -y
   sudo scl enable rh-php72 'pecl install gnupg'
