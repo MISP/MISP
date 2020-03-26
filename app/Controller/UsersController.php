@@ -1672,7 +1672,7 @@ class UsersController extends AppController
             $this->Flash->success(__("You are now logged in."));
             $this->redirect($this->Auth->redirectUrl());
         } else {
-            $this->Flash->error("The OTP is incorrect or has expired");
+            $this->Flash->error(__("The OTP is incorrect or has expired"));
         }
       } else {
         // GET Request
@@ -1727,7 +1727,7 @@ class UsersController extends AppController
         if ( $result ) {
           $this->Flash->success(__("An email containing a OTP has been sent."));
         } else {
-          $this->Flash->error("The email couldn't be sent, please reach out to your administrator.");
+          $this->Flash->error(__("The email couldn't be sent, please reach out to your administrator."));
         }
       }
     }
