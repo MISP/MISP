@@ -6,7 +6,7 @@
       requires you to enter a OTP (one time password) you have received via email.
     </p>
     <p> Make sure to check your SPAM folder. </p>
-    <a href='/users/email_otp'> <button class='btn'> Resend </button></a>
+    <a href='<?php echo $baseurl; ?>/users/email_otp'> <button class='btn'> Resend </button></a>
   </div>
 </div>
 

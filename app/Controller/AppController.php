@@ -408,7 +408,7 @@ class AppController extends Controller
                     }
                 } elseif (Configure::read('Security.email_otp_enabled') && !$this->_isRest() && !in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/email_otp', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login'))) {
                     $redis = $this->{$this->modelClass}->setupRedis();
-                    $otp_authed = $redis->get('misp:otp_authed:'.$this->Auth->user('id'));
+                    $otp_authed = $redis->get('misp:otp_authed:'.session_id());
                     if (empty($otp_authed)) {
                       $this->redirect(array('controller' => 'users', 'action' => 'email_otp', 'admin' => false));
                     }

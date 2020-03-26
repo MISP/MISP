@@ -1255,7 +1255,7 @@ class UsersController extends AppController
         ));
         unset($user['User']['password']);
         $redis = $this->User->setupRedis();
-        $redis->delete('misp:otp_authed:'.$this->Auth->user('id'));
+        $redis->delete('misp:otp_authed:'.session_id());
         $user['User']['action'] = 'logout';
         $this->User->save($user['User'], true, array('id'));
         $this->redirect($this->Auth->logout());
@@ -1657,6 +1657,7 @@ class UsersController extends AppController
     {
       $redis = $this->User->setupRedis();
       $user_id = $this->Auth->user('id');
+      $session_id = session_id();
 
       if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
         $stored_otp = $redis->get('misp:otp:'.$user_id);
@@ -1664,10 +1665,10 @@ class UsersController extends AppController
             // we invalidate the previously generated OTP
             $redis->delete('misp:otp:'.$user_id);
             // We store in redis the success of the OTP step
-            $redis->set('misp:otp_authed:'.$user_id, 1);
+            $redis->set('misp:otp_authed:'.$session_id, 1);
             // After this time, the user will need to redo the OTP step
             // We use the same time as for the session expiration
-            $redis->expire('misp:otp_authed:'.$user_id, intval(Configure::read('Session.cookieTimeout')) * 60);
+            $redis->expire('misp:otp_authed:'.$session_id, (int) Configure::read('Session.cookieTimeout') * 60);
             $this->Flash->success(__("You are now logged in."));
             $this->redirect($this->Auth->redirectUrl());
         } else {
@@ -1677,7 +1678,7 @@ class UsersController extends AppController
         // GET Request
 
         // If the OTP is still valid, we redirect
-        if (!Configure::read('Security.email_otp_enabled') || !empty($redis->get('misp:otp_authed:'.$user_id))) {
+        if (!Configure::read('Security.email_otp_enabled') || !empty($redis->get('misp:otp_authed:'.$session_id))) {
           $this->redirect($this->Auth->redirectUrl());
         }
 
@@ -1692,9 +1693,9 @@ class UsersController extends AppController
           $exceptions = explode(",", $exception_list);
           foreach ($exceptions as &$exception) {
             if ($user['User']['email'] == trim($exception)) {
-              $redis->set('misp:otp_authed:'.$user_id, 1);
+              $redis->set('misp:otp_authed:'.$session_id, 1);
               // It will take maximum this time (in seconds) to ask a OTP for someone removed from the exception list
-              $redis->expire('misp:otp_authed:'.$user_id, 3600);
+              $redis->expire('misp:otp_authed:'.$session_id, 3600);
               $this->redirect($this->Auth->redirectUrl());
             }
           }
@@ -1710,7 +1711,7 @@ class UsersController extends AppController
         // We use Redis to cache the OTP
         $redis->set('misp:otp:'.$user_id, $otp);
         $validity = !empty(Configure::read('Security.email_otp_validity')) ? Configure::read('Security.email_otp_validity') : $this->Server->serverSettings['Security']['email_otp_validity']['value'];
-        $redis->expire('misp:otp:'.$user_id, intval($validity) * 60);
+        $redis->expire('misp:otp:'.$user_id, (int) $validity * 60);
 
         // Email construction
         $body = !empty(Configure::read('Security.email_otp_text')) ? Configure::read('Security.email_otp_text') : $this->Server->serverSettings['Security']['email_otp_text']['value'];
@@ -1736,12 +1737,16 @@ class UsersController extends AppController
     * Helper function to determine the IP of a client (proxy aware)
     */
     private function _getClientIP() {
-      if(!empty($_SERVER['HTTP_CLIENT_IP'])){
-        return $_SERVER['HTTP_CLIENT_IP'];
-      }elseif(!empty($_SERVER['HTTP_X_FORWARDED_FOR'])){
-          return $_SERVER['HTTP_X_FORWARDED_FOR'];
+      $x_forwarded = filter_input(INPUT_SERVER, 'HTTP_X_FORWARDED_FOR', FILTER_SANITIZE_STRING);
+      $client_ip = filter_input(INPUT_SERVER, 'HTTP_CLIENT_IP', FILTER_SANITIZE_STRING);
+      if (!empty($x_forwarded)) {
+        $x_forwarded = explode(",", $x_forwarded);
+        return $x_forwarded[0];
+      } elseif(!empty($client_ip)){
+        return $_client_ip;
+      } else {
+        return filter_input(INPUT_SERVER, 'REMOTE_ADDR', FILTER_SANITIZE_STRING);
       }
-      return $_SERVER['REMOTE_ADDR'];
     }
 
     // shows some statistics about the instance
