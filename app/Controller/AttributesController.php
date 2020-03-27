@@ -1411,7 +1411,7 @@ class AttributesController extends AppController
             $event = $this->Attribute->Event->find('first', array(
                 'conditions' => array('id' => $id),
                 'recursive' => -1,
-                'fields' => array('id', 'orgc_id', 'user_id', 'published', 'timestamp', 'info', 'uuid')
+                'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp', 'info', 'uuid')
             ));
             if (!$this->_isSiteAdmin()) {
                 if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
@@ -1477,7 +1477,23 @@ class AttributesController extends AppController
             }
 
             if ($changeInAttribute) {
-                if ($this->Attribute->saveMany($attributes)) {
+                if ($this->request->data['Attribute']['is_proposal']) { // create ShadowAttributes instead
+                    $shadowAttributes = array();
+                    foreach ($attributes as $attribute) {
+                        $shadowAttribute['ShadowAttribute'] = $attribute['Attribute'];
+                        unset($shadowAttribute['ShadowAttribute']['id']);
+                        $shadowAttribute['ShadowAttribute']['email'] = $this->Auth->user('email');
+                        $shadowAttribute['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
+                        $shadowAttribute['ShadowAttribute']['event_uuid'] = $event['Event']['uuid'];
+                        $shadowAttribute['ShadowAttribute']['event_org_id'] = $event['Event']['org_id'];
+                        $shadowAttribute['ShadowAttribute']['old_id'] = $attribute['Attribute']['id'];
+                        $shadowAttributes[] = $shadowAttribute;
+                    }
+                    $saveSuccess = $this->Attribute->ShadowAttribute->saveMany($shadowAttributes);
+                } else {
+                    $saveSuccess = $this->Attribute->saveMany($attributes);
+                }
+                if ($saveSuccess) {
                     if (!$this->_isRest()) {
                         $this->Attribute->Event->insertLock($this->Auth->user(), $id);
                     }
