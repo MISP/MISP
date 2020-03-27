@@ -610,7 +610,7 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
             var left = (overlayLeftBCR.width - overlayRightBCR.width > 0 ?
                 overlayLeftBCR.left + overlayLeftBCR.width/2 :
                 overlayRightBCR.left + overlayRightBCR.width/2) - tooltipBCR.width / 2;
-            var top = overlayLeftBCR.top + 30;
+            var top = overlayLeftBCR.top + window.scrollY + 30;
 
             tooltipPickedNodes
                 .style('left', left + 'px')
