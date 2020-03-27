@@ -122,6 +122,7 @@
 
     $('#AttributeCategory').change(function() {
         formCategoryChanged('Attribute');
+        $('#AttributeType').chosen('destroy').chosen();
         if ($(this).val() === 'Internal reference') {
             $("#AttributeDistribution").val('0');
             checkSharingGroup('Attribute');
@@ -166,6 +167,16 @@
                 }
             }
         });
+        
+        <?php if (!$ajax): ?>
+            $('#AttributeType').chosen();
+            $('#AttributeCategory').chosen();
+        <?php else: ?>
+            setTimeout(function() { // make sure html is draw. TODO: use modal event to draw it
+                $('#AttributeType').chosen();
+                $('#AttributeCategory').chosen();
+            }, 500);
+        <?php endif; ?>
     });
 </script>
 <?php echo $this->element('form_seen_input'); ?>
