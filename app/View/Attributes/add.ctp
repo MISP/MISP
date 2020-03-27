@@ -172,10 +172,10 @@
             $('#AttributeType').chosen();
             $('#AttributeCategory').chosen();
         <?php else: ?>
-            setTimeout(function() { // make sure html is draw. TODO: use modal event to draw it
+            $('#genericModal').on('shown', function() {
                 $('#AttributeType').chosen();
                 $('#AttributeCategory').chosen();
-            }, 500);
+            })
         <?php endif; ?>
     });
 </script>
