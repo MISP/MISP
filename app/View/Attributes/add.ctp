@@ -122,6 +122,7 @@
 
     $('#AttributeCategory').change(function() {
         formCategoryChanged('Attribute');
+        $('#AttributeType').chosen('destroy').chosen();
         if ($(this).val() === 'Internal reference') {
             $("#AttributeDistribution").val('0');
             checkSharingGroup('Attribute');
@@ -166,6 +167,16 @@
                 }
             }
         });
+        
+        <?php if (!$ajax): ?>
+            $('#AttributeType').chosen();
+            $('#AttributeCategory').chosen();
+        <?php else: ?>
+            $('#genericModal').on('shown', function() {
+                $('#AttributeType').chosen();
+                $('#AttributeCategory').chosen();
+            })
+        <?php endif; ?>
     });
 </script>
 <?php echo $this->element('form_seen_input'); ?>

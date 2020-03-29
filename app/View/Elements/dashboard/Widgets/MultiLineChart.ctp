@@ -15,13 +15,13 @@ if (typeof d3 === "undefined") { // load d3.js once. This is necessary as d3.js 
         init<?= $seed ?>();
     })
 } else { // d3.js is already loaded or is loading
-    runInitWhenReady()
+    runInitWhenReady<?= $seed ?>()
 }
 
-function runInitWhenReady() {
+function runInitWhenReady<?= $seed ?>() {
     if (d3.version === undefined) { // d3.js not loaded yet
         setTimeout(function() {
-            runInitWhenReady();
+            runInitWhenReady<?= $seed ?>();
         }, 50);
     } else {
         init<?= $seed ?>();
@@ -30,7 +30,6 @@ function runInitWhenReady() {
 
 function init<?= $seed ?>() { // variables and functions have their own scope (no override)
     'use strict';
-
     /**
      * 
      * Data expected format: Array({
@@ -455,9 +454,6 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
                 .on('mouseover', function(d) {
                     tooltipDate(true, this, d);
                 })
-                .on('mouseout', function() {
-                    tooltipDate(false);
-                })
                 .on('click', function(d) {
                     handleMarkerClick(d);
                 })
@@ -516,48 +512,30 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
     }
 
     function tooltipDate(show, d3Element, datum) {
-        var tooltip = _toggleTooltip(show, d3Element);
-        if (show) {
-            tooltip.html(_generate_tooltip(datum));
-            var tooltipBR = tooltip.node().getBoundingClientRect();
-            var tooltipHeight = tooltipBR.height;
-            var tooltipWidth = tooltipBR.width;
-            var tooltipcx = parseInt(d3.select(d3Element).attr('cx'));
-            var dcx = 17;
-            // Flip tooltip position if necessary
-            if (width < options.margin.right + tooltipcx - dcx + tooltipWidth) {
-                var tooltipLeft = parseInt(tooltip.style('left').split('px')[0]);
-                tooltip.style('left', (tooltipLeft - (dcx + tooltipWidth + 15)) + 'px')
-            }
-            var tooltipTop = parseInt(tooltip.style('top').split('px')[0]);
-            tooltip.style('top', (tooltipTop - tooltipHeight/2) + 'px')
-        }
-    }
-
-    function _toggleTooltip(show, d3Element) {
-        if (show) {
-            tooltip_container
-                .style('display', 'block')
-                .style('left', (d3.event.pageX + 17) + 'px')
-                .style('top', (d3.event.pageY) + 'px')
-                .transition()
-                .duration(options.animation_short_duration)
-                .delay(options.animation_short_duration/2)
-                .style('opacity', '0.7');
-        } else {
-            tooltip_container.transition()
-                .duration(options.animation_short_duration)
-                .style('opacity', 0)
-                .delay(options.animation_short_duration)
-                .style('display', 'none');
-        }
-        return tooltip_container;
+        var $d3Element = $(d3Element);
+        $d3Element.tooltip({
+            html: true,
+            container: 'body',
+            title: _generate_tooltip(datum)
+        }).tooltip('show')
     }
 
     function _generate_tooltip(datum) {
-        var formated_date = d3.time.format(options.time_format)(datum.date);
-        var html = $('<p></p>').text(datum.name).html() + ' (' + formated_date + ', <strong>' + $('<p></p>').text(datum.count).html() + '</strong>) ';
-        return html;
+        var formated_x = options.abscissa_linear ? datum.index : d3.time.format(options.time_format)(datum.date);
+        return $('<div></div>').append(
+            $('<h6></h6>').text(formated_x).css({'margin': 0}),
+            $('<h6></h6>').append(
+                $('<span></span>').text(datum.name).css({'margin-right': '1em'}).prepend(
+                    $('<svg height="10px" width="15px"></svg>').append($('<circle></circle>')
+                        .attr('cx', 5)
+                        .attr('cy', 5)
+                        .attr('r', 5)
+                        .css('fill', colors(datum.name))
+                    )
+                ),
+                $('<span></span>').text(datum.count)
+            ).css({'margin': 0})
+        )[0].outerHTML
     }
 
     function handleMarkerClick(datum) {
@@ -610,7 +588,7 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
             var left = (overlayLeftBCR.width - overlayRightBCR.width > 0 ?
                 overlayLeftBCR.left + overlayLeftBCR.width/2 :
                 overlayRightBCR.left + overlayRightBCR.width/2) - tooltipBCR.width / 2;
-            var top = overlayLeftBCR.top + 30;
+            var top = overlayLeftBCR.top + window.scrollY + 30;
 
             tooltipPickedNodes
                 .style('left', left + 'px')
