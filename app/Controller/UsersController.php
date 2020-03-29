@@ -634,13 +634,14 @@ class UsersController extends AppController
                 if (isset($this->request->data['User']['password'])) {
                     $this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
                 }
+                $default_publish_alert = Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : 0;
                 $defaults = array(
                         'external_auth_required' => 0,
                         'external_auth_key' => '',
                         'server_id' => 0,
                         'gpgkey' => '',
                         'certif_public' => '',
-                        'autoalert' => 0,
+                        'autoalert' => $default_publish_alert,
                         'contactalert' => 0,
                         'disabled' => 0,
                         'newsread' => 0,
