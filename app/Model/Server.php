@@ -2636,6 +2636,23 @@ class Server extends AppModel
         return $final;
     }
 
+    private function __orgRuleDowngrade($HttpSocket, $request, $server, $filter_rules)
+    {
+        $uri = $server['Server']['url'] . '/servers/getVersion';
+        try {
+            $version_response = $HttpSocket->get($uri, false, $request);
+            $body = $version_response->body;
+            $version_response = json_decode($body, true);
+            $version = $version_response['version'];
+        } catch (Exception $e) {
+            return $e->getMessage();
+        }
+        $version = explode('.', $version);
+        if ($version[0] <= 2 && $version[1] <= 4 && $version[0] <= 123) {
+            $filter_rules['org'] = implode('|', $filter_rules['org']);
+        }
+        return $filter_rules;
+    }
 
     // Get an array of event_ids that are present on the remote server
     public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false, $scope = 'events')
@@ -2648,6 +2665,9 @@ class Server extends AppModel
         }
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
+        if (!empty($filter_rules['org'])) {
+            $filter_rules = $this->__orgRuleDowngrade($HttpSocket, $request, $server, $filter_rules);
+        }
         $uri = $url . '/events/index';
         $filter_rules['minimal'] = 1;
         $filter_rules['published'] = 1;
@@ -2738,6 +2758,7 @@ class Server extends AppModel
         } catch (SocketException $e) {
             return $e->getMessage();
         }
+
         // error, so return error message, since that is handled and everything is expecting an array
         return "Error: got response code " . $response->code;
     }

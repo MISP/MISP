@@ -415,7 +415,11 @@ class EventsController extends AppController
                         $orgUuidArray = $this->Event->Org->find('list', array('fields' => array('Org.uuid')));
                         $orgArray = array_map('strtoupper', $orgArray);
                         // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
-                        $pieces = explode('|', $v);
+                        if (!is_array($v)) {
+                            $pieces = explode('|', $v);
+                        } else {
+                            $pieces = $v;
+                        }
                         $test = array();
                         foreach ($pieces as $piece) {
                             if ($piece[0] == '!') {
