@@ -642,6 +642,15 @@ class Server extends AppModel
                             'type' => 'numeric',
                             'optionsSource' => 'TagCollections',
                         ),
+                        'default_publish_alert' => array(
+                                'level' => 0,
+                                'description' => __('The default setting for publish alerts when creating users.'),
+                                'value' => true,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
                         'tagging' => array(
                                 'level' => 1,
                                 'description' => __('Enable the tagging feature of MISP. This is highly recommended.'),

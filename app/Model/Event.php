@@ -3078,6 +3078,8 @@ class Event extends AppModel
         }
         $body .= $bodyTempOther;    // append the 'other' attribute types to the bottom.
         $body .= '==============================================' . "\n";
+        $body .= "If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via " . $this->__getAnnounceBaseurl() . '/users/edit';
+        $body .= '==============================================' . "\n";
         return $body;
     }
 
