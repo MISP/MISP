@@ -42,7 +42,7 @@ class Bruteforce extends AppModel
         if ($dataSource == 'Database/Mysql') {
             $sql = 'DELETE FROM bruteforces WHERE `expire` <= "' . $expire . '";';
         } elseif ($dataSource == 'Database/Postgres') {
-            $sql = 'DELETE FROM bruteforces WHERE expire <= "' . $expire . '";';
+            $sql = 'DELETE FROM bruteforces WHERE expire <= \'' . $expire . '\';';
         }
         $this->query($sql);
     }

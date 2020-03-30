@@ -1187,7 +1187,7 @@ class Feed extends AppModel
             'recursive' => -1,
             'fields' => array('id', 'url', 'name'),
             'contain' => array('RemoteOrg' => array('fields' => array('RemoteOrg.id', 'RemoteOrg.name'))),
-            'conditions' => array('Server.caching_enabled')
+            'conditions' => array('Server.caching_enabled' => 1)
         ));
         foreach ($servers as $k => $server) {
             if (!$redis->exists('misp:server_cache:' . $server['Server']['id'])) {
