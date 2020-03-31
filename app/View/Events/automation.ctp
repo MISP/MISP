@@ -6,9 +6,19 @@
     <strong><?php echo __('Make sure you keep your API key secret as it gives access to the all of the data that you normally have access to in MISP.');?></strong>
     <?php echo __('To view the old MISP automation page, click <a href="automation/1">here</a>.');?>
     </p>
-    <p><?php echo __('Your current key is: <code>%s</code>.
-    You can %s this key.', $me['authkey'], $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', 'me')));?>
-    </p>
+    <span>
+        <?php
+            echo __(
+                'Your current key is: <code>%s</code>. You can %s this key.',
+                $me['authkey'],
+                $this->Form->postLink(
+                    __('reset'),
+                    array('controller' => 'users', 'action' => 'resetauthkey', 'me'),
+                    array('div' => false)
+                )
+            );
+        ?>
+    </span>
     <?php
         $data = array(
             'title' => __('Search'),
