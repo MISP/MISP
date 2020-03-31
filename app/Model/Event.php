@@ -3078,7 +3078,14 @@ class Event extends AppModel
         }
         $body .= $bodyTempOther;    // append the 'other' attribute types to the bottom.
         $body .= '==============================================' . "\n";
-        $body .= "If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via " . $this->__getAnnounceBaseurl() . '/users/edit';
+        $body .= sprintf(
+            "You receive this e-mail because the e-mail address %s is set to receive publish alerts on the MISP instance at %s.%s%s",
+            $user['email'],
+            (empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl')),
+            PHP_EOL,
+            PHP_EOL
+        );
+        $body .= "If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via " . $this->__getAnnounceBaseurl() . '/users/edit' . PHP_EOL;
         $body .= '==============================================' . "\n";
         return $body;
     }
