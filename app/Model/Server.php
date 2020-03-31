@@ -4511,7 +4511,10 @@ class Server extends AppModel
         if (isset($field['error_type'])) {
             $length = false;
             if (in_array($field['error_type'], array('missing_column', 'column_different'))) {
-                if ($field['expected']['data_type'] === 'int') {
+                preg_match('/([a-z]+)(?:\((?<dw>[0-9,]+)\))?\s*([a-z]+)?/i', $field['expected']['column_type'], $displayWidthMatches);
+                if (isset($displayWidthMatches['dw'])) {
+                    $length = $displayWidthMatches[2];
+                } elseif ($field['expected']['data_type'] === 'int') {
                     $length = 11;
                 } elseif ($field['expected']['data_type'] === 'tinyint') {
                     $length = 1;
@@ -4617,6 +4620,7 @@ class Server extends AppModel
             'numeric_precision',
             // 'datetime_precision',    -- Only available on MySQL 5.6+
             'collation_name',
+            'column_type',
             'column_default'
         )
     ){
