@@ -2587,11 +2587,21 @@ class Event extends AppModel
     {
         if (!empty($params['uuid'])) {
             $params['uuid'] = $this->convert_filters($params['uuid']);
-            if (!empty($options['scope']) && $options['scope'] === 'Event') {
-                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
+            if (!empty($params['uuid']['OR'])) {
+                $conditions['AND'][] = array(
+                    'OR' => array(
+                        'Event.uuid' => $params['uuid']['OR'],
+                        'Attribute.uuid' => $params['uuid']['OR']
+                    )
+                );
             }
-            if (!empty($options['scope']) && $options['scope'] === 'Attribute') {
-                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
+            if (!empty($params['uuid']['NOT'])) {
+                $conditions['AND'][] = array(
+                    'NOT' => array(
+                        'Event.uuid' => $params['uuid']['NOT'],
+                        'Attribute.uuid' => $params['uuid']['NOT']
+                    )
+                );
             }
         }
         return $conditions;

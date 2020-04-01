@@ -4426,7 +4426,6 @@ class Attribute extends AppModel
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
-                    'uuid' => array('function' => 'set_filter_uuid'),
                     'published' => array('function' => 'set_filter_published')
                 ),
                 'Object' => array(
@@ -4487,7 +4486,6 @@ class Attribute extends AppModel
 
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
-
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
                 'conditions' => $conditions,
