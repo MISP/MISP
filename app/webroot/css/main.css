@@ -2524,19 +2524,13 @@ table tr:hover .down-expand-button {
     margin:5px;
 }
 
-.path_multi_line_chart {
-    stroke-width: 1;
-    fill: none;
-    stroke-linejoin: round;
-    stroke-linecap: round;
+.grid-stack-item-content {
+    display: flex;
+    flex-direction: column;
 }
-.path_multi_line_chart {
-  stroke-width: 1;
-}
-.axis_multi_line_chart path,
-.axis_multi_line_chart line {
-  fill: none;
-  stroke: grey;
-  stroke-width: 1;
-  shape-rendering: crispEdges;
+
+.widgetContent, .widgetContentInner, .widgetContentInner > div {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
 }

@@ -5,8 +5,8 @@
         'before' => '$(".progress").show()',
         'complete' => '$(".progress").hide()',
     );
-    if (!empty($paginationBaseurl)) {
-        $options['url'] = $paginationBaseurl;
+    if (!empty($paginationOptions)) {
+        $options = array_merge($options, $paginationOptions);
     }
     echo $this->Paginator->options($options);
     echo sprintf(

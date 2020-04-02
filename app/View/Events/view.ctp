@@ -379,7 +379,7 @@
                                 $count++;
                                 if ($count == $display_threshold+1 && $total > $display_threshold):
                                     ?>
-                                        <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - $count);?></div>
+                                        <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - ($count-1));?></div>
                                     <?php
                                 endif;
                         ?>

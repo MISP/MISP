@@ -25,5 +25,8 @@ $(document).ready(function () {
     grid.on('added', function(event, items) {
         resetDashboardGrid(grid);
     });
+    grid.on('gsresizestop', function(event, element) {
+        $(element).find('.widgetContentInner').trigger('widget-resized')
+    });
 });
 </script>

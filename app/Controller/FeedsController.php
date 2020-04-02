@@ -246,7 +246,7 @@ class FeedsController extends AppController
                     $this->Flash->success($message);
                     $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
                 } else {
-                    $message = __('Feed could not be added. Invalid field: %s', array_keys($this->Feed->validationErrors)[0]);
+                    $message = __('Feed could not be added. Reason: %s', json_encode($this->Feed->validationErrors));
                     if ($this->_isRest()) {
                         return $this->RestResponse->saveFailResponse('Feeds', 'add', false, $message, $this->response->type());
                     }
@@ -345,7 +345,7 @@ class FeedsController extends AppController
                 $this->Flash->success($message);
                 $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
             } else {
-                $message = __('Feed could not be updated. Invalid fields: %s', implode(', ', array_keys($this->Feed->validationErrors)));
+                $message = __('Feed could not be updated. Reason: %s', json_encode($this->Feed->validationErrors));
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Feeds', 'add', false, $message, $this->response->type());
                 }

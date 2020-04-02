@@ -398,7 +398,7 @@ class ObjectsController extends AppController
         $this->set('updateable_attribute', $templateData['updateable_attribute']);
         $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
         if (isset($this->params['named']['revised_object'])) {
-            $revisedData = $this->MispObject->reviseObject($this->params['named']['revised_object'], $object);
+            $revisedData = $this->MispObject->reviseObject($this->params['named']['revised_object'], $object, $template);
             $this->set('revised_object', $revisedData['revised_object_both']);
             $object = $revisedData['object'];
         }
