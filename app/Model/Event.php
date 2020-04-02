@@ -2580,55 +2580,7 @@ class Event extends AppModel
         }
         return $conditions;
     }
-
-    /*
-     * Add parameters to the already existing condition branch.
-     * Alternatively just add it.
-     *
-     * Example:
-     * {
-     *    "OR" => array(
-     *      "Event.uuid" => "5e850711-69c8-4d50-8e16-0eea011fb688"
-     *    )
-     * }
-     *
-     * We would like to add an Attribute.uuid condition to the same branch if it
-     * exists, passing the existing conditions, the new conditions, the boolean
-     * branch for the lookup and the pattern of the key (regex) to look for
-     *
-     * adding "Attribute.uuid" => "5e850711-69c8-4d50-8e16-0eea011fb688"
-     * to the OR branch that contains Event.uuid would result in:
-     *
-     * Example:
-     * {
-     *    "OR" => array(
-     *      "Event.uuid" => "5e850711-69c8-4d50-8e16-0eea011fb688",
-     *      "Attribute.uuid" => "5e850711-69c8-4d50-8e16-0eea011fb688"
-     *    )
-     * }
-     */
-    public function update_condition_branch($conditions, $data, $booleanOperator, $key)
-    {
-        $found = false;
-        if (!empty($conditions['AND'])) {
-            foreach ($conditions['AND'] as $k => $conditionData) {
-                if (!empty($conditionData[$booleanOperator])) {
-                    foreach ($conditionData[$booleanOperator] as $existingKey => $subConditions) {
-                        if (preg_match($key, $existingKey) !== false) {
-                            $conditions['AND'][$k][$booleanOperator] = $conditionData[$booleanOperator] + $data;
-                            continue 2;
-                        }
-                    }
-                }
-            }
-        } else {
-            $conditions['AND'][] = array(
-                $booleanOperator = $data
-            );
-        }
-        return $conditions;
-    }
-
+    
     public function set_filter_uuid(&$params, $conditions, $options)
     {
         if ($options['scope'] === 'Event') {
