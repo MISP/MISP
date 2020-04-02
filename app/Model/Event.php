@@ -1667,7 +1667,6 @@ class Event extends AppModel
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'ignore' => array('function' => 'set_filter_ignore'),
-                    'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
                     'comment' => array('function' => 'set_filter_comment')
@@ -1707,7 +1706,6 @@ class Event extends AppModel
                 }
             }
         }
-
         $fields = array('Event.id');
         if (!empty($params['include_attribute_count'])) {
             $fields[] = 'Event.attribute_count';
@@ -2583,26 +2581,88 @@ class Event extends AppModel
         return $conditions;
     }
 
+    /*
+     * Add parameters to the already existing condition branch.
+     * Alternatively just add it.
+     *
+     * Example:
+     * {
+     *    "OR" => array(
+     *      "Event.uuid" => "5e850711-69c8-4d50-8e16-0eea011fb688"
+     *    )
+     * }
+     *
+     * We would like to add an Attribute.uuid condition to the same branch if it
+     * exists, passing the existing conditions, the new conditions, the boolean
+     * branch for the lookup and the pattern of the key (regex) to look for
+     *
+     * adding "Attribute.uuid" => "5e850711-69c8-4d50-8e16-0eea011fb688"
+     * to the OR branch that contains Event.uuid would result in:
+     *
+     * Example:
+     * {
+     *    "OR" => array(
+     *      "Event.uuid" => "5e850711-69c8-4d50-8e16-0eea011fb688",
+     *      "Attribute.uuid" => "5e850711-69c8-4d50-8e16-0eea011fb688"
+     *    )
+     * }
+     */
+    public function update_condition_branch($conditions, $data, $booleanOperator, $key)
+    {
+        $found = false;
+        if (!empty($conditions['AND'])) {
+            foreach ($conditions['AND'] as $k => $conditionData) {
+                if (!empty($conditionData[$booleanOperator])) {
+                    foreach ($conditionData[$booleanOperator] as $existingKey => $subConditions) {
+                        if (preg_match($key, $existingKey) !== false) {
+                            $conditions['AND'][$k][$booleanOperator] = $conditionData[$booleanOperator] + $data;
+                            continue 2;
+                        }
+                    }
+                }
+            }
+        } else {
+            $conditions['AND'][] = array(
+                $booleanOperator = $data
+            );
+        }
+        return $conditions;
+    }
+
     public function set_filter_uuid(&$params, $conditions, $options)
     {
-        if (!empty($params['uuid'])) {
-            $params['uuid'] = $this->convert_filters($params['uuid']);
-            if (!empty($params['uuid']['OR'])) {
-                $conditions['AND'][] = array(
-                    'OR' => array(
-                        'Event.uuid' => $params['uuid']['OR'],
-                        'Attribute.uuid' => $params['uuid']['OR']
-                    )
-                );
+        if ($options['scope'] === 'Event') {
+            if (!empty($params['uuid'])) {
+                $params['uuid'] = $this->convert_filters($params['uuid']);
+                if (!empty($params['uuid']['OR'])) {
+                    $subQueryOptions = array(
+                        'conditions' => array('Attribute.uuid' => $params['uuid']['OR']),
+                        'fields' => array('event_id')
+                    );
+                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
+                    $conditions['AND'][] = array(
+                        'OR' => array(
+                            'Event.uuid' => $params['uuid']['OR'],
+                            $attributeSubquery
+                        )
+                    );
+                }
+                if (!empty($params['uuid']['NOT'])) {
+                    $subQueryOptions = array(
+                        'conditions' => array('Attribute.uuid' => $params['uuid']['NOT']),
+                        'fields' => array('event_id')
+                    );
+                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
+                    $conditions['AND'][] = array(
+                        'NOT' => array(
+                            'Event.uuid' => $params['uuid']['NOT'],
+                            $attributeSubquery
+                        )
+                    );
+                }
             }
-            if (!empty($params['uuid']['NOT'])) {
-                $conditions['AND'][] = array(
-                    'NOT' => array(
-                        'Event.uuid' => $params['uuid']['NOT'],
-                        'Attribute.uuid' => $params['uuid']['NOT']
-                    )
-                );
-            }
+        } else {
+            $conditions = $this->{$options['scope']}->set_filter_uuid($params, $conditions, $options);
         }
         return $conditions;
     }
