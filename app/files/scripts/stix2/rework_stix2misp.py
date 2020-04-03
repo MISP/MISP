@@ -202,7 +202,7 @@ class StixParser():
         try:
             return int(date.timestamp())
         except AttributeError:
-            return int(time.mktime(time.strptime(date.split('+')[0], "%Y-%m-%d %H:%M:%S")))
+            return int(time.mktime(time.strptime(date.split('+')[0], "%Y-%m-%dT%H:%M:%SZ")))
 
     @staticmethod
     def _handle_data(data):
@@ -366,7 +366,7 @@ class StixFromMISPParser(StixParser):
             replacement = ' ' if attribute_type == 'named-pipe' else '|'
             attribute_type = attribute_type.replace('-', replacement)
         attribute = {'type': attribute_type,
-                     'timestamp': self.getTimestampfromDate(custom['x_misp_timestamp']),
+                     'timestamp': self.getTimestampfromDate(custom['modified']),
                      'to_ids': bool(custom['labels'][1].split('=')[1]),
                      'value': custom['x_misp_value'],
                      'category': self.get_misp_category(custom['labels']),
@@ -378,7 +378,7 @@ class StixFromMISPParser(StixParser):
     def parse_custom_object(self, custom):
         name = custom['type'].split('x-misp-object-')[1]
         misp_object = MISPObject(name, misp_objects_path_custom=self._misp_objects_path)
-        misp_object.timestamp = self.getTimestampfromDate(custom['x_misp_timestamp'])
+        misp_object.timestamp = self.getTimestampfromDate(custom['modified'])
         misp_object.uuid = custom['id'].split('--')[1]
         try:
             misp_object.category = custom['category']
