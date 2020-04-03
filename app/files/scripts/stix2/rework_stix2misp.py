@@ -202,7 +202,7 @@ class StixParser():
         try:
             return int(date.timestamp())
         except AttributeError:
-            return int(time.mktime(time.strptime(date.split('+')[0], "%Y-%m-%dT%H:%M:%SZ")))
+            return int(time.mktime(time.strptime(date.split('+')[0], "%Y-%m-%dT%H:%M:%S.%fZ")))
 
     @staticmethod
     def _handle_data(data):
