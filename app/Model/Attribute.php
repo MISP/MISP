@@ -4426,7 +4426,6 @@ class Attribute extends AppModel
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
-                    'uuid' => array('function' => 'set_filter_uuid'),
                     'published' => array('function' => 'set_filter_published')
                 ),
                 'Object' => array(
@@ -4487,7 +4486,6 @@ class Attribute extends AppModel
 
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
-
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
                 'conditions' => $conditions,
@@ -4616,5 +4614,29 @@ class Attribute extends AppModel
             fwrite($tmpfile, $temp);
         }
         return true;
+    }
+
+    public function set_filter_uuid(&$params, $conditions, $options)
+    {
+        if (!empty($params['uuid'])) {
+            $params['uuid'] = $this->convert_filters($params['uuid']);
+            if (!empty($params['uuid']['OR'])) {
+                $conditions['AND'][] = array(
+                    'OR' => array(
+                        'Event.uuid' => $params['uuid']['OR'],
+                        'Attribute.uuid' => $params['uuid']['OR']
+                    )
+                );
+            }
+            if (!empty($params['uuid']['NOT'])) {
+                $conditions['AND'][] = array(
+                    'NOT' => array(
+                        'Event.uuid' => $params['uuid']['NOT'],
+                        'Attribute.uuid' =>  $params['uuid']['NOT']
+                    )
+                );
+            }
+        }
+        return $conditions;
     }
 }

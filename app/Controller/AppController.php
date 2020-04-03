@@ -46,7 +46,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '101';
+    private $__queryVersion = '102';
     public $pyMispVersion = '2.4.123';
     public $phpmin = '7.2';
     public $phprec = '7.4';
@@ -299,6 +299,7 @@ class AppController extends Controller
         }
 
         if ($this->Auth->user()) {
+            $this->User->setMonitoring($this->Auth->user());
             if (Configure::read('MISP.log_user_ips')) {
                 $redis = $this->{$this->modelClass}->setupRedis();
                 if ($redis) {
@@ -446,11 +447,23 @@ class AppController extends Controller
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
             $this->userRole = $role;
-            if (Configure::read('MISP.log_paranoid')) {
+            if (
+                Configure::read('MISP.log_paranoid') ||
+                !empty(Configure::read('Security.monitored'))
+            ) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
                 $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
-                if (($this->request->is('post') || $this->request->is('put')) && !empty(Configure::read('MISP.log_paranoid_include_post_body'))) {
+                if (
+                    (
+                        $this->request->is('post') ||
+                        $this->request->is('put')
+                    ) &&
+                    (
+                        !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
+                        !empty(Configure::read('Security.monitored'))
+                    )
+                ) {
                     $payload = $this->request->input();
                     if (!empty($payload['_Token'])) {
                         unset($payload['_Token']);

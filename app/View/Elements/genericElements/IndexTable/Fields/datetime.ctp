@@ -11,14 +11,9 @@
             }
         }
     }
-    if (is_bool($data)) {
-        $data = sprintf(
-            '<i class="black fa fa-%s"></i>',
-            $data ? 'check' : 'times'
-        );
-        $data = '';
-    } else {
-        $data = h($data);
+    $data = h($data);
+    if (is_numeric($data)) {
+        $data = date('Y-m-d H:i:s', $data);
     }
     if (!empty($field['onClick'])) {
         $data = sprintf(

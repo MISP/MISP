@@ -17,7 +17,7 @@
         h($data['model']);
     $fieldsString = '';
     $simpleFieldWhitelist = array(
-        'default', 'type', 'options', 'placeholder', 'label', 'empty'
+        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div'
     );
     $fieldsArrayForPersistence = array();
     $formCreate = $this->Form->create($modelForForm);
