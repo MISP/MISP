@@ -3087,7 +3087,8 @@ class EventsController extends AppController
             'named_params' => $this->params['named'],
             'ordered_url_params' => func_get_args(),
             'injectedParams' => array(
-                'returnFormat' => 'csv'
+                'returnFormat' => 'csv',
+                'to_ids' => '1'
             )
         ));
         return $this->restSearch();
