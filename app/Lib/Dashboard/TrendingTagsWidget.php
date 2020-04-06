@@ -9,11 +9,13 @@ class TrendingTagsWidget
     public $params = array(
         'time_window' => 'The time window, going back in seconds, that should be included.',
         'exclude' => 'List of substrings to exclude tags by - for example "sofacy" would exclude any tag containing sofacy.',
-        'include' => 'List of substrings to include tags by - for example "sofacy" would include any tag containing sofacy.'
+        'include' => 'List of substrings to include tags by - for example "sofacy" would include any tag containing sofacy.',
+        'threshold' => 'Limits the number of displayed tags. Default: 10'
     );
     public $placeholder =
 '{
     "time_window": "86400",
+    "threshold": 15,
     "exclude": ["tlp:", "pap:"],
     "include": ["misp-galaxy:", "my-internal-taxonomy"]
 }';
@@ -26,6 +28,7 @@ class TrendingTagsWidget
             'metadata' => 1,
             'timestamp' => time() - (empty($options['time_window']) ? 8640000 : $options['time_window'])
         );
+        $threshold = empty($options['threshold']) ? 10 : $options['threshold'];
         $eventIds = $this->Event->filterEventIds($user, $params);
         $params['eventid'] = $eventIds;
         $events = array();
@@ -47,7 +50,7 @@ class TrendingTagsWidget
             }
         }
         arsort($tags);
-        $data['data'] = array_slice($tags, 0, 10);
+        $data['data'] = array_slice($tags, 0, $threshold);
         $data['colours'] = $tagColours;
         return $data;
 	}
