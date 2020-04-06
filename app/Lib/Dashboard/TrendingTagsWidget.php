@@ -34,8 +34,6 @@ class TrendingTagsWidget
         }
         $tags = array();
         $tagColours = array();
-        $rules['exclusions'] = empty($options['exclude']) ? array() : $options['exclude'];
-        $rules['inclusions'] = empty($options['exclude']) ? array() : $options['exclude'];
         foreach ($events as $event) {
             foreach ($event['EventTag'] as $et) {
                 if ($this->checkTag($options, $et['Tag']['name'])) {
