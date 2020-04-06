@@ -1678,6 +1678,31 @@ class AttributesController extends AppController
             );
             $exception = false;
             $filters = $this->_harvestParameters($filterData, $exception);
+            if (!empty($filters['uuid'])) {
+                if (!is_array($filters['uuid'])) {
+                    $filters['uuid'] = array($filters['uuid']);
+                }
+                $uuid = array();
+                $ids = array();
+                foreach ($filters['uuid'] as $k => $filter) {
+                    if ($filter[0] === '!') {
+                        $filter = substr($filter, 1);
+                    }
+                    if (Validation::uuid($filter)) {
+                        $uuid[] = $filters['uuid'][$k];
+                    } else {
+                        $ids[] = $filters['uuid'][$k];
+                    }
+                }
+                if (empty($uuid)) {
+                    unset($filters['uuid']);
+                } else {
+                    $filters['uuid'] = $uuid;
+                }
+                if (!empty($ids)) {
+                    $filters['eventid'] = $ids;
+                }
+            }
             unset($filterData);
             if ($filters === false) {
                 return $exception;

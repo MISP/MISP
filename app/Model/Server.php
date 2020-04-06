@@ -512,7 +512,7 @@ class Server extends AppModel
                                 'description' => __('Enables the use of MISP\'s background processing.'),
                                 'value' => '',
                                 'errorMessage' => '',
-                                'test' => 'testBool',
+                                'test' => 'testBoolTrue',
                                 'type' => 'boolean',
                         ),
                         'attachments_dir' => array(
@@ -3526,6 +3526,21 @@ class Server extends AppModel
             return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
         }
         return true;
+    }
+
+    public function testBoolTrue($value, $errorMessage = false)
+    {
+        if ($this->testBool($value, $errorMessage) !== true) {
+            return $this->testBool($value, $errorMessage);
+        }
+        if ($value === false) {
+            if ($errorMessage) {
+                return $errorMessage;
+            }
+            return 'It is highly recommended that this setting is enabled. Make sure you understand the impact of having this setting turned off.';
+        } else {
+            return true;
+        }
     }
 
     public function testBoolFalse($value, $errorMessage = false)

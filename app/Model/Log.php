@@ -323,7 +323,6 @@ class Log extends AppModel
             $elasticSearchClient = $this->getElasticSearchTool();
             $elasticSearchClient->pushDocument($logIndex, "log", $data);
         }
-
         if (Configure::read('Security.syslog')) {
             // write to syslogd as well
             $syslog = new SysLog();
@@ -338,8 +337,17 @@ class Log extends AppModel
             }
 
             $entry = $data['Log']['action'];
+            if (!empty($data['Log']['title'])) {
+                $entry .= sprintf(
+                    ' -- %s',
+                    $data['Log']['title']
+                );
+            }
             if (!empty($data['Log']['description'])) {
-                $entry .= sprintf(' -- %s', $data['Log']['description']);
+                $entry .= sprintf(
+                    ' -- %s',
+                    $data['Log']['description']
+                );
             }
             $syslog->write($action, $entry);
         }

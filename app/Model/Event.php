@@ -1667,7 +1667,6 @@ class Event extends AppModel
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'ignore' => array('function' => 'set_filter_ignore'),
-                    'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
                     'comment' => array('function' => 'set_filter_comment')
@@ -1707,7 +1706,6 @@ class Event extends AppModel
                 }
             }
         }
-
         $fields = array('Event.id');
         if (!empty($params['include_attribute_count'])) {
             $fields[] = 'Event.attribute_count';
@@ -2582,17 +2580,41 @@ class Event extends AppModel
         }
         return $conditions;
     }
-
+    
     public function set_filter_uuid(&$params, $conditions, $options)
     {
-        if (!empty($params['uuid'])) {
-            $params['uuid'] = $this->convert_filters($params['uuid']);
-            if (!empty($options['scope']) && $options['scope'] === 'Event') {
-                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
+        if ($options['scope'] === 'Event') {
+            if (!empty($params['uuid'])) {
+                $params['uuid'] = $this->convert_filters($params['uuid']);
+                if (!empty($params['uuid']['OR'])) {
+                    $subQueryOptions = array(
+                        'conditions' => array('Attribute.uuid' => $params['uuid']['OR']),
+                        'fields' => array('event_id')
+                    );
+                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
+                    $conditions['AND'][] = array(
+                        'OR' => array(
+                            'Event.uuid' => $params['uuid']['OR'],
+                            $attributeSubquery
+                        )
+                    );
+                }
+                if (!empty($params['uuid']['NOT'])) {
+                    $subQueryOptions = array(
+                        'conditions' => array('Attribute.uuid' => $params['uuid']['NOT']),
+                        'fields' => array('event_id')
+                    );
+                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
+                    $conditions['AND'][] = array(
+                        'NOT' => array(
+                            'Event.uuid' => $params['uuid']['NOT'],
+                            $attributeSubquery
+                        )
+                    );
+                }
             }
-            if (!empty($options['scope']) && $options['scope'] === 'Attribute') {
-                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
-            }
+        } else {
+            $conditions = $this->{$options['scope']}->set_filter_uuid($params, $conditions, $options);
         }
         return $conditions;
     }
