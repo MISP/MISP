@@ -163,6 +163,8 @@ class StixParser():
 
     def parse_report(self):
         event_infos = set()
+        if len(self.report) == 1:
+            self.misp_event.uuid = tuple(self.report.keys())[0]
         for report in self.report.values():
             if hasattr(report, 'name') and report.name:
                 event_infos.add(report.name)
@@ -180,7 +182,6 @@ class StixParser():
             if hasattr(report, 'external_references'):
                 for reference in report.external_references:
                     self.misp_event.add_attribute(**{'type': 'link', 'value': reference['url']})
-
         if len(event_infos) == 1:
             self.misp_event.info = event_infos.pop()
         else:
