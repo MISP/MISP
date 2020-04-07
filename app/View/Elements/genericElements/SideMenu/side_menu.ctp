@@ -734,6 +734,11 @@
                             'url' => '/admin/users/index',
                             'text' => __('List Users')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'registrations',
+                            'url' => '/users/registrations',
+                            'text' => __('Pending registrations')
+                        ));
                     }
                     if ($isAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -803,6 +808,10 @@
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/servers/serverSettings',
                             'text' => __('Server Settings & Maintenance')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/inbox',
+                            'text' => __('Inbox')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/servers/updateProgress',

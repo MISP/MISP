@@ -20,7 +20,7 @@ class Stix2Export extends StixExport
         $filename = $this->__scripts_dir . 'tmp/' . $filename;
         $my_server = ClassRegistry::init('Server');
         $result = shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename . $this->__end_of_cmd);
-        $result = end(preg_split("/\r\n|\n|\r/", trim($result)));
-        return $result;
+        $result = preg_split("/\r\n|\n|\r/", trim($result));
+        return end($result);
     }
 }

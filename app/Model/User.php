@@ -1502,4 +1502,51 @@ class User extends AppModel
         }
         Configure::write('Security.monitored', 0);
     }
+
+    public function registerUser($added_by, $registration, $org_id, $role_id) {
+        $user = array(
+                'email' => $registration['data']['email'],
+                'gpgkey' => empty($registration['data']['pgp']) ? '' : $registration['data']['pgp'],
+                'disabled' => 0,
+                'newsread' => 0,
+                'change_pw' => 1,
+                'authkey' => $this->generateAuthKey(),
+                'termsaccepted' => 0,
+                'org_id' => $org_id,
+                'role_id' => $role_id,
+                'invited_by' => $added_by['id'],
+                'contactalert' => 1,
+                'autoalert' => Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : 1
+        );
+        $this->create();
+        $this->Log = ClassRegistry::init('Log');
+        $result = $this->save(array('User' => $user));
+        if (empty($result)) {
+            $error = array();
+            foreach ($this->validationErrors as $key => $errors) {
+                $error[$key] = $key . ': ' . implode(', ', $errors);
+            }
+            $error = implode(PHP_EOL, $error);
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'User',
+                    'model_id' => $added_by['id'],
+                    'email' => $added_by['email'],
+                    'action' => 'failed_registration',
+                    'title' => 'User registration failed for ' . $user['email'] . '. Reason(s): ' . $error,
+                    'change' => null,
+            ));
+            return false;
+        } else {
+            $user = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('id' => $this->id)
+            ));
+            $this->initiatePasswordReset($user, true, true, false);
+            $this->Inbox = ClassRegistry::init('Inbox');
+            $this->Inbox->delete($registration['id']);
+            return true;
+        }
+
+    }
 }
