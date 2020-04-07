@@ -62,7 +62,7 @@
                     'class' => 'input-xxlarge',
                     'required' => 1,
                     'options' => $orgs,
-                    'default' => empty($suggestedOrg) ? false : $suggestedOrg[0]
+                    'default' => empty($suggestedOrg[0]) ? false : $suggestedOrg[0]
                 ),
                 array(
                     'field' => 'role_id',

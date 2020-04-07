@@ -431,7 +431,7 @@ class Organisation extends AppModel
 
     public function checkDesiredOrg($suggestedOrg, $registration)
     {
-        if ($suggestedOrg !== false) {
+        if ($suggestedOrg !== false && $suggestedOrg !== -1) {
             $conditions = array();
             if (!empty($registration['Inbox']['data']['org_uuid'])) {
                 $conditions = array('Organisation.uuid' => $registration['Inbox']['data']['org_uuid']);
@@ -443,10 +443,10 @@ class Organisation extends AppModel
                 'fields' => array('id', 'name', 'local'),
                 'conditions' => $conditions
             ));
-            if (!empty($suggestedOrg) && $suggestedOrg[0] !== $identifiedOrg['Organisation']['id']) {
+            if (empty($identifiedOrg)) {
+            $suggestedOrg = -1;
+            } else if (!empty($suggestedOrg) && $suggestedOrg[0] !== $identifiedOrg['Organisation']['id']) {
                 $suggestedOrg = false;
-            } else if (empty($identifiedOrg)) {
-                $suggestedOrg = -1;
             } else {
                 $suggestedOrg = array($identifiedOrg['Organisation']['id'], $identifiedOrg['Organisation']['name'], $identifiedOrg['Organisation']['local']);
             }
