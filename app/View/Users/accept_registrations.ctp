@@ -6,13 +6,14 @@
             $suggestedOrgText = '<br />&nbsp;&nbsp;<span class="bold red">' . __('Conflicting requirements') . '</span>';
         } else if ($suggestedOrg === -1){
             $suggestedOrgText = sprintf(
-                '<span class="red">%s%s</span>%s <a href="%s/admin/organisations/add%s%s" class="black fas fa-plus"></a>',
+                '<span class="red">%s%s</span>%s <a href="%s/admin/organisations/add%s%s" class="black fas fa-plus" title="%s"></a>',
                 empty($registration['Inbox']['data']['org_name']) ? '' : h($registration['Inbox']['data']['org_name']) . ' ',
                 empty($registration['Inbox']['data']['org_uuid']) ? '' : h($registration['Inbox']['data']['org_uuid']) . ' ',
                 __('Requested organisation not found.'),
                 $baseurl,
                 empty($registration['Inbox']['data']['org_name']) ? '' : '/name:' . h($registration['Inbox']['data']['org_name']),
-                empty($registration['Inbox']['data']['org_uuid']) ? '' : '/uuid:' . h($registration['Inbox']['data']['org_uuid'])
+                empty($registration['Inbox']['data']['org_uuid']) ? '' : '/uuid:' . h($registration['Inbox']['data']['org_uuid']),
+                __('Create a new organisation')
             );
         } else {
             $suggestedOrgText = sprintf(
@@ -91,9 +92,11 @@
             if (selectedRoleDetails["perm_" + $(this).data('perm')] != $(this).data('value')) {
                 $(this).removeClass('green');
                 $(this).addClass('red');
+                $(this).attr('title', '<?= __("The selected Role does not satisfy the user request") ?>')
             } else {
                 $(this).removeClass('red');
                 $(this).addClass('green');
+                $(this).attr('title', '<?= __("The selected Role satisfies the user request") ?>')
             }
         });
     }

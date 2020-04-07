@@ -9,7 +9,7 @@
                         'children' => array(
                             array(
                                 'fa-icon' => 'check',
-                                'title' => __('Accept the selected registrations'),
+                                'title' => __('Process the selected registrations'),
                                 'id' => 'multi-accept-button',
                                 'class' => 'btn btn-small btn-inverse mass-select hidden'
                             ),
@@ -91,7 +91,8 @@
                         $baseurl
                     ),
                     'onclick_params_data_path' => 'Inbox.id',
-                    'icon' => 'check'
+                    'icon' => 'check',
+                    'title' => __('Process registration')
                 ),
                 array(
                     'onclick' => sprintf(
@@ -99,7 +100,8 @@
                         $baseurl
                     ),
                     'onclick_params_data_path' => 'Inbox.id',
-                    'icon' => 'times'
+                    'icon' => 'times',
+                    'title' => __('Discard registration')
                 )
             )
         )
