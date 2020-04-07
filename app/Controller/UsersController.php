@@ -2452,8 +2452,8 @@ class UsersController extends AppController
             $this->set('roles', $roles);
             $this->set('role_perms', $role_perms);
             $orgConditions = array('OR' => array('local' => 1));
-            if (!empty($suggestedOrg) && is_array($suggestedOrg)) {
-                $orgConditions['OR'] = array('Organisation.id' => $suggestedOrg[0]);
+            if (!empty($suggestedOrg)) {
+                $orgConditions['OR'][] = array('Organisation.id' => $suggestedOrg[0]);
             }
             $this->set('orgs', $this->User->Organisation->find('list', array(
                 'fields' => array('id', 'name'),
