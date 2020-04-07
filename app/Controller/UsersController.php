@@ -1527,17 +1527,17 @@ class UsersController extends AppController
         if ($isPostOrPut) {
             $recipient = $this->request->data['User']['recipient'];
         } else {
-            $recipient = isset($this->request->query['recipient']) ? $this->request->query['recipient'] : null;
+            $recipient = isset($this->params['named']['recipient']) ? $this->params['named']['recipient'] : null;
         }
         if ($isPostOrPut) {
             $recipientEmailList = $this->request->data['User']['recipientEmailList'];
         } else {
-            $recipientEmailList = isset($this->request->query['recipientEmailList']) ? $this->request->query['recipientEmailList'] : null;
+            $recipientEmailList = isset($this->params['named']['recipientEmailList']) ? $this->params['named']['recipientEmailList'] : null;
         }
         if ($isPostOrPut) {
             $orgNameList = $this->request->data['User']['orgNameList'];
         } else {
-            $orgNameList = isset($this->request->query['orgNameList']) ? $this->request->query['orgNameList'] : null;
+            $orgNameList = isset($this->params['named']['orgNameList']) ? $this->params['named']['orgNameList'] : null;
         }
 
         if (!is_null($recipient) && $recipient == 0) {
