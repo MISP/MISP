@@ -12,7 +12,7 @@
                 __('Requested organisation not found.'),
                 $baseurl,
                 empty($registration['Inbox']['data']['org_name']) ? '' : '/name:' . h($registration['Inbox']['data']['org_name']),
-                empty($registration['Inbox']['data']['org_uuid']) ? '' : '/uuid:' . h($registration['Inbox']['data']['org_uuid']),
+                empty($registration['Inbox']['data']['org_uuid']) ? '' : '/uuid:' . h($registration['Inbox']['data']['org_uuid'])
             );
         } else {
             $suggestedOrgText = sprintf(
@@ -35,7 +35,7 @@
                         '<br />&nbsp;&nbsp;<span class="perm-requirements bold" data-perm="%s" data-value="%s">%s</span> ',
                         h($perm_flag_name),
                         $perm_flag_value ? '1' : '0',
-                        h($perm_flag_name),
+                        h($perm_flag_name)
                     );
                 }
             }
