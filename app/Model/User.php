@@ -1521,6 +1521,14 @@ class User extends AppModel
         $this->create();
         $this->Log = ClassRegistry::init('Log');
         $result = $this->save(array('User' => $user));
+        $currentOrg = $this->Organisation->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Organisation.id' => $org_id)
+        ));
+        if (!empty($currentOrg) && empty($currentOrg['Organisation']['local'])) {
+            $currentOrg['Organisation']['local'] = 1;
+            $this->Organisation->save($currentOrg);
+        }
         if (empty($result)) {
             $error = array();
             foreach ($this->validationErrors as $key => $errors) {
