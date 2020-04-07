@@ -15,9 +15,8 @@
                 ),
                 array(
                     'field' => 'org_name',
-                    'label' => __('Your organisation\'s name'),
-                    'class' => 'input-xxlarge',
-                    'required' => 1
+                    'label' => __('Your organisation\'s name (optional)'),
+                    'class' => 'input-xxlarge'
                 ),
                 array(
                     'field' => 'org_uuid',

@@ -1,16 +1,19 @@
 <?php
     $suggestedOrgText = __('No preference');
     $suggestedRoleText = '';
+    $domain = explode('@', $registration['Inbox']['data']['email'])[1];
     if ($suggestedOrg !== null) {
         if ($suggestedOrg === false) {
             $suggestedOrgText = '<br />&nbsp;&nbsp;<span class="bold red">' . __('Conflicting requirements') . '</span>';
         } else if ($suggestedOrg === -1){
             $suggestedOrgText = sprintf(
-                '<span class="red">%s%s</span>%s <a href="%s/admin/organisations/add%s%s" class="black fas fa-plus" title="%s"></a>',
+                '<span class="red">%s%s%s</span>%s <a href="%s/admin/organisations/add%s%s%s" class="black fas fa-plus" title="%s"></a>',
+                (empty($registration['Inbox']['data']['org_name']) && empty($registration['Inbox']['data']['org_uuid'])) ? h($domain) . ' ' : '',
                 empty($registration['Inbox']['data']['org_name']) ? '' : h($registration['Inbox']['data']['org_name']) . ' ',
                 empty($registration['Inbox']['data']['org_uuid']) ? '' : h($registration['Inbox']['data']['org_uuid']) . ' ',
                 __('Requested organisation not found.'),
                 $baseurl,
+                (empty($registration['Inbox']['data']['org_name']) && empty($registration['Inbox']['data']['org_uuid'])) ? '/name:' . h($domain) : '',
                 empty($registration['Inbox']['data']['org_name']) ? '' : '/name:' . h($registration['Inbox']['data']['org_name']),
                 empty($registration['Inbox']['data']['org_uuid']) ? '' : '/uuid:' . h($registration['Inbox']['data']['org_uuid']),
                 __('Create a new organisation')

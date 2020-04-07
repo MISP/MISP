@@ -2271,8 +2271,8 @@ class UsersController extends AppController
                     $requestObject[$key] = trim($this->request->data[$key]);
                 }
             }
-            if (empty($requestObject['email']) || empty($requestObject['org_name'])) {
-                throw new InvalidArgumentException(__('We require at least the email and org_name fields to be filled.'));
+            if (empty($requestObject['email'])) {
+                throw new InvalidArgumentException(__('We require at least the email field to be filled.'));
             }
             $this->loadModel('Inbox');
             $this->Inbox->create();

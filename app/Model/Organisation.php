@@ -437,6 +437,9 @@ class Organisation extends AppModel
                 $conditions = array('Organisation.uuid' => $registration['Inbox']['data']['org_uuid']);
             } else if (!empty($registration['Inbox']['data']['org_name'])) {
                 $conditions = array('Organisation.name' => $registration['Inbox']['data']['org_name']);
+            } else {
+                $domain = explode('@', $registration['Inbox']['data']['email'])[1];
+                $conditions = array('LOWER(Organisation.name)' => strtolower($domain));
             }
             $identifiedOrg = $this->User->Organisation->find('first', array(
                 'recursive' => -1,
