@@ -41,6 +41,13 @@
                     'data_path' => 'Inbox.id',
                 ),
                 array(
+                    'name' => __('Time'),
+                    'class' => 'short',
+                    'element' => 'timestamp',
+                    'time_format' => 'Y-m-d H:i:s',
+                    'data_path' => 'Inbox.timestamp',
+                ),
+                array(
                     'name' => __('IP'),
                     'class' => 'short',
                     'data_path' => 'Inbox.ip',
