@@ -46,7 +46,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '101';
+    private $__queryVersion = '102';
     public $pyMispVersion = '2.4.123';
     public $phpmin = '7.2';
     public $phprec = '7.4';
@@ -120,7 +120,6 @@ class AppController extends Controller
         } else {
             $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
         }
-
         $this->__sessionMassage();
         if (Configure::read('Security.allow_cors')) {
             // Add CORS headers
@@ -352,7 +351,7 @@ class AppController extends Controller
                 }
             }
         } else {
-            if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
+            if ($this->params['controller'] !== 'users' || !in_array($this->params['action'], array('login', 'register'))) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }

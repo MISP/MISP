@@ -1243,6 +1243,24 @@ class Server extends AppModel
                             'type' => 'boolean',
                             'null' => true
                         ),
+                        'allow_self_registration' => array(
+                            'level' => 1,
+                            'description' => __('Enabling this setting will allow users to have access to the pre-auth registration form. This will create an inbox entry for administrators to review.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
+                        'self_registration_message' => array(
+                                'level' => 1,
+                                'bigField' => true,
+                                'description' => __('The message sent shown to anyone trying to self-register.'),
+                                'value' => 'If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators.',
+                                'errorMessage' => '',
+                                'test' => false,
+                                'type' => 'string'
+                        ),
                         'password_policy_length' => array(
                                 'level' => 2,
                                 'description' => __('Password length requirement. If it is not set or it is set to 0, then the default value is assumed (12).'),

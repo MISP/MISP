@@ -191,6 +191,13 @@ div.actions {
   width:170px;
 }
 
+div.menuless-form {
+    padding: 10px;
+    padding-bottom:40px;
+    margin: 0 auto;
+    width:550px;
+}
+
 
 div.actions h3 {
   padding-top:0;

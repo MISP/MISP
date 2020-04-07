@@ -305,6 +305,10 @@
                         'url' => '/admin/users/email'
                     ),
                     array(
+                        'text' => __('User Registrations'),
+                        'url' => '/users/registrations'
+                    ),
+                    array(
                         'type' => 'separator'
                     ),
                     array(
