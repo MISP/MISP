@@ -778,12 +778,15 @@
                                 ),
                                 'text' => __('Merge Organisation')
                             ));
-                        }
-                        if ($menuItem === 'editOrg' || $menuItem === 'viewOrg') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'viewOrg',
                                 'url' => '/organisations/view/' . h($id),
                                 'text' => __('View Organisation')
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                                'url' => '/admin/organisations/delete/' . h($id),
+                                'text' => __('Delete Organisation'),
+                                'message' => __('Are you sure you want to delete # %s?', h($id))
                             ));
                         }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
