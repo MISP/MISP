@@ -58,6 +58,14 @@
                 array(
                     'name' => __('Description'),
                     'data_path' => 'description',
+                ),
+                array(
+                    'name' => __('Self-reg'),
+                    'element' => 'self_registration',
+                    'class' => 'short',
+                    'title' => __('This community allows for self-registration'),
+                    'data_path' => 'url',
+                    'data_path_requirement' => 'self_registration'
                 )
             ),
             'title' => __('Communities index'),

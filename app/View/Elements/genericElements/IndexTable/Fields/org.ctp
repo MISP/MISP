@@ -14,8 +14,8 @@
         $i = 0;
         foreach ($orgs as $org) {
             $i++;
-            if (!empty($org['id'])) {
-                if ($field['fields']['allow_picture']) {
+            if (!empty($org['id']) || !empty($org['name'])) {
+                if ($field['fields']['allow_picture'] && !empty($org['id'])) {
                     echo $this->OrgImg->getOrgImg(array('name' => $org['name'], 'id' => $org['id'], 'size' => 24));
                 } else {
                     echo sprintf(

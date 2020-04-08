@@ -1650,6 +1650,16 @@
                 "column_default": null
             },
             {
+                "column_name": "uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
+                "column_default": ""
+            },
+            {
                 "column_name": "collection_uuid",
                 "is_nullable": "NO",
                 "data_type": "varchar",
@@ -1738,16 +1748,6 @@
                 "collation_name": null,
                 "column_type": "int(11)",
                 "column_default": "0"
-            },
-            {
-                "column_name": "uuid",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(255)",
-                "column_default": ""
             }
         ],
         "galaxy_elements": [
@@ -1851,6 +1851,128 @@
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
                 "column_type": "text",
+                "column_default": null
+            }
+        ],
+        "inbox": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null
+            },
+            {
+                "column_name": "uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": null
+            },
+            {
+                "column_name": "title",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(191)",
+                "column_default": null
+            },
+            {
+                "column_name": "type",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(191)",
+                "column_default": null
+            },
+            {
+                "column_name": "ip",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(191)",
+                "column_default": null
+            },
+            {
+                "column_name": "user_agent",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "text",
+                "column_default": null
+            },
+            {
+                "column_name": "user_agent_sha256",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "64",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(64)",
+                "column_default": null
+            },
+            {
+                "column_name": "comment",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "text",
+                "column_default": null
+            },
+            {
+                "column_name": "deleted",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0"
+            },
+            {
+                "column_name": "timestamp",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null
+            },
+            {
+                "column_name": "store_as_file",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0"
+            },
+            {
+                "column_name": "data",
+                "is_nullable": "YES",
+                "data_type": "longtext",
+                "character_maximum_length": "4294967295",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "longtext",
                 "column_default": null
             }
         ],
@@ -6162,12 +6284,12 @@
         "galaxy_clusters": [
             "id",
             "value",
+            "uuid",
+            "collection_uuid",
             "galaxy_id",
             "version",
             "tag_name",
-            "type",
-            "uuid",
-            "collection_uuid"
+            "type"
         ],
         "galaxy_elements": [
             "id",
@@ -6181,6 +6303,15 @@
             "referenced_galaxy_cluster_id",
             "referenced_galaxy_cluster_value",
             "referenced_galaxy_cluster_type"
+        ],
+        "inbox": [
+            "id",
+            "title",
+            "type",
+            "uuid",
+            "user_agent_sha256",
+            "ip",
+            "timestamp"
         ],
         "jobs": [
             "id"
@@ -6273,8 +6404,8 @@
         "servers": [
             "id",
             "org_id",
-            "remote_org_id",
-            "priority"
+            "priority",
+            "remote_org_id"
         ],
         "shadow_attribute_correlations": [
             "id",
@@ -6426,5 +6557,5 @@
             "id"
         ]
     },
-    "db_version": "49"
+    "db_version": "50"
 }

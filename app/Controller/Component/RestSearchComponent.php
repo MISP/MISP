@@ -15,7 +15,7 @@ class RestSearchComponent extends Component
         'Event' => array(
             'returnFormat', 'value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
             'metadata', 'uuid', 'publish_timestamp', 'timestamp', 'published', 'enforceWarninglist', 'sgReferenceOnly',
-            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'deleted',
+            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'to_ids', 'deleted',
             'excludeLocalTags', 'date', 'includeSightingdb', 'tag', 'object_relation'
         ),
         'Object' => array(

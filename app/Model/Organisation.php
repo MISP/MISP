@@ -428,4 +428,32 @@ class Organisation extends AppModel
         }
         return array_values($orgIds);
     }
+
+    public function checkDesiredOrg($suggestedOrg, $registration)
+    {
+        if ($suggestedOrg !== false && $suggestedOrg !== -1) {
+            $conditions = array();
+            if (!empty($registration['Inbox']['data']['org_uuid'])) {
+                $conditions = array('Organisation.uuid' => $registration['Inbox']['data']['org_uuid']);
+            } else if (!empty($registration['Inbox']['data']['org_name'])) {
+                $conditions = array('Organisation.name' => $registration['Inbox']['data']['org_name']);
+            } else {
+                $domain = explode('@', $registration['Inbox']['data']['email'])[1];
+                $conditions = array('LOWER(Organisation.name)' => strtolower($domain));
+            }
+            $identifiedOrg = $this->User->Organisation->find('first', array(
+                'recursive' => -1,
+                'fields' => array('id', 'name', 'local'),
+                'conditions' => $conditions
+            ));
+            if (empty($identifiedOrg)) {
+            $suggestedOrg = -1;
+            } else if (!empty($suggestedOrg) && $suggestedOrg[0] !== $identifiedOrg['Organisation']['id']) {
+                $suggestedOrg = false;
+            } else {
+                $suggestedOrg = array($identifiedOrg['Organisation']['id'], $identifiedOrg['Organisation']['name'], $identifiedOrg['Organisation']['local']);
+            }
+        }
+        return $suggestedOrg;
+    }
 }
