@@ -143,6 +143,13 @@ class OrganisationsController extends AppController
         } else {
             if ($this->_isRest()) {
                 return $this->RestResponse->describe('Organisations', 'admin_add', false, $this->response->type());
+            } else {
+                if (!empty($this->params['named']['name'])) {
+                    $this->request->data['Organisation']['name'] = $this->params['named']['name'];
+                }
+                if (!empty($this->params['named']['uuid'])) {
+                    $this->request->data['Organisation']['uuid'] = $this->params['named']['uuid'];
+                }
             }
         }
         $this->set('countries', $this->_arrayToValuesIndexArray($this->Organisation->countries));

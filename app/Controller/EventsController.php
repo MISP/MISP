@@ -3088,7 +3088,9 @@ class EventsController extends AppController
             'named_params' => $this->params['named'],
             'ordered_url_params' => func_get_args(),
             'injectedParams' => array(
-                'returnFormat' => 'csv'
+                'returnFormat' => 'csv',
+                'to_ids' => '1',
+                'published' => '1'
             )
         ));
         return $this->restSearch();
@@ -3996,26 +3998,26 @@ class EventsController extends AppController
                     'checkbox_default' => true
             ),
             'openIOC' => array(
-                    'url' => '/events/downloadOpenIOCEvent/download/' . $id,
+                    'url' => '/events/restSearch/openioc/to_ids:1/published:1/eventid:' . $id . '.json',
                     'text' => 'OpenIOC (all indicators marked to IDS)',
                     'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'csv' => array(
-                    'url' => '/events/csv/download/' . $id,
+                    'url' => '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:0/eventid:' . $id,
                     'text' => 'CSV',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/events/csv/download/' . $id . '/1'
+                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:0/eventid:' . $id
             ),
             'csv_with_context' => array(
-                    'url' => '/events/restSearch/returnFormat:csv/eventid:' . $id,
+                    'url' => '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:1/eventid:' . $id,
                     'text' => 'CSV with additional context',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/eventid:' . $id
+                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:1/eventid:' . $id
             ),
             'stix_xml' => array(
                     'url' => '/events/restSearch/stix/eventid:' . $id,
@@ -4061,6 +4063,7 @@ class EventsController extends AppController
             ),
             'bro' => array(
                     'url' => '/attributes/bro/download/all/false/' . $id,
+                    // 'url' => '/attributes/restSearch/returnFormat:bro/published:1||0/eventid:' . $id,
                     'text' => 'Download Bro rules',
                     'requiresPublished' => false,
                     'checkbox' => false
@@ -4081,7 +4084,7 @@ class EventsController extends AppController
                 }
             }
             $exports['csv'] = array(
-                'url' => '/events/csv/download/' . $id . '/1',
+                'url' => '/events/restSearch/returnFormat:csv/includeContext:0/eventid:' . $id,
                 'text' => 'CSV (event not published, IDS flag ignored)',
                 'requiresPublished' => false,
                 'checkbox' => false
