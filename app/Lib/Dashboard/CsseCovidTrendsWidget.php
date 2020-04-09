@@ -8,7 +8,7 @@ class CsseCovidTrendsWidget
     public $height = 5;
     public $params = array(
         'event_info' => 'Substring included in the info field of relevant CSSE COVID-19 events.',
-        'type' => 'Type of data used for the widget - confirmed (default), death, recovered, mortality.',
+        'type' => 'Type of data used for the widget - confirmed (default), death, recovered, mortality, active.',
         'insight' => 'Insight type - raw (default), growth, percent.',
         'countries' => 'List of countries to be included (using the names used by the reports, such as Belgium, US, Germany).',
         'timeframe' => 'Timeframe for events taken into account in days (going back from now, using the date field, default 10).'
@@ -18,11 +18,17 @@ class CsseCovidTrendsWidget
 '{
     "event_info": "%CSSE COVID-19 daily report%",
     "type": "confirmed",
-    "insight": "growth",
+    "insight": "raw",
     "countries": ["Luxembourg", "Germany", "Belgium", "France"],
     "timeframe": 20
 }';
-    //public $cacheLifetime = 600;
+
+    private $__countryAliases = array(
+        'Mainland China' => 'China',
+        'Korea, South' => 'South Korea'
+    );
+
+    public $cacheLifetime = 600;
     public $autoRefreshDelay = false;
 
     private $__countries = array();
@@ -88,7 +94,8 @@ class CsseCovidTrendsWidget
                 'confirmed' => 'confirmed cases',
                 'death' => 'mortalities',
                 'recovered' => 'recoveries',
-                'mortality' => 'mortality rate'
+                'mortality' => 'mortality rate',
+                'active' => 'active cases'
             )
         );
         $data['formula'] = sprintf(
@@ -136,21 +143,23 @@ class CsseCovidTrendsWidget
         }
         if (!empty($options['insight']) && $options['insight'] !== 'raw') {
             if ($options['insight'] == 'growth') {
-                foreach ($data as $k => &$countryData) {
+                foreach ($data as $k => $countryData) {
                     foreach ($countryData as $type => &$value) {
-                        if (empty($previous[$k][$type])) {
-                            $previous[$k][$type] = 0;
+                        if (!isset($previous[$k][$type])) {
+                            $previous[$k][$type] = $data[$k][$type];
                         }
                         $data[$k]['growth'] = $data[$k][$type] - $previous[$k][$type];
                     }
                 }
             } else if ($options['insight'] == 'percent') {
-                foreach ($data as $k => &$countryData) {
+                foreach ($data as $k => $countryData) {
                     foreach ($countryData as $type => &$value) {
                         if (empty($previous[$k][$type])) {
                             $previous[$k][$type] = $data[$k][$type];
                         }
-                        $data[$k]['percent'] = ($data[$k][$type] - $previous[$k][$type]) / $previous[$k][$type];
+                        if (!empty($previous[$k][$type])) {
+                            $data[$k]['percent'] = 100 * ($data[$k][$type] - $previous[$k][$type]) / $previous[$k][$type];
+                        }
                     }
                 }
             }
@@ -175,6 +184,15 @@ class CsseCovidTrendsWidget
                     $data[$country][$type] = (empty($data[$country][$type]) ? $temp[$type] : ($data[$country][$type] + $temp[$type]));
                 }
             }
+        } else if ($options['type'] === 'active') {
+            if (empty($data[$country]['active'])) {
+                $data[$country]['active'] = 0;
+            }
+            $data[$country]['active'] =
+                $data[$country]['active'] +
+                (empty($temp['confirmed']) ? 0 : $temp['confirmed']) -
+                (empty($temp['death']) ? 0 : $temp['death']) -
+                (empty($temp['recovered']) ? 0 : $temp['recovered']);
         } else {
             $type = $options['type'];
             if (!empty($temp[$type])) {
@@ -192,6 +210,10 @@ class CsseCovidTrendsWidget
             if (in_array($attribute['object_relation'], $validFields)) {
                 if ($attribute['object_relation'] !== 'country-region') {
                     $attribute['value'] = intval($attribute['value']);
+                } else {
+                    if (isset($this->__countryAliases[$attribute['value']])) {
+                        $attribute['value'] = $this->__countryAliases[$attribute['value']];
+                    }
                 }
                 $temp[$attribute['object_relation']] = $attribute['value'];
             }

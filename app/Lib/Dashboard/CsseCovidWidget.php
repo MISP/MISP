@@ -8,7 +8,7 @@ class CsseCovidWidget
     public $height = 4;
     public $params = array(
         'event_info' => 'Substring included in the info field of relevant CSSE COVID-19 events.',
-        'type' => 'Type of data used for the widget (confirmed, death, recovered, mortality).',
+        'type' => 'Type of data used for the widget (confirmed, death, recovered, mortality, active).',
         'logarithmic' => 'Use a log10 scale for the graph (set via 0/1).',
         'relative' => 'Take the country\'s population size into account (count / 10M)'
     );
@@ -27,9 +27,9 @@ class CsseCovidWidget
         'Holy See' => 'Vatican',
         'Congo (Kinshasa)' => 'Democratic Republic of Congo',
         'Taiwan*' => 'Taiwan',
-        'Korea, South' => 'South Korea'
+        'Korea, South' => 'South Korea',
+        'Mainland China' => 'China'
     );
-
 
     private $__populationData = array();
 
@@ -156,6 +156,15 @@ class CsseCovidWidget
                     $data[$country][$type] = (empty($data[$country][$type]) ? $temp[$type] : ($data[$country][$type] + $temp[$type]));
                 }
             }
+        } else if ($options['type'] === 'active') {
+            if (empty($data[$country]['active'])) {
+                $data[$country]['active'] = 0;
+            }
+            $data[$country]['active'] =
+                $data[$country]['active'] +
+                (empty($temp['confirmed']) ? 0 : $temp['confirmed']) -
+                (empty($temp['death']) ? 0 : $temp['death']) -
+                (empty($temp['recovered']) ? 0 : $temp['recovered']);
         } else {
             $type = $options['type'];
             if (!empty($temp[$type])) {
