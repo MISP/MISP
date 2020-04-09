@@ -17,7 +17,7 @@
         h($data['model']);
     $fieldsString = '';
     $simpleFieldWhitelist = array(
-        'default', 'type', 'options', 'placeholder', 'label', 'empty'
+        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required'
     );
     $fieldsArrayForPersistence = array();
     $formCreate = $this->Form->create($modelForForm);
@@ -116,10 +116,12 @@
         );
     } else {
         echo sprintf(
-            '<div class="form">%s<fieldset><legend>%s</legend>%s%s</fieldset>%s%s%s</div>',
+            '<div class="%s">%s<fieldset><legend>%s</legend>%s<div class="clear" style="padding-bottom:10px;">%s</div>%s</fieldset>%s%s%s</div>',
+            empty($data['skip_side_menu']) ? 'form' : 'menuless-form',
             $formCreate,
             empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title']),
             $ajaxFlashMessage,
+            empty($data['description']) ? '' : $data['description'],
             $fieldsString,
             $formEnd,
             $metaFieldString,

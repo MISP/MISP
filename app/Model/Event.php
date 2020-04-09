@@ -1667,7 +1667,6 @@ class Event extends AppModel
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'ignore' => array('function' => 'set_filter_ignore'),
-                    'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
                     'comment' => array('function' => 'set_filter_comment')
@@ -1707,7 +1706,6 @@ class Event extends AppModel
                 }
             }
         }
-
         $fields = array('Event.id');
         if (!empty($params['include_attribute_count'])) {
             $fields[] = 'Event.attribute_count';
@@ -2583,17 +2581,41 @@ class Event extends AppModel
         }
         return $conditions;
     }
-
+    
     public function set_filter_uuid(&$params, $conditions, $options)
     {
-        if (!empty($params['uuid'])) {
-            $params['uuid'] = $this->convert_filters($params['uuid']);
-            if (!empty($options['scope']) && $options['scope'] === 'Event') {
-                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
+        if ($options['scope'] === 'Event') {
+            if (!empty($params['uuid'])) {
+                $params['uuid'] = $this->convert_filters($params['uuid']);
+                if (!empty($params['uuid']['OR'])) {
+                    $subQueryOptions = array(
+                        'conditions' => array('Attribute.uuid' => $params['uuid']['OR']),
+                        'fields' => array('event_id')
+                    );
+                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
+                    $conditions['AND'][] = array(
+                        'OR' => array(
+                            'Event.uuid' => $params['uuid']['OR'],
+                            $attributeSubquery
+                        )
+                    );
+                }
+                if (!empty($params['uuid']['NOT'])) {
+                    $subQueryOptions = array(
+                        'conditions' => array('Attribute.uuid' => $params['uuid']['NOT']),
+                        'fields' => array('event_id')
+                    );
+                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
+                    $conditions['AND'][] = array(
+                        'NOT' => array(
+                            'Event.uuid' => $params['uuid']['NOT'],
+                            $attributeSubquery
+                        )
+                    );
+                }
             }
-            if (!empty($options['scope']) && $options['scope'] === 'Attribute') {
-                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
-            }
+        } else {
+            $conditions = $this->{$options['scope']}->set_filter_uuid($params, $conditions, $options);
         }
         return $conditions;
     }
@@ -3078,6 +3100,15 @@ class Event extends AppModel
             $body .= "\n";
         }
         $body .= $bodyTempOther;    // append the 'other' attribute types to the bottom.
+        $body .= '==============================================' . "\n";
+        $body .= sprintf(
+            "You receive this e-mail because the e-mail address %s is set to receive publish alerts on the MISP instance at %s.%s%s",
+            $user['email'],
+            (empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl')),
+            PHP_EOL,
+            PHP_EOL
+        );
+        $body .= "If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via " . $this->__getAnnounceBaseurl() . '/users/edit' . PHP_EOL;
         $body .= '==============================================' . "\n";
         return $body;
     }
@@ -5730,7 +5761,8 @@ class Event extends AppModel
         }
         $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $result = shell_exec($shell_command);
-        $result = end(preg_split("/\r\n|\n|\r/", trim($result)));
+        $result = preg_split("/\r\n|\n|\r/", trim($result));
+        $result = end($result);
         $tempFile = file_get_contents($tempFilePath);
         unlink($tempFilePath);
         if (trim($result) == '1') {

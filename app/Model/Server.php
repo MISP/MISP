@@ -512,7 +512,7 @@ class Server extends AppModel
                                 'description' => __('Enables the use of MISP\'s background processing.'),
                                 'value' => '',
                                 'errorMessage' => '',
-                                'test' => 'testBool',
+                                'test' => 'testBoolTrue',
                                 'type' => 'boolean',
                         ),
                         'attachments_dir' => array(
@@ -641,6 +641,15 @@ class Server extends AppModel
                             'test' => 'testTagCollections',
                             'type' => 'numeric',
                             'optionsSource' => 'TagCollections',
+                        ),
+                        'default_publish_alert' => array(
+                                'level' => 0,
+                                'description' => __('The default setting for publish alerts when creating users.'),
+                                'value' => true,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                                'null' => true
                         ),
                         'tagging' => array(
                                 'level' => 1,
@@ -1243,6 +1252,24 @@ class Server extends AppModel
                             'type' => 'boolean',
                             'null' => true
                         ),
+                        'allow_self_registration' => array(
+                            'level' => 1,
+                            'description' => __('Enabling this setting will allow users to have access to the pre-auth registration form. This will create an inbox entry for administrators to review.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
+                        'self_registration_message' => array(
+                                'level' => 1,
+                                'bigField' => true,
+                                'description' => __('The message sent shown to anyone trying to self-register.'),
+                                'value' => 'If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators.',
+                                'errorMessage' => '',
+                                'test' => false,
+                                'type' => 'string'
+                        ),
                         'password_policy_length' => array(
                                 'level' => 2,
                                 'description' => __('Password length requirement. If it is not set or it is set to 0, then the default value is assumed (12).'),
@@ -1286,6 +1313,16 @@ class Server extends AppModel
                             'type' => 'boolean',
                             'null' => true
                         ),
+                        'disable_local_feed_access' => array(
+                                'level' => 0,
+                                'description' => __('Disabling this setting will allow the creation/modification of local feeds (as opposed to network feeds). Enabling this setting will restrict feed sources to be network based only. When disabled, keep in mind that a malicious site administrator could get access to any arbitrary file on the system that the apache user has access to. Make sure that proper safe-guards are in place. This setting can only be modified via the CLI.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                                'null' => true,
+                                'cli_only' => 1
+                        ),
                         'allow_unsafe_apikey_named_param' => array(
                             'level' => 0,
                             'description' => __('Allows passing the API key via the named url parameter "apikey" - highly recommended not to enable this, but if you have some dodgy legacy tools that cannot pass the authorization header it can work as a workaround. Again, only use this as a last resort.'),
@@ -1319,6 +1356,15 @@ class Server extends AppModel
                             'value' => false,
                             'errorMessage' => '',
                             'test' => 'testBoolFalse',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
+                        'user_monitoring_enabled' => array(
+                            'level' => 1,
+                            'description' => __('Enables the functionality to monitor users - thereby enabling all logging functionalities for a single user. This functionality is intrusive and potentially heavy on the system - use it with care.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
                             'type' => 'boolean',
                             'null' => true
                         )
@@ -2608,7 +2654,6 @@ class Server extends AppModel
                     }
                 }
                 if (!empty($temp)) {
-                    $temp = implode('|', $temp);
                     $final[substr($field, 0, strlen($field) -1)] = $temp;
                 }
             }
@@ -2619,6 +2664,23 @@ class Server extends AppModel
         return $final;
     }
 
+    private function __orgRuleDowngrade($HttpSocket, $request, $server, $filter_rules)
+    {
+        $uri = $server['Server']['url'] . '/servers/getVersion';
+        try {
+            $version_response = $HttpSocket->get($uri, false, $request);
+            $body = $version_response->body;
+            $version_response = json_decode($body, true);
+            $version = $version_response['version'];
+        } catch (Exception $e) {
+            return $e->getMessage();
+        }
+        $version = explode('.', $version);
+        if ($version[0] <= 2 && $version[1] <= 4 && $version[0] <= 123) {
+            $filter_rules['org'] = implode('|', $filter_rules['org']);
+        }
+        return $filter_rules;
+    }
 
     // Get an array of event_ids that are present on the remote server
     public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false, $scope = 'events')
@@ -2631,6 +2693,9 @@ class Server extends AppModel
         }
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
+        if (!empty($filter_rules['org'])) {
+            $filter_rules = $this->__orgRuleDowngrade($HttpSocket, $request, $server, $filter_rules);
+        }
         $uri = $url . '/events/index';
         $filter_rules['minimal'] = 1;
         $filter_rules['published'] = 1;
@@ -2721,6 +2786,7 @@ class Server extends AppModel
         } catch (SocketException $e) {
             return $e->getMessage();
         }
+
         // error, so return error message, since that is handled and everything is expecting an array
         return "Error: got response code " . $response->code;
     }
@@ -3478,6 +3544,21 @@ class Server extends AppModel
             return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
         }
         return true;
+    }
+
+    public function testBoolTrue($value, $errorMessage = false)
+    {
+        if ($this->testBool($value, $errorMessage) !== true) {
+            return $this->testBool($value, $errorMessage);
+        }
+        if ($value === false) {
+            if ($errorMessage) {
+                return $errorMessage;
+            }
+            return 'It is highly recommended that this setting is enabled. Make sure you understand the impact of having this setting turned off.';
+        } else {
+            return true;
+        }
     }
 
     public function testBoolFalse($value, $errorMessage = false)
@@ -4448,7 +4529,10 @@ class Server extends AppModel
         if (isset($field['error_type'])) {
             $length = false;
             if (in_array($field['error_type'], array('missing_column', 'column_different'))) {
-                if ($field['expected']['data_type'] === 'int') {
+                preg_match('/([a-z]+)(?:\((?<dw>[0-9,]+)\))?\s*([a-z]+)?/i', $field['expected']['column_type'], $displayWidthMatches);
+                if (isset($displayWidthMatches['dw'])) {
+                    $length = $displayWidthMatches[2];
+                } elseif ($field['expected']['data_type'] === 'int') {
                     $length = 11;
                 } elseif ($field['expected']['data_type'] === 'tinyint') {
                     $length = 1;
@@ -4467,7 +4551,7 @@ class Server extends AppModel
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
-                            isset($field['expected']['column_default']) ? $field['expected']['column_default'] . '"' : '',
+                            isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                             empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
                         );
@@ -4554,6 +4638,7 @@ class Server extends AppModel
             'numeric_precision',
             // 'datetime_precision',    -- Only available on MySQL 5.6+
             'collation_name',
+            'column_type',
             'column_default'
         )
     ){
@@ -4710,7 +4795,7 @@ class Server extends AppModel
                         } else {
                             $keyLength = '';
                         }
-                        $sql = sprintf('CREATE INDEX `%s` ON `%s` (%s%s);',
+                        $sql = sprintf('CREATE INDEX `%s` ON `%s` (`%s`%s);',
                             $columnDiff,
                             $tableName,
                             $columnDiff,

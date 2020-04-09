@@ -145,7 +145,7 @@ class GalaxyCluster extends AppModel
         if (isset($this->__clusterCache[$name])) {
             return $this->__clusterCache[$name];
         }
-        $conditions = $this->Galaxy->buildConditions($user);
+        $conditions = $this->buildConditions($user);
         if (is_numeric($name)) {
             $conditions['AND'] = array('GalaxyCluster.id' => $name);
         } else {
@@ -160,7 +160,7 @@ class GalaxyCluster extends AppModel
         if (!empty($cluster)) {
             $cluster = $this->postprocess($cluster);
         }
-        if ($cluster['GalaxyCluster']['default']) { // only cache default clusters
+        if (!empty($cluster) && $cluster['GalaxyCluster']['default']) { // only cache default clusters
             $this->__clusterCache[$name] = $cluster;
         }
         return $cluster;
@@ -168,7 +168,7 @@ class GalaxyCluster extends AppModel
 
     public function getClusters($names, $user, $postProcess=true)
     {
-        $conditions = $this->Galaxy->buildConditions($user);
+        $conditions = $this->buildConditions($user);
         if (count(array_filter($names, 'is_numeric' )) === count($names)) { // all elements are numeric
             $conditions['AND'] = array('GalaxyCluster.id' => $names);
         } else {
@@ -186,6 +186,31 @@ class GalaxyCluster extends AppModel
         }
 
         return $clusters;
+    }
+
+    public function buildConditions($user)
+    {
+        $this->Event = ClassRegistry::init('Event');
+        $conditions = array();
+        if (!$user['Role']['perm_site_admin']) {
+            $sgids = $this->Event->cacheSgids($user, true);
+            $conditions['AND']['OR'] = array(
+                'GalaxyCluster.org_id' => $user['org_id'],
+                array(
+                    'AND' => array(
+                        'GalaxyCluster.distribution >' => 0,
+                        'GalaxyCluster.distribution <' => 4
+                    ),
+                ),
+                array(
+                    'AND' => array(
+                        'GalaxyCluster.sharing_group_id' => $sgids,
+                        'GalaxyCluster.distribution' => 4
+                    )
+                )
+            );
+        }
+        return $conditions;
     }
 
     /**

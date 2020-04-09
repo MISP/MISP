@@ -77,7 +77,8 @@ class AppModel extends Model
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
-        45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false
+        45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
+        51 => false
     );
 
     public $advanced_updates_description = array(
@@ -1350,6 +1351,29 @@ class AppModel extends Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
                 break;
             case 50:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS inbox (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                    `title` varchar(191) NOT NULL,
+                    `type` varchar(191) NOT NULL,
+                    `ip` varchar(191) NOT NULL,
+                    `user_agent` text,
+                    `user_agent_sha256` varchar(64) NOT NULL,
+                    `comment` text,
+                    `deleted` tinyint(1) NOT NULL DEFAULT 0,
+                    `timestamp` int(11) NOT NULL,
+                    `store_as_file` tinyint(1) NOT NULL DEFAULT 0,
+                    `data` longtext,
+                    PRIMARY KEY (id),
+                    INDEX `title` (`title`),
+                    INDEX `type` (`type`),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `user_agent_sha256` (`user_agent_sha256`),
+                    INDEX `ip` (`ip`),
+                    INDEX `timestamp` (`timestamp`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                break;
+            case 51:
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `sharing_group_id` int(11);";
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `org_id` int(11) NOT NULL;";

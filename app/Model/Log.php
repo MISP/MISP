@@ -21,6 +21,7 @@ class Log extends AppModel
                 array( // ensure that the length of the rules is < 20 in length
                     'accept',
                     'accept_delegation',
+                    'acceptRegistrations',
                     'add',
                     'admin_email',
                     'auth',
@@ -30,11 +31,13 @@ class Log extends AppModel
                     'delete',
                     'disable',
                     'discard',
+                    'discardRegistrations',
                     'edit',
                     'email',
                     'enable',
                     'error',
                     'export',
+                    'failed_registration',
                     'file_upload',
                     'galaxy',
                     'include_formula',
@@ -323,7 +326,6 @@ class Log extends AppModel
             $elasticSearchClient = $this->getElasticSearchTool();
             $elasticSearchClient->pushDocument($logIndex, "log", $data);
         }
-
         if (Configure::read('Security.syslog')) {
             // write to syslogd as well
             $syslog = new SysLog();
@@ -338,8 +340,17 @@ class Log extends AppModel
             }
 
             $entry = $data['Log']['action'];
+            if (!empty($data['Log']['title'])) {
+                $entry .= sprintf(
+                    ' -- %s',
+                    $data['Log']['title']
+                );
+            }
             if (!empty($data['Log']['description'])) {
-                $entry .= sprintf(' -- %s', $data['Log']['description']);
+                $entry .= sprintf(
+                    ' -- %s',
+                    $data['Log']['description']
+                );
             }
             $syslog->write($action, $entry);
         }

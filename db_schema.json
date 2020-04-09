@@ -8,6 +8,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -17,6 +18,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -26,6 +28,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             }
         ],
@@ -37,6 +40,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -46,6 +50,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -55,6 +60,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -64,6 +70,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -73,6 +80,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -84,6 +92,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -93,6 +102,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -102,6 +112,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -111,6 +122,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -120,6 +132,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -129,6 +142,7 @@
                 "character_maximum_length": "100",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(100)",
                 "column_default": null
             },
             {
@@ -138,6 +152,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -147,6 +162,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -156,6 +172,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "1"
             },
             {
@@ -165,6 +182,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -174,6 +192,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -183,6 +202,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": "0"
             },
             {
@@ -192,6 +212,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -201,6 +222,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -210,6 +232,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -219,6 +242,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -228,6 +252,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "19",
                 "collation_name": null,
+                "column_type": "bigint(20)",
                 "column_default": null
             },
             {
@@ -237,6 +262,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "19",
                 "collation_name": null,
+                "column_type": "bigint(20)",
                 "column_default": null
             }
         ],
@@ -248,6 +274,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -257,6 +284,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -266,6 +294,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             }
         ],
@@ -277,6 +306,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -286,6 +316,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -295,6 +326,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -306,6 +338,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -315,6 +348,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -324,6 +358,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -333,6 +368,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -342,6 +378,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -351,6 +388,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -360,6 +398,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -369,6 +408,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": null
             },
             {
@@ -378,6 +418,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": null
             },
             {
@@ -387,6 +428,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -396,6 +438,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -405,6 +448,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "date",
                 "column_default": null
             },
             {
@@ -414,6 +458,129 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
+                "column_default": null
+            }
+        ],
+        "dashboards": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null
+            },
+            {
+                "column_name": "uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": null
+            },
+            {
+                "column_name": "name",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(191)",
+                "column_default": null
+            },
+            {
+                "column_name": "description",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "text",
+                "column_default": null
+            },
+            {
+                "column_name": "default",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0"
+            },
+            {
+                "column_name": "selectable",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0"
+            },
+            {
+                "column_name": "user_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0"
+            },
+            {
+                "column_name": "restrict_to_org_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0"
+            },
+            {
+                "column_name": "restrict_to_role_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0"
+            },
+            {
+                "column_name": "restrict_to_permission_flag",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(191)",
+                "column_default": ""
+            },
+            {
+                "column_name": "value",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "text",
+                "column_default": null
+            },
+            {
+                "column_name": "timestamp",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -425,6 +592,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -434,6 +602,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -443,6 +612,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -454,6 +624,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -463,6 +634,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -472,6 +644,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -481,6 +654,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -490,6 +664,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -499,6 +674,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -508,6 +684,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -517,6 +694,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -526,6 +704,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "1"
             },
             {
@@ -535,6 +714,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -544,6 +724,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -553,6 +734,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -562,6 +744,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -573,6 +756,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -582,6 +766,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -591,6 +776,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -600,6 +786,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -609,6 +796,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -618,6 +806,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             }
         ],
@@ -629,6 +818,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -638,6 +828,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -647,6 +838,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -656,6 +848,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -665,6 +858,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -674,6 +868,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": "-1"
             },
             {
@@ -683,6 +878,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -694,6 +890,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -703,6 +900,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -712,6 +910,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -721,6 +920,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -730,6 +930,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -739,6 +940,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -748,6 +950,7 @@
                 "character_maximum_length": "16777215",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "mediumtext",
                 "column_default": null
             },
             {
@@ -757,6 +960,7 @@
                 "character_maximum_length": "16777215",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "mediumtext",
                 "column_default": null
             }
         ],
@@ -768,6 +972,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -777,6 +982,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -786,6 +992,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -795,6 +1002,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             }
         ],
@@ -806,6 +1014,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -815,6 +1024,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -824,6 +1034,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -833,6 +1044,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -844,6 +1056,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -853,6 +1066,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -862,6 +1076,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "date",
                 "column_default": null
             },
             {
@@ -871,6 +1086,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -880,6 +1096,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -889,6 +1106,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -898,6 +1116,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -907,6 +1126,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": null
             },
             {
@@ -916,6 +1136,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11) unsigned",
                 "column_default": "0"
             },
             {
@@ -925,6 +1146,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -934,6 +1156,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -943,6 +1166,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": "0"
             },
             {
@@ -952,6 +1176,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -961,6 +1186,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -970,6 +1196,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -979,6 +1206,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -988,6 +1216,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -997,6 +1226,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -1006,6 +1236,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -1015,6 +1246,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": ""
             }
         ],
@@ -1026,6 +1258,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1035,6 +1268,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1044,6 +1278,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -1055,6 +1290,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1064,6 +1300,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1073,6 +1310,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1082,6 +1320,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1091,6 +1330,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1100,6 +1340,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -1109,6 +1350,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": "0"
             },
             {
@@ -1118,6 +1360,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -1127,6 +1370,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -1136,6 +1380,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -1145,6 +1390,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": "misp"
             },
             {
@@ -1154,6 +1400,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -1163,6 +1410,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -1172,6 +1420,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -1181,6 +1430,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -1190,6 +1440,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -1199,6 +1450,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1208,6 +1460,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": "network"
             },
             {
@@ -1217,6 +1470,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -1226,6 +1480,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -1235,6 +1490,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1244,6 +1500,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -1253,6 +1510,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -1264,6 +1522,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1273,6 +1532,7 @@
                 "character_maximum_length": "12",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "varchar(12)",
                 "column_default": null
             },
             {
@@ -1282,6 +1542,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -1293,6 +1554,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1302,6 +1564,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1311,6 +1574,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -1320,6 +1584,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1329,6 +1594,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1338,6 +1604,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1347,6 +1614,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -1356,6 +1624,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": "misp"
             },
             {
@@ -1365,6 +1634,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             }
         ],
@@ -1376,6 +1646,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1385,6 +1656,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -1394,6 +1666,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1403,6 +1676,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1412,6 +1686,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1421,6 +1696,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -1430,6 +1706,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1439,6 +1716,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1448,6 +1726,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -1457,6 +1736,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1466,6 +1746,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             }
         ],
@@ -1477,6 +1758,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1486,6 +1768,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1495,6 +1778,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -1504,6 +1788,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             }
         ],
@@ -1515,6 +1800,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1524,6 +1810,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1533,6 +1820,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1542,6 +1830,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1551,6 +1840,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1560,6 +1850,129 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
+                "column_default": null
+            }
+        ],
+        "inbox": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null
+            },
+            {
+                "column_name": "uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": null
+            },
+            {
+                "column_name": "title",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(191)",
+                "column_default": null
+            },
+            {
+                "column_name": "type",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(191)",
+                "column_default": null
+            },
+            {
+                "column_name": "ip",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(191)",
+                "column_default": null
+            },
+            {
+                "column_name": "user_agent",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "text",
+                "column_default": null
+            },
+            {
+                "column_name": "user_agent_sha256",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "64",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(64)",
+                "column_default": null
+            },
+            {
+                "column_name": "comment",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "text",
+                "column_default": null
+            },
+            {
+                "column_name": "deleted",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0"
+            },
+            {
+                "column_name": "timestamp",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null
+            },
+            {
+                "column_name": "store_as_file",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0"
+            },
+            {
+                "column_name": "data",
+                "is_nullable": "YES",
+                "data_type": "longtext",
+                "character_maximum_length": "4294967295",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "longtext",
                 "column_default": null
             }
         ],
@@ -1571,6 +1984,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1580,6 +1994,7 @@
                 "character_maximum_length": "32",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(32)",
                 "column_default": null
             },
             {
@@ -1589,6 +2004,7 @@
                 "character_maximum_length": "32",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(32)",
                 "column_default": null
             },
             {
@@ -1598,6 +2014,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1607,6 +2024,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": "0"
             },
             {
@@ -1616,6 +2034,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -1625,6 +2044,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1634,6 +2054,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -1643,6 +2064,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -1652,6 +2074,7 @@
                 "character_maximum_length": "32",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(32)",
                 "column_default": null
             },
             {
@@ -1661,6 +2084,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -1670,6 +2094,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             }
         ],
@@ -1681,6 +2106,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1690,6 +2116,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1699,6 +2126,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -1708,6 +2136,7 @@
                 "character_maximum_length": "80",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(80)",
                 "column_default": null
             },
             {
@@ -1717,6 +2146,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1726,6 +2156,7 @@
                 "character_maximum_length": "20",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(20)",
                 "column_default": null
             },
             {
@@ -1735,6 +2166,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1744,6 +2176,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1753,6 +2186,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -1762,6 +2196,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -1771,6 +2206,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1780,6 +2216,7 @@
                 "character_maximum_length": "45",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(45)",
                 "column_default": ""
             }
         ],
@@ -1791,6 +2228,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1800,6 +2238,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1809,6 +2248,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1818,6 +2258,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1827,6 +2268,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11) unsigned",
                 "column_default": null
             }
         ],
@@ -1838,6 +2280,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1847,6 +2290,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1856,6 +2300,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             }
         ],
@@ -1867,6 +2312,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1876,6 +2322,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1885,6 +2332,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1894,6 +2342,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -1903,6 +2352,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1912,6 +2362,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "1"
             },
             {
@@ -1921,6 +2372,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -1932,6 +2384,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1941,6 +2394,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1950,6 +2404,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -1959,6 +2414,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             }
         ],
@@ -1970,6 +2426,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -1979,6 +2436,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -1988,6 +2446,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -1997,6 +2456,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2006,6 +2466,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2015,6 +2476,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -2024,6 +2486,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -2033,6 +2496,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2042,6 +2506,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -2051,6 +2516,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2060,6 +2526,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2069,6 +2536,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -2080,6 +2548,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2089,6 +2558,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2098,6 +2568,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2107,6 +2578,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2116,6 +2588,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             }
         ],
@@ -2127,6 +2600,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2136,6 +2610,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2145,6 +2620,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2154,6 +2630,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2163,6 +2640,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2172,6 +2650,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2181,6 +2660,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2190,6 +2670,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2199,6 +2680,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2208,6 +2690,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -2217,6 +2700,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -2228,6 +2712,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2237,6 +2722,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2246,6 +2732,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2255,6 +2742,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -2264,6 +2752,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2273,6 +2762,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2282,6 +2772,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2291,6 +2782,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2300,6 +2792,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2309,6 +2802,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -2318,6 +2812,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -2329,6 +2824,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2338,6 +2834,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2347,6 +2844,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2356,6 +2854,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2365,6 +2864,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -2374,6 +2874,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2383,6 +2884,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2392,6 +2894,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -2401,6 +2904,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -2410,6 +2914,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": "0"
             },
             {
@@ -2419,6 +2924,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2428,6 +2934,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2437,6 +2944,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -2446,6 +2954,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "19",
                 "collation_name": null,
+                "column_type": "bigint(20)",
                 "column_default": null
             },
             {
@@ -2455,6 +2964,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "19",
                 "collation_name": null,
+                "column_type": "bigint(20)",
                 "column_default": null
             }
         ],
@@ -2466,6 +2976,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2475,6 +2986,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -2484,6 +2996,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -2493,6 +3006,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2502,6 +3016,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             }
         ],
@@ -2513,6 +3028,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2522,6 +3038,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2531,6 +3048,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -2540,6 +3058,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -2549,6 +3068,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2558,6 +3078,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2567,6 +3088,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2576,6 +3098,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2585,6 +3108,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -2594,6 +3118,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -2603,6 +3128,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2612,6 +3138,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -2621,6 +3148,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2630,6 +3158,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             }
         ],
@@ -2641,6 +3170,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2650,6 +3180,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -2659,6 +3190,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -2668,6 +3200,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2677,6 +3210,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2686,6 +3220,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -2695,6 +3230,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             }
         ],
@@ -2706,6 +3242,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2715,6 +3252,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2724,6 +3262,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2733,6 +3272,7 @@
                 "character_maximum_length": "100",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(100)",
                 "column_default": "ALL"
             }
         ],
@@ -2744,6 +3284,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2753,6 +3294,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2762,6 +3304,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2771,6 +3314,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2780,6 +3324,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2789,6 +3334,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -2798,6 +3344,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -2807,6 +3354,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -2816,6 +3364,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -2825,6 +3374,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -2834,6 +3384,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -2843,6 +3394,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2852,6 +3404,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -2861,6 +3414,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "varchar(255)",
                 "column_default": ""
             }
         ],
@@ -2872,6 +3426,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -2881,6 +3436,7 @@
                 "character_maximum_length": "100",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(100)",
                 "column_default": null
             },
             {
@@ -2890,6 +3446,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -2899,6 +3456,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -2908,6 +3466,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -2917,6 +3476,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -2926,6 +3486,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -2935,6 +3496,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -2944,6 +3506,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -2953,6 +3516,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -2962,6 +3526,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -2971,6 +3536,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -2980,6 +3546,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -2989,6 +3556,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -2998,6 +3566,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3007,6 +3576,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3016,6 +3586,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3025,6 +3596,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3034,6 +3606,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3043,6 +3616,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3052,6 +3626,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3061,6 +3636,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3070,6 +3646,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3079,6 +3656,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -3088,6 +3666,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -3097,6 +3676,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3106,6 +3686,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3115,6 +3696,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3124,6 +3706,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3133,6 +3716,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3142,6 +3726,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             }
         ],
@@ -3153,6 +3738,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3162,6 +3748,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -3171,6 +3758,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -3180,6 +3768,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -3189,6 +3778,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3198,6 +3788,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -3207,6 +3798,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -3216,6 +3808,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3225,6 +3818,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3234,6 +3828,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3243,6 +3838,7 @@
                 "character_maximum_length": "10",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(10)",
                 "column_default": null
             },
             {
@@ -3252,6 +3848,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3261,6 +3858,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3270,6 +3868,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3279,6 +3878,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -3288,6 +3888,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -3297,6 +3898,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -3306,6 +3908,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -3315,6 +3918,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -3324,6 +3928,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3333,6 +3938,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3342,6 +3948,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3351,6 +3958,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             }
         ],
@@ -3362,6 +3970,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3371,6 +3980,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3380,6 +3990,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_general_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -3389,6 +4000,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": null
             },
             {
@@ -3398,6 +4010,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": null
             },
             {
@@ -3407,6 +4020,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3416,6 +4030,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3425,6 +4040,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3434,6 +4050,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3443,6 +4060,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3452,6 +4070,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3461,6 +4080,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             }
         ],
@@ -3472,6 +4092,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3481,6 +4102,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -3490,6 +4112,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3499,6 +4122,7 @@
                 "character_maximum_length": "100",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(100)",
                 "column_default": null
             },
             {
@@ -3508,6 +4132,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -3517,6 +4142,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -3526,6 +4152,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "1"
             },
             {
@@ -3535,6 +4162,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -3544,6 +4172,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -3553,6 +4182,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3562,6 +4192,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -3571,6 +4202,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3580,6 +4212,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -3589,6 +4222,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -3598,6 +4232,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3607,6 +4242,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -3616,6 +4252,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3625,6 +4262,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3634,6 +4272,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "19",
                 "collation_name": null,
+                "column_type": "bigint(20)",
                 "column_default": null
             },
             {
@@ -3643,6 +4282,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "19",
                 "collation_name": null,
+                "column_type": "bigint(20)",
                 "column_default": null
             }
         ],
@@ -3654,6 +4294,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3663,6 +4304,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3672,6 +4314,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3681,6 +4324,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -3692,6 +4336,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3701,6 +4346,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3710,6 +4356,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3719,6 +4366,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             }
         ],
@@ -3730,6 +4378,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3739,6 +4388,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -3748,6 +4398,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -3757,6 +4408,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -3766,6 +4418,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -3775,6 +4428,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -3784,6 +4438,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3793,6 +4448,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -3802,6 +4458,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -3811,6 +4468,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -3820,6 +4478,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -3829,6 +4488,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -3838,6 +4498,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -3849,6 +4510,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3858,6 +4520,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3867,6 +4530,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -3878,6 +4542,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3887,6 +4552,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -3896,6 +4562,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_general_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -3905,6 +4572,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -3914,6 +4582,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(255)",
                 "column_default": "http:\/\/localhost"
             },
             {
@@ -3923,6 +4592,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "9999"
             },
             {
@@ -3932,6 +4602,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3941,6 +4612,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3950,6 +4622,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3959,6 +4632,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -3968,6 +4642,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(255)",
                 "column_default": ""
             }
         ],
@@ -3979,6 +4654,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3988,6 +4664,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -3997,6 +4674,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4006,6 +4684,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4015,6 +4694,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "19",
                 "collation_name": null,
+                "column_type": "bigint(20)",
                 "column_default": null
             },
             {
@@ -4024,6 +4704,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -4033,6 +4714,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": ""
             },
             {
@@ -4042,6 +4724,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             }
         ],
@@ -4053,6 +4736,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4062,6 +4746,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4071,6 +4756,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -4082,6 +4768,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4091,6 +4778,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -4100,6 +4788,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4109,6 +4798,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4118,6 +4808,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4127,6 +4818,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -4136,6 +4828,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -4147,6 +4840,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4156,6 +4850,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4165,6 +4860,7 @@
                 "character_maximum_length": "7",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(7)",
                 "column_default": null
             },
             {
@@ -4174,6 +4870,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -4183,6 +4880,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -4192,6 +4890,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -4201,6 +4900,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -4210,6 +4910,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -4221,6 +4922,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4230,6 +4932,7 @@
                 "character_maximum_length": "100",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(100)",
                 "column_default": null
             },
             {
@@ -4239,6 +4942,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4248,6 +4952,7 @@
                 "character_maximum_length": "8",
                 "numeric_precision": null,
                 "collation_name": "latin1_swedish_ci",
+                "column_type": "varchar(8)",
                 "column_default": "6:00"
             },
             {
@@ -4257,6 +4962,7 @@
                 "character_maximum_length": "32",
                 "numeric_precision": null,
                 "collation_name": "latin1_swedish_ci",
+                "column_type": "varchar(32)",
                 "column_default": null
             },
             {
@@ -4266,6 +4972,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "latin1_swedish_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4275,6 +4982,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4284,6 +4992,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             }
         ],
@@ -4295,6 +5004,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4304,6 +5014,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4313,6 +5024,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -4322,6 +5034,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4331,6 +5044,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -4340,6 +5054,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -4349,6 +5064,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             }
         ],
@@ -4360,6 +5076,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4369,6 +5086,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4378,6 +5096,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -4387,6 +5106,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -4396,6 +5116,7 @@
                 "character_maximum_length": "7",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(7)",
                 "column_default": null
             },
             {
@@ -4405,6 +5126,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -4414,6 +5136,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -4425,6 +5148,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4434,6 +5158,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4443,6 +5168,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -4452,6 +5178,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -4461,6 +5188,7 @@
                 "character_maximum_length": "7",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(7)",
                 "column_default": null
             },
             {
@@ -4470,6 +5198,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -4479,6 +5208,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -4488,6 +5218,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -4499,6 +5230,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4508,6 +5240,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4517,6 +5250,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4526,6 +5260,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -4535,6 +5270,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "1"
             },
             {
@@ -4544,6 +5280,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4553,6 +5290,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -4562,6 +5300,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4571,6 +5310,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -4580,6 +5320,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             }
         ],
@@ -4591,6 +5332,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4600,6 +5342,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4609,6 +5352,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4618,6 +5362,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -4627,6 +5372,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4636,6 +5382,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -4645,6 +5392,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             },
             {
@@ -4654,6 +5402,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             }
         ],
@@ -4665,6 +5414,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4674,6 +5424,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4683,6 +5434,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4692,6 +5444,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             }
         ],
@@ -4703,6 +5456,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4712,6 +5466,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4721,6 +5476,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4730,6 +5486,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             }
         ],
@@ -4741,6 +5498,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4750,6 +5508,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4759,6 +5518,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -4770,6 +5530,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4779,6 +5540,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4788,6 +5550,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4797,6 +5560,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4806,6 +5570,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null
             }
         ],
@@ -4817,6 +5582,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4826,6 +5592,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -4835,6 +5602,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -4844,6 +5612,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": null
             },
             {
@@ -4853,6 +5622,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4862,6 +5632,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4871,6 +5642,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4880,6 +5652,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4889,6 +5662,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4898,6 +5672,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -4909,6 +5684,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4918,6 +5694,7 @@
                 "character_maximum_length": "50",
                 "numeric_precision": null,
                 "collation_name": "latin1_swedish_ci",
+                "column_type": "varchar(50)",
                 "column_default": null
             },
             {
@@ -4927,6 +5704,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "latin1_swedish_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4936,6 +5714,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "latin1_swedish_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             }
         ],
@@ -4947,6 +5726,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4956,6 +5736,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -4965,6 +5746,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -4974,6 +5756,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -4983,6 +5766,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -4994,6 +5778,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -5003,6 +5788,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -5012,6 +5798,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -5021,6 +5808,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -5030,6 +5818,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -5039,6 +5828,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -5048,6 +5838,7 @@
                 "character_maximum_length": "40",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
                 "column_default": null
             },
             {
@@ -5057,6 +5848,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -5066,6 +5858,7 @@
                 "character_maximum_length": "4294967295",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "longtext",
                 "column_default": null
             },
             {
@@ -5075,6 +5868,7 @@
                 "character_maximum_length": "4294967295",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "longtext",
                 "column_default": null
             },
             {
@@ -5084,6 +5878,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(15)",
                 "column_default": "0"
             },
             {
@@ -5093,6 +5888,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -5102,6 +5898,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11) unsigned",
                 "column_default": "0"
             },
             {
@@ -5111,6 +5908,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -5120,6 +5918,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(4)",
                 "column_default": "0"
             },
             {
@@ -5129,6 +5928,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -5138,6 +5938,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -5147,6 +5948,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
+                "column_type": "datetime",
                 "column_default": null
             },
             {
@@ -5156,6 +5958,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -5165,6 +5968,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "0"
             },
             {
@@ -5174,6 +5978,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -5183,6 +5988,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "19",
                 "collation_name": null,
+                "column_type": "bigint(20)",
                 "column_default": null
             },
             {
@@ -5192,6 +5998,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "19",
                 "collation_name": null,
+                "column_type": "bigint(20)",
                 "column_default": null
             }
         ],
@@ -5203,6 +6010,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -5212,6 +6020,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -5221,6 +6030,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -5232,6 +6042,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -5241,6 +6052,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -5250,6 +6062,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             }
         ],
@@ -5261,6 +6074,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -5270,6 +6084,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null
             },
             {
@@ -5279,6 +6094,7 @@
                 "character_maximum_length": "255",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": "string"
             },
             {
@@ -5288,6 +6104,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null
             },
             {
@@ -5297,6 +6114,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": "1"
             },
             {
@@ -5306,6 +6124,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0"
             },
             {
@@ -5315,6 +6134,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11) unsigned",
                 "column_default": null
             }
         ],
@@ -5326,6 +6146,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
+                "column_type": "int(11)",
                 "column_default": null
             },
             {
@@ -5335,6 +6156,7 @@
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null
             }
         ]
@@ -5379,6 +6201,14 @@
             "org_id",
             "sharing_group_id",
             "a_sharing_group_id"
+        ],
+        "dashboards": [
+            "id",
+            "name",
+            "uuid",
+            "user_id",
+            "restrict_to_org_id",
+            "restrict_to_permission_flag"
         ],
         "decaying_model_mappings": [
             "id",
@@ -5473,6 +6303,15 @@
             "referenced_galaxy_cluster_id",
             "referenced_galaxy_cluster_value",
             "referenced_galaxy_cluster_type"
+        ],
+        "inbox": [
+            "id",
+            "title",
+            "type",
+            "uuid",
+            "user_agent_sha256",
+            "ip",
+            "timestamp"
         ],
         "jobs": [
             "id"
@@ -5718,5 +6557,5 @@
             "id"
         ]
     },
-    "db_version": "49"
+    "db_version": "50"
 }

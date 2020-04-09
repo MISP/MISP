@@ -1234,7 +1234,7 @@ class MispObject extends AppModel
         return $toReturn;
     }
 
-    public function reviseObject($revised_object, $object) {
+    public function reviseObject($revised_object, $object, $template) {
         $revised_object = json_decode(base64_decode($revised_object), true);
         $revised_object_both = array('mergeable' => array(), 'notMergeable' => array());
 
