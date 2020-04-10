@@ -24,6 +24,12 @@ abstract class DecayingModelBase
             $pieces['predicate'] = $pieces[1];
             $pieces['2tag'] = sprintf('%s:%s', $pieces[0], $pieces[1]);
             $pieces['base'] = $pieces[0];
+        } else {
+            $pieces['complete'] = $tagName;
+            $pieces['namespace'] = '';
+            $pieces['predicate'] = '';
+            $pieces['2tag'] = '';
+            $pieces['base'] = $tagName;
         }
         return $pieces;
     }
