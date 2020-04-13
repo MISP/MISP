@@ -41,6 +41,7 @@ def sanitize_value(s):
     s = s.replace('http', 'hxxp')
     s = s.replace('.', '[.]')
     s = s.replace('@', '[AT]')
+    s = s.replace('\n', ' ')
     # truncate long strings
     return (s[:max_value_len] + '..') if len(s) > max_value_len else s
 
