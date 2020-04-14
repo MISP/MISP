@@ -315,11 +315,11 @@ class EventsController extends AppController
                         break;
                     case 'attribute':
                         $event_id_arrays = $this->__filterOnAttributeValue($v);
-                        foreach ($event_id_arrays[0] as $event_id) {
-                            $this->paginate['conditions']['AND']['OR'][] = array('Event.id' => $event_id);
+                        if (!empty($event_id_arrays[0])) {
+                            $this->paginate['conditions']['AND'][] = array('Event.id' => $event_id_arrays[0]);
                         }
-                        foreach ($event_id_arrays[1] as $event_id) {
-                            $this->paginate['conditions']['AND'][] = array('Event.id !=' => $event_id);
+                        if (!empty($event_id_arrays[1])) {
+                            $this->paginate['conditions']['AND'][] = array('Event.id !=' => $event_id_arrays[1]);
                         }
                         break;
                     case 'published':
@@ -342,25 +342,38 @@ class EventsController extends AppController
                         if ($v == "") {
                             continue 2;
                         }
-                        $pieces = explode('|', $v);
+                        if (is_array($v)) {
+                            $pieces = $v;
+                        } else {
+                            $pieces = explode('|', $v);
+                        }
                         $temp = array();
+                        $eventidConditions = array();
                         foreach ($pieces as $piece) {
                             $piece = trim($piece);
                             if ($piece[0] == '!') {
                                 if (strlen($piece) == 37) {
-                                    $this->paginate['conditions']['AND'][] = array('Event.uuid !=' => substr($piece, 1));
+                                    $eventidConditions['NOT']['uuid'][] = substr($piece, 1);
                                 } else {
-                                    $this->paginate['conditions']['AND'][] = array('Event.id !=' => substr($piece, 1));
+                                    $eventidConditions['NOT']['id'][] = substr($piece, 1);
                                 }
                             } else {
                                 if (strlen($piece) == 36) {
-                                    $temp['OR'][] = array('Event.uuid' => $piece);
+                                    $eventidConditions['OR']['uuid'][] = $piece;
                                 } else {
-                                    $temp['OR'][] = array('Event.id' => $piece);
+                                    $eventidConditions['OR']['id'][] = $piece;
                                 }
                             }
                         }
-                        $this->paginate['conditions']['AND'][] = $temp;
+                        foreach ($eventidConditions as $operator => $conditionForOperator) {
+                            foreach ($conditionForOperator as $conditionKey => $conditionValue) {
+                                $lookupKey = 'Event.' . $conditionKey;
+                                if ($operator === 'NOT') {
+                                    $lookupKey = $lookupKey . ' !=';
+                                }
+                                $this->paginate['conditions']['AND'][] = array($lookupKey => $conditionValue);
+                            }
+                        }
                         break;
                     case 'datefrom':
                         if ($v == "") {
@@ -727,8 +740,6 @@ class EventsController extends AppController
                 } else {
                     $rules['order'] = array('Event.' . $passedArgs['sort'] => 'ASC');
                 }
-            } else {
-                $rules['order'] = array('Event.id' => 'DESC');
             }
             $rules['contain'] = $this->paginate['contain'];
             if (isset($this->paginate['conditions'])) {
