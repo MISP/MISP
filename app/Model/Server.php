@@ -4411,7 +4411,7 @@ class Server extends AppModel
     public function dbSpaceUsage()
     {
         $dataSource = $this->getDataSource()->config['datasource'];
-        if ($dataSource == 'Database/Mysql') {
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
             $sql = sprintf(
                 'select TABLE_NAME, sum((DATA_LENGTH+INDEX_LENGTH)/1024/1024) AS used, sum(DATA_FREE)/1024/1024 AS reclaimable from information_schema.tables where table_schema = %s group by TABLE_NAME;',
                 "'" . $this->getDataSource()->config['database'] . "'"
@@ -4487,7 +4487,7 @@ class Server extends AppModel
             'update_fail_number_reached' => $this->UpdateFailNumberReached(),
             'indexes' => array()
         );
-        if ($dataSource == 'Database/Mysql') {
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
             $dbActualSchema = $this->getActualDBSchema();
             $dbExpectedSchema = $this->getExpectedDBSchema();
             if ($dbExpectedSchema !== false) {
@@ -4645,7 +4645,7 @@ class Server extends AppModel
         $dbActualSchema = array();
         $dbActualIndexes = array();
         $dataSource = $this->getDataSource()->config['datasource'];
-        if ($dataSource == 'Database/Mysql') {
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
             $sqlGetTable = sprintf('SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
             $sqlResult = $this->query($sqlGetTable);
             $tables = HASH::extract($sqlResult, '{n}.tables.TABLE_NAME');
