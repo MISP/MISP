@@ -15,7 +15,7 @@
                     intval(Configure::read('CurrentUserId'))
                 ),
                 empty(Configure::read('CurrentController')) ? '' : preg_replace('/[^a-zA-Z0-9_]/', '', Configure::read('CurrentController')) . ' :: ',
-                empty(Configure::read('CurrentAction')) ? '' : preg_replace('/[^a-zA-Z0-9_]/', '', Configure::read('CurrentAction')),
+                empty(Configure::read('CurrentAction')) ? '' : preg_replace('/[^a-zA-Z0-9_]/', '', Configure::read('CurrentAction'))
             );
             $sql = '/* ' . $comment . ' */ ' . $sql;
             return parent::execute($sql, $options, $params);
