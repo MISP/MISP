@@ -449,7 +449,7 @@ class RestResponseComponent extends Component
                 }
                 if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
                     $this->Log = ClassRegistry::init('Log');
-                    if ($this->Content->sql_dump === 2) {
+                    if ($this->Controller->sql_dump === 2) {
                         $response = array('sql_dump' => $this->Log->getDataSource()->getLog(false, false));
                     } else {
                         $response['sql_dump'] = $this->Log->getDataSource()->getLog(false, false);

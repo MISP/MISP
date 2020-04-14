@@ -4551,7 +4551,7 @@ class Server extends AppModel
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
-                            isset($field['expected']['column_default']) ? $field['expected']['column_default'] . '"' : '',
+                            isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                             empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
                         );
@@ -4795,7 +4795,7 @@ class Server extends AppModel
                         } else {
                             $keyLength = '';
                         }
-                        $sql = sprintf('CREATE INDEX `%s` ON `%s` (%s%s);',
+                        $sql = sprintf('CREATE INDEX `%s` ON `%s` (`%s`%s);',
                             $columnDiff,
                             $tableName,
                             $columnDiff,

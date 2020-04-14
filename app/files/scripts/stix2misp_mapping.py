@@ -26,12 +26,13 @@ _credential_authentication_mapping = {'authentication_type': ('text', 'value', '
                                        'authentication_data': ('text', 'value', 'password'),
                                        'structured_authentication_mechanism': ('text', 'description.value', 'format')}
 _credential_custom_types = ("username", "origin", "notification")
-_email_mapping = {'from_': ("email-src", "address_value.value", "from"),
-                   'reply_to': ("email-reply-to", 'address_value.value', "reply-to"),
-                   'subject': ("email-subject", 'value', "subject"),
-                   'x_mailer': ("email-x-mailer", 'value', "x-mailer"),
-                   'boundary': ("email-mime-boundary", 'value', "mime-boundary"),
-                   'user_agent': ("text", 'value', "user-agent")}
+_email_mapping = {'boundary': ("email-mime-boundary", 'value', "mime-boundary"),
+                  'from_': ("email-src", "address_value.value", "from"),
+                  'message_id': ("email-message-id", "value", "message-id"),
+                  'reply_to': ("email-reply-to", 'address_value.value', "reply-to"),
+                  'subject': ("email-subject", 'value', "subject"),
+                  'user_agent': ("text", 'value', "user-agent"),
+                  'x_mailer': ("email-x-mailer", 'value', "x-mailer")}
 _file_mapping = {'file_path': ('text', 'file_path.value', 'path'),
                  'full_path': ('text', 'full_path.value', 'fullpath'),
                  'file_format': ('mime-type', 'file_format.value', 'mimetype'),
