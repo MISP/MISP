@@ -1,0 +1,24 @@
+'''
+For instructions on creating your BOT, please read: https://api.slack.com/bot-users
+Your bot will need the permissions:
+- channels:join
+- chat:write
+- users:write
+
+WARNING WARNING - THIS SCRIPT DOES NOT MAGICALLY RESPECT ACLs
+MAKE SURE YOU SET THE RIGHT FILTERS IN THE SETTINGS
+'''
+
+channel_name = '#name'
+slack_token = ''
+
+misp_url = 'https://192.168.1.1'
+misp_is_public = True   # set to False if your MISP instance is on a non-internet reachable location. Shows the org icon of the event owner. Otherwise shows the MISP logo.
+
+# filter for confidentiality
+allowed_distributions = ['0', '1', '2', '3', '4']  # * = all, 0/ my org only, 1/ this community, 2/ connected communities, 3/ all communities, 4/ sharing group
+allowed_sharing_groups = ['*']  # put here the sharing_group_ids that you allow
+
+max_value_len = 25  # truncate values longer than X chars
+include_attr = True  # include attributes in the message
+include_obj = True   # include objects in the message

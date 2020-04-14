@@ -1873,6 +1873,9 @@ class Event extends AppModel
         if (!empty($options['includeDecayScore'])) {
             $this->DecayingModel = ClassRegistry::init('DecayingModel');
         }
+        if (!isset($options['includeEventCorrelations'])) {
+            $options['includeEventCorrelations'] = true;
+        }
         foreach ($possibleOptions as &$opt) {
             if (!isset($options[$opt])) {
                 $options[$opt] = false;
@@ -2161,7 +2164,9 @@ class Event extends AppModel
             }
             $event = $this->massageTags($event, 'Event', $options['excludeGalaxy']);
             // Let's find all the related events and attach it to the event itself
-            $results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
+            if (!empty($options['includeEventCorrelations'])) {
+                $results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
+            }
             // Let's also find all the relations for the attributes - this won't be in the xml export though
             if (!empty($options['includeGranularCorrelations'])) {
                 $results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids);
