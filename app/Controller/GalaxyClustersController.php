@@ -124,20 +124,18 @@ class GalaxyClustersController extends AppController
 
     public function view($id)
     {
-        $conditions = array('GalaxyCluster.id' => $id);
+        $conditions = array();
         if (Validation::uuid($id)) {
-            $conditions = array('GalaxyCluster.uuid' => $id);
+            $conditions['GalaxyCluster.uuid'] = $id;
+        } else {
+            $conditions['GalaxyCluster.id'] = $id;
         }
-        $contain = array('Galaxy');
-        if ($this->_isRest()) {
-            $contain[] = 'GalaxyElement';
-        }
-        $cluster = $this->GalaxyCluster->find('first', array(
-            'recursive' => -1,
-            'contain' => $contain,
+        $options = array(
             'conditions' => $conditions
-        ));
+        );
+        $cluster = $this->fetchGalaxyClusters($this->Auth->user(), $options, $full=true);
         if (!empty($cluster)) {
+            $cluster = $cluster[0];
             $galaxyType = $cluster['GalaxyCluster']['type'];
             $this->loadModel('Tag');
             $tag = $this->Tag->find('first', array(

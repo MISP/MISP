@@ -213,6 +213,38 @@ class GalaxyCluster extends AppModel
         return $conditions;
     }
 
+    // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
+    // options:
+    //     fields
+    //     contain
+    //     conditions
+    //     order
+    //     group
+    public function fetchGalaxyClusters($user, $options, $full=false)
+    {
+        $params = array(
+            'conditions' => $this->buildConditions($user),
+            'recursive' => -1
+        );
+        if ($full) {
+            $params['contain'] = array('GalaxyClusterElement');
+        }
+        if (isset($options['fields'])) {
+            $params['fields'] = $options['fields'];
+        }
+        if (isset($options['conditions'])) {
+            $params['conditions']['AND'][] = $options['conditions'];
+        }
+        if (isset($options['group'])) {
+            $params['group'] = empty($options['group']) ? $options['group'] : false;
+        }
+        $galaxClusters = $this->find('all', $params);
+        // foreach($galaxies as $k => $galaxy) {
+        //     $galaxies[$k] = $this->Org->attachOrgs($galaxy, array('id', 'name', 'uuid', 'local'), 'Galaxy');
+        // }
+        return $galaxClusters;
+    }
+
     /**
      * @param array $events
      * @param bool $replace

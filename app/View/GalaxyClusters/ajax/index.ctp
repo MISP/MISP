@@ -15,11 +15,11 @@
                                 'url' => sprintf('%s/galaxies/view/%s/context:all', $baseurl, $galaxy_id),
                                 'text' => __('All'),
                             ),
-                            // array(
-                            //     'active' => $context === 'altered',
-                            //     'url' => sprintf('%s/galaxies/view/%s/context:altered', $baseurl, $galaxy_id),
-                            //     'text' => __('Altered Galaxy Clusters'),
-                            // )
+                            array(
+                                'active' => $context === 'custom',
+                                'url' => sprintf('%s/galaxies/view/%s/context:custom', $baseurl, $galaxy_id),
+                                'text' => __('Custom Galaxy Clusters'),
+                            )
                         )
                     ),
                     array(
@@ -27,7 +27,7 @@
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
                         'data' => '',
-                        'searchKey' => 'value',
+                        'searchKey' => 'searchall',
                         'value' => $searchall
                     )
                 )
@@ -100,7 +100,20 @@
 ?>
 
 <script type="text/javascript">
-    $(document).ready(function(){
+    var passedArgsArray = <?php echo $passedArgs; ?>;
+    var galaxyId = <?php echo h($galaxy_id); ?>;
+    if (passedArgsArray['context'] === undefined || passedArgsArray['context'] === "") {
+        passedArgsArray['context'] = 'all';
+    }
+    $(document).ready(function() {
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter('/' + galaxyId + '/context:' + passedArgsArray['context']);
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter('/' + galaxyId + '/context:' + passedArgsArray['context']);
+            }
+        });
     });
 </script>
 <?php echo $this->Js->writeBuffer(); ?>
