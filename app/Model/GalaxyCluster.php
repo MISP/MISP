@@ -229,7 +229,7 @@ class GalaxyCluster extends AppModel
             }
         }
 
-        $clusters = $this->getCluster($eventTag['Tag']['name'], $user, false);
+        $clusters = $this->getClusters($clusterTagNames, $user, false);
 
         $clustersByTagName = array();
         foreach ($clusters as $cluster) {
