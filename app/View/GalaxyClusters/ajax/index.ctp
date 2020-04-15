@@ -16,6 +16,16 @@
                                 'text' => __('All'),
                             ),
                             array(
+                                'active' => $context === 'default',
+                                'url' => sprintf('%s/galaxies/view/%s/context:default', $baseurl, $galaxy_id),
+                                'text' => __('Default Galaxy Clusters'),
+                            ),
+                            array(
+                                'active' => $context === 'custom',
+                                'url' => sprintf('%s/galaxies/view/%s/context:custom', $baseurl, $galaxy_id),
+                                'text' => __('Custom Galaxy Clusters'),
+                            ),
+                            array(
                                 'active' => $context === 'org',
                                 'url' => sprintf('%s/galaxies/view/%s/context:org', $baseurl, $galaxy_id),
                                 'text' => __('My Galaxy Clusters'),
@@ -109,6 +119,34 @@
                     ),
                     'icon' => 'eye',
                     'dbclickAction' => true
+                ),
+                array(
+                    'url' => '/galaxy_clusters/add',
+                    'url_params_data_paths' => array(
+                        'GalaxyCluster.galaxy_id'
+                    ),
+                    'url_named_params_data_paths' => array(
+                        'forkUuid' => 'GalaxyCluster.uuid'
+                    ),
+                    'icon' => 'code-branch'
+                ),
+                array(
+                    'url' => '/galaxy_clusters/edit',
+                    'url_params_data_paths' => array(
+                        'GalaxyCluster.id'
+                    ),
+                    'icon' => 'edit',
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return ($options['me']['org_id'] == $options['datapath']['org']);
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'org' => 'GalaxyCluster.org_id'
+                            )
+                        )
+                    ),
                 ),
                 array(
                     'title' => 'Delete',

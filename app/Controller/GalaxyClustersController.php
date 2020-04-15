@@ -42,15 +42,15 @@ class GalaxyClustersController extends AppController
             $contextConditions = array();
             if ($filters['context'] == 'default') {
                 $contextConditions = array(
-                    'Galaxy.default' => true
+                    'GalaxyCluster.default' => true
+                );
+            } elseif ($filters['context'] == 'custom') {
+                $contextConditions = array(
+                    'GalaxyCluster.default' => false
                 );
             } elseif ($filters['context'] == 'org') {
                 $contextConditions = array(
-                    'Galaxy.org_id' => $this->Auth->user('org_id')
-                );
-            } elseif ($filters['context'] == 'orgc') {
-                $contextConditions = array(
-                    'Galaxy.orgc_id' => $this->Auth->user('org_id')
+                    'GalaxyCluster.org_id' => $this->Auth->user('org_id')
                 );
             }
         }
@@ -212,6 +212,95 @@ class GalaxyClustersController extends AppController
             $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
             $this->set('cluster', $cluster);
         }
+    }
+
+    public function add($galaxyId)
+    {
+        $this->loadModel('Attribute');
+        $distributionLevels = $this->Attribute->distributionLevels;
+        unset($distributionLevels[5]);
+        $initialDistribution = 3;
+        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
+        if ($configuredDistribution != null && $configuredDistribution != 'event') {
+            $initialDistribution = $configuredDistribution;
+        }
+        $this->loadModel('SharingGroup');
+        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+
+        if (isset($this->params['named']['forkUuid'])) {
+            $forkUuid = $this->params['named']['forkUuid'];
+            $origCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
+                'conditions' => array('uuid' => $forkUuid),
+            ), true);
+            if (!empty($origCluster)) {
+                $origCluster = $origCluster[0];
+                $origClusterMeta = $origCluster['GalaxyCluster'];
+                $this->set('forkUuid', $forkUuid);
+                if (empty($this->request->data)) {
+                    $this->request->data = $origCluster;
+                    unset($this->request->data['GalaxyCluster']['id']);
+                    unset($this->request->data['GalaxyCluster']['uuid']);
+                    foreach ($origCluster['GalaxyElement'] as $k => $element) {
+                        unset($origCluster['GalaxyElement'][$k]['id']);
+                        unset($origCluster['GalaxyElement'][$k]['galaxy_cluster_id']);
+                    }
+                    $this->request->data['GalaxyCluster']['elements'] = json_encode($origCluster['GalaxyElement']);
+                    $this->request->data['GalaxyCluster']['authors'] = json_encode($origCluster['GalaxyCluster']['authors']);
+                }
+                $this->set('origCluster', $origCluster);
+                $this->set('origClusterMeta', $origClusterMeta);
+            } else {
+                throw new NotFoundException('Forked cluster not found.');
+            }
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $cluster = $this->request->data;
+            $errors = array();
+            if (empty($cluster['GalaxyCluster']['elements'])) {
+                $galaxy['Galaxy']['values'] = array();
+            } else {
+                $decoded = json_decode($cluster['GalaxyCluster']['elements'], true);
+                if ($decoded === null) {
+                    $decoded = array();
+                }
+                $galaxy['Galaxy']['elements'] = $decoded;
+            }
+            $extendId = $this->Toolbox->findIdByUuid($this->GalaxyCluster, $cluster['GalaxyCluster']['forkUuid']);
+            $extendedCluster = $this->GalaxyCluster->fetchGalaxyClusters(
+                $this->Auth->user(),
+                array('conditions' => array('GalaxyCluster.id' => $extendId))
+            );
+            if (!empty($extendedCluster)) {
+                $cluster['GalaxyCluster']['extends_uuid'] = $extendedCluster[0]['GalaxyCluster']['uuid'];
+            } else {
+                $cluster['GalaxyCluster']['extends_uuid'] = '';
+            }
+            if ($cluster['GalaxyCluster']['distribution'] != 4) {
+                $cluster['GalaxyCluster']['sharing_group_id'] = null;
+            }
+            $saveSuccess = $this->GalaxyCluster->saveCluster($this->Auth->user(), $cluster);
+            if (!$saveSuccess) {
+                foreach($this->GalaxyCluster->validationErrors as $validationError) {
+                    $errors[] = $validationError;
+                }
+            }
+            if (!empty($errors)) {
+                $flashErrorMessage = implode(', ', implode(' ', $errors));
+                $this->Flash->error($flashErrorMessage);
+            } else {
+                $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $this->GalaxyCluster->id));
+            }
+        }
+        $this->set('galaxy_id', $galaxyId);
+        $this->set('distributionLevels', $distributionLevels);
+        $this->set('initialDistribution', $initialDistribution);
+        $this->set('sharingGroups', $sgs);
+        $this->set('action', 'add');
+    }
+
+    public function edit($id)
+    {
+        
     }
 
     public function attachToEvent($event_id, $tag_name)

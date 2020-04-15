@@ -1153,7 +1153,7 @@
                         ));
                         if ($menuItem === 'view') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'url' => '/galaxies/add/forkId:' . h($galaxy['Galaxy']['id']),
+                                'url' => '/galaxy_clusters/add/' . h($galaxy['Galaxy']['id']),
                                 'text' => __('Add Galaxy Cluster')
                             ));
                         }
@@ -1207,6 +1207,19 @@
                             'text' => __('Export Galaxy')
                         ));
                     }
+                    break;
+
+                case 'galaxy_cluster':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/galaxies/index',
+                        'text' => __('List Galaxies')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'view',
+                        'url' => '/galaxies/view/' . h($galaxy_id),
+                        'text' => __('View Galaxy')
+                    ));
                     break;
 
                 case 'objectTemplates':

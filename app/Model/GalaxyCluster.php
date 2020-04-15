@@ -89,6 +89,64 @@ class GalaxyCluster extends AppModel
         $this->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $this->id));
     }
 
+    // Respecting ACL, save a cluster, its elements and set correct fields
+    public function saveCluster($user, $cluster, $fromPull=false)
+    {
+        if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
+            return false;
+        }
+        $galaxy = $this->Galaxy->find('first', array('conditions' => array(
+            'id' => $cluster['GalaxyCluster']['galaxy_id']
+        )));
+        if (empty($galaxy)) {
+            return false;
+        } else {
+            $galaxy = $galaxy['Galaxy'];
+        }
+        unset($cluster['GalaxyCluster']['id']);
+        if (isset($cluster['GalaxyCluster']['uuid'])) {
+            // check if the uuid already exists
+            $existingGalaxyCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid'])));
+            if ($existingGalaxyCluster) {
+                if ($fromPull && !$existingGalaxyCluster['GalaxyCluster']['default']) {
+                    $errors = $this->editCluster($user, $cluster, $fromPull);
+                    return empty($errors);
+                } else {
+                    // Maybe redirect to the correct URL?
+                }
+                return false;
+            }
+        } else {
+            $cluster['GalaxyCluster']['uuid'] = CakeText::uuid();
+        }
+        $cluster['GalaxyCluster']['org_id'] = $user['org_id'];
+        if (!isset($cluster['GalaxyCluster']['orgc_id'])) {
+            if (isset($cluster['Orgc']['uuid'])) {
+                $orgc_id = $this->Orgc->find('first', array('conditions' => array('Orgc.uuid' => $user['Orgc']['uuid']), 'fields' => array('Orgc.id'), 'recursive' => -1));
+            } else {
+                $orgc_id = $user['org_id'];
+            }
+            $cluster['GalaxyCluster']['orgc_id'] = $orgc_id;
+        }
+        $cluster['GalaxyCluster']['type'] = $galaxy['type'];
+        if (!$fromPull) {
+            $date = new DateTime();
+            $cluster['GalaxyCluster']['version'] = $date->getTimestamp();
+        }
+        $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $galaxy['type'], $cluster['GalaxyCluster']['value']);
+        $this->create();
+        $saveSuccess = $this->save($cluster);
+        return $saveSuccess;
+        // $savedCluster = $this->GalaxyCluster->find('first', array(
+        //     'conditions' => array('id' =>  $this->GalaxyCluster->id),
+        //     'recursive' => -1
+        // ));
+        // $savedCluster['GalaxyCluster']['elements'] = $cluster['GalaxyCluster']['elements'];
+        // $saveSuccess = $this->GalaxyElement->update($savedCluster['GalaxyCluster']['id'], $savedCluster['GalaxyCluster'], true, false);
+        // if(!$saveSuccess) {
+        //     $errors[] = array(__('Error while saving cluster\'s elements'));
+        // }
+    }
 
     // receive a full galaxy and add all new clusters, update existing ones contained in the new galaxy, cull old clusters that are removed from the galaxy
     public function update($id, $galaxy)
@@ -258,9 +316,12 @@ class GalaxyCluster extends AppModel
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
+            'contain' => array(),
             'recursive' => -1
         );
-        $params['contain'] = $options['contain'];
+        if (!empty($options['contain'])) {
+            $params['contain'] = $options['contain'];
+        }
         if ($full && !in_array('GalaxyElement', $params['contain'])) {
             $params['contain'][] = 'GalaxyElement';
         }

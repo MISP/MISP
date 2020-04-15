@@ -2523,6 +2523,14 @@ table tr:hover .down-expand-button {
     border-radius: 3px;
 }
 
+.fork-cluster-preview {
+    display: inline-block;
+    position: absolute;
+    right: 0px;
+    top: 100px;
+    max-width: 600px;
+}
+
 .widgetTitle {
     font-weight: bold;
     color: #0088cc;

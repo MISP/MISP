@@ -83,9 +83,13 @@ class GalaxiesController extends AppController
     public function view($id)
     {
         $id = $this->Toolbox->findIdByUuid($this->Galaxy, $id);
+        $passedArgsArray = array(
+            'context' => isset($this->params['named']['context']) ? $this->params['named']['context'] : 'all'
+        );
         if (isset($this->params['named']['searchall']) && strlen($this->params['named']['searchall']) > 0) {
-            $this->set('passedArgsArray', array('context' => $this->params['named']['context'], 'searchall' => $this->params['named']['searchall']));
+            $passedArgsArray['searchall'] = $this->params['named']['searchall'];
         }
+        $this->set('passedArgsArray', $passedArgsArray);
         if ($this->_isRest()) {
             $galaxy = $this->Galaxy->find('first', array(
                     'contain' => array('GalaxyCluster' => array('GalaxyElement'/*, 'GalaxyReference'*/)),

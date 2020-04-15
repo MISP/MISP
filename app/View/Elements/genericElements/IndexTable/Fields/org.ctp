@@ -30,7 +30,7 @@
                 }
             } else {
                 if ($field['fields']['allow_picture']) {
-                    echo $this->OrgImg->getOrgImg(array('name' =>  $field['fields']['default_org'], 'size' => 24));
+                    echo $this->OrgImg->getOrgImg(array('name' =>  $field['fields']['default_org'], 'size' => 24), false, true);
                 }
             }
         }
