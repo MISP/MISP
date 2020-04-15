@@ -101,6 +101,12 @@
                     'sort' => 'description',
                     'data_path' => 'GalaxyCluster.description',
                 ),
+                array(
+                    'name' => __('Distribution'),
+                    'sort' => 'distribution',
+                    'data_path' => 'GalaxyCluster.distribution',
+                    'element' => 'distribution_levels'
+                ),
             ),
             'actions' => array(
                 array(

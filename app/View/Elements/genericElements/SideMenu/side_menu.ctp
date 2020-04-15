@@ -1185,8 +1185,15 @@
                             'url' => '/galaxy_clusters/view/' . h($id),
                             'text' => __('View Cluster')
                         ));
+                        if (!$defaultCluster) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'view_cluster',
+                                'url' => '/galaxy_clusters/edit/' . h($id),
+                                'text' => __('Edit Cluster')
+                            ));
+                        }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/galaxy_clusters/add/forkId:' . h($id),
+                            'url' => '/galaxy_clusters/add/' . h($galaxy_id) . '/forkUuid:' . h($cluster['GalaxyCluster']['uuid']),
                             'text' => __('Fork Cluster')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');

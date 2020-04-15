@@ -133,19 +133,65 @@ class GalaxyCluster extends AppModel
             $date = new DateTime();
             $cluster['GalaxyCluster']['version'] = $date->getTimestamp();
         }
-        $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $galaxy['type'], $cluster['GalaxyCluster']['value']);
+        $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $galaxy['type'], $cluster['GalaxyCluster']['uuid']);
         $this->create();
         $saveSuccess = $this->save($cluster);
+        if ($saveSuccess) {
+            $savedCluster = $this->GalaxyCluster->find('first', array(
+                'conditions' => array('id' =>  $this->GalaxyCluster->id),
+                'recursive' => -1
+            ));
+            $this->GalaxyElement->updateElements($savedCluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['elements']);
+        }
         return $saveSuccess;
-        // $savedCluster = $this->GalaxyCluster->find('first', array(
-        //     'conditions' => array('id' =>  $this->GalaxyCluster->id),
-        //     'recursive' => -1
-        // ));
-        // $savedCluster['GalaxyCluster']['elements'] = $cluster['GalaxyCluster']['elements'];
-        // $saveSuccess = $this->GalaxyElement->update($savedCluster['GalaxyCluster']['id'], $savedCluster['GalaxyCluster'], true, false);
-        // if(!$saveSuccess) {
-        //     $errors[] = array(__('Error while saving cluster\'s elements'));
-        // }
+    }
+
+    public function editCluster($user, $cluster, $fromPull = false)
+    {
+        $errors = array();
+        if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
+            $errors[] = __('Incorrect permission');
+        }
+        if (isset($cluster['GalaxyCluster']['uuid'])) {
+            $existingCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid'])));
+        } else {
+            $errors[] = __('UUID not provided');
+        }
+        if (empty($existingCluster)) {
+            $errors[] = __('Unkown UUID');
+        } else {
+            // For users that are of the creating org of the cluster, always allow the edit
+            // For users that are sync users, only allow the edit if the cluster is locked
+            if ($existingCluster['GalaxyCluster']['orgc_id'] === $user['org_id']
+            || ($user['Role']['perm_sync'] && $existingCluster['GalaxyCluster']['locked']) || $user['Role']['perm_site_admin']) {
+                if ($user['Role']['perm_sync']) {
+                    if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])) {
+                        $errors[] = array(__('Galaxy Cluster could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.'));
+                    }
+                }
+            } else {
+                $errors[] = array(__('Galaxy Cluster could not be saved: The user used to edit the cluster is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the galaxy whilst also not being a site administrator.'));
+            }
+            $cluster['GalaxyCluster']['id'] = $existingCluster['GalaxyCluster']['id'];
+
+            if (empty($errors)) {
+                $date = new DateTime();
+                if (!$fromPull) {
+                    $cluster['GalaxyCluster']['version'] = $date->getTimestamp();
+                }
+                $cluster['GalaxyCluster']['default'] = false;
+                $fieldList = array('value', 'description', 'version', 'source', 'authors', 'distribution', 'sharing_group_id', 'default');
+                $saveSuccess = $this->save($cluster, array('fieldList' => $fieldList));
+                if ($saveSuccess) {
+                    $this->GalaxyElement->updateElements($cluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['elements']);
+                } else {
+                    foreach($this->validationErrors as $validationError) {
+                        $errors[] = $validationError[0];
+                    }
+                }
+            }
+        }
+        return $errors;
     }
 
     // receive a full galaxy and add all new clusters, update existing ones contained in the new galaxy, cull old clusters that are removed from the galaxy

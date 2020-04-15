@@ -26,6 +26,30 @@ class GalaxyElement extends AppModel
         return true;
     }
 
+    public function updateElements($oldClusterId, $newClusterId, $elements)
+    {
+        $this->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $oldClusterId));
+        $tempElements = array();
+        foreach ($elements as $key => $value) {
+            if (is_array($value)) {
+                foreach ($value as $arrayElement) {
+                    $tempElements[] = array(
+                        'key' => $key,
+                        'value' => $arrayElement,
+                        'galaxy_cluster_id' => $newClusterId
+                    );
+                }
+            } else {
+                $tempElements[] = array(
+                    'key' => $key,
+                    'value' => $value,
+                    'galaxy_cluster_id' => $newClusterId
+                );
+            }
+        }
+        $this->saveMany($tempElements);
+    }
+
     public function update($galaxy_id, $oldClusters, $newClusters)
     {
         $elementsToSave = array();
