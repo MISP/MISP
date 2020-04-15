@@ -2585,7 +2585,7 @@ class Event extends AppModel
         }
         return $conditions;
     }
-    
+
     public function set_filter_uuid(&$params, $conditions, $options)
     {
         if ($options['scope'] === 'Event') {
@@ -2701,6 +2701,11 @@ class Event extends AppModel
     {
         if (!empty($params[$options['filter']])) {
             $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
+            if (!empty(Configure::read('MISP.attribute_filters_block_only'))) {
+                if ($options['context'] === 'Event' && !empty($params[$options['filter']]['OR'])) {
+                    unset($params[$options['filter']]['OR']);
+                }
+            }
             $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attribute.' . $options['filter']);
         }
         return $conditions;

@@ -1072,6 +1072,15 @@ class Server extends AppModel
                                'test' => 'testForNumeric',
                                'type' => 'numeric',
                                'null' => true
+                       ),
+                       'attribute_filters_block_only' => array(
+                               'level' => 1,
+                               'description' => __('This is a performance tweak to change the behaviour of restSearch to use attribute filters solely for blocking. This means that a lookup on the event scope with for example the type field set will be ignored unless it\'s used to strip unwanted attributes from the results. If left disabled, passing [ip-src, ip-dst] for example will return any event with at least one ip-src or ip-dst attribute. This is generally not considered to be too useful and is a heavy burden on the database.'),
+                               'value' => false,
+                               'errorMessage' => '',
+                               'test' => 'testBool',
+                               'type' => 'boolean',
+                               'null' => true
                        )
                 ),
                 'GnuPG' => array(
