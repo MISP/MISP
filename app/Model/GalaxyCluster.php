@@ -11,6 +11,32 @@ class GalaxyCluster extends AppModel
     );
 
     public $validate = array(
+        'name' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            )
+        ),
+        'description' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            )
+        ),
+        'uuid' => array(
+            'uuid' => array(
+                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                'message' => 'Please provide a valid UUID'
+            ),
+            'unique' => array(
+                'rule' => 'isUnique',
+                'message' => 'The UUID provided is not unique',
+                'required' => 'create'
+            )
+        ),
+        'distribution' => array(
+            'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
+            'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
+            'required' => true
+        )
     );
 
     public $belongsTo = array(
@@ -21,6 +47,14 @@ class GalaxyCluster extends AppModel
         'Tag' => array(
             'foreignKey' => false,
             'conditions' => array('GalaxyCluster.tag_name = Tag.name')
+        ),
+        'Org' => array(
+            'className' => 'Organisation',
+            'foreignKey' => 'org_id'
+        ),
+        'Orgc' => array(
+            'className' => 'Organisation',
+            'foreignKey' => 'orgc_id'
         )
     );
 
@@ -226,8 +260,9 @@ class GalaxyCluster extends AppModel
             'conditions' => $this->buildConditions($user),
             'recursive' => -1
         );
-        if ($full) {
-            $params['contain'] = array('GalaxyClusterElement');
+        $params['contain'] = $options['contain'];
+        if ($full && !in_array('GalaxyElement', $params['contain'])) {
+            $params['contain'][] = 'GalaxyElement';
         }
         if (isset($options['fields'])) {
             $params['fields'] = $options['fields'];

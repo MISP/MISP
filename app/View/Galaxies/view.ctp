@@ -33,8 +33,11 @@
 $(document).ready(function () {
     <?php
         $uri = "/galaxy_clusters/index/" . $galaxy['Galaxy']['id'];
-        if (isset($passedArgsArray)) {
-            $uri .= '/searchall:' . $passedArgsArray['all'];
+        if (isset($passedArgsArray) && isset($passedArgsArray['context'])) {
+            $uri .= '/context:' . $passedArgsArray['context'];
+        }
+        if (isset($passedArgsArray) && isset($passedArgsArray['searchall'])) {
+            $uri .= '/searchall:' . $passedArgsArray['searchall'];
         }
     ?>
     $.get("<?php echo h($uri);?>", function(data) {

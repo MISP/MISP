@@ -84,7 +84,7 @@ class GalaxiesController extends AppController
     {
         $id = $this->Toolbox->findIdByUuid($this->Galaxy, $id);
         if (isset($this->params['named']['searchall']) && strlen($this->params['named']['searchall']) > 0) {
-            $this->set('passedArgsArray', array('all' => $this->params['named']['searchall']));
+            $this->set('passedArgsArray', array('context' => $this->params['named']['context'], 'searchall' => $this->params['named']['searchall']));
         }
         if ($this->_isRest()) {
             $galaxy = $this->Galaxy->find('first', array(

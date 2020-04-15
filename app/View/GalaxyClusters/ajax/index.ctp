@@ -16,9 +16,9 @@
                                 'text' => __('All'),
                             ),
                             array(
-                                'active' => $context === 'custom',
-                                'url' => sprintf('%s/galaxies/view/%s/context:custom', $baseurl, $galaxy_id),
-                                'text' => __('Custom Galaxy Clusters'),
+                                'active' => $context === 'org',
+                                'url' => sprintf('%s/galaxies/view/%s/context:org', $baseurl, $galaxy_id),
+                                'text' => __('My Galaxy Clusters'),
                             )
                         )
                     ),
@@ -27,8 +27,6 @@
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
                         'data' => '',
-                        'searchKey' => 'searchall',
-                        'value' => $searchall
                     )
                 )
             ),
@@ -45,8 +43,36 @@
                 array(
                     'name' => __('Synonyms'),
                     'sort' => 'name',
-                    'class' => 'short',
+                    'class' => '',
                     'data_path' => 'GalaxyCluster.synonyms',
+                ),
+                array(
+                    'name' => __('Owner Org'),
+                    'class' => 'short',
+                    'element' => 'org',
+                    'data_path' => 'Org',
+                    'fields' => array(
+                        'allow_picture' => true,
+                        'default_org' => 'MISP'
+                    ),
+                    'requirement' => $isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))
+                ),
+                array(
+                    'name' => __('Creator Org'),
+                    'class' => 'short',
+                    'element' => 'org',
+                    'data_path' => 'Orgc',
+                    'fields' => array(
+                        'allow_picture' => true,
+                        'default_org' => 'MISP'
+                    ),
+                    'requirement' => (Configure::read('MISP.showorg') || $isAdmin) || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))
+                ),
+                array(
+                    'name' => __('Default'),
+                    'class' => 'short',
+                    'element' => 'boolean',
+                    'data_path' => 'GalaxyCluster.default',
                 ),
                 array(
                     'name' => __('Activity'),

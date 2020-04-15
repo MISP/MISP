@@ -34,88 +34,133 @@ class GalaxyClustersController extends AppController
     public function index($id)
     {
         $filters = $this->IndexFilter->harvestParameters(array('context', 'searchall'));
+        $aclConditions = $this->GalaxyCluster->buildConditions($this->Auth->user());
         $contextConditions = array();
         if (empty($filters['context'])) {
             $filters['context'] = 'all';
+        } else {
+            $contextConditions = array();
+            if ($filters['context'] == 'default') {
+                $contextConditions = array(
+                    'Galaxy.default' => true
+                );
+            } elseif ($filters['context'] == 'org') {
+                $contextConditions = array(
+                    'Galaxy.org_id' => $this->Auth->user('org_id')
+                );
+            } elseif ($filters['context'] == 'orgc') {
+                $contextConditions = array(
+                    'Galaxy.orgc_id' => $this->Auth->user('org_id')
+                );
+            }
         }
+        $this->set('passedArgsArray', array('context' => $filters['context'], 'searchall' => isset($filters['searchall']) ? $filters['searchall'] : ''));
         $this->set('context', $filters['context']);
-        $this->set('searchall', isset($filters['searchall']) ? $filters['searchall'] : '');
-        $this->paginate['conditions'] = array('GalaxyCluster.galaxy_id' => $id);
-        if (isset($filters['searchall']) && strlen($filters['searchall']) > 0) {
+        $searchConditions = array();
+        if (empty($filters['searchall'])) {
+            $filters['searchall'] = '';
+        }
+        if (strlen($filters['searchall']) > 0) {
+            $searchall = '%' . strtolower($filters['searchall']) . '%';
             $synonym_hits = $this->GalaxyCluster->GalaxyElement->find(
                 'list',
                 array(
                     'recursive' => -1,
                     'conditions' => array(
-                        'LOWER(GalaxyElement.value) LIKE' => '%' . strtolower($filters['searchall']) . '%',
+                        'LOWER(GalaxyElement.value) LIKE' => $searchall,
                         'GalaxyElement.key' => 'synonyms' ),
                         'fields' => array(
                             'GalaxyElement.galaxy_cluster_id')
                         )
             );
-            $this->paginate['conditions'] =
-                array("AND" => array(
-                    'OR' => array(
-                        "LOWER(GalaxyCluster.value) LIKE" => '%'. strtolower($filters['searchall']) .'%',
-                        "LOWER(GalaxyCluster.description) LIKE" => '%'. strtolower($filters['searchall']) .'%',
-                        "GalaxyCluster.id" => array_values($synonym_hits)
+            $searchConditions = array(
+                'OR' => array(
+                    'LOWER(GalaxyCluster.value) LIKE' => $searchall,
+                    'LOWER(GalaxyCluster.description) LIKE' => $searchall,
+                    'GalaxyCluster.uuid' => $filters['searchall'],
+                    'GalaxyCluster.id' => array_values($synonym_hits),
+                ),
+            );
+        }
+        $searchConditions['GalaxyCluster.galaxy_id'] = $id;
+
+        if ($this->_isRest()) {
+            $clusters = $this->Galaxy->find('all', 
+                array(
+                    // 'recursive' => -1,
+                    'conditions' => array(
+                        'AND' => array($contextConditions, $searchConditions, $aclConditions)
                     ),
-                    "GalaxyCluster.galaxy_id" => $id
-                    ));
-            $this->set('passedArgsArray', array('all'=>$filters['searchall']));
-        }
-        $clusters = $this->paginate();
-        $sgs = $this->GalaxyCluster->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
-        foreach ($clusters as $k => $cluster) {
-            if (!empty($cluster['Tag']['id'])) {
-                $clusters[$k]['GalaxyCluster']['event_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($cluster['Tag']['id'], $this->Auth->user(), $sgs);
-            } else {
-                $clusters[$k]['GalaxyCluster']['event_count'] = 0;
+                    // 'contain' => array('Org', 'Orgc')
+                )
+            );
+            return $this->RestResponse->viewData($galaxies, $this->response->type());
+        } else {
+            $this->paginate['conditions']['AND'][] = $contextConditions;
+            $this->paginate['conditions']['AND'][] = $searchConditions;
+            $this->paginate['conditions']['AND'][] = $aclConditions;
+            $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc'));
+            $clusters = $this->paginate();
+            foreach ($clusters as $k => $cluster) {
+                // $clusters[$k] = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
+                // $clusters[$k] = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
             }
-        }
-        $tagIds = array();
-        $sightings = array();
-        if (!empty($clusters)) {
-            $galaxyType = $clusters[0]['GalaxyCluster']['type'];
-            foreach ($clusters as $k => $v) {
-                $clusters[$k]['event_ids'] = array();
-                if (!empty($v['Tag'])) {
-                    $tagIds[] = $v['Tag']['id'];
-                    $clusters[$k]['GalaxyCluster']['tag_id'] = $v['Tag']['id'];
-                }
-                $clusters[$k]['GalaxyCluster']['synonyms'] = array();
-                foreach ($v['GalaxyElement'] as $element) {
-                    $clusters[$k]['GalaxyCluster']['synonyms'][] = $element['value'];
-                }
-            }
-        }
-        $this->loadModel('Sighting');
-        $sightings['tags'] = array();
-        foreach ($clusters as $k => $cluster) {
-            if (!empty($cluster['GalaxyCluster']['tag_id'])) {
-                $temp = $this->Sighting->getSightingsForTag($this->Auth->user(), $cluster['GalaxyCluster']['tag_id']);
-                $clusters[$k]['sightings'] = $temp;
-            }
-        }
-        $csv = array();
-        foreach ($clusters as $k => $cluster) {
-            $startDate = !empty($cluster['sightings']) ? min(array_keys($cluster['sightings'])) : date('Y-m-d');
-            $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
-            $to = date('Y-m-d', time());
-            for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
-                if (!isset($csv[$k])) {
-                    $csv[$k] = 'Date,Close\n';
-                }
-                if (isset($cluster['sightings'][$date])) {
-                    $csv[$k] .= $date . ',' . $cluster['sightings'][$date] . '\n';
+            $sgs = $this->GalaxyCluster->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
+            foreach ($clusters as $k => $cluster) {
+                if (!empty($cluster['Tag']['id'])) {
+                    $clusters[$k]['GalaxyCluster']['event_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($cluster['Tag']['id'], $this->Auth->user(), $sgs);
                 } else {
-                    $csv[$k] .= $date . ',0\n';
+                    $clusters[$k]['GalaxyCluster']['event_count'] = 0;
                 }
             }
+            $tagIds = array();
+            $sightings = array();
+            if (!empty($clusters)) {
+                $galaxyType = $clusters[0]['GalaxyCluster']['type'];
+                foreach ($clusters as $k => $v) {
+                    $clusters[$k]['event_ids'] = array();
+                    if (!empty($v['Tag'])) {
+                        $tagIds[] = $v['Tag']['id'];
+                        $clusters[$k]['GalaxyCluster']['tag_id'] = $v['Tag']['id'];
+                    }
+                    $clusters[$k]['GalaxyCluster']['synonyms'] = array();
+                    foreach ($v['GalaxyElement'] as $element) {
+                        $clusters[$k]['GalaxyCluster']['synonyms'][] = $element['value'];
+                    }
+                }
+            }
+            $this->loadModel('Sighting');
+            $sightings['tags'] = array();
+            foreach ($clusters as $k => $cluster) {
+                if (!empty($cluster['GalaxyCluster']['tag_id'])) {
+                    $temp = $this->Sighting->getSightingsForTag($this->Auth->user(), $cluster['GalaxyCluster']['tag_id']);
+                    $clusters[$k]['sightings'] = $temp;
+                }
+            }
+            $csv = array();
+            foreach ($clusters as $k => $cluster) {
+                $startDate = !empty($cluster['sightings']) ? min(array_keys($cluster['sightings'])) : date('Y-m-d');
+                $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
+                $to = date('Y-m-d', time());
+                for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
+                    if (!isset($csv[$k])) {
+                        $csv[$k] = 'Date,Close\n';
+                    }
+                    if (isset($cluster['sightings'][$date])) {
+                        $csv[$k] .= $date . ',' . $cluster['sightings'][$date] . '\n';
+                    } else {
+                        $csv[$k] .= $date . ',0\n';
+                    }
+                }
+            }
+            $this->loadModel('Attribute');
+            $distributionLevels = $this->Attribute->distributionLevels;
+            unset($distributionLevels[5]);
+            $this->set('distributionLevels', $distributionLevels);
+            $this->set('csv', $csv);
+            $this->set('list', $clusters);
+            $this->set('galaxy_id', $id);
         }
-        $this->set('csv', $csv);
-        $this->set('list', $clusters);
-        $this->set('galaxy_id', $id);
         if ($this->request->is('ajax')) {
             $this->layout = 'ajax';
             $this->render('ajax/index');
@@ -130,10 +175,15 @@ class GalaxyClustersController extends AppController
         } else {
             $conditions['GalaxyCluster.id'] = $id;
         }
+        $contain = array('Galaxy');
+        if ($this->_isRest()) {
+            $contain[] = 'GalaxyElement';
+        }
         $options = array(
-            'conditions' => $conditions
+            'conditions' => $conditions,
+            'contain' => $contain
         );
-        $cluster = $this->fetchGalaxyClusters($this->Auth->user(), $options, $full=true);
+        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $options, $full=true);
         if (!empty($cluster)) {
             $cluster = $cluster[0];
             $galaxyType = $cluster['GalaxyCluster']['type'];
@@ -159,7 +209,7 @@ class GalaxyClustersController extends AppController
             return $this->RestResponse->viewData(array('GalaxyCluster' => $cluster['GalaxyCluster']), $this->response->type());
         } else {
             $this->set('id', $id);
-            $this->set('galaxy_id', $cluster['Galaxy']['id']);
+            $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
             $this->set('cluster', $cluster);
         }
     }
