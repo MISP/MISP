@@ -194,6 +194,26 @@ class GalaxyCluster extends AppModel
         return $errors;
     }
 
+    public function attachExtendByInfo($user, $cluster)
+    {
+        $extensions = $this->fetchGalaxyClusters($user, array('conditions' => array('extends_uuid' => $cluster['GalaxyCluster']['uuid'])));
+        $cluster['GalaxyCluster']['extended_by'] = $extensions;
+        return $cluster;
+    }
+
+    public function attachExtendFromInfo($user, $cluster)
+    {
+        if (!empty($cluster['GalaxyCluster']['extends_uuid'])) {
+            $extensions = $this->fetchGalaxyClusters($user, array('conditions' => array('uuid' => $cluster['GalaxyCluster']['extends_uuid'])));
+            if (!empty($extensions)) {
+                $cluster['GalaxyCluster']['extended_from'] = $extensions[0];
+            } else {
+                $cluster['GalaxyCluster']['extended_from'] = array();
+            }
+        }
+        return $cluster;
+    }
+
     // receive a full galaxy and add all new clusters, update existing ones contained in the new galaxy, cull old clusters that are removed from the galaxy
     public function update($id, $galaxy)
     {

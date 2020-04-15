@@ -102,8 +102,8 @@ class GalaxyClustersController extends AppController
             $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc'));
             $clusters = $this->paginate();
             foreach ($clusters as $k => $cluster) {
-                // $clusters[$k] = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
-                // $clusters[$k] = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
+                $clusters[$k] = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
+                $clusters[$k] = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
             }
             $sgs = $this->GalaxyCluster->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
             foreach ($clusters as $k => $cluster) {
@@ -208,6 +208,8 @@ class GalaxyClustersController extends AppController
             $cluster['GalaxyCluster']['GalaxyElement'] = $cluster['GalaxyElement'];
             return $this->RestResponse->viewData(array('GalaxyCluster' => $cluster['GalaxyCluster']), $this->response->type());
         } else {
+            $cluster = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $cluster);
+            $cluster = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $cluster);
             $this->set('id', $id);
             $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
             $this->set('cluster', $cluster);

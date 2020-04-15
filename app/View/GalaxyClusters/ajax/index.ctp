@@ -100,6 +100,12 @@
                     'name' => __('Description'),
                     'sort' => 'description',
                     'data_path' => 'GalaxyCluster.description',
+                    'element' => 'extended_by',
+                    'fields' => array(
+                        'extend_data_path' => 'GalaxyCluster.extended_by',
+                        'extend_link_path' => 'GalaxyCluster.uuid',
+                        'extend_link_title' => 'GalaxyCluster.value'
+                    )
                 ),
                 array(
                     'name' => __('Distribution'),

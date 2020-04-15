@@ -1,6 +1,36 @@
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view_cluster'));
 
+    $extendedFromHtml = '';
+    $extendFromLinks = array();
+    if (!empty($cluster['GalaxyCluster']['extended_from'])) {
+        $element = $this->element('genericElements/IndexTable/Fields/links', array(
+            'url' => $baseurl . '/galaxy_clusters/view/',
+            'row' => $cluster,
+            'field' => array(
+                'data_path' => 'GalaxyCluster.extended_from.GalaxyCluster.id',
+                'title' => $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['value']
+            ),
+        ));
+        $extendFromLinks[] = sprintf('<li>%s</li>', $element);
+    }
+    $extendedFromHtml = sprintf('<ul>%s</ul>', implode('', $extendFromLinks));
+
+    $extendedByHtml = '';
+    $extendByLinks = array();
+    foreach($cluster['GalaxyCluster']['extended_by'] as $extendCluster) {
+        $element = $this->element('genericElements/IndexTable/Fields/links', array(
+            'url' => '/galaxy_clusters/view/',
+            'row' => $extendCluster,
+            'field' => array(
+                'data_path' => 'GalaxyCluster.id',
+                'title' => $extendCluster['GalaxyCluster']['value']
+            ),
+        ));
+        $extendByLinks[] = sprintf('<li>%s</li>', $element);
+    }
+    $extendedByHtml = sprintf('<ul>%s</ul>', implode('', $extendByLinks));
+
     $table_data = array();
     $table_data[] = array('key' => __('Cluster ID'), 'value' => $cluster['GalaxyCluster']['id']);
     $table_data[] = array('key' => __('Name'), 'value' => $cluster['GalaxyCluster']['value']);
@@ -19,6 +49,8 @@
                         ):
                         '<span>0</span>'
                     );
+    $table_data[] = array('key' => __('Extended From'), 'html' => $extendedFromHtml);
+    $table_data[] = array('key' => __('Extended By'), 'html' => $extendedByHtml);
 ?>
 
 <div class='view'>
