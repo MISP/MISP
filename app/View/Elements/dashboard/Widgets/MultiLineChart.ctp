@@ -500,13 +500,25 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
                     return 'translate(' + xpos + ',' + ypos + ')';
                 })
                 .on('click', function(d, i) { 
-                    d.disabled = !d.disabled;
                     var label_text = d.text;
-                    var label_disabled = d.disabled;
-                    data_nodes.filter(function(d) { return d.name === label_text; }).forEach(function(data) {
-                        data.disabled = label_disabled
-                    })
-                    _draw()
+                    if (d3.event.ctrlKey) { // hide all others
+                        data_nodes.filter(function(fd) { return fd.name === label_text; }).forEach(function(data) {
+                            data.disabled = false;
+                        })
+                        data_nodes.filter(function(fd) { return fd.name !== label_text; }).forEach(function(data) {
+                            data.disabled = true;
+                        })
+                        d.disabled = false;
+                        legend_labels.filter(function(fd) { return fd.text !== label_text}).forEach(function(label_data) {
+                            label_data.disabled = true;
+                        })
+                    } else { // hide it
+                        d.disabled = !d.disabled;
+                        data_nodes.filter(function(fd) { return fd.name === label_text; }).forEach(function(data) {
+                            data.disabled = d.disabled;
+                        })
+                    }
+                    _draw();
                 });
         }
     }

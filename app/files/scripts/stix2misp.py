@@ -1088,7 +1088,7 @@ class StixFromMISPParser(StixParser):
     # Parse STIX object that we know will give MISP objects
     def parse_misp_object_indicator(self, indicator):
         item = indicator.item
-        name = item.title.split(' ')[0]
+        name = item.title.split(': ')[0]
         if name not in ('passive-dns'):
             self.fill_misp_object(item, name, to_ids=True)
         else:

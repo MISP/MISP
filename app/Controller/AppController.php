@@ -182,6 +182,8 @@ class AppController extends Controller
         if (!empty($this->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
         }
+        Configure::write('CurrentController', $this->params['controller']);
+        Configure::write('CurrentAction', $this->params['action']);
         $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
@@ -298,6 +300,7 @@ class AppController extends Controller
         }
 
         if ($this->Auth->user()) {
+            Configure::write('CurrentUserId', $this->Auth->user('id'));
             $this->User->setMonitoring($this->Auth->user());
             if (Configure::read('MISP.log_user_ips')) {
                 $redis = $this->{$this->modelClass}->setupRedis();
@@ -606,7 +609,7 @@ class AppController extends Controller
             ConnectionManager::create('default', $db->config);
         }
         $dataSource = $dataSourceConfig['datasource'];
-        if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
+        if (!in_array($dataSource, array('Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver'))) {
             throw new Exception('datasource not supported: ' . $dataSource);
         }
     }
