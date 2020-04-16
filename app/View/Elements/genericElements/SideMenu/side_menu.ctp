@@ -1145,19 +1145,6 @@
                         'url' => '/galaxies/index',
                         'text' => __('List Galaxies')
                     ));
-                    if ($hostOrgUser) { //  TODO: Use correct permission
-                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/galaxies/import',
-                            'text' => __('Import Galaxy')
-                        ));
-                        if ($menuItem === 'view') {
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'url' => '/galaxy_clusters/add/' . h($galaxy['Galaxy']['id']),
-                                'text' => __('Add Galaxy Cluster')
-                            ));
-                        }
-                    }
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
@@ -1172,6 +1159,19 @@
                             'text' => __('Force Update Galaxies'),
                             'message' => __('Are you sure you want to drop and reimport all galaxies from the submodule?')
                         ));
+                    }
+                    if ($hostOrgUser) { //  TODO: Use correct permission
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/galaxies/import',
+                            'text' => __('Import Galaxy Clusters')
+                        ));
+                        if ($menuItem === 'view') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => '/galaxy_clusters/add/' . h($galaxy['Galaxy']['id']),
+                                'text' => __('Add Galaxy Cluster')
+                            ));
+                        }
                     }
                     if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster') {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
@@ -1204,6 +1204,7 @@
                         ));
                     }
                     if ($menuItem === 'view') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
                             'text' => __('View Galaxy')
@@ -1211,7 +1212,7 @@
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'export',
                             'url' => '/galaxies/export/' . h($galaxy['Galaxy']['id']),
-                            'text' => __('Export Galaxy')
+                            'text' => __('Export Galaxy Clusters')
                         ));
                     }
                     break;
