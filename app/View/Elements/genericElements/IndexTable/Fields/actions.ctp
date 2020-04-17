@@ -19,10 +19,13 @@
     */
     echo '<td class="short action-links">';
     foreach ($actions as $action) {
+        if (isset($action['requirement']) && !$action['requirement']) {
+            continue;
+        }
         if (isset($action['complex_requirement'])) {
             if (isset($action['complex_requirement']['options']['datapath'])) {
                 foreach ($action['complex_requirement']['options']['datapath'] as $name => $path) {
-                    $action['complex_requirement']['options']['datapath'][$name] = Hash::extract($row, $path)[0];
+                    $action['complex_requirement']['options']['datapath'][$name] = empty(Hash::extract($row, $path)[0]) ? null : Hash::extract($row, $path)[0];
                 }
             }
             $options = isset($action['complex_requirement']['options']) ? $action['complex_requirement']['options'] : array();
@@ -54,6 +57,9 @@
                 $url_param_data_paths = implode('/', $temp);
             }
             $url .= '/' . $url_param_data_paths;
+        }
+        if (!empty($action['url_extension'])) {
+            $url .= '.' . $action['url_extension'];
         }
         if (isset($action['postLink'])) {
             echo $this->Form->postLink(
