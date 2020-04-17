@@ -2150,6 +2150,22 @@ class Event extends AppModel
             'Object' => array('name', 'meta-category')
         );
         foreach ($results as $eventKey => &$event) {
+            if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'Event',
+                    'model_id' => $event['Event']['id'],
+                    'email' => $user['email'],
+                    'action' => 'fetchEvent',
+                    'user_id' => $user['id'],
+                    'title' => 'User was able to fetch the event but not the sharing_group it belongs to',
+                    'change' => ''
+                ));
+                unset($results[$eventKey]); // Current user cannot access sharing_group associated to this event
+                continue;
+            }
             $this->__attachReferences($user, $event, $sgids, $fields);
             $event = $this->Orgc->attachOrgsToEvent($event, $fieldsOrg);
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
