@@ -641,6 +641,12 @@ class Event extends AppModel
             if (isset($this->data['Event']['info'])) {
                 $this->Correlation->updateAll(array('Correlation.info' => $db->value($this->data['Event']['info'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
             }
+            if (isset($this->data['Event']['distribution'])) {
+                $this->Correlation->updateAll(array('Correlation.distribution' => $db->value($this->data['Event']['distribution'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
+            }
+            if (isset($this->data['Event']['sharing_group_id'])) {
+                $this->Correlation->updateAll(array('Correlation.sharing_group_id' => $db->value($this->data['Event']['sharing_group_id'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
+            }
         }
         if (empty($this->data['Event']['unpublishAction']) && empty($this->data['Event']['skip_zmq']) && Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
             $pubSubTool = $this->getPubSubTool();
