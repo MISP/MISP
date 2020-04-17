@@ -2464,7 +2464,11 @@ class Event extends AppModel
         }
         foreach ($data as $k => $v) {
             if ($v['distribution'] == 4) {
-                $data[$k]['SharingGroup'] = $sharingGroupData[$v['sharing_group_id']]['SharingGroup'];
+                if (isset($sharingGroupData[$v['sharing_group_id']])) {
+                    $data[$k]['SharingGroup'] = $sharingGroupData[$v['sharing_group_id']]['SharingGroup'];
+                } else {
+                    unset($data[$k]); // current user could not fetch the sharing_group
+                }
             }
         }
         return $data;
