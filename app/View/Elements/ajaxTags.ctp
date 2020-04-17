@@ -2,9 +2,9 @@
     if (empty($scope)) {
         $scope = 'event';
     }
+    $searchUrl = '/events/index/searchtag:';
     switch ($scope) {
         case 'event':
-            $searchUrl = '/events/index/searchtag:';
             $id = h($event['Event']['id']);
             if (!empty($required_taxonomies)) {
                 foreach ($required_taxonomies as $k => $v) {
