@@ -77,7 +77,8 @@ class AppModel extends Model
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
-        45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false
+        45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
+        51 => false
     );
 
     public $advanced_updates_description = array(
@@ -1371,6 +1372,10 @@ class AppModel extends Model
                     INDEX `ip` (`ip`),
                     INDEX `timestamp` (`timestamp`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                break;
+            case 51:
+                $sqlArray[] = "ALTER TABLE `feeds` ADD `orgc_id` int(11) NOT NULL DEFAULT 0";
+                $this->__addIndex('feeds', 'orgc_id');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
