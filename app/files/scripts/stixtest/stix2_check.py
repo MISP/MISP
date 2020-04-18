@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+import json
+import os
+import stix2
+import sys
+from argparse import ArgumentParser
+from compare_events import Comparer
+from query_rest_client import query_misp
+from stix2validator import validate_file, print_results
+
+_scripts_path = '/'.join(os.path.realpath(__file__).split('/')[:-2])
+sys.path.insert(0, f'{_scripts_path}/stix2')
+from stix2misp import ExternalStixParser, StixFromMISPParser
+
+
+def externalise_event(event):
+    for stix_object in event['objects']:
+        if stix_object['type'] == 'report':
+            if 'misp:tool="misp2stix2"' in stix_object['labels']:
+                stix_object['labels'] = [label for label in stix_object['labels'] if label != 'misp:tool="misp2stix2"']
+
+
+def get_external(event):
+    externalise_event(event)
+    return ExternalStixParser(), stix2.parse(event, allow_custom=True, interoperability=True)
+
+
+def get_internal(event):
+    return StixFromMISPParser(), stix2.parse(event, allow_custom=True, interoperability=True)
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser(description='Full process of querying data from MISP and comparing the results after a STIX export then import')
+    parser.add_argument('--setup', default='setup.json', help='Path to the file containing the required setup to connect to the MISP server.')
+    parser.add_argument('--eventid', nargs='+', help='Filter on Event id')
+    parser.add_argument('--withAttachments', type=int, help='Export Attributes with the attachments')
+    parser.add_argument('-o', '--output', type=str, required=True, help='Name of the output file to save the result of the query in')
+    parser.add_argument('-d', '--delete', action='store_true', help='Delete all the files generated')
+    parser.add_argument('-x', '--externalise', action='store_true', help='Make the STIX file look like it has been generated from an external source')
+    args = parser.parse_args()
+    output = args.output
+    args.relative_path = 'events/restSearch'
+    filenames = []
+    for return_type in ('json', 'stix2'):
+        args.output = f"test_{return_type}_{output}.json"
+        args.returnFormat = return_type
+        query_misp(args)
+        filenames.append(args.output)
+    to_delete = [filename for filename in filenames]
+    stix_analyse = validate_file(filenames[1])
+    print_results(stix_analyse)
+    with open(filenames[1], 'rt', encoding='utf-8') as f:
+        event = json.loads(f.read())
+    stix_parser, event = get_external(event) if args.externalise else get_internal(event)
+    stix_parser.handler(event, filenames[1], [0, 5])
+    stix_parser.save_file()
+    filenames[1] = f'{filenames[1]}.stix2'
+    to_delete.append(filenames[1])
+    comparer = Comparer(*filenames)
+    comparer.compare_attributes()
+    comparer.compare_objects()
+    comparer.compare_tags()
+    comparer.compare_galaxies()
+    comparer.compare_references()
+    if args.delete:
+        for filename in to_delete:
+            os.remove(filename)
