@@ -9,7 +9,8 @@
             array(
                 'attributeId' => 0,
                 'tags' => $tags,
-                'tagAccess' => false
+                'tagAccess' => false,
+                'static_tags_only' => 1
             )
         );
     }
