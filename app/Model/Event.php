@@ -3263,10 +3263,10 @@ class Event extends AppModel
         return array($bodyevent, $body);
     }
 
-    private function __captureSGForElement($element, $user)
+    private function __captureSGForElement($element, $user, $syncLocal=false)
     {
         if (isset($element['SharingGroup'])) {
-            $sg = $this->SharingGroup->captureSG($element['SharingGroup'], $user);
+            $sg = $this->SharingGroup->captureSG($element['SharingGroup'], $user, $syncLocal);
             unset($element['SharingGroup']);
         } elseif (isset($element['sharing_group_id'])) {
             $sg = $this->SharingGroup->checkIfAuthorised($user, $element['sharing_group_id']) ? $element['sharing_group_id'] : false;
@@ -3283,17 +3283,17 @@ class Event extends AppModel
 
     // When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
     // or which we need to update. All of that is controlled in this method.
-    private function __captureObjects($data, $user)
+    private function __captureObjects($data, $user, $syncLocal=false)
     {
         // First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
         if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
-            $data['Event'] = $this->__captureSGForElement($data['Event'], $user);
+            $data['Event'] = $this->__captureSGForElement($data['Event'], $user, $syncLocal);
         }
         if (!empty($data['Event']['Attribute'])) {
             foreach ($data['Event']['Attribute'] as $k => $a) {
                 unset($data['Event']['Attribute']['id']);
                 if (isset($a['distribution']) && $a['distribution'] == 4) {
-                    $data['Event']['Attribute'][$k] = $this->__captureSGForElement($a, $user);
+                    $data['Event']['Attribute'][$k] = $this->__captureSGForElement($a, $user, $syncLocal);
                     if ($data['Event']['Attribute'][$k] === false) {
                         unset($data['Event']['Attribute']);
                     }
@@ -3303,7 +3303,7 @@ class Event extends AppModel
         if (!empty($data['Event']['Object'])) {
             foreach ($data['Event']['Object'] as $k => $o) {
                 if (isset($o['distribution']) && $o['distribution'] == 4) {
-                    $data['Event']['Object'][$k] = $this->__captureSGForElement($o, $user);
+                    $data['Event']['Object'][$k] = $this->__captureSGForElement($o, $user, $syncLocal);
                     if ($data['Event']['Object'][$k] === false) {
                         unset($data['Event']['Object'][$k]);
                         continue;
@@ -3311,7 +3311,7 @@ class Event extends AppModel
                 }
                 foreach ($o['Attribute'] as $k2 => $a) {
                     if (isset($a['distribution']) && $a['distribution'] == 4) {
-                        $data['Event']['Object'][$k]['Attribute'][$k2] = $this->__captureSGForElement($a, $user);
+                        $data['Event']['Object'][$k]['Attribute'][$k2] = $this->__captureSGForElement($a, $user, $syncLocal);
                         if ($data['Event']['Object'][$k]['Attribute'][$k2] === false) {
                             unset($data['Event']['Object'][$k]['Attribute'][$k2]);
                         }
@@ -3479,6 +3479,24 @@ class Event extends AppModel
                 return 'blocked';
             }
         }
+        if ($passAlong) {
+            $this->Server = ClassRegistry::init('Server');
+            $server = $this->Server->find('first', array(
+                'conditions' => array(
+                    'Server.id' => $passAlong
+                ),
+                'recursive' => -1,
+                'fields' => array(
+                    'Server.name',
+                    'Server.id',
+                    'Server.unpublish_event',
+                    'Server.publish_without_email',
+                    'Server.internal'
+                )
+            ));
+        } else {
+            $server['Server']['internal'] = false;
+        }
         if ($fromXml) {
             // Workaround for different structure in XML/array than what CakePHP expects
             $data = $this->cleanupEventArrayFromXML($data);
@@ -3505,7 +3523,7 @@ class Event extends AppModel
                 return $existingEvent['Event']['id'];
             } else {
                 if ($fromXml) {
-                    $data = $this->__captureObjects($data, $user);
+                    $data = $this->__captureObjects($data, $user, $server['Server']['internal']);
                 }
                 if ($data === false) {
                     $failedCapture = true;
@@ -3513,7 +3531,7 @@ class Event extends AppModel
             }
         } else {
             if ($fromXml) {
-                $data = $this->__captureObjects($data, $user);
+                $data = $this->__captureObjects($data, $user, $server['Server']['internal']);
             }
             if ($data === false) {
                 $failedCapture = true;
@@ -3574,19 +3592,6 @@ class Event extends AppModel
         $this->Log = ClassRegistry::init('Log');
         if ($saveResult) {
             if ($passAlong) {
-                $this->Server = ClassRegistry::init('Server');
-                $server = $this->Server->find('first', array(
-                    'conditions' => array(
-                        'Server.id' => $passAlong
-                    ),
-                    'recursive' => -1,
-                    'fields' => array(
-                        'Server.name',
-                        'Server.id',
-                        'Server.unpublish_event',
-                        'Server.publish_without_email'
-                    )
-                ));
                 if ($server['Server']['publish_without_email'] == 0) {
                     $st = "enabled";
                 } else {
@@ -3729,6 +3734,23 @@ class Event extends AppModel
         } else {
             $existingEvent = $this->findById($id);
         }
+        if ($passAlong) {
+            $this->Server = ClassRegistry::init('Server');
+            $server = $this->Server->find('first', array(
+                'conditions' => array(
+                    'Server.id' => $passAlong
+                ),
+                'recursive' => -1,
+                'fields' => array(
+                    'Server.name',
+                    'Server.id',
+                    'Server.unpublish_event',
+                    'Server.publish_without_email'
+                )
+            ));
+        } else {
+            $server['Server']['internal'] = false;
+        }
         // If the event exists...
         $dateObj = new DateTime();
         $date = $dateObj->getTimestamp();
@@ -3751,7 +3773,7 @@ class Event extends AppModel
                             return(array('error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.'));
                         }
                     } else {
-                        $data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
+                        $data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user, $server['Server']['internal']);
                         unset($data['Event']['SharingGroup']);
                         if ($data['Event']['sharing_group_id'] === false) {
                             return (array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.'));
@@ -3872,19 +3894,6 @@ class Event extends AppModel
             if ((!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
                 // The edited event is from a remote server ?
                 if ($passAlong) {
-                    $this->Server = ClassRegistry::init('Server');
-                    $server = $this->Server->find('first', array(
-                        'conditions' => array(
-                            'Server.id' => $passAlong
-                        ),
-                        'recursive' => -1,
-                        'fields' => array(
-                            'Server.name',
-                            'Server.id',
-                            'Server.unpublish_event',
-                            'Server.publish_without_email'
-                        )
-                    ));
                     if ($server['Server']['publish_without_email'] == 0) {
                         $st = "enabled";
                     } else {

@@ -485,7 +485,7 @@ class SharingGroup extends AppModel
         return $results;
     }
 
-    public function captureSG($sg, $user)
+    public function captureSG($sg, $user, $syncLocal=false)
     {
         $existingSG = !isset($sg['uuid']) ? null : $this->find('first', array(
                 'recursive' => -1,
@@ -499,6 +499,25 @@ class SharingGroup extends AppModel
         $force = false;
         if (empty($existingSG)) {
             if (!$user['Role']['perm_sharing_group']) {
+                return false;
+            }
+            // check if current user is contained in the SG and we are in a local sync setup
+            $authorizedToSave = $this->checkIfAuthorisedToSave($user, $sg);
+            if (!$user['Role']['perm_site_admin'] &&
+                !($user['Role']['perm_sync'] && $syncLocal ) &&
+                !$authorizedToSave
+            ) {
+                $this->Log->create();
+                $entry = array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'SharingGroup',
+                        'model_id' => $sg['SharingGroup']['uuid'],
+                        'email' => $user['email'],
+                        'action' => 'error',
+                        'user_id' => $user['id'],
+                        'title' => 'Tried to save a sharing group but the user does not belong to it.'
+                );
+                $this->Log->save($entry);
                 return false;
             }
             $this->create();
