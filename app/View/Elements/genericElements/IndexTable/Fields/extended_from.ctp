@@ -28,7 +28,7 @@
         $extended_from_output = $this->element('genericElements/IndexTable/Fields/links', array(
             'row' => $extendsData,
             'field' => array(
-                'url' => $baseurl . '/galaxies/view/%s',
+                'url' => $baseurl . '/galaxy_clusters/view/%s',
                 'data_path' => $field['fields']['extendfrom_link_path'],
                 'title' => $linkTitle
             ),
@@ -36,7 +36,7 @@
         $current_value_output = $this->element('genericElements/IndexTable/Fields/links', array(
             'row' => $extendsData,
             'field' => array(
-                'url' => $baseurl . '/galaxies/view/%s',
+                'url' => $baseurl . '/galaxy_clusters/view/%s',
                 'data_path' => $field['fields']['extendfrom_link_path'],
                 'title' => $linkTitle
             ),

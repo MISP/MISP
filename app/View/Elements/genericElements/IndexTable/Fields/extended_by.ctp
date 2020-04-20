@@ -35,7 +35,7 @@
                             echo $this->element('genericElements/IndexTable/Fields/links', array(
                                 'row' => $extendData,
                                 'field' => array(
-                                    'url' => $baseurl . '/galaxies/view/%s',
+                                    'url' => $baseurl . '/galaxy_clusters/view/%s',
                                     'data_path' => $field['fields']['extendby_link_path'],
                                     'title' => $linkTitle
                                 ),
