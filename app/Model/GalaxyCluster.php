@@ -137,11 +137,11 @@ class GalaxyCluster extends AppModel
         $this->create();
         $saveSuccess = $this->save($cluster);
         if ($saveSuccess) {
-            $savedCluster = $this->GalaxyCluster->find('first', array(
-                'conditions' => array('id' =>  $this->GalaxyCluster->id),
+            $savedCluster = $this->find('first', array(
+                'conditions' => array('id' =>  $this->id),
                 'recursive' => -1
             ));
-            $this->GalaxyElement->updateElements($savedCluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['elements']);
+            $this->GalaxyElement->updateElements(-1, $savedCluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['elements']);
         }
         return $saveSuccess;
     }
