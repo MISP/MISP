@@ -315,11 +315,11 @@ class EventsController extends AppController
                         break;
                     case 'attribute':
                         $event_id_arrays = $this->__filterOnAttributeValue($v);
-                        foreach ($event_id_arrays[0] as $event_id) {
-                            $this->paginate['conditions']['AND']['OR'][] = array('Event.id' => $event_id);
+                        if (!empty($event_id_arrays[0])) {
+                            $this->paginate['conditions']['AND'][] = array('Event.id' => $event_id_arrays[0]);
                         }
-                        foreach ($event_id_arrays[1] as $event_id) {
-                            $this->paginate['conditions']['AND'][] = array('Event.id !=' => $event_id);
+                        if (!empty($event_id_arrays[1])) {
+                            $this->paginate['conditions']['AND'][] = array('Event.id !=' => $event_id_arrays[1]);
                         }
                         break;
                     case 'published':
@@ -342,25 +342,38 @@ class EventsController extends AppController
                         if ($v == "") {
                             continue 2;
                         }
-                        $pieces = explode('|', $v);
+                        if (is_array($v)) {
+                            $pieces = $v;
+                        } else {
+                            $pieces = explode('|', $v);
+                        }
                         $temp = array();
+                        $eventidConditions = array();
                         foreach ($pieces as $piece) {
                             $piece = trim($piece);
                             if ($piece[0] == '!') {
                                 if (strlen($piece) == 37) {
-                                    $this->paginate['conditions']['AND'][] = array('Event.uuid !=' => substr($piece, 1));
+                                    $eventidConditions['NOT']['uuid'][] = substr($piece, 1);
                                 } else {
-                                    $this->paginate['conditions']['AND'][] = array('Event.id !=' => substr($piece, 1));
+                                    $eventidConditions['NOT']['id'][] = substr($piece, 1);
                                 }
                             } else {
                                 if (strlen($piece) == 36) {
-                                    $temp['OR'][] = array('Event.uuid' => $piece);
+                                    $eventidConditions['OR']['uuid'][] = $piece;
                                 } else {
-                                    $temp['OR'][] = array('Event.id' => $piece);
+                                    $eventidConditions['OR']['id'][] = $piece;
                                 }
                             }
                         }
-                        $this->paginate['conditions']['AND'][] = $temp;
+                        foreach ($eventidConditions as $operator => $conditionForOperator) {
+                            foreach ($conditionForOperator as $conditionKey => $conditionValue) {
+                                $lookupKey = 'Event.' . $conditionKey;
+                                if ($operator === 'NOT') {
+                                    $lookupKey = $lookupKey . ' !=';
+                                }
+                                $this->paginate['conditions']['AND'][] = array($lookupKey => $conditionValue);
+                            }
+                        }
                         break;
                     case 'datefrom':
                         if ($v == "") {
@@ -415,7 +428,11 @@ class EventsController extends AppController
                         $orgUuidArray = $this->Event->Org->find('list', array('fields' => array('Org.uuid')));
                         $orgArray = array_map('strtoupper', $orgArray);
                         // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
-                        $pieces = explode('|', $v);
+                        if (!is_array($v)) {
+                            $pieces = explode('|', $v);
+                        } else {
+                            $pieces = $v;
+                        }
                         $test = array();
                         foreach ($pieces as $piece) {
                             if ($piece[0] == '!') {
@@ -723,8 +740,6 @@ class EventsController extends AppController
                 } else {
                     $rules['order'] = array('Event.' . $passedArgs['sort'] => 'ASC');
                 }
-            } else {
-                $rules['order'] = array('Event.id' => 'DESC');
             }
             $rules['contain'] = $this->paginate['contain'];
             if (isset($this->paginate['conditions'])) {
@@ -3083,7 +3098,9 @@ class EventsController extends AppController
             'named_params' => $this->params['named'],
             'ordered_url_params' => func_get_args(),
             'injectedParams' => array(
-                'returnFormat' => 'csv'
+                'returnFormat' => 'csv',
+                'to_ids' => '1',
+                'published' => '1'
             )
         ));
         return $this->restSearch();
@@ -3991,26 +4008,26 @@ class EventsController extends AppController
                     'checkbox_default' => true
             ),
             'openIOC' => array(
-                    'url' => '/events/downloadOpenIOCEvent/download/' . $id,
+                    'url' => '/events/restSearch/openioc/to_ids:1/published:1/eventid:' . $id . '.json',
                     'text' => 'OpenIOC (all indicators marked to IDS)',
                     'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'csv' => array(
-                    'url' => '/events/csv/download/' . $id,
+                    'url' => '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:0/eventid:' . $id,
                     'text' => 'CSV',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/events/csv/download/' . $id . '/1'
+                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:0/eventid:' . $id
             ),
             'csv_with_context' => array(
-                    'url' => '/events/restSearch/returnFormat:csv/eventid:' . $id,
+                    'url' => '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:1/eventid:' . $id,
                     'text' => 'CSV with additional context',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/eventid:' . $id
+                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:1/eventid:' . $id
             ),
             'stix_xml' => array(
                     'url' => '/events/restSearch/stix/eventid:' . $id,
@@ -4056,6 +4073,7 @@ class EventsController extends AppController
             ),
             'bro' => array(
                     'url' => '/attributes/bro/download/all/false/' . $id,
+                    // 'url' => '/attributes/restSearch/returnFormat:bro/published:1||0/eventid:' . $id,
                     'text' => 'Download Bro rules',
                     'requiresPublished' => false,
                     'checkbox' => false
@@ -4076,7 +4094,7 @@ class EventsController extends AppController
                 }
             }
             $exports['csv'] = array(
-                'url' => '/events/csv/download/' . $id . '/1',
+                'url' => '/events/restSearch/returnFormat:csv/includeContext:0/eventid:' . $id,
                 'text' => 'CSV (event not published, IDS flag ignored)',
                 'requiresPublished' => false,
                 'checkbox' => false

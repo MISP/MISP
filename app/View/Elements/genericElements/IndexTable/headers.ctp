@@ -12,7 +12,7 @@
             } else {
                 if (!empty($header['element']) && $header['element'] === 'selector') {
                     $header_data = sprintf(
-                        '<input class="%s" type="checkbox" %s>',
+                        '<input id="select_all" class="%s" type="checkbox" %s>',
                         empty($header['select_all_class']) ? 'select_all' : $header['select_all_class'],
                         empty($header['select_all_function']) ? 'onclick="toggleAllAttributeCheckboxes();"' : 'onclick="' . $header['select_all_function'] . '"'
                     );
@@ -38,3 +38,14 @@
     $thead .= '</thead>';
     echo $thead;
 ?>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('.select_attribute').add('#select_all').on('change', function() {
+            if ($('.select_attribute:checked').length > 0) {
+                $('.mass-select').show();
+            } else {
+                $('.mass-select').hide();
+            }
+        });
+    });
+</script>

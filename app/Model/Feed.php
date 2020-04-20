@@ -19,6 +19,10 @@ class Feed extends AppModel
             'Tag' => array(
                     'className' => 'Tag',
                     'foreignKey' => 'tag_id',
+            ),
+            'Orgc' => array(
+                    'className' => 'Organisation',
+                    'foreignKey' => 'orgc_id'
             )
     );
 
@@ -31,6 +35,10 @@ class Feed extends AppModel
         'event_id' => array(
             'rule' => array('numeric'),
             'message' => 'Please enter a numeric event ID or leave this field blank.',
+        ),
+        'input_source' => array(
+            'rule' => 'validateInputSource',
+            'message' => ''
         )
     );
 
@@ -46,6 +54,46 @@ class Feed extends AppModel
             'name' => 'Simple CSV Parsed Feed'
         )
     );
+
+    /*
+     *  Cleanup of empty belongsto relationships
+     */
+    public function afterFind($results, $primary = false)
+    {
+        foreach ($results as $k => $result) {
+            if (isset($result['SharingGroup']) && empty($result['SharingGroup']['id'])) {
+                unset($results[$k]['SharingGroup']);
+            }
+            if (isset($result['Tag']) && empty($result['Tag']['id'])) {
+                unset($results[$k]['Tag']);
+            }
+            if (isset($result['Orgc']) && empty($result['Orgc']['id'])) {
+                unset($results[$k]['Orgc']);
+            }
+        }
+        return $results;
+    }
+
+    public function validateInputSource($fields)
+    {
+        if (!empty($this->data['Feed']['input_source'])) {
+            $localAllowed = empty(Configure::read('Security.disable_local_feed_access'));
+            $validOptions = array('network');
+            if ($localAllowed) {
+                $validOptions[] = 'local';
+            }
+            if (!in_array($this->data['Feed']['input_source'], $validOptions)) {
+                return __(
+                    'Invalid input source. The only valid options are %s. %s',
+                    implode(', ', $validOptions),
+                    (!$localAllowed && $this->data['Feed']['input_source'] === 'local') ?
+                    __('Security.disable_local_feed_access is currently enabled, local feeds are thereby not allowed.') :
+                    ''
+                );
+            }
+        }
+        return true;
+    }
 
     public function urlOrExistingFilepath($fields)
     {
@@ -854,11 +902,15 @@ class Feed extends AppModel
             }
         } else {
             $this->Event->create();
+            $orgc_id = $user['org_id'];
+            if (!empty($feed['Feed']['orgc_id'])) {
+                $orgc_id = $feed['Feed']['orgc_id'];
+            }
             $event = array(
                     'info' => $feed['Feed']['name'] . ' feed',
                     'analysis' => 2,
                     'threat_level_id' => 4,
-                    'orgc_id' => $user['org_id'],
+                    'orgc_id' => $orgc_id,
                     'org_id' => $user['org_id'],
                     'date' => date('Y-m-d'),
                     'distribution' => $feed['Feed']['distribution'],
@@ -1162,7 +1214,7 @@ class Feed extends AppModel
             'recursive' => -1,
             'fields' => array('id', 'url', 'name'),
             'contain' => array('RemoteOrg' => array('fields' => array('RemoteOrg.id', 'RemoteOrg.name'))),
-            'conditions' => array('Server.caching_enabled')
+            'conditions' => array('Server.caching_enabled' => 1)
         ));
         foreach ($servers as $k => $server) {
             if (!$redis->exists('misp:server_cache:' . $server['Server']['id'])) {
