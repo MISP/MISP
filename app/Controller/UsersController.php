@@ -31,6 +31,9 @@ class UsersController extends AppController
 
         // what pages are allowed for non-logged-in users
         $allowedActions = array('login', 'logout');
+        if(!empty(Configure::read('Security.email_otp_enabled'))) {
+          $allowedActions[] = 'email_otp';
+        }
         if (!empty(Configure::read('Security.allow_self_registration'))) {
             $allowedActions[] = 'register';
         }
@@ -1116,33 +1119,15 @@ class UsersController extends AppController
                 $this->Auth->constructAuthenticate();
             }
         }
+        if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
+            $user = $this->Auth->identify($this->request, $this->response);
+            if ($user) {
+              $this->Session->write('email_otp_user', $user);
+              return $this->redirect('email_otp');
+            }
+        }
         if ($this->Auth->login()) {
-            $this->User->extralog($this->Auth->user(), "login");
-            $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
-            $this->User->id = $this->Auth->user('id');
-            $user = $this->User->find('first', array(
-                'conditions' => array(
-                    'User.id' => $this->Auth->user('id')
-                ),
-                'recursive' => -1
-            ));
-            $lastUserLogin = $user['User']['last_login'];
-            unset($user['User']['password']);
-            $user['User']['action'] = 'login';
-            $user['User']['last_login'] = $this->Auth->user('current_login');
-            $user['User']['current_login'] = time();
-            $this->User->save($user['User'], true, array('id', 'last_login', 'current_login'));
-            if (empty($this->Auth->authenticate['Form']['passwordHasher']) && !empty($passwordToSave)) {
-                $this->User->saveField('password', $passwordToSave);
-            }
-            $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
-            if ($lastUserLogin) {
-                $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
-                $this->Flash->info(sprintf('Welcome! Last login was on %s', $readableDatetime));
-            }
-            // no state changes are ever done via GET requests, so it is safe to return to the original page:
-            $this->redirect($this->Auth->redirectUrl());
-        // $this->redirect(array('controller' => 'events', 'action' => 'index'));
+            $this->_postlogin();
         } else {
             $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
             $dataSource = $dataSourceConfig['datasource'];
@@ -1224,6 +1209,35 @@ class UsersController extends AppController
         }
     }
 
+    private function _postlogin()
+    {
+      $this->User->extralog($this->Auth->user(), "login");
+      $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
+      $this->User->id = $this->Auth->user('id');
+      $user = $this->User->find('first', array(
+          'conditions' => array(
+              'User.id' => $this->Auth->user('id')
+          ),
+          'recursive' => -1
+      ));
+      $lastUserLogin = $user['User']['last_login'];
+      unset($user['User']['password']);
+      $user['User']['action'] = 'login';
+      $user['User']['last_login'] = $this->Auth->user('current_login');
+      $user['User']['current_login'] = time();
+      $this->User->save($user['User'], true, array('id', 'last_login', 'current_login'));
+      if (empty($this->Auth->authenticate['Form']['passwordHasher']) && !empty($passwordToSave)) {
+          $this->User->saveField('password', $passwordToSave);
+      }
+      $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
+      if ($lastUserLogin) {
+          $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
+          $this->Flash->info(sprintf('Welcome! Last login was on %s', $readableDatetime));
+      }
+      // no state changes are ever done via GET requests, so it is safe to return to the original page:
+      $this->redirect($this->Auth->redirectUrl());
+    }
+
     public function routeafterlogin()
     {
         // Events list
@@ -1259,8 +1273,6 @@ class UsersController extends AppController
             'recursive' => -1
         ));
         unset($user['User']['password']);
-        $redis = $this->User->setupRedis();
-        $redis->delete('misp:otp_authed:'.session_id());
         $user['User']['action'] = 'logout';
         $this->User->save($user['User'], true, array('id'));
         $this->redirect($this->Auth->logout());
@@ -1660,48 +1672,36 @@ class UsersController extends AppController
 
     public function email_otp()
     {
+      $user = $this->Session->read('email_otp_user');
+      if(empty($user)) {
+        $this->redirect('login');
+      }
       $redis = $this->User->setupRedis();
-      $user_id = $this->Auth->user('id');
-      $session_id = session_id();
+      $user_id = $user['id'];
 
       if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
         $stored_otp = $redis->get('misp:otp:'.$user_id);
         if (!empty($stored_otp) && $this->request->data['User']['otp'] == $stored_otp) {
             // we invalidate the previously generated OTP
             $redis->delete('misp:otp:'.$user_id);
-            // We store in redis the success of the OTP step
-            $redis->set('misp:otp_authed:'.$session_id, 1);
-            // After this time, the user will need to redo the OTP step
-            // We use the same time as for the session expiration
-            $redis->expire('misp:otp_authed:'.$session_id, (int) Configure::read('Session.cookieTimeout') * 60);
-            $this->Flash->success(__("You are now logged in."));
-            $this->redirect($this->Auth->redirectUrl());
+            // We login the user with CakePHP
+            $this->Auth->login($user);
+            $this->_postlogin();
         } else {
             $this->Flash->error(__("The OTP is incorrect or has expired"));
         }
       } else {
         // GET Request
 
-        // If the OTP is still valid, we redirect
-        if (!Configure::read('Security.email_otp_enabled') || !empty($redis->get('misp:otp_authed:'.$session_id))) {
-          $this->redirect($this->Auth->redirectUrl());
-        }
-
-        $user = $this->User->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('User.id' => $user_id)
-        ));
-
         // We check for exceptions
         $exception_list = Configure::read('Security.email_otp_exceptions');
         if (!empty($exception_list)) {
           $exceptions = explode(",", $exception_list);
           foreach ($exceptions as &$exception) {
-            if ($user['User']['email'] == trim($exception)) {
-              $redis->set('misp:otp_authed:'.$session_id, 1);
-              // It will take maximum this time (in seconds) to ask a OTP for someone removed from the exception list
-              $redis->expire('misp:otp_authed:'.$session_id, 3600);
-              $this->redirect($this->Auth->redirectUrl());
+            if ($user['email'] == trim($exception)) {
+              // We login the user with CakePHP
+              $this->Auth->login($user);
+              $this->_postlogin();
             }
           }
         }
@@ -1726,8 +1726,8 @@ class UsersController extends AppController
         $body = str_replace('$validity', $validity, $body);
         $body = str_replace('$otp', $otp, $body);
         $body = str_replace('$ip', $this->_getClientIP(), $body);
-        $body = str_replace('$username', $user['User']['email'], $body);
-        $result = $this->User->sendEmail($user, $body, false, "[MISP] Email OTP");
+        $body = str_replace('$username', $user['email'], $body);
+        $result = $this->User->sendEmail(array('User' => $user), $body, false, "[MISP] Email OTP");
 
         if ( $result ) {
           $this->Flash->success(__("An email containing a OTP has been sent."));

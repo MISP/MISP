@@ -354,7 +354,7 @@ class AppController extends Controller
                 }
             }
         } else {
-            if ($this->params['controller'] !== 'users' || !in_array($this->params['action'], array('login', 'register'))) {
+            if ($this->params['controller'] !== 'users' || !in_array($this->params['action'], array('login', 'register', 'email_otp'))) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
@@ -407,12 +407,6 @@ class AppController extends Controller
                     //if ($this->_isRest()) throw new MethodNotAllowedException('Your user account is expecting a password change, please log in via the web interface and change it before proceeding.');
                     if (!$this->_isRest()) {
                         $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
-                    }
-                } elseif (Configure::read('Security.email_otp_enabled') && !$this->_isRest() && !in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/email_otp', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login'))) {
-                    $redis = $this->{$this->modelClass}->setupRedis();
-                    $otp_authed = $redis->get('misp:otp_authed:'.session_id());
-                    if (empty($otp_authed)) {
-                      $this->redirect(array('controller' => 'users', 'action' => 'email_otp', 'admin' => false));
                     }
                 } elseif (!$this->_isRest() && !($this->params['controller'] == 'news' && $this->params['action'] == 'index') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
                     $newsread = $this->User->field('newsread', array('User.id' => $this->Auth->user('id')));
