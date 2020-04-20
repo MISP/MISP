@@ -148,6 +148,12 @@ class AttributesController extends AppController
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }
+            if ($this->request->data['Attribute']['distribution'] == 4) {
+                $sg = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1, $this->request->data['Attribute']['sharing_group_id']);
+                if (empty($sg)) {
+                    throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised.'));
+                }
+            }
             //
             // multiple attributes in batch import
             //
