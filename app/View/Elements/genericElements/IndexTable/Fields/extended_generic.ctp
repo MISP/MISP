@@ -15,6 +15,7 @@ if (!empty($extendfromData)) {
 }
 
 if (!empty($extendbyData)) {
+    $field['parent'] = '';
     echo $this->element(
         '/genericElements/IndexTable/Fields/extended_by',
         array(
