@@ -858,6 +858,12 @@ class AttributesController extends AppController
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }
+            if ($this->request->data['Attribute']['distribution'] == 4) {
+                $sg = $this->Attribute->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1, $this->request->data['Attribute']['sharing_group_id']);
+                if (empty($sg)) {
+                    throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised.'));
+                }
+            }
             $existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
             // check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
             // check which attribute is newer
