@@ -29,6 +29,11 @@
                                 'active' => $context === 'org',
                                 'url' => sprintf('%s/galaxies/view/%s/context:org', $baseurl, $galaxy_id),
                                 'text' => __('My Galaxy Clusters'),
+                            ),
+                            array(
+                                'active' => $context === 'fork_tree',
+                                'url' => sprintf('%s/galaxies/view/%s/context:fork_tree', $baseurl, $galaxy_id),
+                                'text' => __('View fork tree'),
                             )
                         )
                     ),

@@ -413,4 +413,51 @@ class GalaxiesController extends AppController
         $this->set('object', $object[0]);
         $this->render('/Events/ajax/ajaxGalaxies');
     }
+
+    public function forkTree($galaxyId)
+    {
+        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)));
+        if (empty($clusters)) {
+            throw new MethodNotAllowedException('Invalid Galaxy.');
+        }
+        foreach ($clusters as $k => $cluster) {
+            $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
+            $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
+        }
+        $galaxy = $this->Galaxy->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Galaxy.id' => $galaxyId)
+        ));
+        $tree = array();
+        $lookup = array();
+        foreach ($clusters as $i => $cluster) {
+            $clusters[$i]['children'] = array();
+            $lookup[$cluster['GalaxyCluster']['id']] = &$clusters[$i];
+        }
+        foreach ($clusters as $i => $cluster) {
+            if (!empty($cluster['GalaxyCluster']['extended_from'])) {
+                $parent = $cluster['GalaxyCluster']['extended_from'];
+                $lookup[$parent['GalaxyCluster']['id']]['children'][] = &$clusters[$i];
+            } else {
+                $tree[] = &$clusters[$i];
+            }
+        }
+
+        foreach($tree as $i => $node) {
+            if (empty($node['children'])) {
+                unset($tree[$i]);
+            }
+        }
+
+        $tree = array(array(
+            'Galaxy' => $galaxy['Galaxy'],
+            'children' => array_values($tree)
+        ));
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($tree, $this->response->type());
+        }
+        $this->set('tree', $tree);
+        $this->set('galaxy', $galaxy);
+        $this->set('galaxy_id', $galaxyId);
+    }
 }

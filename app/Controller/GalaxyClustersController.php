@@ -312,7 +312,7 @@ class GalaxyClustersController extends AppController
             if ($temp === null) {
                 throw new NotFoundException('Invalid galaxy cluster');
             }
-            $id = $temp['Galaxy']['id'];
+            $id = $temp['GalaxyCluster']['id'];
         } elseif (!is_numeric($id)) {
             throw new NotFoundException(__('Invalid galaxy cluster'));
         }
