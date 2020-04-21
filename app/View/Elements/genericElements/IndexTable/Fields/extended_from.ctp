@@ -47,7 +47,7 @@
 ?>
 <?php if (!empty($extendsData)): ?>
     <div>
-        <div class="bold">
+        <div class="bold extendedFromCell">
             <?= $extended_from_output ?> ::
             <i class="<?php echo $this->FontAwesome->findNamespace('code-branch'); ?> fa-code-branch fa-rotate-90"></i>
             <span style="margin-left: 0.2em;"><?= $original_value_output ?></span>

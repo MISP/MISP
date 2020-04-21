@@ -27,7 +27,7 @@
                     }
                 }
             ?>
-            <div>
+            <div class="extendedByCell">
                 <span class="apply_css_arrow">
                     <i class="<?php echo $this->FontAwesome->findNamespace('code-branch'); ?> fa-code-branch fa-rotate-180 fa-flip-vertical"></i>
                     <span style="margin-left: 0.2em;">
