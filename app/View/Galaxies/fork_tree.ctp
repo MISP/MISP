@@ -1,7 +1,10 @@
 <div>
-    <div class="btn-group">
-        <a class="btn btn-small  btn-inverse" href="<?= sprintf('%s/galaxies/view/%s/context:all', $baseurl, $galaxy_id) ?>"><?= __('Back to galaxy') ?></a>
-    </div>
+    <h6>
+        <a class="" href="<?= sprintf('%s/galaxies/view/%s/context:all', $baseurl, $galaxy_id) ?>">
+            <i class="<?php echo $this->FontAwesome->findNamespace($galaxy['Galaxy']['icon']); ?> fa-arrow-left"></i>
+            <?= __('Back to galaxy') ?>
+        </a>
+        </h6>
     <h2><?= sprintf(__('%s galaxy cluster extensions'), h($galaxy['Galaxy']['name'])) ?></h2>
     <svg id="treeSVG" style="width: 100%; height: 100%; min-height: 600px;"></svg>
 </div>
@@ -65,7 +68,8 @@ function buildTree() {
     var nodeEnter = node.enter().append("g")
         .attr("class", "node")
         .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
-        .on("mouseover", nodeHover);
+        .on("mouseover", nodeHover)
+        .on("dblclick", nodeDbclick);
 
     nodeEnter.append("circle")
         .attr("r", 6)
@@ -95,6 +99,19 @@ function buildTree() {
         // .attr("d", d3.linkHorizontal()
         //     .x(function(d) { return d.y; })
         //     .y(function(d) { return d.x; }));
+}
+
+function nodeDbclick(d) {
+    var url, clickedId
+    if (d.isRoot) {
+        url = "<?= sprintf('%s/galaxies/view/', $baseurl) ?>";
+        clickedId = d.Galaxy.id;
+    } else {
+        url = "<?= sprintf('%s/galaxy_clusters/view/', $baseurl) ?>";
+        clickedId = d.GalaxyCluster.id;
+    }
+    url += clickedId;
+    var win = window.open(url, '_blank');
 }
 
 function nodeHover(d) {
