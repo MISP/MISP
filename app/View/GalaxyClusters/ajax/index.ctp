@@ -125,7 +125,7 @@
             ),
             'actions' => array(
                 array(
-                    'title' => 'View graph',
+                    'title' => 'View correlation graph',
                     'url' => '/galaxies/viewGraph',
                     'url_params_data_paths' => array(
                         'GalaxyCluster.id'
@@ -142,6 +142,7 @@
                     'dbclickAction' => true
                 ),
                 array(
+                    'title' => 'Fork',
                     'url' => '/galaxy_clusters/add',
                     'url_params_data_paths' => array(
                         'GalaxyCluster.galaxy_id'
@@ -152,6 +153,7 @@
                     'icon' => 'code-branch'
                 ),
                 array(
+                    'title' => 'Edit',
                     'url' => '/galaxy_clusters/edit',
                     'url_params_data_paths' => array(
                         'GalaxyCluster.id'
