@@ -515,6 +515,7 @@ class Galaxy extends AppModel
     {
         $tree = array();
         $lookup = array();
+        // generate the lookup table used to immediatly get the correct cluster
         foreach ($clusters as $i => $cluster) {
             $clusters[$i]['children'] = array();
             $lookup[$cluster['GalaxyCluster']['id']] = &$clusters[$i];

@@ -12,10 +12,10 @@ if (!empty($extendfromData)) {
             'k' => $k
         )
     );
+    $field['parent'] = '';
 }
 
 if (!empty($extendbyData)) {
-    $field['parent'] = '';
     echo $this->element(
         '/genericElements/IndexTable/Fields/extended_by',
         array(
