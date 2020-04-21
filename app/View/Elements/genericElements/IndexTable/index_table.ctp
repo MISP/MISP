@@ -84,3 +84,19 @@
         echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
     }
 ?>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('.privacy-toggle').on('click', function() {
+            var $privacy_target = $(this).parent().find('.privacy-value');
+            if ($(this).hasClass('fa-eye')) {
+                $privacy_target.text($privacy_target.data('hidden-value'));
+                $(this).removeClass('fa-eye');
+                $(this).addClass('fa-eye-slash');
+            } else {
+                $privacy_target.text('****************************************');
+                $(this).removeClass('fa-eye-slash');
+                $(this).addClass('fa-eye');
+            }
+        });
+    });
+</script>
