@@ -636,6 +636,7 @@ class StixParser():
     # Parse a course of action and add a MISP object to the event
     def parse_course_of_action(self, course_of_action):
         misp_object = MISPObject('course-of-action', misp_objects_path_custom=_MISP_objects_path)
+        misp_object.uuid = self.fetch_uuid(course_of_action.id_)
         if course_of_action.title:
             attribute = {'type': 'text', 'object_relation': 'name',
                          'value': course_of_action.title}
@@ -756,8 +757,8 @@ class StixParser():
 
     # The value returned by the indicators or observables parser is a list of dictionaries
     # These dictionaries are the attributes we add in an object, itself added in the MISP event
-    def handle_object_case(self, attribute_type, attribute_value, compl_data, to_ids=False, object_uuid=None):
-        misp_object = MISPObject(attribute_type, misp_objects_path_custom=_MISP_objects_path)
+    def handle_object_case(self, name, attribute_value, compl_data, to_ids=False, object_uuid=None):
+        misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
         if object_uuid:
             misp_object.uuid = object_uuid
         for attribute in attribute_value:
@@ -1087,29 +1088,15 @@ class StixFromMISPParser(StixParser):
 
     # Parse STIX object that we know will give MISP objects
     def parse_misp_object_indicator(self, indicator):
-        item = indicator.item
-        name = item.title.split(': ')[0]
+        name = self._define_name(indicator.item.observable, indicator.relationship)
         if name not in ('passive-dns'):
-            self.fill_misp_object(item, name, to_ids=True)
+            self.fill_misp_object(indicator.item, name, to_ids=True)
         else:
             if str(indicator.relationship) != "misc":
-                print("Unparsed Object type: {}".format(name), file=sys.stderr)
+                print(f"Unparsed Object type: {name}\n{indicator.to_json()}", file=sys.stderr)
 
     def parse_misp_object_observable(self, observable):
-        object_type = str(observable.relationship)
-        observable = observable.item
-        observable_id = observable.id_
-        if object_type == "file":
-            name = "registry-key" if "WinRegistryKey" in observable_id else "file"
-        elif "Custom" in observable_id:
-            name = observable_id.split("Custom")[0].split(":")[1]
-        elif object_type == "network":
-            if "ObservableComposition" in observable_id:
-                name = observable_id.split("_")[0].split(":")[1]
-            else:
-                name = cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
-        else:
-            name = cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
+        name = self._define_name(observable.item, observable.relationship)
         try:
             self.fill_misp_object(observable, name)
         except Exception:
@@ -1183,6 +1170,19 @@ class StixFromMISPParser(StixParser):
         if self.event.leveraged_ttps and self.event.leveraged_ttps.ttp:
             galaxies_references.extend([ttp.item.idref for ttp in self.event.leveraged_ttps.ttp])
         self.galaxies_references = tuple('-'.join((r for r in ref.split('-')[-5:])) for ref in galaxies_references)
+
+    @staticmethod
+    def _define_name(observable, relationship):
+        observable_id = observable.id_
+        if relationship == "file":
+            return "registry-key" if "WinRegistryKey" in observable_id else "file"
+        if "Custom" in observable_id:
+            return observable_id.split("Custom")[0].split(":")[1]
+        if relationship == "network":
+            if "ObservableComposition" in observable_id:
+                return observable_id.split("_")[0].split(":")[1]
+            return cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
+        return cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
 
     def fetch_event_info(self):
         info = self.get_event_info()
