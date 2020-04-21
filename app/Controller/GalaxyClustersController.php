@@ -175,7 +175,7 @@ class GalaxyClustersController extends AppController
         } else {
             $conditions['GalaxyCluster.id'] = $id;
         }
-        $contain = array('Galaxy');
+        $contain = array('Galaxy', 'Orgc', 'Org');
         if ($this->_isRest()) {
             $contain[] = 'GalaxyElement';
         }

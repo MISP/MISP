@@ -30,7 +30,6 @@
         $extendByLinks[] = sprintf('<li>%s</li>', $element);
     }
     $extendedByHtml = sprintf('<ul>%s</ul>', implode('', $extendByLinks));
-
     $table_data = array();
     $table_data[] = array('key' => __('Cluster ID'), 'value' => $cluster['GalaxyCluster']['id']);
     $table_data[] = array('key' => __('Name'), 'value' => $cluster['GalaxyCluster']['value']);
@@ -40,6 +39,14 @@
     $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['GalaxyCluster']['collection_uuid']);
     $table_data[] = array('key' => __('Source'), 'value' => $cluster['GalaxyCluster']['source']);
     $table_data[] = array('key' => __('Authors'), 'value' => !empty($cluster['GalaxyCluster']['authors']) ? implode(', ', $cluster['GalaxyCluster']['authors']) : __('N/A'));
+    $table_data[] = array(
+        'key' => __('Owner Organisation'), 
+        'html' => $this->OrgImg->getOrgImg(array('name' => $cluster['Org']['name'], 'id' => $cluster['Org']['id'], 'size' => 18), true),
+    );
+    $table_data[] = array(
+        'key' => __('Creator Organisation'), 
+        'html' => $this->OrgImg->getOrgImg(array('name' => $cluster['Orgc']['name'], 'id' => $cluster['Orgc']['id'], 'size' => 18), true),
+    );
     $table_data[] = array('key' => __('Connector tag'), 'value' => $cluster['GalaxyCluster']['tag_name']);
     $table_data[] = array('key' => __('Events'), 'html' => isset($cluster['GalaxyCluster']['tag_count']) ? 
                         sprintf('<a href="%s">%s %s</a>', 
