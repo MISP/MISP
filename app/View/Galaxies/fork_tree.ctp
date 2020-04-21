@@ -17,8 +17,9 @@ echo $this->element('genericElements/assetLoader', array(
 
 
 <script type="text/javascript">
+var transparentImg = ' data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAB3RJTUUH5AQVCQsbtQbZ8QAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAC5SURBVGje7dcxCoNAEIXhNyoKnkDvfwtP4QUsrWURJCbrTgrLNIakcOF/MP1+8IZlzN2VcwplHgAAAAAAAAAAAABX4y6ldCtAdfXhHqN83+UxyppGVteysswD4Ckprate86wUgqq+V9V1sraVzDKoUIw6lkX7OOoxDHpOk9K2nZViiX+LXTkp/TiUQvioUHGDCl0C3HmJ7auj3v2cosirQvzEAAAAAAAAAAAAAAAAAAAAAAAAAAD8OW/IQVbE0efUAQAAAABJRU5ErkJggg==';
 var data = <?= json_encode($tree) ?>;
-var margin = {top: 10, right: 10, bottom: 10, left: 10};
+var margin = {top: 10, right: 10, bottom: 10, left: 20};
 var width, height;
 $(document).ready(function () {
     var $tree = $('#treeSVG');
@@ -71,15 +72,31 @@ function buildTree() {
         .on("mouseover", nodeHover)
         .on("dblclick", nodeDbclick);
 
-    nodeEnter.append("circle")
-        .attr("r", 6)
+    var gEnter = nodeEnter.append('g');
+    gEnter.append("circle")
+        .attr("r", 15)
         .style("fill", function(d) { return d.isRoot ? "lightsteelblue" : "#fff"; })
         .style("stroke", "steelblue")
-        .style("stroke-width", "3px");
+        .style("stroke-width", "2px")
+    gEnter.append("image")
+        .attr("xlink:href", function(d) { 
+            if (d.isRoot) {
+                return transparentImg;
+            } else {
+                return d.GalaxyCluster.default ? '<?= $baseurl ?>/img/orgs/MISP.png' : '<?= $baseurl ?>/img/orgs/' + d.GalaxyCluster.orgc_id + '.png';
+            }
+        })
+        .attr("x", "-12px")
+        .attr("y", "-12px")
+        .attr("width", "24px")
+        .attr("height", "24px")
+        .on("error", function() { // avoid broken link image
+            d3.select(this).attr("xlink:href", transparentImg);
+        });
 
     nodeEnter.append("text")
-        .attr("dy",  function(d) { return d.children ? "1.5em" : ".35em"; })
-        .attr("x", function(d) { return '1em'; })
+        .attr("dy",  function(d) { return d.children ? "2.5em" : ".35em"; })
+        .attr("x", function(d) { return d.children ? "0em" : "1.5em"; })
         .attr("text-anchor", function(d) { return d.children ? (d.isRoot ? "start" : "middle") : "start"; })
         .text(function(d) { return d.isRoot ? d.Galaxy.name + ' galaxy' : d.GalaxyCluster.value; })
         .style("fill-opacity", 1)
