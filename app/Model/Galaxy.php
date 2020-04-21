@@ -510,4 +510,36 @@ class Galaxy extends AppModel
             }
         }
     }
+
+    public function generateForkTree($clusters, $galaxy, $pruneRootLeaves=true)
+    {
+        $tree = array();
+        $lookup = array();
+        foreach ($clusters as $i => $cluster) {
+            $clusters[$i]['children'] = array();
+            $lookup[$cluster['GalaxyCluster']['id']] = &$clusters[$i];
+        }
+        foreach ($clusters as $i => $cluster) {
+            if (!empty($cluster['GalaxyCluster']['extended_from'])) {
+                $parent = $cluster['GalaxyCluster']['extended_from'];
+                $lookup[$parent['GalaxyCluster']['id']]['children'][] = &$clusters[$i];
+            } else {
+                $tree[] = &$clusters[$i];
+            }
+        }
+
+        if ($pruneRootLeaves) {
+            foreach($tree as $i => $node) {
+                if (empty($node['children'])) {
+                    unset($tree[$i]);
+                }
+            }
+        }
+
+        $tree = array(array(
+            'Galaxy' => $galaxy['Galaxy'],
+            'children' => array_values($tree)
+        ));
+        return $tree;
+    }
 }
