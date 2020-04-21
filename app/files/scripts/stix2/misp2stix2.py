@@ -21,6 +21,7 @@ import pymisp
 import re
 import uuid
 from stix2 import *
+from stix2.base import STIXJSONEncoder
 from misp2stix2_mapping import *
 from collections import defaultdict
 from copy import deepcopy
@@ -63,7 +64,7 @@ class StixBuilder():
             stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event['Event'])] if self.json_event.get('response') else self.handler(self.json_event['Event'])
             outputfile = "{}.out".format(self.filename)
             with open(outputfile, 'wt', encoding='utf-8') as f:
-                f.write(json.dumps(stix_packages, cls=base.STIXJSONEncoder))
+                f.write(json.dumps(stix_packages, cls=STIXJSONEncoder))
             print(json.dumps({'success': 1}))
         except Exception as e:
             print(json.dumps({'error': e.__str__()}))

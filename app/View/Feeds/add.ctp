@@ -88,6 +88,16 @@
                 </div>
             </div><br />
         </div>
+        <div id="OrgcDiv" class="optionalField">
+        <?php
+            echo $this->Form->input('orgc_id', array(
+                    'label' => __('Creator organisation'),
+                    'div' => 'input clear',
+                    'options' => $orgs,
+                    'class' => 'form-control span6'
+            ));
+        ?>
+        </div>
         <div id="TargetDiv" class="optionalField">
     <?php
         echo $this->Form->input('fixed_event', array(

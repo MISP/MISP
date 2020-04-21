@@ -217,6 +217,7 @@ class ACLComponent extends Component
                     'getEvent' => array(),
                     'importFeeds' => array(),
                     'index' => array('*'),
+                    'loadDefaultFeeds' => array('perm_site_admin'),
                     'previewEvent' => array('*'),
                     'previewIndex' => array('*'),
                     'searchCaches' => array('*'),

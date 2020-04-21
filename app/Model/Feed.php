@@ -19,6 +19,10 @@ class Feed extends AppModel
             'Tag' => array(
                     'className' => 'Tag',
                     'foreignKey' => 'tag_id',
+            ),
+            'Orgc' => array(
+                    'className' => 'Organisation',
+                    'foreignKey' => 'orgc_id'
             )
     );
 
@@ -50,6 +54,25 @@ class Feed extends AppModel
             'name' => 'Simple CSV Parsed Feed'
         )
     );
+
+    /*
+     *  Cleanup of empty belongsto relationships
+     */
+    public function afterFind($results, $primary = false)
+    {
+        foreach ($results as $k => $result) {
+            if (isset($result['SharingGroup']) && empty($result['SharingGroup']['id'])) {
+                unset($results[$k]['SharingGroup']);
+            }
+            if (isset($result['Tag']) && empty($result['Tag']['id'])) {
+                unset($results[$k]['Tag']);
+            }
+            if (isset($result['Orgc']) && empty($result['Orgc']['id'])) {
+                unset($results[$k]['Orgc']);
+            }
+        }
+        return $results;
+    }
 
     public function validateInputSource($fields)
     {
@@ -879,11 +902,15 @@ class Feed extends AppModel
             }
         } else {
             $this->Event->create();
+            $orgc_id = $user['org_id'];
+            if (!empty($feed['Feed']['orgc_id'])) {
+                $orgc_id = $feed['Feed']['orgc_id'];
+            }
             $event = array(
                     'info' => $feed['Feed']['name'] . ' feed',
                     'analysis' => 2,
                     'threat_level_id' => 4,
-                    'orgc_id' => $user['org_id'],
+                    'orgc_id' => $orgc_id,
                     'org_id' => $user['org_id'],
                     'date' => date('Y-m-d'),
                     'distribution' => $feed['Feed']['distribution'],

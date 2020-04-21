@@ -11,7 +11,8 @@
      *          // field list with information for the paginator, the elements used for the individual cells, etc
      *      ),
      *      'title' => optional title,
-     *      'description' => optional description
+     *      'description' => optional description,
+     *      'primary_id_path' => path to each primary ID (extracted and passed as $primary to fields)
      *  ));
      *
      */
@@ -42,13 +43,18 @@
     $dblclickActionArray = isset($data['actions']) ? Hash::extract($data['actions'], '{n}[dbclickAction]') : array();
     $dbclickAction = '';
     foreach ($data['data'] as $k => $data_row) {
+        $primary = null;
+        if (!empty($data['primary_id_path'])) {
+            $primary = Hash::extract($data_row, $data['primary_id_path'])[0];
+        }
         if (!empty($dblclickActionArray)) {
             $dbclickAction = sprintf("changeLocationFromIndexDblclick(%s)", $k);
         }
         $rows .= sprintf(
-            '<tr data-row-id="%s" ondblclick="%s">%s</tr>',
+            '<tr data-row-id="%s" %s %s>%s</tr>',
             h($k),
-            $dbclickAction,
+            empty($dbclickAction) ? '' : 'ondblclick="' . $dbclickAction . '"',
+            empty($primary) ? '' : 'data-primary-id="' . $primary . '"',
             $this->element(
                 '/genericElements/IndexTable/' . $row_element,
                 array(
@@ -57,6 +63,7 @@
                     'fields' => $data['fields'],
                     'options' => $options,
                     'actions' => $actions,
+                    'primary' => $primary
                 )
             )
         );
@@ -77,3 +84,19 @@
         echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
     }
 ?>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('.privacy-toggle').on('click', function() {
+            var $privacy_target = $(this).parent().find('.privacy-value');
+            if ($(this).hasClass('fa-eye')) {
+                $privacy_target.text($privacy_target.data('hidden-value'));
+                $(this).removeClass('fa-eye');
+                $(this).addClass('fa-eye-slash');
+            } else {
+                $privacy_target.text('****************************************');
+                $(this).removeClass('fa-eye-slash');
+                $(this).addClass('fa-eye');
+            }
+        });
+    });
+</script>
