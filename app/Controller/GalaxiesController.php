@@ -416,7 +416,7 @@ class GalaxiesController extends AppController
 
     public function forkTree($galaxyId)
     {
-        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)));
+        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full=true);
         if (empty($clusters)) {
             throw new MethodNotAllowedException('Invalid Galaxy.');
         }

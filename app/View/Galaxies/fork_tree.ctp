@@ -125,8 +125,24 @@ function nodeHover(d) {
 
 function generate_tooltip(d) {
     var tooltipText = d.isRoot ? d.Galaxy.name : d.GalaxyCluster.description;
-    return $('<div></div>').append(
-        $('<span></span>').text(tooltipText)
-    )[0].outerHTML
+    var $div = $('<div></div>').append($('<div></div>').text(tooltipText));
+    var $table = $('<table class="table table-condensed"></table>');
+    if (d.GalaxyElement !== undefined && d.GalaxyElement.length > 0) {
+        $body = $('<tbody></tbody>');
+        d.GalaxyElement.forEach(function(element) {
+            $body.append(
+                $('<tr></tr>').append(
+                    $('<td></td>').text(element.key),
+                    $('<td></td>').text(element.value)
+                )
+            )
+        })
+        $table.append($body);
+        $div.append(
+            $('<h6></h6>').css({'text-align': 'left'}).text("<?= __('Galaxy elements:') ?>"),
+            $table
+        );
+    }
+    return $div[0].outerHTML;
 }
 </script>
