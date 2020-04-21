@@ -183,7 +183,11 @@ class GalaxyCluster extends AppModel
                 $fieldList = array('value', 'description', 'version', 'source', 'authors', 'distribution', 'sharing_group_id', 'default');
                 $saveSuccess = $this->save($cluster, array('fieldList' => $fieldList));
                 if ($saveSuccess) {
-                    $this->GalaxyElement->updateElements($cluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['elements']);
+                    $elementsToSave = array();
+                    foreach ($cluster['GalaxyCluster']['elements'] as $element) { // transform cluster into Galaxy meta format
+                        $elementsToSave[$element['key']] = $element['value'];
+                    }
+                    $this->GalaxyElement->updateElements($cluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['id'], $elementsToSave);
                 } else {
                     foreach($this->validationErrors as $validationError) {
                         $errors[] = $validationError[0];

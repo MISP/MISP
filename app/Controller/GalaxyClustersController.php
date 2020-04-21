@@ -325,7 +325,7 @@ class GalaxyClustersController extends AppController
         if ($cluster['GalaxyCluster']['default']) {
             throw new MethodNotAllowedException('Default galaxy cluster cannot be edited');
         }
-        $this->GalaxyCluster->data = array('GalaxyCluster' => $cluster['GalaxyCluster']);
+        $this->GalaxyCluster->data = array('GalaxyCluster' => $cluster['GalaxyCluster'], 'GalaxyElement' => $cluster['GalaxyElement']);
 
         $this->loadModel('Attribute');
         $distributionLevels = $this->Attribute->distributionLevels;
@@ -391,6 +391,7 @@ class GalaxyClustersController extends AppController
                 }
             }
         } else {
+            $this->GalaxyCluster->data['GalaxyCluster']['elements'] = json_encode($this->GalaxyCluster->data['GalaxyElement']);
             $this->GalaxyCluster->data['GalaxyCluster']['authors'] = json_encode($this->GalaxyCluster->data['GalaxyCluster']['authors']);
             $this->request->data = $this->GalaxyCluster->data;
         }

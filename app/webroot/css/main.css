@@ -2528,7 +2528,7 @@ table tr:hover .down-expand-button {
     position: absolute;
     right: 0px;
     top: 100px;
-    max-width: 600px;
+    max-width: 400px;
 }
 
 .widgetTitle {
