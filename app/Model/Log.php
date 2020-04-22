@@ -58,6 +58,7 @@ class Log extends AppModel
                     'reset_auth_key',
                     'security',
                     'serverSettingsEdit',
+                    'succeeded_registration',
                     'tag',
                     'undelete',
                     'update',
