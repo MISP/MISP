@@ -2271,6 +2271,9 @@ class UsersController extends AppController
                     $requestObject[$key] = trim($this->request->data[$key]);
                 }
             }
+            if (!isset($requestObject['message'])) {
+                $requestObject['message'] = '';
+            }
             if (empty($requestObject['email'])) {
                 throw new InvalidArgumentException(__('We require at least the email field to be filled.'));
             }
