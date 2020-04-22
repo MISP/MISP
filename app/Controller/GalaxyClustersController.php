@@ -99,7 +99,7 @@ class GalaxyClustersController extends AppController
             $this->paginate['conditions']['AND'][] = $contextConditions;
             $this->paginate['conditions']['AND'][] = $searchConditions;
             $this->paginate['conditions']['AND'][] = $aclConditions;
-            $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc'));
+            $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc', 'SharingGroup'));
             $clusters = $this->paginate();
             foreach ($clusters as $k => $cluster) {
                 $clusters[$k] = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
@@ -233,7 +233,7 @@ class GalaxyClustersController extends AppController
         if (isset($this->params['named']['forkUuid'])) {
             $forkUuid = $this->params['named']['forkUuid'];
             $origCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
-                'conditions' => array('uuid' => $forkUuid),
+                'conditions' => array('GalaxyCluster.uuid' => $forkUuid),
             ), true);
             if (!empty($origCluster)) {
                 $origCluster = $origCluster[0];

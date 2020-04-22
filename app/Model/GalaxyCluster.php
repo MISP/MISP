@@ -55,6 +55,10 @@ class GalaxyCluster extends AppModel
         'Orgc' => array(
             'className' => 'Organisation',
             'foreignKey' => 'orgc_id'
+        ),
+        'SharingGroup' => array(
+                'className' => 'SharingGroup',
+                'foreignKey' => 'sharing_group_id'
         )
     );
 
@@ -90,7 +94,7 @@ class GalaxyCluster extends AppModel
     }
 
     // Respecting ACL, save a cluster, its elements and set correct fields
-    public function saveCluster($user, $cluster, $fromPull=false)
+    public function saveCluster($user, $cluster, $fromPull=false, $allowEdit=false)
     {
         if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
             return false;
@@ -108,7 +112,10 @@ class GalaxyCluster extends AppModel
             // check if the uuid already exists
             $existingGalaxyCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid'])));
             if ($existingGalaxyCluster) {
-                if ($fromPull && !$existingGalaxyCluster['GalaxyCluster']['default']) {
+                if ($existingGalaxyCluster['GalaxyCluster']['galaxy_id'] != $galaxy['id']) { // cluster already exists in another galaxy
+                    return false;
+                }
+                if ($fromPull && !$existingGalaxyCluster['GalaxyCluster']['default'] && $allowEdit) {
                     $errors = $this->editCluster($user, $cluster, $fromPull);
                     return empty($errors);
                 } else {
@@ -118,6 +125,10 @@ class GalaxyCluster extends AppModel
             }
         } else {
             $cluster['GalaxyCluster']['uuid'] = CakeText::uuid();
+        }
+        $forkedCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['extends_uuid'])));
+        if (!empty($forkedCluster) && $forkedCluster['GalaxyCluster']['galaxy_id'] != $galaxy['id']) {
+            return false; // cluster forks always have to belong to the same galaxy as the parent
         }
         $cluster['GalaxyCluster']['org_id'] = $user['org_id'];
         if (!isset($cluster['GalaxyCluster']['orgc_id'])) {
@@ -134,6 +145,8 @@ class GalaxyCluster extends AppModel
             $cluster['GalaxyCluster']['version'] = $date->getTimestamp();
         }
         $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $galaxy['type'], $cluster['GalaxyCluster']['uuid']);
+        debug($cluster);
+        throw new Exception();
         $this->create();
         $saveSuccess = $this->save($cluster);
         if ($saveSuccess) {
@@ -148,6 +161,7 @@ class GalaxyCluster extends AppModel
 
     public function editCluster($user, $cluster, $fromPull = false)
     {
+        $this->SharingGroup = ClassRegistry::init('SharingGroup');
         $errors = array();
         if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
             $errors[] = __('Incorrect permission');
@@ -196,6 +210,27 @@ class GalaxyCluster extends AppModel
             }
         }
         return $errors;
+    }
+
+    public function importClusters($user, $galaxy, $clusters, $updateExisting=false)
+    {
+        $importResult = array('success' => false, 'imported' => 0, 'ignored' => 0);
+        foreach ($clusters as $k => $cluster) {
+            if ($cluster['GalaxyCluster']['distribution'] != 4) {
+                $cluster['GalaxyCluster']['sharing_group_id'] = null;
+            }
+            $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];
+            $saveResult = $this->saveCluster($user, $cluster, $fromPull=false, $allowEdit=$updateExisting);
+            if ($saveResult) {
+                $importResult['imported'] += 1;
+            } else {
+                $importResult['ignored'] += 1;
+            }
+        }
+        if ($importResult['imported'] > 0) {
+            $importResult['success'] = true;
+        }
+        return $importResult;
     }
 
     public function attachExtendByInfo($user, $cluster)
@@ -380,20 +415,18 @@ class GalaxyCluster extends AppModel
     //     fields
     //     contain
     //     conditions
-    //     order
     //     group
     public function fetchGalaxyClusters($user, $options, $full=false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
-            'contain' => array(),
             'recursive' => -1
         );
+        if ($full) {
+            $params['contain'] = array('GalaxyElement', 'Orgc', 'Org', 'SharingGroup');
+        }
         if (!empty($options['contain'])) {
             $params['contain'] = $options['contain'];
-        }
-        if ($full && !in_array('GalaxyElement', $params['contain'])) {
-            $params['contain'][] = 'GalaxyElement';
         }
         if (isset($options['fields'])) {
             $params['fields'] = $options['fields'];
@@ -405,9 +438,6 @@ class GalaxyCluster extends AppModel
             $params['group'] = empty($options['group']) ? $options['group'] : false;
         }
         $galaxClusters = $this->find('all', $params);
-        // foreach($galaxies as $k => $galaxy) {
-        //     $galaxies[$k] = $this->Org->attachOrgs($galaxy, array('id', 'name', 'uuid', 'local'), 'Galaxy');
-        // }
         return $galaxClusters;
     }
 

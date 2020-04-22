@@ -144,6 +144,91 @@ class GalaxiesController extends AppController
         }
     }
 
+    public function import($galaxyId=null)
+    {
+        $galaxy = $this->Galaxy->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Galaxy.id' => $galaxyId)
+        ));
+        if (empty($galaxy) && $galaxyId !== null) {
+            throw new NotFoundException('Galaxy not found.');
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $data = $this->request->data['Galaxy'];
+            if ($data['submittedjson']['name'] != '' && $data['json'] != '') {
+                throw new MethodNotAllowedException(__('Only one import field can be used at a time'));
+            }
+            if ($data['submittedjson']['size'] > 0) {
+                $filename = basename($data['submittedjson']['name']);
+                $file_content = file_get_contents($data['submittedjson']['tmp_name']);
+                if ((isset($data['submittedjson']['error']) && $data['submittedjson']['error'] == 0) ||
+                    (!empty($data['submittedjson']['tmp_name']) && $data['submittedjson']['tmp_name'] != '')
+                ) {
+                    if (!$file_content) {
+                        throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
+                    }
+                }
+                $text = $file_content;
+            } else {
+                $text = $data['json'];
+            }
+            $json = json_decode($text, true);
+            if ($json === null) {
+                throw new MethodNotAllowedException(__('Error while decoding JSON'));
+            }
+            $galaxyId = $this->request->data['Galaxy']['galaxy_id'];
+            $updateExisting = $this->request->data['Galaxy']['update_existing'];
+            $saveResult = $this->Galaxy->GalaxyCluster->importClusters($this->Auth->user(), $galaxy, $json, $updateExisting=$updateExisting);
+            if ($saveResult['success']) {
+                $message = sprintf(__('Galaxy clusters imported. %s imported, %s ignored'), $saveResult['imported'], $saveResult['ignored']);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('Galaxy', 'import', false, $this->response->type(), $message);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect(array('controller' => 'galaxy', 'action' => 'view', $galaxyId));
+                }
+            } else {
+                $message = sprintf(__('Could not import galaxy clusters. %s imported, %s ignored'), $saveResult['imported'], $saveResult['ignored']);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Galaxy', 'import', false, $message);
+                } else {
+                    $this->Flash->error($message);
+                }
+            }
+        }
+        $galaxies = $this->Galaxy->find('all', array(
+            'recursive' => -1,
+            'conditions' => array()
+        ));
+        $galaxiesList = array();
+        foreach($galaxies as $g) {
+            $galaxiesList[$g['Galaxy']['namespace']][$g['Galaxy']['id']] = $g['Galaxy']['name'];
+        }
+        $this->set('galaxies', $galaxiesList);
+        $this->set('galaxyId', $galaxyId);
+        $this->set('galaxy', $galaxy);
+    }
+
+    public function export($galaxyId)
+    {
+        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(),
+            array('conditions' => array(
+                'GalaxyCluster.galaxy_id' => $galaxyId,
+                'GalaxyCluster.distribution' => array(1, 2, 3),
+                'GalaxyCluster.default' => false
+            )),
+            $full=true
+        );
+        foreach ($clusters as $k => $cluster) {
+            unset($clusters[$k]['GalaxyCluster']['id']);
+            unset($clusters[$k]['GalaxyCluster']['galaxy_id']);
+        }
+        $this->response->body(json_encode($clusters));
+        // $this->response->download(sprintf('galaxy_%s_%s.json', $galaxy['Galaxy']['uuid'], time()));
+        // Return response object to prevent controller from trying to render a view
+        return $this->response;
+    }
+
     public function selectGalaxy($target_id, $target_type='event', $namespace='misp')
     {
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();

@@ -39,6 +39,7 @@
     $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['GalaxyCluster']['collection_uuid']);
     $table_data[] = array('key' => __('Source'), 'value' => $cluster['GalaxyCluster']['source']);
     $table_data[] = array('key' => __('Authors'), 'value' => !empty($cluster['GalaxyCluster']['authors']) ? implode(', ', $cluster['GalaxyCluster']['authors']) : __('N/A'));
+    $table_data[] = array('key' => __('Distribution'), 'value' => $cluster['GalaxyCluster']['distribution'] . ' TODO: Use distribution element!');
     $table_data[] = array(
         'key' => __('Owner Organisation'), 
         'html' => $this->OrgImg->getOrgImg(array('name' => $cluster['Org']['name'], 'id' => $cluster['Org']['id'], 'size' => 18), true),
