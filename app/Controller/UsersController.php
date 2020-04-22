@@ -2429,6 +2429,11 @@ class UsersController extends AppController
                 $suggestedRole = $this->User->Role->checkDesiredRole($suggestedRole, $registrations[$k]);
             }
         }
+        $default_role = $this->User->Role->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Role.default_role' => 1),
+            'fields' => array('Role.id')
+        ));
         if ($this->request->is('get')) {
             if (!is_array($id)) {
                 $id = array($id);
@@ -2450,11 +2455,6 @@ class UsersController extends AppController
                     'perm_admin' => $role['Role']['perm_admin']
                 );
             }
-            $default_role = $this->User->Role->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Role.default_role' => 1),
-                'fields' => array('Role.id')
-            ));
             if (!empty($default_role)) {
                 $this->request->data['User']['role_id'] = $default_role['Role']['id'];
             }
@@ -2477,6 +2477,9 @@ class UsersController extends AppController
             $this->layout = false;
         } else {
             $results = array('successes' => 0, 'fails' => 0);
+            if (!isset($this->request->data['User']['role_id']) && !empty($default_role)) {
+                $this->request->data['User']['role_id'] = $default_role['Role']['id'];
+            }
             foreach ($registrations as $registration) {
                 $result = $this->User->registerUser(
                     $this->Auth->user(),
