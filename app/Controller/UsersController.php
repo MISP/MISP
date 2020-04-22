@@ -2374,6 +2374,9 @@ class UsersController extends AppController
                 $id = $this->params['named']['id'];
             }
             $this->loadModel('Inbox');
+            if (Validation::uuid($id)) {
+                $id = $this->Toolbox->findIdByUuid($this->Inbox, $id);
+            }
             $registrations = $this->Inbox->find('all', array(
                 'recursive' => -1,
                 'conditions' => array(
@@ -2404,6 +2407,9 @@ class UsersController extends AppController
             $id = $this->params['named']['id'];
         }
         $this->loadModel('Inbox');
+        if (Validation::uuid($id)) {
+            $id = $this->Toolbox->findIdByUuid($this->Inbox, $id);
+        }
         $registrations = $this->Inbox->find('all', array(
             'recursive' => -1,
             'conditions' => array(
