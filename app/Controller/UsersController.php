@@ -2395,6 +2395,17 @@ class UsersController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('User', 'discardRegistrations', false, $this->response->type(), $message);
             } else {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $this->Log->save(array(
+                    'org' => $this->Auth->user('Organisation')['name'],
+                    'model' => 'User',
+                    'model_id' => $id,
+                    'email' => $this->Auth->user('email'),
+                    'action' => 'discardRegistrations',
+                    'title' => $message,
+                    'change' => ''
+                ));
                 $this->Flash->success($message);
                 $this->redirect(array('controller' => 'users', 'action' => 'registrations'));
             }
