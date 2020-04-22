@@ -2477,8 +2477,12 @@ class UsersController extends AppController
             $this->layout = false;
         } else {
             $results = array('successes' => 0, 'fails' => 0);
-            if (!isset($this->request->data['User']['role_id']) && !empty($default_role)) {
-                $this->request->data['User']['role_id'] = $default_role['Role']['id'];
+            if (!isset($this->request->data['User']['role_id'])) {
+                if (!empty($default_role)) {
+                    $this->request->data['User']['role_id'] = $default_role['Role']['id'];
+                } else {
+                    throw new InvalidArgumentException(__('Role ID not provided and no default role exist on the instance'));
+                }
             }
             foreach ($registrations as $registration) {
                 $result = $this->User->registerUser(
