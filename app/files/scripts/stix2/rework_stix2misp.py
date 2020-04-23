@@ -1338,14 +1338,15 @@ class ExternalStixParser(StixParser):
             attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
             attribute['value'] = pattern_value
             attributes.append(attribute)
+        file_object = create_misp_object(indicator, 'file')
         if extensions:
-            self.parse_file_extension(attributes, extensions)
+            self.parse_file_extension(file_object, attributes, extensions)
         else:
             self.handle_import_case(attributes)
 
-    def parse_file_extension(self, attributes, extensions, uuid):
-        file_object = MISPObject('file', misp_objects_path_custom=self._misp_objects_path)
-        file_object.uuid = uuid
+    def parse_file_extension(self, file_object, attributes, extensions):
+        for attribute in attributes:
+            file_object.add_attribute(**attribute)
         if 'windows-pebinary-ext' in extensions:
             pe_extension = extensions['windows-pebinary-ext']
             pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
