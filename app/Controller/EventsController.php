@@ -4514,16 +4514,20 @@ class EventsController extends AppController
         if (!in_array($type, $validTools)) {
             throw new MethodNotAllowedException('Invalid type.');
         }
-
         App::uses('EventTimelineTool', 'Tools');
         $grapher = new EventTimelineTool();
         $data = $this->request->is('post') ? $this->request->data : array();
         $dataFiltering = array_key_exists('filtering', $data) ? $data['filtering'] : array();
+        $scope = isset($data['scope']) ? $data['scope'] : 'seen';
 
         $extended = isset($this->params['named']['extended']) ? 1 : 0;
 
         $grapher->construct($this->Event, $this->Auth->user(), $dataFiltering, $extended);
-        $json = $grapher->get_timeline($id);
+        if ($scope == 'seen') {
+            $json = $grapher->get_timeline($id);
+        } elseif ($scope == 'sightings') {
+            $json = $grapher->get_sighting_timeline($id);
+        }
 
         array_walk_recursive($json, function (&$item, $key) {
             if (!mb_detect_encoding($item, 'utf-8', true)) {
