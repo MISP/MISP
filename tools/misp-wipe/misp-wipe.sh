@@ -108,6 +108,9 @@ curl --header "Authorization: $AuthKey" --header "Accept: application/json" --he
 echo "Updating objectTemplates"
 curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/objectTemplates/update
 
+echo "Updating decayingModel"
+curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/decayingModel/update
+
 if [ "$ENABLE_WARNINGLISTS" = "true" ]; then
   echo "Enabling warninglists"
   wls=$(curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -s -X POST ${baseurl}/warninglists/index | jq -r '.Warninglists[] | select(.Warninglist.enabled == false) | .Warninglist.id' 2>/dev/null)
