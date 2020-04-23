@@ -1195,11 +1195,20 @@ class ExternalStixParser(StixParser):
                                      'value': indicator.pattern})
         self.misp_event.add_object(**misp_object)
 
-    def fill_misp_object(self, misp_object, stix_object, mapping):
-        for feature, attribute in getattr(stix2misp_mapping, mapping).items():
-            if hasattr(stix_object, feature):
-                attribute = deepcopy(attribute)
-                attribute['value'] = getattr(stix_object, feature)
+    @staticmethod
+    def fill_misp_object(misp_object, stix_object, mapping):
+        for key, feature in getattr(stix2misp_mapping, mapping).items():
+            if hasattr(stix_object, key):
+                attribute = deepcopy(feature)
+                attribute['value'] = getattr(stix_object, key)
+                misp_object.add_attribute(**attribute)
+
+    @staticmethod
+    def fill_misp_object_from_dict(misp_object, stix_object, mapping):
+        for key, feature in getattr(stix2misp_mapping, mapping).items():
+            if key in stix_object:
+                attribute = deepcopy(feature)
+                attribute['value'] = stix_object[key]
                 misp_object.add_attribute(**attribute)
 
     def parse_attack_pattern(self, attack_pattern):
@@ -1319,20 +1328,38 @@ class ExternalStixParser(StixParser):
             if pattern_type not in stix2misp_mapping.file_mapping:
                 if 'extensions' in pattern_type:
                     features = pattern_type.split('.')[1:]
-                    extension_type = features.pop(0)
-                    if 'section' in features[0]:
+                    extension_type = features.pop(0).strip("'")
+                    if 'section' in features[0] and features[0] != 'number_of_sections':
                         index = features[0].split('[')[1].strip(']') if '[' in features[0] else '0'
-                        extensions[extension_type][f'section_{index}']['.'.join(features[1:])] = pattern_value
+                        extensions[extension_type][f'section_{index}']['.'.join(features)] = pattern_value
                     else:
-                        extensions[extension_type]['.'.join(features[1:])] = pattern_value
+                        extensions[extension_type]['.'.join(features)] = pattern_value
                 continue
             attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
             attribute['value'] = pattern_value
             attributes.append(attribute)
         if extensions:
-            self._parse_file_extension(attributes, extensions)
+            self.parse_file_extension(attributes, extensions)
         else:
             self.handle_import_case(attributes)
+
+    def parse_file_extension(self, attributes, extensions, uuid):
+        file_object = MISPObject('file', misp_objects_path_custom=self._misp_objects_path)
+        file_object.uuid = uuid
+        if 'windows-pebinary-ext' in extensions:
+            pe_extension = extensions['windows-pebinary-ext']
+            pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
+            sections = (pe_extension.pop(feature) for feature in pe_extension if feature.startswith('section_'))
+            self.fill_misp_object_from_dict(pe_object, pe_extension, stix2misp_mapping.pe_mapping)
+            file_object.add_reference(pe_object.uuid, 'includes')
+            if sections:
+                for section in sections:
+                    section_object = MISPObject('pe-section')
+                    self.fill_misp_object_from_dict(section_object, section, stix2misp_mapping.pe_section_mapping)
+                    pe_object.add_reference(section_object.uuid, 'includes')
+                    self.misp_event.add_object(**section_object)
+            self.misp_event.add_object(**pe_object)
+        self.misp_event.add_object(**file_object)
 
     def parse_mac_address_pattern(self, indicator):
         self.add_single_attribute(indicator, 'mac-address')
