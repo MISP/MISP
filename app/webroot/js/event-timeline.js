@@ -472,7 +472,9 @@ function reload_timeline() {
                     return {id: id, content: itemIds[id]}
                 })
                 eventTimeline.setGroups(groups);
+                eventTimeline.setOptions({selectable: false});
             } else {
+                eventTimeline.setOptions({selectable: true});
                 eventTimeline.setGroups([]);
             }
         },
