@@ -24,7 +24,7 @@ import io
 import re
 import stix2
 from stix2misp_mapping import *
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 _MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-4]])
 _PyMISP_dir = '{_MISP_dir}/PyMISP'.format(_MISP_dir=_MISP_dir)
@@ -107,7 +107,7 @@ class StixParser():
         try:
             self.report[parsed_object['id'].split('--')[1]] = parsed_object
         except AttributeError:
-            self.report = {parsed_object['id'].split('--')[1]: parsed_object}
+            self.report = OrderedDict({parsed_object['id'].split('--')[1]: parsed_object})
 
     def _load_usual_object(self, parsed_object):
         self.event[parsed_object._type][parsed_object['id'].split('--')[1]] = parsed_object
