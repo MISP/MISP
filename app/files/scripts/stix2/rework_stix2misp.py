@@ -1338,11 +1338,11 @@ class ExternalStixParser(StixParser):
             attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
             attribute['value'] = pattern_value
             attributes.append(attribute)
-        file_object = self.create_misp_object(indicator, 'file')
         if extensions:
+            file_object = self.create_misp_object(indicator, 'file')
             self.parse_file_extension(file_object, attributes, extensions)
         else:
-            self.handle_import_case(attributes)
+            self.handle_import_case(indicator, attributes, 'file')
 
     def parse_file_extension(self, file_object, attributes, extensions):
         for attribute in attributes:
@@ -1453,6 +1453,17 @@ class ExternalStixParser(StixParser):
         except ValueError:
             pattern_type, pattern_value = pattern.split('=')
         return pattern_type, pattern_value.strip("'")
+
+    def handle_import_case(self, stix_object, attributes, name):
+        if len(attributes) == 1:
+            attribute = {field: attributes[0][field] for field in self._single_attribute_fields if attributes[0].get(field)}
+            attribute['uuid'] = stix_object.id.split('--')[1]
+            self.misp_event.add_attribute(**attribute)
+        else:
+            file_object = self.create_misp_object(stix_object, 'file')
+            for attribute in attributes:
+                file_object.add_attribute(**attribute)
+            self.misp_event.add_object(**file_object)
 
     @staticmethod
     def parse_pattern_types(pattern):
