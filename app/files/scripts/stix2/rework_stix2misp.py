@@ -1338,7 +1338,7 @@ class ExternalStixParser(StixParser):
             attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
             attribute['value'] = pattern_value
             attributes.append(attribute)
-        file_object = create_misp_object(indicator, 'file')
+        file_object = self.create_misp_object(indicator, 'file')
         if extensions:
             self.parse_file_extension(file_object, attributes, extensions)
         else:
@@ -1350,13 +1350,13 @@ class ExternalStixParser(StixParser):
         if 'windows-pebinary-ext' in extensions:
             pe_extension = extensions['windows-pebinary-ext']
             pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
-            sections = (pe_extension.pop(feature) for feature in pe_extension if feature.startswith('section_'))
-            self.fill_misp_object_from_dict(pe_object, pe_extension, stix2misp_mapping.pe_mapping)
+            sections = self._get_sections(pe_extension)
+            self.fill_misp_object_from_dict(pe_object, pe_extension, 'pe_mapping')
             file_object.add_reference(pe_object.uuid, 'includes')
             if sections:
                 for section in sections:
                     section_object = MISPObject('pe-section')
-                    self.fill_misp_object_from_dict(section_object, section, stix2misp_mapping.pe_section_mapping)
+                    self.fill_misp_object_from_dict(section_object, section, 'pe_section_mapping')
                     pe_object.add_reference(section_object.uuid, 'includes')
                     self.misp_event.add_object(**section_object)
             self.misp_event.add_object(**pe_object)
@@ -1440,6 +1440,11 @@ class ExternalStixParser(StixParser):
         misp_object.uuid = stix_object.id.split('--')[1]
         misp_object.update(self.parse_timeline(stix_object))
         return misp_object
+
+    @staticmethod
+    def _get_sections(pe_extension):
+        sections = [feature for feature in pe_extension.keys() if feature.startswith('section_')]
+        return (pe_extension.pop(feature) for feature in sections)
 
     @staticmethod
     def get_type_and_value_from_pattern(pattern):
