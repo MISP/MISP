@@ -204,7 +204,14 @@ class AppController extends Controller
             $this->Security->unlockedActions = array($this->action);
         }
 
-        if (!$userLoggedIn) {
+        if (
+            !$userLoggedIn &&
+            (
+                $this->params['controller'] !== 'users' ||
+                $this->params['action'] !== 'register' ||
+                empty(Configure::read('Security.allow_self_registration'))
+            )
+        ) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
                 // disable CSRF for REST access

@@ -2495,6 +2495,14 @@ class UsersController extends AppController
                     throw new InvalidArgumentException(__('Role ID not provided and no default role exist on the instance'));
                 }
             }
+            if (!isset($this->request->data['User']['org_id'])) {
+                throw new InvalidArgumentException(__('No organisation selected. Supply an Organisation ID'));
+            } else {
+                if (Validation::uuid($this->request->data['User']['org_id'])) {
+                    $id = $this->Toolbox->findIdByUuid($this->User->Organisation, $this->request->data['User']['org_id']);
+                    $this->request->data['User']['org_id'] = $id;
+                }
+            }
             foreach ($registrations as $registration) {
                 $result = $this->User->registerUser(
                     $this->Auth->user(),
