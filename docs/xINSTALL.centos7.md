@@ -394,6 +394,7 @@ sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/*.sh
 sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py
 sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py
 sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
 # Only run these if you want to be able to update MISP from the web interface
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
