@@ -357,6 +357,7 @@ class SendEmail
 
         $email = $this->create($user, $subject, $body, array(), $replyToUser);
 
+        $signed = false;
         if (Configure::read('GnuPG.sign')) {
             if (!$this->gpg) {
                 throw new SendEmailException("GPG signing is enabled, but GPG is not configured.");
@@ -365,13 +366,13 @@ class SendEmail
             try {
                 $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
                 $this->signByGpg($email);
+                $signed = true;
             } catch (Exception $e) {
                 throw new SendEmailException("The message could not be signed.", 0, $e);
             }
         }
 
         $encrypted = false;
-
         if ($canEncryptGpg) {
             if (!$this->gpg) {
                 throw new SendEmailException("GPG encryption is enabled, but GPG is not configured.");
@@ -390,6 +391,15 @@ class SendEmail
             try {
                 $this->gpg->addEncryptKey($fingerprint);
                 $this->encryptByGpg($email);
+
+                if ($signed && Configure::read('GnuPG.obscure_subject')) {
+                    // If message is signed, we can remove subject from unencrypted part of email and replace with '...',
+                    // because subject is also part of signed data. Three dots are used according to
+                    // 'draft-autocrypt-lamps-protected-headers-01' standard. This behaviour must be enabled by
+                    // 'GnuPG.obscure_subject' setting.
+                    $email->subject('...');
+                }
+
                 $encrypted = true;
             } catch (Exception $e) {
                 throw new SendEmailException("The message could not be encrypted.", 0, $e);

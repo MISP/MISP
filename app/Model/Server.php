@@ -1142,6 +1142,14 @@ class Server extends AppModel
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
                                 'type' => 'string',
+                        ),
+                        'obscure_subject' => array(
+                                'level' => 2,
+                                'description' => __('When enabled, subject in signed and encrypted e-mails will not send in unencrypted form.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
                         )
                 ),
                 'SMIME' => array(
