@@ -319,11 +319,11 @@ class User extends AppModel
                     return true;
                 }
             } catch (Exception $e) {
-                $this->log($e->getMessage());
+                $this->logException("Exception during importing GPG key", $e);
                 return false;
             }
         } catch (Exception $e) {
-            $this->log($e->getMessage());
+            $this->logException("Exception during initializing GPG", $e);
             return true;
         }
     }
@@ -565,9 +565,6 @@ class User extends AppModel
         } catch (Exception $e) {
             $this->log($e->getMessage());
         }
-        unlink($msg_test);
-        unlink($msg_test_encrypted);
-        return $result;
     }
 
     public function verifyCertificate()
@@ -757,7 +754,7 @@ class User extends AppModel
         }
 
         $this->Log = ClassRegistry::init('Log');
-        $replyToLog = $replyToUser ? 'from ' . $replyToUser['User']['email'] : '';
+        $replyToLog = $replyToUser ? ' from ' . $replyToUser['User']['email'] : '';
 
         try {
             $gpg = $this->initializeGpg();
@@ -767,10 +764,10 @@ class User extends AppModel
 
         $sendEmail = new SendEmail($gpg);
         try {
-            $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc ?: null, $replyToUser ?: array());
+            $encrypted = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc ?: null, $replyToUser ?: array());
 
         } catch (SendEmailException $e) {
-            $this->log($e->getMessage()); // TODO: Log whole exception
+            $this->logException("Exception during sending e-mail", $e);
             $this->Log->create();
             $this->Log->save(array(
                 'org' => 'SYSTEM',
@@ -778,11 +775,14 @@ class User extends AppModel
                 'model_id' => $user['User']['id'],
                 'email' => $user['User']['email'],
                 'action' => 'email',
-                'title' => 'Email ' . $replyToLog . ' to ' . $user['User']['email'] . ', titled "' . $subject . '" failed. Reason: ' . $e->getMessage(),
+                'title' => 'Email' . $replyToLog . ' to ' . $user['User']['email'] . ', titled "' . $subject . '" failed. Reason: ' . $e->getMessage(),
                 'change' => null,
             ));
             return false;
         }
+
+        $logTitle = $encrypted ? 'Encrypted email' : 'Email';
+        $logTitle .= $replyToLog  . ' to ' . $user['User']['email'] . ' sent, titled "' . $subject . '".';
 
         $this->Log->create();
         $this->Log->save(array(
@@ -791,7 +791,7 @@ class User extends AppModel
             'model_id' => $user['User']['id'],
             'email' => $user['User']['email'],
             'action' => 'email',
-            'title' => 'Email ' . $replyToLog  . ' to ' . $user['User']['email'] . ' sent, titled "' . $subject . '".',
+            'title' => $logTitle,
             'change' => null,
         ));
         return true;

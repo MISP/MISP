@@ -331,7 +331,7 @@ class SendEmail
      * @param string $body
      * @param string|null $bodyWithoutEncryption
      * @param array $replyToUser
-     * @return bool
+     * @return bool True if e-mail is encrypted, false if not.
      * @throws SendEmailException
      */
     public function sendToUser(array $user, $subject, $body, $bodyWithoutEncryption = null, array $replyToUser = array())
@@ -370,6 +370,8 @@ class SendEmail
             }
         }
 
+        $encrypted = false;
+
         if ($canEncryptGpg) {
             if (!$this->gpg) {
                 throw new SendEmailException("GPG encryption is enabled, but GPG is not configured.");
@@ -388,6 +390,7 @@ class SendEmail
             try {
                 $this->gpg->addEncryptKey($fingerprint);
                 $this->encryptByGpg($email);
+                $encrypted = true;
             } catch (Exception $e) {
                 throw new SendEmailException("The message could not be encrypted.", 0, $e);
             }
@@ -396,11 +399,12 @@ class SendEmail
         if (!$canEncryptGpg && $canEncryptSmime) {
             $this->signBySmime($email);
             $this->encryptBySmime($email, $user['User']['certif_public']);
+            $encrypted = true;
         }
 
         try {
             $email->send();
-            return true;
+            return $encrypted;
         } catch (Exception $e) {
             throw new SendEmailException("The message could be sent.", 0, $e);
         }
@@ -620,7 +624,7 @@ class SendEmail
 
         } else {
             $outputFile->delete();
-            throw new SendEmailException('Failed while attempting to sign the SMIME message: ' . openssl_error_string());
+            throw new SendEmailException('Failed while attempting to sign the S/MIME message: ' . openssl_error_string());
         }
     }
 
@@ -648,7 +652,7 @@ class SendEmail
             return $parts[1];
         } else {
             $outputFile->delete();
-            throw new SendEmailException('Could not encrypt the SMIME message: ' . openssl_error_string());
+            throw new SendEmailException('Could not encrypt the S/MIME message: ' . openssl_error_string());
         }
     }
 
