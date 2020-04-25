@@ -454,10 +454,10 @@ class SendEmail
 
         // We must generate message ID by own, because CakeEmail returns different message ID for every call of
         // getHeaders() method.
-        $email->messageId('<' . str_replace('-', '', CakeText::uuid()) . '@' . $email->domain() . '>');
+        $email->messageId($this->generateMessageId($email));
 
-        // If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender
-        // For this reason we should also attach the public key of the sender along with the message (if applicable)
+        // If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender.
+        // For this reason we should also attach the public key of the sender along with the message (if applicable).
         if ($replyToUser) {
             $email->replyTo($replyToUser['User']['email']);
             if (!empty($replyToUser['User']['gpgkey'])) {
@@ -730,5 +730,21 @@ class SendEmail
         }
 
         return false;
+    }
+
+    /**
+     * This method generates Message-ID (RFC 2392) according to recommendation from https://www.jwz.org/doc/mid.html.
+     * CakePHP by default uses CakeText::uuid() method for first part, but UUID leaks machine IP address.
+     *
+     * @param CakeEmail $email
+     * @return string
+     */
+    private function generateMessageId(CakeEmail $email)
+    {
+        list($microseconds, $seconds) = explode(" ", microtime());
+        $microseconds = intval((float) $microseconds * 1000000);
+        $first = base_convert($seconds, 10, 36) . base_convert($microseconds, 10, 36);
+        $second = base_convert(mt_rand(), 10, 36) . base_convert(mt_rand(), 10, 36);
+        return "<$first.$second@{$email->domain()}>";
     }
 }
