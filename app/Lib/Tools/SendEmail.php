@@ -455,6 +455,8 @@ class SendEmail
         // We must generate message ID by own, because CakeEmail returns different message ID for every call of
         // getHeaders() method.
         $email->messageId($this->generateMessageId($email));
+        // The same problem is with 'Date' header, that we need to protect by GPG signature.
+        $email->addHeaders(array('Date' => date(DATE_RFC2822)));
 
         // If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender.
         // For this reason we should also attach the public key of the sender along with the message (if applicable).
@@ -496,7 +498,7 @@ class SendEmail
             'protected-headers="v1"',
         ));
         $originalHeaders = $email->getHeaders(array('subject', 'from', 'to'));
-        $protectedHeaders = array('From', 'To', 'Message-ID', 'Subject');
+        $protectedHeaders = array('From', 'To', 'Date', 'Message-ID', 'Subject');
         foreach ($protectedHeaders as $header) {
             if (isset($originalHeaders[$header])) {
                 $messagePart->addHeader($header, $originalHeaders[$header]);
