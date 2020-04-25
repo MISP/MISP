@@ -260,7 +260,7 @@ installCoreRHEL () {
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
   # lief needs manual compilation
-  sudo yum install devtoolset-7 cmake3 cppcheck -y
+  sudo yum install devtoolset-7 cmake3 cppcheck libcxx-devel -y
 
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW mkdir build
