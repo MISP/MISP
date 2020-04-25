@@ -411,6 +411,36 @@ class SendEmail
     }
 
     /**
+     * @param string $certificate
+     * @return bool
+     * @throws Exception
+     */
+    public function testSmimeCertificate($certificate)
+    {
+        try {
+            // Try to encrypt empty message
+            $this->encryptTextBySmime($certificate, '');
+        } catch (SendEmailException $e) {
+            throw new Exception("This certificate cannot be used to encrypt email", 0, $e);
+        }
+
+        $parsed = openssl_x509_parse($certificate);
+
+        // 5 should be 'smimeencrypt'
+        if (!($parsed['purposes'][5][0] === 1 && $parsed['purposes'][5][2] === 'smimeencrypt')) {
+            throw new Exception('This certificate cannot be used to encrypt email');
+        }
+
+        $now = new DateTime("now");
+        $validToTime = new DateTime("@{$parsed['validTo_time_t']}");
+        if ($validToTime <= $now) {
+            throw new Exception('This certificate is expired');
+        }
+
+        return true;
+    }
+
+    /**
      * @param array $user
      * @param string $subject
      * @param string $body

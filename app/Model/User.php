@@ -525,45 +525,16 @@ class User extends AppModel
 
     private function testSmimeCertificate($certif_public)
     {
-        $result = array();
+        $sendEmail = new SendEmail();
         try {
-            App::uses('Folder', 'Utility');
-            App::uses('FileAccessTool', 'Tools');
-            $fileAccessTool = new FileAccessTool();
-            $dir = APP . 'tmp' . DS . 'SMIME';
-            if (!file_exists($dir)) {
-                if (!mkdir($dir, 0750, true)) {
-                    throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
-                }
-            }
-            $tempFile = $fileAccessTool->createTempFile($dir, 'SMIME');
-            $msg_test = $fileAccessTool->writeToFile($tempFile, 'test');
-            $msg_test_encrypted = $fileAccessTool->createTempFile($dir, 'SMIME');
-            // encrypt it
-            if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)) {
-                $parse = openssl_x509_parse($certif_public);
-                // Valid certificate ?
-                $now = new DateTime("now");
-                $validTo_time_t_epoch = $parse['validTo_time_t'];
-                $validTo_time_t = new DateTime("@$validTo_time_t_epoch");
-                if ($validTo_time_t > $now) {
-                    // purposes smimeencrypt ?
-                    if (($parse['purposes'][5][0] == 1) && ($parse['purposes'][5][2] == 'smimeencrypt')) {
-                        $result = true;
-                    } else {
-                        // openssl_pkcs7_encrypt good -- Model/User purposes is NOT GOOD'
-                        $result = 'This certificate cannot be used to encrypt email';
-                    }
-                } else {
-                    // openssl_pkcs7_encrypt good -- Model/User expired;
-                    $result = 'This certificate is expired';
-                }
-            } else {
-                // openssl_pkcs7_encrypt NOT good -- Model/User
-                $result = 'This certificate cannot be used to encrypt email';
-            }
+            $sendEmail->testSmimeCertificate($certif_public);
+            return true;
         } catch (Exception $e) {
-            $this->log($e->getMessage());
+            if ($e->getPrevious()) {
+                return $e->getMessage() . ": " . $e->getPrevious()->getMessage();
+            }
+
+            return $e->getMessage();
         }
     }
 
