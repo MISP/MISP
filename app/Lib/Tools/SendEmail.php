@@ -441,11 +441,11 @@ class SendEmail
     }
 
     /**
-     * @param array $user
+     * @param array $user User model
      * @param string $subject
      * @param string $body
      * @param array $attachments
-     * @param array $replyToUser
+     * @param array $replyToUser User model
      * @return CakeEmailExtended
      */
     private function create(array $user, $subject, $body, array $attachments = array(), array $replyToUser = array())
@@ -497,8 +497,9 @@ class SendEmail
             'boundary="' . $email->boundary() . '"',
             'protected-headers="v1"',
         ));
+        // Protect User-Facing Headers according to https://tools.ietf.org/id/draft-autocrypt-lamps-protected-headers-01.html
         $originalHeaders = $email->getHeaders(array('subject', 'from', 'to'));
-        $protectedHeaders = array('From', 'To', 'Date', 'Message-ID', 'Subject');
+        $protectedHeaders = array('From', 'To', 'Date', 'Message-ID', 'Subject', 'Reply-To');
         foreach ($protectedHeaders as $header) {
             if (isset($originalHeaders[$header])) {
                 $messagePart->addHeader($header, $originalHeaders[$header]);
@@ -670,7 +671,7 @@ class SendEmail
     {
         $publicKey = openssl_x509_read($publicKey);
         if (!$publicKey) {
-            throw new SendEmailException("Certification file is not valid X.509 file: " . openssl_error_string());
+            throw new SendEmailException('Certification file is not valid X.509 file: ' . openssl_error_string());
         }
 
         list($inputFile, $outputFile) = $this->createInputOutputFiles($body);
@@ -743,7 +744,7 @@ class SendEmail
      */
     private function generateMessageId(CakeEmail $email)
     {
-        list($microseconds, $seconds) = explode(" ", microtime());
+        list($microseconds, $seconds) = explode(' ', microtime());
         $microseconds = intval((float) $microseconds * 1000000);
         $first = base_convert($seconds, 10, 36) . base_convert($microseconds, 10, 36);
         $second = base_convert(mt_rand(), 10, 36) . base_convert(mt_rand(), 10, 36);
