@@ -316,7 +316,7 @@ class SendEmail
         try {
             $result = $email->send();
         } catch (Exception $e) {
-            throw new SendEmailException("The message could be sent.", 0, $e);
+            throw new SendEmailException("The message could not be sent.", 0, $e);
         }
 
         if ($result && !$mock) {
@@ -416,7 +416,7 @@ class SendEmail
             $email->send();
             return $encrypted;
         } catch (Exception $e) {
-            throw new SendEmailException("The message could be sent.", 0, $e);
+            throw new SendEmailException("The message could not be sent.", 0, $e);
         }
     }
 
