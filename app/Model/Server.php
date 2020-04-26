@@ -3901,7 +3901,6 @@ class Server extends AppModel
         } else {
             $serverSettings = $this->serverSettings;
         }
-        $relevantSettings = (array_intersect_key(Configure::read(), $serverSettings));
         $setting = false;
         foreach ($serverSettings as $k => $s) {
             if (isset($s['branch'])) {
