@@ -10,7 +10,7 @@
     </div>
 
     <div id="eventdistri_graph" data-event-id="<?php echo h($event['Event']['id']); ?>" data-event-distribution="<?php echo h($event['Event']['distribution']); ?>" data-event-distribution-text="<?php echo $event['Event']['distribution'] == 4 ? h($event['SharingGroup']['name']) : h($distributionLevels[$event['Event']['distribution']]); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>" data-extended="<?php echo $extended; ?>">
-        <canvas id="distribution_graph_canvas"  height="290px"width="400px"></canvas>
+        <canvas id="distribution_graph_canvas" height="290" width="400"></canvas>
     </div>
     <div class="popupDistriSeparator"></div>
     <div id="eventdistri_pb_container">
