@@ -76,6 +76,7 @@ install:
     - sudo cp travis/database.php app/Config/database.php
     - sudo cp app/Config/core.default.php app/Config/core.php
     - sudo cp app/Config/config.default.php app/Config/config.php
+    - sudo cp travis/email.php app/Config/email.php
     # Ensure the perms
     - sudo chown -R $USER:www-data `pwd`/app/Config
     - sudo chmod -R 770 `pwd`/app/Config
