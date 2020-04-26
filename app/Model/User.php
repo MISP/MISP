@@ -730,6 +730,7 @@ class User extends AppModel
         try {
             $gpg = $this->initializeGpg();
         } catch (Exception $e) {
+            $this->logException("GPG couldn't be initialized, GPG encryption and signing will be not available.", $e, LOG_NOTICE);
             $gpg = null;
         }
 
@@ -1151,6 +1152,7 @@ class User extends AppModel
     private function initializeGpg()
     {
         if (!class_exists('Crypt_GPG')) {
+            // 'Crypt_GPG' class cannot be autoloaded, try to require from include_path.
             if (!stream_resolve_include_path('Crypt/GPG.php')) {
                 throw new Exception("Crypt_GPG is not installed.");
             }
