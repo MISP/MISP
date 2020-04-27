@@ -74,7 +74,7 @@ function buildTree() {
 
     var gEnter = nodeEnter.append('g');
     gEnter.append("circle")
-        .attr("r", 15)
+        .attr("r", function(d) { return d.isRoot ? 5 : 15 })
         .style("fill", function(d) { return d.isRoot ? "lightsteelblue" : "#fff"; })
         .style("stroke", "steelblue")
         .style("stroke-width", "2px")
