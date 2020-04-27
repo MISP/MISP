@@ -128,6 +128,9 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators."
 
+  # It is possible to updateMISP too, only here for reference how to to that on the CLI.
+  ## $SUDO_WWW $RUN_PHP -- $CAKE Admin updateMISP
+
   # Set MISP Live
   $SUDO_WWW $RUN_PHP -- $CAKE Live $MISP_LIVE
 }
