@@ -1473,7 +1473,7 @@ class UsersController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Users', 'admin_quickEmail', false, $error, $this->response->type());
             } else {
-                $this->Flash->error('Cannot send an e-mail to this user as the account is disabled.');
+                $this->Flash->error($error);
                 $this->redirect('/admin/users/view/' . $user_id);
             }
         }

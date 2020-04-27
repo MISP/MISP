@@ -144,7 +144,11 @@ abstract class DecayingModelBase
             $last_sighting_timestamp = $attribute['timestamp'];
         }
         $timestamp = time();
-        return $this->computeScore($model, $attribute, $base_score, $timestamp - $last_sighting_timestamp);
+        $scores = array(
+            'score' => $this->computeScore($model, $attribute, $base_score, $timestamp - $last_sighting_timestamp),
+            'base_score' => $base_score
+        );
+        return $scores;
     }
 
     // Compute the score for the provided attribute according to the elapsed time with the provided model
