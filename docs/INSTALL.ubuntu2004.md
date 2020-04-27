@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 18.04.4-server
+## for Ubuntu 20.04-server
 
 ### -1/ Installer and Manual install instructions
 
