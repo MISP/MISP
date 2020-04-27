@@ -131,12 +131,12 @@ class NidsSuricataExport extends NidsExport
                 $data['host'] = NidsExport::replaceIllegalChars($data['host']);
                 $tag = 'tag:session,600,seconds;';
                 # IP: classic IP rule for HTTPS
-                $suricata_protocol = 'tcp';
+                $suricata_protocol = 'tls';
                 $suricata_src_ip = '$HOME_NET';
                 $suricata_src_port = 'any';
-                $suricata_dst_ip = $data['host'];
+                $suricata_dst_ip = '$EXTERNAL_NET';
                 $suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
-                $content = 'flow:to_server; app-layer-protocol:tls;';
+                $content = 'tls_sni; content:"' . $data['host'] . '";';
                 break;
 
             case "ssh":
