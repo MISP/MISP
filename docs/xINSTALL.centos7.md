@@ -187,8 +187,8 @@ $SUDO_WWW scl enable devtoolset-7 'bash -c "cmake3 \
 $SUDO_WWW make -j3
 sudo make install
 cd api/python/lief_pybind11-prefix/src/lief_pybind11
-$SUDO_WWW $PATH_TO_MISP/venv/bin/python setup.py install
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/python setup.py install
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
 
 # install magic, pydeep
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git
