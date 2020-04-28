@@ -2280,7 +2280,7 @@ class EventsController extends AppController
                 }
             }
             foreach ($resultArray as $key => $result) {
-                if ($has_pipe = strpos($result['default_type'], '|') !== false) {
+                if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
                     $pieces = explode('|', $result['value']);
                     $or = array('Attribute.value1' => $pieces,
                                 'Attribute.value2' => $pieces);
@@ -3731,7 +3731,7 @@ class EventsController extends AppController
                 }
             }
             foreach ($resultArray as $key => $result) {
-                if ($has_pipe = strpos($result['default_type'], '|') !== false) {
+                if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
                     $pieces = explode('|', $result['value']);
                     $or = array('Attribute.value1' => $pieces,
                                 'Attribute.value2' => $pieces);
@@ -5006,7 +5006,7 @@ class EventsController extends AppController
             }
         }
         foreach ($resultArray as $key => $result) {
-            if ($has_pipe = strpos($result['default_type'], '|') !== false) {
+            if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
                 $pieces = explode('|', $result['value']);
                 $or = array('Attribute.value1' => $pieces,
                             'Attribute.value2' => $pieces);
@@ -5196,7 +5196,7 @@ class EventsController extends AppController
                             }
                         }
                         foreach ($resultArray as $key => $result) {
-                            if ($has_pipe = strpos($result['default_type'], '|') !== false) {
+                            if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
                                 $pieces = explode('|', $result['value']);
                                 $or = array('Attribute.value1' => $pieces,
                                             'Attribute.value2' => $pieces);
