@@ -76,10 +76,10 @@ $(document).ready(function() {
 
     // Confirm before submit
     $('#UserAdminEmailForm').submit(function(e) {
-        var url = '<?php echo $baseurl; ?>/admin/users/email/true?';
-        url += 'recipient=' + $('#recipient').val();
-        url += '&recipientEmailList=' + $('#UserRecipientEmailList').val();
-        url += '&orgNameList=' + $('#UserOrgNameList').val();
+        var url = '<?php echo $baseurl; ?>/admin/users/email/true';
+        url += '/recipient:' + $('#recipient').val();
+        url += '/recipientEmailList:' + $('#UserRecipientEmailList').val();
+        url += '/orgNameList:' + $('#UserOrgNameList').val();
         $.get(url, function(data) {
             $("#confirmation_box").html(data);
             openPopup("#confirmation_box");

@@ -44,9 +44,9 @@ class AppController extends Controller
 
     public $debugMode = false;
 
-    public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
+    public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '101';
+    private $__queryVersion = '104';
     public $pyMispVersion = '2.4.123';
     public $phpmin = '7.2';
     public $phprec = '7.4';
@@ -120,7 +120,6 @@ class AppController extends Controller
         } else {
             $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
         }
-
         $this->__sessionMassage();
         if (Configure::read('Security.allow_cors')) {
             // Add CORS headers
@@ -183,6 +182,8 @@ class AppController extends Controller
         if (!empty($this->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
         }
+        Configure::write('CurrentController', $this->params['controller']);
+        Configure::write('CurrentAction', $this->params['action']);
         $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
@@ -203,7 +204,14 @@ class AppController extends Controller
             $this->Security->unlockedActions = array($this->action);
         }
 
-        if (!$userLoggedIn) {
+        if (
+            !$userLoggedIn &&
+            (
+                $this->params['controller'] !== 'users' ||
+                $this->params['action'] !== 'register' ||
+                empty(Configure::read('Security.allow_self_registration'))
+            )
+        ) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
                 // disable CSRF for REST access
@@ -299,6 +307,8 @@ class AppController extends Controller
         }
 
         if ($this->Auth->user()) {
+            Configure::write('CurrentUserId', $this->Auth->user('id'));
+            $this->User->setMonitoring($this->Auth->user());
             if (Configure::read('MISP.log_user_ips')) {
                 $redis = $this->{$this->modelClass}->setupRedis();
                 if ($redis) {
@@ -351,7 +361,7 @@ class AppController extends Controller
                 }
             }
         } else {
-            if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
+            if ($this->params['controller'] !== 'users' || !in_array($this->params['action'], array('login', 'register'))) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
@@ -446,11 +456,23 @@ class AppController extends Controller
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
             $this->userRole = $role;
-            if (Configure::read('MISP.log_paranoid')) {
+            if (
+                Configure::read('MISP.log_paranoid') ||
+                !empty(Configure::read('Security.monitored'))
+            ) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
                 $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
-                if (($this->request->is('post') || $this->request->is('put')) && !empty(Configure::read('MISP.log_paranoid_include_post_body'))) {
+                if (
+                    (
+                        $this->request->is('post') ||
+                        $this->request->is('put')
+                    ) &&
+                    (
+                        !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
+                        !empty(Configure::read('Security.monitored'))
+                    )
+                ) {
                     $payload = $this->request->input();
                     if (!empty($payload['_Token'])) {
                         unset($payload['_Token']);
@@ -594,7 +616,7 @@ class AppController extends Controller
             ConnectionManager::create('default', $db->config);
         }
         $dataSource = $dataSourceConfig['datasource'];
-        if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
+        if (!in_array($dataSource, array('Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver'))) {
             throw new Exception('datasource not supported: ' . $dataSource);
         }
     }

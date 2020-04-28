@@ -12,7 +12,10 @@ Package: misp
 Architecture: all
 Pre-Depends: ${misc:Pre-Depends}
 Depends: libapache2-mod-php | php-cgi | php,
+	 ca-certificates,
 	 python3,
+	 python3-setuptools,
+	 python3-wheel,
 	 composer,
 	 mariadb-client,
 	 openssl,
@@ -20,6 +23,7 @@ Depends: libapache2-mod-php | php-cgi | php,
 	 unzip,
 	 moreutils,
 	 php-mysql,
+	 php-pear,
 	 php-redis,
 	 php-gd,
 	 php-gnupg,
@@ -28,6 +32,7 @@ Depends: libapache2-mod-php | php-cgi | php,
 	 php-readline,
 	 php-mbstring,
 	 php7.3-opcache,
+	 libfuzzy-dev,
 	 ${misc:Depends}
 Recommends: ${misc:Recommends}, redis-server, mariadb-server
 Description: Threat Intelligence Platform

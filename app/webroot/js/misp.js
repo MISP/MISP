@@ -1201,7 +1201,7 @@ function openGenericModalPost(url, body) {
     });
 }
 
-function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dissmis_id_to_close) {
+function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dismiss_id_to_close) {
     var url = null;
     var context = 'event';
     var contextNamingConvention = 'Attribute';
@@ -1241,8 +1241,11 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             url = "/objectReferences/add/" + context_id;
             break;
         case 'quickAddAttributeForm':
-           url = "/objects/quickAddAttributeForm/" + context_id;
-           break;
+            url = "/objects/quickAddAttributeForm/" + context_id;
+            break;
+        case 'acceptUserRegistrations':
+            url = "/users/acceptRegistrations/" + context_id
+            break;
     }
     if ($("#submitButton").parent().hasClass('modal-footer')) {
         var $form = $("#submitButton").parent().parent().find('.modal-body form');
@@ -1261,8 +1264,8 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 if (closePopover) {
                     $("#gray_out").fadeOut();
                     $("#popover_form").fadeOut();
-                    if (popover_dissmis_id_to_close !== undefined) {
-                        $('[data-dismissid="' + popover_dissmis_id_to_close + '"]').popover('destroy');
+                    if (popover_dismiss_id_to_close !== undefined) {
+                        $('[data-dismissid="' + popover_dismiss_id_to_close + '"]').popover('destroy');
                     }
                     $(".loading").show();
                 }
@@ -3936,6 +3939,7 @@ function feedFormUpdate() {
     switch($('#FeedSourceFormat').val()) {
         case 'freetext':
             $('#TargetDiv').show();
+            $('#OrgcDiv').show();
             $('#OverrideIdsDiv').show();
             $('#PublishDiv').show();
             if ($('#FeedTarget').val() != 0) {
@@ -3946,6 +3950,7 @@ function feedFormUpdate() {
             break;
         case 'csv':
             $('#TargetDiv').show();
+            $('#OrgcDiv').show();
             $('#OverrideIdsDiv').show();
             $('#PublishDiv').show();
             if ($('#FeedTarget').val() != 0) {
@@ -5022,4 +5027,9 @@ function setHomePage() {
             $('#setHomePage').addClass('orange');
         },
     });
+}
+
+function changeLocationFromIndexDblclick(row_index) {
+    var href = $('table tr[data-row-id=\"' + row_index + '\"] .dblclickActionElement').attr('href')
+    window.location = href;
 }

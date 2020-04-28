@@ -37,7 +37,7 @@ App::uses('AppHelper', 'View/Helper');
          *      - Selector rules must end with either `{` or `,`, their content MUST be put in a new line:
          *          [bad]
          *              element { ... }
-         *          [good] 
+         *          [good]
          *              element {
          *                  ...
          *              }
@@ -46,20 +46,20 @@ App::uses('AppHelper', 'View/Helper');
          *              element,element {
          *                  ...
          *              }
-         *          [good] 
+         *          [good]
          *              element,
          *              element {
          *                  ...
          *              }
          * @param string $param1 HTML potentially containing scoped CSS
-         * @return array Return an array composed of 3 keys (html, css and seed) 
+         * @return array Return an array composed of 3 keys (html, css and seed)
          *      - bundle:       Include both scoped HTML and scoped CSS or the original html if the scoped feature is not requested
          *      - html:         Untouched HTML including nested in a scoped DIV or original html if the scoped feature is not requested
          *      - css:          CSS with an additional filter rule prepended to every selectors or the empty string if the scoped feature is not requested
          *      - seed:         The random generated number
          *      - originalHtml: Untouched HTML
          */
-        public function createScopedCSS(string $html) : array
+        public function createScopedCSS($html)
         {
             $css = "";
             $seed = "";
