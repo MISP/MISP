@@ -558,7 +558,7 @@ class AttributesController extends AppController
 
         // combobox for distribution
         $this->set('distributionLevels', $this->Attribute->distributionLevels);
-        $this->set('info', $this->getInfo());
+        $this->set('info', $this->__getInfo());
 
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
@@ -3230,7 +3230,7 @@ class AttributesController extends AppController
         }
     }
 
-    private function getInfo()
+    private function __getInfo()
     {
         $info = array('category' => array(), 'type' => array(), 'distribution' => array());
         foreach ($this->Attribute->categoryDefinitions as $key => $value) {
