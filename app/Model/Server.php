@@ -3113,15 +3113,6 @@ class Server extends AppModel
     private function readModuleSettings($serverSettings, $moduleTypes)
     {
         $this->Module = ClassRegistry::init('Module');
-        $orgs = $this->Organisation->find('list', array(
-            'conditions' => array(
-                'Organisation.local' => 1
-            ),
-            'fields' => array(
-                'Organisation.id', 'Organisation.name'
-            )
-        ));
-        $orgs = array_merge(array('Unrestricted'), $orgs);
         foreach ($moduleTypes as $moduleType) {
             if (Configure::read('Plugin.' . $moduleType . '_services_enable')) {
                 $results = $this->Module->getModuleSettings($moduleType);
@@ -3901,7 +3892,6 @@ class Server extends AppModel
         } else {
             $serverSettings = $this->serverSettings;
         }
-        $relevantSettings = (array_intersect_key(Configure::read(), $serverSettings));
         $setting = false;
         foreach ($serverSettings as $k => $s) {
             if (isset($s['branch'])) {
