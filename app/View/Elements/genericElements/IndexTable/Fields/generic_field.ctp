@@ -11,5 +11,27 @@
             }
         }
     }
-    echo h($data);
+    if (is_bool($data)) {
+        $data = sprintf(
+            '<i class="black fa fa-%s"></i>',
+            $data ? 'check' : 'times'
+        );
+        $data = '';
+    } else {
+        $data = h($data);
+        if (!empty($field['privacy'])) {
+            $data = sprintf(
+                '<span class="privacy-value" data-hidden-value="%s">****************************************</span> <i class="privacy-toggle fas fa-eye useCursorPointer"></i>',
+                $data
+            );
+        }
+    }
+    if (!empty($field['onClick'])) {
+        $data = sprintf(
+            '<span onClick="%s">%s</span>',
+            $field['onClick'],
+            $data
+        );
+    }
+    echo $data;
 ?>

@@ -291,7 +291,7 @@ class AdminShell extends AppShell
         $param = empty($this->args[0]) ? 'all' : $this->args[0];
         $settings = $this->Server->serverSettingsRead();
         $result = $settings;
-        if (!empty($param)) {
+        if ($param != 'all') {
             $result = 'No valid setting found for ' . $param;
             foreach ($settings as $setting) {
                 if ($setting['setting'] == $param) {

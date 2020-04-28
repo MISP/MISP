@@ -85,7 +85,8 @@
         );
         $rows = '';
         foreach ($dbSchemaDiagnostics as $tableName => $tableDiagnostic) {
-            $rows .= sprintf('<tr data-tablename="%s">', $tableName);
+            $tableContainsCritical = array_filter(Hash::extract($tableDiagnostic, '{n}.is_critical'));
+            $rows .= sprintf('<tr class="%s" data-tablename="%s">', $tableContainsCritical ? '' : 'noncritical', $tableName);
                 $rows .= sprintf('<td rowspan="%s" colspan="0" class="bold">%s</td>', count($tableDiagnostic)+1, h($tableName));
             $rows .= '</tr>';
 

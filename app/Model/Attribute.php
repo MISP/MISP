@@ -3348,6 +3348,9 @@ class Attribute extends AppModel
         } else {
             $options['includeDecayScore'] = true;
         }
+        if ($options['includeDecayScore']) {
+            $options['includeEventTags'] = true;
+        }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
         } else {
@@ -3477,7 +3480,13 @@ class Attribute extends AppModel
                 if ($options['includeDecayScore']) {
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
                     $include_full_model = isset($options['includeFullModel']) && $options['includeFullModel'] ? 1 : 0;
+                    if (empty($results[$key]['Attribute']['AttributeTag'])) {
+                        $results[$key]['Attribute']['AttributeTag'] = $results[$key]['AttributeTag'];
+                        $results[$key]['Attribute']['EventTag'] = $results[$key]['EventTag'];
+                    }
                     $results[$key]['Attribute'] = $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides'], $include_full_model);
+                    unset($results[$key]['Attribute']['AttributeTag']);
+                    unset($results[$key]['Attribute']['EventTag']);
                     if ($options['excludeDecayed'] && !empty($results[$key]['Attribute']['decay_score'])) { // filter out decayed attribute
                         $decayed_flag = true;
                         foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) { // remove attribute if ALL score results in a decay
@@ -4426,7 +4435,6 @@ class Attribute extends AppModel
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
-                    'uuid' => array('function' => 'set_filter_uuid'),
                     'published' => array('function' => 'set_filter_published')
                 ),
                 'Object' => array(
@@ -4487,7 +4495,6 @@ class Attribute extends AppModel
 
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
-
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
                 'conditions' => $conditions,
@@ -4616,5 +4623,53 @@ class Attribute extends AppModel
             fwrite($tmpfile, $temp);
         }
         return true;
+    }
+
+    public function set_filter_uuid(&$params, $conditions, $options)
+    {
+        if (!empty($params['uuid'])) {
+            $params['uuid'] = $this->convert_filters($params['uuid']);
+            if (!empty($params['uuid']['OR'])) {
+                $conditions['AND'][] = array(
+                    'OR' => array(
+                        'Event.uuid' => $params['uuid']['OR'],
+                        'Attribute.uuid' => $params['uuid']['OR']
+                    )
+                );
+            }
+            if (!empty($params['uuid']['NOT'])) {
+                $conditions['AND'][] = array(
+                    'NOT' => array(
+                        'Event.uuid' => $params['uuid']['NOT'],
+                        'Attribute.uuid' =>  $params['uuid']['NOT']
+                    )
+                );
+            }
+        }
+        return $conditions;
+    }
+
+    /**
+     * @param array $attribute
+     */
+    public function removeGalaxyClusterTags(array &$attribute)
+    {
+        $galaxyTagIds = array();
+        foreach ($attribute['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] as $galaxyCluster) {
+                $galaxyTagIds[$galaxyCluster['tag_id']] = true;
+            }
+        }
+
+        if (empty($galaxyTagIds)) {
+            return;
+        }
+
+        foreach ($attribute['AttributeTag'] as $k => $attributeTag) {
+            $tagId = $attributeTag['Tag']['id'];
+            if (isset($galaxyTagIds[$tagId])) {
+                unset($attribute['AttributeTag'][$k]);
+            }
+        }
     }
 }

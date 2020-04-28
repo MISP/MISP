@@ -19,10 +19,13 @@
     */
     echo '<td class="short action-links">';
     foreach ($actions as $action) {
+        if (isset($action['requirement']) && !$action['requirement']) {
+            continue;
+        }
         if (isset($action['complex_requirement'])) {
             if (isset($action['complex_requirement']['options']['datapath'])) {
                 foreach ($action['complex_requirement']['options']['datapath'] as $name => $path) {
-                    $action['complex_requirement']['options']['datapath'][$name] = Hash::extract($row, $path)[0];
+                    $action['complex_requirement']['options']['datapath'][$name] = empty(Hash::extract($row, $path)[0]) ? null : Hash::extract($row, $path)[0];
                 }
             }
             $options = isset($action['complex_requirement']['options']) ? $action['complex_requirement']['options'] : array();
@@ -45,6 +48,19 @@
             }
             $url .= '/' . $url_param_data_paths;
         }
+        if (!empty($action['url_named_params_data_paths'])) {
+            if (is_array($action['url_named_params_data_paths'])) {
+                $temp = array();
+                foreach ($action['url_named_params_data_paths'] as $namedParam => $path) {
+                    $temp[] = sprintf('%s:%s', h($namedParam), h(Hash::extract($row, $path)[0]));
+                }
+                $url_param_data_paths = implode('/', $temp);
+            }
+            $url .= '/' . $url_param_data_paths;
+        }
+        if (!empty($action['url_extension'])) {
+            $url .= '.' . $action['url_extension'];
+        }
         if (isset($action['postLink'])) {
             echo $this->Form->postLink(
                 '',
@@ -66,10 +82,11 @@
 
             }
             echo sprintf(
-                '<a href="%s" title="%s" aria-label="%s" %s><i class="black %s"></i></a> ',
+                '<a href="%s" title="%s" aria-label="%s" %s %s><i class="black %s"></i></a> ',
                 $url,
                 empty($action['title']) ? '' : h($action['title']),
                 empty($action['title']) ? '' : h($action['title']),
+                empty($action['dbclickAction']) ? '' : 'class="dblclickActionElement"',
                 empty($action['onclick']) ? '' : sprintf('onClick="%s"', $action['onclick']),
                 $this->FontAwesome->getClass($action['icon'])
             );

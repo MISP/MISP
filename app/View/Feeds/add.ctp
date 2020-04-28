@@ -2,10 +2,16 @@
 <?php echo $this->Form->create('Feed');?>
     <fieldset>
         <legend><?php echo __('Add MISP Feed');?></legend>
-        <p><?php echo __('Add a new MISP feed source.');?></p>
-    <?php
-        echo $this->Form->input('enabled', array());
-        echo $this->Form->input('caching_enabled', array('label' => __('Caching enabled')));
+        <?php
+            if (!empty(Configure::read('Security.disable_local_feed_access'))) {
+                echo sprintf(
+                    '<p class="red bold">%s</p>',
+                    __('Warning: local feeds are currently disabled by policy, to re-enable the feature, set the Security.allow_local_feed_access flag in the server settings. This setting can only be set via the CLI.')
+                );
+            }
+            echo '<p>' . __('Add a new MISP feed source.') . '</p>';
+            echo $this->Form->input('enabled', array());
+            echo $this->Form->input('caching_enabled', array('label' => __('Caching enabled')));
     ?>
         <div class="input clear"></div>
     <?php
@@ -21,10 +27,14 @@
                 'placeholder' => __('Name of the content provider'),
                 'class' => 'form-control span6'
         ));
+        $options = array('network' => 'Network');
+        if (empty(Configure::read('Security.disable_local_feed_access'))) {
+            $options['local'] = 'Local';
+        }
         echo $this->Form->input('input_source', array(
                 'label' => __('Input Source'),
                 'div' => 'input clear',
-                'options' => array('network' => 'Network', 'local' => 'Local'),
+                'options' => $options,
                 'class' => 'form-control span6'
         ));
         ?>
@@ -77,6 +87,16 @@
                         <span class="btn-inverse btn" onClick="add_basic_auth();" style="line-height:10px; padding: 4px 4px;"><?php echo __('Add basic auth header'); ?></span>
                 </div>
             </div><br />
+        </div>
+        <div id="OrgcDiv" class="optionalField">
+        <?php
+            echo $this->Form->input('orgc_id', array(
+                    'label' => __('Creator organisation'),
+                    'div' => 'input clear',
+                    'options' => $orgs,
+                    'class' => 'form-control span6'
+            ));
+        ?>
         </div>
         <div id="TargetDiv" class="optionalField">
     <?php

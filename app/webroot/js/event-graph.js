@@ -766,7 +766,7 @@ class EventGraph {
                     group: group,
                     mass: 5,
                 };
-                if (node.type == 'attachment' && isPicture(node.value)) {
+                if (node.type == 'attachment' && isPicture(node.label)) {
                     // fetch picture via attributes/viewPicture
                     node_conf.group = 'attribute_image';
                     node_conf.size = $('#slider_display_picture_size').val();

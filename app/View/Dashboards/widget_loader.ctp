@@ -2,7 +2,7 @@
     $widgetHtml = $this->element('/dashboard/Widgets/' . $config['render']);
     $scopedHtml = $this->ScopedCSS->createScopedCSS($widgetHtml);
 ?>
-<div id="widgetContentInner_<?= h($widget_id) ?>">
+<div id="widgetContentInner_<?= h($widget_id) ?>" class="widgetContentInner">
     <?php
         echo $scopedHtml['bundle'];
     ?>

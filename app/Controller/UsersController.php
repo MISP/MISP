@@ -30,7 +30,11 @@ class UsersController extends AppController
         parent::beforeFilter();
 
         // what pages are allowed for non-logged-in users
-        $this->Auth->allow('login', 'logout');
+        $allowedActions = array('login', 'logout');
+        if (!empty(Configure::read('Security.allow_self_registration'))) {
+            $allowedActions[] = 'register';
+        }
+        $this->Auth->allow($allowedActions);
     }
 
     public function view($id = null)
@@ -332,6 +336,9 @@ class UsersController extends AppController
         }
         $this->set('passedArgs', json_encode($this->passedArgs));
         // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
+        if (!empty($this->passedArgs['value'])) {
+            $this->passedArgs['searchall'] = $this->passedArgs['value'];
+        }
         foreach ($this->passedArgs as $k => $v) {
             if (substr($k, 0, 6) === 'search') {
                 if ($v != "") {
@@ -388,6 +395,7 @@ class UsersController extends AppController
                 $passedArgsArray[$searchTerm] = $v;
             }
         }
+        $redis = $this->User->setupRedis();
         if ($this->_isRest()) {
             $conditions = array();
             if (isset($this->paginate['conditions'])) {
@@ -433,6 +441,8 @@ class UsersController extends AppController
                     if ($value['Role']['perm_site_admin']) {
                         $users[$key]['User']['authkey'] = __('Redacted');
                     }
+                } else if (!empty(Configure::read('Security.user_monitoring_enabled'))) {
+                    $users[$key]['User']['monitored'] = $redis->sismember('misp:monitored_users', $value['User']['id']);
                 }
                 unset($users[$key]['User']['password']);
             }
@@ -442,7 +452,13 @@ class UsersController extends AppController
             $this->set('passedArgsArray', $passedArgsArray);
             $conditions = array();
             if ($this->_isSiteAdmin()) {
-                $this->set('users', $this->paginate());
+                $users = $this->paginate();
+                if (!empty(Configure::read('Security.user_monitoring_enabled'))) {
+                    foreach ($users as $key => $value) {
+                        $users[$key]['User']['monitored'] = $redis->sismember('misp:monitored_users', $users[$key]['User']['id']);
+                    }
+                }
+                $this->set('users', $users);
             } else {
                 $conditions['User.org_id'] = $this->Auth->user('org_id');
                 $this->paginate['conditions']['AND'][] = $conditions;
@@ -622,13 +638,14 @@ class UsersController extends AppController
                 if (isset($this->request->data['User']['password'])) {
                     $this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
                 }
+                $default_publish_alert = Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : 0;
                 $defaults = array(
                         'external_auth_required' => 0,
                         'external_auth_key' => '',
                         'server_id' => 0,
                         'gpgkey' => '',
                         'certif_public' => '',
-                        'autoalert' => 0,
+                        'autoalert' => $default_publish_alert,
                         'contactalert' => 0,
                         'disabled' => 0,
                         'newsread' => 0,
@@ -1456,7 +1473,7 @@ class UsersController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Users', 'admin_quickEmail', false, $error, $this->response->type());
             } else {
-                $this->Flash->error('Cannot send an e-mail to this user as the account is disabled.');
+                $this->Flash->error($error);
                 $this->redirect('/admin/users/view/' . $user_id);
             }
         }
@@ -1510,17 +1527,17 @@ class UsersController extends AppController
         if ($isPostOrPut) {
             $recipient = $this->request->data['User']['recipient'];
         } else {
-            $recipient = isset($this->request->query['recipient']) ? $this->request->query['recipient'] : null;
+            $recipient = isset($this->params['named']['recipient']) ? $this->params['named']['recipient'] : null;
         }
         if ($isPostOrPut) {
             $recipientEmailList = $this->request->data['User']['recipientEmailList'];
         } else {
-            $recipientEmailList = isset($this->request->query['recipientEmailList']) ? $this->request->query['recipientEmailList'] : null;
+            $recipientEmailList = isset($this->params['named']['recipientEmailList']) ? $this->params['named']['recipientEmailList'] : null;
         }
         if ($isPostOrPut) {
             $orgNameList = $this->request->data['User']['orgNameList'];
         } else {
-            $orgNameList = isset($this->request->query['orgNameList']) ? $this->request->query['orgNameList'] : null;
+            $orgNameList = isset($this->params['named']['orgNameList']) ? $this->params['named']['orgNameList'] : null;
         }
 
         if (!is_null($recipient) && $recipient == 0) {
@@ -2191,5 +2208,334 @@ class UsersController extends AppController
     public function checkIfLoggedIn()
     {
         return new CakeResponse(array('body'=> 'OK','status' => 200));
+    }
+
+    public function admin_monitor($id)
+    {
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $id),
+            'fields' => array('User.id')
+        ));
+        if (empty($user)) {
+            throw new NotFoundException(__('Invalid user.'));
+        }
+        $redis = $this->User->setupRedis();
+        $alreadyMonitored = $redis->sismember('misp:monitored_users', $id);
+        if ($this->request->is('post')) {
+            if (isset($this->request->data['User'])) {
+                $this->request->data = $this->request->data['User'];
+            }
+            if (isset($this->request->data['value'])) {
+                $this->request->data = $this->request->data['value'];
+            }
+            if (empty($this->request->data)) {
+                $redis->srem('misp:monitored_users', $id);
+            } else {
+                $redis->sadd('misp:monitored_users', $id);
+            }
+            return $this->RestResponse->viewData($alreadyMonitored ? 0 : 1, $this->response->type());
+        } else {
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData($alreadyMonitored ? 0 : 1, $this->response->type());
+            } else {
+                $this->set('data', $alreadyMonitored);
+                $this->layout = false;
+                $this->render('/Elements/genericElements/toggleForm');
+            }
+        }
+    }
+
+    public function register()
+    {
+        if (empty(Configure::read('Security.allow_self_registration'))) {
+            throw new MethodNotAllowedException(__('Self registration is not enabled on this instance.'));
+        }
+        if ($this->request->is('post')) {
+            if (isset($this->request->data['User'])) {
+                $this->request->data = $this->request->data['User'];
+            }
+            $validKeys = array(
+                'email',
+                'org_name',
+                'org_uuid',
+                'message',
+                'custom_perms',
+                'perm_sync',
+                'perm_publish',
+                'perm_admin'
+            );
+            $requestObject = array();
+            foreach ($validKeys as $key) {
+                if (isset($this->request->data[$key])) {
+                    $requestObject[$key] = trim($this->request->data[$key]);
+                }
+            }
+            if (!isset($requestObject['message'])) {
+                $requestObject['message'] = '';
+            }
+            if (empty($requestObject['email'])) {
+                throw new InvalidArgumentException(__('We require at least the email field to be filled.'));
+            }
+            $this->loadModel('Inbox');
+            $this->Inbox->create();
+            $data = array(
+                'Inbox' => array(
+                    'title' => __('User registration for %s.', $requestObject['email']),
+                    'type' => 'registration',
+                    'comment' => $requestObject['message'],
+                    'data' => json_encode($requestObject)
+                )
+            );
+            $result = $this->Inbox->save($data);
+            if (empty($result)) {
+                $message = __('Request could not be created. Make sure that the email and org name fields are filled.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Users', 'register', false, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
+            } else {
+                $message = __('Request sent. The administrators of this community have been notified.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('User', 'register', false, $this->response->type(), $message);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect('/');
+                }
+            }
+        } else {
+            $message = Configure::read('Security.self_registration_message');
+            if (empty($message)) {
+                $this->loadModel('Server');
+                $message = $this->Server->serverSettings['Security']['self_registration_message']['value'];
+            }
+            $this->set('message', $message);
+        }
+    }
+
+    public function registrations()
+    {
+        $this->loadModel('Inbox');
+        $params = array(
+            'recursive' => -1,
+            'conditions' => array(
+                'deleted' => 0,
+                'type' => 'registration'
+            ),
+            'order' => array(
+                'timestamp desc'
+            )
+        );
+        $passedArgs = $this->passedArgs;
+        if (!empty($passedArgs['value'])) {
+            $lookup = strtolower($passedArgs['value']);
+            $allSearchFields = array('data', 'user_agent', 'ip');
+            foreach ($allSearchFields as $field) {
+                $params['conditions']['AND']['OR'][] = array('LOWER(Inbox.' . $field . ') LIKE' => '%' . $lookup . '%');
+            }
+        }
+        $this->set('passedArgs', json_encode($passedArgs));
+        if ($this->_isRest()) {
+            $data = $this->Inbox->find('all', array(
+                'recursive' => -1,
+                'conditions' => $params['conditions']
+            ));
+            foreach ($data as $k => $v) {
+                $data[$k]['Inbox']['data'] = json_decode($data[$k]['Inbox']['data'], true);
+            }
+            return $this->RestResponse->viewData($data, $this->response->type());
+        } else {
+            $this->paginate = $params;
+            $data = $this->paginate('Inbox');
+            foreach ($data as $k => $message) {
+                $data[$k]['Inbox']['data'] = json_decode($data[$k]['Inbox']['data'], true);
+                $data[$k]['Inbox']['requested_role'] = __('default');
+                if (!empty($data[$k]['Inbox']['data']['custom_perms'])) {
+                    $data[$k]['Inbox']['requested_role'] = array(
+                        'perm_publish' => !empty($data[$k]['Inbox']['data']['perm_publish']) ? __('Yes') : __('No'),
+                        'perm_sync' => !empty($data[$k]['Inbox']['data']['perm_sync']) ? __('Yes') : __('No'),
+                        'perm_admin' => !empty($data[$k]['Inbox']['data']['perm_admin']) ? __('Yes') : __('No')
+                    );
+                }
+            }
+            $this->set('data', $data);
+        }
+    }
+
+    public function discardRegistrations($id = false)
+    {
+        if (!$this->request->is('post') && !$this->request->is('delete')) {
+            $this->set('id', $id);
+            $this->set('type', 'discardRegistrations');
+            $this->render('ajax/discardRegistrations');
+        } else {
+            if (empty($id) && !empty($this->params['named']['id'])) {
+                $id = $this->params['named']['id'];
+            }
+            $this->loadModel('Inbox');
+            if (Validation::uuid($id)) {
+                $id = $this->Toolbox->findIdByUuid($this->Inbox, $id);
+            }
+            $registrations = $this->Inbox->find('all', array(
+                'recursive' => -1,
+                'conditions' => array(
+                    'deleted' => 0,
+                    'type' => 'registration',
+                    'id' => $id
+                )
+            ));
+            foreach ($registrations as $registration) {
+                $this->Inbox->delete($registration['Inbox']['id']);
+            }
+            $message = sprintf(
+                '%s registration(s) discarded.',
+                count($registrations)
+            );
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('User', 'discardRegistrations', false, $this->response->type(), $message);
+            } else {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $this->Log->save(array(
+                    'org' => $this->Auth->user('Organisation')['name'],
+                    'model' => 'User',
+                    'model_id' => $id,
+                    'email' => $this->Auth->user('email'),
+                    'action' => 'discardRegistrations',
+                    'title' => $message,
+                    'change' => ''
+                ));
+                $this->Flash->success($message);
+                $this->redirect(array('controller' => 'users', 'action' => 'registrations'));
+            }
+        }
+    }
+
+    public function acceptRegistrations($id = false)
+    {
+        if (empty($id) && !empty($this->params['named']['id'])) {
+            $id = $this->params['named']['id'];
+        }
+        $this->loadModel('Inbox');
+        if (Validation::uuid($id)) {
+            $id = $this->Toolbox->findIdByUuid($this->Inbox, $id);
+        }
+        $registrations = $this->Inbox->find('all', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'deleted' => 0,
+                'type' => 'registration',
+                'id' => $id
+            )
+        ));
+        $suggestedOrg = null;
+        $suggestedRole = null;
+        $orgCache = array();
+        foreach ($registrations as $k => $v) {
+            $registrations[$k]['Inbox']['data'] = json_decode($registrations[$k]['Inbox']['data'], true);
+            $roleRequirements = array();
+            if ($this->request->is('get')) {
+                $suggestedOrg = $this->User->Organisation->checkDesiredOrg($suggestedOrg, $registrations[$k]);
+                $suggestedRole = $this->User->Role->checkDesiredRole($suggestedRole, $registrations[$k]);
+            }
+        }
+        $default_role = $this->User->Role->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Role.default_role' => 1),
+            'fields' => array('Role.id')
+        ));
+        if ($this->request->is('get')) {
+            if (!is_array($id)) {
+                $id = array($id);
+            }
+            foreach ($id as $k => $v) {
+                $id[$k] = 'id[]:' . intval($v);
+            }
+            $roles_raw = $this->User->Role->find('all', array(
+                'recursive' => -1
+            ));
+            //roles = id => name
+            $roles = array();
+            $role_perms = array();
+            foreach ($roles_raw as $role) {
+                $roles[$role['Role']['id']] = $role['Role']['name'];
+                $role_perms[$role['Role']['id']] = array(
+                    'perm_publish' => $role['Role']['perm_publish'],
+                    'perm_sync' => $role['Role']['perm_sync'],
+                    'perm_admin' => $role['Role']['perm_admin']
+                );
+            }
+            if (!empty($default_role)) {
+                $this->request->data['User']['role_id'] = $default_role['Role']['id'];
+            }
+            $this->set('roles', $roles);
+            $this->set('role_perms', $role_perms);
+            $orgConditions = array('OR' => array('local' => 1));
+            if (!empty($suggestedOrg)) {
+                $orgConditions['OR'][] = array('Organisation.id' => $suggestedOrg[0]);
+            }
+            $this->set('orgs', $this->User->Organisation->find('list', array(
+                'fields' => array('id', 'name'),
+                'recursive' => -1,
+                'conditions' => $orgConditions
+            )));
+            $this->set('registration', $registrations[$k]);
+            $this->set('suggestedOrg', $suggestedOrg);
+            $this->set('suggestedRole', $suggestedRole);
+            $id = implode('/', $id);
+            $this->set('id', $id);
+            $this->layout = false;
+        } else {
+            $results = array('successes' => 0, 'fails' => 0);
+            if (!isset($this->request->data['User']['role_id'])) {
+                if (!empty($default_role)) {
+                    $this->request->data['User']['role_id'] = $default_role['Role']['id'];
+                } else {
+                    throw new InvalidArgumentException(__('Role ID not provided and no default role exist on the instance'));
+                }
+            }
+            if (!isset($this->request->data['User']['org_id'])) {
+                throw new InvalidArgumentException(__('No organisation selected. Supply an Organisation ID'));
+            } else {
+                if (Validation::uuid($this->request->data['User']['org_id'])) {
+                    $id = $this->Toolbox->findIdByUuid($this->User->Organisation, $this->request->data['User']['org_id']);
+                    $this->request->data['User']['org_id'] = $id;
+                }
+            }
+            foreach ($registrations as $registration) {
+                $result = $this->User->registerUser(
+                    $this->Auth->user(),
+                    $registration['Inbox'],
+                    $this->request->data['User']['org_id'],
+                    $this->request->data['User']['role_id']
+                );
+                $results[($result ? 'successes' : 'fails')] += 1;
+            }
+            $message = array();
+            if (!empty($results['successes'])) {
+                $message[] = __('Added %s user(s).', $results['successes']);
+            }
+            if (!empty($results['fails'])) {
+                $message[] = __('Could not add %s user(s), reasons for the failure have been logged.', $results['fails']);
+            }
+            if (empty($message)) {
+                $message[] = __('No new users added - there was nothing to add.');
+            }
+            $message = implode(' ', $message);
+            if ($this->_isRest()) {
+                if (empty($results['fails']) && !empty($results['successes'])) {
+                    return $this->RestResponse->saveSuccessResponse('User', 'acceptRegistrations', false, $this->response->type(), $message);
+                } else {
+                    return $this->RestResponse->saveFailResponse('Users', 'acceptRegistrations', false, $message, $this->response->type());
+                }
+            } else {
+                if (empty($results['fails']) && !empty($results['successes'])) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
+                } else {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+                }
+            }
+        }
     }
 }

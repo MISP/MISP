@@ -97,6 +97,7 @@ class DashboardsController extends AppController
                 $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $data['widget']);
                 $data['description'] = empty($dashboardWidget->description) ? '' : $dashboardWidget->description;
                 $data['params'] = empty($dashboardWidget->params) ? array() : $dashboardWidget->params;
+                $data['params'] = array_merge($data['params'], array('widget_config' => __('Configuration of the widget that will be passed to the render. Check the view for more information')));
                 $data['params'] = array_merge(array('alias' => __('Alias to use as the title of the widget')), $data['params']);
             }
             $this->set('data', $data);
@@ -174,9 +175,11 @@ class DashboardsController extends AppController
             } else {
                 $data = json_decode($data, true)['data'];
             }
+            $valueConfig = json_decode($value['config'], true);
             $config = array(
                 'render' => $dashboardWidget->render,
-                'autoRefreshDelay' => empty($dashboardWidget->autoRefreshDelay) ? false : $dashboardWidget->autoRefreshDelay
+                'autoRefreshDelay' => empty($dashboardWidget->autoRefreshDelay) ? false : $dashboardWidget->autoRefreshDelay,
+                'widget_config' => empty($valueConfig['widget_config']) ? array() : $valueConfig['widget_config']
             );
             $this->set('widget_id', $widget_id);
             $this->set('data', $data);

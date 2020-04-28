@@ -33,6 +33,11 @@
                     'label' => __('For Intrusion Detection System'),
                     'selected' => 2,
             ));
+            echo $this->Form->input('is_proposal', array(
+                'type' => 'checkbox',
+                'label' => __('Create proposals'),
+                'checked' => true
+            ));
             ?>
                 <div class="input clear"></div>
 
