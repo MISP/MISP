@@ -110,8 +110,13 @@ class ServersController extends AppController
         if (empty($combinedArgs['limit'])) {
             $combinedArgs['limit'] = 60;
         }
-        $total_count = 0;
-        $events = $this->Server->previewIndex($id, $this->Auth->user(), $combinedArgs, $total_count);
+        try {
+            list($events, $total_count) = $this->Server->previewIndex($id, $this->Auth->user(), $combinedArgs);
+        } catch (Exception $e) {
+            $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
+            $this->redirect(array('action' => 'index'));
+        }
+
         $this->loadModel('Event');
         $threat_levels = $this->Event->ThreatLevel->find('all');
         $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
@@ -122,11 +127,9 @@ class ServersController extends AppController
             $params['pageCount'] = ceil($total_count / $params['limit']);
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
-        if (is_array($events)) {
-            if (count($events) > 60) {
-                $customPagination->truncateByPagination($events, $params);
-            }
-        } else ($events = array());
+        if (count($events) > 60) {
+            $customPagination->truncateByPagination($events, $params);
+        }
         $this->set('events', $events);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
@@ -150,12 +153,15 @@ class ServersController extends AppController
         if (empty($server)) {
             throw new NotFoundException('Invalid server ID.');
         }
-        $event = $this->Server->previewEvent($serverId, $eventId);
-        // work on this in the future to improve the feedback
-        // 2 = wrong error code
-        if (is_numeric($event)) {
-            throw new NotFoundException('Invalid event.');
+        try {
+            $event = $this->Server->previewEvent($serverId, $eventId);
+        } catch (NotFoundException $e) {
+            throw new NotFoundException(__("Event '$eventId' not found."));
+        } catch (Exception $e) {
+            $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
+            $this->redirect(array('action' => 'previewIndex', $serverId));
         }
+
         $this->loadModel('Event');
         $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
         $this->params->params['paging'] = array('Server' => $params);
@@ -394,6 +400,7 @@ class ServersController extends AppController
             }
             $this->set('allTags', $allTags);
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
+            $this->render('edit');
         }
     }
 
@@ -1358,6 +1365,18 @@ class ServersController extends AppController
         $this->Server->restartWorkers($this->Auth->user());
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'restartWorkers', false, $this->response->type(), __('Restarting workers.'));
+        }
+        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
+    }
+
+    public function restartDeadWorkers()
+    {
+        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
+        $this->Server->restartDeadWorkers($this->Auth->user());
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'restartDeadWorkers', false, $this->response->type(), __('Restarting workers.'));
         }
         $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
     }

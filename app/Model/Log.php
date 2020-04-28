@@ -21,6 +21,7 @@ class Log extends AppModel
                 array( // ensure that the length of the rules is < 20 in length
                     'accept',
                     'accept_delegation',
+                    'acceptRegistrations',
                     'add',
                     'admin_email',
                     'auth',
@@ -30,11 +31,13 @@ class Log extends AppModel
                     'delete',
                     'disable',
                     'discard',
+                    'discardRegistrations',
                     'edit',
                     'email',
                     'enable',
                     'error',
                     'export',
+                    'failed_registration',
                     'file_upload',
                     'galaxy',
                     'include_formula',
@@ -55,6 +58,7 @@ class Log extends AppModel
                     'reset_auth_key',
                     'security',
                     'serverSettingsEdit',
+                    'succeeded_registration',
                     'tag',
                     'undelete',
                     'update',
@@ -88,21 +92,9 @@ class Log extends AppModel
     public $logMetaAdmin = array(
         'update' => array('values' => array('update_database'), 'name' => 'MISP Update results'),
         'settings' => array('values' => array('serverSettingsEdit', 'remove_dead_workers'), 'name' => 'Setting changes'),
-        'errors' => array('values' => array('warning', 'errors', 'version_warning'), 'name' => 'Warnings and errors'),
+        'errors' => array('values' => array('warning', 'error', 'version_warning'), 'name' => 'Warnings and errors'),
         'email' => array('values' => array('admin_email'))
     );
-
-    public function beforeValidete()
-    {
-        parent::beforeValidate();
-        if (!isset($this->data['Log']['org']) || empty($this->data['Log']['org'])) {
-            $this->data['Log']['org'] = 'SYSTEM';
-        }
-        // truncate the description if it would exceed the allowed size in mysql
-        if (!empty($this->data['Log']['description'] && strlen($this->data['Log']['description']) > 65536)) {
-            $this->data['Log']['description'] = substr($this->data['Log']['description'], 0, 65535);
-        }
-    }
 
     public function beforeSave($options = array())
     {
@@ -121,7 +113,7 @@ class Log extends AppModel
         if (!isset($this->data['Log']['created'])) {
             $this->data['Log']['created'] = date('Y-m-d H:i:s');
         }
-        if (!isset($this->data['Log']['org'])) {
+        if (!isset($this->data['Log']['org']) || empty($this->data['Log']['org'])) {
             $this->data['Log']['org'] = 'SYSTEM';
         }
         $truncate_fields = array('title', 'change', 'description');
@@ -151,7 +143,7 @@ class Log extends AppModel
             $conditions['org'] = $org['Organisation']['name'];
         }
         $conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
-        if ($dataSource == 'Database/Mysql') {
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
             $validDates = $this->find('all', array(
                     'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
                     'conditions' => $conditions,
@@ -323,7 +315,6 @@ class Log extends AppModel
             $elasticSearchClient = $this->getElasticSearchTool();
             $elasticSearchClient->pushDocument($logIndex, "log", $data);
         }
-
         if (Configure::read('Security.syslog')) {
             // write to syslogd as well
             $syslog = new SysLog();
@@ -338,8 +329,17 @@ class Log extends AppModel
             }
 
             $entry = $data['Log']['action'];
+            if (!empty($data['Log']['title'])) {
+                $entry .= sprintf(
+                    ' -- %s',
+                    $data['Log']['title']
+                );
+            }
             if (!empty($data['Log']['description'])) {
-                $entry .= sprintf(' -- %s', $data['Log']['description']);
+                $entry .= sprintf(
+                    ' -- %s',
+                    $data['Log']['description']
+                );
             }
             $syslog->write($action, $entry);
         }

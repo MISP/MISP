@@ -16,6 +16,7 @@
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
+#    20200412: Ubuntu 18.04.4 tested and working. -- sCl
 #    20190302: Ubuntu 18.04.2 tested and working. -- sCl
 #    20190208: Kali Linux tested and working. -- sCl
 #
@@ -70,6 +71,7 @@
 ## 0_apt-upgrade.sh ##
 ## 0_sudoKeeper.sh ##
 ## 0_installCoreDeps.sh ##
+## 0_installDepsPhp74.sh ##
 ## 0_installDepsPhp73.sh ##
 ## 0_installDepsPhp72.sh ##
 ## 0_installDepsPhp70.sh ##
@@ -89,6 +91,21 @@
 ## 5_mail_to_misp.sh ##
 ## 6_ssdeep.sh ##
 ## 6_viper.sh ##
+
+## 0_RHEL_SCL.sh ##
+## 0_CentOS_EPEL.sh ##
+## 0_RHEL_EPEL.sh ##
+## 0_yumInstallCoreDeps.sh ##
+## 1_mispCoreInstall_RHEL.sh ##
+## 1_installCake_RHEL.sh ##
+## 1_prepareDB_RHEL.sh ##
+## 1_apacheConfig_RHEL.sh ##
+## 1_firewall_RHEL.sh ##
+## 2_permissions_RHEL.sh ##
+## 2_logRotation_RHEL.sh ##
+## 2_configMISP_RHEL.sh ##
+## 3_configWorkers_RHEL.sh ##
+## 3_misp-modules_RHEL.sh ##
 
 # No functions scripts:
 ## apt-upgrade.sh ##
@@ -128,12 +145,12 @@ generateInstaller () {
   cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
+  for f in `echo INSTALL.ubuntu2004.md INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md INSTALL.rhel7.md`; do
     xsnippet . ../../docs/${f}
   done
 
   # Pull out code snippets from generic Install Documents
-  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules-debian.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
+  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules-debian.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md misp-modules-centos.md`; do
     xsnippet . ../../docs/generic/${f}
   done
 
@@ -147,6 +164,7 @@ generateInstaller () {
   perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp74.sh ##/`cat 0_installDepsPhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp70.sh ##/`cat 0_installDepsPhp70.sh`/ge' -i INSTALL.tpl.sh
@@ -167,6 +185,21 @@ generateInstaller () {
   perl -pe 's/^## 5_mail_to_misp.sh ##/`cat 5_mail_to_misp.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.tpl.sh
+
+  perl -pe 's/^## 0_RHEL_SCL.sh ##/`cat 0_RHEL_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_CentOS_EPEL.sh ##/`cat 0_CentOS_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL_EPEL.sh ##/`cat 0_RHEL_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps.sh ##/`cat 0_yumInstallCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL.sh ##/`cat 1_mispCoreInstall_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_installCake_RHEL.sh ##/`cat 1_installCake_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL.sh ##/`cat 2_permissions_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_prepareDB_RHEL.sh ##/`cat 1_prepareDB_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL.sh ##/`cat 1_apacheConfig_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_firewall_RHEL.sh ##/`cat 1_firewall_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_logRotation_RHEL.sh ##/`cat 2_logRotation_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_configMISP_RHEL.sh ##/`cat 2_configMISP_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_configWorkers_RHEL.sh ##/`cat 3_configWorkers_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_misp-modules_RHEL.sh ##/`cat 3_misp-modules_RHEL.sh`/ge' -i INSTALL.tpl.sh
 
   cp INSTALL.tpl.sh ../INSTALL.sh
   cd ..
@@ -249,6 +282,9 @@ installSupported () {
       # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
     elif [[ "$PHP_VER" == "7.3" ]]; then
+      # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
+    elif [[ "$PHP_VER" == "7.4" ]]; then
       # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
     elif [[ "$PHP_VER" == "7.0" ]]; then
@@ -324,16 +360,18 @@ installSupported () {
   progress 4
 
   # Install Viper - functionLocation('generic/viper-debian.md')
-  [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
-  progress 4
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##[[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+  ##progress 4
 
   # Install ssdeep - functionLocation('generic/ssdeep-debian.md')
   [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
   progress 4
 
   # Install misp-dashboard - functionLocation('generic/misp-dashboard-debian.md')
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
-  progress 4
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##[[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
+  ##progress 4
 
   # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
@@ -347,7 +385,7 @@ installSupported () {
   theEnd
 }
 
-# Main Kalin Install function
+# Main Kali Install function
 installMISPonKali () {
   # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('')
   kaliUpgrade 2> /dev/null > /dev/null
@@ -427,8 +465,9 @@ installMISPonKali () {
   # Needs virtualenv
   $SUDO_WWW virtualenv -p python3 ${PATH_TO_MISP}/venv
 
-  debug "Installing MISP dashboard"
-  mispDashboard
+  ## FIXME: The current stat of misp-dashboard is broken, disabling any use.
+  ##debug "Installing MISP dashboard"
+  ##mispDashboard
 
   debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
@@ -461,7 +500,7 @@ installMISPonKali () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git 2> /dev/null > /dev/null
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief 2> /dev/null > /dev/null
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
@@ -588,7 +627,8 @@ installMISPonKali () {
 
   debug "Running Core Cake commands"
   coreCAKE 2> /dev/null > /dev/null
-  dashboardCAKE 2> /dev/null > /dev/null
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##dashboardCAKE 2> /dev/null > /dev/null
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT 2> /dev/null > /dev/null
@@ -600,8 +640,9 @@ installMISPonKali () {
   debug "Installing misp-modules"
   mispmodules
 
-  debug "Installing Viper"
-  viper
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##debug "Installing Viper"
+  ##viper
 
   debug "Installing ssdeep"
   ssdeep
@@ -615,6 +656,88 @@ installMISPonKali () {
 }
 # End installMISPonKali ()
 
+# Main Install on RHEL function
+installMISPRHEL () {
+  if [[ -n $SSDEEP ]] || [[ -n $MAIL2 ]]; then
+    echo "RHEL installation currently only supports Core and Modules"
+    echo "Ignoring other options..."
+  fi
+
+  if [[ -n $CORE ]] || [[ -n $ALL ]]; then
+    space
+    echo "Proceeding with MISP core installation on RHEL $dist_version"
+    space
+ 
+    id -u "$MISP_USER" > /dev/null
+    if [ $? -eq 1 ]; then
+      debug "Creating MISP user"
+      sudo useradd -r "$MISP_USER"
+    fi 
+    
+    debug "Enabling Extras Repos (SCL)"
+    if [[ $FLAVOUR == "rhel" ]]; then
+      sudo subscription-manager register --auto-attach
+      enableReposRHEL
+      enableEPEL
+    else # CentOS
+      centosEPEL
+    fi
+
+    debug "Installing System Dependencies"
+    yumInstallCoreDeps
+
+    debug "Enabling Haveged for additional entropy"
+    sudo yum install haveged -y
+    sudo systemctl enable --now haveged.service
+
+    debug "Installing MISP code"
+    installCoreRHEL
+
+    debug "Install Cake PHP"
+    installCake_RHEL
+
+    debug "Setting File permissions"
+    permissions_RHEL
+
+    debug "Preparing Database"
+    prepareDB_RHEL
+
+    debug "Configuring Apache"
+    apacheConfig_RHEL
+
+    debug "Setting up firewall"
+    firewall_RHEL
+
+    debug "Enabling log rotation"
+    logRotation_RHEL
+
+    debug "Configuring MISP"
+    configMISP_RHEL
+
+    debug "Setting up background workers"
+    configWorkersRHEL
+
+    debug "Optimizing Cake Installation"
+    coreCAKE
+
+    debug "Updating tables"
+    updateGOWNT
+
+    echo "Core Intallation finished, check on port 443 to see the Web UI"
+  fi
+
+  if [[ -n $MODULES ]] || [[ -n $ALL ]]; then
+    space
+    echo "Installing MISP Modules"
+    space
+
+    mispmodulesRHEL
+
+    echo "MISP modules installation finished."
+  fi
+}
+# End installMISPRHEL ()
+
 ## End Function Section ##
 
 colors
@@ -623,14 +746,14 @@ if [[ "$0" == "./INSTALL.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.tpl.sh')" ==
   generateInstaller
 fi
 
+debug "Checking Linux distribution and flavour..."
+checkFlavour
 debug "Checking if we are uptodate and checksums match"
 checkInstaller
 
 space
 debug "Setting MISP variables"
 MISPvars
-debug "Checking Linux distribution and flavour..."
-checkFlavour
 
 debug "Checking for parameters or Unattended Kali Install"
 if [[ $# == 0 && $0 != "/tmp/misp-kali.sh" ]]; then
@@ -671,15 +794,20 @@ fi
 # TODO: Move support map to top
 
 SUPPORT_MAP="
-x86_64-centos-8
+x86_64-centos-7
 x86_64-rhel-7
-x86_64-rhel-8
 x86_64-fedora-30
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
+x86_64-kali-2019.1
 x86_64-kali-2019.2
 x86_64-kali-2019.3
+x86_64-kali-2019.4
+x86_64-kali-2020.1
+x86_64-kali-2020.2
+x86_64-kali-2020.3
+x86_64-kali-2020.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-debian-jessie
@@ -768,5 +896,12 @@ if [ "${FLAVOUR}" == "kali" ]; then
   kaliOnRootR0ckz
   installMISPonKali
   echo "Installation done!"
+  exit
+fi
+
+# If RHEL/CentOS is detected, run appropriate script
+if [ "${FLAVOUR}" == "rhel" ] || [ "${FLAVOUR}" == "centos" ]; then
+  installMISPRHEL
+  echo "Installation done !"
   exit
 fi

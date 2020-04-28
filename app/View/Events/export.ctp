@@ -158,7 +158,7 @@
                 echo sprintf(
                     '<li class="actions" style="text-align:center; width: auto; padding: 7px 2px;">%s</li>',
                     $background ?
-                    $this->Html->link($sigType, array('action' => 'downloadExport', $k, $sigType), array('class' => 'btn btn-inverse btn-small btn.active qet')) :
+                    $this->Html->link($sigType, array('action' => 'downloadExport', 'text', $sigType), array('class' => 'btn btn-inverse btn-small btn.active qet')) :
                     sprintf(
                         '<a href="%s" class="btn btn-inverse btn-small">%s</a>',
                         $baseurl . '/attributes/restSearch/returnFormat:text/type:' . $sigType . '.json',

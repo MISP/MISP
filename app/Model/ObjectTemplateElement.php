@@ -47,7 +47,7 @@ class ObjectTemplateElement extends AppModel
         $temp = $this->find('all', array(
             'recursive' => -1,
             'fields' => array('object_relation as type', 'description AS desc', 'categories'),
-            'group' => 'type'
+            'group' => array('object_relation', 'description', 'categories')
         ));
         $res = array();
         foreach ($temp as $type) {

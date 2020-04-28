@@ -85,7 +85,8 @@
         );
         $rows = '';
         foreach ($dbSchemaDiagnostics as $tableName => $tableDiagnostic) {
-            $rows .= sprintf('<tr data-tablename="%s">', $tableName);
+            $tableContainsCritical = array_filter(Hash::extract($tableDiagnostic, '{n}.is_critical'));
+            $rows .= sprintf('<tr class="%s" data-tablename="%s">', $tableContainsCritical ? '' : 'noncritical', $tableName);
                 $rows .= sprintf('<td rowspan="%s" colspan="0" class="bold">%s</td>', count($tableDiagnostic)+1, h($tableName));
             $rows .= '</tr>';
 
@@ -158,7 +159,7 @@
         $updateLocked ? __('Updates are locked') : __('Updates are not locked'),
         $updateLocked ? ( 
             $updateFailNumberReached ? 
-                __('Update are locked due to to many update fails') : sprintf(__('Update unlocked in %s'), h($humanReadableTime)))
+                __('Updates are locked due to to many update fails') : sprintf(__('Updates unlocked in %s'), h($humanReadableTime)))
             : __('Updates are not locked'),
         $updateLocked ? 'times' : 'check'
         );

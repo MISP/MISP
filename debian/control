@@ -1,0 +1,46 @@
+Source: misp
+Maintainer: Sebastien Tricaud <sebastien.tricaud@devo.com>
+Section: Web
+Priority: optional
+Standards-Version: 2.4.221
+Build-Depends: debhelper (>= 11), dh-apache2
+Homepage: http://misp.software
+Vcs-Browser: https://github.com/misp/misp
+Vcs-Git: https://github.com/MISP/MISP.git
+
+Package: misp
+Architecture: all
+Pre-Depends: ${misc:Pre-Depends}
+Depends: libapache2-mod-php | php-cgi | php,
+	 ca-certificates,
+	 python3,
+	 python3-setuptools,
+	 python3-wheel,
+	 composer,
+	 mariadb-client,
+	 openssl,
+	 zip,
+	 unzip,
+	 moreutils,
+	 php-mysql,
+	 php-pear,
+	 php-redis,
+	 php-gd,
+	 php-gnupg,
+	 php-json,
+	 php-xml,
+	 php-readline,
+	 php-mbstring,
+	 php7.3-opcache,
+	 libfuzzy-dev,
+	 ${misc:Depends}
+Recommends: ${misc:Recommends}, redis-server, mariadb-server
+Description: Threat Intelligence Platform
+ The MISP threat sharing platform is a free and open source software helping
+ information sharing of threat intelligence including cyber security indicators.
+ .
+ A threat intelligence platform for gathering, sharing, storing and correlating
+ Indicators of Compromise of targeted attacks, threat intelligence, financial
+ fraud information, vulnerability information or even counter-terrorism
+ information.
+ 

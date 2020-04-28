@@ -1136,53 +1136,43 @@ class AttributesController extends AppController
     public function viewPicture($id, $thumbnail=false)
     {
         if (Validation::uuid($id)) {
-            $temp = $this->Attribute->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Attribute.uuid' => $id),
-                'fields' => array('Attribute.id', 'Attribute.uuid')
-            ));
-            if (empty($temp)) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            $id = $temp['Attribute']['id'];
-        } elseif (!is_numeric($id)) {
+            $conditions = array('Attribute.uuid' => $id);
+        } elseif (is_numeric($id)) {
+            $conditions = array('Attribute.id' => $id);
+        } else {
             throw new NotFoundException(__('Invalid attribute id.'));
         }
-        $this->Attribute->id = $id;
-        if (!$this->Attribute->exists()) {
-            throw new NotFoundException('Invalid attribute');
-        }
-        $conditions = array(
-            'conditions' => array(
-                'Attribute.id' => $id,
-                'Attribute.type' => 'attachment'
-            ),
+
+        $conditions['Attribute.type'] = 'attachment';
+        $options = array(
+            'conditions' => $conditions,
             'includeAllTags' => false,
             'includeAttributeUuid' => true,
-            'flatten' => true
+            'flatten' => true,
         );
 
         if ($this->_isRest()) {
-            $conditions['withAttachments'] = true;
+            $options['withAttachments'] = true;
         }
 
-        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
+        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $options);
         if (empty($attribute)) {
             throw new MethodNotAllowedException('Invalid attribute');
         }
         $attribute = $attribute[0];
+
+        if (!$this->Attribute->isImage($attribute['Attribute'])) {
+            throw new NotFoundException("Attribute is not an image.");
+        }
 
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
         } else {
             $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
             $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
-            $image_data = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
-            $extension = explode('.', $attribute['Attribute']['value']);
-            $extension = end($extension);
-            $this->response->type(strtolower(h($extension)));
-            $this->response->body($image_data);
-            $this->autoRender = false;
+            $imageData = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
+            $extension = pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION);
+            return new CakeResponse(array('body' => $imageData, 'type' => strtolower($extension)));
         }
     }
 
@@ -1403,7 +1393,7 @@ class AttributesController extends AppController
             $event = $this->Attribute->Event->find('first', array(
                 'conditions' => array('id' => $id),
                 'recursive' => -1,
-                'fields' => array('id', 'orgc_id', 'user_id', 'published', 'timestamp', 'info', 'uuid')
+                'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp', 'info', 'uuid')
             ));
             if (!$this->_isSiteAdmin()) {
                 if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
@@ -1469,7 +1459,23 @@ class AttributesController extends AppController
             }
 
             if ($changeInAttribute) {
-                if ($this->Attribute->saveMany($attributes)) {
+                if ($this->request->data['Attribute']['is_proposal']) { // create ShadowAttributes instead
+                    $shadowAttributes = array();
+                    foreach ($attributes as $attribute) {
+                        $shadowAttribute['ShadowAttribute'] = $attribute['Attribute'];
+                        unset($shadowAttribute['ShadowAttribute']['id']);
+                        $shadowAttribute['ShadowAttribute']['email'] = $this->Auth->user('email');
+                        $shadowAttribute['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
+                        $shadowAttribute['ShadowAttribute']['event_uuid'] = $event['Event']['uuid'];
+                        $shadowAttribute['ShadowAttribute']['event_org_id'] = $event['Event']['org_id'];
+                        $shadowAttribute['ShadowAttribute']['old_id'] = $attribute['Attribute']['id'];
+                        $shadowAttributes[] = $shadowAttribute;
+                    }
+                    $saveSuccess = $this->Attribute->ShadowAttribute->saveMany($shadowAttributes);
+                } else {
+                    $saveSuccess = $this->Attribute->saveMany($attributes);
+                }
+                if ($saveSuccess) {
                     if (!$this->_isRest()) {
                         $this->Attribute->Event->insertLock($this->Auth->user(), $id);
                     }
@@ -1634,7 +1640,7 @@ class AttributesController extends AppController
             if (isset($this->request->data['Attribute'])) {
                 $this->request->data = $this->request->data['Attribute'];
             }
-            $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category');
+            $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category', 'first_seen', 'last_seen');
             foreach ($checkForEmpty as $field) {
                 if (empty($this->request->data[$field]) || $this->request->data[$field] === 'ALL') {
                     unset($this->request->data[$field]);
@@ -1654,6 +1660,31 @@ class AttributesController extends AppController
             );
             $exception = false;
             $filters = $this->_harvestParameters($filterData, $exception);
+            if (!empty($filters['uuid'])) {
+                if (!is_array($filters['uuid'])) {
+                    $filters['uuid'] = array($filters['uuid']);
+                }
+                $uuid = array();
+                $ids = array();
+                foreach ($filters['uuid'] as $k => $filter) {
+                    if ($filter[0] === '!') {
+                        $filter = substr($filter, 1);
+                    }
+                    if (Validation::uuid($filter)) {
+                        $uuid[] = $filters['uuid'][$k];
+                    } else {
+                        $ids[] = $filters['uuid'][$k];
+                    }
+                }
+                if (empty($uuid)) {
+                    unset($filters['uuid']);
+                } else {
+                    $filters['uuid'] = $uuid;
+                }
+                if (!empty($ids)) {
+                    $filters['eventid'] = $ids;
+                }
+            }
             unset($filterData);
             if ($filters === false) {
                 return $exception;
@@ -1749,6 +1780,15 @@ class AttributesController extends AppController
         $user = $this->Auth->user();
         foreach ($attributes as $k => $attribute) {
             $attributeId = $attribute['Attribute']['id'];
+            if ($this->Attribute->isImage($attribute['Attribute'])) {
+                if (extension_loaded('gd')) {
+                    // if extension is loaded, the data is not passed to the view because it is asynchronously fetched
+                    $attribute['Attribute']['image'] = true; // tell the view that it is an image despite not having the actual data
+                } else {
+                    $attribute['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
+                }
+                $attributes[$k] = $attribute;
+            }
 
             $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
             $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute', $excludeGalaxy = false, $cullGalaxyTags = true);

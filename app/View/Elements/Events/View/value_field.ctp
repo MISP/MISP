@@ -71,7 +71,16 @@ switch ($object['type']) {
 
     default:
         if (strpos($object['type'], '|') !== false) {
-            $separator = in_array($object['type'], array('ip-dst|port', 'ip-src|port')) ? ':' : '<br />';
+            if (in_array($object['type'], array('ip-dst|port', 'ip-src|port'))) {
+                if (substr_count($object['value'], ':') >= 2) {
+                    $object['value'] = '[' . $object['value']; // prepend `[` for a nicer display
+                    $separator = ']:';
+                } else {
+                    $separator = ':';
+                }
+            } else {
+                $separator = '<br />';
+            }
             $valuePieces = explode('|', $object['value']);
             foreach ($valuePieces as $k => $v) {
                 $valuePieces[$k] = h($v);

@@ -653,11 +653,6 @@ class Attribute extends AppModel
         }
 
         $this->data = $this->ISODatetimeToUTC($this->data, $this->alias);
-
-        // update correlation... (only needed here if there's an update)
-        if ($this->id || !empty($this->data['Attribute']['id'])) {
-            $this->__beforeSaveCorrelation($this->data['Attribute']);
-        }
         // always return true after a beforeSave()
         return true;
     }
@@ -1561,9 +1556,28 @@ class Attribute extends AppModel
                 break;
             case 'ip-dst|port':
             case 'ip-src|port':
-                    if (strpos($value, ':')) {
+                    if (substr_count($value, ':') >= 2) { // (ipv6|port) - tokenize ip and port
+                        if (strpos($value, '|')) { // 2001:db8::1|80
+                            $parts = explode('|', $value);
+                        } elseif (strpos($value, '[') === 0 && strpos($value, ']') !== false) { // [2001:db8::1]:80
+                            $ipv6 = substr($value, 1, strpos($value, ']')-1);
+                            $port = explode(':', substr($value, strpos($value, ']')))[1];
+                            $parts = array($ipv6, $port);
+                        } elseif (strpos($value, '.')) { // 2001:db8::1.80
+                            $parts = explode('.', $value);
+                        } elseif (strpos($value, ' port ')) { // 2001:db8::1 port 80
+                            $parts = explode(' port ', $value);
+                        } elseif (strpos($value, 'p')) { // 2001:db8::1p80
+                            $parts = explode('p', $value);
+                        } elseif (strpos($value, '#')) { // 2001:db8::1#80
+                            $parts = explode('#', $value);
+                        } else { // 2001:db8::1:80 this one is ambiguous
+                            $temp = explode(':', $value);
+                            $parts = array(implode(':', array_slice($temp, 0, count($temp)-1)), end($temp));
+                        }
+                    } elseif (strpos($value, ':')) { // (ipv4:port)
                         $parts = explode(':', $value);
-                    } elseif (strpos($value, '|')) {
+                    } elseif (strpos($value, '|')) { // (ipv4|port)
                         $parts = explode('|', $value);
                     } else {
                         return $value;
@@ -1594,6 +1608,13 @@ class Attribute extends AppModel
                     $value = 0;
                 }
                 $value = ($value) ? '1' : '0';
+                break;
+            case 'datetime':
+                try {
+                    $value = (new DateTime($value))->setTimezone(new DateTimeZone('GMT'))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formating with microseconds
+                } catch (Exception $e) {
+                    // silently skip. Rejection will be done in runValidation()
+                }
                 break;
         }
         return $value;
@@ -1783,60 +1804,100 @@ class Attribute extends AppModel
         return $this->saveAttachment($attribute);
     }
 
-    public function getPictureData($attribute, $thumbnail=false, $width=200, $height=200)
+    /**
+     * Currently, as image are considered files with JPG (JPEG), PNG or GIF extension.
+     * @param array $attribute
+     * @return bool
+     */
+    public function isImage(array $attribute)
     {
-        $extension = explode('.', $attribute['Attribute']['value']);
-        $extension = end($extension);
-        if (extension_loaded('gd')) {
-            if (!$thumbnail) {
-                $data = $this->getAttachment($attribute['Attribute']);
-                $image = ImageCreateFromString($data);
-                ob_start ();
-                switch ($extension) {
-                    case 'gif':
-                        // php-gd doesn't support animated gif. Skipping...
-                        break;
-                    case 'jpg':
-                    case 'jpeg':
-                        imagejpeg($image);
-                        break;
-                    case 'png':
-                        imagepng($image);
-                        break;
-                    default:
-                        break;
-                    }
-                    $image_data = $extension != 'gif' ? ob_get_contents() : $data;
-                    ob_end_clean ();
-            } else { // thumbnail requested, resample picture with desired dimension and save result
-                $thumbnail_exists = $this->getAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
-                if ($width == 200 && $height == 200 && $thumbnail_exists !== '') { // check if thumbnail already exists
-                    $image_data = $thumbnail_exists;
-                } else {
-                    $data = $this->getAttachment($attribute['Attribute']);
-                    if ($extension == 'gif') {
-                        $image_data = $data;
-                    } else {
-                        $image = ImageCreateFromString($data);
-                        $extension = 'jpg';
-                        $imageTC = ImageCreateTrueColor($width, $height);
-                        ImageCopyResampled($imageTC, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
-                        ob_start ();
-                        imagejpeg ($imageTC);
-                        $image_data = ob_get_contents();
-                        ob_end_clean ();
-                        imagedestroy($image);
-                        imagedestroy($imageTC);
-                    }
-                    // save thumbnail for later reuse
-                    $attribute['Attribute']['data'] = $image_data;
-                    $this->saveAttachment($attribute['Attribute'], '_thumbnail');
+        return $attribute['type'] === 'attachment' &&
+            Validation::extension($attribute['value'], array('jpg', 'jpeg', 'png', 'gif'));
+    }
+
+    /**
+     * @param array $attribute
+     * @param bool $thumbnail
+     * @param int $maxWidth - When $thumbnail is true
+     * @param int $maxHeight - When $thumbnail is true
+     * @return string
+     * @throws Exception
+     */
+    public function getPictureData(array $attribute, $thumbnail=false, $maxWidth=200, $maxHeight=200)
+    {
+        if ($thumbnail && extension_loaded('gd')) {
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                // Return thumbnail directly if already exists
+                $imageData = $this->getAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
+                if ($imageData !== '') {
+                    return $imageData;
                 }
             }
+
+            // Thumbnail doesn't exists, we need to generate it
+            $imageData = $this->getAttachment($attribute['Attribute']);
+            $imageData = $this->resizeImage($imageData, $maxWidth, $maxHeight);
+
+            // Save just when requested default thumbnail size
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                $attribute['Attribute']['data'] = $imageData;
+                $this->saveAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
+            }
         } else {
-            $image_data = $this->getAttachment($attribute['Attribute']);
+            $imageData = $this->getAttachment($attribute['Attribute']);
         }
-        return $image_data;
+
+        return $imageData;
+    }
+
+    /**
+     * @param string $data
+     * @param int $maxWidth
+     * @param int $maxHeight
+     * @return string
+     * @throws Exception
+     */
+    private function resizeImage($data, $maxWidth, $maxHeight)
+    {
+        $image = imagecreatefromstring($data);
+        if ($image === false) {
+            throw new Exception("Image is not valid.");
+        }
+
+        $currentWidth = imagesx($image);
+        $currentHeight = imagesy($image);
+
+        // Compute thumbnail size with keeping ratio
+        if ($currentWidth > $currentHeight) {
+            $newWidth = min($currentWidth, $maxWidth);
+            $divisor = $currentWidth / $newWidth;
+            $newHeight = floor($currentHeight / $divisor);
+        } else {
+            $newHeight = min($currentHeight, $maxHeight);
+            $divisor = $currentHeight / $newHeight;
+            $newWidth = floor($currentWidth / $divisor);
+        }
+
+        $imageThumbnail = imagecreatetruecolor($newWidth, $newHeight);
+
+        // Allow transparent background
+        imagealphablending($imageThumbnail, false);
+        imagesavealpha($imageThumbnail, true);
+        $transparent = imagecolorallocatealpha($imageThumbnail, 255, 255, 255, 127);
+        imagefilledrectangle($imageThumbnail, 0, 0, $newWidth, $newHeight, $transparent);
+
+        // Resize image
+        imagecopyresampled($imageThumbnail, $image, 0, 0, 0, 0, $newWidth, $newHeight, $currentWidth, $currentHeight);
+        imagedestroy($image);
+
+        // Output image to string
+        ob_start();
+        imagepng($imageThumbnail, null, 9);
+        $imageData = ob_get_contents();
+        ob_end_clean();
+        imagedestroy($imageThumbnail);
+
+        return $imageData;
     }
 
     public function __beforeSaveCorrelation($a)
@@ -2620,7 +2681,7 @@ class Attribute extends AppModel
         return $values;
     }
 
-    public function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false)
+    public function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $skipHeader = false)
     {
         App::uses('BroExport', 'Export');
         $export = new BroExport();
@@ -2688,7 +2749,9 @@ class Attribute extends AppModel
         }
         natsort($intel);
         $intel = array_unique($intel);
-        array_unshift($intel, $export->header);
+        if (empty($skipHeader)) {
+            array_unshift($intel, $export->header);
+        }
         return $intel;
     }
 
@@ -2703,7 +2766,8 @@ class Attribute extends AppModel
                 'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.comment', 'Attribute.to_ids', 'Attribute.value', 'Attribute.value' . $valueField),
                 'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
                 'group' => array('Attribute.type', 'Attribute.value' . $valueField), // fields to GROUP BY
-                'enforceWarninglist' => $enforceWarninglist
+                'enforceWarninglist' => $enforceWarninglist,
+                'flatten' => 1
             )
         );
         $orgs = $this->Event->Orgc->find('list', array(
@@ -3285,6 +3349,9 @@ class Attribute extends AppModel
         } else {
             $options['includeDecayScore'] = true;
         }
+        if ($options['includeDecayScore']) {
+            $options['includeEventTags'] = true;
+        }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
         } else {
@@ -3414,8 +3481,14 @@ class Attribute extends AppModel
                 if ($options['includeDecayScore']) {
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
                     $include_full_model = isset($options['includeFullModel']) && $options['includeFullModel'] ? 1 : 0;
+                    if (empty($results[$key]['Attribute']['AttributeTag'])) {
+                        $results[$key]['Attribute']['AttributeTag'] = $results[$key]['AttributeTag'];
+                        $results[$key]['Attribute']['EventTag'] = $results[$key]['EventTag'];
+                    }
                     $results[$key]['Attribute'] = $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides'], $include_full_model);
-                    if ($options['excludeDecayed']) { // filter out decayed attribute
+                    unset($results[$key]['Attribute']['AttributeTag']);
+                    unset($results[$key]['Attribute']['EventTag']);
+                    if ($options['excludeDecayed'] && !empty($results[$key]['Attribute']['decay_score'])) { // filter out decayed attribute
                         $decayed_flag = true;
                         foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) { // remove attribute if ALL score results in a decay
                             $decayed_flag = $decayed_flag && $decayResult['decayed'];
@@ -4176,7 +4249,7 @@ class Attribute extends AppModel
             return $this->validationErrors;
         } else {
             if ($user['Role']['perm_tagger']) {
-                /* 
+                /*
                     We should uncomment the line below in the future once we have tag soft-delete
                     A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
                     has a version below x
@@ -4341,7 +4414,6 @@ class Attribute extends AppModel
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
-                    'uuid' => array('function' => 'set_filter_uuid'),
                     'published' => array('function' => 'set_filter_published')
                 ),
                 'Object' => array(
@@ -4402,7 +4474,6 @@ class Attribute extends AppModel
 
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
-
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
                 'conditions' => $conditions,
@@ -4478,7 +4549,8 @@ class Attribute extends AppModel
         $loop = false;
         if (empty($params['limit'])) {
             $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
-            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
+            $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
+            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
             $params['limit'] = $memory_in_mb * $memory_scaling_factor;
             $loop = true;
             $params['page'] = 1;
@@ -4530,5 +4602,53 @@ class Attribute extends AppModel
             fwrite($tmpfile, $temp);
         }
         return true;
+    }
+
+    public function set_filter_uuid(&$params, $conditions, $options)
+    {
+        if (!empty($params['uuid'])) {
+            $params['uuid'] = $this->convert_filters($params['uuid']);
+            if (!empty($params['uuid']['OR'])) {
+                $conditions['AND'][] = array(
+                    'OR' => array(
+                        'Event.uuid' => $params['uuid']['OR'],
+                        'Attribute.uuid' => $params['uuid']['OR']
+                    )
+                );
+            }
+            if (!empty($params['uuid']['NOT'])) {
+                $conditions['AND'][] = array(
+                    'NOT' => array(
+                        'Event.uuid' => $params['uuid']['NOT'],
+                        'Attribute.uuid' =>  $params['uuid']['NOT']
+                    )
+                );
+            }
+        }
+        return $conditions;
+    }
+
+    /**
+     * @param array $attribute
+     */
+    public function removeGalaxyClusterTags(array &$attribute)
+    {
+        $galaxyTagIds = array();
+        foreach ($attribute['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] as $galaxyCluster) {
+                $galaxyTagIds[$galaxyCluster['tag_id']] = true;
+            }
+        }
+
+        if (empty($galaxyTagIds)) {
+            return;
+        }
+
+        foreach ($attribute['AttributeTag'] as $k => $attributeTag) {
+            $tagId = $attributeTag['Tag']['id'];
+            if (isset($galaxyTagIds[$tagId])) {
+                unset($attribute['AttributeTag'][$k]);
+            }
+        }
     }
 }

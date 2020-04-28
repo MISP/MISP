@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
+App::uses('GpgTool', 'Tools');
 
 /**
  * @property Log $Log
@@ -1038,52 +1039,26 @@ class User extends AppModel
         return $message;
     }
 
-    public function fetchPGPKey($email)
+    /**
+     * @param string $email
+     * @return array
+     * @throws Exception
+     */
+    public function searchGpgKey($email)
     {
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket();
-        $response = $HttpSocket->get('https://pgp.circl.lu/pks/lookup?search=' . urlencode($email) . '&op=index&fingerprint=on&options=mr');
-        if ($response->code != 200) {
-            return $response->code;
-        }
-        return $this->__extractPGPInfo($response->body);
+        $gpgTool = new GpgTool();
+        return $gpgTool->searchGpgKey($email);
     }
 
-    private function __extractPGPInfo($body)
+    /**
+     * @param string $fingerprint
+     * @return string|null
+     * @throws Exception
+     */
+    public function fetchGpgKey($fingerprint)
     {
-        $final = array();
-        $lines = explode("\n", $body);
-        foreach ($lines as $line) {
-            $parts = explode(":", $line);
-
-            if ($parts[0] === 'pub') {
-                if (!empty($temp)) {
-                    $final[] = $temp;
-                    $temp = array();
-                }
-
-                if (strpos($parts[6], 'r') !== false || strpos($parts[6], 'd') !== false || strpos($parts[6], 'e') !== false) {
-                    continue; // skip if key is expired, revoked or disabled
-                }
-
-                $temp = array(
-                    'fingerprint' => chunk_split($parts[1], 4, ' '),
-                    'key_id' => substr($parts[1], -8),
-                    'date' => date('Y-m-d', $parts[4]),
-                    'uri' => '/pks/lookup?op=get&search=0x' . $parts[1],
-                );
-
-            } else if ($parts[0] === 'uid' && !empty($temp)) {
-                $temp['address'] = urldecode($parts[1]);
-            }
-        }
-
-        if (!empty($temp)) {
-            $final[] = $temp;
-        }
-
-        return $final;
+        $gpgTool = new GpgTool();
+        return $gpgTool->fetchGpgKey($fingerprint);
     }
 
     public function describeAuthFields()
@@ -1373,7 +1348,7 @@ class User extends AppModel
                     $updatedUser['User']['id'],
                     $updatedUser['User']['email']
                 ),
-                $fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')',
+                $fieldsResult = ['authkey' =>  [$oldKey, $newkey]],
                 $updatedUser
         );
         if ($alert) {
@@ -1508,5 +1483,87 @@ class User extends AppModel
             'orgId' => $orgId
         );
         return $data;
+    }
+
+    /*
+     *  Set the monitoring flag in Configure for the current user
+     *  Reads the state from redis
+     */
+    public function setMonitoring($user)
+    {
+        if (
+            !empty(Configure::read('Security.user_monitoring_enabled'))
+        ) {
+            $redis = $this->setupRedis();
+            if (!empty($redis->sismember('misp:monitored_users', $user['id']))) {
+                Configure::write('Security.monitored', 1);
+                return true;
+            }
+        }
+        Configure::write('Security.monitored', 0);
+    }
+
+    public function registerUser($added_by, $registration, $org_id, $role_id) {
+        $user = array(
+                'email' => $registration['data']['email'],
+                'gpgkey' => empty($registration['data']['pgp']) ? '' : $registration['data']['pgp'],
+                'disabled' => 0,
+                'newsread' => 0,
+                'change_pw' => 1,
+                'authkey' => $this->generateAuthKey(),
+                'termsaccepted' => 0,
+                'org_id' => $org_id,
+                'role_id' => $role_id,
+                'invited_by' => $added_by['id'],
+                'contactalert' => 1,
+                'autoalert' => Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : 1
+        );
+        $this->create();
+        $this->Log = ClassRegistry::init('Log');
+        $result = $this->save(array('User' => $user));
+        $currentOrg = $this->Organisation->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Organisation.id' => $org_id)
+        ));
+        if (!empty($currentOrg) && empty($currentOrg['Organisation']['local'])) {
+            $currentOrg['Organisation']['local'] = 1;
+            $this->Organisation->save($currentOrg);
+        }
+        if (empty($result)) {
+            $error = array();
+            foreach ($this->validationErrors as $key => $errors) {
+                $error[$key] = $key . ': ' . implode(', ', $errors);
+            }
+            $error = implode(PHP_EOL, $error);
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'User',
+                    'model_id' => $added_by['id'],
+                    'email' => $added_by['email'],
+                    'action' => 'failed_registration',
+                    'title' => 'User registration failed for ' . $user['email'] . '. Reason(s): ' . $error,
+                    'change' => null,
+            ));
+            return false;
+        } else {
+            $user = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('id' => $this->id)
+            ));
+            $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'User',
+                'model_id' => $added_by['id'],
+                'email' => $added_by['email'],
+                'action' => 'succeeded_registration',
+                'title' => sprintf('User registration success for %s (id=%s)', $user['User']['email'], $user['User']['id']),
+                'change' => null,
+            ));
+            $this->initiatePasswordReset($user, true, true, false);
+            $this->Inbox = ClassRegistry::init('Inbox');
+            $this->Inbox->delete($registration['id']);
+            return true;
+        }
+
     }
 }

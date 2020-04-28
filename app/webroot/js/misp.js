@@ -56,7 +56,7 @@ function fetchAddSightingForm(type, attribute_id, page, onvalue) {
     });
 }
 
-function flexibleAddSighting(clicked, type, attribute_id, event_id, value, page, placement) {
+function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placement) {
     var $clicked = $(clicked);
     var hoverbroken = false;
     $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
@@ -1185,7 +1185,23 @@ function openGenericModal(url) {
     });
 }
 
-function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dissmis_id_to_close) {
+function openGenericModalPost(url, body) {
+    $.ajax({
+        data: body,
+        type: "post",
+        url: url,
+        success: function (data) {
+            $('#genericModal').remove();
+            $('body').append(data);
+            $('#genericModal').modal();
+        },
+        error: function (data, textStatus, errorThrown) {
+            showMessage('fail', textStatus + ": " + errorThrown);
+        }
+    });
+}
+
+function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dismiss_id_to_close) {
     var url = null;
     var context = 'event';
     var contextNamingConvention = 'Attribute';
@@ -1225,8 +1241,11 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             url = "/objectReferences/add/" + context_id;
             break;
         case 'quickAddAttributeForm':
-           url = "/objects/quickAddAttributeForm/" + context_id;
-           break;
+            url = "/objects/quickAddAttributeForm/" + context_id;
+            break;
+        case 'acceptUserRegistrations':
+            url = "/users/acceptRegistrations/" + context_id
+            break;
     }
     if ($("#submitButton").parent().hasClass('modal-footer')) {
         var $form = $("#submitButton").parent().parent().find('.modal-body form');
@@ -1245,8 +1264,8 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 if (closePopover) {
                     $("#gray_out").fadeOut();
                     $("#popover_form").fadeOut();
-                    if (popover_dissmis_id_to_close !== undefined) {
-                        $('[data-dismissid="' + popover_dissmis_id_to_close + '"]').popover('destroy');
+                    if (popover_dismiss_id_to_close !== undefined) {
+                        $('[data-dismissid="' + popover_dismiss_id_to_close + '"]').popover('destroy');
                     }
                     $(".loading").show();
                 }
@@ -1798,7 +1817,7 @@ function popoverPopup(clicked, id, context, target, admin) {
             }
             var errorText = '<div class="alert alert-error" style="margin-bottom: 3px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>';
             if (errorJSON !== '') {
-                errorText += '<div class="well"><strong>Returned error:</strong>' + $('<span/>').text(errorJSON).html() + '</div>';
+                errorText += '<div class="well"><strong>Returned error:</strong> ' + $('<span/>').text(errorJSON).html() + '</div>';
             }
             popover.options.content = errorText;
             $clicked.popover('show');
@@ -2725,6 +2744,7 @@ function moduleResultsSubmit(id) {
                 $(this).find('.ObjectAttribute').each(function(a) {
                     var attribute_type = $(this).find('.AttributeType').text();
                     attribute = {
+                        import_attribute: $(this).find('.ImportMISPObjectAttribute')[0].checked,
                         object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
                         type: attribute_type,
@@ -2735,6 +2755,9 @@ function moduleResultsSubmit(id) {
                         comment: $(this).find('.AttributeComment').val(),
                         distribution: $(this).find('.AttributeDistribution').val(),
                         sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                    }
+                    if (!attribute['import_attribute']) {
+                        return true;
                     }
                     if (attribute['distribution'] != '4') {
                         attribute['sharing_group_id'] = '0';
@@ -2778,6 +2801,7 @@ function moduleResultsSubmit(id) {
                 type_value = $(this).find('.AttributeType').text();
             }
             temp = {
+                import_attribute: $(this).find('.ImportMISPAttribute')[0].checked,
                 category: category_value,
                 type: type_value,
                 value: $(this).find('.AttributeValue').text(),
@@ -2787,6 +2811,9 @@ function moduleResultsSubmit(id) {
                 comment: $(this).find('.AttributeComment').val(),
                 distribution: $(this).find('.AttributeDistribution').val(),
                 sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+            }
+            if (!temp['import_attribute']) {
+                return true;
             }
             if (temp['distribution'] != '4') {
                 temp['sharing_group_id'] = '0';
@@ -3353,27 +3380,31 @@ function getTextColour(hex) {
     }
 }
 
-function pgpChoiceSelect(uri) {
+function gpgSelect(fingerprint) {
     $("#popover_form").fadeOut();
     $("#gray_out").fadeOut();
     $.ajax({
         type: "get",
-        url: "https://pgp.circl.lu" + uri,
+        url: "/users/fetchGpgKey/" + fingerprint,
+        beforeSend: function () {
+            $(".loading").show();
+        },
         success: function (data) {
-            var result = data.split("<pre>")[1].split("</pre>")[0];
-            $("#UserGpgkey").val(result);
+            $("#UserGpgkey").val(data);
             showMessage('success', "Key found!");
         },
         error: function (data, textStatus, errorThrown) {
             showMessage('fail', textStatus + ": " + errorThrown);
+        },
+        complete: function () {
             $(".loading").hide();
-            $("#gray_out").fadeOut();
-        }
+        },
     });
 }
 
 function lookupPGPKey(emailFieldName) {
-    simplePopup("/users/fetchPGPKey/" + $('#' + emailFieldName).val());
+    var email = $('#' + emailFieldName).val();
+    simplePopup("/users/searchGpgKey/" + email);
 }
 
 function zeroMQServerAction(action) {
@@ -3401,8 +3432,15 @@ function zeroMQServerAction(action) {
 function convertServerFilterRules(rules) {
     validOptions.forEach(function (type) {
         container = "#"+ modelContext + type.ucfirst() + "Rules";
-        if ($(container).val() != '' && $(container).val() != '[]') rules[type] = JSON.parse($(container).val());
-        else {rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}};
+        if ($(container).val() != '' && $(container).val() != '[]') {
+            rules[type] = JSON.parse($(container).val());
+        } else {
+            if (type === 'pull') {
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "url_params": ""}
+            } else {
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}
+            }
+        };
     });
     serverRuleUpdate();
     return rules;
@@ -3433,6 +3471,14 @@ function serverRuleUpdate() {
                 }
             });
         });
+        if (type === 'pull') {
+            if (rules[type]['url_params']) {
+                $("#pull_url_params").show();
+                $("#pull_url_params_text").text(rules[type]['url_params']);
+            } else {
+                $("#pull_url_params").hide();
+            }
+        }
     });
     serverRuleGenerateJSON();
 }
@@ -3488,6 +3534,7 @@ function serverRulePopulateTagPicklist() {
             }));
         });
     });
+    $('#urlParams').val(rules["pull"]["url_params"]);
 }
 
 function submitServerRulePopulateTagPicklistValues(context) {
@@ -3501,7 +3548,9 @@ function submitServerRulePopulateTagPicklistValues(context) {
             rules[context][field]["NOT"].push($(this).val());
         });
     });
-
+    if (context === 'pull') {
+        rules[context]["url_params"] = $('#urlParams').val();
+    }
     $('#server_' + context + '_rule_popover').fadeOut();
     $('#gray_out').fadeOut();
     serverRuleUpdate();
@@ -3890,6 +3939,7 @@ function feedFormUpdate() {
     switch($('#FeedSourceFormat').val()) {
         case 'freetext':
             $('#TargetDiv').show();
+            $('#OrgcDiv').show();
             $('#OverrideIdsDiv').show();
             $('#PublishDiv').show();
             if ($('#FeedTarget').val() != 0) {
@@ -3900,6 +3950,7 @@ function feedFormUpdate() {
             break;
         case 'csv':
             $('#TargetDiv').show();
+            $('#OrgcDiv').show();
             $('#OverrideIdsDiv').show();
             $('#PublishDiv').show();
             if ($('#FeedTarget').val() != 0) {
@@ -4413,6 +4464,14 @@ function checkNoticeList(type) {
 
 }
 
+function quickSelect(target) {
+    var range = document.createRange();
+    var selection = window.getSelection();
+    range.selectNodeContents(target);
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
 $(document).ready(function() {
     // Show popover for disabled input that contains `data-disabled-reason`.
     $('input:disabled[data-disabled-reason]').popover("destroy").popover({
@@ -4463,11 +4522,7 @@ $(document).ready(function() {
     // clicking on an element with this class will select all of its contents in a
     // single click
     $('.quickSelect').click(function() {
-        var range = document.createRange();
-        var selection = window.getSelection();
-        range.selectNodeContents(this);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        quickSelect(this);
     });
     $(".cortex-json").click(function() {
         var cortex_data = $(this).data('cortex-json');
@@ -4839,3 +4894,152 @@ function queryDeprecatedEndpointUsage() {
         format: 'yyyy-mm-dd',
     });
 }());
+
+function submitDashboardForm(id) {
+    var configData = $('#DashboardConfig').val();
+    if (configData != '') {
+        configData = JSON.parse(configData);
+    } else {
+        configData = {};
+    }
+    configData = JSON.stringify(configData);
+    $('#' + id).attr('config', configData);
+    $('#genericModal').modal('hide');
+    saveDashboardState();
+}
+
+function submitDashboardAddWidget() {
+    var widget = $('#DashboardWidget').val();
+    var config = $('#DashboardConfig').val();
+    var width = $('#DashboardWidth').val();
+    var height = $('#DashboardHeight').val();
+    var el = null;
+    var k = $('#last-element-counter').data('element-counter');
+    $.ajax({
+        url: baseurl + '/dashboards/getEmptyWidget/' + widget + '/' + (k+1),
+        type: 'GET',
+        success: function(data) {
+            el = data;
+            grid.addWidget(
+                el,
+                {
+                    "width": width,
+                    "height": height,
+                    "autoposition": 1
+                }
+            );
+            if (config !== '') {
+                config = JSON.parse(config);
+                config = JSON.stringify(config);
+            } else {
+                config = '[]';
+            }
+            $('#widget_' + (k+1)).attr('config', config);
+            saveDashboardState();
+            $('#last-element-counter').data('element-counter', (k+1));
+        },
+        complete: function(data) {
+            $('#genericModal').modal('hide');
+        },
+        error: function(data) {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Could not fetch empty widget.']});
+        }
+    });
+}
+
+function saveDashboardState() {
+    var dashBoardSettings = [];
+    $('.grid-stack-item').each(function(index) {
+        if ($(this).attr('config') !== undefined && $(this).attr('widget') !== undefined) {
+            var config = $(this).attr('config');
+            config = JSON.parse(config);
+            var temp = {
+                'widget': $(this).attr('widget'),
+                'config': config,
+                'position': {
+                    'x': $(this).attr('data-gs-x'),
+                    'y': $(this).attr('data-gs-y'),
+                    'width': $(this).attr('data-gs-width'),
+                    'height': $(this).attr('data-gs-height')
+                }
+            };
+            dashBoardSettings.push(temp);
+        }
+    });
+    $.ajax({
+        data: {value: dashBoardSettings},
+        success:function (data, textStatus) {
+            showMessage('success', 'Dashboard settings saved.');
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            showMessage('fail', textStatus + ": " + errorThrown);
+        },
+        type: "post",
+        url: baseurl + '/dashboards/updateSettings',
+    });
+}
+
+function updateDashboardWidget(element) {
+    element = $(element);
+    if (element.length) {
+        var container_id = $(element).attr('id').substring(7);
+        var container = $(element).find('.widgetContent');
+        var titleText = $(element).find('.widgetTitleText');
+        var temp = JSON.parse($(element).attr('config'));
+        if (temp['alias'] !== undefined) {
+            titleText.text(temp['alias']);
+        }
+        $.ajax({
+            type: 'POST',
+            url: baseurl + '/dashboards/renderWidget/' + container_id,
+            data: {
+                config: $(element).attr('config'),
+                widget: $(element).attr('widget')
+            },
+            success:function (data, textStatus) {
+                container.html(data);
+            }
+        });
+    }
+}
+
+function resetDashboardGrid(grid) {
+    $('.grid-stack-item').each(function() {
+        updateDashboardWidget(this);
+    });
+    saveDashboardState();
+    $('.edit-widget').click(function() {
+        el = $(this).closest('.grid-stack-item');
+        data = {
+            id: el.attr('id'),
+            config: JSON.parse(el.attr('config')),
+            widget: el.attr('widget'),
+            alias: el.attr('alias')
+        }
+        openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
+    });
+    $('.remove-widget').click(function() {
+        el = $(this).closest('.grid-stack-item');
+        grid.removeWidget(el);
+        saveDashboardState();
+    });
+}
+
+function setHomePage() {
+    $.ajax({
+        type: 'POST',
+        url: baseurl + '/userSettings/setHomePage',
+        data: {
+            path: window.location.pathname
+        },
+        success:function (data, textStatus) {
+            showMessage('success', 'Homepage set.');
+            $('#setHomePage').addClass('orange');
+        },
+    });
+}
+
+function changeLocationFromIndexDblclick(row_index) {
+    var href = $('table tr[data-row-id=\"' + row_index + '\"] .dblclickActionElement').attr('href')
+    window.location = href;
+}

@@ -591,7 +591,7 @@ function installMISPonTsurugi() {
   sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
   $SUDO /usr/local/src/viper/viper-cli -h > /dev/null
   $SUDO /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
-  echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |tee /etc/environment
+  echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |tee -a /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
   $SUDO sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" /home/${MISP_USER}/.viper/viper.conf
   $SUDO sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" /home/${MISP_USER}/.viper/viper.conf
@@ -629,7 +629,7 @@ function installMISPonTsurugi() {
   sudo ldconfig
   cd ../../mail_to_misp
   $SUDO_CMD virtualenv -p python3 venv
-  $SUDO_CMD ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_CMD ./venv/bin/pip install lief
   $SUDO_CMD ./venv/bin/pip install -r requirements.txt
   $SUDO_CMD cp mail_to_misp_config.py-example mail_to_misp_config.py
   ##$SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py

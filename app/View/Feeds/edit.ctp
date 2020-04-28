@@ -2,8 +2,14 @@
 <?php echo $this->Form->create('Feed');?>
     <fieldset>
         <legend><?php echo __('Edit MISP Feed');?></legend>
-        <p><?php echo __('Edit a new MISP feed source.');?></p>
-    <?php
+        <?php
+            if (!empty(Configure::read('Security.disable_local_feed_access'))) {
+                echo sprintf(
+                    '<p class="red bold">%s</p>',
+                    __('Warning: local feeds are currently disabled by policy, to re-enable the feature, set the Security.allow_local_feed_access flag in the server settings. This setting can only be set via the CLI.')
+                );
+            }
+            echo '<p>' . __('Edit a new MISP feed source.') . '</p>';
             echo $this->Form->input('enabled', array(
                 'type' => 'checkbox'
             ));
@@ -26,9 +32,13 @@
                     'placeholder' => __('Name of the content provider'),
                     'class' => 'form-control span6'
             ));
+            $options = array('network' => 'Network');
+            if (empty(Configure::read('Security.disable_local_feed_access'))) {
+                $options['local'] = 'Local';
+            }
             echo $this->Form->input('input_source', array(
                     'div' => 'input clear',
-                    'options' => array('network' => 'Network', 'local' => 'Local'),
+                    'options' => $options,
                     'class' => 'form-control span6'
             ));
             ?>
@@ -82,6 +92,16 @@
                     'class' => 'form-control span6'
             ));
         ?>
+        <div id="OrgcDiv" class="optionalField">
+        <?php
+            echo $this->Form->input('orgc_id', array(
+                    'label' => __('Creator organisation'),
+                    'div' => 'input clear',
+                    'options' => $orgs,
+                    'class' => 'form-control span6'
+            ));
+        ?>
+        </div>
         <div id="TargetDiv" class="optionalField">
         <?php
             echo $this->Form->input('fixed_event', array(

@@ -238,6 +238,7 @@ class ObjectsController extends AppController
                 $this->request->data['Attribute'] = $this->request->data['Object']['Attribute'];
                 unset($this->request->data['Object']['Attribute']);
             }
+            $breakOnDuplicate = !empty($this->request->data['Object']['breakOnDuplicate']) || !empty($this->params['named']['breakOnDuplicate']);
             $object = $this->MispObject->attributeCleanup($this->request->data);
             // we pre-validate the attributes before we create an object at this point
             // This allows us to stop the process and return an error (API) or return
@@ -283,9 +284,15 @@ class ObjectsController extends AppController
                 }
                 if (empty($error)) {
                     unset($object['Object']['id']);
-                    $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
+                    $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), 'halt', $breakOnDuplicate);
                     if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($eventId);
+                    } else {
+                        $object_validation_errors = array();
+                        foreach($result as $field => $field_errors) {
+                            $object_validation_errors[] = sprintf('%s: %s', $field,  implode(', ', $field_errors));
+                        }
+                        $error = __('Object could not be saved.') . PHP_EOL . implode(PHP_EOL, $object_validation_errors);
                     }
                 } else {
                     $result = false;
@@ -391,7 +398,7 @@ class ObjectsController extends AppController
         $this->set('updateable_attribute', $templateData['updateable_attribute']);
         $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
         if (isset($this->params['named']['revised_object'])) {
-            $revisedData = $this->MispObject->reviseObject($this->params['named']['revised_object'], $object);
+            $revisedData = $this->MispObject->reviseObject($this->params['named']['revised_object'], $object, $template);
             $this->set('revised_object', $revisedData['revised_object_both']);
             $object = $revisedData['object'];
         }
@@ -414,6 +421,14 @@ class ObjectsController extends AppController
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
             $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute);
+            $error_message = __('Object could not be saved.');
+            if (!is_numeric($objectToSave)){
+                $object_validation_errors = array();
+                foreach($objectToSave as $field => $field_errors) {
+                    $object_validation_errors[] = sprintf('%s: %s', $field,  implode(', ', $field_errors));
+                }
+                $error_message = __('Object could not be saved.') . PHP_EOL . implode(PHP_EOL, $object_validation_errors);
+            }
             // we pre-validate the attributes before we create an object at this point
             // This allows us to stop the process and return an error (API) or return
             //  to the add form
@@ -428,11 +443,10 @@ class ObjectsController extends AppController
                     $this->MispObject->Event->unpublishEvent($objectToSave['Object']['event_id']);
                     return $this->RestResponse->viewData($objectToSave, $this->response->type());
                 } else {
-                    return $this->RestResponse->saveFailResponse('Objects', 'add', false, $id, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $id, $this->response->type());
                 }
             } else {
                 $message = __('Object attributes saved.');
-                $error_message = __('Object attributes could not be saved.');
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
                     if (is_numeric($objectToSave)) {

@@ -39,10 +39,22 @@
             echo $this->Form->input('email', array('autocomplete' => 'off', 'autofocus'));
             echo $this->Form->input('password', array('autocomplete' => 'off'));
         ?>
-            <div class="clear"></div>
+            <div class="clear">
+            <?php
+                echo empty(Configure::read('Security.allow_self_registration')) ? '' : sprintf(
+                    '<a href="%s/users/register" title="%s">%s</span>',
+                    $baseurl,
+                    __('Registration will be sent to the administrators of the instance for consideration.'),
+                    __('No account yet? Register now!')
+                );
+            ?>
+            </div>
         <?php
             echo $this->Form->button(__('Login'), array('class' => 'btn btn-primary'));
             echo $this->Form->end();
+            if (Configure::read('ApacheShibbAuth') == true) {
+                echo '<div class="clear"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
+            }
         ?>
     </td>
     <td style="width:250px;padding-left:50px">

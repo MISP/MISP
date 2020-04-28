@@ -63,67 +63,33 @@ class ThreadsController extends AppController
 
     private function __view($thread_id, $eventView, $post_id)
     {
+        $conditions = array('id' => $thread_id);
         if ($eventView) {
-            $id = $thread_id;
-            // Show the discussion
-            $this->Thread->Behaviors->unload('SysLogLogable.SysLogLogable');
-            $params = array('conditions' => array('event_id' => $id),
-                    'recursive' => -1,
-                    'fields' => array('id', 'event_id', 'distribution', 'title', 'sharing_group_id', 'org_id')
-            );
-            $thread = $this->Thread->find('first', $params);
-            if (!empty($thread)) {
-                if (!$this->_isSiteAdmin()) {
-                    if ($thread['Thread']['distribution'] == 0 && $thread['Thread']['org_id'] != $this->Auth->user('org_id')) {
-                        throw new MethodNotAllowedException('Invalid Thread.');
-                    }
-                    if ($thread['Thread']['distribution'] == 4) {
-                        if (!$this->Thread->SharingGroup->checkIfAuthorised($this->Auth->user(), $thread['Thread']['sharing_group_id'])) {
-                            new NotFoundException('Invalid thread.');
-                        }
-                    }
-                }
-                $thread_id = $thread['Thread']['id'];
-            } else {
-                $thread_id = 0;
+            $event_id = $thread_id;
+            $thread_id = false;
+            if (!$this->request->is('ajax')) {
+                $this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));
             }
-            $this->set('currentEvent', $id);
+            $conditions = array('event_id' => $event_id);
+            $this->set('currentEvent', $event_id);
+            $this->set('event_id', $event_id);
+            $this->set('context', 'event');
         } else {
-            $this->Thread->recursive = -1;
-            $this->Thread->id = $thread_id;
-
-            //If the thread doesn't exist, throw exception
-            if (!$this->Thread->exists()) {
+            $this->set('context', 'thread');
+        }
+        $this->set('myuserid', $this->Auth->user('id'));
+        $thread = $this->Thread->find('first', array(
+            'conditions' => $conditions,
+            'recursive' => -1
+        ));
+        if (empty($thread)) {
+            if (!$eventView) {
                 throw new NotFoundException('Invalid thread.');
             }
-            $thread = $this->Thread->read();
-
-            // If the thread belongs to an event, we have to make sure that the event's distribution level hasn't changed.
-            // This is also a good time to update the thread's distribution level if that did happen.
-            if (!empty($thread['Thread']['event_id'])) {
-                $this->loadModel('Event');
-                $this->Event->id = $thread['Thread']['event_id'];
-                $this->Event->recursive = -1;
-                $this->Event->read(array('id', 'distribution', 'org_id', 'sharing_group_id'));
-                if ($this->Event->data['Event']['distribution'] != $thread['Thread']['distribution']) {
-                    $this->Thread->saveField('distribution', $this->Event->data['Event']['distribution']);
-                }
-                if ($this->Event->data['Event']['sharing_group_id'] != $thread['Thread']['sharing_group_id']) {
-                    $this->Thread->saveField('sharing_group_id', $this->Event->data['Event']['sharing_group_id']);
-                }
-                $this->set('event_id', $thread['Thread']['event_id']);
-            }
-
-            // If the user shouldn't be allowed to see the event send him away.
-            if (!$this->_isSiteAdmin()) {
-                if ($thread['Thread']['distribution'] == 0 && $thread['Thread']['org_id'] != $this->Auth->user('org_id')) {
-                    throw new MethodNotAllowedException('Invalid Thread.');
-                }
-                if ($thread['Thread']['distribution'] == 4) {
-                    if (!$this->Thread->SharingGroup->checkIfAuthorised($this->Auth->user(), $thread['Thread']['sharing_group_id'])) {
-                        new NotFoundException('Invalid thread.');
-                    }
-                }
+        } else {
+            $thread_id = $thread['Thread']['id'];
+            if (!$this->Thread->checkIfAuthorised($this->Auth->user(), $thread_id)) {
+                throw new NotFoundException('Invalid thread.');
             }
         }
         if ($thread_id) {
@@ -166,15 +132,6 @@ class ThreadsController extends AppController
                 $this->set('thread', $thread);
             }
         }
-        if ($eventView) {
-            $this->set('context', 'event');
-            if (!$this->request->is('ajax')) {
-                $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
-            }
-        } else {
-            $this->set('context', 'thread');
-        }
-        $this->set('myuserid', $this->Auth->user('id'));
         if ($this->request->is('ajax')) {
             $this->layout = 'ajax';
             $this->render('/Elements/eventdiscussion');
@@ -185,7 +142,7 @@ class ThreadsController extends AppController
     {
         $this->loadModel('Posts');
         $this->loadModel('SharingGroup');
-        $sgids = $this->SharingGroup->fetchAllAuthorised($this->Auth->user);
+        $sgids = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
         $conditions = null;
         if (!$this->_isSiteAdmin()) {
             $conditions['AND']['OR'] = array(
@@ -206,7 +163,7 @@ class ThreadsController extends AppController
         }
         $conditions['AND'][] = array('Thread.post_count >' => 0);
         $this->paginate = array(
-                'conditions' => array($conditions),
+                'conditions' => $conditions,
                 'fields' => array('date_modified', 'date_created', 'org_id', 'distribution', 'title', 'post_count', 'sharing_group_id'),
                 'contain' => array(
                     'Post' =>array(

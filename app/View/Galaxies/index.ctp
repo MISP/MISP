@@ -1,84 +1,109 @@
-<div class="regexp index">
-    <h2><?php echo __('Galaxies');?></h2>
-    <div class="pagination">
-        <ul>
-        <?php
-        $this->Paginator->options(array(
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
-        ));
-
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-    <table class="table table-striped table-hover table-condensed">
-    <tr>
-            <th><?php echo $this->Paginator->sort('id');?></th>
-            <th><?php echo $this->Paginator->sort('icon', __('Icon'));?></th>
-            <th><?php echo $this->Paginator->sort('name');?></th>
-            <th><?php echo $this->Paginator->sort('version');?></th>
-            <th><?php echo $this->Paginator->sort('namespace', __('Namespace'));?></th>
-            <th class="description"><?php echo $this->Paginator->sort('description');?></th>
-            <th><?php echo __('Actions');?></th>
-    </tr>
-    <?php
-        foreach ($list as $item) {
-            $row = sprintf(
-                '<tr><td class="short">%s</td>',
-                h($item['Galaxy']['id'])
-            );
-            $row .= sprintf(
-                '<td class="short"><span class="%s fa-%s"></span></td>',
-                $this->FontAwesome->findNamespace($item['Galaxy']['icon']),
-                h($item['Galaxy']['icon'])
-            );
-            $row .= sprintf(
-                '<td class="short">%s</td>',
-                h($item['Galaxy']['name'])
-            );
-            $row .= sprintf(
-                '<td class="short">%s</td>',
-                h($item['Galaxy']['version'])
-            );
-            $row .= sprintf(
-                '<td class="short">%s</td>',
-                h($item['Galaxy']['namespace'])
-            );
-            $row .= sprintf(
-                '<td>%s</td>',
-                h($item['Galaxy']['description'])
-            );
-            $row .= sprintf(
-                '<td class="short action-links">%s%s</td></tr>',
-                $this->Form->postLink('', array('action' => 'delete', $item['Galaxy']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), sprintf(__('Are you sure you want to delete the Galaxy (%s)?'), $item['Galaxy']['name'])),
-                $this->Html->link('', array('action' => 'view', $item['Galaxy']['id']), array('class' => 'fa fa-eye', 'title' => __('View'), 'aria-label' => __('View')))
-            );
-            echo $row;
-        }
-    ?>
-    </table>
-    <p>
-    <?php
-    echo $this->Paginator->counter(array(
-    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-    ));
-    ?>
-    </p>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-</div>
 <?php
+    echo '<div class="index">';
+    echo $this->element('/genericElements/IndexTable/index_table', array(
+        'data' => array(
+            'data' => $galaxyList,
+            'top_bar' => array(
+                'children' => array(
+                    array(
+                        'type' => 'simple',
+                        'children' => array(
+                            array(
+                                'active' => $context === 'all',
+                                'url' => $baseurl . '/galaxies/index/context:all',
+                                'text' => __('All'),
+                            ),
+                            // array(
+                            //     'active' => $context === 'altered',
+                            //     'url' => $baseurl . '/galaxies/index/context:altered',
+                            //     'text' => __('Altered Galaxies'),
+                            // )
+                        )
+                    ),
+                    array(
+                        'type' => 'search',
+                        'button' => __('Filter'),
+                        'placeholder' => __('Enter value to search'),
+                        'data' => '',
+                        'searchKey' => 'value',
+                        'value' => $searchall
+                    )
+                )
+            ),
+            'fields' => array(
+                array(
+                    'name' => __('Galaxy Id'),
+                    'sort' => 'Galaxy.id',
+                    'element' => 'links',
+                    'class' => 'short',
+                    'data_path' => 'Galaxy.id',
+                    'url' => $baseurl . '/galaxies/view/%s'
+                ),
+                array(
+                    'name' => __('Icon'),
+                    'element' => 'icon',
+                    'class' => 'short',
+                    'data_path' => 'Galaxy.icon',
+                ),
+                array(
+                    'name' => __('Name'),
+                    'sort' => 'name',
+                    'class' => 'short',
+                    'data_path' => 'Galaxy.name',
+                ),
+                array(
+                    'name' => __('version'),
+                    'class' => 'short',
+                    'data_path' => 'Galaxy.version',
+                ),
+                array(
+                    'name' => __('Namespace'),
+                    'class' => 'short',
+                    'data_path' => 'Galaxy.namespace',
+                ),
+                array(
+                    'name' => __('Description'),
+                    'data_path' => 'Galaxy.description',
+                )
+            ),
+            'title' => __('Galaxy index'),
+            'actions' => array(
+                array(
+                    'url' => '/galaxies/view',
+                    'url_params_data_paths' => array(
+                        'Galaxy.id'
+                    ),
+                    'icon' => 'eye',
+                    'dbclickAction' => true
+                ),
+                array(
+                    'url' => '/galaxies/delete',
+                    'url_params_data_paths' => array(
+                        'Galaxy.id'
+                    ),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to delete the Galaxy?'),
+                    'icon' => 'trash'
+                ),
+            )
+        )
+    ));
+    echo '</div>';
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'index'));
 ?>
+<script type="text/javascript">
+    var passedArgsArray = <?php echo $passedArgs; ?>;
+    if (passedArgsArray['context'] === undefined) {
+        passedArgsArray['context'] = 'pending';
+    }
+    $(document).ready(function() {
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter('/context:' + passedArgsArray['context']);
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter('/context:' + passedArgsArray['context']);
+            }
+        });
+    });
+</script>

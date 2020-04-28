@@ -9,17 +9,19 @@ class Bruteforce extends AppModel
     {
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
-        $expire = time() + Configure::read('SecureAuth.expire');
+        $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
+        $amount = Configure::check('SecureAuth.amount') ? Configure::read('SecureAuth.amount') : 5;
+        $expire = time() + $expire;
         $expire = date('Y-m-d H:i:s', $expire);
         $bruteforceEntry = array(
             'ip' => $ip,
-            'username' => $username,
+            'username' => trim(strtolower($username)),
             'expire' => $expire
         );
         $this->save($bruteforceEntry);
         $title = 'Failed login attempt using username ' . $username . ' from IP: ' . $_SERVER['REMOTE_ADDR'] . '.';
         if ($this->isBlacklisted($ip, $username)) {
-            $title .= 'This has tripped the bruteforce protection after  ' . Configure::read('SecureAuth.amount') . ' failed attempts. The user is now blacklisted for ' . Configure::read('SecureAuth.expire') . ' seconds.';
+            $title .= 'This has tripped the bruteforce protection after  ' . $amount . ' failed attempts. The user is now blacklisted for ' . $expire . ' seconds.';
         }
         $log = array(
                 'org' => 'SYSTEM',
@@ -36,10 +38,11 @@ class Bruteforce extends AppModel
     {
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
-        if ($dataSource == 'Database/Mysql') {
-            $sql = 'DELETE FROM bruteforces WHERE `expire` <= NOW();';
+        $expire = date('Y-m-d H:i:s', time());
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+            $sql = 'DELETE FROM bruteforces WHERE `expire` <= "' . $expire . '";';
         } elseif ($dataSource == 'Database/Postgres') {
-            $sql = 'DELETE FROM bruteforces WHERE expire <= NOW();';
+            $sql = 'DELETE FROM bruteforces WHERE expire <= \'' . $expire . '\';';
         }
         $this->query($sql);
     }
@@ -49,11 +52,14 @@ class Bruteforce extends AppModel
         // first remove old expired rows
         $this->clean();
         // count
-        $params = array('conditions' => array(
-                        'Bruteforce.ip' => $ip,
-                        'Bruteforce.username' => $username),);
+        $params = array(
+            'conditions' => array(
+            'Bruteforce.ip' => $ip,
+            'LOWER(Bruteforce.username)' => trim(strtolower($username)))
+        );
         $count = $this->find('count', $params);
-        if ($count >= Configure::read('SecureAuth.amount')) {
+        $amount = Configure::check('SecureAuth.amount') ? Configure::read('SecureAuth.amount') : 5;
+        if ($count >= $amount) {
             return true;
         } else {
             return false;

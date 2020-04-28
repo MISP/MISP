@@ -24,8 +24,7 @@ def check_pid(pid):
         return True
 
 
-class MISPZMQ():
-
+class MISPZMQ:
     def __init__(self):
         self.current_location = Path(__file__).parent
         self.pidfile = self.current_location / "mispzmq.pid"
@@ -57,10 +56,10 @@ class MISPZMQ():
             print("Kill command received, shutting down.")
             self.pidfile.unlink()
             sys.exit()
-        if command == "reload":
+        elif command == "reload":
             print("Reload command received, reloading settings from file.")
             self.setup()
-        if command == "status":
+        elif command == "status":
             print("Status command received, responding with latest stats.")
             self.r.delete("{}:status".format(self.namespace))
             self.r.lpush("{}:status".format(self.namespace),
@@ -87,6 +86,11 @@ class MISPZMQ():
             "I feel FANTASTIC and I'm still alive.",
             "While you're dying I'll be still alive."
         ]
+        topics = ["misp_json", "misp_json_event", "misp_json_attribute", "misp_json_sighting",
+                  "misp_json_organisation", "misp_json_user", "misp_json_conversation",
+                  "misp_json_object", "misp_json_object_reference", "misp_json_audit",
+                  "misp_json_tag"
+                  ]
         context = zmq.Context()
         socket = context.socket(zmq.PUB)
         socket.bind("tcp://*:{}".format(self.settings["port"]))
@@ -96,11 +100,6 @@ class MISPZMQ():
             command = self.r.lpop("{}:command".format(self.namespace))
             if command is not None:
                 self.handleCommand(command)
-            topics = ["misp_json", "misp_json_event", "misp_json_attribute", "misp_json_sighting",
-                      "misp_json_organisation", "misp_json_user", "misp_json_conversation",
-                      "misp_json_object", "misp_json_object_reference", "misp_json_audit",
-                      "misp_json_tag"
-                      ]
             message_received = False
             for topic in topics:
                 data = self.r.lpop("{}:data:{}".format(self.namespace, topic))
@@ -112,7 +111,7 @@ class MISPZMQ():
             current_time = 10 * time.time()
             temp_start_time = 10 * start_time
             time_delta = int(current_time - temp_start_time)
-            if (time_delta % 100 == 0):
+            if time_delta % 100 == 0:
                 status_entry = int(time_delta / 100 % 5)
                 status_message = {
                     'status': status_array[status_entry],
