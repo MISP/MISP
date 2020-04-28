@@ -1,11 +1,11 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 18.04.4-server
+## for Ubuntu 20.04-server
 
 ### -1/ Installer and Manual install instructions
 
 Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
 
-To install MISP on a fresh Ubuntu 18.04, all you need to do is the following:
+To install MISP on a fresh Ubuntu 20.04, all you need to do is the following:
 
 ```bash
 # Please check the installer options first to make the best choice for your install
@@ -17,10 +17,10 @@ wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/
 bash /tmp/INSTALL.sh -c
 ```
 
-### 0/ MISP Ubuntu 18.04-server install - status
+### 0/ MISP Ubuntu 20.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190513 (works with **Ubuntu 18.10/19.04** too)
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20200427
 
 !!! notice
     This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
@@ -28,14 +28,14 @@ bash /tmp/INSTALL.sh -c
     Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
 
 !!! notice
-    If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
+    If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
 
 {!generic/core.md!}
 
 ### 1/ Minimal Ubuntu install
 -------------------------
 
-#### Install a minimal Ubuntu 18.04-server system with the software:
+#### Install a minimal Ubuntu 20.04-server system with the software:
 - OpenSSH server
 - This guide assumes a user name of 'misp' with sudo working
 
@@ -104,18 +104,18 @@ installCoreDeps () {
 }
 # <snippet-end 0_installCoreDeps.sh>
 
-# <snippet-begin 0_installDepsPhp72.sh>
-# Install Php 7.2 dependencies
-installDepsPhp72 () {
-  debug "Installing PHP 7.2 dependencies"
-  PHP_ETC_BASE=/etc/php/7.2
+# <snippet-begin 0_installDepsPhp74.sh>
+# Install Php 7.4 dependencies
+installDepsPhp74 () {
+  debug "Installing PHP 7.4 dependencies"
+  PHP_ETC_BASE=/etc/php/7.4
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   sudo apt update
   sudo apt install -qy \
   libapache2-mod-php \
   php php-cli \
   php-dev \
-  php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
   php-redis php-gnupg \
   php-gd
 
@@ -124,7 +124,7 @@ installDepsPhp72 () {
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
 }
-# <snippet-end 0_installDepsPhp72.sh>
+# <snippet-end 0_installDepsPhp74.sh>
 ```
 
 ### 3/ MISP code

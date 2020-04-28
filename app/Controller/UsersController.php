@@ -1473,7 +1473,7 @@ class UsersController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Users', 'admin_quickEmail', false, $error, $this->response->type());
             } else {
-                $this->Flash->error('Cannot send an e-mail to this user as the account is disabled.');
+                $this->Flash->error($error);
                 $this->redirect('/admin/users/view/' . $user_id);
             }
         }
@@ -2493,6 +2493,14 @@ class UsersController extends AppController
                     $this->request->data['User']['role_id'] = $default_role['Role']['id'];
                 } else {
                     throw new InvalidArgumentException(__('Role ID not provided and no default role exist on the instance'));
+                }
+            }
+            if (!isset($this->request->data['User']['org_id'])) {
+                throw new InvalidArgumentException(__('No organisation selected. Supply an Organisation ID'));
+            } else {
+                if (Validation::uuid($this->request->data['User']['org_id'])) {
+                    $id = $this->Toolbox->findIdByUuid($this->User->Organisation, $this->request->data['User']['org_id']);
+                    $this->request->data['User']['org_id'] = $id;
                 }
             }
             foreach ($registrations as $registration) {

@@ -6,7 +6,6 @@ The text files in this folder are symlink to ../docs - Which is the actual sourc
 
 Currently the following install guides are being tested on a regular basis:
 ```
-INSTALL.debian9.txt
 INSTALL.kali.txt
 INSTALL.ubuntu1804.txt
 ```
