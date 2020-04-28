@@ -1403,12 +1403,8 @@ class EventsController extends AppController
                 $this->set($alias, $currentModel->{$variable});
             }
         }
-        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
-        foreach ($event['EventTag'] as $k => $eventTag) {
-            if (in_array($eventTag['Tag']['name'], $cluster_names)) {
-                unset($event['EventTag'][$k]);
-            }
-        }
+
+        $this->Event->removeGalaxyClusterTags($event);
 
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
         foreach ($tagConflicts['global'] as $tagConflict) {
@@ -1430,11 +1426,9 @@ class EventsController extends AppController
             }
             $modDate = date("Y-m-d", $attribute['timestamp']);
             $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
-            foreach ($attribute['AttributeTag'] as $k2 => $attributeTag) {
-                if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                    unset($event['Attribute'][$k]['AttributeTag'][$k2]);
-                }
-            }
+
+            $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
+
             $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
             foreach ($tagConflicts['global'] as $tagConflict) {
                 $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
@@ -1463,11 +1457,9 @@ class EventsController extends AppController
                     }
                     $modDate = date("Y-m-d", $attribute['timestamp']);
                     $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
-                    foreach ($attribute['AttributeTag'] as $k3 => $attributeTag) {
-                        if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                            unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
-                        }
-                    }
+
+                    $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
+
                     $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
                     foreach ($tagConflicts['global'] as $tagConflict) {
                         $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
