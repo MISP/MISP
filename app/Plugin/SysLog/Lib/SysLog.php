@@ -68,10 +68,10 @@ class SysLog {
 		} else if (in_array($type, $debugTypes)) {
 			$priority = LOG_DEBUG;
 		}
-		$output = date('Y-m-d H:i:s') . ' ' . ucfirst($type) . ': ' . $message . "\n";
 		if (!openlog($this->_ident, LOG_PID | LOG_PERROR, $this->_facility)) {
 			return false;
 		}
+		$output = date('Y-m-d H:i:s') . ' ' . ucfirst($type) . ': ' . $message;
 		$result = syslog($priority, $output);
 		closelog();
 		return $result;
