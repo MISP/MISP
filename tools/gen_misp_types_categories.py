@@ -79,6 +79,13 @@ def make_matrix_content(pos, max_cols):
     return out
 
 
+def jq_file(fname):
+    p1 = subprocess.Popen(['jq', '.', fname], stdout=subprocess.PIPE)
+    output = p1.stdout.read()
+    with open(fname, 'wb') as f:
+        f.write(output)
+
+
 # verify if the folders exist before continuing
 folders = ['PyMISP', 'misp-book', 'misp-website', 'misp-rfc']
 for folder in folders:
@@ -232,6 +239,7 @@ describe_types = order_dict(describe_types)
 with open('../../PyMISP/pymisp/data/describeTypes.json', 'w') as f:
     json.dump(describe_types, f, sort_keys=True, indent=2)
     f.write('\n')
+jq_file('../../PyMISP/pymisp/data/describeTypes.json')
 
 
 # misp-objects
@@ -246,6 +254,7 @@ schema_objects['defs']['attribute']['properties']['categories']['items']['enum']
 with open('../../misp-objects/schema_objects.json', 'w') as f:
     json.dump(schema_objects, f, sort_keys=True, indent=2)
     f.write('\n')
+jq_file('../../misp-objects/schema_objects.json')
 
 # print(types)
 # print(categories)

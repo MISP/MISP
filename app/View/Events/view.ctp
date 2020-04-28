@@ -133,7 +133,8 @@
                         'event' => $event,
                         'tags' => $event['EventTag'],
                         'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id']),
-                        'required_taxonomies' => $required_taxonomies
+                        'required_taxonomies' => $required_taxonomies,
+                        'tagConflicts' => $tagConflicts
                     )
                 )
             )
@@ -197,7 +198,7 @@
         );
         $table_data[] = array(
             'key' => __('First recorded change'),
-            'value' => date('Y-m-d H:i:s', $oldest_timestamp)
+            'value' => (!$oldest_timestamp) ? '' : date('Y-m-d H:i:s', $oldest_timestamp)
         );
         $table_data[] = array(
             'key' => __('Last change'),
@@ -330,6 +331,41 @@
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>
         <div class="related span4">
+
+            <?php if (!empty($warningTagConflicts)): ?>
+                <div class="warning_container" style="width:80%;">
+                    <h4 class="red"><?php echo __('Warning: Taxonomy inconsistencies');?></h4>
+                    <?php echo '<ul>'; ?>
+                    <?php
+                        foreach ($warningTagConflicts as $taxonomy) {
+                            echo sprintf('<li><a href="%s/taxonomies/view/%s" title="">%s</a></li>', $baseurl, h($taxonomy['Taxonomy']['id']), h($taxonomy['Taxonomy']['namespace']), h($taxonomy['Taxonomy']['description']));
+                            echo '<ul>';
+                            if ($taxonomy['Taxonomy']['exclusive']) {
+                                echo sprintf(
+                                    '<li>%s</li>', 
+                                    sprintf(
+                                        ('%s is an exclusive taxonomy. Only one Tag of this taxonomy is allowed on an element.'),
+                                        sprintf('<strong>%s</strong>', h($taxonomy['Taxonomy']['namespace']))
+                                    )
+                                );
+                            } else {
+                                foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+                                    echo sprintf(
+                                        '<li>%s</li>', 
+                                        sprintf(
+                                            ('%s is an exclusive taxonomy predicate. Only one Tag of this predicate is allowed on an element'),
+                                            sprintf('<strong>%s</strong>', h($predicate['value']))
+                                        )
+                                    );
+                                }
+                            }
+                            echo '</ul>';
+                        }
+                    ?>
+                    <?php echo '</ul>' ?>
+                </div>
+            <?php endif; ?>
+
             <?php
                 if (!empty($event['RelatedEvent'])):
             ?>
@@ -343,7 +379,7 @@
                                 $count++;
                                 if ($count == $display_threshold+1 && $total > $display_threshold):
                                     ?>
-                                        <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - $count);?></div>
+                                        <div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - ($count-1));?></div>
                                     <?php
                                 endif;
                         ?>
@@ -352,7 +388,8 @@
                                     'related' => $relatedEvent['Event'],
                                     'color_red' => $relatedEvent['Event']['orgc_id'] == $me['org_id'],
                                     'hide' => $count > $display_threshold,
-                                    'relatedEventCorrelationCount' => $relatedEventCorrelationCount
+                                    'relatedEventCorrelationCount' => $relatedEventCorrelationCount,
+                                    'from_id' => $event['Event']['id']
                                 ));
                             ?>
                         <?php
@@ -471,6 +508,9 @@
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventgraph_toggle" data-toggle-type="eventgraph" onclick="enable_interactive_graph();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle Event graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event graph');?>" style="vertical-align:top;"></span><?php echo __('Event graph');?>
         </button>
+        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventtimeline_toggle" data-toggle-type="eventtimeline" onclick="enable_timeline();">
+            <span class="icon-plus icon-white" title="<?php echo __('Toggle Event timeline');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event timeline');?>" style="vertical-align:top;"></span><?php echo __('Event timeline');?>
+        </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="correlationgraph_toggle" data-toggle-type="correlationgraph" onclick="enable_correlation_graph();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle Correlation graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Correlation graph');?>" style="vertical-align:top;"></span><?php echo __('Correlation graph');?>
         </button>
@@ -495,6 +535,9 @@
     </div>
     <div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
         <?php echo $this->element('view_event_graph'); ?>
+    </div>
+    <div id="eventtimeline_div" class="info_container_eventtimeline" style="display: none;" data-fullscreen="false">
+        <?php echo $this->element('view_timeline'); ?>
     </div>
     <div id="correlationgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>

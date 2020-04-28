@@ -16,6 +16,7 @@
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
+#    20200412: Ubuntu 18.04.4 tested and working. -- sCl
 #    20190302: Ubuntu 18.04.2 tested and working. -- sCl
 #    20190208: Kali Linux tested and working. -- sCl
 #
@@ -148,9 +149,9 @@ MISPvars () {
 
   # sudo config to run $LUSER commands
   if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
-    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+    SUDO_CMD="sudo -H -u ${MISP_USER} -g staff"
   else
-    SUDO_USER="sudo -H -u ${MISP_USER}"
+    SUDO_CMD="sudo -H -u ${MISP_USER}"
   fi
   SUDO_WWW="sudo -H -u ${WWW_USER} "
 
@@ -184,8 +185,10 @@ usage () {
   space
   echo -e "${SCRIPT_NAME} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
   echo -e "                -M | ${LBLUE}MISP${NC} modules"        # modules
-  echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
-  echo -e "                -V | Viper"                            # viper
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##echo -e "                -V | Viper"                            # viper
   echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"         # mail2
   echo -e "                -S | Experimental ssdeep correlations" # ssdeep
   echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
@@ -196,7 +199,7 @@ usage () {
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
-  echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
+  echo -e "Options can be combined: ${SCRIPT_NAME} -c -D # Will install Core+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
   echo -e "MISP + modules - ${SCRIPT_NAME} -c -M"
@@ -294,16 +297,17 @@ checkFlavour () {
     centos)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+        dist_version=${dist_version:0:1}
       fi
-      echo "$FLAVOUR not supported at the moment"
-      exit 1
+      echo "$FLAVOUR support is experimental at the moment"
     ;;
     rhel|ol|sles)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+	dist_version=${dist_version:0:1}  # Only interested about major version
       fi
-      echo "$FLAVOUR not supported at the moment"
-      exit 1
+      # Only tested for RHEL 7 so far 
+      echo "$FLAVOUR support is experimental at the moment"
     ;;
     *)
       if command_exists lsb_release; then
@@ -371,25 +375,38 @@ EOF
 }
 
 checkInstaller () {
-  # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
-  if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
-    sudo apt install libdigest-sha-perl -qyy
-  fi
-  # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
-  SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
-  for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
-    /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
-    INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
-    chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
-
-    if [[ "${chsum}" == "${INSTsum}" ]]; then
-      echo "sha${sum} matches"
-    else
-      echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
-      echo "Delete installer, re-download and please run again."
-      exit 1
+  # Workaround: shasum is not available on RHEL, only checking sha512
+  if [[ $FLAVOUR == "rhel" ]] || [[ $FLAVOUR == "centos" ]]; then
+	INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
+	/usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
+        chsum=$(cat /tmp/INSTALL.sh.sha512)
+	if [[ "${chsum}" == "${INSTsum}" ]]; then
+		echo "SHA512 matches"
+	else
+		echo "SHA512: ${chsum} does not match the installer sum of: ${INSTsum}"
+		# exit 1 # uncomment when/if PR is merged
+	fi
+  else
+    # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
+    if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
+      sudo apt install libdigest-sha-perl -qyy
     fi
-  done
+    # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
+    SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
+    for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
+      /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
+      INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
+      chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
+
+      if [[ "${chsum}" == "${INSTsum}" ]]; then
+        echo "sha${sum} matches"
+      else
+        echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
+        echo "Delete installer, re-download and please run again."
+        exit 1
+      fi
+    done
+  fi
 }
 
 # Extract manufacturer
@@ -544,12 +561,12 @@ checkID () {
     sudo adduser $MISP_USER $WWW_USER
   fi
 
-  # FIXME: the below SUDO_USER check is a duplicate from global variables, try to have just one check
+  # FIXME: the below SUDO_CMD check is a duplicate from global variables, try to have just one check
   # sudo config to run $LUSER commands
   if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
-    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+    SUDO_CMD="sudo -H -u ${MISP_USER} -g staff"
   else
-    SUDO_USER="sudo -H -u ${MISP_USER}"
+    SUDO_CMD="sudo -H -u ${MISP_USER}"
   fi
 
 }
@@ -953,7 +970,8 @@ composer73 () {
   # Update composer.phar
   # If hash changes, check here: https://getcomposer.org/download/ and replace with the correct one
   # Current Sum for: v1.8.3
-  SHA384_SUM='48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5'
+  SHA384_SUM="$(wget -q -O - https://composer.github.io/installer.sig)"
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
   checkFail "composer.phar checksum failed, please investigate manually. " $?
@@ -985,13 +1003,12 @@ genRCLOCAL () {
 
 # Run PyMISP tests
 runTests () {
-  echo "url = ${MISP_BASEURL}
-key = ${AUTH_KEY}" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
+  echo "url = \"${MISP_BASEURL}\"
+key = \"${AUTH_KEY}\"" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
   sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
   sudo -H -u $WWW_USER ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
-  sudo -H -u $WWW_USER git clone https://github.com/viper-framework/viper-test-files.git $PATH_TO_MISP/PyMISP/tests/viper-test-files
   sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
 }
 
@@ -1008,25 +1025,26 @@ nuke () {
 # Final function to let the user know what happened
 theEnd () {
   space
-  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_USER tee /home/${MISP_USER}/mysql.txt
-  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_USER tee -a /home/${MISP_USER}/mysql.txt
-  echo "Authkey: $AUTH_KEY" |$SUDO_USER tee -a /home/${MISP_USER}/MISP-authkey.txt
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_CMD tee /home/${MISP_USER}/mysql.txt
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_CMD tee -a /home/${MISP_USER}/mysql.txt
+  echo "Authkey: $AUTH_KEY" |$SUDO_CMD tee -a /home/${MISP_USER}/MISP-authkey.txt
 
-  clear
+  # Commenting out, see: https://github.com/MISP/MISP/issues/5368
+  # clear -x
   space
   echo -e "${LBLUE}MISP${NC} Installed, access here: ${MISP_BASEURL}"
   echo
   echo "User: admin@admin.test"
   echo "Password: admin"
   space
-  [[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
-  [[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && space
+  ##[[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
+  ##[[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && space
   echo -e "The following files were created and need either ${RED}protection or removal${NC} (${YELLOW}shred${NC} on the CLI)"
   echo "/home/${MISP_USER}/mysql.txt"
   echo -e "${RED}Contents:${NC}"
@@ -1117,6 +1135,26 @@ installCoreDeps () {
   sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -qy
 
   sudo apt install expect -qy
+}
+
+# Install Php 7.4 dependencies
+installDepsPhp74 () {
+  debug "Installing PHP 7.4 dependencies"
+  PHP_ETC_BASE=/etc/php/7.4
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  sudo apt update
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-redis php-gnupg \
+  php-gd
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
 }
 
 # Install Php 7.3 deps
@@ -1224,7 +1262,7 @@ EOF
 }
 
 apacheConfig () {
-  debug "Generating Apache config"
+  debug "Generating Apache config, if this hangs, make sure you have enough entropy (install: haveged or wait)"
   sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
   if [[ ! -z ${MISP_BASEURL} ]] && [[ "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "http" || "$(echo $MISP_BASEURL|cut -f 1 -d :)" == "https" ]]; then
@@ -1293,6 +1331,8 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   cd $PATH_TO_MISP/app/files/scripts/python-maec
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  # FIXME: Remove once stix-fixed
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
@@ -1305,10 +1345,10 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
 
   # install zmq needed by mispzmq
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq redis
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
@@ -1395,7 +1435,7 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE userInit -q
 
   # This makes sure all Database upgrades are done, without logging in.
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin updateDatabase
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin runUpdates
 
   # The default install is Python >=3.6 in a virtualenv, setting accordingly
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
@@ -1448,6 +1488,7 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_policy" 0
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_anonymise" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_range" 365
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_sighting_db_enable" false
 
   # Plugin CustomAuth tuneable
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.CustomAuth_disable_logout" false
@@ -1490,6 +1531,7 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\""
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_old_event_alert" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_old_event_alert_age" ""
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_old_event_alert_by_date" ""
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.incoming_tags_disabled_by_default" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.maintenance_message" "Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at \$email."
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.footermidleft" "This is an initial install"
@@ -1507,6 +1549,10 @@ coreCAKE () {
   # Force defaults to make MISP Server Settings less GREEN
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_length" 12
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators."
+
+  # It is possible to updateMISP too, only here for reference how to to that on the CLI.
+  ## $SUDO_WWW $RUN_PHP -- $CAKE Admin updateMISP
 
   # Set MISP Live
   $SUDO_WWW $RUN_PHP -- $CAKE Live $MISP_LIVE
@@ -1607,7 +1653,7 @@ mispmodules () {
   cd /usr/local/src/
   ## TODO: checkUsrLocalSrc in main doc
   debug "Cloning misp-modules"
-  $SUDO_USER git clone https://github.com/MISP/misp-modules.git
+  $SUDO_CMD git clone https://github.com/MISP/misp-modules.git
   cd misp-modules
   # some misp-modules dependencies
   sudo apt install libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y
@@ -1762,39 +1808,39 @@ mail2misp () {
   debug "Installing Mail2${LBLUE}MISP${NC}"
   cd /usr/local/src/
   sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
-  $SUDO_USER git clone https://github.com/MISP/mail_to_misp.git
-  $SUDO_USER git clone git://github.com/stricaud/faup.git faup
-  $SUDO_USER git clone git://github.com/stricaud/gtcaca.git gtcaca
+  $SUDO_CMD git clone https://github.com/MISP/mail_to_misp.git
+  $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+  $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
   sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
   cd gtcaca
-  $SUDO_USER mkdir -p build
+  $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_USER cmake .. && $SUDO_USER make
+  $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
   cd ../../faup
-  $SUDO_USER mkdir -p build
+  $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_USER cmake .. && $SUDO_USER make
+  $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
   sudo ldconfig
   cd ../../mail_to_misp
-  $SUDO_USER virtualenv -p python3 venv
-  $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-  $SUDO_USER ./venv/bin/pip install -r requirements.txt
-  $SUDO_USER cp mail_to_misp_config.py-example mail_to_misp_config.py
+  $SUDO_CMD virtualenv -p python3 venv
+  $SUDO_CMD ./venv/bin/pip install lief
+  $SUDO_CMD ./venv/bin/pip install -r requirements.txt
+  $SUDO_CMD cp mail_to_misp_config.py-example mail_to_misp_config.py
   ##$SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py
-  $SUDO_USER sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-  $SUDO_USER sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_CMD sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_CMD sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
 }
 
 ssdeep () {
   debug "Install ssdeep 2.14.1"
   cd /usr/local/src
-  $SUDO_USER wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
-  $SUDO_USER tar zxvf ssdeep-2.14.1.tar.gz
+  $SUDO_CMD wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
+  $SUDO_CMD tar zxvf ssdeep-2.14.1.tar.gz
   cd ssdeep-2.14.1
-  $SUDO_USER ./configure --datadir=/usr --prefix=/usr --localstatedir=/var --sysconfdir=/etc
-  $SUDO_USER make
+  $SUDO_CMD ./configure --datadir=/usr --prefix=/usr --localstatedir=/var --sysconfdir=/etc
+  $SUDO_CMD make
   sudo make install
 
   #installing ssdeep_php
@@ -1807,8 +1853,10 @@ ssdeep () {
   sudo service apache2 restart
 }
 
+# viper-web is broken ATM
 # Main Viper install function
 viper () {
+  export PATH=$PATH:/home/misp/.local/bin
   debug "Installing Viper dependencies"
   cd /usr/local/src/
   sudo apt-get install \
@@ -1820,30 +1868,26 @@ viper () {
     fi
   fi
   echo "Cloning Viper"
-  $SUDO_USER git clone https://github.com/viper-framework/viper.git
+  $SUDO_CMD git clone https://github.com/viper-framework/viper.git
+  $SUDO_CMD git clone https://github.com/viper-framework/viper-web.git
   sudo chown -R $MISP_USER:$MISP_USER viper
+  sudo chown -R $MISP_USER:$MISP_USER viper-web
   cd viper
   echo "Creating virtualenv"
-  $SUDO_USER virtualenv -p python3 venv
+  $SUDO_CMD virtualenv -p python3 venv
   echo "Submodule update"
   # TODO: Check for current user install permissions
-  $SUDO_USER git submodule update --init --recursive
-  ##$SUDO git submodule update --init --recursive
-  echo "Pip install deps"
-  $SUDO_USER ./venv/bin/pip install SQLAlchemy PrettyTable python-magic
-  echo "pip install scrapy"
-  $SUDO_USER ./venv/bin/pip install scrapy
-  echo "install lief"
-  $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-  echo "pip install reqs"
-  $SUDO_USER ./venv/bin/pip install -r requirements.txt
-  $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
-  $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
-  echo "Launching viper-cli"
-  $SUDO_USER /usr/local/src/viper/viper-cli -h > /dev/null
+  $SUDO_CMD git submodule update --init --recursive
+  echo "pip install deps"
+  $SUDO_CMD ./venv/bin/pip install pefile olefile jbxapi Crypto pypdns pypssl r2pipe pdftools virustotal-api SQLAlchemy PrettyTable python-magic scrapy lief
+  $SUDO_CMD ./venv/bin/pip install .
+  echo 'update-modules' |/usr/local/src/viper/venv/bin/viper
+  cd /usr/local/src/viper-web
+  $SUDO_CMD sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
+  $SUDO_CMD /usr/local/src/viper/venv/bin/pip install -r requirements.txt
   echo "Launching viper-web"
-  $SUDO_USER /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
-  echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee /etc/environment
+  $SUDO_CMD /usr/local/src/viper-web/viper-web -p 8888 -H 0.0.0.0 &
+  echo 'PATH="/home/misp/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee -a /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
 
   # TODO: Perms, MISP_USER_HOME, nasty hack cuz Kali on R00t
@@ -1854,8 +1898,8 @@ viper () {
   fi
 
   echo "Setting misp_url/misp_key"
-  $SUDO_USER sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ${VIPER_HOME}/viper.conf
-  $SUDO_USER sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
+  $SUDO_CMD sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ${VIPER_HOME}/viper.conf
+  $SUDO_CMD sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
   # Reset admin password to: admin/Password1234
   echo "Fixing admin.db with default password"
   VIPER_COUNT=0
@@ -1873,6 +1917,566 @@ viper () {
 
   # Add viper-web to rc.local to be started on boot
   sudo sed -i -e '$i \sudo -u misp /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 > /tmp/viper-web_rc.local.log &\n' /etc/rc.local
+}
+
+
+enableReposRHEL () {
+  sudo subscription-manager refresh
+  sudo subscription-manager repos --enable rhel-7-server-optional-rpms
+  sudo subscription-manager repos --enable rhel-7-server-extras-rpms
+  sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
+}
+
+centosEPEL () {
+  # We need some packages from the Extra Packages for Enterprise Linux repository
+  sudo yum install epel-release -y
+
+  # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
+  # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
+  sudo yum install centos-release-scl -y
+}
+
+enableEPEL () {
+  sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
+}
+
+yumInstallCoreDeps () {
+  # Install the dependencies:
+  sudo yum install gcc git zip rh-git218 \
+                   httpd24 \
+                   mod_ssl \
+                   rh-redis32 \
+                   rh-mariadb102 \
+                   libxslt-devel zlib-devel ssdeep-devel -y
+
+  # Enable and start redis
+  sudo systemctl enable --now rh-redis32-redis.service
+
+  WWW_USER="apache"
+  SUDO_WWW="sudo -H -u $WWW_USER"
+  RUN_PHP="/usr/bin/scl enable rh-php72"
+  PHP_INI="/etc/opt/rh/rh-php72/php.ini"
+  # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
+  sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel \
+                   rh-php72-php-mysqlnd \
+                   rh-php72-php-mbstring \
+                   rh-php72-php-xml \
+                   rh-php72-php-bcmath \
+                   rh-php72-php-opcache \
+                   rh-php72-php-gd -y
+
+  # Python 3.6 is now available in RHEL 7.7 base
+  sudo yum install python3 python3-devel -y
+
+  sudo systemctl enable --now rh-php72-php-fpm.service
+}
+
+installCoreRHEL () {
+  # Download MISP using git in the $PATH_TO_MISP directory.
+  sudo mkdir -p $(dirname $PATH_TO_MISP)
+  sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
+  cd $(dirname $PATH_TO_MISP)
+  $SUDO_WWW git clone https://github.com/MISP/MISP.git
+  cd $PATH_TO_MISP
+  ##$SUDO_WWW git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+  # if the last shortcut doesn't work, specify the latest version manually
+  # example: git checkout tags/v2.4.XY
+  # the message regarding a "detached HEAD state" is expected behaviour
+  # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
+
+  # Fetch submodules
+  $SUDO_WWW git submodule update --init --recursive
+  # Make git ignore filesystem permission differences for submodules
+  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+  # Make git ignore filesystem permission differences
+  $SUDO_WWW git config core.filemode false
+
+  # Create a python3 virtualenv
+  sudo pip3 install virtualenv
+  $SUDO_WWW python3 -m venv $PATH_TO_MISP/venv
+  sudo mkdir /usr/share/httpd/.cache
+  sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
+
+  cd $PATH_TO_MISP/app/files/scripts
+  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
+  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
+  $SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
+  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
+
+  # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
+  UMASK=$(umask)
+  umask 0022
+  
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+  
+  cd $PATH_TO_MISP/app/files/scripts/python-stix
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  # install mixbox to accommodate the new STIX dependencies:
+  cd $PATH_TO_MISP/app/files/scripts/mixbox
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  # FIXME: Remove once stix-fixed
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
+
+  # install STIX2.0 library to support STIX 2.0 export:
+  cd $PATH_TO_MISP/cti-python-stix2
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  # install maec
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U maec
+
+  # install zmq
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq
+
+  # install redis
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
+
+  # lief needs manual compilation
+  sudo yum install devtoolset-7 cmake3 cppcheck libcxx-devel -y
+
+  cd $PATH_TO_MISP/app/files/scripts/lief
+  $SUDO_WWW mkdir build
+  cd build
+  $SUDO_WWW scl enable devtoolset-7 "bash -c 'cmake3 \
+  -DLIEF_PYTHON_API=on \
+  -DPYTHON_VERSION=3.6 \
+  -DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
+  -DLIEF_DOC=off \
+  -DCMAKE_BUILD_TYPE=Release \
+  ..'"
+  $SUDO_WWW make -j3 pyLIEF
+
+  if [ $? == 2 ]; then
+    # In case you get "internal compiler error: Killed (program cc1plus)"
+    # You ran out of memory.
+    # Create some swap
+    sudo dd if=/dev/zero of=/var/swap.img bs=1024k count=4000
+    sudo mkswap /var/swap.img
+    sudo swapon /var/swap.img
+    # And compile again
+    $SUDO_WWW make -j3 pyLIEF
+    sudo swapoff /var/swap.img
+    sudo rm /var/swap.img
+  fi
+
+  # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
+  echo $PATH_TO_MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee $PATH_TO_MISP/venv/lib/python3.6/site-packages/lief.pth
+
+  # install magic, pydeep
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
+
+  # install PyMISP
+  cd $PATH_TO_MISP/PyMISP
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
+
+  # Enable dependencies detection in the diagnostics page
+  # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
+  # The LD_LIBRARY_PATH setting is needed for rh-git218 to work
+  echo "env[PATH] = /opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+  sudo systemctl restart rh-php72-php-fpm.service
+  umask $UMASK
+}
+
+installCake_RHEL ()
+{
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
+  sudo mkdir /usr/share/httpd/.composer
+  sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
+  cd $PATH_TO_MISP/app
+  # Update composer.phar (optional)
+  #EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
+  #$SUDO_WWW $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  #$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+  #$SUDO_WWW $RUN_PHP "php composer-setup.php"
+  #$SUDO_WWW $RUN_PHP -- php -r "unlink('composer-setup.php');"
+  $SUDO_WWW $RUN_PHP "php composer.phar install"
+
+  ## sudo yum install php-redis -y
+  sudo scl enable rh-php72 'pecl channel-update pecl.php.net'
+  sudo scl enable rh-php72 'yes no|pecl install redis'
+  echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-redis.ini
+
+  sudo ln -s /usr/lib64/libfuzzy.so /usr/lib/libfuzzy.so
+  sudo scl enable rh-php72 'pecl install ssdeep'
+  echo "extension=ssdeep.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-ssdeep.ini
+
+  # Install gnupg extension
+  sudo yum install gpgme-devel -y
+  sudo scl enable rh-php72 'pecl install gnupg'
+  echo "extension=gnupg.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-gnupg.ini
+  sudo systemctl restart rh-php72-php-fpm.service
+
+  # If you have not yet set a timezone in php.ini
+  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/rh/rh-php72/php.d/timezone.ini
+
+  # Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
+  # max_execution_time = 300
+  # memory_limit = 2048M
+  # upload_max_filesize = 50M
+  # post_max_size = 50M
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+  sudo systemctl restart rh-php72-php-fpm.service
+
+  # To use the scheduler worker for scheduled tasks, do the following:
+  sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
+}
+
+prepareDB_RHEL () {
+  RUN_MYSQL="/usr/bin/scl enable rh-mariadb102"
+  # Enable, start and secure your mysql database server
+  sudo systemctl enable --now rh-mariadb102-mariadb.service
+  echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
+  echo bind-address=127.0.0.1 |sudo tee -a /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
+  sudo systemctl restart rh-mariadb102-mariadb
+
+  sudo yum install expect -y
+
+  ## The following needs some thoughts about scl enable foo
+  #if [[ ! -e /var/opt/rh/rh-mariadb102/lib/mysql/misp/users.ibd ]]; then
+
+  # We ask interactively your password if not run as root
+  pw=""
+  if [[ "$EUID" -ne 0 ]]; then
+    read -s -p "Enter sudo password: " pw
+  fi
+
+  expect -f - <<-EOF
+    set timeout 10
+
+    spawn sudo scl enable rh-mariadb102 mysql_secure_installation
+    expect {
+      "*sudo*" {
+        send "$pw\r"
+        exp_continue
+      }
+      "Enter current password for root (enter for none):" {
+        send -- "\r"
+      }
+    }
+    expect "Set root password?"
+    send -- "y\r"
+    expect "New password:"
+    send -- "${DBPASSWORD_ADMIN}\r"
+    expect "Re-enter new password:"
+    send -- "${DBPASSWORD_ADMIN}\r"
+    expect "Remove anonymous users?"
+    send -- "y\r"
+    expect "Disallow root login remotely?"
+    send -- "y\r"
+    expect "Remove test database and access to it?"
+    send -- "y\r"
+    expect "Reload privilege tables now?"
+    send -- "y\r"
+    expect eof
+EOF
+
+  sudo yum remove tcl expect -y
+
+  sudo systemctl restart rh-mariadb102-mariadb
+
+  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'CREATE DATABASE $DBNAME;'"
+  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
+  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';\""
+  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'"
+
+  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | sudo scl enable rh-mariadb102 "mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME"
+}
+
+apacheConfig_RHEL () {
+  # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
+  # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
+
+  sudo cp $PATH_TO_MISP/INSTALL/apache.misp.centos7.ssl /etc/httpd/conf.d/misp.ssl.conf
+  #sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
+  sudo rm /etc/httpd/conf.d/ssl.conf
+  sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
+  sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
+
+  # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
+  echo "The Common Name used below will be: ${OPENSSL_CN}"
+  # This will take a rather long time, be ready. (13min on a VM, 8GB Ram, 1 core)
+  if [[ ! -e "/etc/pki/tls/certs/dhparam.pem" ]]; then
+    sudo openssl dhparam -out /etc/pki/tls/certs/dhparam.pem 4096
+  fi
+  sudo openssl genrsa -des3 -passout pass:xxxx -out /tmp/misp.local.key 4096
+  sudo openssl rsa -passin pass:xxxx -in /tmp/misp.local.key -out /etc/pki/tls/private/misp.local.key
+  sudo rm /tmp/misp.local.key
+  sudo openssl req -new -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" -key /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.csr
+  sudo openssl x509 -req -days 365 -in /etc/pki/tls/certs/misp.local.csr -signkey /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.crt
+  sudo ln -s /etc/pki/tls/certs/misp.local.csr /etc/pki/tls/certs/misp-chain.crt
+  cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.crt
+
+  sudo systemctl restart httpd.service
+
+  # Since SELinux is enabled, we need to allow httpd to write to certain directories
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/terms
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Plugin/CakeResque/tmp
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/cake
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/*.sh
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
+  sudo chcon -R -t bin_t $PATH_TO_MISP/venv/bin/*
+  find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
+  # Only run these if you want to be able to update MISP from the web interface
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Lib
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/orgs
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/custom
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/mispzmq
+}
+
+firewall_RHEL () {
+  # Allow httpd to connect to the redis server and php-fpm over tcp/ip
+  sudo setsebool -P httpd_can_network_connect on
+
+  # Allow httpd to send emails from php
+  sudo setsebool -P httpd_can_sendmail on
+
+  # Enable and start the httpd service
+  sudo systemctl enable --now httpd.service
+
+  # Open a hole in the iptables firewall
+  sudo firewall-cmd --zone=public --add-port=80/tcp --permanent
+  sudo firewall-cmd --zone=public --add-port=443/tcp --permanent
+  sudo firewall-cmd --reload
+}
+
+# Main function to fix permissions to something sane
+permissions_RHEL () {
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
+  ## ? chown -R root:$WWW_USER $PATH_TO_MISP
+  sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
+  sudo chmod -R g+r,o= $PATH_TO_MISP
+  ## **Note :** For updates through the web interface to work, apache must own the $PATH_TO_MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
+  sudo chmod -R 750 $PATH_TO_MISP
+  sudo chmod -R g+xws $PATH_TO_MISP/app/tmp
+  sudo chmod -R g+ws $PATH_TO_MISP/app/files
+  sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chmod -R g+rw $PATH_TO_MISP/venv
+  sudo chmod -R g+rw $PATH_TO_MISP/.git
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files/terms
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Plugin/CakeResque/tmp
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/tmp
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/orgs
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/custom
+}
+
+logRotation_RHEL () {
+  # MISP saves the stdout and stderr of its workers in $PATH_TO_MISP/app/tmp/logs
+  # To rotate these logs install the supplied logrotate script:
+
+  sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+  sudo chmod 0640 /etc/logrotate.d/misp
+
+  # Now make logrotate work under SELinux as well
+  # Allow logrotate to modify the log files
+  sudo semanage fcontext -a -t httpd_sys_rw_content_t "$PATH_TO_MISP(/.*)?"
+  sudo semanage fcontext -a -t httpd_log_t "$PATH_TO_MISP/app/tmp/logs(/.*)?"
+  sudo chcon -R -t httpd_log_t $PATH_TO_MISP/app/tmp/logs
+  # Impact of the following: ?!?!?!!?111
+  ##sudo restorecon -R $PATH_TO_MISP
+
+  # Allow logrotate to read /var/www
+  sudo checkmodule -M -m -o /tmp/misplogrotate.mod $PATH_TO_MISP/INSTALL/misplogrotate.te
+  sudo semodule_package -o /tmp/misplogrotate.pp -m /tmp/misplogrotate.mod
+  sudo semodule -i /tmp/misplogrotate.pp
+}
+
+configMISP_RHEL () {
+  # There are 4 sample configuration files in $PATH_TO_MISP/app/Config that need to be copied
+  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
+  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
+  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
+  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
+
+  echo "<?php
+  class DATABASE_CONFIG {
+          public \$default = array(
+                  'datasource' => 'Database/Mysql',
+                  //'datasource' => 'Database/Postgres',
+                  'persistent' => false,
+                  'host' => '$DBHOST',
+                  'login' => '$DBUSER_MISP',
+                  'port' => 3306, // MySQL & MariaDB
+                  //'port' => 5432, // PostgreSQL
+                  'password' => '$DBPASSWORD_MISP',
+                  'database' => '$DBNAME',
+                  'prefix' => '',
+                  'encoding' => 'utf8',
+          );
+  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
+
+  # Configure the fields in the newly created files:
+  # config.php   : baseurl (example: 'baseurl' => 'http://misp',) - don't use "localhost" it causes issues when browsing externally
+  # core.php   : Uncomment and set the timezone: `// date_default_timezone_set('UTC');`
+  # database.php : login, port, password, database
+  # DATABASE_CONFIG has to be filled
+  # With the default values provided in section 6, this would look like:
+  # class DATABASE_CONFIG {
+  #   public $default = array(
+  #       'datasource' => 'Database/Mysql',
+  #       'persistent' => false,
+  #       'host' => 'localhost',
+  #       'login' => 'misp', // grant usage on *.* to misp@localhost
+  #       'port' => 3306,
+  #       'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
+  #       'database' => 'misp', // create database misp;
+  #       'prefix' => '',
+  #       'encoding' => 'utf8',
+  #   );
+  #}
+
+  # Important! Change the salt key in $PATH_TO_MISP/app/Config/config.php
+  # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
+  # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
+  # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
+
+  # If you want to be able to change configuration parameters from the webinterface:
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config/config.php
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config/config.php
+
+  # Generate a GPG encryption key.
+  cat >/tmp/gen-key-script <<EOF
+      %echo Generating a default key
+      Key-Type: default
+      Key-Length: $GPG_KEY_LENGTH
+      Subkey-Type: default
+      Name-Real: $GPG_REAL_NAME
+      Name-Comment: $GPG_COMMENT
+      Name-Email: $GPG_EMAIL_ADDRESS
+      Expire-Date: 0
+      Passphrase: $GPG_PASSPHRASE
+      # Do a commit here, so that we can later print "done"
+      %commit
+      %echo done
+EOF
+
+  sudo gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
+  sudo rm -f /tmp/gen-key-script
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/.gnupg
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.gnupg
+
+  # And export the public key to the webroot
+  sudo gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS |sudo tee $PATH_TO_MISP/app/webroot/gpg.asc
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/gpg.asc
+
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"
+}
+
+configWorkersRHEL () {
+  echo "[Unit]
+  Description=MISP background workers
+  After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
+
+  [Service]
+  Type=forking
+  User=$WWW_USER
+  Group=$WWW_USER
+  ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb102 $PATH_TO_MISP/app/Console/worker/start.sh
+  Restart=always
+  RestartSec=10
+
+  [Install]
+  WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-workers.service
+
+  sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+  sudo systemctl daemon-reload
+
+  sudo systemctl enable --now misp-workers.service
+}
+
+mispmodulesRHEL () {
+  # some misp-modules dependencies
+  sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python-devel redhat-rpm-config -y
+
+  sudo chmod 2777 /usr/local/src
+  sudo chown root:users /usr/local/src
+  cd /usr/local/src/
+  $SUDO_WWW git clone https://github.com/MISP/misp-modules.git
+  cd misp-modules
+  # pip install
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
+  sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
+
+  echo "[Unit]
+  Description=MISP modules
+  After=misp-workers.service
+
+  [Service]
+  Type=simple
+  User=$WWW_USER
+  Group=$WWW_USER
+  WorkingDirectory=/usr/local/src/misp-modules
+  Environment="PATH=/var/www/MISP/venv/bin"
+  ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"
+  Restart=always
+  RestartSec=10
+
+  [Install]
+  WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-modules.service
+
+  sudo systemctl daemon-reload
+  # Test misp-modules
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s &
+  sudo systemctl enable --now misp-modules
+
+  # Enable Enrichment, set better timeouts
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
+  # TODO:"Investigate why the next one fails"
+  #$SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_asn_history_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_btc_steroids_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ipasn_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_syntax_validator_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_query_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pdf_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_docx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_xlsx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pptx_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ods_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_odt_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
+
+  # Enable Import modules, set better timeout
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_port" 6666
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_timeout" 300
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_mispjson_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_openiocimport_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_threatanalyzer_import_enabled" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
+
+  # Enable Export modules, set better timeout
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_enable" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_port" 6666
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
 }
 
 
@@ -1914,12 +2518,12 @@ generateInstaller () {
   cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
+  for f in `echo INSTALL.ubuntu2004.md INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md INSTALL.rhel7.md`; do
     xsnippet . ../../docs/${f}
   done
 
   # Pull out code snippets from generic Install Documents
-  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules-debian.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
+  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules-debian.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md misp-modules-centos.md`; do
     xsnippet . ../../docs/generic/${f}
   done
 
@@ -1933,6 +2537,7 @@ generateInstaller () {
   perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp74.sh ##/`cat 0_installDepsPhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp70.sh ##/`cat 0_installDepsPhp70.sh`/ge' -i INSTALL.tpl.sh
@@ -1954,6 +2559,21 @@ generateInstaller () {
   perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.tpl.sh
 
+  perl -pe 's/^## 0_RHEL_SCL.sh ##/`cat 0_RHEL_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_CentOS_EPEL.sh ##/`cat 0_CentOS_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL_EPEL.sh ##/`cat 0_RHEL_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps.sh ##/`cat 0_yumInstallCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL.sh ##/`cat 1_mispCoreInstall_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_installCake_RHEL.sh ##/`cat 1_installCake_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL.sh ##/`cat 2_permissions_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_prepareDB_RHEL.sh ##/`cat 1_prepareDB_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL.sh ##/`cat 1_apacheConfig_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_firewall_RHEL.sh ##/`cat 1_firewall_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_logRotation_RHEL.sh ##/`cat 2_logRotation_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_configMISP_RHEL.sh ##/`cat 2_configMISP_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_configWorkers_RHEL.sh ##/`cat 3_configWorkers_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_misp-modules_RHEL.sh ##/`cat 3_misp-modules_RHEL.sh`/ge' -i INSTALL.tpl.sh
+
   cp INSTALL.tpl.sh ../INSTALL.sh
   cd ..
   for ALGO in $(echo "1 256 384 512"); do
@@ -1968,7 +2588,7 @@ generateInstaller () {
 # Simple debug function with message
 
 # Make sure no alias exists
-if [[ $(type -t debug) == "alias" ]]; then unalias debug; fi
+[[ $(type -t debug) == "alias" ]] && unalias debug
 debug () {
   echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}" > /dev/tty
   if [ ! -z $DEBUG ]; then
@@ -2006,7 +2626,7 @@ installSupported () {
 
   # TODO: Double check how the user is added and subsequently used during the install.
   # TODO: Work on possibility to install as user X and install MISP for user Y
-  # TODO: Check if logout needed. (run SUDO_USER in installer)
+  # TODO: Check if logout needed. (run SUDO_CMD in installer)
   # <snippet-begin add-user.sh>
   # TODO: Double check how to properly handle postfix
   # <snippet-begin postfix.sh>
@@ -2035,6 +2655,9 @@ installSupported () {
       # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
     elif [[ "$PHP_VER" == "7.3" ]]; then
+      # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
+    elif [[ "$PHP_VER" == "7.4" ]]; then
       # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
     elif [[ "$PHP_VER" == "7.0" ]]; then
@@ -2110,16 +2733,18 @@ installSupported () {
   progress 4
 
   # Install Viper - functionLocation('generic/viper-debian.md')
-  [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
-  progress 4
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##[[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+  ##progress 4
 
   # Install ssdeep - functionLocation('generic/ssdeep-debian.md')
   [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
   progress 4
 
   # Install misp-dashboard - functionLocation('generic/misp-dashboard-debian.md')
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
-  progress 4
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##[[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
+  ##progress 4
 
   # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
@@ -2133,7 +2758,7 @@ installSupported () {
   theEnd
 }
 
-# Main Kalin Install function
+# Main Kali Install function
 installMISPonKali () {
   # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('')
   kaliUpgrade 2> /dev/null > /dev/null
@@ -2213,8 +2838,9 @@ installMISPonKali () {
   # Needs virtualenv
   $SUDO_WWW virtualenv -p python3 ${PATH_TO_MISP}/venv
 
-  debug "Installing MISP dashboard"
-  mispDashboard
+  ## FIXME: The current stat of misp-dashboard is broken, disabling any use.
+  ##debug "Installing MISP dashboard"
+  ##mispDashboard
 
   debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
@@ -2230,6 +2856,7 @@ installMISPonKali () {
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I antlr4-python3-runtime==4.7.2 2> /dev/null > /dev/null
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
 
@@ -2246,7 +2873,7 @@ installMISPonKali () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git 2> /dev/null > /dev/null
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief 2> /dev/null > /dev/null
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
@@ -2373,7 +3000,8 @@ installMISPonKali () {
 
   debug "Running Core Cake commands"
   coreCAKE 2> /dev/null > /dev/null
-  dashboardCAKE 2> /dev/null > /dev/null
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##dashboardCAKE 2> /dev/null > /dev/null
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT 2> /dev/null > /dev/null
@@ -2385,8 +3013,9 @@ installMISPonKali () {
   debug "Installing misp-modules"
   mispmodules
 
-  debug "Installing Viper"
-  viper
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##debug "Installing Viper"
+  ##viper
 
   debug "Installing ssdeep"
   ssdeep
@@ -2400,6 +3029,88 @@ installMISPonKali () {
 }
 # End installMISPonKali ()
 
+# Main Install on RHEL function
+installMISPRHEL () {
+  if [[ -n $SSDEEP ]] || [[ -n $MAIL2 ]]; then
+    echo "RHEL installation currently only supports Core and Modules"
+    echo "Ignoring other options..."
+  fi
+
+  if [[ -n $CORE ]] || [[ -n $ALL ]]; then
+    space
+    echo "Proceeding with MISP core installation on RHEL $dist_version"
+    space
+ 
+    id -u "$MISP_USER" > /dev/null
+    if [ $? -eq 1 ]; then
+      debug "Creating MISP user"
+      sudo useradd -r "$MISP_USER"
+    fi 
+    
+    debug "Enabling Extras Repos (SCL)"
+    if [[ $FLAVOUR == "rhel" ]]; then
+      sudo subscription-manager register --auto-attach
+      enableReposRHEL
+      enableEPEL
+    else # CentOS
+      centosEPEL
+    fi
+
+    debug "Installing System Dependencies"
+    yumInstallCoreDeps
+
+    debug "Enabling Haveged for additional entropy"
+    sudo yum install haveged -y
+    sudo systemctl enable --now haveged.service
+
+    debug "Installing MISP code"
+    installCoreRHEL
+
+    debug "Install Cake PHP"
+    installCake_RHEL
+
+    debug "Setting File permissions"
+    permissions_RHEL
+
+    debug "Preparing Database"
+    prepareDB_RHEL
+
+    debug "Configuring Apache"
+    apacheConfig_RHEL
+
+    debug "Setting up firewall"
+    firewall_RHEL
+
+    debug "Enabling log rotation"
+    logRotation_RHEL
+
+    debug "Configuring MISP"
+    configMISP_RHEL
+
+    debug "Setting up background workers"
+    configWorkersRHEL
+
+    debug "Optimizing Cake Installation"
+    coreCAKE
+
+    debug "Updating tables"
+    updateGOWNT
+
+    echo "Core Intallation finished, check on port 443 to see the Web UI"
+  fi
+
+  if [[ -n $MODULES ]] || [[ -n $ALL ]]; then
+    space
+    echo "Installing MISP Modules"
+    space
+
+    mispmodulesRHEL
+
+    echo "MISP modules installation finished."
+  fi
+}
+# End installMISPRHEL ()
+
 ## End Function Section ##
 
 colors
@@ -2408,14 +3119,14 @@ if [[ "$0" == "./INSTALL.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.tpl.sh')" ==
   generateInstaller
 fi
 
+debug "Checking Linux distribution and flavour..."
+checkFlavour
 debug "Checking if we are uptodate and checksums match"
 checkInstaller
 
 space
 debug "Setting MISP variables"
 MISPvars
-debug "Checking Linux distribution and flavour..."
-checkFlavour
 
 debug "Checking for parameters or Unattended Kali Install"
 if [[ $# == 0 && $0 != "/tmp/misp-kali.sh" ]]; then
@@ -2456,14 +3167,20 @@ fi
 # TODO: Move support map to top
 
 SUPPORT_MAP="
-x86_64-centos-8
+x86_64-centos-7
 x86_64-rhel-7
-x86_64-rhel-8
 x86_64-fedora-30
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
+x86_64-kali-2019.1
 x86_64-kali-2019.2
+x86_64-kali-2019.3
+x86_64-kali-2019.4
+x86_64-kali-2020.1
+x86_64-kali-2020.2
+x86_64-kali-2020.3
+x86_64-kali-2020.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-debian-jessie
@@ -2552,5 +3269,12 @@ if [ "${FLAVOUR}" == "kali" ]; then
   kaliOnRootR0ckz
   installMISPonKali
   echo "Installation done!"
+  exit
+fi
+
+# If RHEL/CentOS is detected, run appropriate script
+if [ "${FLAVOUR}" == "rhel" ] || [ "${FLAVOUR}" == "centos" ]; then
+  installMISPRHEL
+  echo "Installation done !"
   exit
 fi

@@ -10,23 +10,25 @@
         "uuid": "5abb8534-ba9c-48cd-bb63-02480a00020f",
         "attribute_count": "168",
         "analysis": "0",
-        "timestamp": "1565613036",
+        "timestamp": "1569255728",
         "distribution": "0",
         "proposal_email_lock": false,
         "locked": true,
-        "publish_timestamp": "1565613840",
+        "publish_timestamp": "1569255749",
         "sharing_group_id": "0",
         "disable_correlation": false,
         "extends_uuid": "",
         "Org": {
             "id": "1",
             "name": "ORGNAME",
-            "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7"
+            "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+            "local": true
         },
         "Orgc": {
             "id": "14",
             "name": "ORGNAME_387",
-            "uuid": "5a8e935e-5484-488c-852c-776f7c7cf985"
+            "uuid": "5a8e935e-5484-488c-852c-776f7c7cf985",
+            "local": false
         },
         "Attribute": [
             {
@@ -122,6 +124,7 @@
                 "object_relation": null,
                 "value": "oui|b2a5abfeef9e36964281a31e17b57c97",
                 "Galaxy": [],
+                "data": "",
                 "ShadowAttribute": []
             },
             {
@@ -141,7 +144,25 @@
                 "object_relation": null,
                 "value": "1.2.3.4",
                 "Galaxy": [],
-                "ShadowAttribute": []
+                "ShadowAttribute": [],
+                "Sighting": [
+                    {
+                        "id": "12",
+                        "attribute_id": "253458",
+                        "event_id": "1255",
+                        "org_id": "1",
+                        "date_sighting": "1568295335",
+                        "uuid": "5d7a49a7-8f8c-42a1-8f7b-72e9a964451a",
+                        "source": "",
+                        "type": "0",
+                        "Organisation": {
+                            "id": "1",
+                            "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                            "name": "ORGNAME"
+                        },
+                        "attribute_uuid": "5abb8534-4840-4087-a16a-02480a00020f"
+                    }
+                ]
             },
             {
                 "id": "253459",
@@ -179,7 +200,25 @@
                 "object_relation": null,
                 "value": "www.circl.lu|1.2.3.4",
                 "Galaxy": [],
-                "ShadowAttribute": []
+                "ShadowAttribute": [],
+                "Sighting": [
+                    {
+                        "id": "13",
+                        "attribute_id": "253460",
+                        "event_id": "1255",
+                        "org_id": "1",
+                        "date_sighting": "1568295335",
+                        "uuid": "5d7a49a7-4fb8-471e-a4b5-72e9a964451a",
+                        "source": "",
+                        "type": "0",
+                        "Organisation": {
+                            "id": "1",
+                            "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                            "name": "ORGNAME"
+                        },
+                        "attribute_uuid": "5abb8534-1ab4-4eb2-8056-02480a00020f"
+                    }
+                ]
             },
             {
                 "id": "253461",
@@ -369,6 +408,7 @@
                 "object_relation": null,
                 "value": "oui.oui",
                 "Galaxy": [],
+                "data": "",
                 "ShadowAttribute": []
             },
             {
@@ -505,25 +545,6 @@
                 "ShadowAttribute": []
             },
             {
-                "id": "253478",
-                "type": "sha1",
-                "category": "Payload delivery",
-                "to_ids": true,
-                "uuid": "5b239e0f-d7fc-4426-b92b-02740a00020f",
-                "event_id": "1255",
-                "distribution": "5",
-                "timestamp": "1529060879",
-                "comment": "",
-                "sharing_group_id": "0",
-                "deleted": false,
-                "disable_correlation": false,
-                "object_id": "0",
-                "object_relation": null,
-                "value": "08a2fc565a1389a511ab9206b9a1e6b4b433486a",
-                "Galaxy": [],
-                "ShadowAttribute": []
-            },
-            {
                 "id": "253479",
                 "type": "AS",
                 "category": "Network activity",
@@ -541,10 +562,79 @@
                 "value": "AS66642",
                 "Galaxy": [],
                 "ShadowAttribute": []
+            },
+            {
+                "id": "273917",
+                "type": "named pipe",
+                "category": "Artifacts dropped",
+                "to_ids": true,
+                "uuid": "5d886bd1-136c-4ced-8566-0e42a964451a",
+                "event_id": "1255",
+                "distribution": "0",
+                "timestamp": "1569221585",
+                "comment": "",
+                "sharing_group_id": "0",
+                "deleted": false,
+                "disable_correlation": false,
+                "object_id": "0",
+                "object_relation": null,
+                "value": "\\\\.\\pipe\\testpipe",
+                "Galaxy": [],
+                "ShadowAttribute": []
             }
         ],
         "ShadowAttribute": [],
         "RelatedEvent": [
+            {
+                "Event": {
+                    "id": "1364",
+                    "date": "2019-09-11",
+                    "threat_level_id": "4",
+                    "info": "attack sightigns test",
+                    "published": false,
+                    "uuid": "5d78f7b1-cbd8-4f8a-9243-7366a964451a",
+                    "analysis": "0",
+                    "timestamp": "1568290754",
+                    "distribution": "1",
+                    "org_id": "1",
+                    "orgc_id": "1",
+                    "Org": {
+                        "id": "1",
+                        "name": "ORGNAME",
+                        "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7"
+                    },
+                    "Orgc": {
+                        "id": "1",
+                        "name": "ORGNAME",
+                        "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7"
+                    }
+                }
+            },
+            {
+                "Event": {
+                    "id": "1362",
+                    "date": "2019-09-04",
+                    "threat_level_id": "4",
+                    "info": "test pipe",
+                    "published": false,
+                    "uuid": "5d6f7a03-f734-49ba-967a-28e3a964451a",
+                    "analysis": "0",
+                    "timestamp": "1567586843",
+                    "distribution": "1",
+                    "org_id": "1",
+                    "orgc_id": "1",
+                    "Org": {
+                        "id": "1",
+                        "name": "ORGNAME",
+                        "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7"
+                    },
+                    "Orgc": {
+                        "id": "1",
+                        "name": "ORGNAME",
+                        "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7"
+                    }
+                }
+            },
             {
                 "Event": {
                     "id": "1359",
@@ -800,7 +890,7 @@
                     "id": "219",
                     "date": "2018-10-19",
                     "threat_level_id": "3",
-                    "info": "OSINT - How we discovered a Ukranian cybercrime hotspot",
+                    "info": "OSINT - How we discovered a Ukrainian cybercrime hotspot",
                     "published": false,
                     "uuid": "5bcdcd27-03e4-4118-9f82-46c3950d210f",
                     "analysis": "2",
@@ -829,7 +919,7 @@
                     "published": true,
                     "uuid": "5ac4db18-0c58-4436-a3fa-01ef0a00020f",
                     "analysis": "0",
-                    "timestamp": "1565613005",
+                    "timestamp": "1569255796",
                     "distribution": "0",
                     "org_id": "1",
                     "orgc_id": "14",
@@ -1887,23 +1977,23 @@
                 "template_version": "10",
                 "event_id": "1255",
                 "uuid": "5ac47782-e1b8-40b6-96b4-02510a00020f",
-                "timestamp": "1565609312",
+                "timestamp": "1569255728",
                 "distribution": "5",
                 "sharing_group_id": "0",
                 "comment": "",
                 "deleted": false,
                 "ObjectReference": [
                     {
-                        "id": "9639",
-                        "uuid": "5d514d60-b0f0-48f5-a306-3ef1a964451a",
-                        "timestamp": "1565609312",
+                        "id": "9676",
+                        "uuid": "5d88f130-c1c4-4dd7-9107-52c4a964451a",
+                        "timestamp": "1569255728",
                         "object_id": "13262",
                         "event_id": "1255",
                         "source_uuid": null,
                         "referenced_uuid": "2183705f-e8d6-4c08-a820-5b56a1303bb1",
                         "referenced_id": "16280",
                         "referenced_type": "1",
-                        "relationship_type": "abuses",
+                        "relationship_type": "includes",
                         "comment": "",
                         "deleted": false,
                         "Object": {
@@ -2159,7 +2249,25 @@
                         "object_relation": "ip-src",
                         "value": "1.2.3.4",
                         "Galaxy": [],
-                        "ShadowAttribute": []
+                        "ShadowAttribute": [],
+                        "Sighting": [
+                            {
+                                "id": "14",
+                                "attribute_id": "253515",
+                                "event_id": "1255",
+                                "org_id": "1",
+                                "date_sighting": "1568295335",
+                                "uuid": "5d7a49a7-5018-49dd-aaf5-72e9a964451a",
+                                "source": "",
+                                "type": "0",
+                                "Organisation": {
+                                    "id": "1",
+                                    "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                                    "name": "ORGNAME"
+                                },
+                                "attribute_uuid": "5afacc53-3590-4df2-a77b-03c80a00020f"
+                            }
+                        ]
                     },
                     {
                         "id": "253516",
@@ -2329,7 +2437,25 @@
                         "object_relation": "ip-src",
                         "value": "1.2.3.4",
                         "Galaxy": [],
-                        "ShadowAttribute": []
+                        "ShadowAttribute": [],
+                        "Sighting": [
+                            {
+                                "id": "15",
+                                "attribute_id": "253523",
+                                "event_id": "1255",
+                                "org_id": "1",
+                                "date_sighting": "1568295335",
+                                "uuid": "5d7a49a7-adf8-4268-8bbb-72e9a964451a",
+                                "source": "",
+                                "type": "0",
+                                "Organisation": {
+                                    "id": "1",
+                                    "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                                    "name": "ORGNAME"
+                                },
+                                "attribute_uuid": "5afb3223-1f40-46ac-ba58-02070a00020f"
+                            }
+                        ]
                     },
                     {
                         "id": "253524",
@@ -2688,7 +2814,25 @@
                         "object_relation": "ip-address",
                         "value": "1.2.3.4",
                         "Galaxy": [],
-                        "ShadowAttribute": []
+                        "ShadowAttribute": [],
+                        "Sighting": [
+                            {
+                                "id": "16",
+                                "attribute_id": "253540",
+                                "event_id": "1255",
+                                "org_id": "1",
+                                "date_sighting": "1568295335",
+                                "uuid": "5d7a49a8-49d8-4fdb-93e9-72e9a964451a",
+                                "source": "",
+                                "type": "0",
+                                "Organisation": {
+                                    "id": "1",
+                                    "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                                    "name": "ORGNAME"
+                                },
+                                "attribute_uuid": "5b0d1b61-f5bc-429b-9dfd-04370a00020f"
+                            }
+                        ]
                     }
                 ]
             },
@@ -2914,7 +3058,25 @@
                         "object_relation": "subnet-announced",
                         "value": "1.2.3.4",
                         "Galaxy": [],
-                        "ShadowAttribute": []
+                        "ShadowAttribute": [],
+                        "Sighting": [
+                            {
+                                "id": "17",
+                                "attribute_id": "253550",
+                                "event_id": "1255",
+                                "org_id": "1",
+                                "date_sighting": "1568295335",
+                                "uuid": "5d7a49a8-cb44-460e-baa2-72e9a964451a",
+                                "source": "",
+                                "type": "0",
+                                "Organisation": {
+                                    "id": "1",
+                                    "uuid": "5c9a1c17-9550-483e-809a-28eab44af9f7",
+                                    "name": "ORGNAME"
+                                },
+                                "attribute_uuid": "5b23c82b-c1ac-4ba1-bdf7-045b0a00020f"
+                            }
+                        ]
                     },
                     {
                         "id": "253551",
@@ -3820,11 +3982,11 @@
                         "id": "273595",
                         "type": "text",
                         "category": "Other",
-                        "to_ids": false,
+                        "to_ids": true,
                         "uuid": "18cda2b3-625f-43a5-864e-f63aa6483dff",
                         "event_id": "1255",
                         "distribution": "5",
-                        "timestamp": "1565611410",
+                        "timestamp": "1569224572",
                         "comment": "CVE-2017-11774: Enriched via the cve_advanced module",
                         "sharing_group_id": "0",
                         "deleted": false,
@@ -4104,11 +4266,11 @@
                         "id": "273609",
                         "type": "text",
                         "category": "Other",
-                        "to_ids": false,
+                        "to_ids": true,
                         "uuid": "b928c539-012e-47d6-8ac6-7beb28c79d96",
                         "event_id": "1255",
                         "distribution": "5",
-                        "timestamp": "1565612210",
+                        "timestamp": "1569224561",
                         "comment": "CVE-2017-11774: Enriched via the cve_advanced module",
                         "sharing_group_id": "0",
                         "deleted": false,
@@ -4127,7 +4289,7 @@
                         "uuid": "c84f9352-54dc-4c17-8878-cdcdd074c89d",
                         "event_id": "1255",
                         "distribution": "5",
-                        "timestamp": "1565612210",
+                        "timestamp": "1569224559",
                         "comment": "CVE-2017-11774: Enriched via the cve_advanced module",
                         "sharing_group_id": "0",
                         "deleted": false,

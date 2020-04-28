@@ -1,5 +1,4 @@
 <?php
-if ($object['value'] == 'MERGE') debug($object);
   $tr_class = '';
   $linkClass = 'blue';
   $otherColour = 'blue';
@@ -22,6 +21,9 @@ if ($object['value'] == 'MERGE') debug($object);
 <tr id="Attribute_<?php echo h($object['uuid']); ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
     <td class="short">
       <?php echo date('Y-m-d', $object['timestamp']); ?>
+    </td>
+    <td class="short">
+      <?php echo $this->element('/Servers/View/seen_field', array('object' => $object)); ?>
     </td>
     <td class="short">
       <div id="Attribute_<?php echo $object['uuid']; ?>_category_solid" class="inline-field-solid">

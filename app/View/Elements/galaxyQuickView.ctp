@@ -151,9 +151,5 @@
                 $(this).parent().children('.collapse-status-container').children('.collapse-status').html('+');
             }
         });
-        $('.delete-cluster').click(function() {
-            var tagName = $(this).data('tag-name');
-            removeTag($id = false, $tag_id = false, $galaxy = false);
-        });
     });
 </script>

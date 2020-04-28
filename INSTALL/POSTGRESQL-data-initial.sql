@@ -100,7 +100,7 @@ COPY public.event_tags (id, event_id, tag_id) FROM stdin;
 -- Data for Name: events; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.events (id, org_id, date, info, user_id, uuid, published, analysis, attribute_count, orgc_id, "timestamp", distribution, sharing_group_id, proposal_email_lock, locked, threat_level_id, publish_timestamp, disable_correlation, extends_uuid) FROM stdin;
+COPY public.events (id, org_id, date, info, user_id, uuid, published, analysis, attribute_count, orgc_id, "timestamp", distribution, sharing_group_id, proposal_email_lock, locked, threat_level_id, publish_timestamp, sighting_timestamp, disable_correlation, extends_uuid) FROM stdin;
 \.
 
 
@@ -118,7 +118,7 @@ COPY public.favourite_tags (id, tag_id, user_id) FROM stdin;
 
 COPY public.feeds (id, name, provider, url, rules, enabled, distribution, sharing_group_id, tag_id, "default", source_format, fixed_event, delta_merge, event_id, publish, override_ids, settings, input_source, delete_local_file, lookup_visible, headers, caching_enabled) FROM stdin;
 1	CIRCL OSINT Feed	CIRCL	https://www.circl.lu/doc/misp/feed-osint	\N	f	3	0	0	t	misp	f	f	0	f	f	\N	network	f	f	\N	f
-2	The Botvrij.eu Data	Botvrij.eu	http://www.botvrij.eu/data/feed-osint	\N	f	3	0	0	t	misp	f	f	0	f	f	\N	network	f	f	\N	f
+2	The Botvrij.eu Data	Botvrij.eu	https://www.botvrij.eu/data/feed-osint	\N	f	3	0	0	t	misp	f	f	0	f	f	\N	network	f	f	\N	f
 \.
 
 
@@ -323,7 +323,7 @@ COPY public.roles (id, name, created, modified, perm_add, perm_modify, perm_modi
 -- Data for Name: servers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.servers (id, name, url, authkey, org_id, push, pull, lastpulledid, lastpushedid, organization, remote_org_id, publish_without_email, unpublish_event, self_signed, pull_rules, push_rules, cert_file, client_cert_file, internal) FROM stdin;
+COPY public.servers (id, name, url, authkey, org_id, push, pull, push_sightings, lastpulledid, lastpushedid, organization, remote_org_id, publish_without_email, unpublish_event, self_signed, pull_rules, push_rules, cert_file, client_cert_file, internal) FROM stdin;
 \.
 
 

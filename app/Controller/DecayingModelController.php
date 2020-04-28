@@ -591,7 +591,8 @@ class DecayingModelController extends AppController
                     $filters['uuid'] = $filters['id'];
                 } else {
                     $attributes = $this->User->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-                        'conditions' => array('Attribute.id' => $filters['id'])
+                        'conditions' => array('Attribute.id' => $filters['id']),
+                        'flatten' => 1
                     ));
                     if (!empty($attributes)) {
                         $filters['uuid'] = $attributes[0]['Attribute']['uuid'];
@@ -683,7 +684,7 @@ class DecayingModelController extends AppController
                     $model_overrides['threshold'] = intval($filters['score']);
                 }
                 $attributes[$k]['Attribute'] = $this->DecayingModel->attachScoresToAttribute($this->Auth->user(), $attributes[$k]['Attribute'], $filters['decayingModel'], $model_overrides);
-                if ($filters['excludeDecayed']) { // filter out decayed attribute
+                if ($filters['excludeDecayed'] && !empty($attributes[$k]['Attribute']['decay_score'])) { // filter out decayed attribute
                     $decayed_flag = true;
                     foreach ($attributes[$k]['Attribute']['decay_score'] as $decayResult) {
                         $decayed_flag = $decayed_flag && $decayResult['decayed'];

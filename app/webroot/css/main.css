@@ -17,8 +17,16 @@ button .full-width {
   width:100%;
 }
 
+.buttonResultField {
+    padding-bottom:10px;
+}
+
 .bottom-buffer {
     margin-bottom:10px;
+}
+
+form button.btn[disabled] {
+    cursor: not-allowed;
 }
 
 /*.close{
@@ -183,6 +191,13 @@ div.actions {
   width:170px;
 }
 
+div.menuless-form {
+    padding: 10px;
+    padding-bottom:40px;
+    margin: 0 auto;
+    width:550px;
+}
+
 
 div.actions h3 {
   padding-top:0;
@@ -295,6 +310,39 @@ td.highlight3 {
     background-color: red !important;
     color: #ffffff !important;
 
+}
+
+table.table-striped > tbody > tr.objectAddFieldTr > td {
+    position: absolute;
+    background-color: #ffffff00;
+}
+
+table.table-striped > tbody > tr > td > span.objectAddField {
+    padding: 0px;
+    line-height: normal;
+    display: inline-block;
+    position: relative;
+    top: -19px;
+    left: -10px;
+    color: white;
+    background-color: #1369a0;
+    border: 0px;
+    border-radius: 15px;
+    height: 16px;
+    width: 16px;
+    text-align: center;
+}
+
+table.table-striped > tbody > tr > td > span.objectAddField:before {
+    left: 2px;
+    height: 12px;
+    width: 12px;
+    line-height: 16px;
+}
+
+.table-striped tbody > tr > td > span.objectAddField:hover {
+    transform: scale(1.7);
+    cursor: pointer;
 }
 
 tr.highlightBlueSides {
@@ -876,6 +924,24 @@ a.proposal_link_red:hover {
     border: 0;
 }
 
+.immutableAttributeDescription:before {
+    background: rgba(255, 255, 255, 0);
+    content: '';
+    margin-right: 5px;
+    margin-left: 2px;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    height: 10px;
+    width: 5px;
+    position: relative;
+    display: block;
+    float: left;
+}
+
+.modal-body-long {
+    max-height: 600px;
+}
+
 .ajax_popover_form {
     display:none;
     width: 700px;
@@ -938,7 +1004,7 @@ a.proposal_link_red:hover {
     border-radius: 10px 10px 0px 0px;
     padding-left:10px;
     margin-bottom:0px;
-    width:690px;
+    width:calc(100% - 10px);
     background-color:black;
     color:white;
     font-size: 21px;
@@ -972,8 +1038,9 @@ a.proposal_link_red:hover {
     height:120px !important;
 }
 
-.ajax_popover_form .add_attribute_fields {
+.ajax_fieldset, .ajax_popover_form .add_attribute_fields {
     padding-left:10px;
+    padding-right:10px;
 }
 
 .hover_enrichment_text {
@@ -1032,6 +1099,16 @@ a.pill-pre-picker {
     height: 10px;
     width: 5px;
     position: absolute;
+}
+
+div.generic-picker-wrapper > div.generic-picker-embeded-block {
+    margin-left: 15px;
+    margin-top: -12px;
+    display: inline-block;
+}
+
+div.generic-picker-embeded-block legend {
+    margin-bottom: 0px;
 }
 
 .generic-picker-item-element-check {
@@ -2298,6 +2375,23 @@ table tr:hover .down-expand-button {
     position: relative;
 }
 
+.nanosec-div {
+    font-weight:bold;
+    position: relative;
+    width: 100%;
+    text-align: center;
+    top: -5px;
+}
+
+.larger-input-field {
+    width: 270px !important;
+}
+
+.precision-tool {
+    margin-left: 10px;
+    display: inline-block;
+}
+
 .fa-as-icon {
     font-size: 20px;
     padding-left: 2px;
@@ -2389,4 +2483,61 @@ table tr:hover .down-expand-button {
 
 .large-left-margin {
     margin-left:8px;
+}
+
+#notice_message {
+   margin: 10px;
+}
+
+.alert form {
+    margin: 0 0;
+}
+
+.tag-conflict-notice {
+    margin: 5px 0px;
+    padding-right: 14px;
+    position: relative;
+}
+
+.tag-conflict-notice div.text-container {
+    overflow: auto;
+}
+
+.attributeTagContainer .tag-conflict-notice {
+    max-width: 350px;
+    overflow: auto;
+}
+
+.tag-conflict-notice .apply_css_arrow {
+    display: inline-block;
+    padding: 0px 6px;
+}
+
+.tag-conflict-notice i.icon {
+    position: absolute;
+    padding: 3px;
+    right: 0px;
+    top: 0px;
+    background-color: #3b3b3b;
+    color: white;
+    border-radius: 3px;
+}
+
+.widgetTitle {
+    font-weight: bold;
+    color: #0088cc;
+    width: 100%;
+    font-size: 125%;
+    margin:5px;
+}
+
+.grid-stack-item-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.widgetContent, .widgetContentInner, .widgetContentInner > div {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
 }

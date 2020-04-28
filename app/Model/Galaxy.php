@@ -220,7 +220,7 @@ class Galaxy extends AppModel
             throw new NotFoundException(__('Invalid %s.', $target_type));
         }
         $target = $target[0];
-        $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
+        $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user, true);
         $existingTag = $this->Tag->$connectorModel->find('first', array('conditions' => array($target_type . '_id' => $target_id, 'tag_id' => $tag_id)));
         if (!empty($existingTag)) {
             return 'Cluster already attached.';
@@ -378,8 +378,12 @@ class Galaxy extends AppModel
     {
         $galaxy = $this->find('first', array(
                 'recursive' => -1,
-                'fields' => 'id',
-                'conditions' => array('Galaxy.type' => $type, 'Galaxy.namespace' => $namespace),
+                'fields' => array('MAX(Galaxy.version) as latest_version', 'id'),
+                'conditions' => array(
+                    'Galaxy.type' => $type,
+                    'Galaxy.namespace' => $namespace
+                ),
+                'group' => array('name', 'id')
         ));
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
     }
@@ -456,7 +460,7 @@ class Galaxy extends AppModel
         $matrixData['tabs'] = $cols;
 
         $this->sortMatrixByScore($matrixData['tabs'], $scores);
-        // #FIXME temporary fix: retreive tag name of deprecated mitre galaxies (for the stats)
+        // #FIXME temporary fix: retrieve tag name of deprecated mitre galaxies (for the stats)
         if ($galaxy['Galaxy']['id'] == $this->getMitreAttackGalaxyId()) {
             $names = array('Enterprise Attack - Attack Pattern', 'Pre Attack - Attack Pattern', 'Mobile Attack - Attack Pattern');
             $tag_names = array();

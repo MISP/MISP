@@ -292,7 +292,7 @@ class Organisation extends AppModel
         $success = true;
         foreach ($this->organisationAssociations as $model => $data) {
             foreach ($data['fields'] as $field) {
-                if ($dataSource == 'Database/Mysql') {
+                if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
                     $sql = 'SELECT `id` FROM `' . $data['table'] . '` WHERE `' . $field . '` = "' . $currentOrg['Organisation']['id'] . '"';
                 } elseif ($dataSource == 'Database/Postgres') {
                     $sql = 'SELECT "id" FROM "' . $data['table'] . '" WHERE "' . $field . '" = "' . $currentOrg['Organisation']['id'] . '"';
@@ -303,13 +303,13 @@ class Organisation extends AppModel
                     if (!empty($dataMoved['values_changed'][$model][$field])) {
                         $this->Log->create();
                         try {
-                            if ($dataSource == 'Database/Mysql') {
+                            if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
                                 $sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $targetOrg['Organisation']['id'] . ' WHERE `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ';';
                             } elseif ($dataSource == 'Database/Postgres') {
                                 $sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $targetOrg['Organisation']['id'] . ' WHERE "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ';';
                             }
                             $result = $this->query($sql);
-                            if ($dataSource == 'Database/Mysql') {
+                            if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
                                 $sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ' WHERE `id` IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
                             } elseif ($dataSource == 'Database/Postgres') {
                                 $sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ' WHERE "id" IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
@@ -414,5 +414,46 @@ class Organisation extends AppModel
         }
         $event['Org'] = $this->__orgCache[$event['Event']['org_id']];
         return $event;
+    }
+
+    public function getOrgIdsFromMeta($metaConditions)
+    {
+        $orgIds = $this->find('list', array(
+            'conditions' => $metaConditions,
+            'fields' => array('id'),
+            'recursive' => -1
+        ));
+        if (empty($orgIds)) {
+            return array(-1);
+        }
+        return array_values($orgIds);
+    }
+
+    public function checkDesiredOrg($suggestedOrg, $registration)
+    {
+        if ($suggestedOrg !== false && $suggestedOrg !== -1) {
+            $conditions = array();
+            if (!empty($registration['Inbox']['data']['org_uuid'])) {
+                $conditions = array('Organisation.uuid' => $registration['Inbox']['data']['org_uuid']);
+            } else if (!empty($registration['Inbox']['data']['org_name'])) {
+                $conditions = array('Organisation.name' => $registration['Inbox']['data']['org_name']);
+            } else {
+                $domain = explode('@', $registration['Inbox']['data']['email'])[1];
+                $conditions = array('LOWER(Organisation.name)' => strtolower($domain));
+            }
+            $identifiedOrg = $this->User->Organisation->find('first', array(
+                'recursive' => -1,
+                'fields' => array('id', 'name', 'local'),
+                'conditions' => $conditions
+            ));
+            if (empty($identifiedOrg)) {
+            $suggestedOrg = -1;
+            } else if (!empty($suggestedOrg) && $suggestedOrg[0] !== $identifiedOrg['Organisation']['id']) {
+                $suggestedOrg = false;
+            } else {
+                $suggestedOrg = array($identifiedOrg['Organisation']['id'], $identifiedOrg['Organisation']['name'], $identifiedOrg['Organisation']['local']);
+            }
+        }
+        return $suggestedOrg;
     }
 }

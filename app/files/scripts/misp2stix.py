@@ -38,7 +38,7 @@ from cybox.objects.whois_object import WhoisEntry, WhoisRegistrants, WhoisRegist
 from cybox.objects.win_executable_file_object import WinExecutableFile, PEHeaders, PEFileHeader, PESectionList, PESection, PESectionHeaderStruct, Entropy
 from cybox.objects.win_registry_key_object import RegistryValue, RegistryValues, WinRegistryKey
 from cybox.objects.win_service_object import WinService
-from cybox.objects.win_user_object import WinUser
+from cybox.objects.win_user_account_object import WinUser
 from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
 from cybox.utils import Namespace
 from stix.coa import CourseOfAction
@@ -52,6 +52,7 @@ from stix.exploit_target import ExploitTarget, Vulnerability, Weakness
 from stix.exploit_target.vulnerability import CVSSVector
 from stix.extensions.identity.ciq_identity_3_0 import CIQIdentity3_0Instance, STIXCIQIdentity3_0, PartyName, ElectronicAddressIdentifier, FreeTextAddress
 from stix.extensions.identity.ciq_identity_3_0 import Address as ciq_Address
+from stix.extensions.marking.simple_marking import SimpleMarkingStructure
 from stix.extensions.marking.tlp import TLPMarkingStructure
 from stix.extensions.test_mechanism.snort_test_mechanism import SnortTestMechanism
 from stix.incident import Incident, Time, ExternalID, AffectedAsset, AttributedThreatActors
@@ -89,44 +90,44 @@ class StixBuilder(object):
                 idgen.set_id_namespace(Namespace(self.baseurl, self.orgname, "MISP"))
         self.namespace_prefix = idgen.get_id_namespace_alias()
         ## MAPPING FOR ATTRIBUTES
-        self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable,
-                                      "named pipe": self.generate_pipe_observable}
-        self.simple_type_to_method.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"], self.resolve_file_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], self.generate_ip_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], self.generate_socket_address_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], self.generate_regkey_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link", "windows-service-name"], self.generate_simple_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to"], self.resolve_email_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["http-method", "user-agent"], self.resolve_http_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traffic", "pattern-in-memory"], self.resolve_pattern_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["mac-address"], self.resolve_system_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["attachment"], self.resolve_attachment))
-        self.simple_type_to_method.update(dict.fromkeys(["email-attachment"], self.generate_email_attachment_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], self.resolve_malware_sample))
+        self.simple_type_to_method = {"port": 'generate_port_observable', "domain|ip": 'generate_domain_ip_observable',
+                                      "named pipe": 'generate_pipe_observable'}
+        self.simple_type_to_method.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"], 'resolve_file_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], 'generate_ip_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], 'generate_socket_address_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], 'generate_regkey_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link", "windows-service-name"], 'generate_simple_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to"], 'resolve_email_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["http-method", "user-agent"], 'resolve_http_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traffic", "pattern-in-memory"], 'resolve_pattern_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["mac-address"], 'resolve_system_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["attachment"], 'resolve_attachment'))
+        self.simple_type_to_method.update(dict.fromkeys(["email-attachment"], 'generate_email_attachment_observable'))
+        self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], 'resolve_malware_sample'))
         ## MAPPING FOR OBJECTS
-        self.ttp_names = {'attack-pattern': self.parse_attack_pattern,
-                          'course-of-action': self.parse_course_of_action,
-                          'vulnerability': self.parse_vulnerability,
-                          'weakness': self.parse_weakness}
+        self.ttp_names = {'attack-pattern': 'parse_attack_pattern',
+                          'course-of-action': 'parse_course_of_action',
+                          'vulnerability': 'parse_vulnerability',
+                          'weakness': 'parse_weakness'}
         self.types_mapping = {CourseOfAction: 'add_course_of_action',
                               ThreatActor: 'add_threat_actor',
                               TTP: 'add_ttp'}
-        self.objects_mapping = {"asn": self.parse_asn_object,
-                                "credential": self.parse_credential_object,
-                                "domain-ip": self.parse_domain_ip_object,
-                                "email": self.parse_email_object,
-                                "file": self.parse_file_object,
-                                "ip-port": self.parse_ip_port_object,
-                                "network-connection": self.parse_network_connection_object,
-                                "network-socket": self.parse_network_socket_object,
-                                "pe": self.store_pe,
-                                "pe-section": self.store_pe,
-                                "process": self.parse_process_object,
-                                "registry-key": self.parse_regkey_object,
-                                "url": self.parse_url_object,
-                                "user-account": self.parse_user_account_object,
-                                "whois": self.parse_whois,
-                                "x509": self.parse_x509_object}
+        self.objects_mapping = {"asn": 'parse_asn_object',
+                                "credential": 'parse_credential_object',
+                                "domain-ip": 'parse_domain_ip_object',
+                                "email": 'parse_email_object',
+                                "file": 'parse_file_object',
+                                "ip-port": 'parse_ip_port_object',
+                                "network-connection": 'parse_network_connection_object',
+                                "network-socket": 'parse_network_socket_object',
+                                "pe": 'store_pe',
+                                "pe-section": 'store_pe',
+                                "process": 'parse_process_object',
+                                "registry-key": 'parse_regkey_object',
+                                "url": 'parse_url_object',
+                                "user-account": 'parse_user_account_object',
+                                "whois": 'parse_whois',
+                                "x509": 'parse_x509_object'}
 
     def loadEvent(self):
         pathname = os.path.dirname(self.args[0])
@@ -135,23 +136,28 @@ class StixBuilder(object):
             self.json_event = json.loads(f.read())
 
     def generateEventPackages(self):
-        return_type_to_package = {'json': ('to_json', {}),
-                                  'xml': ('to_xml', {'include_namespaces': False, 'include_schemalocs': False, 'encoding': 'utf8'})}
-        to_call, args = return_type_to_package[self.return_type]
-        separator = None
-        if self.json_event.get('response'):
-            from misp_framing import stix_framing
-            _, separator, _ = stix_framing(self.baseurl, self.orgname, self.return_type)
-            stix_packages = [getattr(self.generate_package(event['Event']), to_call)(**args) for event in self.json_event['response']]
-        else:
-            stix_packages = [getattr(self.generate_package(self.json_event['Event']), to_call)(**args)]
-        if self.return_type == 'xml':
-            stix_packages = [s.decode() for s in stix_packages]
-            stix_packages = ['\n            '.join(s.split('\n')[:-1]).replace('stix:STIX_Package', 'stix:Package') for s in stix_packages]
-            stix_packages = ['            {}\n'.format(s) for s in stix_packages]
-        else:
-            stix_packages = ['{"package": %s}' % s for s in stix_packages]
-        self.stix_package = separator.join(stix_packages) if len(stix_packages) > 1 else stix_packages[0]
+        try:
+            return_type_to_package = {'json': ('to_json', {}),
+                                      'xml': ('to_xml', {'include_namespaces': False, 'include_schemalocs': False, 'encoding': 'utf8'})}
+            to_call, args = return_type_to_package[self.return_type]
+            separator = None
+            if self.json_event.get('response'):
+                from misp_framing import stix_framing
+                _, separator, _ = stix_framing(self.baseurl, self.orgname, self.return_type)
+                stix_packages = [getattr(self.generate_package(event['Event']), to_call)(**args) for event in self.json_event['response']]
+            else:
+                stix_packages = [getattr(self.generate_package(self.json_event['Event']), to_call)(**args)]
+            if self.return_type == 'xml':
+                stix_packages = [s.decode() for s in stix_packages]
+                stix_packages = ['\n            '.join(s.split('\n')[:-1]).replace('stix:STIX_Package', 'stix:Package') for s in stix_packages]
+                stix_packages = ['            {}\n'.format(s) for s in stix_packages]
+            else:
+                stix_packages = ['{"package": %s}' % s for s in stix_packages]
+            self.stix_package = separator.join(stix_packages) if len(stix_packages) > 1 else stix_packages[0]
+            self.saveFile()
+            print(json.dumps({'success': 1}))
+        except Exception as e:
+            print(json.dumps({'error': e.__str__()}))
 
     def generate_package(self, event):
         self.objects_to_parse = defaultdict(dict)
@@ -201,18 +207,9 @@ class StixBuilder(object):
             threat_level_s = "Event Threat Level: {}".format(threat_level_name)
             self.add_journal_entry(threat_level_s)
         tags = tuple(tag['name'] for tag in self.misp_event['Tag']) if 'Tag' in self.misp_event else []
-        self.handling = None
+        self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
         if tags:
-            if 'misp:tool="misp2stix"' not in tags:
-                self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
-            for tag in tags:
-                tag_name = "MISP Tag: {}".format(tag)
-                self.add_journal_entry(tag_name)
-            self.handling = self.set_tlp(tags)
-            if self.handling is not None:
-                self.incident.handling = self.handling
-        else:
-            self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
+            self.incident.handling = self.set_handling(tags)
         external_id = ExternalID(value=str(self.misp_event['id']), source="MISP Event")
         self.incident.add_external_id(external_id)
         incident_status_name = status_mapping.get(str(self.misp_event['analysis']), None)
@@ -269,11 +266,11 @@ class StixBuilder(object):
             if name == 'original-imported-file':
                 continue
             if name in self.ttp_names:
-                self.ttp_names[name](misp_object)
+                getattr(self, self.ttp_names[name])(misp_object)
             else:
                 category = misp_object.get('meta-category')
                 try:
-                    to_ids, observable = self.objects_mapping[name](misp_object)
+                    to_ids, observable = getattr(self, self.objects_mapping[name])(misp_object)
                 except KeyError:
                     to_ids, observable = self.create_custom_observable(name, misp_object['Attribute'], misp_object['uuid'])
                 except TypeError:
@@ -329,7 +326,7 @@ class StixBuilder(object):
         pe_file_header = PEFileHeader()
         pe_sections = PESectionList()
         for reference in pe_object['ObjectReference']:
-            if reference['Object']['name'] == "pe-section" and reference['referenced_uuid'] in self.objects_to_parse['pe_section']:
+            if reference['Object']['name'] == "pe-section" and reference['referenced_uuid'] in self.objects_to_parse['pe-section']:
                 pe_section_object = self.objects_to_parse['pe-section'][reference['referenced_uuid']]
                 to_ids_section, section_dict = self.create_attributes_dict(pe_section_object['Attribute'])
                 to_ids_list.append(to_ids_section)
@@ -355,7 +352,7 @@ class StixBuilder(object):
         indicator.id_ = "{}:MISPObject-{}".format(self.orgname, misp_object['uuid'])
         indicator.producer = self.set_prod(self.orgc_name)
         tags = self.merge_tags(misp_object['Attribute'])
-        handling = self.set_tlp(tuple(tags))
+        handling = self.set_handling(tuple(tags))
         if handling is not None:
             indicator.handling = handling
         title = "{} (MISP Object #{})".format(misp_object['name'], misp_object['id'])
@@ -496,7 +493,7 @@ class StixBuilder(object):
         if attribute.get('comment'):
             indicator.description = attribute['comment']
         tags = tuple(tag['name'] for tag in attribute['Tag']) if attribute.get('Tag') else []
-        handling = self.set_tlp(tags)
+        handling = self.set_handling(tags)
         if handling is not None:
             indicator.handling = handling
         indicator.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute['value'], attribute['id'])
@@ -520,7 +517,7 @@ class StixBuilder(object):
         attribute_type = attribute['type']
         attribute_uuid = attribute['uuid']
         try:
-            observable_property = self.simple_type_to_method[attribute_type](attribute)
+            observable_property = getattr(self, self.simple_type_to_method[attribute_type])(attribute)
         except KeyError:
             return False
         if isinstance(observable_property, Observable):
@@ -1397,23 +1394,39 @@ class StixBuilder(object):
         observable.id_ = "{}:System-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
+    def set_handling(self, tags):
+        ordered_tags = defaultdict(list)
+        for tag in tags:
+            ordered_tags['tlp_tags' if tag.startswith('tlp:') else 'simple_tags'].append(tag)
+        if not ordered_tags:
+            return None
+        handling = Marking()
+        if 'tlp_tags' in ordered_tags:
+            handling.add_marking(self.set_tlp(ordered_tags['tlp_tags']))
+        for tag in ordered_tags['simple_tags']:
+            handling.add_marking(self.set_tag(tag))
+        return handling
+
     def set_rep(self):
         identity = Identity(name=self.orgc_name)
         information_source = InformationSource(identity=identity)
         return information_source
 
+    @staticmethod
+    def set_tag(tag):
+        simple = SimpleMarkingStructure()
+        simple.statement = tag
+        marking_specification = MarkingSpecification()
+        marking_specification.marking_structures.append(simple)
+        return marking_specification
+
     def set_tlp(self, tags):
-        colors = self.fetch_colors(tags)
-        if not colors:
-            return self.handling
         tlp = TLPMarkingStructure()
-        tlp.color = self.set_color(colors)
+        tlp.color = self.set_color(self.fetch_colors(tags))
         marking_specification = MarkingSpecification()
         marking_specification.controlled_structure = "../../../descendant-or-self::node()"
         marking_specification.marking_structures.append(tlp)
-        handling = Marking()
-        handling.add_marking(marking_specification)
-        return handling
+        return marking_specification
 
     def add_journal_entry(self, entry_line):
         hi = HistoryItem()
@@ -1442,7 +1455,7 @@ class StixBuilder(object):
         ttp = TTP(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
         ttp.id_ = "{}:TTP-{}".format(self.orgname, attribute['uuid'])
         tags = tuple(tag['name'] for tag in attribute['Tag']) if attribute.get('Tag') else []
-        handling = self.set_tlp(tags)
+        handling = self.set_handling(tags)
         if handling is not None:
             ttp.handling = handling
         ttp.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute['value'], attribute['id'])
@@ -1458,7 +1471,7 @@ class StixBuilder(object):
         ttp = TTP(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
         ttp.id_ = "{}:TTP-{}".format(self.orgname, misp_object['uuid'])
         tags = self.merge_tags(misp_object['Attribute'])
-        handling = self.set_tlp(tags)
+        handling = self.set_handling(tags)
         if handling is not None:
             ttp.handling = handling
         ttp.title = "{}: {} (MISP Object #{})".format(misp_object['meta-category'], misp_object['name'], misp_object['id'])
@@ -1721,11 +1734,7 @@ class StixBuilder(object):
 
     @staticmethod
     def fetch_colors(tags):
-        colors = []
-        for tag in tags:
-            if tag.startswith("tlp:") and tag.count(':') == 1:
-                colors.append(tag[4:].upper())
-        return colors
+        return (tag.split(':')[-1].upper() for tag in tags)
 
     @staticmethod
     def fetch_ids_flags(attributes):
@@ -1803,8 +1812,6 @@ def main(args):
     stix_builder = StixBuilder(args)
     stix_builder.loadEvent()
     stix_builder.generateEventPackages()
-    stix_builder.saveFile()
-    print(json.dumps({'success': 1, 'message': ''}))
 
 if __name__ == "__main__":
     main(sys.argv)

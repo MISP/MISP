@@ -2,7 +2,11 @@
 App::uses('AppModel', 'Model');
 App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
+App::uses('GpgTool', 'Tools');
 
+/**
+ * @property Log $Log
+ */
 class User extends AppModel
 {
     public $displayField = 'email';
@@ -202,7 +206,8 @@ class User extends AppModel
             'finderQuery' => '',
             'counterQuery' => ''
         ),
-        'Post'
+        'Post',
+        'UserSetting'
     );
 
     public $actsAs = array(
@@ -605,10 +610,22 @@ class User extends AppModel
     public function getAuthUser($id)
     {
         if (empty($id)) {
-            throw new Exception('Invalid user ID.');
+            throw new NotFoundException('Invalid user ID.');
         }
         $conditions = array('User.id' => $id);
-        $user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
+        $user = $this->find(
+            'first',
+            array(
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'contain' => array(
+                    'Organisation',
+                    'Role',
+                    'Server',
+                    'UserSetting'
+                )
+            )
+        );
         if (empty($user)) {
             return $user;
         }
@@ -616,6 +633,7 @@ class User extends AppModel
         $user['User']['Role'] = $user['Role'];
         $user['User']['Organisation'] = $user['Organisation'];
         $user['User']['Server'] = $user['Server'];
+        $user['User']['UserSetting'] = $user['UserSetting'];
         unset($user['Organisation'], $user['Role'], $user['Server']);
         return $user['User'];
     }
@@ -723,11 +741,12 @@ class User extends AppModel
         $Email = new CakeEmail();
         $recipient = array('User' => array('email' => $params['to']));
         $failed = false;
+        $mock = false;
         if (!empty($params['gpgkey'])) {
             $recipient['User']['gpgkey'] = $params['gpgkey'];
             $encryptionResult = $this->__encryptUsingGPG($Email, $params['body'], $params['subject'], $recipient);
             if (isset($encryptionResult['failed'])) {
-                $failed = true;
+                $mock = true;
             }
             if (isset($encryptionResult['failureReason'])) {
                 $failureReason = $encryptionResult['failureReason'];
@@ -754,8 +773,7 @@ class User extends AppModel
                 }
             }
             $Email->attachments($attachments);
-            $mock = false;
-            if (Configure::read('MISP.disable_emailing') || !empty($params['mock'])) {
+            if (!empty(Configure::read('MISP.disable_emailing')) || !empty($params['mock'])) {
                 $Email->transport('Debug');
                 $mock = true;
             }
@@ -1021,52 +1039,26 @@ class User extends AppModel
         return $message;
     }
 
-    public function fetchPGPKey($email)
+    /**
+     * @param string $email
+     * @return array
+     * @throws Exception
+     */
+    public function searchGpgKey($email)
     {
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket();
-        $response = $HttpSocket->get('https://pgp.circl.lu/pks/lookup?search=' . urlencode($email) . '&op=index&fingerprint=on&options=mr');
-        if ($response->code != 200) {
-            return $response->code;
-        }
-        return $this->__extractPGPInfo($response->body);
+        $gpgTool = new GpgTool();
+        return $gpgTool->searchGpgKey($email);
     }
 
-    private function __extractPGPInfo($body)
+    /**
+     * @param string $fingerprint
+     * @return string|null
+     * @throws Exception
+     */
+    public function fetchGpgKey($fingerprint)
     {
-        $final = array();
-        $lines = explode("\n", $body);
-        foreach ($lines as $line) {
-            $parts = explode(":", $line);
-
-            if ($parts[0] === 'pub') {
-                if (!empty($temp)) {
-                    $final[] = $temp;
-                    $temp = array();
-                }
-
-                if (strpos($parts[6], 'r') !== false || strpos($parts[6], 'd') !== false || strpos($parts[6], 'e') !== false) {
-                    continue; // skip if key is expired, revoked or disabled
-                }
-
-                $temp = array(
-                    'fingerprint' => chunk_split($parts[1], 4, ' '),
-                    'key_id' => substr($parts[1], -8),
-                    'date' => date('Y-m-d', $parts[4]),
-                    'uri' => '/pks/lookup?op=get&search=0x' . $parts[1],
-                );
-
-            } else if ($parts[0] === 'uid' && !empty($temp)) {
-                $temp['address'] = urldecode($parts[1]);
-            }
-        }
-
-        if (!empty($temp)) {
-            $final[] = $temp;
-        }
-
-        return $final;
+        $gpgTool = new GpgTool();
+        return $gpgTool->fetchGpgKey($fingerprint);
     }
 
     public function describeAuthFields()
@@ -1321,7 +1313,7 @@ class User extends AppModel
             if ($jobId) {
                 if ($k % 100 == 0) {
                     $job->id =  $jobId;
-                    $job->saveField('progress', 100 * (($k + 1) / count($user_count)));
+                    $job->saveField('progress', 100 * (($k + 1) / $user_count));
                     $job->saveField('message', __('Reset in progress - %s/%s.', $k, $user_count));
                 }
             }
@@ -1356,7 +1348,7 @@ class User extends AppModel
                     $updatedUser['User']['id'],
                     $updatedUser['User']['email']
                 ),
-                $fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')',
+                $fieldsResult = ['authkey' =>  [$oldKey, $newkey]],
                 $updatedUser
         );
         if ($alert) {
@@ -1405,20 +1397,12 @@ class User extends AppModel
 
         // query
         $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        $this->Log->save(array(
-            'org' => $user['Organisation']['name'],
-            'model' => $model,
-            'model_id' => $modelId,
-            'email' => $user['email'],
-            'action' => $action,
-            'title' => $description,
-            'change' => isset($fieldsResult) ? $fieldsResult : ''));
+        $result = $this->Log->createLogEntry($user, $action, $model, $modelId, $description, $fieldsResult);
 
         // write to syslogd as well
         App::import('Lib', 'SysLog.SysLog');
         $syslog = new SysLog();
-        $syslog->write('notice', $description . ' -- ' . $action . (empty($fieldResult) ? '' : '-- ' . $fieldResult));
+        $syslog->write('notice', "$description -- $action" . (empty($fieldResult) ? '' : ' -- ' . $result['Log']['change']));
     }
 
     /**
@@ -1446,5 +1430,140 @@ class User extends AppModel
         );
 
         return new Crypt_GPG($options);
+    }
+
+    public function getOrgActivity($orgId, $params=array())
+    {
+        $conditions = array();
+        $options = array();
+        foreach($params as $paramName => $value) {
+            $options['filter'] = $paramName;
+            $filterParam[$paramName] = $value;
+            $conditions = $this->Event->set_filter_timestamp($filterParam, $conditions, $options);
+        }
+        $conditions['Event.orgc_id'] = $orgId;
+        $events = $this->Event->find('all', array(
+            'recursive' => -1,
+            'fields' => array('Event.orgc_id', 'Event.timestamp', 'Event.attribute_count'),
+            'conditions' => $conditions,
+            'order' => 'Event.timestamp'
+        ));
+        $sparklineData = array();
+        foreach ($events as $event) {
+            $date = date("Y-m-d", $event['Event']['timestamp']);
+            if (!isset($sparklineData[$event['Event']['attribute_count']][$date])) {
+                $sparklineData[$date] = $event['Event']['attribute_count'];
+            } else {
+                $sparklineData[$date] += $event['Event']['attribute_count'];
+            }
+        }
+
+        // get first and last timestamp
+        if (isset($params['from'])) {
+            $startDate = $params['from'];
+        } else {
+            $startDate = $this->resolveTimeDelta($params['event_timestamp']);
+        }
+        if (isset($params['to'])) {
+            $endDate = $params['to'];
+        } else {
+            $endDate = time();
+        }
+        $dates = array();
+        for ($d=$startDate; $d < $endDate; $d=$d+3600*24) {
+            $dates[] = date('Y-m-d', $d);
+        }
+        $csv = 'Date,Close\n';
+        foreach ($dates as $date) {
+            $csv .= sprintf('%s,%s\n', $date, isset($sparklineData[$date]) ? $sparklineData[$date] : 0);
+        }
+        $data = array(
+            'csv' => $csv,
+            'data' => $sparklineData,
+            'orgId' => $orgId
+        );
+        return $data;
+    }
+
+    /*
+     *  Set the monitoring flag in Configure for the current user
+     *  Reads the state from redis
+     */
+    public function setMonitoring($user)
+    {
+        if (
+            !empty(Configure::read('Security.user_monitoring_enabled'))
+        ) {
+            $redis = $this->setupRedis();
+            if (!empty($redis->sismember('misp:monitored_users', $user['id']))) {
+                Configure::write('Security.monitored', 1);
+                return true;
+            }
+        }
+        Configure::write('Security.monitored', 0);
+    }
+
+    public function registerUser($added_by, $registration, $org_id, $role_id) {
+        $user = array(
+                'email' => $registration['data']['email'],
+                'gpgkey' => empty($registration['data']['pgp']) ? '' : $registration['data']['pgp'],
+                'disabled' => 0,
+                'newsread' => 0,
+                'change_pw' => 1,
+                'authkey' => $this->generateAuthKey(),
+                'termsaccepted' => 0,
+                'org_id' => $org_id,
+                'role_id' => $role_id,
+                'invited_by' => $added_by['id'],
+                'contactalert' => 1,
+                'autoalert' => Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : 1
+        );
+        $this->create();
+        $this->Log = ClassRegistry::init('Log');
+        $result = $this->save(array('User' => $user));
+        $currentOrg = $this->Organisation->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Organisation.id' => $org_id)
+        ));
+        if (!empty($currentOrg) && empty($currentOrg['Organisation']['local'])) {
+            $currentOrg['Organisation']['local'] = 1;
+            $this->Organisation->save($currentOrg);
+        }
+        if (empty($result)) {
+            $error = array();
+            foreach ($this->validationErrors as $key => $errors) {
+                $error[$key] = $key . ': ' . implode(', ', $errors);
+            }
+            $error = implode(PHP_EOL, $error);
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'User',
+                    'model_id' => $added_by['id'],
+                    'email' => $added_by['email'],
+                    'action' => 'failed_registration',
+                    'title' => 'User registration failed for ' . $user['email'] . '. Reason(s): ' . $error,
+                    'change' => null,
+            ));
+            return false;
+        } else {
+            $user = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('id' => $this->id)
+            ));
+            $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'User',
+                'model_id' => $added_by['id'],
+                'email' => $added_by['email'],
+                'action' => 'succeeded_registration',
+                'title' => sprintf('User registration success for %s (id=%s)', $user['User']['email'], $user['User']['id']),
+                'change' => null,
+            ));
+            $this->initiatePasswordReset($user, true, true, false);
+            $this->Inbox = ClassRegistry::init('Inbox');
+            $this->Inbox->delete($registration['id']);
+            return true;
+        }
+
     }
 }

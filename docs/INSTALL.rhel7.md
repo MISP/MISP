@@ -29,7 +29,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 
 !!! notice
     Maintenance for CentOS 7 will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
-    CentOS 7.6-1810 [NetInstallURL](http://mirror.centos.org/centos/7.6.1810/os/x86_64/)
+    CentOS 7-1908 [NetInstallURL](http://mirror.centos.org/centos/7/os/x86_64/)
 
 This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x) and CentOS 7.x.
 At time of this writing it was tested on versions 7.6 for both.
@@ -158,6 +158,8 @@ yumInstallCoreDeps () {
   # Enable and start redis
   sudo systemctl enable --now rh-redis32-redis.service
 
+  WWW_USER="apache"
+  SUDO_WWW="sudo -H -u $WWW_USER"
   RUN_PHP="/usr/bin/scl enable rh-php72"
   PHP_INI="/etc/opt/rh/rh-php72/php.ini"
   # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
@@ -169,10 +171,8 @@ yumInstallCoreDeps () {
                    rh-php72-php-opcache \
                    rh-php72-php-gd -y
 
-  # Install Python 3.6 from SCL, see
-  # https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
-  RUN_PYTHON='/usr/bin/scl enable rh-python36'
-  sudo yum install rh-python36 -y
+  # Python 3.6 is now available in RHEL 7.7 base
+  sudo yum install python3 python3-devel -y
 
   sudo systemctl enable --now rh-php72-php-fpm.service
 }
@@ -197,10 +197,10 @@ sudo systemctl enable --now haveged.service
 ```bash
 # <snippet-begin 1_mispCoreInstall_RHEL.sh>
 installCoreRHEL () {
-  # Download MISP using git in the /var/www/ directory.
-  sudo mkdir $PATH_TO_MISP
-  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP
-  cd /var/www
+  # Download MISP using git in the $PATH_TO_MISP directory.
+  sudo mkdir -p $(dirname $PATH_TO_MISP)
+  sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
+  cd $(dirname $PATH_TO_MISP)
   $SUDO_WWW git clone https://github.com/MISP/MISP.git
   cd $PATH_TO_MISP
   ##$SUDO_WWW git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
@@ -217,7 +217,8 @@ installCoreRHEL () {
   $SUDO_WWW git config core.filemode false
 
   # Create a python3 virtualenv
-  $SUDO_WWW $RUN_PYTHON -- virtualenv -p python3 $PATH_TO_MISP/venv
+  sudo pip3 install virtualenv
+  $SUDO_WWW python3 -m venv $PATH_TO_MISP/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
@@ -228,16 +229,22 @@ installCoreRHEL () {
   $SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   UMASK=$(umask)
   umask 0022
+  
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+  
   cd $PATH_TO_MISP/app/files/scripts/python-stix
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
   # install mixbox to accommodate the new STIX dependencies:
   cd $PATH_TO_MISP/app/files/scripts/mixbox
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  # FIXME: Remove once stix-fixed
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
 
   # install STIX2.0 library to support STIX 2.0 export:
   cd $PATH_TO_MISP/cti-python-stix2
@@ -253,13 +260,12 @@ installCoreRHEL () {
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
   # lief needs manual compilation
-  sudo yum install devtoolset-7 cmake3 cppcheck -y
+  sudo yum install devtoolset-7 cmake3 cppcheck libcxx-devel -y
 
-  # FIXME: This does not work!
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW mkdir build
   cd build
-  $SUDO_WWW scl enable devtoolset-7 rh-python36 "bash -c 'cmake3 \
+  $SUDO_WWW scl enable devtoolset-7 "bash -c 'cmake3 \
   -DLIEF_PYTHON_API=on \
   -DPYTHON_VERSION=3.6 \
   -DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
@@ -282,7 +288,7 @@ installCoreRHEL () {
   fi
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
-  echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
+  echo $PATH_TO_MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee $PATH_TO_MISP/venv/lib/python3.6/site-packages/lief.pth
 
   # install magic, pydeep
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
@@ -291,19 +297,13 @@ installCoreRHEL () {
   cd $PATH_TO_MISP/PyMISP
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
 
-  # Enable python3 for php-fpm
-  echo 'source scl_source enable rh-python36' | sudo tee -a /etc/opt/rh/rh-php72/sysconfig/php-fpm
-  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
-  sudo systemctl restart rh-php72-php-fpm.service
-
-  umask $UMASK
-
   # Enable dependencies detection in the diagnostics page
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
-  # The LD_LIBRARY_PATH setting is needed for rh-git218 to work, one might think to install httpd24 and not just httpd ...
-  echo "env[PATH] = /opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
-  echo "env[LD_LIBRARY_PATH] = /opt/rh/httpd24/root/usr/lib64/" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+  # The LD_LIBRARY_PATH setting is needed for rh-git218 to work
+  echo "env[PATH] = /opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
   sudo systemctl restart rh-php72-php-fpm.service
+  umask $UMASK
 }
 # <snippet-end 1_mispCoreInstall_RHEL.sh>
 ```
@@ -323,8 +323,9 @@ installCake_RHEL ()
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
   # Update composer.phar (optional)
+  #EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
   #$SUDO_WWW $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  #$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+  #$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
   #$SUDO_WWW $RUN_PHP "php composer-setup.php"
   #$SUDO_WWW $RUN_PHP -- php -r "unlink('composer-setup.php');"
   $SUDO_WWW $RUN_PHP "php composer.phar install"
@@ -332,19 +333,20 @@ installCake_RHEL ()
   ## sudo yum install php-redis -y
   sudo scl enable rh-php72 'pecl channel-update pecl.php.net'
   sudo scl enable rh-php72 'yes no|pecl install redis'
-  echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
-  sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
+  echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-redis.ini
+
+  sudo ln -s /usr/lib64/libfuzzy.so /usr/lib/libfuzzy.so
+  sudo scl enable rh-php72 'pecl install ssdeep'
+  echo "extension=ssdeep.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-ssdeep.ini
 
   # Install gnupg extension
   sudo yum install gpgme-devel -y
   sudo scl enable rh-php72 'pecl install gnupg'
-  echo "extension=gnupg.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/gnupg.ini
-  sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/gnupg.ini /etc/opt/rh/rh-php72/php.d/99-gnupg.ini
+  echo "extension=gnupg.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-gnupg.ini
   sudo systemctl restart rh-php72-php-fpm.service
 
   # If you have not yet set a timezone in php.ini
-  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/timezone.ini
-  sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php72/php.d/99-timezone.ini
+  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/rh/rh-php72/php.d/timezone.ini
 
   # Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
   # max_execution_time = 300
@@ -360,7 +362,7 @@ installCake_RHEL ()
   # To use the scheduler worker for scheduled tasks, do the following:
   sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 }
-# <snippet-begin 1_installCake_RHEL.sh>
+# <snippet-end 1_installCake_RHEL.sh>
 ```
 
 ### 5/ Set file permissions
@@ -369,10 +371,10 @@ installCake_RHEL ()
 # Main function to fix permissions to something sane
 permissions_RHEL () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
-  ## ? chown -R root:apache /var/www/MISP
+  ## ? chown -R root:$WWW_USER $PATH_TO_MISP
   sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
   sudo chmod -R g+r,o= $PATH_TO_MISP
-  ## **Note :** For updates through the web interface to work, apache must own the /var/www/MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
+  ## **Note :** For updates through the web interface to work, apache must own the $PATH_TO_MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
   sudo chmod -R 750 $PATH_TO_MISP
   sudo chmod -R g+xws $PATH_TO_MISP/app/tmp
   sudo chmod -R g+ws $PATH_TO_MISP/app/files
@@ -409,17 +411,25 @@ prepareDB_RHEL () {
   ## The following needs some thoughts about scl enable foo
   #if [[ ! -e /var/opt/rh/rh-mariadb102/lib/mysql/misp/users.ibd ]]; then
 
-  # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-  pw="Password1234"
+  # We ask interactively your password if not run as root
+  pw=""
+  if [[ "$EUID" -ne 0 ]]; then
+    read -s -p "Enter sudo password: " pw
+  fi
 
   expect -f - <<-EOF
     set timeout 10
 
     spawn sudo scl enable rh-mariadb102 mysql_secure_installation
-    expect "*?assword*"
-    send -- "$pw\r"
-    expect "Enter current password for root (enter for none):"
-    send -- "\r"
+    expect {
+      "*sudo*" {
+        send "$pw\r"
+        exp_continue
+      }
+      "Enter current password for root (enter for none):" {
+        send -- "\r"
+      }
+    }
     expect "Set root password?"
     send -- "y\r"
     expect "New password:"
@@ -485,7 +495,7 @@ apacheConfig_RHEL () {
   sudo openssl req -new -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" -key /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.csr
   sudo openssl x509 -req -days 365 -in /etc/pki/tls/certs/misp.local.csr -signkey /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.crt
   sudo ln -s /etc/pki/tls/certs/misp.local.csr /etc/pki/tls/certs/misp-chain.crt
-  cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.crt 
+  cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.crt
 
   sudo systemctl restart httpd.service
 
@@ -495,12 +505,14 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/tmp
   sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Plugin/CakeResque/tmp
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/cake
-  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/start.sh
-  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmq.py
-  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmqtest.py
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/*.sh
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
-  sudo chcon -t httpd_sys_rw_content_t /tmp
-  sudo chcon -R -t usr_t $PATH_TO_MISP/venv
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
+  sudo chcon -R -t bin_t $PATH_TO_MISP/venv/bin/*
+  find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
+  # Only run these if you want to be able to update MISP from the web interface
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Lib
@@ -537,7 +549,7 @@ firewall_RHEL () {
 
 ### 8/ Log Rotation
 ## 8.01/ Enable log rotation
-MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
+MISP saves the stdout and stderr of its workers in $PATH_TO_MISP/app/tmp/logs
 To rotate these logs install the supplied logrotate script:
 
 FIXME: The below does not work
@@ -553,12 +565,11 @@ logRotation_RHEL () {
 
   # Now make logrotate work under SELinux as well
   # Allow logrotate to modify the log files
-  sudo semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/MISP(/.*)?"
+  sudo semanage fcontext -a -t httpd_sys_rw_content_t "$PATH_TO_MISP(/.*)?"
   sudo semanage fcontext -a -t httpd_log_t "$PATH_TO_MISP/app/tmp/logs(/.*)?"
   sudo chcon -R -t httpd_log_t $PATH_TO_MISP/app/tmp/logs
-  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp/logs
   # Impact of the following: ?!?!?!!?111
-  ##sudo restorecon -R /var/www/MISP/
+  ##sudo restorecon -R $PATH_TO_MISP
 
   # Allow logrotate to read /var/www
   sudo checkmodule -M -m -o /tmp/misplogrotate.mod $PATH_TO_MISP/INSTALL/misplogrotate.te
@@ -675,16 +686,16 @@ configWorkersRHEL () {
 
   [Service]
   Type=forking
-  User=apache
-  Group=apache
-  ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh
+  User=$WWW_USER
+  Group=$WWW_USER
+  ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb102 $PATH_TO_MISP/app/Console/worker/start.sh
   Restart=always
   RestartSec=10
 
   [Install]
   WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-workers.service
 
-  sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
+  sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
   sudo systemctl daemon-reload
 
   sudo systemctl enable --now misp-workers.service
@@ -714,7 +725,7 @@ Possible also due to package being installed via SCL, attempting to start worker
 systemctl restart misp-workers.service
 ```
 
-!!! note 
+!!! note
     No other functions were tested after the conclusion of this install. There may be issue that aren't addressed<br />
     via this guide and will need additional investigation.
 

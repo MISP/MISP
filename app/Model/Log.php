@@ -16,51 +16,60 @@ class Log extends AppModel
     );
     public $validate = array(
             'action' => array(
-            'rule' => array('inList', array(
-                            'accept',
-                            'accept_delegation',
-                            'add',
-                            'admin_email',
-                            'auth',
-                            'auth_fail',
-                            'blacklisted',
-                            'change_pw',
-                            'delete',
-                            'disable',
-                            'discard',
-                            'edit',
-                            'email',
-                            'enable',
-                            'error',
-                            'export',
-                            'file_upload',
-                            'galaxy',
-                            'include_formula',
-                            'login',
-                            'login_fail',
-                            'logout',
-                            'merge',
-                            'pruneUpdateLogs',
-                            'publish',
-                            'publish alert',
-                            'pull',
-                            'purge_events',
-                            'push',
-                            'remove_dead_workers',
-                            'request',
-                            'request_delegation',
-                            'reset_auth_key',
-                            'security',
-                            'serverSettingsEdit',
-                            'tag',
-                            'undelete',
-                            'update',
-                            'update_database',
-                            'upgrade_24',
-                            'upload_sample',
-                            'version_warning',
-                            'warning'
-                        )),
+            'rule' => array(
+                'inList',
+                array( // ensure that the length of the rules is < 20 in length
+                    'accept',
+                    'accept_delegation',
+                    'acceptRegistrations',
+                    'add',
+                    'admin_email',
+                    'auth',
+                    'auth_fail',
+                    'blacklisted',
+                    'change_pw',
+                    'delete',
+                    'disable',
+                    'discard',
+                    'discardRegistrations',
+                    'edit',
+                    'email',
+                    'enable',
+                    'error',
+                    'export',
+                    'failed_registration',
+                    'file_upload',
+                    'galaxy',
+                    'include_formula',
+                    'login',
+                    'login_fail',
+                    'logout',
+                    'merge',
+                    'pruneUpdateLogs',
+                    'publish',
+                    'publish_sightings',
+                    'publish alert',
+                    'pull',
+                    'purge_events',
+                    'push',
+                    'remove_dead_workers',
+                    'request',
+                    'request_delegation',
+                    'reset_auth_key',
+                    'security',
+                    'serverSettingsEdit',
+                    'succeeded_registration',
+                    'tag',
+                    'undelete',
+                    'update',
+                    'update_database',
+                    'update_db_worker',
+                    'upgrade_24',
+                    'upload_sample',
+                    'version_warning',
+                    'warning'
+                )
+            ),
             'message' => 'Options : ...'
         )
     );
@@ -83,7 +92,7 @@ class Log extends AppModel
     public $logMetaAdmin = array(
         'update' => array('values' => array('update_database'), 'name' => 'MISP Update results'),
         'settings' => array('values' => array('serverSettingsEdit', 'remove_dead_workers'), 'name' => 'Setting changes'),
-        'errors' => array('values' => array('warning', 'errors', 'version_warning'), 'name' => 'Warnings and errors'),
+        'errors' => array('values' => array('warning', 'error', 'version_warning'), 'name' => 'Warnings and errors'),
         'email' => array('values' => array('admin_email'))
     );
 
@@ -146,7 +155,7 @@ class Log extends AppModel
             $conditions['org'] = $org['Organisation']['name'];
         }
         $conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
-        if ($dataSource == 'Database/Mysql') {
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
             $validDates = $this->find('all', array(
                     'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
                     'conditions' => $conditions,
@@ -177,19 +186,54 @@ class Log extends AppModel
         return $data;
     }
 
-    public function createLogEntry($user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0), $action, $model, $model_id = 0, $title = '', $change = '')
+    /**
+     * @param string|array $user
+     * @param string $action
+     * @param string $model
+     * @param int $modelId
+     * @param string $title
+     * @param string|array $change
+     * @return array
+     * @throws Exception
+     */
+    public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
     {
+        if ($user === 'SYSTEM') {
+            $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
+        } else if (!is_array($user)) {
+            throw new InvalidArgumentException("User must be array or 'SYSTEM' string.");
+        }
+
+        if (is_array($change)) {
+            $output = array();
+            foreach ($change as $field => $values) {
+                if (strpos($field, 'password') !== false) { // if field name contains password, replace value with asterisk
+                    $oldValue = $newValue = "*****";
+                } else {
+                    list($oldValue, $newValue) = $values;
+                }
+                $output[] = "$field ($oldValue) => ($newValue)";
+            }
+            $change = implode(", ", $output);
+        }
+
         $this->create();
-        $this->save(array(
-                'org' => $user['Organisation']['name'],
-                'email' =>$user['email'],
-                'user_id' => $user['id'],
-                'action' => $action,
-                'title' => $title,
-                'change' => $change,
-                'model' => $model,
-                'model_id' => $model_id,
+        $result = $this->save(array(
+            'org' => $user['Organisation']['name'],
+            'email' => $user['email'],
+            'user_id' => $user['id'],
+            'action' => $action,
+            'title' => $title,
+            'change' => $change,
+            'model' => $model,
+            'model_id' => $modelId,
         ));
+
+        if (!$result) {
+            throw new Exception("Cannot save log because of validation errors: " . json_encode($this->validationErrors));
+        }
+
+        return $result;
     }
 
     // to combat a certain bug that causes the upgrade scripts to loop without being able to set the correct version
@@ -283,7 +327,6 @@ class Log extends AppModel
             $elasticSearchClient = $this->getElasticSearchTool();
             $elasticSearchClient->pushDocument($logIndex, "log", $data);
         }
-
         if (Configure::read('Security.syslog')) {
             // write to syslogd as well
             $syslog = new SysLog();
@@ -298,8 +341,17 @@ class Log extends AppModel
             }
 
             $entry = $data['Log']['action'];
+            if (!empty($data['Log']['title'])) {
+                $entry .= sprintf(
+                    ' -- %s',
+                    $data['Log']['title']
+                );
+            }
             if (!empty($data['Log']['description'])) {
-                $entry .= sprintf(' -- %s', $data['Log']['description']);
+                $entry .= sprintf(
+                    ' -- %s',
+                    $data['Log']['description']
+                );
             }
             $syslog->write($action, $entry);
         }

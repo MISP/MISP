@@ -135,6 +135,7 @@
             ?>
             <th class="context hidden"><?php echo $this->Paginator->sort('id');?></th>
             <th class="context hidden">UUID</th>
+            <th class="context hidden"><?php echo __('First seen') ?> <i class="fas fa-arrow-right"></i> <?php echo __('Last seen') ?></th>
             <th><?php echo $this->Paginator->sort('timestamp', __('Date'), array('direction' => 'desc'));?></th>
             <?php
                 if ($extended):
@@ -163,10 +164,23 @@
             <th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
             <th><?php echo __('Sightings');?></th>
             <th><?php echo __('Activity');?></th>
-            <?php if ($includeDecayScore): ?>
-                <th class="decayingScoreField" title="<?php echo __('Decaying Score');?>"><?php echo __('Score');?></th>
-                <?php $fieldCount += 1; ?>
-            <?php endif; ?>
+            <?php
+                if ($includeSightingdb) {
+                    echo sprintf(
+                        '<th>%s</th>',
+                        __('SightingDB')
+                    );
+                    $fieldCount += 1;
+                }
+                if ($includeDecayScore) {
+                    sprintf(
+                        '<th class="decayingScoreField" title="%s">%s</th>',
+                        __('Decaying Score'),
+                        __('Score')
+                    );
+                    $fieldCount += 1;
+                }
+            ?>
             <th class="actions"><?php echo __('Actions');?></th>
         </tr>
         <?php
@@ -187,7 +201,8 @@
                     'page' => $page,
                     'fieldCount' => $fieldCount,
                     'includeRelatedTags' => !empty($includeRelatedTags) ? 1 : 0,
-                    'includeDecayingScore' => !empty($includeDecayingScore) ? 1 : 0
+                    'includeDecayingScore' => !empty($includeDecayingScore) ? 1 : 0,
+                    'includeSightingdb' => !empty($includeSightingdb) ? 1 : 0
                 ));
                 if (!empty($focus) && ($object['objectType'] == 'object' || $object['objectType'] == 'attribute') && $object['uuid'] == $focus) {
                     $focusedRow = $k;

@@ -25,8 +25,10 @@ usage () {
   space
   echo -e "${SCRIPT_NAME} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
   echo -e "                -M | ${LBLUE}MISP${NC} modules"        # modules
-  echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
-  echo -e "                -V | Viper"                            # viper
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##echo -e "                -V | Viper"                            # viper
   echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"         # mail2
   echo -e "                -S | Experimental ssdeep correlations" # ssdeep
   echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
@@ -37,7 +39,7 @@ usage () {
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
-  echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
+  echo -e "Options can be combined: ${SCRIPT_NAME} -c -D # Will install Core+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
   echo -e "MISP + modules - ${SCRIPT_NAME} -c -M"
@@ -135,16 +137,17 @@ checkFlavour () {
     centos)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+        dist_version=${dist_version:0:1}
       fi
-      echo "$FLAVOUR not supported at the moment"
-      exit 1
+      echo "$FLAVOUR support is experimental at the moment"
     ;;
     rhel|ol|sles)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+	dist_version=${dist_version:0:1}  # Only interested about major version
       fi
-      echo "$FLAVOUR not supported at the moment"
-      exit 1
+      # Only tested for RHEL 7 so far 
+      echo "$FLAVOUR support is experimental at the moment"
     ;;
     *)
       if command_exists lsb_release; then
@@ -212,25 +215,38 @@ EOF
 }
 
 checkInstaller () {
-  # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
-  if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
-    sudo apt install libdigest-sha-perl -qyy
-  fi
-  # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
-  SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
-  for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
-    /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
-    INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
-    chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
-
-    if [[ "${chsum}" == "${INSTsum}" ]]; then
-      echo "sha${sum} matches"
-    else
-      echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
-      echo "Delete installer, re-download and please run again."
-      exit 1
+  # Workaround: shasum is not available on RHEL, only checking sha512
+  if [[ $FLAVOUR == "rhel" ]] || [[ $FLAVOUR == "centos" ]]; then
+	INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
+	/usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
+        chsum=$(cat /tmp/INSTALL.sh.sha512)
+	if [[ "${chsum}" == "${INSTsum}" ]]; then
+		echo "SHA512 matches"
+	else
+		echo "SHA512: ${chsum} does not match the installer sum of: ${INSTsum}"
+		# exit 1 # uncomment when/if PR is merged
+	fi
+  else
+    # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
+    if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
+      sudo apt install libdigest-sha-perl -qyy
     fi
-  done
+    # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
+    SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
+    for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
+      /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
+      INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
+      chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
+
+      if [[ "${chsum}" == "${INSTsum}" ]]; then
+        echo "sha${sum} matches"
+      else
+        echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
+        echo "Delete installer, re-download and please run again."
+        exit 1
+      fi
+    done
+  fi
 }
 
 # Extract manufacturer
@@ -385,12 +401,12 @@ checkID () {
     sudo adduser $MISP_USER $WWW_USER
   fi
 
-  # FIXME: the below SUDO_USER check is a duplicate from global variables, try to have just one check
+  # FIXME: the below SUDO_CMD check is a duplicate from global variables, try to have just one check
   # sudo config to run $LUSER commands
   if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
-    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+    SUDO_CMD="sudo -H -u ${MISP_USER} -g staff"
   else
-    SUDO_USER="sudo -H -u ${MISP_USER}"
+    SUDO_CMD="sudo -H -u ${MISP_USER}"
   fi
 
 }
@@ -798,7 +814,8 @@ composer73 () {
   # Update composer.phar
   # If hash changes, check here: https://getcomposer.org/download/ and replace with the correct one
   # Current Sum for: v1.8.3
-  SHA384_SUM='48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5'
+  SHA384_SUM="$(wget -q -O - https://composer.github.io/installer.sig)"
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
   checkFail "composer.phar checksum failed, please investigate manually. " $?
@@ -830,13 +847,12 @@ genRCLOCAL () {
 
 # Run PyMISP tests
 runTests () {
-  echo "url = ${MISP_BASEURL}
-key = ${AUTH_KEY}" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
+  echo "url = \"${MISP_BASEURL}\"
+key = \"${AUTH_KEY}\"" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
   sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
   sudo -H -u $WWW_USER ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
-  sudo -H -u $WWW_USER git clone https://github.com/viper-framework/viper-test-files.git $PATH_TO_MISP/PyMISP/tests/viper-test-files
   sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
 }
 
@@ -853,25 +869,26 @@ nuke () {
 # Final function to let the user know what happened
 theEnd () {
   space
-  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_USER tee /home/${MISP_USER}/mysql.txt
-  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_USER tee -a /home/${MISP_USER}/mysql.txt
-  echo "Authkey: $AUTH_KEY" |$SUDO_USER tee -a /home/${MISP_USER}/MISP-authkey.txt
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_CMD tee /home/${MISP_USER}/mysql.txt
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_CMD tee -a /home/${MISP_USER}/mysql.txt
+  echo "Authkey: $AUTH_KEY" |$SUDO_CMD tee -a /home/${MISP_USER}/MISP-authkey.txt
 
-  clear
+  # Commenting out, see: https://github.com/MISP/MISP/issues/5368
+  # clear -x
   space
   echo -e "${LBLUE}MISP${NC} Installed, access here: ${MISP_BASEURL}"
   echo
   echo "User: admin@admin.test"
   echo "Password: admin"
   space
-  [[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
-  [[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && space
+  ##[[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
+  ##[[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && space
   echo -e "The following files were created and need either ${RED}protection or removal${NC} (${YELLOW}shred${NC} on the CLI)"
   echo "/home/${MISP_USER}/mysql.txt"
   echo -e "${RED}Contents:${NC}"

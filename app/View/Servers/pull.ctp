@@ -32,6 +32,17 @@ else:?>
     </ul>
     <?php
 endif;?>
+    <h2><?php echo __('Sightings pulled');?></h2>
+    <?php
+if (0 == count($pulledSightings)):?>
+    <p><?php echo __('No sightings pulled');?></p>
+    <?php
+else:?>
+    <ul>
+    <?php foreach ($pulledSightins as $e => $p) echo '<li>Event ' . $e . ' : ' . $p . ' sighting(s).</li>'; ?>
+    </ul>
+    <?php
+endif;?>
 
 </div>
 <?php

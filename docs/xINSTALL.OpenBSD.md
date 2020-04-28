@@ -250,18 +250,8 @@ doas virtualenv -ppython3 /usr/local/virtualenvs/MISP
 ```
 
 #### Install ssdeep
-```
-doas mkdir /usr/local/src
-doas chown misp:misp /usr/local/src
-cd /usr/local/src
-doas -u misp git clone https://github.com/ssdeep-project/ssdeep.git
-cd ssdeep
-export AUTOMAKE_VERSION=1.16
-export AUTOCONF_VERSION=2.69
-doas -u misp ./bootstrap
-doas -u misp ./configure --prefix=/usr
-doas -u misp make
-doas make install
+```bash
+doas pkg_add -v ssdeep
 ```
 
 #### Apache2 only
@@ -393,6 +383,9 @@ doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 cd /var/www/htdocs/MISP/PyMISP
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
+# FIXME: Remove once stix-fixed
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
+
 # install support for STIX 2.0
 cd /var/www/htdocs/MISP/cti-python-stix2
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
@@ -409,8 +402,9 @@ doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app
 doas mkdir /var/www/.composer ; doas chown www:www /var/www/.composer
+EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
 doas -u www php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-doas -u www php -r "if (hash_file('SHA384', 'composer-setup.php') === 'a5c698ffe4b8e849a443b120cd5ba38043260d5c4023dbf93e1558871f1f07f58274fc6f4c93bcfd858c6bd0775cd8d1') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+doas -u www php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 doas -u www env HOME=/var/www php composer-setup.php
 doas -u www php -r "unlink('composer-setup.php');"
 doas -u www env HOME=/var/www php composer.phar install

@@ -49,10 +49,11 @@
                 'children' => array(
                     array(
                         'id' => 'create-button',
-                        'title' => __('Add attribute'),
+                        'title' => $possibleAction === 'Attribute' ? __('Add attribute') : __('Add proposal'),
                         'fa-icon' => 'plus',
-                        'onClick' => 'clickCreateButton',
-                        'onClickParams' => array($event['Event']['id'], $possibleAction)
+                        //'onClick' => 'clickCreateButton',
+                        'onClick' => 'openGenericModal',
+                        'onClickParams' => array('/' . $possibleAction . 's/add/' . h($event['Event']['id']))
                     ),
                     array(
                         'id' => 'multi-edit-button',
@@ -100,7 +101,7 @@
                         'id' => 'multi-accept-button',
                         'title' => __('Accept selected Proposals'),
                         'class' => 'mass-proposal-select hidden',
-                        'fa-icon' => 'check-circl',
+                        'fa-icon' => 'check-circle',
                         'onClick' => 'multiSelectAction',
                         'onClickParams' => array($event['Event']['id'], 'acceptProposals')
                     ),
@@ -176,6 +177,15 @@
                         'active' => $includeDecayScore,
                         'onClick' => 'toggleBoolFilter',
                         'onClickParams' => array($urlHere, 'includeDecayScore')
+                    ),
+                    array(
+                        'id' => 'show_attribute_sightingdb',
+                        'title' => __('Show SightingDB lookup results'),
+                        'fa-icon' => 'binoculars',
+                        'text' => __('SightingDB'),
+                        'active' => empty($includeSightingdb) ? false : true,
+                        'onClick' => 'toggleBoolFilter',
+                        'onClickParams' => array($urlHere, 'includeSightingdb')
                     ),
                     array(
                         'id' => 'show_attribute_context',

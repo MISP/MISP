@@ -3,7 +3,7 @@
         $menu = array(
             array(
                 'type' => 'root',
-                'url' => $baseurl . '/',
+                'url' =>empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
                 'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : __('Home'))
             ),
             array(
@@ -137,7 +137,7 @@
             array(
                 'type' => 'root',
                 'text' => __('Global Actions'),
-                'url' => '/users/dashboard',
+                'url' => '/dashboards',
                 'children' => array(
                     array(
                         'text' => __('News'),
@@ -148,8 +148,16 @@
                         'url' => '/users/view/me'
                     ),
                     array(
+                        'text' => __('My Settings'),
+                        'url' => '/user_settings/index/user_id:me'
+                    ),
+                    array(
+                        'text' => __('Set Setting'),
+                        'url' => '/user_settings/setSetting'
+                    ),
+                    array(
                         'text' => __('Dashboard'),
-                        'url' => '/users/dashboard'
+                        'url' => '/dashboards'
                     ),
                     array(
                         'text' => __('Organisations'),
@@ -188,7 +196,7 @@
                         'requirement' => $isAdmin
                     ),
                     array(
-                        'text' => __('Decaying Models'),
+                        'text' => __('List Decaying Models'),
                         'url' => '/decayingModel/index',
                     ),
                     array(
@@ -254,6 +262,16 @@
                         'requirement' => ($isSiteAdmin || $hostOrgUser)
                     ),
                     array(
+                        'text' => __('List SightingDB Connections'),
+                        'url' => '/sightingdb/index',
+                        'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
+                        'text' => __('Add SightingDB Connection'),
+                        'url' => '/sightingdb/add',
+                        'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
                         'text' => __('List Communities'),
                         'url' => '/communities/index',
                         'requirement' => ($isSiteAdmin)
@@ -271,12 +289,24 @@
                         'url' => '/admin/users/index'
                     ),
                     array(
+                        'text' => __('List User Settings'),
+                        'url' => '/user_settings/index/user_id:all'
+                    ),
+                    array(
+                        'text' => __('Set User Setting'),
+                        'url' => '/user_settings/setSetting'
+                    ),
+                    array(
                         'text' => __('Add User'),
                         'url' => '/admin/users/add'
                     ),
                     array(
                         'text' => __('Contact Users'),
                         'url' => '/admin/users/email'
+                    ),
+                    array(
+                        'text' => __('User Registrations'),
+                        'url' => '/users/registrations'
                     ),
                     array(
                         'type' => 'separator'
@@ -376,12 +406,20 @@
         $menu_right = array(
             array(
                 'type' => 'root',
-                'url' => $baseurl . '/',
+                'url' => '#',
+                'html' => sprintf(
+                    '<span class="fas fa-star %s" id="setHomePage" title="Set the current page as your home page in MISP"></span>',
+                    (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : ''
+                )
+            ),
+            array(
+                'type' => 'root',
+                'url' =>empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
                 'html' => '<span class="logoBlueStatic bold" id="smallLogo">MISP</span>'
             ),
             array(
                 'type' => 'root',
-                'url' => '/users/dashboard',
+                'url' => '/dashboards',
                 'html' => sprintf(
                     '<span class="white" title="%s">%s%s&nbsp;&nbsp;&nbsp;%s</span>',
                     h($me['email']),
@@ -394,14 +432,9 @@
                 )
             ),
             array(
-                'url' => h(Configure::read('Plugin.CustomAuth_custom_logout')),
-                'text' => __('Log out'),
-                'requirement' => (Configure::read('Plugin.CustomAuth_custom_logout') && empty(Configure::read('Plugin.CustomAuth_disable_logout')))
-            ),
-            array(
                 'url' => '/users/logout',
                 'text' => __('Log out'),
-                'requirement' => (!$externalAuthUser && empty(Configure::read('Plugin.CustomAuth_disable_logout')))
+                'requirement' => empty(Configure::read('Plugin.CustomAuth_disable_logout'))
             )
         );
     }
@@ -429,3 +462,11 @@
   </div>
 </div>
 <input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#setHomePage').click(function(event) {
+            event.preventDefault();
+            setHomePage();
+        })
+    });
+</script>

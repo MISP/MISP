@@ -536,7 +536,7 @@ class DecayingModel extends AppModel
             'sightings' => $sightings,
             'base_score_config' => $base_score_config,
             'last_sighting' => $sightings[count($sightings)-1],
-            'current_score' => $this->Computation->computeCurrentScore($user, $model, $attribute['Attribute'], $base_score, $last_sighting_timestamp),
+            'current_score' => $this->Computation->computeCurrentScore($user, $model, $attribute['Attribute'], $base_score, $last_sighting_timestamp)['score'],
             'Model' => $model['DecayingModel']
         );
     }
@@ -587,9 +587,10 @@ class DecayingModel extends AppModel
                 $model = $this->overrideModelParameters($model, $model_overrides);
             }
             $score = $this->getScore($attribute, $model, $user);
-            $decayed = $this->isDecayed($attribute, $model, $score);
+            $decayed = $this->isDecayed($attribute, $model, $score['score']);
             $to_attach = array(
-                'score' => $score,
+                'score' => $score['score'],
+                'base_score' => $score['base_score'],
                 'decayed' => $decayed,
                 'DecayingModel' => array(
                     'id' => $model['DecayingModel']['id'],
@@ -626,7 +627,7 @@ class DecayingModel extends AppModel
     public function isDecayed($attribute, $model, $score=false, $user=false)
     {
         if ($score === false) {
-            $score = $this->getScore($attribute, $model, $user);
+            $score = $this->getScore($attribute, $model, $user)['score'];
         }
         $this->Computation = $this->getModelClass($model);
         return $this->Computation->isDecayed($model, $attribute, $score);
