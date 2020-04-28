@@ -128,9 +128,11 @@ class StixParser():
                     except PyMISPInvalidFormat:
                         continue
 
-    @property
-    def basename(self):
-        return os.path.basename(self.filename)
+    def _set_info_from_report(report_attributes):
+        if report_attributes['name'] is None:
+            self.misp_event.info = "Imported with MISP import script for {} from {}.".format(self.stix_version, os.path.basename(self.filename))
+        else:
+            self.misp_event.info = report_attributes['name']
 
     def build_from_STIX_with_report(self):
         report_attributes = defaultdict(set)
@@ -141,10 +143,8 @@ class StixParser():
                 report_attributes['orgs'].add(report.created_by_ref.split('--')[1])
             except AttributeError:
                 pass
-
             if report_attributes['name'] is None:
                 report_attributes['name'] = report.name
-
             if report.get('published'):
                 report_attributes['published'].add(report.published)
             if 'labels' in report:
@@ -164,12 +164,7 @@ class StixParser():
             self.misp_event['Org'] = {'name': identity['name']}
         if len(report_attributes['published']) == 1:
             self.misp_event.publish_timestamp = self.getTimestampfromDate(report_attributes['published'].pop())
-
-        if report_attributes['name'] is None:
-            self.misp_event.info = "Imported with MISP import script for {} from {}.".format(self.stix_version, self.basename)
-        else:
-            self.misp_event.info = report_attributes['name']
-
+        self._set_info_from_report(report_attributes)
         for l in report_attributes['labels']:
             self.misp_event.add_tag(l)
 
