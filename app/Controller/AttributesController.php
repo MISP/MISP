@@ -412,16 +412,14 @@ class AttributesController extends AppController
 
     public function add_attachment($eventId = null)
     {
-        $this->loadModel('Event');
-
         if ($this->request->is('post')) {
-            $this->Event->id = $this->request->data['Attribute']['event_id'];
-            $this->Event->recursive = -1;
-            $event = $this->Event->read();
+            $this->Attribute->Event->id = $this->request->data['Attribute']['event_id'];
+            $this->Attribute->Event->recursive = -1;
+            $event = $this->Attribute->Event->read();
             if (empty($event)) {
                 throw new NotFoundException(__('Invalid Event.'));
             }
-            if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+            if (!$this->_isSiteAdmin() && ($this->Attribute->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
                 throw new UnauthorizedException(__('You do not have permission to do that.'));
             }
             $fails = array();
@@ -467,7 +465,6 @@ class AttributesController extends AppController
                     }
 
                     if (!empty($result)) {
-                        $this->loadModel('MispObject');
                         foreach ($result['Object'] as $object) {
                             $object['distribution'] = $this->request->data['Attribute']['distribution'];
                             if (!empty($this->request->data['sharing_group_id'])) {
@@ -476,11 +473,11 @@ class AttributesController extends AppController
                             foreach ($object['Attribute'] as $ka => $attribute) {
                                 $object['Attribute'][$ka]['distribution'] = 5;
                             }
-                            $this->MispObject->captureObject(array('Object' => $object), $eventId, $this->Auth->user());
+                            $this->Attribute->Object->captureObject(array('Object' => $object), $eventId, $this->Auth->user());
                         }
                         if (!empty($result['ObjectReference'])) {
                             foreach ($result['ObjectReference'] as $reference) {
-                                $this->MispObject->ObjectReference->smartSave($reference, $eventId);
+                                $this->Attribute->Object->ObjectReference->smartSave($reference, $eventId);
                             }
                         }
                     }
@@ -507,17 +504,17 @@ class AttributesController extends AppController
                     }
                 }
             }
-            $message = 'The attachment(s) have been uploaded.';
+            $message = __('The attachment(s) have been uploaded.');
             if (!empty($fails)) {
-                $message = 'Some of the attachments failed to upload. The failed files were: ' . implode(', ', $fails) . ' - This can be caused by the attachments already existing in the event.';
+                $message = __('Some of the attachments failed to upload. The failed files were: %s - This can be caused by the attachments already existing in the event.', implode(', ', $fails));
             }
             if (empty($success)) {
                 if (empty($fails)) {
-                    $message = 'The attachment(s) could not be saved. Please contact your administrator.';
+                    $message = __('The attachment(s) could not be saved. Please contact your administrator.');
                 }
             } else {
-                $this->Event->id = $this->request->data['Attribute']['event_id'];
-                $this->Event->saveField('published', 0);
+                $this->Attribute->Event->id = $this->request->data['Attribute']['event_id'];
+                $this->Attribute->Event->saveField('published', 0);
             }
             if (empty($success) && !empty($fails)) {
                 $this->Flash->error($message);
@@ -533,7 +530,7 @@ class AttributesController extends AppController
             $this->request->data['Attribute']['event_id'] = $eventId;
         }
 
-        $event = $this->Event->findById($eventId);
+        $event = $this->Attribute->Event->findById($eventId);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event.'));
         }
@@ -560,7 +557,7 @@ class AttributesController extends AppController
         $this->set('advancedExtractionAvailable', $this->Attribute->isAdvancedExtractionAvailable());
 
         // combobox for distribution
-        $this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
+        $this->set('distributionLevels', $this->Attribute->distributionLevels);
         $this->set('info', $this->getInfo());
 
         $this->loadModel('SharingGroup');
@@ -3232,7 +3229,7 @@ class AttributesController extends AppController
             return $this->RestResponse->viewData($final, $responseType, false, true, 'search.' . $type . '.' . $responseType);
         }
     }
-    
+
     private function getInfo()
     {
         $info = array('category' => array(), 'type' => array(), 'distribution' => array());
