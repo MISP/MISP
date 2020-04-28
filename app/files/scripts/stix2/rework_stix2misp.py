@@ -151,7 +151,7 @@ class StixParser():
                     if target in attribute_uuids or target in object_uuids:
                         source_object.add_reference(target, reference)
             elif source in attribute_uuids:
-                for attribute in self.misp_event.atributes:
+                for attribute in self.misp_event.attributes:
                     if attribute.uuid == source:
                         for reference in references:
                             target, reference = reference
