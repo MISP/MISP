@@ -279,17 +279,15 @@ class StixFromMISPParser(StixParser):
             self.parse_relationships()
         if self.galaxy:
             self.parse_galaxies()
-        if self.tags:
-            for tag in self.tags:
-                self.misp_event.add_tag(tag)
         if hasattr(self, 'report'):
             self.parse_report()
         if self.marking_definition:
             for marking_definition in self.marking_definition.values():
                 if not marking_definition['used']:
                     self.tags.add(marking_definition['object'])
-        for tag in self.tags:
-            self.misp_event.add_tag(tag)
+        if self.tags:
+            for tag in self.tags:
+                self.misp_event.add_tag(tag)
 
     def _parse_custom(self, custom):
         if 'from_object' in custom['labels']:
@@ -1157,6 +1155,19 @@ class ExternalStixParser(StixParser):
             object_type = stix_object['type']
             if object_type in self._stix2misp_mapping:
                 getattr(self, self._stix2misp_mapping[object_type])(stix_object)
+            else:
+                print(f'not found: {object_type}', file=sys.stderr)
+        if self.relationship:
+            self.parse_relationships()
+        if self.galaxy:
+            self.parse_galaxies()
+        if hasattr(self, 'report'):
+            self.parse_report()
+        else:
+            self.misp_event.info = 'Imported with the STIX to MISP import script.'
+        if self.tags:
+            for tag in self.tags:
+                self.misp_event.add_tag(tag)
 
     def parse_galaxy(self, galaxy):
         if galaxy.name in self._synonyms_to_tag_names:
