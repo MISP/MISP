@@ -21,8 +21,8 @@ mispmodulesRHEL () {
 
   [Service]
   Type=simple
-  User=apache
-  Group=apache
+  User=$WWW_USER
+  Group=$WWW_USER
   WorkingDirectory=/usr/local/src/misp-modules
   Environment="PATH=/var/www/MISP/venv/bin"
   ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"

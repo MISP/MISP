@@ -483,6 +483,7 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmq.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmqtest.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
   sudo chcon -t httpd_sys_rw_content_t /tmp
   sudo chcon -R -t usr_t $PATH_TO_MISP/venv
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git

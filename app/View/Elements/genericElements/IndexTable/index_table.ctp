@@ -32,6 +32,7 @@
     if (!$skipPagination) {
         $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : array();
         echo $this->element('/genericElements/IndexTable/pagination', array('paginationOptions' => $paginationData));
+        echo $this->element('/genericElements/IndexTable/pagination_links');
     }
     if (!empty($data['top_bar'])) {
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data['top_bar']));
@@ -81,6 +82,22 @@
     echo '</div>';
     if (!$skipPagination) {
         echo $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
-        echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
+        echo $this->element('/genericElements/IndexTable/pagination_links');
     }
 ?>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('.privacy-toggle').on('click', function() {
+            var $privacy_target = $(this).parent().find('.privacy-value');
+            if ($(this).hasClass('fa-eye')) {
+                $privacy_target.text($privacy_target.data('hidden-value'));
+                $(this).removeClass('fa-eye');
+                $(this).addClass('fa-eye-slash');
+            } else {
+                $privacy_target.text('****************************************');
+                $(this).removeClass('fa-eye-slash');
+                $(this).addClass('fa-eye');
+            }
+        });
+    });
+</script>

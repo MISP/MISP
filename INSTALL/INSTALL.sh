@@ -16,6 +16,7 @@
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
+#    20200412: Ubuntu 18.04.4 tested and working. -- sCl
 #    20190302: Ubuntu 18.04.2 tested and working. -- sCl
 #    20190208: Kali Linux tested and working. -- sCl
 #
@@ -1136,6 +1137,26 @@ installCoreDeps () {
   sudo apt install expect -qy
 }
 
+# Install Php 7.4 dependencies
+installDepsPhp74 () {
+  debug "Installing PHP 7.4 dependencies"
+  PHP_ETC_BASE=/etc/php/7.4
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  sudo apt update
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-redis php-gnupg \
+  php-gd
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+}
+
 # Install Php 7.3 deps
 installDepsPhp73 () {
   debug "Installing PHP 7.3 dependencies"
@@ -1324,7 +1345,7 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
 
   # install zmq needed by mispzmq
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq redis
@@ -1467,6 +1488,7 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_policy" 0
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_anonymise" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_range" 365
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_sighting_db_enable" false
 
   # Plugin CustomAuth tuneable
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.CustomAuth_disable_logout" false
@@ -1509,6 +1531,7 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\""
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_old_event_alert" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_old_event_alert_age" ""
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_old_event_alert_by_date" ""
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.incoming_tags_disabled_by_default" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.maintenance_message" "Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at \$email."
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.footermidleft" "This is an initial install"
@@ -1526,6 +1549,10 @@ coreCAKE () {
   # Force defaults to make MISP Server Settings less GREEN
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_length" 12
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators."
+
+  # It is possible to updateMISP too, only here for reference how to to that on the CLI.
+  ## $SUDO_WWW $RUN_PHP -- $CAKE Admin updateMISP
 
   # Set MISP Live
   $SUDO_WWW $RUN_PHP -- $CAKE Live $MISP_LIVE
@@ -1798,7 +1825,7 @@ mail2misp () {
   sudo ldconfig
   cd ../../mail_to_misp
   $SUDO_CMD virtualenv -p python3 venv
-  $SUDO_CMD ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_CMD ./venv/bin/pip install lief
   $SUDO_CMD ./venv/bin/pip install -r requirements.txt
   $SUDO_CMD cp mail_to_misp_config.py-example mail_to_misp_config.py
   ##$SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py
@@ -1852,7 +1879,7 @@ viper () {
   # TODO: Check for current user install permissions
   $SUDO_CMD git submodule update --init --recursive
   echo "pip install deps"
-  $SUDO_CMD ./venv/bin/pip install pefile olefile jbxapi Crypto pypdns pypssl r2pipe pdftools virustotal-api SQLAlchemy PrettyTable python-magic scrapy https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_CMD ./venv/bin/pip install pefile olefile jbxapi Crypto pypdns pypssl r2pipe pdftools virustotal-api SQLAlchemy PrettyTable python-magic scrapy lief
   $SUDO_CMD ./venv/bin/pip install .
   echo 'update-modules' |/usr/local/src/viper/venv/bin/viper
   cd /usr/local/src/viper-web
@@ -1977,10 +2004,13 @@ installCoreRHEL () {
   $SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   UMASK=$(umask)
   umask 0022
+  
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+  
   cd $PATH_TO_MISP/app/files/scripts/python-stix
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
@@ -2005,7 +2035,7 @@ installCoreRHEL () {
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
   # lief needs manual compilation
-  sudo yum install devtoolset-7 cmake3 cppcheck -y
+  sudo yum install devtoolset-7 cmake3 cppcheck libcxx-devel -y
 
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW mkdir build
@@ -2195,6 +2225,7 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
   sudo chcon -R -t bin_t $PATH_TO_MISP/venv/bin/*
   find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
   # Only run these if you want to be able to update MISP from the web interface
@@ -2391,8 +2422,8 @@ mispmodulesRHEL () {
 
   [Service]
   Type=simple
-  User=apache
-  Group=apache
+  User=$WWW_USER
+  Group=$WWW_USER
   WorkingDirectory=/usr/local/src/misp-modules
   Environment="PATH=/var/www/MISP/venv/bin"
   ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"
@@ -2487,7 +2518,7 @@ generateInstaller () {
   cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md INSTALL.rhel7.md`; do
+  for f in `echo INSTALL.ubuntu2004.md INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md INSTALL.rhel7.md`; do
     xsnippet . ../../docs/${f}
   done
 
@@ -2506,6 +2537,7 @@ generateInstaller () {
   perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp74.sh ##/`cat 0_installDepsPhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp70.sh ##/`cat 0_installDepsPhp70.sh`/ge' -i INSTALL.tpl.sh
@@ -2623,6 +2655,9 @@ installSupported () {
       # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
     elif [[ "$PHP_VER" == "7.3" ]]; then
+      # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
+    elif [[ "$PHP_VER" == "7.4" ]]; then
       # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
     elif [[ "$PHP_VER" == "7.0" ]]; then
@@ -2723,7 +2758,7 @@ installSupported () {
   theEnd
 }
 
-# Main Kalin Install function
+# Main Kali Install function
 installMISPonKali () {
   # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('')
   kaliUpgrade 2> /dev/null > /dev/null
@@ -2838,7 +2873,7 @@ installMISPonKali () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git 2> /dev/null > /dev/null
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief 2> /dev/null > /dev/null
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null

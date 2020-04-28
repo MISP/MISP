@@ -58,6 +58,7 @@ class Log extends AppModel
                     'reset_auth_key',
                     'security',
                     'serverSettingsEdit',
+                    'succeeded_registration',
                     'tag',
                     'undelete',
                     'update',
@@ -95,18 +96,6 @@ class Log extends AppModel
         'email' => array('values' => array('admin_email'))
     );
 
-    public function beforeValidete()
-    {
-        parent::beforeValidate();
-        if (!isset($this->data['Log']['org']) || empty($this->data['Log']['org'])) {
-            $this->data['Log']['org'] = 'SYSTEM';
-        }
-        // truncate the description if it would exceed the allowed size in mysql
-        if (!empty($this->data['Log']['description'] && strlen($this->data['Log']['description']) > 65536)) {
-            $this->data['Log']['description'] = substr($this->data['Log']['description'], 0, 65535);
-        }
-    }
-
     public function beforeSave($options = array())
     {
         if (!empty(Configure::read('MISP.log_skip_db_logs_completely'))) {
@@ -124,7 +113,7 @@ class Log extends AppModel
         if (!isset($this->data['Log']['created'])) {
             $this->data['Log']['created'] = date('Y-m-d H:i:s');
         }
-        if (!isset($this->data['Log']['org'])) {
+        if (!isset($this->data['Log']['org']) || empty($this->data['Log']['org'])) {
             $this->data['Log']['org'] = 'SYSTEM';
         }
         $truncate_fields = array('title', 'change', 'description');
