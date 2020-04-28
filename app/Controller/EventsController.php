@@ -1659,7 +1659,7 @@ class EventsController extends AppController
         if (!empty($this->params['named']['excludeGalaxy'])) {
             $conditions['excludeGalaxy'] = 1;
         }
-        if (!empty($this->params['named']['extended'])) {
+        if (!empty($this->params['named']['extended']) || !empty($this->request->data['extended'])) {
             $conditions['extended'] = 1;
             $this->set('extended', 1);
         } else {
