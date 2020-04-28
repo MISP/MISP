@@ -128,7 +128,7 @@ class StixParser():
                     except PyMISPInvalidFormat:
                         continue
 
-    def _set_info_from_report(report_attributes):
+    def _set_info_from_report(self, report_attributes):
         if report_attributes['name'] is None:
             self.misp_event.info = "Imported with MISP import script for {} from {}.".format(self.stix_version, os.path.basename(self.filename))
         else:
