@@ -128,6 +128,10 @@ class StixParser():
                     except PyMISPInvalidFormat:
                         continue
 
+    @property
+    def basename(self):
+        return os.path.basename(self.filename)
+
     def build_from_STIX_with_report(self):
         report_attributes = defaultdict(set)
         report_attributes['name'] = None
@@ -162,9 +166,7 @@ class StixParser():
             self.misp_event.publish_timestamp = self.getTimestampfromDate(report_attributes['published'].pop())
 
         if report_attributes['name'] is None:
-            self.misp_event.info = "Imported with MISP import script for {} from {}.".format(self.stix_version,
-                                                                                             os.path.basename(
-                                                                                                 self.filename))
+            self.misp_event.info = "Imported with MISP import script for {} from {}.".format(self.stix_version, self.basename)
         else:
             self.misp_event.info = report_attributes['name']
 
