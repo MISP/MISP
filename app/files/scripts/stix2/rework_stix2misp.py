@@ -1373,6 +1373,9 @@ class ExternalStixParser(StixParser):
             self.misp_event.add_object(**pe_object)
         self.misp_event.add_object(**file_object)
 
+    def parse_ip_address_pattern(self, indicator):
+        self.add_single_attribute(indicator, 'ip-dst')
+
     def parse_mac_address_pattern(self, indicator):
         self.add_single_attribute(indicator, 'mac-address')
 
