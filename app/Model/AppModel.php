@@ -2839,12 +2839,17 @@ class AppModel extends Model
      */
     protected function logException($message, Exception $exception, $type = LOG_ERR)
     {
-        $message = sprintf("%s\n[%s] %s",
-            $message,
-            get_class($exception),
-            $exception->getMessage()
-        );
-        $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+        $message .= "\n";
+
+        do {
+            $message .= sprintf("[%s] %s",
+                get_class($exception),
+                $exception->getMessage()
+            );
+            $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+            $exception = $exception->getPrevious();
+        } while ($exception !== null);
+
         return $this->log($message, $type);
     }
 }
