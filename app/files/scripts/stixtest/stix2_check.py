@@ -51,7 +51,7 @@ if __name__ == '__main__':
         filenames = (f'test_json_{args.input}.json', f'test_stix2_{args.input}.json.stix2')
         query_import(f'test_stix2_{args.input}.json', args.externalise)
     else:
-        if not args.ouput:
+        if not args.output:
             sys.exit('Please provide an output name for the test files.')
         output = args.output
         filenames = []
