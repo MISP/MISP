@@ -523,7 +523,30 @@ class Galaxy extends AppModel
         foreach ($clusters as $i => $cluster) {
             if (!empty($cluster['GalaxyCluster']['extended_from'])) {
                 $parent = $cluster['GalaxyCluster']['extended_from'];
-                $lookup[$parent['GalaxyCluster']['id']]['children'][] = &$clusters[$i];
+                $clusterVersion = $cluster['GalaxyCluster']['extends_version'];
+                $parentVersion = $lookup[$parent['GalaxyCluster']['id']]['GalaxyCluster']['version'];
+                if ($clusterVersion == $parentVersion) {
+                    $lookup[$parent['GalaxyCluster']['id']]['children'][] = &$clusters[$i];
+                } else {
+                    // version differs, insert version node between child and parent
+                    $lastVersionNode = array(
+                        'isVersion' => true,
+                        'isLast' => true,
+                        'version' => $parentVersion,
+                        'parentUuid' => $parent['GalaxyCluster']['uuid'],
+                        'children' => array()
+                    );
+                    $versionNode = array(
+                        'isVersion' => true,
+                        'isLast' => false,
+                        'version' => $clusterVersion,
+                        'parentUuid' => $parent['GalaxyCluster']['uuid'],
+                        'children' => array(&$clusters[$i])
+                    );
+                    // $lookup[$parent['GalaxyCluster']['id']]['children'][] = &$clusters[$i];
+                    $lookup[$parent['GalaxyCluster']['id']]['children'][] = $versionNode;
+                    $lookup[$parent['GalaxyCluster']['id']]['children'][] = $lastVersionNode;
+                }
             } else {
                 $tree[] = &$clusters[$i];
             }

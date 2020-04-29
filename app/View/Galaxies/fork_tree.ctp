@@ -64,7 +64,7 @@ function buildTree() {
     nodes.forEach(function(d) { d.y = d.depth * ratioFactor; });
 
     var node = svg.selectAll("g.node")
-        .data(nodes, function(d) { return d.isRoot ? 'root' : d.GalaxyCluster.id; });
+        .data(nodes, function(d) { return getId(d) });
 
     var nodeEnter = node.enter().append("g")
         .attr("class", "node")
@@ -73,37 +73,10 @@ function buildTree() {
         .on("dblclick", nodeDbclick);
 
     var gEnter = nodeEnter.append('g');
-    gEnter.append("circle")
-        .attr("r", function(d) { return d.isRoot ? 5 : 15 })
-        .style("fill", function(d) { return d.isRoot ? "lightsteelblue" : "#fff"; })
-        .style("stroke", "steelblue")
-        .style("stroke-width", "2px")
-    gEnter.append("image")
-        .attr("xlink:href", function(d) { 
-            if (d.isRoot) {
-                return transparentImg;
-            } else {
-                return d.GalaxyCluster.default ? '<?= $baseurl ?>/img/orgs/MISP.png' : '<?= $baseurl ?>/img/orgs/' + d.GalaxyCluster.orgc_id + '.png';
-            }
-        })
-        .attr("x", "-12px")
-        .attr("y", "-12px")
-        .attr("width", "24px")
-        .attr("height", "24px")
-        .on("error", function() { // avoid broken link image
-            d3.select(this).attr("xlink:href", transparentImg);
-        });
-
-    nodeEnter.append("text")
-        .attr("dy",  function(d) { return d.children ? "2.5em" : ".35em"; })
-        .attr("x", function(d) { return d.children ? "0em" : "1.5em"; })
-        .attr("text-anchor", function(d) { return d.children ? (d.isRoot ? "start" : "middle") : "start"; })
-        .text(function(d) { return d.isRoot ? d.Galaxy.name + ' galaxy' : d.GalaxyCluster.value; })
-        .style("fill-opacity", 1)
-        .style("font-weight", function(d) { return d.isRoot ? 'bold' : ''});
+    drawEntities(gEnter);
 
     var link = svg.selectAll("path.link")
-        .data(links, function(d) { return d.target.GalaxyCluster.id; });
+        .data(links, function(d) { return getId(d.target); });
 
     link.enter().insert("path", "g")
         .attr("class", "link")
@@ -117,6 +90,124 @@ function buildTree() {
         //     .x(function(d) { return d.y; })
         //     .y(function(d) { return d.x; }));
 }
+
+function drawEntities(gEnter) {
+    gEnter.filter(function(d) { return d.isRoot }).call(drawGalaxy);
+    gEnter.filter(function(d) { return d.isVersion === true }).call(drawVersion);
+    gEnter.filter(function(d) { return !d.isRoot && d.isVersion !== true }).call(drawCluster);
+}
+
+function drawCluster(gEnter) {
+    gEnter.append("circle")
+        .attr("r", 15)
+        .style("fill", "#fff")
+        .style("stroke", "steelblue")
+        .style("stroke-width", "2px")
+    gEnter.append("image")
+        .attr("xlink:href", function(d) { 
+            return d.GalaxyCluster.default ? '<?= $baseurl ?>/img/orgs/MISP.png' : '<?= $baseurl ?>/img/orgs/' + d.GalaxyCluster.orgc_id + '.png';
+        })
+        .attr("x", "-12px")
+        .attr("y", "-12px")
+        .attr("width", "24px")
+        .attr("height", "24px")
+        .on("error", function() { // avoid broken link image
+            d3.select(this).attr("xlink:href", transparentImg);
+        });
+    
+    drawLabel(gEnter, {
+        text: function(d) { return getTextFromNode(d, 'cluster'); },
+        x: function(d) { return d.children ? "0em" : "1.5em"; },
+        dy: function(d) { return d.children ? "2.5em" : ".35em"; },
+        textAnchor: function(d) { return d.children ? "middle" : "start"; },
+        fontWeight: ''
+    });
+}
+
+function drawGalaxy(gEnter) {
+    gEnter.append("circle")
+        .attr("r", 5)
+        .style("fill", "lightsteelblue")
+        .style("stroke", "steelblue")
+        .style("stroke-width", "2px");
+
+    drawLabel(gEnter, {
+        text: function(d) { return getTextFromNode(d, 'galaxy') },
+        x: function(d) { return d.children ? "0em" : "1.5em"; },
+        dy: function(d) { return d.children ? "2em" : ".35em"; },
+        textAnchor: "start",
+        fontWeight: 'bold'
+    });
+}
+function drawVersion(gEnter) {
+    gEnter.append("rect")
+        .attr("y", -12)
+        .attr("width", function(d) { return getTextWidth(getTextFromNode(d, 'version')) + 5 + 'px'; })
+        .attr("height", 24)
+        .style("fill", function(d) { return d.isLast ? "cornflowerblue" : "darkgrey" })
+        .style("stroke", function(d) { return d.isLast ? "steelblue" : "gray" })
+        .style("stroke-width", "2px")
+        .append("title")
+        .text("<?= __('version') ?>");
+    drawLabel(gEnter, {
+        text: function(d) { return getTextFromNode(d, 'version') },
+        x: "7px",
+        dy: "4px",
+        textAnchor: "start",
+        fontWeight: "bold"
+    });
+}
+
+function drawLabel(gEnter, options) {
+    var defaultOptions = {
+        text: '',
+        x: '',
+        dx: '',
+        y: '',
+        dy: '',
+        textAnchor: 'start',
+        fontWeight: ''
+    }
+    options = $.extend(defaultOptions, options);
+    gEnter.append("text")
+        .attr("dy", options.dy)
+        .attr("dx", options.dx)
+        .attr("x", options.x)
+        .attr("y", options.y)
+        .attr("text-anchor", options.textAnchor)
+        .attr("font-weight", options.fontWeight)
+        .style("fill-opacity", 1)
+        .text(options.text);
+}
+
+function getTextFromNode(d, nodeType) {
+    if (nodeType == 'cluster') {
+        return d.GalaxyCluster.value;
+    } else if (nodeType == 'galaxy') {
+        return d.Galaxy.name + ' galaxy';
+    } else if (nodeType == 'version') {
+        return d.version;
+    } else {
+        return '';
+    }
+}
+
+function getTextWidth(text) {
+    return text.length * parseFloat(getComputedStyle(document.documentElement).fontSize);
+}
+
+function getId(d) {
+    var id = "";
+    if (d.isRoot) {
+        id = 'root'
+    } else if (d.isVersion) {
+        id = 'version-' + d.parentUuid + '-' + d.version;
+    } else {
+        id = d.GalaxyCluster.id;
+    }
+    return id;
+}
+
 
 function nodeDbclick(d) {
     var url, clickedId
@@ -133,11 +224,15 @@ function nodeDbclick(d) {
 
 function nodeHover(d) {
     var $d3Element = $(this);
-    $d3Element.tooltip({
-        html: true,
-        container: 'body',
-        title: generate_tooltip(d)
-    }).tooltip('show')
+    var hasTooltip = $d3Element.data('tooltip') !== undefined
+    window.ddd = $d3Element;
+    if (!d.isRoot && d.isVersion !== true && !hasTooltip) {
+        $d3Element.tooltip({
+            html: true,
+            container: 'body',
+            title: generate_tooltip(d)
+        }).tooltip('show')
+    }
 }
 
 function generate_tooltip(d) {
