@@ -1232,7 +1232,7 @@ class UsersController extends AppController
       $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
       if ($lastUserLogin) {
           $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
-          $this->Flash->info(sprintf('Welcome! Last login was on %s', $readableDatetime));
+          $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
       }
       // no state changes are ever done via GET requests, so it is safe to return to the original page:
       $this->redirect($this->Auth->redirectUrl());
@@ -1725,7 +1725,7 @@ class UsersController extends AppController
         $body = str_replace('$contact', Configure::read('MISP.contact'), $body);
         $body = str_replace('$validity', $validity, $body);
         $body = str_replace('$otp', $otp, $body);
-        $body = str_replace('$ip', $this->_getClientIP(), $body);
+        $body = str_replace('$ip', $this->__getClientIP(), $body);
         $body = str_replace('$username', $user['email'], $body);
         $result = $this->User->sendEmail(array('User' => $user), $body, false, "[MISP] Email OTP");
 
@@ -1741,7 +1741,7 @@ class UsersController extends AppController
     /**
     * Helper function to determine the IP of a client (proxy aware)
     */
-    private function _getClientIP() {
+    private function __getClientIP() {
       $x_forwarded = filter_input(INPUT_SERVER, 'HTTP_X_FORWARDED_FOR', FILTER_SANITIZE_STRING);
       $client_ip = filter_input(INPUT_SERVER, 'HTTP_CLIENT_IP', FILTER_SANITIZE_STRING);
       if (!empty($x_forwarded)) {
