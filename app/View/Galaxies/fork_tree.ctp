@@ -142,7 +142,14 @@ function nodeHover(d) {
 
 function generate_tooltip(d) {
     var tooltipText = d.isRoot ? d.Galaxy.name : d.GalaxyCluster.description;
-    var $div = $('<div></div>').append($('<div></div>').text(tooltipText));
+    var tooltipVersion = "<?= __('Version:') ?> " + (d.isRoot ? d.Galaxy.version : d.GalaxyCluster.version);
+    var tooltipId = "<?= __('ID:') ?> " + (d.isRoot ? d.Galaxy.id : d.GalaxyCluster.id);
+    var $div = $('<div></div>').append(
+        $('<div class="bold"></div>').css({'text-align': 'left'}).text("<?= __('Description:') ?>"),
+        $('<div></div>').css({'text-align': 'left'}).text(tooltipText),
+        $('<div class="bold"></div>').css({'text-align': 'left'}).text(tooltipId),
+        $('<div class="bold"></div>').css({'text-align': 'left'}).text(tooltipVersion),
+    );
     var $table = $('<table class="table table-condensed"></table>');
     if (d.GalaxyElement !== undefined && d.GalaxyElement.length > 0) {
         $body = $('<tbody></tbody>');
@@ -156,7 +163,7 @@ function generate_tooltip(d) {
         })
         $table.append($body);
         $div.append(
-            $('<h6></h6>').css({'text-align': 'left'}).text("<?= __('Galaxy elements:') ?>"),
+            $('<div class="bold"></div>').css({'text-align': 'left'}).text("<?= __('Galaxy elements:') ?>"),
             $table
         );
     }
