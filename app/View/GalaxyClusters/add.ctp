@@ -51,6 +51,11 @@
                     'default' => isset($forkUuid) ? $forkUuid : ''
                 ),
                 array(
+                    'field' => 'forkVersion',
+                    'type' => 'hidden',
+                    'default' => isset($forkVersion) ? $forkVersion : ''
+                ),
+                array(
                     'field' => 'description',
                     'type' => 'textarea'
                 ),

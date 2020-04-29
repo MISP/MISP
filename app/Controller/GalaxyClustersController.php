@@ -238,7 +238,9 @@ class GalaxyClustersController extends AppController
             if (!empty($origCluster)) {
                 $origCluster = $origCluster[0];
                 $origClusterMeta = $origCluster['GalaxyCluster'];
+                $forkVersion = $origCluster['GalaxyCluster']['version'];
                 $this->set('forkUuid', $forkUuid);
+                $this->set('forkVersion', $forkVersion);
                 if (empty($this->request->data)) {
                     $this->request->data = $origCluster;
                     unset($this->request->data['GalaxyCluster']['id']);
