@@ -18,6 +18,7 @@
             'jquery-ui',
             'chosen.min',
             'main',
+            'jquery-jvectormap-2.0.5',
             array('print', array('media' => 'print'))
         );
         if (Configure::read('MISP.custom_css')) {

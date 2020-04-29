@@ -15,8 +15,14 @@ class RestSearchComponent extends Component
         'Event' => array(
             'returnFormat', 'value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
             'metadata', 'uuid', 'publish_timestamp', 'timestamp', 'published', 'enforceWarninglist', 'sgReferenceOnly',
-            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'deleted',
+            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'to_ids', 'deleted',
             'excludeLocalTags', 'date', 'includeSightingdb', 'tag', 'object_relation'
+        ),
+        'Object' => array(
+            'returnFormat', 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
+            'published', 'timestamp','enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
+            'includeProposals', 'returnFormat', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
+            'includeWarninglistHits', 'attackGalaxy', 'object_relation'
         ),
         'Sighting' => array(
             'context', 'returnFormat', 'id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'

@@ -108,4 +108,23 @@ curl --header "Authorization: $AuthKey" --header "Accept: application/json" --he
 echo "Updating objectTemplates"
 curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/objectTemplates/update
 
+echo "Updating decayingModel"
+curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/decayingModel/update
+
+if [ "$ENABLE_WARNINGLISTS" = "true" ]; then
+  echo "Enabling warninglists"
+  wls=$(curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -s -X POST ${baseurl}/warninglists/index | jq -r '.Warninglists[] | select(.Warninglist.enabled == false) | .Warninglist.id' 2>/dev/null)
+  for wl in $wls; do
+    curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -d "{\"id\":$wl}" -o /dev/null -s -X POST ${baseurl}/warninglists/toggleEnable
+  done
+fi
+
+if [ "$ENABLE_NOTICELISTS" = "true" ]; then
+  echo "Enabling noticelists"
+  nls=$(curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -s -X POST ${baseurl}/noticelists/index | jq -r '.[] | select(.Noticelist.enabled == false) | .Noticelist.id' 2>/dev/null)
+  for nl in $nls; do
+    curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -d "{\"Noticelist\":{\"data\":$nl}}" -o /dev/null -s -X POST ${baseurl}/noticelists/toggleEnable
+  done
+fi
+
 echo 'MISP Wipe Complete!!!'

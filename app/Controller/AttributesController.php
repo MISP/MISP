@@ -3,6 +3,9 @@ App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
+/**
+ * @property Attribute $Attribute
+ */
 class AttributesController extends AppController
 {
     public $components = array('Security', 'RequestHandler', 'Cidr');
@@ -410,22 +413,19 @@ class AttributesController extends AppController
     public function add_attachment($eventId = null)
     {
         if ($this->request->is('post')) {
-            $hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
-            $this->loadModel('Event');
-            $this->Event->id = $this->request->data['Attribute']['event_id'];
-            $this->Event->recursive = -1;
-            $event = $this->Event->read();
+            $this->Attribute->Event->id = $this->request->data['Attribute']['event_id'];
+            $this->Attribute->Event->recursive = -1;
+            $event = $this->Attribute->Event->read();
             if (empty($event)) {
                 throw new NotFoundException(__('Invalid Event.'));
             }
-            if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+            if (!$this->_isSiteAdmin() && ($this->Attribute->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
                 throw new UnauthorizedException(__('You do not have permission to do that.'));
             }
-            $partialFails = array();
             $fails = array();
             $success = 0;
 
-            foreach ($this->request->data['Attribute']['values'] as $k => $value) {
+            foreach ($this->request->data['Attribute']['values'] as $value) {
                 // Check if there were problems with the file upload
                 // only keep the last part of the filename, this should prevent directory attacks
                 $filename = basename($value['name']);
@@ -449,11 +449,6 @@ class AttributesController extends AppController
                             $filename,
                             $tmpfile
                         );
-                        if ($result) {
-                            $success++;
-                        } else {
-                            $fails[] = $filename;
-                        }
                     } else {
                         $result = $this->Attribute->simpleAddMalwareSample(
                             $eventId,
@@ -461,15 +456,16 @@ class AttributesController extends AppController
                             $filename,
                             $tmpfile
                         );
-                        if ($result) {
-                            $success++;
-                        } else {
-                            $fails[] = $filename;
-                        }
                     }
+
+                    if ($result) {
+                        $success++;
+                    } else {
+                        $fails[] = $filename;
+                    }
+
                     if (!empty($result)) {
                         foreach ($result['Object'] as $object) {
-                            $this->loadModel('MispObject');
                             $object['distribution'] = $this->request->data['Attribute']['distribution'];
                             if (!empty($this->request->data['sharing_group_id'])) {
                                 $object['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
@@ -477,11 +473,11 @@ class AttributesController extends AppController
                             foreach ($object['Attribute'] as $ka => $attribute) {
                                 $object['Attribute'][$ka]['distribution'] = 5;
                             }
-                            $this->MispObject->captureObject(array('Object' => $object), $eventId, $this->Auth->user());
+                            $this->Attribute->Object->captureObject(array('Object' => $object), $eventId, $this->Auth->user());
                         }
                         if (!empty($result['ObjectReference'])) {
                             foreach ($result['ObjectReference'] as $reference) {
-                                $this->MispObject->ObjectReference->smartSave($reference, $eventId);
+                                $this->Attribute->Object->ObjectReference->smartSave($reference, $eventId);
                             }
                         }
                     }
@@ -508,20 +504,17 @@ class AttributesController extends AppController
                     }
                 }
             }
-            $message = 'The attachment(s) have been uploaded.';
-            if (!empty($partialFails)) {
-                $message .= ' Some of the attributes however could not be created.';
-            }
+            $message = __('The attachment(s) have been uploaded.');
             if (!empty($fails)) {
-                $message = 'Some of the attachments failed to upload. The failed files were: ' . implode(', ', $fails) . ' - This can be caused by the attachments already existing in the event.';
+                $message = __('Some of the attachments failed to upload. The failed files were: %s - This can be caused by the attachments already existing in the event.', implode(', ', $fails));
             }
             if (empty($success)) {
                 if (empty($fails)) {
-                    $message = 'The attachment(s) could not be saved. please contact your administrator.';
+                    $message = __('The attachment(s) could not be saved. Please contact your administrator.');
                 }
             } else {
-                $this->Event->id = $this->request->data['Attribute']['event_id'];
-                $this->Event->saveField('published', 0);
+                $this->Attribute->Event->id = $this->request->data['Attribute']['event_id'];
+                $this->Attribute->Event->saveField('published', 0);
             }
             if (empty($success) && !empty($fails)) {
                 $this->Flash->error($message);
@@ -536,57 +529,43 @@ class AttributesController extends AppController
             // set the event_id in the form
             $this->request->data['Attribute']['event_id'] = $eventId;
         }
+
+        $event = $this->Attribute->Event->findById($eventId);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid Event.'));
+        }
+
         if (!$this->_isRest()) {
             $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
         }
-        // combobox for categories
-        $categories = array_keys($this->Attribute->categoryDefinitions);
-        // just get them with attachments..
+
+        // Filter categories that contains attachment type
         $selectedCategories = array();
-        foreach ($categories as $category) {
-            $types = $this->Attribute->categoryDefinitions[$category]['types'];
-            $alreadySet = false;
-            foreach ($types as $type) {
-                if ($this->Attribute->typeIsAttachment($type) && !$alreadySet) {
-                    // add to the whole..
+        foreach ($this->Attribute->categoryDefinitions as $category => $values) {
+            foreach ($values['types'] as $type) {
+                if ($this->Attribute->typeIsAttachment($type)) {
                     $selectedCategories[] = $category;
-                    $alreadySet = true;
-                    continue;
+                    continue 2;
                 }
             }
         }
         $categories = $this->_arrayToValuesIndexArray($selectedCategories);
         $this->set('categories', $categories);
 
-        $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-        $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-
         $this->set('zippedDefinitions', $this->Attribute->zippedDefinitions);
-        $this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
+        $this->set('advancedExtractionAvailable', $this->Attribute->isAdvancedExtractionAvailable());
 
         // combobox for distribution
-        $this->loadModel('Event');
-        $this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
-
-        foreach ($this->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($this->Event->Attribute->distributionLevels as $key => $value) {
-            $info['distribution'][$key] = array('key' => $value, 'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']);
-        }
-        $this->set('info', $info);
+        $this->set('distributionLevels', $this->Attribute->distributionLevels);
+        $this->set('info', $this->getInfo());
 
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
 
-        $events = $this->Event->findById($eventId);
-        if (empty($events)) {
-            throw new NotFoundException(__('Invalid Event.'));
-        }
-        $this->set('currentDist', $events['Event']['distribution']);
-        $this->set('published', $events['Event']['published']);
+        $this->set('currentDist', $event['Event']['distribution']);
+        $this->set('published', $event['Event']['published']);
     }
 
 
@@ -1419,7 +1398,7 @@ class AttributesController extends AppController
             $event = $this->Attribute->Event->find('first', array(
                 'conditions' => array('id' => $id),
                 'recursive' => -1,
-                'fields' => array('id', 'orgc_id', 'user_id', 'published', 'timestamp', 'info', 'uuid')
+                'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp', 'info', 'uuid')
             ));
             if (!$this->_isSiteAdmin()) {
                 if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
@@ -1485,7 +1464,23 @@ class AttributesController extends AppController
             }
 
             if ($changeInAttribute) {
-                if ($this->Attribute->saveMany($attributes)) {
+                if ($this->request->data['Attribute']['is_proposal']) { // create ShadowAttributes instead
+                    $shadowAttributes = array();
+                    foreach ($attributes as $attribute) {
+                        $shadowAttribute['ShadowAttribute'] = $attribute['Attribute'];
+                        unset($shadowAttribute['ShadowAttribute']['id']);
+                        $shadowAttribute['ShadowAttribute']['email'] = $this->Auth->user('email');
+                        $shadowAttribute['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
+                        $shadowAttribute['ShadowAttribute']['event_uuid'] = $event['Event']['uuid'];
+                        $shadowAttribute['ShadowAttribute']['event_org_id'] = $event['Event']['org_id'];
+                        $shadowAttribute['ShadowAttribute']['old_id'] = $attribute['Attribute']['id'];
+                        $shadowAttributes[] = $shadowAttribute;
+                    }
+                    $saveSuccess = $this->Attribute->ShadowAttribute->saveMany($shadowAttributes);
+                } else {
+                    $saveSuccess = $this->Attribute->saveMany($attributes);
+                }
+                if ($saveSuccess) {
                     if (!$this->_isRest()) {
                         $this->Attribute->Event->insertLock($this->Auth->user(), $id);
                     }
@@ -1670,6 +1665,31 @@ class AttributesController extends AppController
             );
             $exception = false;
             $filters = $this->_harvestParameters($filterData, $exception);
+            if (!empty($filters['uuid'])) {
+                if (!is_array($filters['uuid'])) {
+                    $filters['uuid'] = array($filters['uuid']);
+                }
+                $uuid = array();
+                $ids = array();
+                foreach ($filters['uuid'] as $k => $filter) {
+                    if ($filter[0] === '!') {
+                        $filter = substr($filter, 1);
+                    }
+                    if (Validation::uuid($filter)) {
+                        $uuid[] = $filters['uuid'][$k];
+                    } else {
+                        $ids[] = $filters['uuid'][$k];
+                    }
+                }
+                if (empty($uuid)) {
+                    unset($filters['uuid']);
+                } else {
+                    $filters['uuid'] = $uuid;
+                }
+                if (!empty($ids)) {
+                    $filters['eventid'] = $ids;
+                }
+            }
             unset($filterData);
             if ($filters === false) {
                 return $exception;
@@ -3216,5 +3236,29 @@ class AttributesController extends AppController
             $responseType = $this->Attribute->validFormats[$type][0];
             return $this->RestResponse->viewData($final, $responseType, false, true, 'search.' . $type . '.' . $responseType);
         }
+    }
+
+    private function getInfo()
+    {
+        $info = array('category' => array(), 'type' => array(), 'distribution' => array());
+        foreach ($this->Attribute->categoryDefinitions as $key => $value) {
+            $info['category'][$key] = array(
+                'key' => $key,
+                'desc' => isset($value['formdesc']) ? $value['formdesc'] : $value['desc']
+            );
+        }
+        foreach ($this->Attribute->typeDefinitions as $key => $value) {
+            $info['type'][$key] = array(
+                'key' => $key,
+                'desc' => isset($value['formdesc']) ? $value['formdesc'] : $value['desc']
+            );
+        }
+        foreach ($this->Attribute->distributionLevels as $key => $value) {
+            $info['distribution'][$key] = array(
+                'key' => $value,
+                'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']
+            );
+        }
+        return $info;
     }
 }

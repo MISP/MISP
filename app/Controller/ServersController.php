@@ -992,13 +992,15 @@ class ServersController extends AppController
             if ($tab == 'diagnostics' || $tab == 'download' || $this->_isRest()) {
                 $php_ini = php_ini_loaded_file();
                 $this->set('php_ini', $php_ini);
-                $advanced_attachments = shell_exec($this->Server->getPythonVersion() . ' ' . APP . 'files/scripts/generate_file_objects.py -c');
 
+                $malwareTool = new MalwareTool();
                 try {
-                    $advanced_attachments = json_decode($advanced_attachments, true);
+                    $advanced_attachments = $malwareTool->checkAdvancedExtractionStatus($this->Server->getPythonVersion());
                 } catch (Exception $e) {
+                    $this->log($e->getMessage(), LOG_NOTICE);
                     $advanced_attachments = false;
                 }
+
                 $this->set('advanced_attachments', $advanced_attachments);
                 // check if the current version of MISP is outdated or not
                 $version = $this->__checkVersion();
@@ -1363,6 +1365,18 @@ class ServersController extends AppController
         $this->Server->restartWorkers($this->Auth->user());
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'restartWorkers', false, $this->response->type(), __('Restarting workers.'));
+        }
+        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
+    }
+
+    public function restartDeadWorkers()
+    {
+        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
+        $this->Server->restartDeadWorkers($this->Auth->user());
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'restartDeadWorkers', false, $this->response->type(), __('Restarting workers.'));
         }
         $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
     }

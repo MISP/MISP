@@ -14,7 +14,7 @@
     $tr_class .= ' row_' . h($k);
   }
 ?>
-<tr id = "Object_<?php echo $object['id']; ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
+<tr id="Object_<?php echo $object['id']; ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
   <?php
     if ($mayModify || $extended):
   ?>
@@ -22,7 +22,7 @@
       <?php
         if ($mayModify):
       ?>
-        <input id = "select_object_<?php echo $object['id']; ?>" class="select_object row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
+        <input id="select_object_<?php echo $object['id']; ?>" class="select_object row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
       <?php
         endif;
       ?>
@@ -64,7 +64,7 @@
     ?>
     &nbsp;
   </td>
-  <td colspan="5">
+  <td colspan="<?= $includeRelatedTags ? 6 : 5 ?>">
     <span class="bold"><?php echo __('Name: ');?></span><?php echo h($object['name']);?>
     <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_collapsible"></span>
     <br />
@@ -89,8 +89,8 @@
     ?>
   </td>
   <td class="showspaces bitwider" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
-    <div id = "Object_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
-    <div id = "Object_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
+    <div id="Object_<?php echo $object['id']; ?>_comment_placeholder" class="inline-field-placeholder"></div>
+    <div id="Object_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
       <?php echo nl2br(h($object['comment'])); ?>&nbsp;
     </div>
   </td>
@@ -101,8 +101,8 @@
       $turnRed = '';
       if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
     ?>
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class = "inline-field-placeholder"></div>
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid">
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class="inline-field-placeholder"></div>
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid">
       <?php
         if ($object['objectType'] == 0) {
           if ($object['distribution'] == 4):
@@ -163,4 +163,4 @@
     }
     echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') .'" onclick="popoverPopup(this, ' . h($object['id']) . ', \'objects\', \'quickFetchTemplateWithValidObjectAttributes\')"></span></td></tr>';
   }
-?>
+

@@ -5,6 +5,7 @@ require_once 'AppShell.php';
 class ServerShell extends AppShell
 {
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
+    public $tasks = array('ConfigLoad');
 
     public function listServers()
     {

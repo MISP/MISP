@@ -49,6 +49,24 @@ class UserSetting extends AppModel
         'dashboard_access' => array(
             'placeholder' => 1,
             'restricted' => 'perm_site_admin'
+        ),
+        'dashboard' => array(
+            'placeholder' => array(
+                array(
+                    'widget' => 'MispStatusWidget',
+                    'config' => array(
+                    ),
+                    'position' => array(
+                        'x' => 0,
+                        'y' => 0,
+                        'width' => 2,
+                        'height' => 2
+                    )
+                )
+            )
+        ),
+        'homepage' => array(
+            'path' => '/events/index'
         )
     );
 
@@ -278,5 +296,72 @@ class UserSetting extends AppModel
             }
         }
         return false;
+    }
+
+    public function setSetting($user, &$data)
+    {
+        $userSetting = array();
+        if (!empty($data['UserSetting']['user_id']) && is_numeric($data['UserSetting']['user_id'])) {
+            $user_to_edit = $this->User->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('User.id' => $data['UserSetting']['user_id']),
+                'fields' => array('User.org_id')
+            ));
+            if (
+                !empty($user['Role']['perm_site_admin']) ||
+                (!empty($user['Role']['perm_admin']) && ($user_to_edit['User']['org_id'] == $user['org_id']))
+            ) {
+                $userSetting['user_id'] = $data['UserSetting']['user_id'];
+            }
+        }
+        if (empty($userSetting['user_id'])) {
+            $userSetting['user_id'] = $user['id'];
+        }
+        if (empty($data['UserSetting']['setting']) || !isset($data['UserSetting']['setting'])) {
+            throw new MethodNotAllowedException(__('This endpoint expects both a setting and a value to be set.'));
+        }
+        if (!$this->checkSettingValidity($data['UserSetting']['setting'])) {
+            throw new MethodNotAllowedException(__('Invalid setting.'));
+        }
+        $settingPermCheck = $this->checkSettingAccess($user, $data['UserSetting']['setting']);
+        if ($settingPermCheck !== true) {
+            throw new MethodNotAllowedException(__('This setting is restricted and requires the following permission(s): %s', $settingPermCheck));
+        }
+        $userSetting['setting'] = $data['UserSetting']['setting'];
+        if ($data['UserSetting']['value'] !== '') {
+            $userSetting['value'] = $data['UserSetting']['value'];
+        } else {
+            $userSetting['value'] = '';
+        }
+        $existingSetting = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'UserSetting.user_id' => $userSetting['user_id'],
+                'UserSetting.setting' => $userSetting['setting']
+            )
+        ));
+        if (empty($existingSetting)) {
+            $this->create();
+        } else {
+            $userSetting['id'] = $existingSetting['UserSetting']['id'];
+        }
+        // save the setting
+        $result = $this->save(array('UserSetting' => $userSetting));
+        return true;
+    }
+
+    public function getSetting($user_id, $setting)
+    {
+        $setting = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'UserSetting.user_id' => $user_id,
+                'UserSetting.setting' => $setting
+            )
+        ));
+        if (empty($setting)) {
+            return array();
+        }
+        return $setting['UserSetting']['value'];
     }
 }
