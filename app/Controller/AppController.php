@@ -363,7 +363,7 @@ class AppController extends Controller
                 }
             }
         } else {
-            if ($this->params['controller'] !== 'users' || !in_array($this->params['action'], array('login', 'register'))) {
+            if ($this->params['controller'] !== 'users' || !in_array($this->params['action'], array('login', 'register', 'email_otp'))) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
