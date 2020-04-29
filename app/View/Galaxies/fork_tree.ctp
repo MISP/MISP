@@ -140,9 +140,10 @@ function drawGalaxy(gEnter) {
     });
 }
 function drawVersion(gEnter) {
+    var paddingX = 7;
     gEnter.append("rect")
         .attr("y", -12)
-        .attr("width", function(d) { return getTextWidth(getTextFromNode(d, 'version')) + 5 + 'px'; })
+        .attr("width", function(d) { return getTextWidth(getTextFromNode(d, 'version')) + 2*paddingX + 'px'; })
         .attr("height", 24)
         .style("fill", function(d) { return d.isLast ? "cornflowerblue" : "darkgrey" })
         .style("stroke", function(d) { return d.isLast ? "steelblue" : "gray" })
@@ -151,7 +152,7 @@ function drawVersion(gEnter) {
         .text("<?= __('version') ?>");
     drawLabel(gEnter, {
         text: function(d) { return getTextFromNode(d, 'version') },
-        x: "7px",
+        x: paddingX + "px",
         dy: "4px",
         textAnchor: "start",
         fontWeight: "bold"
@@ -193,7 +194,11 @@ function getTextFromNode(d, nodeType) {
 }
 
 function getTextWidth(text) {
-    return text.length * parseFloat(getComputedStyle(document.documentElement).fontSize);
+    var tmp = $('<span></span>').text(text).css('visibility', 'hidden')
+    $('body').append(tmp);
+    var bcr = tmp[0].getBoundingClientRect()
+    tmp.remove();
+    return bcr.width;
 }
 
 function getId(d) {
