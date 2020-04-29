@@ -1263,10 +1263,11 @@ class Server extends AppModel
                         ),
                         'email_otp_enabled' => array(
                                 'level'=> 2,
-                                'description' => __('Enable two step authentication with a OTP sent by email. Warning: You cannot use it in combination with external authentication plugins.'),
+                                'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testBool',
+                                'beforeHook' => 'otpBeforeHook',
                                 'type' => 'boolean',
                                 'null' => true
                         ),
@@ -3597,7 +3598,7 @@ class Server extends AppModel
             if ($errorMessage) {
                 return $errorMessage;
             }
-            return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
+            return __('Value is not a boolean, make sure that you convert \'true\' to true for example.');
         }
         return true;
     }
@@ -3783,6 +3784,14 @@ class Server extends AppModel
     {
         if ($value == true) {
             $this->updateDatabase('addSightings');
+        }
+        return true;
+    }
+
+    public function otpBeforeHook($setting, $value)
+    {
+        if ($value && !empty(Configure::read('MISP.disable_emailing'))) {
+            return __('Emailing is currently disabled. Enabling OTP without e-mailing being configured would lock all users out.');
         }
         return true;
     }
