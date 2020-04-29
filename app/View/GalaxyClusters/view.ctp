@@ -9,7 +9,7 @@
             'row' => $cluster,
             'field' => array(
                 'data_path' => 'GalaxyCluster.extended_from.GalaxyCluster.id',
-                'title' => $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['value']
+                'title' => sprintf(__('%s (version: %s)'), $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['value'], $cluster['GalaxyCluster']['extends_version'])
             ),
         ));
         $extendFromLinks[] = sprintf('<li>%s</li>', $element);
@@ -24,7 +24,7 @@
             'row' => $extendCluster,
             'field' => array(
                 'data_path' => 'GalaxyCluster.id',
-                'title' => $extendCluster['GalaxyCluster']['value']
+                'title' => sprintf(__('%s (parent version: %s)'), $extendCluster['GalaxyCluster']['value'], $extendCluster['GalaxyCluster']['extends_version'])
             ),
         ));
         $extendByLinks[] = sprintf('<li>%s</li>', $element);
