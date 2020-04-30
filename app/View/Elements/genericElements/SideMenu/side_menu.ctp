@@ -1168,6 +1168,11 @@
                         ));
                         if ($menuItem === 'view') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'export',
+                                'url' => '/galaxies/export/' . h($galaxy['Galaxy']['id']),
+                                'text' => __('Export Galaxy Clusters')
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'url' => '/galaxy_clusters/add/' . h($galaxy['Galaxy']['id']),
                                 'text' => __('Add Galaxy Cluster')
                             ));
@@ -1208,11 +1213,6 @@
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
                             'text' => __('View Galaxy')
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'export',
-                            'url' => '/galaxies/export/' . h($galaxy['Galaxy']['id']),
-                            'text' => __('Export Galaxy Clusters')
                         ));
                     }
                     break;
