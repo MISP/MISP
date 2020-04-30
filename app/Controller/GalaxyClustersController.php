@@ -214,7 +214,11 @@ class GalaxyClustersController extends AppController
             $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
             $this->set('cluster', $cluster);
             $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
-            $newVersionAvailable = $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['value'] > $cluster['GalaxyCluster']['extends_version'];
+            if (isset($cluster['GalaxyCluster']['extended_from'])) {
+                $newVersionAvailable = $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['value'] > $cluster['GalaxyCluster']['extends_version'];
+            } else {
+                $newVersionAvailable = false;
+            }
             $this->set('newVersionAvailable', $newVersionAvailable);
         }
     }
@@ -252,6 +256,7 @@ class GalaxyClustersController extends AppController
                         unset($origCluster['GalaxyElement'][$k]['galaxy_cluster_id']);
                     }
                     $this->request->data['GalaxyCluster']['elements'] = json_encode($origCluster['GalaxyElement']);
+                    $this->request->data['GalaxyCluster']['elementsDict'] = $origCluster['GalaxyElement'];
                     $this->request->data['GalaxyCluster']['authors'] = json_encode($origCluster['GalaxyCluster']['authors']);
                 }
                 $this->set('origCluster', $origCluster);
@@ -396,6 +401,7 @@ class GalaxyClustersController extends AppController
             }
         } else {
             $this->GalaxyCluster->data['GalaxyCluster']['elements'] = json_encode($this->GalaxyCluster->data['GalaxyElement']);
+            $this->GalaxyCluster->data['GalaxyCluster']['elementsDict'] = $this->GalaxyCluster->data['GalaxyElement'];
             $this->GalaxyCluster->data['GalaxyCluster']['authors'] = json_encode($this->GalaxyCluster->data['GalaxyCluster']['authors']);
             $this->request->data = $this->GalaxyCluster->data;
         }

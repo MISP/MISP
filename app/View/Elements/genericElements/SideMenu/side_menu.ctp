@@ -1228,6 +1228,13 @@
                         'url' => '/galaxies/view/' . h($galaxy_id),
                         'text' => __('View Galaxy')
                     ));
+                    if ($menuItem === 'edit') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view_cluster',
+                            'url' => '/galaxy_clusters/view/' . h($clusterId),
+                            'text' => __('View Cluster')
+                        ));
+                    }
                     break;
 
                 case 'objectTemplates':
