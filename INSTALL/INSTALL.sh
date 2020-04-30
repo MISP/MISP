@@ -673,8 +673,7 @@ setBaseURL () {
   CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
   IFACE=`echo $CONN |awk {'print $1'}`
   IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
-  # TODO: Consider "QEMU"
-  if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]]; then
+  if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]] && [[ "$(checkManufacturer)" != "QEMU" ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
@@ -2665,16 +2664,16 @@ installSupported () {
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
     elif [[ "$PHP_VER" == 7.3 ]]; then
       # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
-      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
     elif [[ "$PHP_VER" == 7.4 ]]; then
       # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
-      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
     elif [[ "$PHP_VER" == 7.0 ]]; then
       # Install PHP 7.0 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp70
     fi
   else
-      # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+      # Install PHP 7.2 Dependencies by dangerous default - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
   fi
   progress 4
