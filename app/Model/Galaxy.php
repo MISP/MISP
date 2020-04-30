@@ -515,6 +515,7 @@ class Galaxy extends AppModel
     {
         $tree = array();
         $lookup = array();
+        $lastNodeAdded = array();
         // generate the lookup table used to immediatly get the correct cluster
         foreach ($clusters as $i => $cluster) {
             $clusters[$i]['children'] = array();
@@ -543,9 +544,11 @@ class Galaxy extends AppModel
                         'parentUuid' => $parent['GalaxyCluster']['uuid'],
                         'children' => array(&$clusters[$i])
                     );
-                    // $lookup[$parent['GalaxyCluster']['id']]['children'][] = &$clusters[$i];
                     $lookup[$parent['GalaxyCluster']['id']]['children'][] = $versionNode;
-                    $lookup[$parent['GalaxyCluster']['id']]['children'][] = $lastVersionNode;
+                    if (!isset($lastNodeAdded[$parent['GalaxyCluster']['id']])) {
+                        $lookup[$parent['GalaxyCluster']['id']]['children'][] = $lastVersionNode;
+                        $lastNodeAdded[$parent['GalaxyCluster']['id']] = true;
+                    }
                 }
             } else {
                 $tree[] = &$clusters[$i];

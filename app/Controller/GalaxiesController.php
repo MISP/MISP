@@ -144,6 +144,9 @@ class GalaxiesController extends AppController
         }
     }
 
+    // TODO: revise import strategy. Instead of asking in which galaxy to import data
+    // Based the decision on data contained in the clusters
+    // If Galaxy do not exist, add possibility to create it on the fly
     public function import($galaxyId=null)
     {
         $galaxy = $this->Galaxy->find('first', array(

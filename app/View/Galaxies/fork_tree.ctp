@@ -64,7 +64,7 @@ function buildTree() {
     nodes.forEach(function(d) { d.y = d.depth * ratioFactor; });
 
     var node = svg.selectAll("g.node")
-        .data(nodes, function(d) { return getId(d) });
+        .data(nodes, function(d) { return getId(d, true) });
 
     var nodeEnter = node.enter().append("g")
         .attr("class", "node")
@@ -114,6 +114,17 @@ function drawCluster(gEnter) {
         .on("error", function() { // avoid broken link image
             d3.select(this).attr("xlink:href", transparentImg);
         });
+    gEnter.filter(function(d) { return d.parent && d.parent.isVersion})
+        .append("foreignObject")
+        .attr("y", "-36px")
+        .attr("x", "-5px")
+        .attr("width", "12px")
+        .attr("height", "16px")
+        .append("xhtml:div")
+        .append("a")
+        .attr("class", "fas fa-arrow-up useCursorPointer")
+        .attr("title", "<?= __('Update cluster to new version') ?>")
+        .attr("href", function(d) { return "<?= sprintf('%s/galaxy_clusters/updateCluster/', $baseurl) ?>" + d.GalaxyCluster.id; })
     
     drawLabel(gEnter, {
         text: function(d) { return getTextFromNode(d, 'cluster'); },
@@ -198,8 +209,10 @@ function getId(d) {
     var id = "";
     if (d.isRoot) {
         id = 'root'
-    } else if (d.isVersion) {
+    } else if (d.isVersion && !d.isLast) {
         id = 'version-' + d.parentUuid + '-' + d.version;
+    } else if (d.isVersion && d.isLast) {
+        id = 'version-last-' + d.parentUuid;
     } else {
         id = d.GalaxyCluster.id;
     }
@@ -208,16 +221,19 @@ function getId(d) {
 
 
 function nodeDbclick(d) {
-    var url, clickedId
+    var url;
+    var clickedId = '';
     if (d.isRoot) {
         url = "<?= sprintf('%s/galaxies/view/', $baseurl) ?>";
         clickedId = d.Galaxy.id;
-    } else {
+    } else if (!d.isRoot && d.isVersion !== true) {
         url = "<?= sprintf('%s/galaxy_clusters/view/', $baseurl) ?>";
         clickedId = d.GalaxyCluster.id;
     }
-    url += clickedId;
-    var win = window.open(url, '_blank');
+    if (url !== undefined) {
+        url += clickedId;
+        var win = window.open(url, '_blank');
+    }
 }
 
 function nodeHover(d) {

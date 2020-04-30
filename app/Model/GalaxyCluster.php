@@ -145,8 +145,6 @@ class GalaxyCluster extends AppModel
             $cluster['GalaxyCluster']['version'] = $date->getTimestamp();
         }
         $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $galaxy['type'], $cluster['GalaxyCluster']['uuid']);
-        debug($cluster);
-        throw new Exception();
         $this->create();
         $saveSuccess = $this->save($cluster);
         if ($saveSuccess) {
