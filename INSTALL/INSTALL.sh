@@ -805,9 +805,9 @@ installDepsPhp73 () {
   php-gd
 }
 
-# Installing core dependencies
+# Installing dependencies
 installDeps () {
-  debug "Installing core dependencies"
+  debug "Installing dependencies"
   checkAptLock
   sudo apt update
   sudo apt install -qy etckeeper
