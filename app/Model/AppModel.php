@@ -78,7 +78,7 @@ class AppModel extends Model
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
-        51 => false, 52 => false
+        51 => false, 52 => false, 53 => false
     );
 
     public $advanced_updates_description = array(
@@ -1381,6 +1381,12 @@ class AppModel extends Model
                 if (!empty($this->query("SHOW COLUMNS FROM `admin_settings` LIKE 'key';"))) {
                     $sqlArray[] = "ALTER TABLE admin_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
                     $this->__addIndex('admin_settings', 'setting');
+                }
+                break;
+            case 53:
+                if (!empty($this->query("SHOW COLUMNS FROM `user_settings` LIKE 'key';"))) {
+                    $sqlArray[] = "ALTER TABLE user_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
+                    $this->__addIndex('user_settings', 'setting');
                 }
                 break;
             case 'fixNonEmptySharingGroupID':
