@@ -59,6 +59,15 @@
 	box-shadow: 0 0 20px rgba(82, 168, 236, 1);`
 }
 
+.vis-item.sighting_positive {
+	background-color: green;
+	border-color: white;
+}
+.vis-item.sighting_negative {
+	background-color: red;
+	border-color: white;
+}
+
 .vis-item.object {
 	background-color: #3465a4;
 	border-color: black;

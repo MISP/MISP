@@ -301,27 +301,27 @@
                     )
                 )
             );
-            if (!Configure::read('MISP.completely_disable_correlation') && Configure::read('MISP.allow_disabling_correlation')) {
-                $table_data[] = array(
-                    'key' => __('Correlation'),
-                    'class' => $event['Event']['disable_correlation'] ? 'background-red bold' : '',
-                    'html' => sprintf(
-                        '%s%s',
-                        $event['Event']['disable_correlation'] ? __('Disabled') : __('Enabled'),
-                        (!$mayModify && !$isSiteAdmin) ? '' : sprintf(
+        }
+        if (!Configure::read('MISP.completely_disable_correlation') && Configure::read('MISP.allow_disabling_correlation')) {
+            $table_data[] = array(
+                'key' => __('Correlation'),
+                'class' => $event['Event']['disable_correlation'] ? 'background-red bold' : '',
+                'html' => sprintf(
+                    '%s%s',
+                    $event['Event']['disable_correlation'] ? __('Disabled') : __('Enabled'),
+                    (!$mayModify && !$isSiteAdmin) ? '' : sprintf(
+                        sprintf(
+                            ' (<a onClick="getPopup(%s);" style="%scursor:pointer;font-weight:normal;">%s</a>)',
                             sprintf(
-                                ' (<a onClick="getPopup(%s);" style="%scursor:pointer;font-weight:normal;">%s</a>)',
-                                sprintf(
-                                    "'%s', 'events', 'toggleCorrelation', '', '#confirmation_box'",
-                                    h($event['Event']['id'])
-                                ),
-                                $event['Event']['disable_correlation'] ? 'color:white;' : '',
-                                $event['Event']['disable_correlation'] ? __('enable') : __('disable')
-                            )
+                                "'%s', 'events', 'toggleCorrelation', '', '#confirmation_box'",
+                                h($event['Event']['id'])
+                            ),
+                            $event['Event']['disable_correlation'] ? 'color:white;' : '',
+                            $event['Event']['disable_correlation'] ? __('enable') : __('disable')
                         )
                     )
-                );
-            }
+                )
+            );
         }
 
     ?>
