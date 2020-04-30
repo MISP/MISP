@@ -215,7 +215,7 @@ class GalaxyClustersController extends AppController
             $this->set('cluster', $cluster);
             $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
             if (isset($cluster['GalaxyCluster']['extended_from'])) {
-                $newVersionAvailable = $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['value'] > $cluster['GalaxyCluster']['extends_version'];
+                $newVersionAvailable = $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['version'] > $cluster['GalaxyCluster']['extends_version'];
             } else {
                 $newVersionAvailable = false;
             }
@@ -737,5 +737,89 @@ class GalaxyClustersController extends AppController
         $this->set('removeTrailling', 2);
 
         $this->render('cluster_matrix');
+    }
+
+    public function updateCluster($clusterId)
+    {
+        if (Validation::uuid($clusterId)) {
+            $temp = $this->GalaxyCluster->find('first', array(
+                'recursive' => -1,
+                'fields' => array('GalaxyCluster.id', 'GalaxyCluster.uuid'),
+                'conditions' => array('GalaxyCluster.uuid' => $clusterId)
+            ));
+            if ($temp === null) {
+                throw new NotFoundException('Invalid galaxy cluster');
+            }
+            $clusterId = $temp['GalaxyCluster']['id'];
+        } elseif (!is_numeric($clusterId)) {
+            throw new NotFoundException(__('Invalid galaxy cluster'));
+        }
+        $conditions = array('conditions' => array('GalaxyCluster.id' => $clusterId));
+        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, true);
+        if (empty($cluster)) {
+            throw new NotFoundException('Invalid galaxy cluster');
+        }
+        $cluster = $cluster[0];
+        if ($cluster['GalaxyCluster']['default']) {
+            throw new MethodNotAllowedException(__('Default galaxy cluster cannot be updated'));
+        }
+        if (empty($cluster['GalaxyCluster']['extends_uuid'])) {
+            throw new NotFoundException(__('Galaxy cluster is not a fork'));
+        }
+        $conditions = array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['extends_uuid']));
+        $parentCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, true);
+        if (empty($parentCluster)) {
+            throw new NotFoundException('Invalid parent galaxy cluster');
+        }
+        $parentCluster = $parentCluster[0];
+        $forkVersion = $cluster['GalaxyCluster']['extends_version'];
+        $parentVersion = $parentCluster['GalaxyCluster']['version'];
+        if ($this->request->is('post') || $this->request->is('put')) {
+            debug($this->request->data);
+            // if (empty($cluster['GalaxyCluster']['elements'])) {
+            //     $cluster['GalaxyCluster']['elements'] = array();
+            // } else {
+            //     $decoded = json_decode($cluster['GalaxyCluster']['elements'], true);
+            //     if (is_null($decoded)) {
+            //         $this->GalaxyCluster->validationErrors['values'][] = __('Invalid JSON');
+            //         $errors[] = sprintf(__('Invalid JSON'));
+            //     }
+            //     $cluster['GalaxyCluster']['elements'] = $decoded;
+            // }
+            $this->request->data['GalaxyCluster']['extends_version'] = $parentVersion;
+            // $errors = $this->GalaxyCluster->editCluster($this->Auth->user(), $cluster);
+            $errors = array('block');
+            if (!empty($errors)) {
+                $flashErrorMessage = implode(', ', $errors);
+                $this->Flash->error($flashErrorMessage);
+            } else {
+                $this->Flash->success(__('Cluster updated to the newer version'));
+                $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $clusterId));
+            }
+        }
+        $missingElements = array();
+        forEach($parentCluster['GalaxyElement'] as $k => $parentElement) {
+            $found = false;
+            forEach($cluster['GalaxyElement'] as $k => $clusterElement) {
+                if ($parentElement['key'] == $clusterElement['key'] &&
+                    $parentElement['value'] == $clusterElement['value']) {
+                        $found = true;
+                    break; // element exists in parent
+                }
+            }
+            if (!$found) {
+                $missingElements[] = $parentElement;
+            }
+        }
+        $this->set('missingElements', $missingElements);
+        $this->set('parentElements', $parentCluster['GalaxyElement']);
+        $this->set('clusterElements', $cluster['GalaxyElement']);
+        $this->set('forkVersion', $forkVersion);
+        $this->set('parentVersion', $parentVersion);
+        $this->set('newVersionAvailable', $parentVersion > $forkVersion);
+        $this->set('id', $clusterId);
+        $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
+        $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
+        $this->set('cluster', $cluster);
     }
 }

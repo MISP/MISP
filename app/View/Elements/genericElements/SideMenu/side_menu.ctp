@@ -1178,7 +1178,7 @@
                             ));
                         }
                     }
-                    if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster') {
+                    if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster' || $menuItem === 'update_cluster') {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
