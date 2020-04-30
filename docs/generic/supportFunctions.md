@@ -541,12 +541,20 @@ setBaseURL () {
     MISP_BASEURL="https://misp.local"
     # Webserver configuration
     FQDN='misp.local'
-  else
+  elif [[ "$(checkManufacturer)" == "innotek GmbH" ]]; then
     MISP_BASEURL='https://localhost:8443'
     IP=$(ip addr show | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}' |grep -v "127.0.0.1" |tail -1)
     sudo iptables -t nat -A OUTPUT -p tcp --dport 8443 -j DNAT --to ${IP}:443
     # Webserver configuration
     FQDN='localhost.localdomain'
+  elif [[ "$(checkManufacturer)" == "VMware, Inc." ]]; then
+    MISP_BASEURL='""'
+    # Webserver configuration
+    FQDN='misp.local'
+  else
+    MISP_BASEURL='""'
+    # Webserver configuration
+    FQDN='misp.local'
   fi
 }
 
