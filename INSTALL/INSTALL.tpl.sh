@@ -283,16 +283,16 @@ installSupported () {
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
     elif [[ "$PHP_VER" == 7.3 ]]; then
       # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
-      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
     elif [[ "$PHP_VER" == 7.4 ]]; then
       # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
-      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
     elif [[ "$PHP_VER" == 7.0 ]]; then
       # Install PHP 7.0 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp70
     fi
   else
-      # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+      # Install PHP 7.2 Dependencies by dangerous default - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
   fi
   progress 4
