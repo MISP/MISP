@@ -140,23 +140,16 @@ function drawGalaxy(gEnter) {
     });
 }
 function drawVersion(gEnter) {
-    var paddingX = 7;
-    gEnter.append("rect")
-        .attr("y", -12)
+    var paddingX = 4;
+    gEnter.append("foreignObject")
+        .attr("height", 18)
+        .attr("y", -9)
         .attr("width", function(d) { return getTextWidth(getTextFromNode(d, 'version')) + 2*paddingX + 'px'; })
-        .attr("height", 24)
-        .style("fill", function(d) { return d.isLast ? "cornflowerblue" : "darkgrey" })
-        .style("stroke", function(d) { return d.isLast ? "steelblue" : "gray" })
-        .style("stroke-width", "2px")
-        .append("title")
-        .text("<?= __('version') ?>");
-    drawLabel(gEnter, {
-        text: function(d) { return getTextFromNode(d, 'version') },
-        x: paddingX + "px",
-        dy: "4px",
-        textAnchor: "start",
-        fontWeight: "bold"
-    });
+        .append("xhtml:div")
+        .append("span")
+        .attr("class", function(d) { return "label " + (d.children ? "label-warning" : "label-info") })
+        .attr("title", function(d) { return d.children ? "Version" : "<?= __('Latest version of the parent cluster') ?>" })
+        .html(function(d) { return getTextFromNode(d, 'version') })
 }
 
 function drawLabel(gEnter, options) {
