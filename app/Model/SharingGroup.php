@@ -54,6 +54,10 @@ class SharingGroup extends AppModel
     );
 
     private $__sgoCache = array();
+    private $__sgAuthorisationCache = array(
+        'save' => array(),
+        'access' => array()
+    );
 
 
     public function beforeValidate($options = array())
@@ -353,6 +357,9 @@ class SharingGroup extends AppModel
     // returns true if the SG exists and the user is allowed to see it
     public function checkIfAuthorised($user, $id, $adminCheck = true)
     {
+        if (isset($this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id])) {
+            return $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id];
+        }
         if (Validation::uuid($id)) {
             $sgid = $this->SharingGroup->find('first', array(
                 'conditions' => array('SharingGroup.uuid' => $id),
@@ -372,8 +379,10 @@ class SharingGroup extends AppModel
             return false;
         }
         if (($adminCheck && $user['Role']['perm_site_admin']) || $this->SharingGroupServer->checkIfAuthorised($id) || $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id'])) {
+            $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id] = true;
             return true;
         }
+        $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id] = false;
         return false;
     }
 
@@ -502,10 +511,19 @@ class SharingGroup extends AppModel
                 return false;
             }
             // check if current user is contained in the SG and we are in a local sync setup
-            $authorizedToSave = $this->checkIfAuthorisedToSave($user, $sg);
+            if (!empty($sg['uuid'])) {
+                if (isset($this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']])) {
+                    $authorisedToSave = $this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']];
+                } else {
+                    $authorisedToSave = $this->checkIfAuthorisedToSave($user, $sg);
+                    $this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']] = $authorisedToSave;
+                }
+            } else {
+                $authorisedToSave = $this->checkIfAuthorisedToSave($user, $sg);
+            }
             if (!$user['Role']['perm_site_admin'] &&
                 !($user['Role']['perm_sync'] && $syncLocal ) &&
-                !$authorizedToSave
+                !$authorisedToSave
             ) {
                 $this->Log->create();
                 $entry = array(
