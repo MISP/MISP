@@ -217,18 +217,19 @@ EOF
 checkInstaller () {
   # Workaround: shasum is not available on RHEL, only checking sha512
   if [[ $FLAVOUR == "rhel" ]] || [[ $FLAVOUR == "centos" ]]; then
-	INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
-	/usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
+  INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
+  /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
         chsum=$(cat /tmp/INSTALL.sh.sha512)
-	if [[ "${chsum}" == "${INSTsum}" ]]; then
-		echo "SHA512 matches"
-	else
-		echo "SHA512: ${chsum} does not match the installer sum of: ${INSTsum}"
-		# exit 1 # uncomment when/if PR is merged
-	fi
+  if [[ "${chsum}" == "${INSTsum}" ]]; then
+    echo "SHA512 matches"
+  else
+    echo "SHA512: ${chsum} does not match the installer sum of: ${INSTsum}"
+    # exit 1 # uncomment when/if PR is merged
+  fi
   else
     # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
     if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
+      sudo apt update
       sudo apt install libdigest-sha-perl -qyy
     fi
     # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
