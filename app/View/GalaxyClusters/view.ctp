@@ -15,6 +15,12 @@
         $extendFromLinks[] = sprintf('<li>%s</li>', $element);
     }
     $extendedFromHtml = sprintf('<ul>%s</ul>', implode('', $extendFromLinks));
+        if ($newVersionAvailable) {
+            $extendedFromHtml .= sprintf('<div class="alert alert-danger">%s</div>', sprintf(__('New version available! <a href="%s">Update cluster to version <b>%s</b></a>'), 
+                '/galaxy_cluster/updateCluster/' . $cluster['GalaxyCluster']['id'],
+                h($cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['version'])
+            ));
+        }
 
     $extendedByHtml = '';
     $extendByLinks = array();
