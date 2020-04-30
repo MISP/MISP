@@ -24,7 +24,7 @@ import io
 import re
 import stix2
 from stix2misp_mapping import *
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 
 _MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-4]])
 _PyMISP_dir = '{_MISP_dir}/PyMISP'.format(_MISP_dir=_MISP_dir)
@@ -107,7 +107,7 @@ class StixParser():
         try:
             self.report[parsed_object['id'].split('--')[1]] = parsed_object
         except AttributeError:
-            self.report = OrderedDict({parsed_object['id'].split('--')[1]: parsed_object})
+            self.report = {parsed_object['id'].split('--')[1]: parsed_object}
 
     def _load_usual_object(self, parsed_object):
         self.event[parsed_object._type][parsed_object['id'].split('--')[1]] = parsed_object
@@ -128,23 +128,14 @@ class StixParser():
                     except PyMISPInvalidFormat:
                         continue
 
-    def _set_info_from_report(self, report_attributes):
-        if report_attributes['name'] is None:
-            self.misp_event.info = "Imported with MISP import script for {} from {}.".format(self.stix_version, os.path.basename(self.filename))
-        else:
-            self.misp_event.info = report_attributes['name']
-
     def build_from_STIX_with_report(self):
         report_attributes = defaultdict(set)
-        report_attributes['name'] = None
-
         for ruuid, report in self.report.items():
             try:
                 report_attributes['orgs'].add(report.created_by_ref.split('--')[1])
             except AttributeError:
                 pass
-            if report_attributes['name'] is None:
-                report_attributes['name'] = report.name
+            report_attributes['name'].add(report.name)
             if report.get('published'):
                 report_attributes['published'].add(report.published)
             if 'labels' in report:
@@ -164,7 +155,10 @@ class StixParser():
             self.misp_event['Org'] = {'name': identity['name']}
         if len(report_attributes['published']) == 1:
             self.misp_event.publish_timestamp = self.getTimestampfromDate(report_attributes['published'].pop())
-        self._set_info_from_report(report_attributes)
+        if len(report_attributes['name']) == 1:
+            self.misp_event.info = report_attributes['name'].pop()
+        else:
+            self.misp_event.info = "Imported with MISP import script for {}.".format(self.stix_version)
         for l in report_attributes['labels']:
             self.misp_event.add_tag(l)
 
