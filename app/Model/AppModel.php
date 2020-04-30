@@ -2864,4 +2864,21 @@ class AppModel extends Model
 
         return $this->log($message, $type);
     }
+
+    /**
+     * Generates random file name in tmp dir.
+     * @return string
+     */
+    protected function tempFileName()
+    {
+        return $this->tempDir() . DS . $this->generateRandomFileName();
+    }
+
+    /**
+     * @return string
+     */
+    protected function tempDir()
+    {
+        return Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
+    }
 }
