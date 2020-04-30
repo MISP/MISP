@@ -73,6 +73,9 @@
                     'label' => __("Galaxy Cluster Elements"),
                     'type' => 'textarea',
                 ),
+            ),
+            'metaFields' => array(
+                $this->element('/GalaxyClusters/clusterElementUI', array('elements' => $this->request->data['GalaxyCluster']['elementsDict']))
             )
         )
     ));
