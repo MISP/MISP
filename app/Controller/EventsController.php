@@ -1403,12 +1403,8 @@ class EventsController extends AppController
                 $this->set($alias, $currentModel->{$variable});
             }
         }
-        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
-        foreach ($event['EventTag'] as $k => $eventTag) {
-            if (in_array($eventTag['Tag']['name'], $cluster_names)) {
-                unset($event['EventTag'][$k]);
-            }
-        }
+
+        $this->Event->removeGalaxyClusterTags($event);
 
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
         foreach ($tagConflicts['global'] as $tagConflict) {
@@ -1430,11 +1426,9 @@ class EventsController extends AppController
             }
             $modDate = date("Y-m-d", $attribute['timestamp']);
             $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
-            foreach ($attribute['AttributeTag'] as $k2 => $attributeTag) {
-                if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                    unset($event['Attribute'][$k]['AttributeTag'][$k2]);
-                }
-            }
+
+            $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
+
             $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
             foreach ($tagConflicts['global'] as $tagConflict) {
                 $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
@@ -1463,11 +1457,9 @@ class EventsController extends AppController
                     }
                     $modDate = date("Y-m-d", $attribute['timestamp']);
                     $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
-                    foreach ($attribute['AttributeTag'] as $k3 => $attributeTag) {
-                        if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                            unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
-                        }
-                    }
+
+                    $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
+
                     $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
                     foreach ($tagConflicts['global'] as $tagConflict) {
                         $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
@@ -1659,7 +1651,7 @@ class EventsController extends AppController
         if (!empty($this->params['named']['excludeGalaxy'])) {
             $conditions['excludeGalaxy'] = 1;
         }
-        if (!empty($this->params['named']['extended'])) {
+        if (!empty($this->params['named']['extended']) || !empty($this->request->data['extended'])) {
             $conditions['extended'] = 1;
             $this->set('extended', 1);
         } else {
@@ -2280,18 +2272,34 @@ class EventsController extends AppController
                 }
             }
             foreach ($resultArray as $key => $result) {
+                if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
+                    $pieces = explode('|', $result['value']);
+                    $or = array('Attribute.value1' => $pieces,
+                                'Attribute.value2' => $pieces);
+                } else {
+                    $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
+                }
                 $options = array(
-                        'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
-                        'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                        'order' => false
+                    'conditions' => array('OR' => $or),
+                    'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+                    'order' => false
                 );
                 $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+            }
+
+            // combobox for distribution
+            $distributions = $this->Event->Attribute->distributionLevels;
+            $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+            if (empty($sgs)) {
+                unset($distributions[4]);
             }
             $this->set('event', array('Event' => array('id' => $target_id)));
             $this->set('resultArray', $resultArray);
             $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
             $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
             $this->set('typeCategoryMapping', $typeCategoryMapping);
+            $this->set('distributions', $distributions);
+            $this->set('sgs', $sgs);
             $this->set('title', 'Merge Results');
             $this->set('importComment', 'Merged from event ' . $source_id);
             $this->render('resolved_attributes');
@@ -3715,8 +3723,15 @@ class EventsController extends AppController
                 }
             }
             foreach ($resultArray as $key => $result) {
+                if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
+                    $pieces = explode('|', $result['value']);
+                    $or = array('Attribute.value1' => $pieces,
+                                'Attribute.value2' => $pieces);
+                } else {
+                    $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
+                }
                 $options = array(
-                    'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+                    'conditions' => array('OR' => $or),
                     'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
                     'order' => false,
                     'flatten' => 1
@@ -4987,10 +5002,17 @@ class EventsController extends AppController
             }
         }
         foreach ($resultArray as $key => $result) {
+            if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
+                $pieces = explode('|', $result['value']);
+                $or = array('Attribute.value1' => $pieces,
+                            'Attribute.value2' => $pieces);
+            } else {
+                $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
+            }
             $options = array(
-                    'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
-                    'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                    'order' => false
+                'conditions' => array('OR' => $or),
+                'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+                'order' => false
             );
             $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
             if (isset($result['data'])) {
@@ -5170,10 +5192,17 @@ class EventsController extends AppController
                             }
                         }
                         foreach ($resultArray as $key => $result) {
+                            if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
+                                $pieces = explode('|', $result['value']);
+                                $or = array('Attribute.value1' => $pieces,
+                                            'Attribute.value2' => $pieces);
+                            } else {
+                                $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
+                            }
                             $options = array(
-                                    'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
-                                    'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                                    'order' => false
+                                'conditions' => array('OR' => $or),
+                                'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+                                'order' => false
                             );
                             $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
                         }

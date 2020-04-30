@@ -78,7 +78,7 @@ class AppModel extends Model
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
-        51 => false
+        51 => false, 52 => false, 53 => false
     );
 
     public $advanced_updates_description = array(
@@ -1268,7 +1268,7 @@ class AppModel extends Model
             case 39:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS user_settings (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
-                    `key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `setting` varchar(255) COLLATE utf8_bin NOT NULL,
                     `value` text,
                     `user_id` int(11) NOT NULL,
                     `timestamp` int(11) NOT NULL,
@@ -1376,6 +1376,18 @@ class AppModel extends Model
             case 51:
                 $sqlArray[] = "ALTER TABLE `feeds` ADD `orgc_id` int(11) NOT NULL DEFAULT 0";
                 $this->__addIndex('feeds', 'orgc_id');
+                break;
+            case 52:
+                if (!empty($this->query("SHOW COLUMNS FROM `admin_settings` LIKE 'key';"))) {
+                    $sqlArray[] = "ALTER TABLE admin_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
+                    $this->__addIndex('admin_settings', 'setting');
+                }
+                break;
+            case 53:
+                if (!empty($this->query("SHOW COLUMNS FROM `user_settings` LIKE 'key';"))) {
+                    $sqlArray[] = "ALTER TABLE user_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
+                    $this->__addIndex('user_settings', 'setting');
+                }
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2839,12 +2851,34 @@ class AppModel extends Model
      */
     protected function logException($message, Exception $exception, $type = LOG_ERR)
     {
-        $message = sprintf("%s\n[%s] %s",
-            $message,
-            get_class($exception),
-            $exception->getMessage()
-        );
-        $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+        $message .= "\n";
+
+        do {
+            $message .= sprintf("[%s] %s",
+                get_class($exception),
+                $exception->getMessage()
+            );
+            $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+            $exception = $exception->getPrevious();
+        } while ($exception !== null);
+
         return $this->log($message, $type);
+    }
+
+    /**
+     * Generates random file name in tmp dir.
+     * @return string
+     */
+    protected function tempFileName()
+    {
+        return $this->tempDir() . DS . $this->generateRandomFileName();
+    }
+
+    /**
+     * @return string
+     */
+    protected function tempDir()
+    {
+        return Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
     }
 }

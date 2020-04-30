@@ -569,6 +569,7 @@ class ACLComponent extends Component
                     'discardRegistrations' => array('perm_site_admin'),
                     'downloadTerms' => array('*'),
                     'edit' => array('*'),
+                    'email_otp' => array('*'),
                     'searchGpgKey' => array('*'),
                     'fetchGpgKey' => array('*'),
                     'histogram' => array('*'),

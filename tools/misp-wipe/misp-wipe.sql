@@ -6,10 +6,12 @@ TRUNCATE `correlations`;
 TRUNCATE `events`;
 TRUNCATE `event_blacklists`;
 TRUNCATE `event_delegations`;
+TRUNCATE `event_graph`;
 TRUNCATE `event_tags`;
 TRUNCATE `favourite_tags`;
 TRUNCATE `jobs`;
 TRUNCATE `logs`;
+TRUNCATE `notification_logs`;
 TRUNCATE `objects`;
 TRUNCATE `object_references`;
 TRUNCATE `object_relationships`;
@@ -17,6 +19,7 @@ TRUNCATE `object_templates`;
 TRUNCATE `object_template_elements`;
 TRUNCATE `org_blacklists`;
 TRUNCATE `posts`;
+TRUNCATE `rest_client_histories`;
 TRUNCATE `servers`;
 TRUNCATE `shadow_attributes`;
 TRUNCATE `shadow_attribute_correlations`;
@@ -24,6 +27,8 @@ TRUNCATE `sharing_groups`;
 TRUNCATE `sharing_group_orgs`;
 TRUNCATE `sharing_group_servers`;
 TRUNCATE `sightings`;
+TRUNCATE `tag_collections`;
+TRUNCATE `tag_collection_tags`;
 TRUNCATE `tags`;
 TRUNCATE `threads`;
 TRUNCATE `bruteforces`;
@@ -33,6 +38,7 @@ TRUNCATE `whitelist`;
 TRUNCATE `event_locks`;
 TRUNCATE `fuzzy_correlate_ssdeep`;
 TRUNCATE `tasks`;
+TRUNCATE `user_settings`;
 
 -- Clear tables that can be re-populated
 TRUNCATE `taxonomies`;
@@ -47,6 +53,8 @@ TRUNCATE `galaxy_elements`;
 TRUNCATE `galaxy_reference`;
 TRUNCATE `noticelists`;
 TRUNCATE `noticelist_entries`;
+TRUNCATE `decaying_models`;
+TRUNCATE `decaying_model_mappings`;
 
 -- Clear tables that have defaults
 TRUNCATE `feeds`;

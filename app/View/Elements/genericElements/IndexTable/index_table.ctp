@@ -32,6 +32,7 @@
     if (!$skipPagination) {
         $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : array();
         echo $this->element('/genericElements/IndexTable/pagination', array('paginationOptions' => $paginationData));
+        echo $this->element('/genericElements/IndexTable/pagination_links');
     }
     if (!empty($data['top_bar'])) {
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data['top_bar']));
@@ -81,7 +82,7 @@
     echo '</div>';
     if (!$skipPagination) {
         echo $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
-        echo $this->element('/genericElements/IndexTable/pagination', $paginationData);
+        echo $this->element('/genericElements/IndexTable/pagination_links');
     }
 ?>
 <script type="text/javascript">
