@@ -278,16 +278,16 @@ installSupported () {
 
   if [[ "$1" =~ ^PHP= ]]; then
     PHP_VER=$(echo $1 |cut -f2 -d=)
-    if [[ "$PHP_VER" == "7.2" ]]; then
+    if [[ "$PHP_VER" == 7.2 ]]; then
       # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
-    elif [[ "$PHP_VER" == "7.3" ]]; then
+    elif [[ "$PHP_VER" == 7.3 ]]; then
       # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
-    elif [[ "$PHP_VER" == "7.4" ]]; then
+    elif [[ "$PHP_VER" == 7.4 ]]; then
       # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
-    elif [[ "$PHP_VER" == "7.0" ]]; then
+    elif [[ "$PHP_VER" == 7.0 ]]; then
       # Install PHP 7.0 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp70
     fi
