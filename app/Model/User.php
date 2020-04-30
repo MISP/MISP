@@ -1550,6 +1550,15 @@ class User extends AppModel
                 'recursive' => -1,
                 'conditions' => array('id' => $this->id)
             ));
+            $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'User',
+                'model_id' => $added_by['id'],
+                'email' => $added_by['email'],
+                'action' => 'succeeded_registration',
+                'title' => sprintf('User registration success for %s (id=%s)', $user['User']['email'], $user['User']['id']),
+                'change' => null,
+            ));
             $this->initiatePasswordReset($user, true, true, false);
             $this->Inbox = ClassRegistry::init('Inbox');
             $this->Inbox->delete($registration['id']);

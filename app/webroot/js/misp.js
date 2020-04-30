@@ -3939,6 +3939,7 @@ function feedFormUpdate() {
     switch($('#FeedSourceFormat').val()) {
         case 'freetext':
             $('#TargetDiv').show();
+            $('#OrgcDiv').show();
             $('#OverrideIdsDiv').show();
             $('#PublishDiv').show();
             if ($('#FeedTarget').val() != 0) {
@@ -3949,6 +3950,7 @@ function feedFormUpdate() {
             break;
         case 'csv':
             $('#TargetDiv').show();
+            $('#OrgcDiv').show();
             $('#OverrideIdsDiv').show();
             $('#PublishDiv').show();
             if ($('#FeedTarget').val() != 0) {
@@ -4471,6 +4473,16 @@ function quickSelect(target) {
 }
 
 $(document).ready(function() {
+    // Show popover for disabled input that contains `data-disabled-reason`.
+    $('input:disabled[data-disabled-reason]').popover("destroy").popover({
+        placement: 'right',
+        html: 'true',
+        trigger: 'hover',
+        content: function () {
+            return $(this).data('disabled-reason');
+        }
+    });
+
     $('#quickFilterField').bind("enterKey",function(e){
         $('#quickFilterButton').trigger("click");
     });

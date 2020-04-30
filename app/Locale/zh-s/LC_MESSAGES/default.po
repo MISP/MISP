@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2020-02-27 02:20\n"
+"PO-Revision-Date: 2020-04-24 01:14\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Chinese Simplified\n"
 "MIME-Version: 1.0\n"
@@ -73,11 +73,11 @@ msgstr ""
 #: Console/Command/AdminShell.php:536
 #: Controller/UsersController.php:1234
 msgid "Invalid user."
-msgstr ""
+msgstr "无效用户"
 
 #: Console/Command/AdminShell.php:539
 msgid "User has to be a site admin."
-msgstr ""
+msgstr "用户必须是站点管理员。"
 
 #: Console/Command/AdminShell.php:563
 msgid "\n"
@@ -181,7 +181,7 @@ msgstr "未设置事件ID。"
 
 #: Controller/AttributesController.php:112
 msgid "You do not have permissions to create attributes"
-msgstr ""
+msgstr "你没有权限创建属性."
 
 #: Controller/AttributesController.php:132;422;602;832;3127;3142
 #: Controller/EventGraphController.php:88
@@ -350,7 +350,7 @@ msgstr "此功能只能通过AJAX访问。"
 
 #: Controller/AttributesController.php:2241
 msgid "You do not have permission to do that"
-msgstr ""
+msgstr "您无权执行此操作。"
 
 #: Controller/AttributesController.php:2271;2279
 #: Controller/EventsController.php:3643;3796;4999
@@ -395,7 +395,7 @@ msgstr "无效请求类型。"
 #: Controller/AttributesController.php:2823;3030
 #: Controller/TagCollectionsController.php:254
 msgid "Invalid tag"
-msgstr ""
+msgstr "无效标签"
 
 #: Controller/AttributesController.php:3120
 #: Controller/EventsController.php:5197
@@ -409,11 +409,11 @@ msgstr "无效属性。"
 
 #: Controller/CommunitiesController.php:150
 msgid "Request sent."
-msgstr ""
+msgstr "请求已发送"
 
 #: Controller/CommunitiesController.php:150
 msgid "Something went wrong and the request could not be sent."
-msgstr ""
+msgstr "出错了，请求无法发送。"
 
 #: Controller/CommunitiesController.php:166
 msgid "The message could not be sent (either because e-mailing is disabled or because encryption is misconfigured), however, you can view the e-mail that would have been sent below. Feel free to send it manually."

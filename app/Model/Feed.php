@@ -19,6 +19,10 @@ class Feed extends AppModel
             'Tag' => array(
                     'className' => 'Tag',
                     'foreignKey' => 'tag_id',
+            ),
+            'Orgc' => array(
+                    'className' => 'Organisation',
+                    'foreignKey' => 'orgc_id'
             )
     );
 
@@ -50,6 +54,25 @@ class Feed extends AppModel
             'name' => 'Simple CSV Parsed Feed'
         )
     );
+
+    /*
+     *  Cleanup of empty belongsto relationships
+     */
+    public function afterFind($results, $primary = false)
+    {
+        foreach ($results as $k => $result) {
+            if (isset($result['SharingGroup']) && empty($result['SharingGroup']['id'])) {
+                unset($results[$k]['SharingGroup']);
+            }
+            if (isset($result['Tag']) && empty($result['Tag']['id'])) {
+                unset($results[$k]['Tag']);
+            }
+            if (isset($result['Orgc']) && empty($result['Orgc']['id'])) {
+                unset($results[$k]['Orgc']);
+            }
+        }
+        return $results;
+    }
 
     public function validateInputSource($fields)
     {
@@ -224,10 +247,7 @@ class Feed extends AppModel
             $data = $this->feedGetUri($feed, $feedUrl, $HttpSocket, true);
 
             if (!$isLocal) {
-                $redis = $this->setupRedis();
-                if ($redis === false) {
-                    throw new Exception('Could not reach Redis.');
-                }
+                $redis = $this->setupRedisWithException();
                 $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
                 file_put_contents($feedCache, $data);
             }
@@ -479,12 +499,17 @@ class Feed extends AppModel
 
         $result = array(
             'header' => array(
-                    'Accept' => array('application/json', 'text/plain'),
-                    'Content-Type' => 'application/json',
-                    'MISP-version' => $version,
-                    'MISP-uuid' => Configure::read('MISP.uuid')
+                'Accept' => array('application/json', 'text/plain'),
+                'MISP-version' => $version,
+                'MISP-uuid' => Configure::read('MISP.uuid'),
             )
         );
+
+        // Enable gzipped responses if PHP has 'gzdecode' method
+        if (function_exists('gzdecode')) {
+            $result['header']['Accept-Encoding'] = 'gzip';
+        }
+
         if ($commit) {
             $result['header']['commit'] = $commit;
         }
@@ -879,11 +904,15 @@ class Feed extends AppModel
             }
         } else {
             $this->Event->create();
+            $orgc_id = $user['org_id'];
+            if (!empty($feed['Feed']['orgc_id'])) {
+                $orgc_id = $feed['Feed']['orgc_id'];
+            }
             $event = array(
                     'info' => $feed['Feed']['name'] . ' feed',
                     'analysis' => 2,
                     'threat_level_id' => 4,
-                    'orgc_id' => $user['org_id'],
+                    'orgc_id' => $orgc_id,
                     'org_id' => $user['org_id'],
                     'date' => date('Y-m-d'),
                     'distribution' => $feed['Feed']['distribution'],
@@ -1002,14 +1031,14 @@ class Feed extends AppModel
             } elseif ($scope == 'freetext' || $scope == 'csv') {
                 $params['conditions']['source_format'] = array('csv', 'freetext');
             } elseif ($scope == 'misp') {
-                $redis->del('misp:feed_cache:event_uuid_lookup:');
+                $redis->del($redis->keys('misp:feed_cache:event_uuid_lookup:*'));
                 $params['conditions']['source_format'] = 'misp';
             } else {
                 throw new InvalidArgumentException("Invalid value for scope, it must be integer or 'freetext', 'csv', 'misp' or 'all' string.");
             }
         } else {
             $redis->del('misp:feed_cache:combined');
-            $redis->del('misp:feed_cache:event_uuid_lookup:');
+            $redis->del($redis->keys('misp:feed_cache:event_uuid_lookup:*'));
         }
         $feeds = $this->find('all', $params);
         $atLeastOneSuccess = false;
@@ -1563,24 +1592,51 @@ class Feed extends AppModel
                 if ($data === false) {
                     throw new Exception("Could not read local file '$uri'.");
                 }
+                return $data;
             } else {
                 throw new Exception("Local file '$uri' doesn't exists.");
             }
+        }
+
+        $request = $this->__createFeedRequest($feed['Feed']['headers']);
+
+        if ($followRedirect) {
+            $response = $this->getFollowRedirect($HttpSocket, $uri, $request);
         } else {
-            $request = $this->__createFeedRequest($feed['Feed']['headers']);
+            $response = $HttpSocket->get($uri, array(), $request);
+        }
 
-            if ($followRedirect) {
-                $response = $this->getFollowRedirect($HttpSocket, $uri, $request);
-            } else {
-                $response = $HttpSocket->get($uri, array(), $request);
-            }
+        if ($response === false) {
+            throw new Exception("Could not reach '$uri'.");
+        } else if ($response->code != 200) { // intentionally !=
+            throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+        }
 
-            if ($response === false) {
-                throw new Exception("Could not reach '$uri'.");
-            } else if ($response->code != 200) { // intentionally !=
-                throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+        $data = $response->body;
+
+        $contentEncoding = $response->getHeader('Content-Encoding');
+        if ($contentEncoding === 'gzip') {
+            $data = gzdecode($data);
+            if ($data === false) {
+                throw new Exception("Fetching the '$uri' failed, response should be gzip encoded, but gzip decoding failed.");
             }
-            $data = $response->body;
+        } else if ($contentEncoding) {
+            throw new Exception("Fetching the '$uri' failed, because remote server returns unsupported content encoding '$contentEncoding'");
+        }
+
+        $contentType = $response->getHeader('Content-Type');
+        if ($contentType === 'application/zip') {
+            $zipFile = new File($this->tempFileName());
+            $zipFile->write($data);
+            $zipFile->close();
+
+            try {
+                $data = $this->unzipFirstFile($zipFile);
+            } catch (Exception $e) {
+                throw new Exception("Fetching the '$uri' failed: {$e->getMessage()}");
+            } finally {
+                $zipFile->delete();
+            }
         }
 
         return $data;
@@ -1692,5 +1748,48 @@ class Feed extends AppModel
         $feed['Feed']['event_id'] = 0;
         $this->save($feed);
         return $count;
+    }
+
+    /**
+     * @param File $zipFile
+     * @return string Uncompressed data
+     * @throws Exception
+     */
+    private function unzipFirstFile(File $zipFile)
+    {
+        if (!class_exists('ZipArchive')) {
+            throw new Exception("ZIP archive decompressing is not supported.");
+        }
+
+        $zip = new ZipArchive();
+        $result = $zip->open($zipFile->pwd());
+        if ($result !== true) {
+            throw new Exception("Remote server returns ZIP file, that cannot be open (error $result)");
+        }
+
+        if ($zip->numFiles !== 1) {
+            throw new Exception("Remote server returns ZIP file, that contains multiple files.");
+        }
+
+        $filename = $zip->getNameIndex(0);
+        if ($filename === false) {
+            throw new Exception("Remote server returns ZIP file, but there is a problem with reading filename.");
+        }
+
+        $zip->close();
+
+        $destinationFile = $this->tempFileName();
+        $result = copy("zip://{$zipFile->pwd()}#$filename", $destinationFile);
+        if ($result === false) {
+            throw new Exception("Remote server returns ZIP file, that contains '$filename' file, that cannot be extracted.");
+        }
+
+        $unzipped = new File($destinationFile);
+        $data = $unzipped->read();
+        if ($data === false) {
+            throw new Exception("Couldn't read extracted file content.");
+        }
+        $unzipped->delete();
+        return $data;
     }
 }

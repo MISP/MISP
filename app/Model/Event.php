@@ -6983,4 +6983,27 @@ class Event extends AppModel
         }
         return $filters;
     }
+
+    /**
+     * @param array $event
+     */
+    public function removeGalaxyClusterTags(array &$event)
+    {
+        $galaxyTagIds = array();
+        foreach ($event['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] as $galaxyCluster) {
+                $galaxyTagIds[$galaxyCluster['tag_id']] = true;
+            }
+        }
+
+        if (empty($galaxyTagIds)) {
+            return;
+        }
+
+        foreach ($event['EventTag'] as $k => $eventTag) {
+            if (isset($galaxyTagIds[$eventTag['tag_id']])) {
+                unset($event['EventTag'][$k]);
+            }
+        }
+    }
 }

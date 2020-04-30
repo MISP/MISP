@@ -187,8 +187,8 @@ $SUDO_WWW scl enable devtoolset-7 'bash -c "cmake3 \
 $SUDO_WWW make -j3
 sudo make install
 cd api/python/lief_pybind11-prefix/src/lief_pybind11
-$SUDO_WWW $PATH_TO_MISP/venv/bin/python setup.py install
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/python setup.py install
+$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
 
 # install magic, pydeep
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git
@@ -394,6 +394,7 @@ sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/*.sh
 sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py
 sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py
 sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
 # Only run these if you want to be able to update MISP from the web interface
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
 sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp

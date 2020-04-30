@@ -229,10 +229,13 @@ installCoreRHEL () {
   $SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   UMASK=$(umask)
   umask 0022
+  
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+  
   cd $PATH_TO_MISP/app/files/scripts/python-stix
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
@@ -257,7 +260,7 @@ installCoreRHEL () {
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
   # lief needs manual compilation
-  sudo yum install devtoolset-7 cmake3 cppcheck -y
+  sudo yum install devtoolset-7 cmake3 cppcheck libcxx-devel -y
 
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW mkdir build
@@ -506,6 +509,7 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
   sudo chcon -R -t bin_t $PATH_TO_MISP/venv/bin/*
   find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
   # Only run these if you want to be able to update MISP from the web interface
