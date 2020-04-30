@@ -8,7 +8,7 @@
         <div class="span8">
             <h2><?php echo nl2br(h($title)); ?></h2>
             <dl>
-                <dt><?php echo __('Uuid');?></dt>
+                <dt><?php echo __('UUID');?></dt>
                 <dd><?php echo h($event['Event']['uuid']); ?></dd>
                 <dt><?php echo Configure::read('MISP.showorgalternate') ? __('Source Organisation') : __('Org')?></dt>
                 <dd><?php echo h($event['Orgc']['name']); ?></dd>

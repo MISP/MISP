@@ -86,7 +86,7 @@
             <th><?php echo __('Logo');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <?php if ($isSiteAdmin): ?>
-                <th><?php echo $this->Paginator->sort('uuid');?></th>
+                <th><?php echo $this->Paginator->sort('uuid', 'UUID');?></th>
             <?php endif; ?>
             <th><?php echo $this->Paginator->sort('description');?></th>
             <th><?php echo $this->Paginator->sort('nationality');?></th>

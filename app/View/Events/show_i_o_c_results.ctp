@@ -7,7 +7,7 @@ if (0 != count($attributes)): ?>
     <h4><?php echo __('Successfully added attributes');?>:</h4>
     <table class="table table-striped table-hover table-condensed">
     <tr>
-            <th><?php echo __('Uuid');?></th>
+            <th><?php echo __('UUID');?></th>
             <th><?php echo __('Category');?></th>
             <th><?php echo __('Type');?></th>
             <th><?php echo __('Value');?></th>
@@ -29,7 +29,7 @@ if (isset($fails)):?>
     <h4><?php echo __('Failed indicators');?>:</h4>
     <table class="table table-striped table-hover table-condensed">
     <tr>
-            <th><?php echo __('Uuid');?></th>
+            <th><?php echo __('UUID');?></th>
             <th><?php echo __('Search term');?></th>
             <th><?php echo __('Content');?></th>
     </tr><?php
