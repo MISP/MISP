@@ -3276,93 +3276,110 @@ function getRemoteSyncUser(id) {
 function testConnection(id) {
     $.ajax({
         url: '/servers/testConnection/' + id,
-        type:'GET',
-        beforeSend: function (XMLHttpRequest) {
-            $("#connection_test_" + id).html('Running test...');
+        type: 'GET',
+        beforeSend: function () {
+            $("#connection_test_" + id).text('Running test...');
         },
         error: function(){
-            $("#connection_test_" + id).html('Internal error.');
+            $("#connection_test_" + id).text('Internal error.');
         },
-        success: function(response){
-            var result = response;
+        success: function(result) {
+            var html = '';
+
+            if (result.client_certificate) {
+                var cert = result.client_certificate;
+                html += "Using client certificate<br>"
+                if (cert.error) {
+                    html += '<span class="red bold">Error: ' + cert.error + '</span><br>';
+                } else {
+                    html += 'Name: ' + cert.name + '<br>';
+                    html += 'Serial number: ' + cert.serial_number + '<br>';
+                    html += 'Valid from: ' + cert.valid_from + '<br>';
+                    html += 'Valid to: ' + cert.valid_to + '<br>';
+                }
+                html += "<br>";
+            }
+
             switch (result.status) {
             case 1:
-                status_message = "OK";
-                compatibility = "Compatible";
-                compatibility_colour = "green";
-                colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
-                issue_colour = "red";
-                if (result.mismatch == "hotfix") issue_colour = "orange";
-                if (result.newer == "local") {
+                var status_message = "OK";
+                var compatibility = "Compatible";
+                var compatibility_colour = "green";
+                var colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
+                var issue_colour = "red";
+                if (result.mismatch === "hotfix") issue_colour = "orange";
+                if (result.newer === "local") {
                     colours.remote = 'class="' + issue_colour + '"';
-                    if (result.mismatch == "minor") {
+                    if (result.mismatch === "minor") {
                         compatibility = "Pull only";
                         compatibility_colour = "orange";
-                    } else if (result.mismatch == "major") {
+                    } else if (result.mismatch === "major") {
                         compatibility = "Incompatible";
                         compatibility_colour = "red";
                     }
-                } else if (result.newer == "remote") {
+                } else if (result.newer === "remote") {
                     colours.local = 'class="' + issue_colour + '"';
-                    if (result.mismatch != "hotfix") {
+                    if (result.mismatch !== "hotfix") {
                         compatibility = "Incompatible";
                         compatibility_colour = "red";
                     }
-                } else if (result.mismatch == "proposal") {
+                } else if (result.mismatch === "proposal") {
                     compatibility_colour = "orange";
                     compatibility = "Proposal pull disabled (remote version < v2.4.111)";
                 }
-                if (result.mismatch != false && result.mismatch != "proposal") {
-                    if (result.newer == "remote") status_message = "Local instance outdated, update!";
-                    else status_message = "Remote outdated, notify admin!"
+                if (result.mismatch !== false && result.mismatch !== "proposal") {
+                    if (result.newer === "remote") status_message = "Local instance outdated, please update!";
+                    else status_message = "Remote outdated, please notify admin!"
                     colours.status = 'class="' + issue_colour + '"';
                 }
-                if (result.post != false) {
+                if (result.post !== false) {
                     var post_colour = "red";
-                    if (result.post == 1) {
+                    if (result.post === 1) {
                         post_colour = "green";
                         post_result = "Received sent package";
-                    } else if (result.post == 8) {
+                    } else if (result.post === 8) {
                         post_result = "Could not POST message";
-                    } else if (result.post == 9) {
+                    } else if (result.post === 9) {
                         post_result = "Invalid body";
-                    } else if (result.post == 10) {
+                    } else if (result.post === 10) {
                         post_result = "Invalid headers";
                     } else {
                         post_colour = "orange";
                         post_result = "Remote too old for this test";
                     }
                 }
-                resultDiv = '<div>Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
-                resultDiv += '<div>Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
-                resultDiv += '<div>Status: <span ' + colours.status + '>' + status_message + '</span><br />';
-                resultDiv += '<div>Compatiblity: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
-                resultDiv += '<div>POST test: <span class="' + post_colour + '">' + post_result + '</span><br />';
-                $("#connection_test_" + id).html(resultDiv);
-                //$("#connection_test_" + id).html('<span class="green bold" title="Connection established, correct response received.">OK</span>');
+                html += 'Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
+                html += 'Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
+                html += 'Status: <span ' + colours.status + '>' + status_message + '</span><br />';
+                html += 'Compatibility: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
+                html += 'POST test: <span class="' + post_colour + '">' + post_result + '</span><br />';
                 break;
             case 2:
-                $("#connection_test_" + id).html('<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>');
+                html += '<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable, check audit logs for more details</span>';
                 break;
             case 3:
-                $("#connection_test_" + id).html('<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error</span>');
+                html += '<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error, check audit logs for more details</span>';
                 break;
             case 4:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>');
+                html += '<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>';
                 break;
             case 5:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>');
+                html += '<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>';
                 break;
             case 6:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>');
+                html += '<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>';
                 break;
             case 7:
-                $("#connection_test_" + id).html('<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>');
+                html += '<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>';
                 break;
             case 8:
-                $("#connection_test_" + id).html('<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Syncing sightings only</span>');
+                html += '<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Syncing sightings only</span>';
                 break;
+            default:
+                html += '<span class="red bold">Invalid response code</span>';
             }
+
+            $("#connection_test_" + id).html(html);
         }
     })
 }

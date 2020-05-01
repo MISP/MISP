@@ -30,9 +30,6 @@ class ServerShell extends AppShell
 
         $serverId = intval($this->args[0]);
         $res = @$this->Server->runConnectionTest($serverId);
-        if (!empty($res['message']))
-            $res['message'] = json_decode($res['message']);
-
         echo json_encode($res) . PHP_EOL;
     }
 

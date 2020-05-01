@@ -29,12 +29,11 @@ class MispAdminSyncTestWidget
             if ($result['status'] === 1) {
                 $message = __('Connected.');
                 $colour = 'green';
-                $flags = json_decode($result['message'], true);
-                if (empty($flags['perm_sync'])) {
+                if (empty($result['info']['perm_sync'])) {
                     $colour = 'orange';
                     $message .= ' ' . __('No sync access.');
                 }
-                if (empty($flags['perm_sighting'])) {
+                if (empty($result['info']['perm_sighting'])) {
                     $colour = 'orange';
                     $message .= ' ' . __('No sighting access.');
                 }
