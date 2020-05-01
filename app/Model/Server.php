@@ -4243,29 +4243,31 @@ class Server extends AppModel
     public function runConnectionTest($id)
     {
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        $HttpSocket = $this->setupHttpSocket($server, null, 5);
 
-        $clientCertificate = null;
-        if (isset($HttpSocket->config['ssl_local_cert'])) {
-            $certificateFile = new File($HttpSocket->config['ssl_local_cert']);
-            if (!$certificateFile->exists()) {
-                $clientCertificate = ['error' => "Certificate file doesn't exists"];
-            } else {
-                $certificateContent = $certificateFile->read();
-                if ($certificateContent === false) {
-                    $clientCertificate = ['error' => 'Could not read file with client certificate: ' . $certificateFile->pwd()];
-                } else {
-                    try {
-                        $clientCertificate = $this->getClientCertificateInfo($certificateContent);
-                        $clientCertificate['valid_from'] = $clientCertificate['valid_from']->format('c');
-                        $clientCertificate['valid_to'] = $clientCertificate['valid_to']->format('c');
-                    } catch (Exception $e) {
-                        $clientCertificate = ['error' => $e->getMessage()];
-                    }
-                }
+        App::uses('SyncTool', 'Tools');
+        $syncTool = new SyncTool();
+
+        try {
+            $remoteCertificate = $syncTool->getServerRemoteCertificateInfo($server);
+            if ($remoteCertificate) {
+                $remoteCertificate['valid_from'] = $remoteCertificate['valid_from']->format('c');
+                $remoteCertificate['valid_to'] = $remoteCertificate['valid_to']->format('c');
             }
+        } catch (Exception $e) {
+            $remoteCertificate = ['error' => $e->getMessage()];
         }
 
+        try {
+            $clientCertificate = $syncTool->getServerClientCertificateInfo($server);
+            if ($clientCertificate) {
+                $clientCertificate['valid_from'] = $clientCertificate['valid_from']->format('c');
+                $clientCertificate['valid_to'] = $clientCertificate['valid_to']->format('c');
+            }
+        } catch (Exception $e) {
+            $clientCertificate = ['error' => $e->getMessage()];
+        }
+
+        $HttpSocket = $this->setupHttpSocket($server, null, 5);
         $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/servers/getVersion';
         try {
@@ -4274,24 +4276,24 @@ class Server extends AppModel
             $this->Log = ClassRegistry::init('Log');
             $logTitle = 'Error: Connection test failed. Reason: ' .  $e->getMessage();
             $this->Log->createLogEntry('SYSTEM', 'error', 'Server', $id, $logTitle);
-            return array('status' => 2, 'client_certificate' => $clientCertificate);
+            return array('status' => 2, 'client_certificate' => $clientCertificate, 'remote_certificate' => $remoteCertificate);
         }
 
         if ($response->code == '403') {
-            return array('status' => 4, 'client_certificate' => $clientCertificate);
+            return array('status' => 4, 'client_certificate' => $clientCertificate, 'remote_certificate' => $remoteCertificate);
         } else {
             if ($response->isOk()) {
                 // Even if server returns OK status, that doesn't mean that connection to another MISP instance works
                 $info = json_decode($response->body(), true);
                 if ($info !== null) {
-                    return array('status' => 1, 'info' => $info, 'client_certificate' => $clientCertificate);
+                    return array('status' => 1, 'info' => $info, 'client_certificate' => $clientCertificate, 'remote_certificate' => $remoteCertificate);
                 }
             } else if ($response->code == '405') {
                 $responseText = json_decode($response->body, true)['message'];
                 if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') {
-                    return array('status' => 5, 'client_certificate' => $clientCertificate);
+                    return array('status' => 5, 'client_certificate' => $clientCertificate, 'remote_certificate' => $remoteCertificate);
                 } elseif ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') {
-                    return array('status' => 6, 'client_certificate' => $clientCertificate);
+                    return array('status' => 6, 'client_certificate' => $clientCertificate, 'remote_certificate' => $remoteCertificate);
                 }
             }
 
@@ -4301,7 +4303,7 @@ class Server extends AppModel
                 'response' => ['', $response->body],
                 'response-code' => ['', $response->code],
             ]);
-            return array('status' => 3, 'client_certificate' => $clientCertificate);
+            return array('status' => 3, 'client_certificate' => $clientCertificate, 'remote_certificate' => $remoteCertificate);
         }
     }
 
@@ -6120,37 +6122,5 @@ class Server extends AppModel
         } else {
             return $response->code;
         }
-    }
-
-    /**
-     * @param string $certificateContent PEM encoded certificate and private key.
-     * @return array
-     * @throws Exception
-     */
-    public function getClientCertificateInfo($certificateContent)
-    {
-        $certificate = openssl_x509_read($certificateContent);
-        if (!$certificate) {
-            throw new Exception("Could't parse certificate: " . openssl_error_string());
-        }
-        $certificateDetails = openssl_x509_parse($certificate);
-        if (!$certificateDetails) {
-            throw new Exception("Could't get certificate details: " . openssl_error_string());
-        }
-        $privateKey = openssl_pkey_get_private($certificateContent);
-        if (!$privateKey) {
-            throw new Exception("Could't parse private key: " . openssl_error_string());
-        }
-        $verify = openssl_x509_check_private_key($certificate, $privateKey);
-        if (!$verify) {
-            throw new Exception("Public and private key do not match.");
-        }
-        return [
-            'name' => $certificateDetails["name"],
-            'serial_number' => $certificateDetails["serialNumber"],
-            'valid_from' => new DateTime("@{$certificateDetails["validFrom_time_t"]}"),
-            'valid_to' => new DateTime("@{$certificateDetails["validTo_time_t"]}"),
-            'signature_type' => $certificateDetails["signatureTypeSN"],
-        ];
     }
 }

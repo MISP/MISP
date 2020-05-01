@@ -1575,6 +1575,7 @@ class ServersController extends AppController
                                 'newer' => $newer,
                                 'post' => isset($post) ? $post : 'too old',
                                 'client_certificate' => $result['client_certificate'],
+                                'remote_certificate' => $result['remote_certificate'],
                                 )
                             ),
                             'type' => 'json'

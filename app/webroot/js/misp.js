@@ -3281,7 +3281,7 @@ function testConnection(id) {
             $("#connection_test_" + id).text('Running test...');
         },
         error: function(){
-            $("#connection_test_" + id).text('Internal error.');
+            $("#connection_test_" + id).html('<span class="red bold">Internal error</span>');
         },
         success: function(result) {
             var html = '';
@@ -3289,6 +3289,20 @@ function testConnection(id) {
             if (result.client_certificate) {
                 var cert = result.client_certificate;
                 html += "Using client certificate<br>"
+                if (cert.error) {
+                    html += '<span class="red bold">Error: ' + cert.error + '</span><br>';
+                } else {
+                    html += 'Name: ' + cert.name + '<br>';
+                    html += 'Serial number: ' + cert.serial_number + '<br>';
+                    html += 'Valid from: ' + cert.valid_from + '<br>';
+                    html += 'Valid to: ' + cert.valid_to + '<br>';
+                }
+                html += "<br>";
+            }
+
+            if (result.remote_certificate) {
+                var cert = result.remote_certificate;
+                html += "Remote server certificate<br>"
                 if (cert.error) {
                     html += '<span class="red bold">Error: ' + cert.error + '</span><br>';
                 } else {
