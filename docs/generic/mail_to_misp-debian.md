@@ -9,8 +9,8 @@ mail2misp () {
   cd /usr/local/src/
   sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   $SUDO_CMD git clone https://github.com/MISP/mail_to_misp.git
-  $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
-  $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+  [[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
   sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
   cd gtcaca
   $SUDO_CMD mkdir -p build
