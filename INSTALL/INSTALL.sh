@@ -1659,10 +1659,27 @@ WantedBy=multi-user.target" | sudo tee /etc/systemd/system/misp-workers.service
 # Main MISP Modules install function
 mispmodules () {
   cd /usr/local/src/
+  sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   ## TODO: checkUsrLocalSrc in main doc
   debug "Cloning misp-modules"
   $SUDO_CMD git clone https://github.com/MISP/misp-modules.git
-  cd misp-modules
+  $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git
+  $SUDO_CMD git clone git://github.com/stricaud/faup.git
+  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+  # Install gtcaca
+  cd gtcaca
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  cd ../../faup
+  # Install faup
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  sudo ldconfig
+  cd ../../misp-modules
   # some misp-modules dependencies
   sudo apt install libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y
   # If you build an egg, the user you build it as need write permissions in the CWD
@@ -1817,8 +1834,8 @@ mail2misp () {
   cd /usr/local/src/
   sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   $SUDO_CMD git clone https://github.com/MISP/mail_to_misp.git
-  $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
-  $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+  [[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
   sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
   cd gtcaca
   $SUDO_CMD mkdir -p build
