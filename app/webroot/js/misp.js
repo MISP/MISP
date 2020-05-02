@@ -3293,6 +3293,7 @@ function testConnection(id) {
                     html += '<span class="red bold">Error: ' + cert.error + '</span><br>';
                 } else {
                     html += 'Name: ' + cert.name + '<br>';
+                    html += 'Issuer: ' + cert.issuer + '<br>';
                     html += 'Serial number: ' + cert.serial_number + '<br>';
                     html += 'Valid from: ' + cert.valid_from + '<br>';
                     html += 'Valid to: ' + cert.valid_to + '<br>';
@@ -3307,6 +3308,7 @@ function testConnection(id) {
                     html += '<span class="red bold">Error: ' + cert.error + '</span><br>';
                 } else {
                     html += 'Name: ' + cert.name + '<br>';
+                    html += 'Issuer: ' + cert.issuer + '<br>';
                     html += 'Serial number: ' + cert.serial_number + '<br>';
                     html += 'Valid from: ' + cert.valid_from + '<br>';
                     html += 'Valid to: ' + cert.valid_to + '<br>';

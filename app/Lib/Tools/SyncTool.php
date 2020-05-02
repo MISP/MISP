@@ -89,17 +89,9 @@ class SyncTool
         }
 
         $params = stream_context_get_params($httpSocket->connection);
-        $certificateDetails = openssl_x509_parse($params['options']['ssl']['peer_certificate']);
-        if (!$certificateDetails) {
-            throw new Exception("Could't parse certificate: " . openssl_error_string());
-        }
-        return [
-            'name' => $certificateDetails["name"],
-            'serial_number' => $certificateDetails["serialNumber"],
-            'valid_from' => new DateTime("@{$certificateDetails["validFrom_time_t"]}"),
-            'valid_to' => new DateTime("@{$certificateDetails["validTo_time_t"]}"),
-            'signature_type' => $certificateDetails["signatureTypeSN"],
-        ];
+        $httpSocket->disconnect();
+
+        return $this->parseCertificate($params['options']['ssl']['peer_certificate']);
     }
 
     /**
@@ -137,24 +129,42 @@ class SyncTool
         if (!$certificate) {
             throw new Exception("Could't parse certificate: " . openssl_error_string());
         }
-        $certificateDetails = openssl_x509_parse($certificate);
-        if (!$certificateDetails) {
-            throw new Exception("Could't get certificate details: " . openssl_error_string());
-        }
         $privateKey = openssl_pkey_get_private($certificateContent);
         if (!$privateKey) {
             throw new Exception("Could't parse private key: " . openssl_error_string());
         }
         $verify = openssl_x509_check_private_key($certificate, $privateKey);
         if (!$verify) {
-            throw new Exception("Public and private key do not match.");
+            throw new Exception('Public and private key do not match.');
         }
-        return [
-            'name' => $certificateDetails["name"],
-            'serial_number' => $certificateDetails["serialNumber"],
-            'valid_from' => new DateTime("@{$certificateDetails["validFrom_time_t"]}"),
-            'valid_to' => new DateTime("@{$certificateDetails["validTo_time_t"]}"),
-            'signature_type' => $certificateDetails["signatureTypeSN"],
+        return $this->parseCertificate($certificate);
+    }
+
+    /**
+     * @param $certificate
+     * @return array
+     * @throws Exception
+     */
+    private function parseCertificate($certificate)
+    {
+        $parsed = openssl_x509_parse($certificate);
+        if (!$parsed) {
+            throw new Exception("Could't get parse X.509 certificate: " . openssl_error_string());
+        }
+        $output = [
+            'name' => $parsed['name'],
+            'serial_number' => $parsed['serialNumber'],
+            'signature_type' => $parsed['signatureTypeSN'],
+            'valid_from' => isset($parsed['validFrom_time_t']) ? new DateTime("@{$parsed['validFrom_time_t']}") : null,
+            'valid_to' => isset($parsed['validTo_time_t']) ? new DateTime("@{$parsed['validTo_time_t']}") : null,
         ];
+
+        $issuer = [];
+        foreach ($parsed['issuer'] as $type => $value) {
+            $issuer[] = "$type=$value";
+        }
+        $output['issuer'] = implode('/', $issuer);
+
+        return $output;
     }
 }

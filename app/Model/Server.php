@@ -4250,8 +4250,8 @@ class Server extends AppModel
         try {
             $remoteCertificate = $syncTool->getServerRemoteCertificateInfo($server);
             if ($remoteCertificate) {
-                $remoteCertificate['valid_from'] = $remoteCertificate['valid_from']->format('c');
-                $remoteCertificate['valid_to'] = $remoteCertificate['valid_to']->format('c');
+                $remoteCertificate['valid_from'] = $remoteCertificate['valid_from'] ? $remoteCertificate['valid_from']->format('c') : 'Not defined';
+                $remoteCertificate['valid_to'] = $remoteCertificate['valid_to'] ? $remoteCertificate['valid_to']->format('c') : 'Not defined';
             }
         } catch (Exception $e) {
             $remoteCertificate = ['error' => $e->getMessage()];
@@ -4260,8 +4260,8 @@ class Server extends AppModel
         try {
             $clientCertificate = $syncTool->getServerClientCertificateInfo($server);
             if ($clientCertificate) {
-                $clientCertificate['valid_from'] = $clientCertificate['valid_from']->format('c');
-                $clientCertificate['valid_to'] = $clientCertificate['valid_to']->format('c');
+                $clientCertificate['valid_from'] = $clientCertificate['valid_from'] ? $clientCertificate['valid_from']->format('c') : 'Not defined';
+                $clientCertificate['valid_to'] = $clientCertificate['valid_to'] ? $clientCertificate['valid_to']->format('c') : 'Not defined';
             }
         } catch (Exception $e) {
             $clientCertificate = ['error' => $e->getMessage()];
