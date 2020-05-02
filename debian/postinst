@@ -79,7 +79,6 @@ if [ "$1" = "configure" ] ; then
    cat /usr/share/doc/misp/misp-workers.service > /etc/systemd/system/misp-workers.service
    sed -i -E "s/\/var\/www\/MISP/\/usr\/share\/misp/" /etc/systemd/system/misp-workers.service
 
-   #   systemctl daemon-reload
 #   systemctl enable --now misp-workers
 fi
 

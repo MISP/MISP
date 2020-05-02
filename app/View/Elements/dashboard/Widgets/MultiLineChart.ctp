@@ -10,16 +10,26 @@
 <div id="chartContainer-<?= $seed ?>" style="flex-grow: 1; position:relative;"></div>
 <script>
 if (typeof d3 === "undefined") { // load d3.js once. This is necessary as d3.js is using global variables for its event listeners (d3.mouse & d3.event)
+    d3 = 'loading';
     $.getScript("/js/d3.js", function() {
-        init();
+        init<?= $seed ?>();
     })
-} else { // d3.js is already loaded
-    init();
+} else { // d3.js is already loaded or is loading
+    runInitWhenReady<?= $seed ?>()
 }
 
-function init() { // variables and functions have their own scope (no override)
-    'use strict';
+function runInitWhenReady<?= $seed ?>() {
+    if (d3.version === undefined) { // d3.js not loaded yet
+        setTimeout(function() {
+            runInitWhenReady<?= $seed ?>();
+        }, 50);
+    } else {
+        init<?= $seed ?>();
+    }
+}
 
+function init<?= $seed ?>() { // variables and functions have their own scope (no override)
+    'use strict';
     /**
      * 
      * Data expected format: Array({
@@ -59,9 +69,12 @@ function init() { // variables and functions have their own scope (no override)
     var svg;
     var width, height, svg_width, svg_height;
     var xAxis, yAxis, cursorX, cursorY;
-    var x, y, xGrid, yGrid, value_line
-    var series, line_guides, points, pointsGroup, labels
+    var x, y, xGrid, yGrid, value_line;
+    var overlayLeft, overlayRight, tooltipPickedNodes;
+    var series, line_guides, points, pointsGroup, labels;
     var colors = d3.scale.category10();
+
+    var pickedNodes = {start: null, end: null};
 
     var options = <?= json_encode(isset($config['widget_config']) ? $config['widget_config'] : array()) ?>;
     var options = $.extend(true, {}, default_options, options);
@@ -106,6 +119,10 @@ function init() { // variables and functions have their own scope (no override)
         })
     }
 
+    function getX(datum) {
+        return options.abscissa_linear ? datum.index : datum.date;
+    }
+
     function _init() {
         $loadingContainer = $('<div id="loadingChartContainer" style="background: #ffffff9f"><span class="fa fa-spinner fa-spin" style="font-size: xx-large;"></span></div>').css({
             position: 'absolute',
@@ -126,6 +143,16 @@ function init() { // variables and functions have their own scope (no override)
             .style('color', 'white')
             .style('border-radius', '5px')
             .style('display', 'none');
+        tooltipPickedNodes = d3.select('body').append('div')
+            .attr('class', 'tooltip tooltipPickedNodes')
+            .style('opacity', 0)
+            .style('min-width', '120px')
+            .style('padding', '3px')
+            .style('background-color', '#fff')
+            .style('color', 'black')
+            .style('border', '1px solid black')
+            .style('border-radius', '5px')
+            .style('display', 'none');
         $container.append($loadingContainer);
         timeFormatter = d3.time.format(options.time_format).parse;
     }
@@ -139,8 +166,8 @@ function init() { // variables and functions have their own scope (no override)
 
         if (options.abscissa_linear) {
             x = d3.scale.linear()
-            .domain(d3.extent(data, function(d) { return d.index; }))
-            .range([ 0, width ]);
+                .domain(d3.extent(data, function(d) { return d.index; }))
+                .range([ 0, width ]);
         } else {
             x = d3.time.scale()
                 .domain(d3.extent(data, function(d) { return d.date; }))
@@ -159,7 +186,7 @@ function init() { // variables and functions have their own scope (no override)
             .tickFormat("");
 
         value_line = d3.svg.line()
-            .x(function(d) { return x(options.abscissa_linear ? d.index : d.date); })
+            .x(function(d) { return x(getX(d)); })
             .y(function(d) { return y(d.count); });
 
         svg = d3.select(container_id)
@@ -262,6 +289,23 @@ function init() { // variables and functions have their own scope (no override)
         svg.append('g')
             .classed('point-group', true);
 
+        overlayLeft = svg.append('rect')
+            .attr('fill', 'black')
+            .attr('opacity', 0.6)
+            .attr('class', 'overlay-left')
+            .attr('width', 0)
+            .attr('height', height)
+            .attr('x', 0)
+            .on('click', clearPickedNodes);
+        overlayRight = svg.append('rect')
+            .attr('fill', 'black')
+            .attr('opacity', 0.6)
+            .attr('class', 'overlay-right')
+            .attr('width', 0)
+            .attr('height', height)
+            .attr('x', 0)
+            .on('click', clearPickedNodes);
+
         window.addEventListener("resize", function() {
             if (resize_timeout !== undefined) {
                 clearTimeout(resize_timeout);
@@ -350,7 +394,7 @@ function init() { // variables and functions have their own scope (no override)
         data_nodes_active = data_nodes.filter(function(d) {
             return !d.disabled;
         })
-        x.domain(d3.extent(chart_data, function(d) { return options.abscissa_linear ? d.index : d.date; }))
+        x.domain(d3.extent(chart_data, function(d) { return getX(d); }))
         y.domain([
             d3.min(data_nodes_active, function(c) { return d3.min(c.values, function(v) { return v.count; }); }),
             d3.max(data_nodes_active, function(c) { return d3.max(c.values, function(v) { return v.count; }); })
@@ -401,17 +445,17 @@ function init() { // variables and functions have their own scope (no override)
             points
                 .enter()
                 .append('circle')
-                .attr('class', 'datapoint d3-line-circle')
+                .attr('class', 'datapoint d3-line-circle useCursorPointer')
                 .attr('r', 5)
             points // Update
-                .attr('cx', function (d) { return x(options.abscissa_linear ? d.index : d.date); })
+                .attr('cx', function (d) { return x(getX(d)); })
                 .attr('cy', function (d) { return y(d.count); })
                 .style("fill", function(d) { return colors(d.name); })
                 .on('mouseover', function(d) {
                     tooltipDate(true, this, d);
                 })
-                .on('mouseout', function() {
-                    tooltipDate(false);
+                .on('click', function(d) {
+                    handleMarkerClick(d);
                 })
             pointsGroup.exit().remove();
         }
@@ -456,60 +500,184 @@ function init() { // variables and functions have their own scope (no override)
                     return 'translate(' + xpos + ',' + ypos + ')';
                 })
                 .on('click', function(d, i) { 
-                    d.disabled = !d.disabled;
                     var label_text = d.text;
-                    var label_disabled = d.disabled;
-                    data_nodes.filter(function(d) { return d.name === label_text; }).forEach(function(data) {
-                        data.disabled = label_disabled
-                    })
-                    _draw()
+                    if (d3.event.ctrlKey) { // hide all others
+                        data_nodes.filter(function(fd) { return fd.name === label_text; }).forEach(function(data) {
+                            data.disabled = false;
+                        })
+                        data_nodes.filter(function(fd) { return fd.name !== label_text; }).forEach(function(data) {
+                            data.disabled = true;
+                        })
+                        d.disabled = false;
+                        legend_labels.filter(function(fd) { return fd.text !== label_text}).forEach(function(label_data) {
+                            label_data.disabled = true;
+                        })
+                    } else { // hide it
+                        d.disabled = !d.disabled;
+                        data_nodes.filter(function(fd) { return fd.name === label_text; }).forEach(function(data) {
+                            data.disabled = d.disabled;
+                        })
+                    }
+                    _draw();
                 });
         }
     }
 
     function tooltipDate(show, d3Element, datum) {
-        var tooltip = _toggleTooltip(show, d3Element);
-        if (show) {
-            tooltip.html(_generate_tooltip(datum));
-            var tooltipBR = tooltip.node().getBoundingClientRect();
-            var tooltipHeight = tooltipBR.height;
-            var tooltipWidth = tooltipBR.width;
-            var tooltipcx = parseInt(d3.select(d3Element).attr('cx'));
-            var dcx = 17;
-            // Flip tooltip position if necessary
-            if (width < options.margin.right + tooltipcx - dcx + tooltipWidth) {
-                var tooltipLeft = parseInt(tooltip.style('left').split('px')[0]);
-                tooltip.style('left', (tooltipLeft - (dcx + tooltipWidth + 15)) + 'px')
-            }
-            var tooltipTop = parseInt(tooltip.style('top').split('px')[0]);
-            tooltip.style('top', (tooltipTop - tooltipHeight/2) + 'px')
-        }
-    }
-
-    function _toggleTooltip(show, d3Element) {
-        if (show) {
-            tooltip_container
-                .style('display', 'block')
-                .style('left', (d3.event.pageX + 17) + 'px')
-                .style('top', (d3.event.pageY) + 'px')
-                .transition()
-                .duration(options.animation_short_duration)
-                .delay(options.animation_short_duration/2)
-                .style('opacity', '0.7');
-        } else {
-            tooltip_container.transition()
-                .duration(options.animation_short_duration)
-                .style('opacity', 0)
-                .delay(options.animation_short_duration)
-                .style('display', 'none');
-        }
-        return tooltip_container;
+        var $d3Element = $(d3Element);
+        $d3Element.tooltip({
+            html: true,
+            container: 'body',
+            title: _generate_tooltip(datum)
+        }).tooltip('show')
     }
 
     function _generate_tooltip(datum) {
-        var formated_date = d3.time.format(options.time_format)(datum.date);
-        var html = $('<p></p>').text(datum.name).html() + ' (' + formated_date + ', <strong>' + $('<p></p>').text(datum.count).html() + '</strong>) ';
-        return html;
+        var formated_x = options.abscissa_linear ? datum.index : d3.time.format(options.time_format)(datum.date);
+        return $('<div></div>').append(
+            $('<h6></h6>').text(formated_x).css({'margin': 0}),
+            $('<h6></h6>').append(
+                $('<span></span>').text(datum.name).css({'margin-right': '1em'}).prepend(
+                    $('<svg height="10px" width="15px"></svg>').append($('<circle></circle>')
+                        .attr('cx', 5)
+                        .attr('cy', 5)
+                        .attr('r', 5)
+                        .css('fill', colors(datum.name))
+                    )
+                ),
+                $('<span></span>').text(datum.count)
+            ).css({'margin': 0})
+        )[0].outerHTML
+    }
+
+    function handleMarkerClick(datum) {
+        var xVal = getX(datum);
+        if (pickedNodes.start === null) {
+            pickedNodes.start = datum;
+        } else {
+            if (getX(pickedNodes.start) < xVal) {
+                pickedNodes.end = datum;
+            } else {
+                pickedNodes.end = pickedNodes.start;
+                pickedNodes.start = datum;
+            }
+        }
+        updatePickedNodesOverlays();
+    }
+
+    function clearPickedNodes() {
+        pickedNodes.start = null;
+        pickedNodes.end = null;
+        updatePickedNodesOverlays();
+    }
+
+    function updatePickedNodesOverlays() {
+        if (pickedNodes.start === null) {
+            overlayLeft.attr('width', 0);
+            overlayRight.attr('x', 0)
+                .attr('width', 0);
+            togglePickedNodeTooltip(false);
+        } else {
+            overlayLeft.attr('width', x(getX(pickedNodes.start)));
+            if (pickedNodes.end !== null) {
+                overlayRight.attr('x', x(getX(pickedNodes.end)))
+                    .attr('width', width - x(getX(pickedNodes.end)));
+                togglePickedNodeTooltip(true);
+            }
+        }
+    }
+
+    function togglePickedNodeTooltip(show) {
+        if (show) {
+            tooltipPickedNodes.html(genTooltipPickedNodeHtml());
+            tooltipPickedNodes
+                .style('display', 'block')
+                .style('opacity', '0.8');
+
+            var overlayLeftBCR = overlayLeft.node().getBoundingClientRect();
+            var overlayRightBCR = overlayRight.node().getBoundingClientRect();
+            var tooltipBCR = tooltipPickedNodes.node().getBoundingClientRect();
+            var left = (overlayLeftBCR.width - overlayRightBCR.width > 0 ?
+                overlayLeftBCR.left + overlayLeftBCR.width/2 :
+                overlayRightBCR.left + overlayRightBCR.width/2) - tooltipBCR.width / 2;
+            var top = overlayLeftBCR.top + window.scrollY + 30;
+
+            tooltipPickedNodes
+                .style('left', left + 'px')
+                .style('top', top + 'px')
+        } else {
+            tooltipPickedNodes.style('display', 'none');
+        }
+        return tooltipPickedNodes;
+    }
+
+    function genTooltipPickedNodeHtml() {
+        var xValueStart = getX(pickedNodes.start)
+        var xValueEnd = getX(pickedNodes.end)
+        var yValues = []
+        data_nodes_active.forEach(function(serie) {
+            var startPoint = serie.values.find(function(point) {
+                return getX(point) == xValueStart;
+            })
+            var endPoint = serie.values.find(function(point) {
+                return getX(point) == xValueEnd;
+            })
+            if (startPoint !== undefined && endPoint !== undefined)
+            var deltaY = endPoint.count - startPoint.count;
+            var deltaYPerc = startPoint.count != 0 ? Math.abs(100*deltaY / startPoint.count).toFixed(2) : '-';
+            yValues.push({
+                name: serie.name,
+                nameColor: colors(serie.name),
+                deltaY: deltaY,
+                deltaYPerc: deltaYPerc + '%',
+                yColor: deltaY == 0 ? '' : (deltaY > 0 ? 'success' : 'error')
+            })
+        })
+        if (!options.abscissa_linear) {
+            xValueStart = d3.time.format(options.time_format)(xValueStart);
+            xValueEnd = d3.time.format(options.time_format)(xValueEnd);
+        }
+        var $content = $('<div></div>').append(
+                $('<div style="display: flex; justify-content: space-between;"></div>').append(
+                    $('<span class="bold"></span>').text(xValueStart),
+                    $('<i class="fas fa-arrow-right"></i>'),
+                    $('<span class="bold"></span>').text(xValueEnd)
+                )
+        );
+        var $table = $('<table class="table table-condensed" style="margin-bottom: 0;"></table>').append(
+                $('<thead></thead>').append($('<tr></tr>').append(
+                        $('<th></th>').text('Name'),
+                        $('<th></th>').text('Delta'),
+                        $('<th></th>').text('Delta %')
+                    )
+                )
+        );
+        yValues.forEach(function(serie) {
+            $table.append(
+                $('<tbody></tbody>').append($('<tr></tr>').append(
+                        $('<td></td>').append(
+                            $('<svg height="10px" width="15px"></svg>').append($('<circle></circle>')
+                                .attr('cx', 5)
+                                .attr('cy', 5)
+                                .attr('r', 5)
+                                .css('fill', serie.nameColor)
+                            ),
+                            $('<span></span>').text(serie.name)
+                        ),
+                        $('<td></td>')
+                            .addClass('text-'+serie.yColor)
+                            .text(serie.deltaY)
+                            .append($('<i></i>').addClass(serie.deltaY > 0 ? 'fas fa-caret-up' : 'fas fa-caret-down')),
+                        $('<td></td>')
+                            .addClass('text-'+serie.yColor)
+                            .text(serie.deltaYPerc)
+                            .append($('<i></i>').addClass(serie.deltaY > 0 ? 'fas fa-caret-up' : 'fas fa-caret-down')),
+                    )
+                )
+            );
+        });
+        $content.append($table);
+        return $content[0].outerHTML;
     }
 };
 </script>
@@ -577,5 +745,9 @@ function init() { // variables and functions have their own scope (no override)
 
 .axis.grid path {
     stroke-width: 0;
+}
+
+.overlay-right, .overlay-left {
+    cursor: pointer;
 }
 </style>

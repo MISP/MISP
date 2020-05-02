@@ -69,7 +69,8 @@
                     'sort' => 'User.authkey',
                     'class' => 'bold quickSelect',
                     'data_path' => 'User.authkey',
-                    'onClick' => 'quickSelect(this);'
+                    'onClick' => 'quickSelect(this);',
+                    'privacy' => 1
                 ),
                 array(
                     'name' => __('Autoalert'),

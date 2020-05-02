@@ -77,7 +77,8 @@ class AppModel extends Model
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
-        45 => false, 46 => false, 47 => false, 48 => false, 49 => false
+        45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
+        51 => false, 52 => false, 53 => false
     );
 
     public $advanced_updates_description = array(
@@ -123,7 +124,7 @@ class AppModel extends Model
     public function isAcceptedDatabaseError($errorMessage, $dataSource)
     {
         $isAccepted = false;
-        if ($dataSource == 'Database/Mysql') {
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
             $errorDuplicateColumn = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';
             $errorDuplicateIndex = 'SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name';
             $errorDropIndex = "/SQLSTATE\[42000\]: Syntax error or access violation: 1091 Can't DROP '[\w]+'; check that column\/key exists/";
@@ -722,7 +723,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE taxonomy_predicates ADD colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
                 break;
             case '2.4.60':
-                if ($dataSource == 'Database/Mysql') {
+                if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
                     $sqlArray[] = 'CREATE TABLE IF NOT EXISTS `attribute_tags` (
                                 `id` int(11) NOT NULL AUTO_INCREMENT,
                                 `attribute_id` int(11) NOT NULL,
@@ -1267,7 +1268,7 @@ class AppModel extends Model
             case 39:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS user_settings (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
-                    `key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `setting` varchar(255) COLLATE utf8_bin NOT NULL,
                     `value` text,
                     `user_id` int(11) NOT NULL,
                     `timestamp` int(11) NOT NULL,
@@ -1348,6 +1349,45 @@ class AppModel extends Model
                     INDEX `restrict_to_org_id` (`restrict_to_org_id`),
                     INDEX `restrict_to_permission_flag` (`restrict_to_permission_flag`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                break;
+            case 50:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS inbox (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                    `title` varchar(191) NOT NULL,
+                    `type` varchar(191) NOT NULL,
+                    `ip` varchar(191) NOT NULL,
+                    `user_agent` text,
+                    `user_agent_sha256` varchar(64) NOT NULL,
+                    `comment` text,
+                    `deleted` tinyint(1) NOT NULL DEFAULT 0,
+                    `timestamp` int(11) NOT NULL,
+                    `store_as_file` tinyint(1) NOT NULL DEFAULT 0,
+                    `data` longtext,
+                    PRIMARY KEY (id),
+                    INDEX `title` (`title`),
+                    INDEX `type` (`type`),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `user_agent_sha256` (`user_agent_sha256`),
+                    INDEX `ip` (`ip`),
+                    INDEX `timestamp` (`timestamp`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                break;
+            case 51:
+                $sqlArray[] = "ALTER TABLE `feeds` ADD `orgc_id` int(11) NOT NULL DEFAULT 0";
+                $this->__addIndex('feeds', 'orgc_id');
+                break;
+            case 52:
+                if (!empty($this->query("SHOW COLUMNS FROM `admin_settings` LIKE 'key';"))) {
+                    $sqlArray[] = "ALTER TABLE admin_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
+                    $this->__addIndex('admin_settings', 'setting');
+                }
+                break;
+            case 53:
+                if (!empty($this->query("SHOW COLUMNS FROM `user_settings` LIKE 'key';"))) {
+                    $sqlArray[] = "ALTER TABLE user_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
+                    $this->__addIndex('user_settings', 'setting');
+                }
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1572,7 +1612,7 @@ class AppModel extends Model
         $dataSource = $dataSourceConfig['datasource'];
         $this->Log = ClassRegistry::init('Log');
         $indexCheckResult = array();
-        if ($dataSource == 'Database/Mysql') {
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
             $indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%';";
             $indexCheckResult = $this->query($indexCheck);
         } elseif ($dataSource == 'Database/Postgres') {
@@ -1580,7 +1620,7 @@ class AppModel extends Model
             $indexCheckResult[] = array('STATISTICS' => array('INDEX_NAME' => $pgIndexName));
         }
         foreach ($indexCheckResult as $icr) {
-            if ($dataSource == 'Database/Mysql') {
+            if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
                 $dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
             } elseif ($dataSource == 'Database/Postgres') {
                 $dropIndex = 'DROP INDEX IF EXISTS ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
@@ -2811,12 +2851,34 @@ class AppModel extends Model
      */
     protected function logException($message, Exception $exception, $type = LOG_ERR)
     {
-        $message = sprintf("%s\n[%s] %s",
-            $message,
-            get_class($exception),
-            $exception->getMessage()
-        );
-        $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+        $message .= "\n";
+
+        do {
+            $message .= sprintf("[%s] %s",
+                get_class($exception),
+                $exception->getMessage()
+            );
+            $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+            $exception = $exception->getPrevious();
+        } while ($exception !== null);
+
         return $this->log($message, $type);
+    }
+
+    /**
+     * Generates random file name in tmp dir.
+     * @return string
+     */
+    protected function tempFileName()
+    {
+        return $this->tempDir() . DS . $this->generateRandomFileName();
+    }
+
+    /**
+     * @return string
+     */
+    protected function tempDir()
+    {
+        return Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
     }
 }

@@ -5,6 +5,7 @@ App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FinancialTool', 'Tools');
 App::uses('RandomTool', 'Tools');
+App::uses('MalwareTool', 'Tools');
 
 class Attribute extends AppModel
 {
@@ -698,7 +699,7 @@ class Attribute extends AppModel
              * Only recorrelate if:
              * - We are dealing with a new attribute OR
              * - The existing attribute's previous state is known AND
-             *   value, type or disable correlation have changed
+             *   value, type, disable correlation or distribution have changed
              * This will avoid recorrelations when it's not really needed, such as adding a tag
              */
             if (!$created) {
@@ -706,7 +707,9 @@ class Attribute extends AppModel
                     empty($this->old) ||
                     $this->data['Attribute']['value'] != $this->old['Attribute']['value'] ||
                     $this->data['Attribute']['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
-                    $this->data['Attribute']['type'] != $this->old['Attribute']['type']
+                    $this->data['Attribute']['type'] != $this->old['Attribute']['type'] ||
+                    $this->data['Attribute']['distribution'] != $this->old['Attribute']['distribution'] ||
+                    $this->data['Attribute']['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']
                 ) {
                     $this->__beforeSaveCorrelation($this->data['Attribute']);
                     $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
@@ -3348,6 +3351,9 @@ class Attribute extends AppModel
         } else {
             $options['includeDecayScore'] = true;
         }
+        if ($options['includeDecayScore']) {
+            $options['includeEventTags'] = true;
+        }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
         } else {
@@ -3477,7 +3483,13 @@ class Attribute extends AppModel
                 if ($options['includeDecayScore']) {
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
                     $include_full_model = isset($options['includeFullModel']) && $options['includeFullModel'] ? 1 : 0;
+                    if (empty($results[$key]['Attribute']['AttributeTag'])) {
+                        $results[$key]['Attribute']['AttributeTag'] = $results[$key]['AttributeTag'];
+                        $results[$key]['Attribute']['EventTag'] = $results[$key]['EventTag'];
+                    }
                     $results[$key]['Attribute'] = $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides'], $include_full_model);
+                    unset($results[$key]['Attribute']['AttributeTag']);
+                    unset($results[$key]['Attribute']['EventTag']);
                     if ($options['excludeDecayed'] && !empty($results[$key]['Attribute']['decay_score'])) { // filter out decayed attribute
                         $decayed_flag = true;
                         foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) { // remove attribute if ALL score results in a decay
@@ -3558,63 +3570,40 @@ class Attribute extends AppModel
         if (!is_numeric($event_id)) {
             throw new Exception(__('Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample.'));
         }
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->getDefaultAttachments_dir();
+
+        $content = base64_decode($base64);
+
+        $malwareTool = new MalwareTool();
+        $hashes = $malwareTool->computeHashes($content, $hash_types);
+        try {
+            $encrypted = $malwareTool->encrypt($original_filename, $content, $hashes['md5']);
+        } catch (Exception $e) {
+            $this->logException("Could not create encrypted malware sample.", $e);
+            return array('success' => false);
         }
 
-        // If we've set attachments to S3, we can't write there
-        if ($this->attachmentDirIsS3()) {
-            $attachments_dir = Configure::read('MISP.tmpdir');
-            // Sometimes it's not set?
-            if (empty($attachments_dir)) {
-                // Get a default tmpdir
-                $attachments_dir = $this->getDefaultTmp_dir();
-            }
-        }
-
-        if ($proposal) {
-            $dir = new Folder($attachments_dir . DS . $event_id . DS . 'shadow', true);
-        } else {
-            $dir = new Folder($attachments_dir . DS . $event_id, true);
-        }
-        $tmpFile = new File($dir->path . DS . $this->generateRandomFileName(), true, 0600);
-        $tmpFile->write(base64_decode($base64));
-        $hashes = array();
-        foreach ($hash_types as $hash) {
-            $hashes[$hash] = $this->__hashRouter($hash, $tmpFile->path);
-        }
-        $contentsFile = new File($dir->path . DS . $hashes['md5']);
-        rename($tmpFile->path, $contentsFile->path);
-        $fileNameFile = new File($dir->path . DS . $hashes['md5'] . '.filename.txt');
-        $fileNameFile->write($original_filename);
-        $fileNameFile->close();
-        $zipFile = new File($dir->path . DS . $hashes['md5'] . '.zip');
-        exec('zip -j -P infected ' . escapeshellarg($zipFile->path) . ' ' . escapeshellarg($contentsFile->path) . ' ' . escapeshellarg($fileNameFile->path), $execOutput, $execRetval);
-        if ($execRetval != 0) {
-            $result = array('success' => false);
-        } else {
-            $result = array_merge(array('data' => base64_encode($zipFile->read()), 'success' => true), $hashes);
-        }
-        $fileNameFile->delete();
-        $zipFile->delete();
-        $contentsFile->delete();
+        $result = array_merge(array('data' => base64_encode($encrypted), 'success' => true), $hashes);
         return $result;
     }
 
-    private function __hashRouter($hashType, $file)
+    /**
+     * @return bool Return true if at least one advanced extraction tool is available
+     */
+    public function isAdvancedExtractionAvailable()
     {
-        $validHashes = array('md5', 'sha1', 'sha256');
-        if (!in_array($hashType, $validHashes)) {
+        $malwareTool = new MalwareTool();
+        try {
+            $types = $malwareTool->checkAdvancedExtractionStatus($this->getPythonVersion());
+        } catch (Exception $e) {
             return false;
         }
-        switch ($hashType) {
-            case 'md5':
-            case 'sha1':
-            case 'sha256':
-                return hash_file($hashType, $file);
-                break;
+
+        foreach ($types as $type => $missing) {
+            if ($missing === false) {
+                return true;
+            }
         }
+
         return false;
     }
 
@@ -3961,7 +3950,7 @@ class Attribute extends AppModel
             'event_id' => $event_id,
             'comment' => !empty($attribute_settings['comment']) ? $attribute_settings['comment'] : ''
         );
-        $result = $this->Event->Attribute->handleMaliciousBase64($event_id, $filename, base64_encode($tmpfile->read()), $hashes);
+        $result = $this->handleMaliciousBase64($event_id, $filename, base64_encode($tmpfile->read()), $hashes);
         foreach ($attributes as $k => $v) {
             $attribute = array(
                 'distribution' => 5,
@@ -3992,33 +3981,34 @@ class Attribute extends AppModel
 
     public function advancedAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile)
     {
-        $execRetval = '';
-        $execOutput = array();
-        $result = shell_exec($this->getPythonVersion() . ' ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
-        if (!empty($result)) {
-            $result = json_decode($result, true);
-            if (isset($result['objects'])) {
-                $result['Object'] = $result['objects'];
-                unset($result['objects']);
-            }
-            if (isset($result['references'])) {
-                $result['ObjectReference'] = $result['references'];
-                unset($result['references']);
-            }
-            foreach ($result['Object'] as $k => $object) {
-                $result['Object'][$k]['distribution'] = $attribute_settings['distribution'];
-                $result['Object'][$k]['sharing_group_id'] = isset($attribute_settings['distribution']) ? $attribute_settings['distribution'] : 0;
-                if (!empty($result['Object'][$k]['Attribute'])) {
-                    foreach ($result['Object'][$k]['Attribute'] as $k2 => $attribute) {
-                        if ($attribute['value'] == $tmpfile->name) {
-                            $result['Object'][$k]['Attribute'][$k2]['value'] = $filename;
-                        }
+        $malwareTool = new MalwareTool();
+        try {
+            $result = $malwareTool->advancedExtraction($this->getPythonVersion(), $tmpfile->path);
+        } catch (Exception $e) {
+            $this->logException("Could not finish advanced extraction", $e);
+            return $this->simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile);
+        }
+
+        if (isset($result['objects'])) {
+            $result['Object'] = $result['objects'];
+            unset($result['objects']);
+        }
+        if (isset($result['references'])) {
+            $result['ObjectReference'] = $result['references'];
+            unset($result['references']);
+        }
+        foreach ($result['Object'] as $k => $object) {
+            $result['Object'][$k]['distribution'] = $attribute_settings['distribution'];
+            $result['Object'][$k]['sharing_group_id'] = isset($attribute_settings['distribution']) ? $attribute_settings['distribution'] : 0;
+            if (!empty($result['Object'][$k]['Attribute'])) {
+                foreach ($result['Object'][$k]['Attribute'] as $k2 => $attribute) {
+                    if ($attribute['value'] == $tmpfile->name) {
+                        $result['Object'][$k]['Attribute'][$k2]['value'] = $filename;
                     }
                 }
             }
-        } else {
-            $result = $this->simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile);
         }
+
         return $result;
     }
 
@@ -4426,7 +4416,6 @@ class Attribute extends AppModel
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
-                    'uuid' => array('function' => 'set_filter_uuid'),
                     'published' => array('function' => 'set_filter_published')
                 ),
                 'Object' => array(
@@ -4487,7 +4476,6 @@ class Attribute extends AppModel
 
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
-
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
                 'conditions' => $conditions,
@@ -4616,5 +4604,53 @@ class Attribute extends AppModel
             fwrite($tmpfile, $temp);
         }
         return true;
+    }
+
+    public function set_filter_uuid(&$params, $conditions, $options)
+    {
+        if (!empty($params['uuid'])) {
+            $params['uuid'] = $this->convert_filters($params['uuid']);
+            if (!empty($params['uuid']['OR'])) {
+                $conditions['AND'][] = array(
+                    'OR' => array(
+                        'Event.uuid' => $params['uuid']['OR'],
+                        'Attribute.uuid' => $params['uuid']['OR']
+                    )
+                );
+            }
+            if (!empty($params['uuid']['NOT'])) {
+                $conditions['AND'][] = array(
+                    'NOT' => array(
+                        'Event.uuid' => $params['uuid']['NOT'],
+                        'Attribute.uuid' =>  $params['uuid']['NOT']
+                    )
+                );
+            }
+        }
+        return $conditions;
+    }
+
+    /**
+     * @param array $attribute
+     */
+    public function removeGalaxyClusterTags(array &$attribute)
+    {
+        $galaxyTagIds = array();
+        foreach ($attribute['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] as $galaxyCluster) {
+                $galaxyTagIds[$galaxyCluster['tag_id']] = true;
+            }
+        }
+
+        if (empty($galaxyTagIds)) {
+            return;
+        }
+
+        foreach ($attribute['AttributeTag'] as $k => $attributeTag) {
+            $tagId = $attributeTag['Tag']['id'];
+            if (isset($galaxyTagIds[$tagId])) {
+                unset($attribute['AttributeTag'][$k]);
+            }
+        }
     }
 }

@@ -27,8 +27,6 @@
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
                         'data' => '',
-                        'searchKey' => 'value',
-                        'value' => $searchall
                     )
                 )
             ),
@@ -101,6 +99,19 @@
 
 <script type="text/javascript">
     $(document).ready(function(){
+        var passedArgsArray = <?php echo $passedArgs; ?>;
+        var galaxyId = "<?php echo h($galaxy_id); ?>";
+        if (passedArgsArray['context'] === undefined || passedArgsArray['context'] === "") {
+            passedArgsArray['context'] = 'all';
+        }
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter('/' + galaxyId + '/context:' + passedArgsArray['context']);
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter('/' + galaxyId + '/context:' + passedArgsArray['context']);
+            }
+        });
     });
 </script>
 <?php echo $this->Js->writeBuffer(); ?>
