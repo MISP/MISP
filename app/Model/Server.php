@@ -4252,6 +4252,8 @@ class Server extends AppModel
             if ($remoteCertificate) {
                 $remoteCertificate['valid_from'] = $remoteCertificate['valid_from'] ? $remoteCertificate['valid_from']->format('c') : 'Not defined';
                 $remoteCertificate['valid_to'] = $remoteCertificate['valid_to'] ? $remoteCertificate['valid_to']->format('c') : 'Not defined';
+                $remoteCertificate['public_key_size'] = $remoteCertificate['public_key_size'] ?: 'Unknwon';
+                $remoteCertificate['public_key_type'] = $remoteCertificate['public_key_type'] ?: 'Unknwon';
             }
         } catch (Exception $e) {
             $remoteCertificate = ['error' => $e->getMessage()];
@@ -4262,6 +4264,8 @@ class Server extends AppModel
             if ($clientCertificate) {
                 $clientCertificate['valid_from'] = $clientCertificate['valid_from'] ? $clientCertificate['valid_from']->format('c') : 'Not defined';
                 $clientCertificate['valid_to'] = $clientCertificate['valid_to'] ? $clientCertificate['valid_to']->format('c') : 'Not defined';
+                $clientCertificate['public_key_size'] = $clientCertificate['public_key_size'] ?: 'Unknwon';
+                $clientCertificate['public_key_type'] = $clientCertificate['public_key_type'] ?: 'Unknwon';
             }
         } catch (Exception $e) {
             $clientCertificate = ['error' => $e->getMessage()];
