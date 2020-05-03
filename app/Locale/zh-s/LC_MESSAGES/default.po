@@ -5286,7 +5286,7 @@ msgstr "共享组"
 #: View/ShadowAttributes/add_attachment.ctp:13
 #: View/ShadowAttributes/edit.ctp:32
 msgid "Contextual Comment"
-msgstr "上下文评论"
+msgstr "背景注释"
 
 #: View/Attributes/add.ctp:57
 #: View/Attributes/edit.ctp:55
@@ -7822,7 +7822,7 @@ msgstr "作业"
 #: View/Pages/doc/general.ctp:81
 #: View/Tasks/index.ctp:3
 msgid "Scheduled Tasks"
-msgstr "已计划的任务"
+msgstr "计划任务"
 
 #: View/Elements/global_menu.ctp:361
 msgid "Blacklist Event"
@@ -12703,7 +12703,7 @@ msgstr "启动星系矩阵选择器"
 
 #: View/Jobs/index.ctp:3
 msgid "Purge job entries:"
-msgstr "清理工作条目:"
+msgstr "清理作业:"
 
 #: View/Jobs/index.ctp:10
 msgid "Are you sure you want to purge all completed job entries? Job entries are considered as log entries and have no impact on actual job execution."
@@ -14648,7 +14648,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:239
 msgid "Scheduled Time"
-msgstr ""
+msgstr "计划时间"
 
 #: View/Pages/doc/administration.ctp:239
 msgid "The time (in 24h format) when the task should be executed the next time it runs (and all consecutive times if a multiple of 24 is chosen for frequency)."
@@ -15488,7 +15488,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:97
 msgid "Batch import"
-msgstr ""
+msgstr "批量导入"
 
 #: View/Pages/doc/using_the_system.ctp:97
 msgid "If there are several attributes of the same type to enter (such as a list of IP addresses, it is possible to enter them all into the same value-field, separated by a line break between each line. This will allow the system to create separate lines for the each attribute."
@@ -17804,7 +17804,7 @@ msgstr "在这里, 您可以预定义任务, 每隔x小时执行一次. 您可�
 
 #: View/Tasks/index.ctp:5
 msgid "Warning: Scheduled tasks come with a lot of caveats and little in regards of customisations / granularity. You can instead simply create cron jobs out of the console commands as described here: "
-msgstr "警告: 计划任务有很多注意事项, 而且在自定义/粒度方面也很少, 您可以简单地从控制台命令中创建cron作业, 就像这里描述的那样"
+msgstr "警告: 计划任务有很多注意事项, 而关于定制/粒度方面的注意事项很少, 您可以简单地从控制台命令中创建cron作业, 就像这里描述的那样"
 
 #: View/Tasks/index.ctp:36
 msgid "Frequency (h)"
