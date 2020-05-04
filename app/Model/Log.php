@@ -207,7 +207,8 @@ class Log extends AppModel
         if (is_array($change)) {
             $output = array();
             foreach ($change as $field => $values) {
-                if (strpos($field, 'password') !== false) { // if field name contains password, replace value with asterisk
+                $isSecret = strpos($field, 'password') !== false || ($field === 'authkey' && Configure::read('Security.do_not_log_authkeys'));
+                if ($isSecret) {
                     $oldValue = $newValue = "*****";
                 } else {
                     list($oldValue, $newValue) = $values;

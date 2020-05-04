@@ -1261,6 +1261,15 @@ class Server extends AppModel
                             'type' => 'boolean',
                             'null' => true
                         ),
+                        'do_not_log_authkeys' => array(
+                            'level' => 0,
+                            'description' => __('If enabled, any authkey will be replaced by asterisks in Audit log.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'allow_self_registration' => array(
                             'level' => 1,
                             'description' => __('Enabling this setting will allow users to have access to the pre-auth registration form. This will create an inbox entry for administrators to review.'),
