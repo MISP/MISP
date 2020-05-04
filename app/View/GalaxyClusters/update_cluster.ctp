@@ -10,7 +10,7 @@
             <div class="span6">
                 <h4><?= __('Parent fork elements') ?></h4>
                 <div class="alert alert-success" style="margin-bottom: 0px">
-                    <div><?= sprintf(__('Version: %s'), h($parentVersion)) ?></div>
+                    <div><?= sprintf(__('Version: %s (newer)'), h($parentVersion)) ?></div>
                 </div>
                 <table class="table table-striped table-hover table-condensed">
                     <thead>
@@ -38,7 +38,7 @@
             <div class="span6">
                 <h4><?= __('Current elements') ?></h4>
                 <div class="alert alert-warning" style="margin-bottom: 0px">
-                    <div><?= sprintf(__('Parent version: %s'), h($forkVersion)) ?></div>
+                    <div><?= sprintf(__('Parent version: %s (older)'), h($forkVersion)) ?></div>
                 </div>
                 <table class="table table-striped table-hover table-condensed">
                     <thead>
@@ -65,38 +65,49 @@
             </div>
         </div>
 
-        <h4><?= __('Elements in parent fork but not in this cluster') ?></h4>
-        <?php echo $this->Form->create('GalaxyCluster');?>
-        <div class="row">
-            <div class="span8">
-                <table class="table table-striped table-hover table-condensed">
-                    <thead>
-                        <tr>
-                            <th><?= __('Key'); ?></th>
-                            <th><?= __('Value'); ?></th>
-                            <th><?= __('Import element into the cluster') ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($missingElements as $k => $element): ?>
-                            <tr>
-                                <td><?= h($element['key']) ?></td>
-                                <td><?= h($element['value']) ?></td>
-                                <td>
-                                    <?php
-                                        echo $this->Form->input('element-'.$k, array(
-                                            'label' => __('Import'),
-                                            'type' => 'checkbox',
-                                            'checked' => true
-                                        ));
-                                    ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+        <?php if (empty($missingElements)): ?>
+            <div class="row">
+                <div class="span12">
+                    <div class="alert alert-success">
+                        <strong><?= __('You are all set!') ?></strong> <span><?= sprintf(__('There are no new elements to be added from the parent cluster'), h($forkVersion)) ?></span>
+                    </div>
+                </div>
             </div>
-        </div>
+        <?php else: ?>
+            <h4><?= __('Elements in parent fork but not in this cluster') ?></h4>
+            <?php echo $this->Form->create('GalaxyCluster');?>
+            <div class="row">
+                <div class="span8">
+                    <table class="table table-striped table-hover table-condensed">
+                        <thead>
+                            <tr>
+                                <th><?= __('Key'); ?></th>
+                                <th><?= __('Value'); ?></th>
+                                <th><?= __('Import element into the cluster') ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($missingElements as $k => $element): ?>
+                                <tr>
+                                    <td><?= h($element['key']) ?></td>
+                                    <td><?= h($element['value']) ?></td>
+                                    <td>
+                                        <?php
+                                            echo $this->Form->input('element-'.$k, array(
+                                                'label' => __('Import'),
+                                                'type' => 'checkbox',
+                                                'value' => json_encode($element),
+                                                'checked' => true
+                                            ));
+                                        ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        <?php endif; ?>
         <?php
             echo $this->Form->button(__('Update'), array('class' => 'btn btn-primary'));
             echo $this->Form->end();

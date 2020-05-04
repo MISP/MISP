@@ -157,7 +157,7 @@ class GalaxyCluster extends AppModel
         return $saveSuccess;
     }
 
-    public function editCluster($user, $cluster, $fromPull = false)
+    public function editCluster($user, $cluster, $fromPull = false, $fieldList = array())
     {
         $this->SharingGroup = ClassRegistry::init('SharingGroup');
         $errors = array();
@@ -192,7 +192,9 @@ class GalaxyCluster extends AppModel
                     $cluster['GalaxyCluster']['version'] = $date->getTimestamp();
                 }
                 $cluster['GalaxyCluster']['default'] = false;
-                $fieldList = array('value', 'description', 'version', 'source', 'authors', 'distribution', 'sharing_group_id', 'default');
+                if (empty($fieldList)) {
+                    $fieldList = array('value', 'description', 'version', 'source', 'authors', 'distribution', 'sharing_group_id', 'default');
+                }
                 $saveSuccess = $this->save($cluster, array('fieldList' => $fieldList));
                 if ($saveSuccess) {
                     $elementsToSave = array();
@@ -435,8 +437,13 @@ class GalaxyCluster extends AppModel
         if (isset($options['group'])) {
             $params['group'] = empty($options['group']) ? $options['group'] : false;
         }
-        $galaxClusters = $this->find('all', $params);
-        return $galaxClusters;
+        $galaxyClusters = $this->find('all', $params);
+        foreach ($galaxyClusters as $k => $cluster) {
+            if ($cluster['GalaxyCluster']['distribution'] == 4) {
+                unset($cluster['SharingGroup']);
+            }
+        }
+        return $galaxyClusters;
     }
 
     /**

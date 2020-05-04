@@ -123,7 +123,7 @@ function drawCluster(gEnter) {
         .append("xhtml:div")
         .append("a")
         .attr("class", "fas fa-arrow-up useCursorPointer")
-        .attr("title", "<?= __('Update cluster to new version') ?>")
+        .attr("title", "<?= __('Update cluster to parent\'s new version') ?>")
         .attr("href", function(d) { return "<?= sprintf('%s/galaxy_clusters/updateCluster/', $baseurl) ?>" + d.GalaxyCluster.id; })
     
     drawLabel(gEnter, {
