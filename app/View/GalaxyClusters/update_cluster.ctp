@@ -1,15 +1,17 @@
 <div class='form'>
+    <h2><?= __('Update forked cluster') ?></h2>
     <?php if(!$newVersionAvailable): ?>
         <div class="alert alert-warning"><?= __('No new version available') ?></div>
     <?php else: ?>
-        <div class="alert alert-success">
-            <div><?= sprintf(__('Current fork version: %s'), h($forkVersion)) ?></div>
-            <div><?= sprintf(__('New version available: %s'), sprintf('<strong>%s</strong>', h($parentVersion))) ?></div>
-        </div>
+        <p><?= __('This interface allows you to update the selected cluster to the latest version of its parent.') ?></p>
+        <p><?= __('You can pick galaxy cluster\'s elements to import from the parent to the selected cluster.') ?></p>
 
         <div class="row" style="max-height: 500px;">
             <div class="span6">
-                <h4><?= __('Parent fork') ?></h4>
+                <h4><?= __('Parent fork elements') ?></h4>
+                <div class="alert alert-success" style="margin-bottom: 0px">
+                    <div><?= sprintf(__('Version: %s'), h($parentVersion)) ?></div>
+                </div>
                 <table class="table table-striped table-hover table-condensed">
                     <thead>
                         <tr>
@@ -34,7 +36,10 @@
                 </table>
             </div>
             <div class="span6">
-                <h4><?= __('Current cluster') ?></h4>
+                <h4><?= __('Current elements') ?></h4>
+                <div class="alert alert-warning" style="margin-bottom: 0px">
+                    <div><?= sprintf(__('Parent version: %s'), h($forkVersion)) ?></div>
+                </div>
                 <table class="table table-striped table-hover table-condensed">
                     <thead>
                         <tr>
@@ -60,7 +65,7 @@
             </div>
         </div>
 
-        <h4><?= __('Cluster Elements in original fork but not in this cluster') ?></h4>
+        <h4><?= __('Elements in parent fork but not in this cluster') ?></h4>
         <?php echo $this->Form->create('GalaxyCluster');?>
         <div class="row">
             <div class="span8">
