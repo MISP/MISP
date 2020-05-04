@@ -2,7 +2,7 @@
 class GpgTool
 {
     /**
-     * @return Crypt_GPG
+     * @return CryptGpgExtended
      * @throws Exception
      */
     public function initializeGpg()
@@ -15,6 +15,8 @@ class GpgTool
             require_once 'Crypt/GPG.php';
         }
 
+        require_once __DIR__ . '/CryptGpgExtended.php';
+
         $homedir = Configure::read('GnuPG.homedir');
         if ($homedir === null) {
             throw new Exception("Configuration option 'GnuPG.homedir' is not set, Crypt_GPG cannot be initialized.");
@@ -26,7 +28,7 @@ class GpgTool
             'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg',
         );
 
-        return new Crypt_GPG($options);
+        return new CryptGpgExtended($options);
     }
 
     /**

@@ -3,13 +3,25 @@ App::uses('CakeEmail', 'Network/Email');
 
 class SendEmailException extends Exception {}
 
-// RFC 4880 and 3156
-// https://dkg.fifthhorseman.net/notes/inline-pgp-harmful/
-// https://www.dalesandro.net/create-self-signed-smime-certificates/
+/**
+ * Class CakeEmailExtended
+ *
+ * Extends `CakeEmail` to implement RFC 4880 and 3156.
+ *
+ * @see https://dkg.fifthhorseman.net/notes/inline-pgp-harmful/
+ * @see https://www.dalesandro.net/create-self-signed-smime-certificates/
+ */
 class CakeEmailExtended extends CakeEmail
 {
+    /**
+     * @var MimeMultipart|MessagePart
+     */
     private $body;
 
+    /**
+     * @param array $include
+     * @return array
+     */
     public function getHeaders($include = array())
     {
         $headers = parent::getHeaders($include);
@@ -25,6 +37,9 @@ class CakeEmailExtended extends CakeEmail
         return $headers;
     }
 
+    /**
+     * @return string|null
+     */
    public function boundary()
    {
        if ($this->body instanceof MimeMultipart) {
@@ -36,7 +51,7 @@ class CakeEmailExtended extends CakeEmail
 
     /**
      * @param string|null|MimeMultipart|MessagePart $message
-     * @return $this
+     * @return string|null|MimeMultipart|MessagePart|CakeEmailExtended
      */
     public function body($message = null)
     {
@@ -239,7 +254,7 @@ class MessagePart
 class SendEmail
 {
     /**
-     * @var Crypt_GPG
+     * @var CryptGpgExtended
      */
     private $gpg;
 
@@ -340,7 +355,7 @@ class SendEmail
             throw new SendEmailException('Emailing is currently disabled on this instance.');
         }
 
-        // check if the e-mail can be encrypted
+        // Check if the e-mail can be encrypted
         $canEncryptGpg = isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey']);
         $canEncryptSmime = isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
 
@@ -348,7 +363,7 @@ class SendEmail
             throw new SendEmailException('Encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.');
         }
 
-        // If bodyonlyencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
+        // If 'bodyonlyencrypted' is enabled and the user has no encryption key, use the alternate body (if it exists)
         if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSmime && !$canEncryptGpg && $bodyWithoutEncryption) {
             $body = $bodyWithoutEncryption;
         }
@@ -365,7 +380,10 @@ class SendEmail
 
             try {
                 $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-                $this->signByGpg($email);
+                $this->signByGpg($email, $replyToUser);
+                $this->gpg->clearSignKeys();
+
+                $email->addHeaders(array('Autocrypt' => $this->generateAutocrypt(Configure::read('GnuPG.email'))));
                 $signed = true;
             } catch (Exception $e) {
                 throw new SendEmailException("The message could not be signed.", 0, $e);
@@ -391,6 +409,7 @@ class SendEmail
             try {
                 $this->gpg->addEncryptKey($fingerprint);
                 $this->encryptByGpg($email);
+                $this->gpg->clearEncryptKeys();
 
                 if ($signed && Configure::read('GnuPG.obscure_subject')) {
                     // If message is signed, we can remove subject from unencrypted part of email and replace with '...',
@@ -402,7 +421,7 @@ class SendEmail
 
                 $encrypted = true;
             } catch (Exception $e) {
-                throw new SendEmailException("The message could not be encrypted.", 0, $e);
+                throw new SendEmailException('The message could not be encrypted.', 0, $e);
             }
         }
 
@@ -416,7 +435,7 @@ class SendEmail
             $email->send();
             return $encrypted;
         } catch (Exception $e) {
-            throw new SendEmailException("The message could not be sent.", 0, $e);
+            throw new SendEmailException('The message could not be sent.', 0, $e);
         }
     }
 
@@ -431,20 +450,24 @@ class SendEmail
             // Try to encrypt empty message
             $this->encryptTextBySmime($certificate, '');
         } catch (SendEmailException $e) {
-            throw new Exception("This certificate cannot be used to encrypt email", 0, $e);
+            throw new Exception('This certificate cannot be used to encrypt email.', 0, $e);
         }
 
         $parsed = openssl_x509_parse($certificate);
 
-        // 5 should be 'smimeencrypt'
-        if (!($parsed['purposes'][5][0] === 1 && $parsed['purposes'][5][2] === 'smimeencrypt')) {
-            throw new Exception('This certificate cannot be used to encrypt email');
+        if (!$parsed) {
+            throw new Exception('Could not parse certificate');
         }
 
-        $now = new DateTime("now");
+        // Purpose '5' should be 'smimeencrypt'
+        if (!($parsed['purposes'][5][0] === 1 && $parsed['purposes'][5][2] === 'smimeencrypt')) {
+            throw new Exception('This certificate cannot be used to encrypt email.');
+        }
+
+        $now = new DateTime();
         $validToTime = new DateTime("@{$parsed['validTo_time_t']}");
         if ($validToTime <= $now) {
-            throw new Exception('This certificate is expired');
+            throw new Exception('This certificate is expired.');
         }
 
         return true;
@@ -477,10 +500,12 @@ class SendEmail
             } elseif (!empty($replyToUser['User']['certif_public'])) {
                 $attachments[$replyToUser['User']['email'] . '.pem'] = $replyToUser['User']['certif_public'];
             }
+        } else if (Configure::read('MISP.email_reply_to')) {
+            $email->replyTo(Configure::read('MISP.email_reply_to'));
         }
 
         $email->from(Configure::read('MISP.email'));
-        $email->returnPath(Configure::read('MISP.email'));
+        $email->returnPath(Configure::read('MISP.email')); // TODO?
         $email->to($user['User']['email']);
         $email->subject($subject);
         $email->emailFormat('text');
@@ -496,8 +521,9 @@ class SendEmail
 
     /**
      * @param CakeEmailExtended $email
+     * @param array $replyToUser
      */
-    private function signByGpg(CakeEmailExtended $email)
+    private function signByGpg(CakeEmailExtended $email, array $replyToUser = array())
     {
         $renderedEmail = $email->render();
 
@@ -507,6 +533,7 @@ class SendEmail
             'boundary="' . $email->boundary() . '"',
             'protected-headers="v1"',
         ));
+
         // Protect User-Facing Headers according to https://tools.ietf.org/id/draft-autocrypt-lamps-protected-headers-01.html
         $originalHeaders = $email->getHeaders(array('subject', 'from', 'to'));
         $protectedHeaders = array('From', 'To', 'Date', 'Message-ID', 'Subject', 'Reply-To');
@@ -515,6 +542,21 @@ class SendEmail
                 $messagePart->addHeader($header, $originalHeaders[$header]);
             }
         }
+
+        // If the e-mail is sent on behalf of a user and that user has assigned GPG key, we will send his public key
+        // in signed autocrypt header.
+        if ($replyToUser) {
+            if (!empty($replyToUser['User']['gpgkey'])) {
+                $autocrypt = $this->generateAutocrypt($replyToUser['User']['email'], $replyToUser['User']['gpgkey'], false);
+                $messagePart->addHeader('Autocrypt-Gossip', $autocrypt);
+            }
+        } else if (Configure::read('MISP.email_reply_to')) {
+            $autocrypt = $this->generateAutocrypt(Configure::read('MISP.email_reply_to'), null, false);
+            if ($autocrypt) {
+                $messagePart->addHeader('Autocrypt-Gossip', $autocrypt);
+            }
+        }
+
         $messagePart->setPayload($renderedEmail);
 
         // GPG message to sign must be delimited by <CR><LF>
@@ -759,5 +801,38 @@ class SendEmail
         $first = base_convert($seconds, 10, 36) . base_convert($microseconds, 10, 36);
         $second = base_convert(mt_rand(), 10, 36) . base_convert(mt_rand(), 10, 36);
         return "<$first.$second@{$email->domain()}>";
+    }
+
+    /**
+     * Generates Autocrypt header.
+     *
+     * If $gpgKey is not provided, GPG will try to find correct key by given e-mail address. If no key found, `null` is
+     * returned.
+     *
+     * @see https://autocrypt.org/level1.html
+     * @param string $address
+     * @param string|null $gpgKey
+     * @param bool $preferEncrypt
+     * @return string|null
+     */
+    private function generateAutocrypt($address, $gpgKey = null, $preferEncrypt = true)
+    {
+        if ($gpgKey) {
+            $keyImportOutput = $this->gpg->importKey($gpgKey);
+            $keyData = $this->gpg->exportPublicKeyMinimal($keyImportOutput['fingerprint'], false);
+        } else {
+            try {
+                $keyData = $this->gpg->exportPublicKeyMinimal($address, false);
+            } catch (Crypt_GPG_KeyNotFoundException $e) {
+                return null;
+            }
+        }
+
+        $parts = array("addr=$address");
+        if ($preferEncrypt) {
+            $parts[] = 'prefer-encrypt=mutual';
+        }
+        $parts[] = 'keydata=' . base64_encode($keyData);
+        return implode('; ', $parts);
     }
 }
