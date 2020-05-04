@@ -36,8 +36,6 @@ if [ "$1" = "configure" ] ; then
 
    a2dissite 000-default || true
    a2ensite misp.apache2 || true
-   a2enmod rewrite
-   a2enmod headers
    
    db_get misp/mariadb_host
    HOST=$RET
@@ -53,8 +51,8 @@ if [ "$1" = "configure" ] ; then
    BASEURL=$RET
    db_stop
 
-   mysql -h$HOST -uroot -p$ROOTPWD -e "CREATE USER IF NOT EXISTS '$MISPDBUSER'@'localhost' IDENTIFIED BY '$MISPDBUSERPWD';"
-   mysql -h$HOST -uroot -p$ROOTPWD -e "GRANT ALL PRIVILEGES ON misp.* TO '$MISPDBUSER'@'localhost';"
+   mysql -h$HOST -uroot -p$ROOTPWD -e "CREATE USER IF NOT EXISTS '$MISPDBUSER'@'%' IDENTIFIED BY '$MISPDBUSERPWD';"
+   mysql -h$HOST -uroot -p$ROOTPWD -e "GRANT ALL PRIVILEGES ON misp.* TO '$MISPDBUSER'@'%';"
    mysql -h$HOST -uroot -p$ROOTPWD -e "FLUSH PRIVILEGES;"
    echo "Creating MISP Database..."
    mysql -h$HOST -uroot -p$ROOTPWD -e "CREATE DATABASE $MISPDB;" && gunzip < /usr/share/doc/misp/MYSQL.sql.gz | mysql -h$HOST -u$MISPDBUSER -p$MISPDBUSERPWD $MISPDB || true
@@ -80,7 +78,7 @@ if [ "$1" = "configure" ] ; then
    chmod +x /usr/share/misp/app/Console/worker/start.sh
    cat /usr/share/doc/misp/misp-workers.service > /etc/systemd/system/misp-workers.service
    sed -i -E "s/\/var\/www\/MISP/\/usr\/share\/misp/" /etc/systemd/system/misp-workers.service
-#   systemctl daemon-reload
+
 #   systemctl enable --now misp-workers
 fi
 
