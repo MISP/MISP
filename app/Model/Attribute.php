@@ -5,7 +5,7 @@ App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FinancialTool', 'Tools');
 App::uses('RandomTool', 'Tools');
-App::uses('MalwareTool', 'Tools');
+App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 
 /**
@@ -773,27 +773,8 @@ class Attribute extends AppModel
         // delete attachments from the disk
         $this->read(); // first read the attribute from the db
         if ($this->typeIsAttachment($this->data['Attribute']['type'])) {
-            // only delete the file if it exists
-            $attachments_dir = Configure::read('MISP.attachments_dir');
-            if (empty($attachments_dir)) {
-                $attachments_dir = $this->getDefaultAttachments_dir();
-            }
-
-            // Special case - If using S3, we have to delete from there
-            if ($this->attachmentDirIsS3()) {
-                // We're working in S3
-                $s3 = $this->getS3Client();
-                $s3->delete($this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id']);
-            } else {
-                // Standard delete
-                $filepath = $attachments_dir . DS . $this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id'];
-                $file = new File($filepath);
-                if ($file->exists()) {
-                    if (!$file->delete()) {
-                        throw new InternalErrorException(__('Delete of file attachment failed. Please report to administrator.'));
-                    }
-                }
-            }
+            $attachmentTool = new AttachmentTool();
+            $attachmentTool->delete($this->data['Attribute']['event_id'], $this->data['Attribute']['id']);
         }
         // update correlation..
         $this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
@@ -1753,76 +1734,24 @@ class Attribute extends AppModel
 
     public function typeIsMalware($type)
     {
-        if (in_array($type, $this->zippedDefinitions)) {
-            return true;
-        } else {
-            return false;
-        }
+        return in_array($type, $this->zippedDefinitions);
     }
 
     public function typeIsAttachment($type)
     {
-        if ((in_array($type, $this->zippedDefinitions)) || (in_array($type, $this->uploadDefinitions))) {
-            return true;
-        } else {
-            return false;
-        }
+        return in_array($type, $this->zippedDefinitions) || in_array($type, $this->uploadDefinitions);
     }
 
     public function getAttachment($attribute, $path_suffix='')
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->getDefaultAttachments_dir();
-        }
-
-        if ($this->attachmentDirIsS3()) {
-            // S3 - we have to first get the object then we can encode it
-            $s3 = $this->getS3Client();
-            // This will return the content of the object
-            $content = $s3->download($attribute['event_id'] . DS . $attribute['id'] . $path_suffix);
-        } else {
-            // Standard filesystem
-            $filepath = $attachments_dir . DS . $attribute['event_id'] . DS . $attribute['id'] . $path_suffix;
-            $file = new File($filepath);
-            if (!$file->readable()) {
-                return '';
-            }
-            $content = $file->read();
-        }
-        return $content;
+        $attachmentTool = new AttachmentTool();
+        return $attachmentTool->getContent($attribute['event_id'], $attribute['id'], $path_suffix);
     }
 
     public function saveAttachment($attribute, $path_suffix='')
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->getDefaultAttachments_dir();
-        }
-
-        if ($this->attachmentDirIsS3()) {
-            // This is the cloud!
-            // We don't need your fancy directory structures and
-            // PEE AICH PEE meddling
-            $s3 = $this->getS3Client();
-            $data = $attribute['data'];
-            $key = $attribute['event_id'] . DS . $attribute['id'] . $path_suffix;
-            $s3->upload($key, $data);
-            return true;
-        } else {
-            // Plebian filesystem operations
-            $rootDir = $attachments_dir . DS . $attribute['event_id'];
-            $dir = new Folder($rootDir, true);                      // create directory structure
-            $destpath = $rootDir . DS . $attribute['id'] . $path_suffix;
-            $file = new File($destpath, true);                      // create the file
-            $decodedData = $attribute['data'];       // decode
-            if ($file->write($decodedData)) {                       // save the data
-                return true;
-            } else {
-                // error
-                return false;
-            }
-        }
+        $attachmentTool = new AttachmentTool();
+        return $attachmentTool->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
     }
 
     public function base64EncodeAttachment($attribute)
@@ -3626,10 +3555,10 @@ class Attribute extends AppModel
 
         $content = base64_decode($base64);
 
-        $malwareTool = new MalwareTool();
-        $hashes = $malwareTool->computeHashes($content, $hash_types);
+        $attachmentTool = new AttachmentTool();
+        $hashes = $attachmentTool->computeHashes($content, $hash_types);
         try {
-            $encrypted = $malwareTool->encrypt($original_filename, $content, $hashes['md5']);
+            $encrypted = $attachmentTool->encrypt($original_filename, $content, $hashes['md5']);
         } catch (Exception $e) {
             $this->logException("Could not create encrypted malware sample.", $e);
             return array('success' => false);
@@ -3644,7 +3573,7 @@ class Attribute extends AppModel
      */
     public function isAdvancedExtractionAvailable()
     {
-        $malwareTool = new MalwareTool();
+        $malwareTool = new AttachmentTool();
         try {
             $types = $malwareTool->checkAdvancedExtractionStatus($this->getPythonVersion());
         } catch (Exception $e) {
@@ -4043,7 +3972,7 @@ class Attribute extends AppModel
 
     public function advancedAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile)
     {
-        $malwareTool = new MalwareTool();
+        $malwareTool = new AttachmentTool();
         try {
             $result = $malwareTool->advancedExtraction($this->getPythonVersion(), $tmpfile->path);
         } catch (Exception $e) {

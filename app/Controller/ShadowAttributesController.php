@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('AttachmentTool', 'Tools');
 
 /**
  * @property ShadowAttribute $ShadowAttribute
@@ -451,12 +452,9 @@ class ShadowAttributesController extends AppController
 
     private function __downloadAttachment($shadowAttribute)
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->ShadowAttribute->getDefaultAttachments_dir();
-        }
-        $path = $attachments_dir . DS . 'shadow' . DS . $shadowAttribute['event_id'] . DS;
-        $file = $shadowAttribute['id'];
+        $attachmentTool = new AttachmentTool();
+        $file = $attachmentTool->getShadowFile($shadowAttribute['event_id'], $shadowAttribute['id']);
+
         if ('attachment' == $shadowAttribute['type']) {
             $filename = $shadowAttribute['value'];
             $fileExt = pathinfo($filename, PATHINFO_EXTENSION);
@@ -470,7 +468,7 @@ class ShadowAttributesController extends AppController
         }
         $this->autoRender = false;
         $this->response->type($fileExt);
-        $this->response->file($path . $file, array('download' => true, 'name' => $filename . '.' . $fileExt));
+        $this->response->file($file->path, array('download' => true, 'name' => $filename . '.' . $fileExt));
     }
 
     public function add_attachment($eventId = null)
