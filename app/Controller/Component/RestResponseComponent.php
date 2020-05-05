@@ -72,7 +72,7 @@ class RestResponseComponent extends Component
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags'),
+                'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags', 'threat_level_id'),
                 'params' => array()
             )
         ),
@@ -1456,13 +1456,13 @@ class RestResponseComponent extends Component
                 'input' => 'select',
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
-                'values' => array( 1 => 'Hight', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
+                'values' => array( 1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
             ),
             'threatlevel' => array(
                 'input' => 'select',
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
-                'values' => array( 1 => 'Hight', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
+                'values' => array( 1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
             ),
             'time' => array(
                 'input' => 'text',

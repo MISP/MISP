@@ -4416,7 +4416,8 @@ class Attribute extends AppModel
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
-                    'published' => array('function' => 'set_filter_published')
+                    'published' => array('function' => 'set_filter_published'),
+                    'threat_level_id' => array('function' => 'set_filter_threat_level_id')
                 ),
                 'Object' => array(
                     'object_name' => array('function' => 'set_filter_object_name'),

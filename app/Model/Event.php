@@ -1658,7 +1658,8 @@ class Event extends AppModel
                     'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'org' => array('function' => 'set_filter_org', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
-                    'published' => array('function' => 'set_filter_published', 'pop' => true)
+                    'published' => array('function' => 'set_filter_published', 'pop' => true),
+                    'threat_level_id' => array('function' => 'set_filter_threat_level_id', 'pop' => true)
                 ),
                 'Object' => array(
                     'object_name' => array('function' => 'set_filter_object_name'),
@@ -2711,6 +2712,14 @@ class Event extends AppModel
     {
         if (isset($params['published'])) {
             $conditions['AND']['Event.published'] = $params['published'];
+        }
+        return $conditions;
+    }
+
+    public function set_filter_threat_level_id(&$params, $conditions, $options)
+    {
+        if (isset($params['threat_level_id'])) {
+            $conditions['AND']['Event.threat_level_id'] = $params['threat_level_id'];
         }
         return $conditions;
     }
