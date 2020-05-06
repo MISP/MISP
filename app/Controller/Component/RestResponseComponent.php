@@ -1080,7 +1080,7 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Will not return Attributes, shadow attribute and objects')
+                'help' => __('Will only return the metadata of the given query scope, contained data is omitted.')
             ),
             'minimal' => array(
                 'input' => 'radio',
