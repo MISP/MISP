@@ -14,8 +14,8 @@ echo $this->element('genericElements/assetLoader', array(
     <?= __('There are no relations in this Galaxy'); ?>
 </div>
 <?php else: ?>
-<div style="border: 1px solid #ddd; margin-bottom: 15px;">
-    <div id="graphContainer" style="height: 70vh;"></div>
+<div style="margin-bottom: 10px;">
+    <div id="graphContainer" style="height: 70vh; border: 1px solid #ddd; "></div>
 </div>
 
 <script>
@@ -23,10 +23,12 @@ var graph = <?= json_encode($relations) ?>;
 var nodes, links;
 var width, height, margin;
 var vis, svg, plotting_area, force, container, zoom;
+var legendLabels, labels;
 var graphElementScale = 1;
 var graphElementTranslate = [0, 0];
 var nodeHeight = 20;
 var nodeWidth = 120;
+var colors = d3.scale.category10();
 
 $(document).ready( function() {
     margin = {top: 5, right: 5, bottom: 5, left: 5},
@@ -39,23 +41,22 @@ $(document).ready( function() {
 
 function initGraph() {
     var correctLink = [];
+    var groupDomain = {};
     graph.links.forEach(function(link) {
         var tmpNode = graph.nodes.filter(function(node) {
             return node.id == link.source;
         })
         link.source = tmpNode[0]
-        if (tmpNode[0] === undefined) {
-            console.log(link);
-        }
         tmpNode = graph.nodes.filter(function(node) {
             return node.id == link.target;
         })
-        if (tmpNode[0] === undefined) {
-            console.log(link);
-        }
         link.target = tmpNode[0]
+        groupDomain[link.source.group] = 1;
+        groupDomain[link.target.group] = 1;
         correctLink.push(link)
     })
+    groupDomain = Object.keys(groupDomain);
+    colors.domain(groupDomain);
     graph.links = correctLink;
     force = d3.layout.force()
         .size([width, height])
@@ -74,6 +75,18 @@ function initGraph() {
     zoom = d3.behavior.zoom()
         .on("zoom", zoomHandler);
     svg.call(zoom);
+
+    svg.append('g')
+        .classed('legendContainer', true)
+        .append('g')
+        .classed('legend', true);
+    legendLabels = groupDomain.map(function(domain) {
+        return {
+            text: domain,
+            color: colors(domain)
+        }
+    })
+    drawLabels();
 
     update();
 }
@@ -124,9 +137,9 @@ function update() {
     //     })
     nodesEnter.append("circle")
         .attr("r", 5)
-        .style("fill", "lightsteelblue")
-        .style("stroke", "steelblue")
-        .style("stroke-width", "2px");
+        .style("fill", function(d) { return colors(d.group); })
+        .style("stroke", "black")
+        .style("stroke-width", "1px");
     nodesEnter.append("text")
         .attr("dy", "20px")
         .attr("dx", "")
@@ -178,6 +191,55 @@ function drag(force) {
         .on("dragstart", dragstart)
         .on("drag", dragmove)
         .on("dragend", dragend)
+}
+
+function drawLabels() {
+    labels = svg.select('.legend')
+        .selectAll('.labels')
+        .data(legendLabels);
+    var label = labels.enter()
+        .append('g')
+        .attr('class', 'labels')
+    label.append('circle')
+    label.append('text')
+
+    labels.selectAll('circle')
+        .style('fill', function(d, i){ return d.color })
+        .style('stroke', function(d, i){ return d.color })
+        .attr('r', 5);
+    labels.selectAll('text')
+        .text(function(d) { return d.text })
+        .style('font-size', '16px')
+        .style('text-decoration', function(d) { return d.disabled ? 'line-through' : '' })
+        .attr('fill', function(d) { return d.disabled ? 'gray' : '' })
+        .attr('text', 'start')
+        .attr('dy', '.32em')
+        .attr('dx', '8');
+    labels.exit().remove();
+    var ypos = 10, newxpos = 20, xpos;
+    label
+        .attr('transform', function(d, i) {
+            var length = d3.select(this).select('text').node().getComputedTextLength() + 28;
+            var xpos = newxpos;
+
+            if (width < (margin.left) + margin.right + xpos + length) {
+                newxpos = xpos = 20;
+                ypos += 20;
+            }
+
+            newxpos += length;
+
+            return 'translate(' + xpos + ',' + ypos + ')';
+        })
+    var legendBB = svg.select('.legend').node().getBBox();
+    var pad = 3;
+    svg.select('.legendContainer').insert('rect', ':first-child')
+        .style('fill', '#fff')
+        .attr('x', legendBB.x - pad)
+        .attr('y', legendBB.y - pad)
+        .attr('width', legendBB.width + pad)
+        .attr('height', legendBB.height + pad)
+        .style('stroke', '#eee');
 }
 </script>
 <?php endif; ?>

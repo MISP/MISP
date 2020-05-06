@@ -831,9 +831,24 @@ class GalaxyClustersController extends AppController
             throw new NotFoundException('Invalid galaxy cluster');
         }
         $cluster = $cluster[0];
-        $relations = $this->GalaxyCluster->GalaxyClusterRelation->getExistingRelationships();
-        $relations = Hash::extract($relations, '{n}.ObjectRelationship.name');
+        $existingRelations = $this->GalaxyCluster->GalaxyClusterRelation->getExistingRelationships();
+        $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
+        $tree = array(array(
+            'GalaxyCluster' => $cluster['GalaxyCluster'],
+            'children' => array()
+        ));
+        // add relation info between the two clusters
+        foreach($cluster['GalaxyClusterRelation'] as $relation) {
+            $tmp = array(
+                'Relation' => array_diff_key($relation, array_flip(array('GalaxyCluster'))),
+                'children' => array(
+                    array('GalaxyCluster' => $relation['GalaxyCluster']),
+                )
+            );
+            $tree[0]['children'][] = $tmp;
+        }
+        $this->set('existingRelations', $existingRelations);
         $this->set('cluster', $cluster);
-        $this->set('relations', $relations);
+        $this->set('tree', $tree);
     }
 }

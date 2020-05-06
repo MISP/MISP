@@ -448,12 +448,12 @@ class GalaxyCluster extends AppModel
             if ($cluster['GalaxyCluster']['distribution'] != 4) {
                 unset($clusters[$i]['SharingGroup']);
             }
-            if ($cluster['GalaxyCluster']['org_id'] == 0) {
-                unset($clusters[$i]['Org']);
-            }
-            if ($cluster['GalaxyCluster']['orgc_id'] == 0) {
-                unset($clusters[$i]['Orgc']);
-            }
+            // if ($cluster['GalaxyCluster']['org_id'] == 0) {
+            //     unset($clusters[$i]['Org']);
+            // }
+            // if ($cluster['GalaxyCluster']['orgc_id'] == 0) {
+            //     unset($clusters[$i]['Orgc']);
+            // }
             $clusters[$i] = $this->GalaxyClusterRelation->massageRelationTag($clusters[$i]);
         }
         return $clusters;
@@ -575,5 +575,19 @@ class GalaxyCluster extends AppModel
             // TODO: Apply ACL
         }
         return array_values($clusterTags);
+    }
+
+    public function attachClusterToRelations($user, $cluster)
+    {
+        if (isset($cluster['GalaxyClusterRelation'])) {
+            foreach ($cluster['GalaxyClusterRelation'] as $k => $relation) {
+                $conditions = array('conditions' => array('GalaxyCluster.id' => $relation['referenced_galaxy_cluster_id']));
+                $relatedCluster = $this->fetchGalaxyClusters($user, $conditions, false);
+                if (!empty($relatedCluster)) {
+                    $cluster['GalaxyClusterRelation'][$k]['GalaxyCluster'] = $relatedCluster[0]['GalaxyCluster'];
+                }
+            }
+        }
+        return $cluster;
     }
 }

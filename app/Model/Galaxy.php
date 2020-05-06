@@ -613,7 +613,9 @@ class Galaxy extends AppModel
                         // $cluster['GalaxyCluster']['name'] = $cluster['GalaxyCluster']['uuid'];
                         // $referencedCluster['GalaxyCluster']['name'] = $referencedCluster['GalaxyCluster']['uuid'];
                         $nodes[$referencedClusterId] = $referencedCluster['GalaxyCluster'];
+                        $nodes[$referencedClusterId]['group'] = $referencedCluster['GalaxyCluster']['type'];
                         $nodes[$relation['galaxy_cluster_id']] = $cluster['GalaxyCluster'];
+                        $nodes[$relation['galaxy_cluster_id']]['group'] = $cluster['GalaxyCluster']['type'];
                         if (true) {
                             $links[] = array(
                                 'source' => $relation['galaxy_cluster_id'],

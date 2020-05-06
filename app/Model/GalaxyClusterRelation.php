@@ -33,9 +33,10 @@ class GalaxyClusterRelation extends AppModel
 
     public function getExistingRelationships()
     {
-        $existingRelationships = $this->find('all', array(
+        $existingRelationships = $this->find('list', array(
             'recursive' => -1,
-            'fields' => array('referenced_galaxy_cluster_type')
+            'fields' => array('referenced_galaxy_cluster_type'),
+            'group' => array('referenced_galaxy_cluster_type')
         ), false, false);
         return $existingRelationships;
     }
