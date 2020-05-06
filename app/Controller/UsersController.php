@@ -2570,6 +2570,9 @@ class UsersController extends AppController
                     'perm_admin' => $role['Role']['perm_admin']
                 );
             }
+            if (empty($this->request->data['User'])) {
+                $this->request->data = array('User' => $this->request->data);
+            }
             if (!empty($default_role)) {
                 $this->request->data['User']['role_id'] = $default_role['Role']['id'];
             }
