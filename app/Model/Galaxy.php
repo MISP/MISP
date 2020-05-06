@@ -110,6 +110,7 @@ class Galaxy extends AppModel
                 'tag_name' => 'misp-galaxy:' . $cluster_package['type'] . '="'
             );
             $elements = array();
+            $relations = array();
             $temp = $this->GalaxyCluster->find('all', array(
                 'conditions' => array(
                     'GalaxyCluster.galaxy_id' => $galaxies[$cluster_package['type']]
@@ -144,6 +145,7 @@ class Galaxy extends AppModel
             }
             if (!empty($clusters_to_delete)) {
                 $this->GalaxyCluster->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $clusters_to_delete), false, false);
+                $this->GalaxyCluster->GalaxyClusterRelation->deleteRelations(array('GalaxyClusterRelation.galaxy_cluster_id' => $clusters_to_delete));
                 $this->GalaxyCluster->delete($clusters_to_delete, false, false);
             }
 
@@ -168,6 +170,7 @@ class Galaxy extends AppModel
                 if (empty($cluster_to_save['description'])) {
                     $cluster_to_save['description'] = '';
                 }
+                $cluster_to_save['distribution'] = 3;
                 $result = $this->GalaxyCluster->save($cluster_to_save, false);
                 $galaxyClusterId = $this->GalaxyCluster->id;
                 if (isset($cluster['meta'])) {
@@ -189,12 +192,26 @@ class Galaxy extends AppModel
                         }
                     }
                 }
+                if (isset($cluster['related'])) {
+                    foreach ($cluster['related'] as $key => $relation) {
+                        array('', 'referenced_galaxy_cluster_id');
+                        $relations[] = array(
+                            'galaxy_cluster_id' => $this->GalaxyCluster->id,
+                            'galaxy_cluster_uuid' => $cluster['uuid'],
+                            'referenced_galaxy_cluster_uuid' => $relation['dest-uuid'],
+                            'referenced_galaxy_cluster_type' => $relation['type'],
+                            'tags' => $relation['tags'],
+                        );
+                    }
+                }
             }
             $db = $this->getDataSource();
             $fields = array('galaxy_cluster_id', 'key', 'value');
             if (!empty($elements)) {
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
+            $tempUser = array('Role' => array('perm_tag_editor' => 1, 'perm_site_admin' => 1)); // only site-admin are authorized to update galaxies
+            $this->GalaxyCluster->GalaxyClusterRelation->addRelations($tempUser, $relations);
         }
         return true;
     }
@@ -568,5 +585,55 @@ class Galaxy extends AppModel
             'children' => array_values($tree)
         ));
         return $tree;
+    }
+
+    function generateReferenceGraph($user, $clusters, $galaxy)
+    {
+        $nodes = array();
+        $links = array();
+        $lookup = array();
+        $invalid = array();
+        foreach ($clusters as $cluster) {
+            $lookup[$cluster['GalaxyCluster']['id']] = $cluster;
+        }
+        foreach ($clusters as $cluster) {
+            if (!empty($cluster['GalaxyClusterRelation'])) {
+                foreach($cluster['GalaxyClusterRelation'] as $relation) {
+                    $referencedClusterId = $relation['referenced_galaxy_cluster_id'];
+                    if (!isset($lookup[$referencedClusterId])) {
+                        $referencedCluster = $this->GalaxyCluster->fetchGalaxyClusters($user, array(
+                            'conditions' => array('GalaxyCluster.id' => $referencedClusterId)
+                        ));
+                        $lookup[$referencedClusterId] = !empty($referencedCluster) ? $referencedCluster[0] : array();
+                    }
+                    $referencedCluster = $lookup[$referencedClusterId];
+                    if (!empty($referencedCluster)) {
+                        unset($referencedCluster['GalaxyCluster']['description']);
+                        // debug($referencedCluster['GalaxyCluster']);
+                        // $cluster['GalaxyCluster']['name'] = $cluster['GalaxyCluster']['uuid'];
+                        // $referencedCluster['GalaxyCluster']['name'] = $referencedCluster['GalaxyCluster']['uuid'];
+                        $nodes[$referencedClusterId] = $referencedCluster['GalaxyCluster'];
+                        $nodes[$relation['galaxy_cluster_id']] = $cluster['GalaxyCluster'];
+                        if (true) {
+                            $links[] = array(
+                                'source' => $relation['galaxy_cluster_id'],
+                                'target' =>   $referencedClusterId,
+                                'type' => $relation['referenced_galaxy_cluster_type'],
+                                'tags' =>  $relation['Tag'],
+                            );
+                        } else {
+                            $invalid[] = array(
+                                'source' => $relation['galaxy_cluster_id'],
+                                'target' =>   $referencedClusterId,
+                                'type' => $relation['referenced_galaxy_cluster_type'],
+                                'tags' =>  $relation['Tag'],
+                                'originalCluster' => $cluster['GalaxyCluster']
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        return array('nodes' => array_values($nodes), 'links' => $links, 'invalid' => $invalid);
     }
 }

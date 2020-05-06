@@ -66,7 +66,7 @@ class GalaxyCluster extends AppModel
 
     public $hasMany = array(
         'GalaxyElement' => array('dependent' => true),
-    //  'GalaxyReference'
+        'GalaxyClusterRelation' => array('dependent' => true),
     );
 
     public function beforeValidate($options = array())
@@ -423,7 +423,13 @@ class GalaxyCluster extends AppModel
             'recursive' => -1
         );
         if ($full) {
-            $params['contain'] = array('GalaxyElement', 'Orgc', 'Org', 'SharingGroup');
+            $params['contain'] = array(
+                'GalaxyElement',
+                'GalaxyClusterRelation' => array('GalaxyClusterRelationTag' => array('Tag')),
+                'Orgc',
+                'Org',
+                'SharingGroup'
+            );
         }
         if (!empty($options['contain'])) {
             $params['contain'] = $options['contain'];
@@ -437,13 +443,20 @@ class GalaxyCluster extends AppModel
         if (isset($options['group'])) {
             $params['group'] = empty($options['group']) ? $options['group'] : false;
         }
-        $galaxyClusters = $this->find('all', $params);
-        foreach ($galaxyClusters as $k => $cluster) {
-            if ($cluster['GalaxyCluster']['distribution'] == 4) {
-                unset($cluster['SharingGroup']);
+        $clusters = $this->find('all', $params);
+        foreach ($clusters as $i => $cluster) {
+            if ($cluster['GalaxyCluster']['distribution'] != 4) {
+                unset($clusters[$i]['SharingGroup']);
             }
+            if ($cluster['GalaxyCluster']['org_id'] == 0) {
+                unset($clusters[$i]['Org']);
+            }
+            if ($cluster['GalaxyCluster']['orgc_id'] == 0) {
+                unset($clusters[$i]['Orgc']);
+            }
+            $clusters[$i] = $this->GalaxyClusterRelation->massageRelationTag($clusters[$i]);
         }
-        return $galaxyClusters;
+        return $clusters;
     }
 
     /**

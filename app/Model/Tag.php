@@ -55,7 +55,10 @@ class Tag extends AppModel
         ),
         'TagCollectionTag' => array(
             'dependent' => true
-        )
+        ),
+        'GalaxyClusterRelationTag' => array(
+            'dependent' => true
+        ),
     );
 
     public $belongsTo = array(

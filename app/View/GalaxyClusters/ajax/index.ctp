@@ -33,8 +33,13 @@
                             array(
                                 'active' => $context === 'fork_tree',
                                 'url' => sprintf('%s/galaxies/view/%s/context:fork_tree', $baseurl, $galaxy_id),
-                                'text' => __('View fork tree'),
-                            )
+                                'text' => __('View Fork Tree'),
+                            ),
+                            array(
+                                'active' => $context === 'references',
+                                'url' => sprintf('%s/galaxies/view/%s/context:references', $baseurl, $galaxy_id),
+                                'text' => __('View Galaxy References'),
+                            ),
                         )
                     ),
                     array(

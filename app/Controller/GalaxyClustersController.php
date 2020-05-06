@@ -819,4 +819,21 @@ class GalaxyClustersController extends AppController
         $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
         $this->set('cluster', $cluster);
     }
+
+    public function viewReferences($id)
+    {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException('This function can only be reached via AJAX.');
+        }
+        $conditions = array('conditions' => array('GalaxyCluster.id' => $id));
+        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, true);
+        if (empty($cluster)) {
+            throw new NotFoundException('Invalid galaxy cluster');
+        }
+        $cluster = $cluster[0];
+        $references = $this->GalaxyCluster->GalaxyClusterRelation->getExistingRelationships();
+        $references = Hash::extract($references, '{n}.ObjectRelationship.name');
+        $this->set('cluster', $cluster);
+        $this->set('references', $references);
+    }
 }

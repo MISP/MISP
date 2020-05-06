@@ -1385,6 +1385,13 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_galaxy_editor` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "UPDATE `roles` SET `perm_galaxy_editor`=1 WHERE `perm_tag_editor`=1;";
                 $sqlArray[] = "UPDATE `galaxy_clusters` SET `distribution`=3, `default`=1;";
+                $sqlArray[] = "ALTER TABLE `galaxy_reference` RENAME `galaxy_cluster_relations`;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_relation_tags` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `galaxy_cluster_relation_id` int(11) NOT NULL,
+                    `tag_id` int(11) NOT NULL,
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

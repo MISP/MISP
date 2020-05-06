@@ -517,11 +517,31 @@ class GalaxiesController extends AppController
             'recursive' => -1,
             'conditions' => array('Galaxy.id' => $galaxyId)
         ));
-        $tree = $this->Galaxy->generateForkTree($clusters, $galaxy, $pruneRootLeaves=true);
+        $tree = $this->Galaxy->generateForkTree($clusters, $galaxy, $pruneRootLeaves=true); // moved this to Lib/Tool
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($tree, $this->response->type());
         }
         $this->set('tree', $tree);
+        $this->set('galaxy', $galaxy);
+        $this->set('galaxy_id', $galaxyId);
+    }
+
+    public function referencesGraph($galaxyId)
+    {
+        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full=true);
+        if (empty($clusters)) {
+            throw new MethodNotAllowedException('Invalid Galaxy.');
+        }
+        $galaxy = $this->Galaxy->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Galaxy.id' => $galaxyId)
+        ));
+        $references = array();
+        $references = $this->Galaxy->generateReferenceGraph($this->Auth->user(), $clusters, $galaxy); // moved this to Lib/Tool
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($tree, $this->response->type());
+        }
+        $this->set('references', $references);
         $this->set('galaxy', $galaxy);
         $this->set('galaxy_id', $galaxyId);
     }
