@@ -2473,8 +2473,13 @@ class UsersController extends AppController
                 $id = $this->params['named']['id'];
             }
             $this->loadModel('Inbox');
-            if (Validation::uuid($id)) {
-                $id = $this->Toolbox->findIdByUuid($this->Inbox, $id);
+            if (!is_array($id)) {
+                $id = array($id);
+            }
+            foreach ($id as $k => $v) {
+                if (Validation::uuid($v)) {
+                    $id[$k] = $this->Toolbox->findIdByUuid($this->Inbox, $v);
+                }
             }
             $registrations = $this->Inbox->find('all', array(
                 'recursive' => -1,
@@ -2499,7 +2504,7 @@ class UsersController extends AppController
                 $this->Log->save(array(
                     'org' => $this->Auth->user('Organisation')['name'],
                     'model' => 'User',
-                    'model_id' => $id,
+                    'model_id' => 0,
                     'email' => $this->Auth->user('email'),
                     'action' => 'discardRegistrations',
                     'title' => $message,
