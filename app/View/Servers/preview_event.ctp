@@ -14,7 +14,7 @@
                     <?php echo h($event['Event']['id']); ?>
                     &nbsp;
                 </dd>
-                <dt><?php echo __('Uuid');?></dt>
+                <dt><?php echo __('UUID');?></dt>
                 <dd>
                     <?php echo h($event['Event']['uuid']); ?>
                     &nbsp;
