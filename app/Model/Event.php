@@ -6681,6 +6681,10 @@ class Event extends AppModel
             $this->Job->id = $jobId;
         }
 
+        if (!empty($exportTool->use_default_filters)) {
+            $exportTool->setDefaultFilters($filters);
+        }
+
         if (empty($exportTool->non_restrictive_export)) {
             if (!isset($filters['to_ids'])) {
                 $filters['to_ids'] = 1;
