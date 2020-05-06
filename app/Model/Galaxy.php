@@ -587,7 +587,7 @@ class Galaxy extends AppModel
         return $tree;
     }
 
-    function generateReferenceGraph($user, $clusters, $galaxy)
+    function generateRelationsGraph($user, $clusters, $galaxy)
     {
         $nodes = array();
         $links = array();

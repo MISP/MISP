@@ -1,10 +1,10 @@
 <div>
     <h6>
         <a class="" href="<?= sprintf('%s/galaxies/view/%s/context:all', $baseurl, $galaxy_id) ?>">
-            <i class="<?php echo $this->FontAwesome->findNamespace($galaxy['Galaxy']['icon']); ?> fa-arrow-left"></i>
+            <i class="<?php echo $this->FontAwesome->findNamespace('arrow-left'); ?> fa-arrow-left"></i>
             <?= __('Back to galaxy') ?>
         </a>
-        </h6>
+    </h6>
     <h2><?= sprintf(__('%s galaxy cluster extensions'), h($galaxy['Galaxy']['name'])) ?></h2>
     <svg id="treeSVG" style="width: 100%; height: 100%; min-height: 600px;"></svg>
 </div>

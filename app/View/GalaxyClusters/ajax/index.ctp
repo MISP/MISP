@@ -36,9 +36,9 @@
                                 'text' => __('View Fork Tree'),
                             ),
                             array(
-                                'active' => $context === 'references',
-                                'url' => sprintf('%s/galaxies/view/%s/context:references', $baseurl, $galaxy_id),
-                                'text' => __('View Galaxy References'),
+                                'active' => $context === 'relations',
+                                'url' => sprintf('%s/galaxies/view/%s/context:relations', $baseurl, $galaxy_id),
+                                'text' => __('View Galaxy Relationships'),
                             ),
                         )
                     ),

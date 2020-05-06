@@ -3,13 +3,23 @@ echo $this->element('genericElements/assetLoader', array(
     'js' => array('d3')
 ));
 ?>
+<h6>
+    <a class="" href="<?= sprintf('%s/galaxies/view/%s/context:all', $baseurl, $galaxy_id) ?>">
+        <i class="<?php echo $this->FontAwesome->findNamespace('arrow-left'); ?> fa-arrow-left"></i>
+        <?= __('Back to galaxy') ?>
+    </a>
+</h6>
+<?php if (empty($relations)): ?>
+<div class="alert alert-info">
+    <?= __('There are no relations in this Galaxy'); ?>
+</div>
+<?php else: ?>
 <div style="border: 1px solid #ddd">
     <div id="graphContainer" style="height: 70vh;"></div>
 </div>
 
 <script>
-var graph = <?= json_encode($references) ?>;
-// console.log(graph);
+var graph = <?= json_encode($relations) ?>;
 var nodes, links;
 var width, height, margin;
 var vis, svg, plotting_area, force, container, zoom;
@@ -22,7 +32,9 @@ $(document).ready( function() {
     margin = {top: 5, right: 5, bottom: 5, left: 5},
     width = $('#graphContainer').width() - margin.left - margin.right,
     height = $('#graphContainer').height() - margin.top - margin.bottom;
-    initGraph();
+    if (graph.nodes.length > 0) {
+        initGraph();
+    }
 });
 
 function initGraph() {
@@ -168,3 +180,4 @@ function drag(force) {
         .on("dragend", dragend)
 }
 </script>
+<?php endif; ?>

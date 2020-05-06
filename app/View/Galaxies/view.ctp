@@ -35,8 +35,8 @@ $(document).ready(function () {
         $uri = "/galaxy_clusters/index/" . $galaxy['Galaxy']['id'];
         if (isset($passedArgsArray) && isset($passedArgsArray['context']) && $passedArgsArray['context'] == 'fork_tree') {
             $uri = '/galaxies/forkTree/' . $galaxy['Galaxy']['id'];
-        } elseif (isset($passedArgsArray) && isset($passedArgsArray['context']) && $passedArgsArray['context'] == 'references') {
-            $uri = '/galaxies/referencesGraph/' . $galaxy['Galaxy']['id'];
+        } elseif (isset($passedArgsArray) && isset($passedArgsArray['context']) && $passedArgsArray['context'] == 'relations') {
+            $uri = '/galaxies/relationsGraph/' . $galaxy['Galaxy']['id'];
         } elseif (isset($passedArgsArray) && isset($passedArgsArray['context'])) {
             $uri .= '/context:' . $passedArgsArray['context'];
             if (isset($passedArgsArray) && isset($passedArgsArray['searchall'])) {

@@ -526,7 +526,7 @@ class GalaxiesController extends AppController
         $this->set('galaxy_id', $galaxyId);
     }
 
-    public function referencesGraph($galaxyId)
+    public function relationsGraph($galaxyId)
     {
         $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full=true);
         if (empty($clusters)) {
@@ -536,12 +536,12 @@ class GalaxiesController extends AppController
             'recursive' => -1,
             'conditions' => array('Galaxy.id' => $galaxyId)
         ));
-        $references = array();
-        $references = $this->Galaxy->generateReferenceGraph($this->Auth->user(), $clusters, $galaxy); // moved this to Lib/Tool
+        $relations = array();
+        $relations = $this->Galaxy->generateRelationsGraph($this->Auth->user(), $clusters, $galaxy); // moved this to Lib/Tool
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($tree, $this->response->type());
         }
-        $this->set('references', $references);
+        $this->set('relations', $relations);
         $this->set('galaxy', $galaxy);
         $this->set('galaxy_id', $galaxyId);
     }

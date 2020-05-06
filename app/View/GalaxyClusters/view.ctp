@@ -81,7 +81,7 @@
         <div id="matrix_container"></div>
     </div>
     <div class="row-fuild">
-        <div id="references_container"></div>
+        <div id="relations_container"></div>
     </div>
     <div class="row-fluid">
         <div id="elements_div" class="span8"></div>
@@ -95,8 +95,8 @@ $(document).ready(function () {
     $.get("/galaxy_clusters/viewGalaxyMatrix/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
         $("#matrix_container").html(data);
     });
-    $.get("/galaxy_clusters/viewReferences/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
-        $("#references_container").html(data);
+    $.get("/galaxy_clusters/viewRelations/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
+        $("#relations_container").html(data);
     });
 });
 </script>
