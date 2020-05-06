@@ -1439,6 +1439,10 @@ class MispObject extends AppModel
         while ($continue) {
             $this->Whitelist = ClassRegistry::init('Whitelist');
             $results = $this->fetchObjects($user, $params, $continue);
+            if (empty($results)) {
+                $loop = false;
+                return true;
+            }
             if ($params['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $results = $this->Sightingdb->attachToObjects($results, $user);
