@@ -14,7 +14,7 @@ echo $this->element('genericElements/assetLoader', array(
     <?= __('There are no relations in this Galaxy'); ?>
 </div>
 <?php else: ?>
-<div style="border: 1px solid #ddd">
+<div style="border: 1px solid #ddd; margin-bottom: 15px;">
     <div id="graphContainer" style="height: 70vh;"></div>
 </div>
 

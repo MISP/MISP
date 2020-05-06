@@ -2,13 +2,13 @@
 ?>
 <div style="display: flex; min-height: 600px;">
     <div style="flex: 1; padding: 5px;">
-        <div id="referencesQuickAddForm">
+        <div id="relationsQuickAddForm">
             <label for="RelationshipSource"><?= __('Source UUID') ?></label>
             <input id="RelationshipSource" type="text" value="<?= h($cluster['GalaxyCluster']['uuid']) ?>" disabled></input>
             <label for="RelationshipType"><?= __('Relationship type') ?></label>
             <select id="RelationshipType">
-                <?php foreach ($references as $reference): ?>
-                    <option value="<?= h($reference) ?>"><?= h($reference) ?></option>
+                <?php foreach ($relations as $relation): ?>
+                    <option value="<?= h($relation) ?>"><?= h($relation) ?></option>
                 <?php endforeach; ?>
             </select>
             <label for="RelationshipTarget"><?= __('Target UUID') ?></label>
@@ -22,28 +22,28 @@
     </div>
 
     <div style="flex: 4; padding: 5px; background-color: steelblue;">
-        <?php debug($references); ?>
+        <?php debug($relations); ?>
     </div>
 </div>
 
 <script>
     $(document).ready(function() {
-        // $('#referencesQuickAddForm select').chosen();
+        // $('#relationsQuickAddForm select').chosen();
     })
     $('#buttonAddRelationship').click(function() {
         submitRelationshipForm();
     })
 
     function submitRelationshipForm() {
-        var url = "<?= $baseurl ?>/galaxy_clusters/addReference/";
+        var url = "<?= $baseurl ?>/galaxy_clusters/addRelations/";
         $.ajax({
             beforeSend: function (XMLHttpRequest) {
                 toggleLoadingButton(true);
             },
-            data: $('#referencesQuickAddForm').serialize(),
+            data: $('#relationsQuickAddForm').serialize(),
             success: function (data, textStatus) {
                 $('#top').html(data);
-                showMessage("success", "Reference added");
+                showMessage("success", "Relation added");
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 showMessage('fail', textStatus + ": " + errorThrown);
