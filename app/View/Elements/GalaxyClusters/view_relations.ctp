@@ -17,18 +17,23 @@ echo $this->element('genericElements/assetLoader', array(
                     <?php foreach ($existingRelations as $relation): ?>
                         <option value="<?= h($relation) ?>"><?= h($relation) ?></option>
                     <?php endforeach; ?>
+                    <option value="<?= __('custom') ?>"><?= __('Custom relationship') ?></option>
+                    <input id="RelationshipTypeFreetext" type="text"></input>
                 </select>
             </div>
             <div class="input">
                 <label for="RelationshipTarget"><?= __('Target UUID') ?></label>
-                <select></select>
                 <input id="RelationshipTarget" type="text"></input>
             </div>
-            <button id="buttonAddRelationship" type="button" class="btn btn-primary" style="margin-top: 20px">
+            <div class="input">
+                <label for="RelationshipTags"><?= __('Tags') ?></label>
+                <input id="RelationshipTags" type="text"></input>
+            </div>
+            <div class="clear"></div>
+            <button id="buttonAddRelationship" type="button" class="btn btn-primary" style="">
                 <i class="fas fa-plus"></i>
                 Add relationship
             </button>
-            <div class="clear"></div>
         </div>
     </div>
 </div>
@@ -44,6 +49,14 @@ echo $this->element('genericElements/assetLoader', array(
     var colors = d3.scale.category10();
     $(document).ready(function() {
         // $('#relationsQuickAddForm select').chosen();
+        $('#relationsQuickAddForm #RelationshipType').change(function() {
+            if (this.value === 'custom') {
+                $('#relationsQuickAddForm #RelationshipTypeFreetext').show();
+            } else {
+                $('#relationsQuickAddForm #RelationshipTypeFreetext').hide();
+            }
+        });
+        $('#relationsQuickAddForm #RelationshipTypeFreetext').hide();
     })
     $('#buttonAddRelationship').click(function() {
         submitRelationshipForm();
@@ -142,7 +155,16 @@ echo $this->element('genericElements/assetLoader', array(
             .attr("class", "link")
             .style("fill", "none")
             .style("stroke", "#ccc")
-            .style("stroke-width", "2px")
+            .style("stroke-width", function(d) {
+                var linkWidth = 2;
+                var linkMaxWidth = 4;
+                if (d.source.Relation !== undefined) {
+                    linkWidth = d.source.Relation.Tag.numerical_value / 100 * linkMaxWidth;
+                } else if (d.target.Relation !== undefined) {
+                    linkWidth = d.target.Relation.Tag.numerical_value / 100 * linkMaxWidth;
+                }
+                return linkWidth + 'px';
+            })
             .attr("d", function(d) {
                 return diagonal(d);
             });
