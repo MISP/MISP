@@ -28,7 +28,10 @@ class AppModel extends Model
 {
     public $name;
 
-    public $loadedPubSubTool = false;
+    /**
+     * @var PubSubTool
+     */
+    private $loadedPubSubTool;
 
     public $loadedKafkaPubTool = false;
 
@@ -2364,18 +2367,12 @@ class AppModel extends Model
     public function getPubSubTool()
     {
         if (!$this->loadedPubSubTool) {
-            $this->loadPubSubTool();
+            App::uses('PubSubTool', 'Tools');
+            $pubSubTool = new PubSubTool();
+            $pubSubTool->initTool();
+            $this->loadedPubSubTool = $pubSubTool;
         }
         return $this->loadedPubSubTool;
-    }
-
-    public function loadPubSubTool()
-    {
-        App::uses('PubSubTool', 'Tools');
-        $pubSubTool = new PubSubTool();
-        $pubSubTool->initTool();
-        $this->loadedPubSubTool = $pubSubTool;
-        return true;
     }
 
     public function getElasticSearchTool()

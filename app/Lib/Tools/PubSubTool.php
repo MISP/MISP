@@ -1,66 +1,53 @@
 <?php
 class PubSubTool
 {
-    private $__redis = false;
-    private $__settings = false;
+    const SCRIPTS_TMP = APP . 'files' . DS . 'scripts' . DS . 'tmp' . DS;
+    const OLD_PID_LOCATION = APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmq.pid';
 
-    private function __getSetSettings()
-    {
-        $settings = array(
-                'redis_host' => 'localhost',
-                'redis_port' => '6379',
-                'redis_password' => '',
-                'redis_database' => '1',
-                'redis_namespace' => 'mispq',
-                'port' => '50000',
-        );
+    /**
+     * @var Redis
+     */
+    private $redis;
 
-        foreach ($settings as $key => $setting) {
-            $temp = Configure::read('Plugin.ZeroMQ_' . $key);
-            if ($temp) {
-                $settings[$key] = $temp;
-            }
-        }
-        $settingsFile = new File(APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'settings.json', true, 0644);
-        $settingsFile->write(json_encode($settings, true));
-        $settingsFile->close();
-        return $settings;
-    }
+    /**
+     * @var array
+     */
+    private $settings;
 
     public function initTool()
     {
-        if (!$this->__redis) {
-            $settings = $this->__setupPubServer();
-            $redis = new Redis();
-            $redis->connect($settings['redis_host'], $settings['redis_port']);
-            $redis_pwd = $settings['redis_password'];
-            if (!empty($redis_pwd)) {
-                $redis->auth($redis_pwd);
-            }
-            $redis->select($settings['redis_database']);
-            $this->__redis = $redis;
-            $this->__settings = $settings;
-        } else {
-            $settings = $this->__settings;
+        if (!$this->redis) {
+            $settings = $this->getSetSettings();
+            $this->setupPubServer($settings);
+            $this->redis = $this->createRedisConnection($settings);
+            $this->settings = $settings;
         }
-        return $settings;
     }
 
-    // read the pid file, if it exists, check if the process is actually running
-    // if either the pid file doesn't exists or the process is not running return false
-    // otherwise return the pid
-    public function checkIfRunning()
+    /**
+     * Read the pid file, if it exists, check if the process is actually running
+     * if either the pid file doesn't exists or the process is not running return false
+     * otherwise return the pid.
+     *
+     * @param string|null $pidFilePath
+     * @return bool|int False when process is not running, PID otherwise.
+     * @throws Exception
+     */
+    public function checkIfRunning($pidFilePath = null)
     {
-        $pidFile = new File(APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmq.pid');
-        $pid = $pidFile->read(true, 'r');
+        $pidFile = new File($pidFilePath ?: self::SCRIPTS_TMP . 'mispzmq.pid');
+        if (!$pidFile->exists()) {
+            return false;
+        }
+        $pid = $pidFile->read();
         if ($pid === false || $pid === '') {
             return false;
         }
         if (!is_numeric($pid)) {
             throw new Exception('Internal error (invalid PID file for the MISP zmq script)');
         }
-        $result = trim(shell_exec('ps aux | awk \'{print $2}\' | grep "^' . $pid . '$"'));
-        if (empty($result)) {
+        $result = file_exists("/proc/$pid");
+        if ($result === false) {
             return false;
         }
         return $pid;
@@ -68,18 +55,14 @@ class PubSubTool
 
     public function statusCheck()
     {
-        $redis = new Redis();
-        $settings = $this->__getSetSettings();
-        $redis->connect($settings['redis_host'], $settings['redis_port']);
-        $redis_pwd = $settings['redis_password'];
-        if (!empty($redis_pwd)) {
-            $redis->auth($redis_pwd);
-        }
-        $redis->select($settings['redis_database']);
+        $settings = $this->getSetSettings();
+        $redis = $this->createRedisConnection($settings);
         $redis->rPush($settings['redis_namespace'] . ':command', 'status');
-        sleep(1);
-        $response = trim($redis->lPop($settings['redis_namespace'] . ':status'));
-        return json_decode($response, true);
+        $response = $redis->blPop($settings['redis_namespace'] . ':status', 5);
+        if ($response === null) {
+            throw new Exception("No response from status command returned after 5 seconds.");
+        }
+        return json_decode(trim($response[1]), true);
     }
 
     public function checkIfPythonLibInstalled()
@@ -92,23 +75,12 @@ class PubSubTool
         return false;
     }
 
-    private function __setupPubServer()
-    {
-        App::uses('File', 'Utility');
-        $my_server = ClassRegistry::init('Server');
-        $settings = $this->__getSetSettings();
-        if ($this->checkIfRunning() === false) {
-            shell_exec($my_server->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmq.py > ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.log 2> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.error.log &');
-        }
-        return $settings;
-    }
-
     public function publishEvent($event)
     {
         App::uses('JSONConverterTool', 'Tools');
         $jsonTool = new JSONConverterTool();
         $json = $jsonTool->convert($event);
-        return $this->__pushToRedis(':data:misp_json', $json);
+        return $this->pushToRedis(':data:misp_json', $json);
     }
 
     public function event_save($event, $action)
@@ -116,7 +88,7 @@ class PubSubTool
         if (!empty($action)) {
             $event['action'] = $action;
         }
-        return $this->__pushToRedis(':data:misp_json_event', json_encode($event, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_event', json_encode($event, JSON_PRETTY_PRINT));
     }
 
     public function object_save($object, $action)
@@ -124,7 +96,7 @@ class PubSubTool
         if (!empty($action)) {
             $object['action'] = $action;
         }
-        return $this->__pushToRedis(':data:misp_json_object', json_encode($object, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_object', json_encode($object, JSON_PRETTY_PRINT));
     }
 
     public function object_reference_save($object_reference, $action)
@@ -132,18 +104,12 @@ class PubSubTool
         if (!empty($action)) {
             $object_reference['action'] = $action;
         }
-        return $this->__pushToRedis(':data:misp_json_object_reference', json_encode($object_reference, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_object_reference', json_encode($object_reference, JSON_PRETTY_PRINT));
     }
 
     public function publishConversation($message)
     {
-        return $this->__pushToRedis(':data:misp_json_conversation', json_encode($message, JSON_PRETTY_PRINT));
-    }
-
-    private function __pushToRedis($ns, $data)
-    {
-        $this->__redis->rPush($this->__settings['redis_namespace'] . $ns, $data);
-        return true;
+        return $this->pushToRedis(':data:misp_json_conversation', json_encode($message, JSON_PRETTY_PRINT));
     }
 
     public function attribute_save($attribute, $action = false)
@@ -151,7 +117,7 @@ class PubSubTool
         if (!empty($action)) {
             $attribute['action'] = $action;
         }
-        return $this->__pushToRedis(':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
     }
 
     public function tag_save($tag, $action = false)
@@ -159,7 +125,7 @@ class PubSubTool
         if (!empty($action)) {
             $tag['action'] = $action;
         }
-        return $this->__pushToRedis(':data:misp_json_tag', json_encode($tag, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_tag', json_encode($tag, JSON_PRETTY_PRINT));
     }
 
     public function sighting_save($sighting, $action = false)
@@ -167,7 +133,7 @@ class PubSubTool
         if (!empty($action)) {
             $sighting['action'] = $action;
         }
-        return $this->__pushToRedis(':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
     }
 
     public function modified($data, $type, $action = false)
@@ -175,7 +141,7 @@ class PubSubTool
         if (!empty($action)) {
             $data['action'] = $action;
         }
-        return $this->__pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
     }
 
     public function publish($data, $type, $action = false)
@@ -183,48 +149,39 @@ class PubSubTool
         if (!empty($action)) {
             $data['action'] = $action;
         }
-        return $this->__pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
     }
 
-    public function killService($settings = false)
+    public function killService()
     {
-        $redis = new Redis();
         if ($this->checkIfRunning()) {
-            if ($settings == false) {
-                $settings = $this->__getSetSettings();
-            }
-            $redis->connect($settings['redis_host'], $settings['redis_port']);
-            $redis_pwd = $settings['redis_password'];
-            if (!empty($redis_pwd)) {
-                $redis->auth($redis_pwd);
-            }
-            $redis->select($settings['redis_database']);
+            $settings = $this->getSetSettings();
+            $redis = $this->createRedisConnection($settings);
             $redis->rPush($settings['redis_namespace'] . ':command', 'kill');
             sleep(1);
             if ($this->checkIfRunning()) {
+                // Still running.
                 return false;
             }
         }
         return true;
     }
 
-    // reload the server if it is running, if not, start it
+    /**
+     * Reload the server if it is running, if not, start it.
+     *
+     * @return bool|string
+     * @throws Exception
+     */
     public function reloadServer()
     {
-        if (!$this->checkIfRunning()) {
-            $settings = $this->__setupPubServer();
-        } else {
-            $settings = $this->__getSetSettings();
-            $redis = new Redis();
-            $redis->connect($settings['redis_host'], $settings['redis_port']);
-            $redis_pwd = $settings['redis_password'];
-            if (!empty($redis_pwd)) {
-                $redis->auth($redis_pwd);
-            }
-            $redis->select($settings['redis_database']);
+        $settings = $this->getSetSettings();
+        $this->saveSettingToFile($settings);
+
+        if ($this->checkIfRunning()) {
+            $redis = $this->createRedisConnection($settings);
             $redis->rPush($settings['redis_namespace'] . ':command', 'reload');
-        }
-        if (!$this->checkIfRunning()) {
+        } else {
             return 'Setting saved, but something is wrong with the ZeroMQ server. Please check the diagnostics page for more information.';
         }
         return true;
@@ -237,10 +194,96 @@ class PubSubTool
                 return 'Could not kill the previous instance of the ZeroMQ script.';
             }
         }
-        $this->__setupPubServer();
-        if (!is_numeric($this->checkIfRunning())) {
+        $settings = $this->getSetSettings();
+        $this->setupPubServer($settings);
+        if ($this->checkIfRunning() === false) {
             return 'Failed starting the ZeroMQ script.';
         }
         return true;
+    }
+
+    /**
+     * @param array $settings
+     * @throws Exception
+     */
+    private function setupPubServer(array $settings)
+    {
+        if ($this->checkIfRunning() === false) {
+            if ($this->checkIfRunning(self::OLD_PID_LOCATION)) {
+                // Old version is running, kill it and start again new one.
+                $redis = $this->createRedisConnection($settings);
+                $redis->rPush($settings['redis_namespace'] . ':command', 'kill');
+                sleep(1);
+            }
+
+            $this->saveSettingToFile($settings);
+            $server = ClassRegistry::init('Server');
+            shell_exec($server->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmq.py >> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.log 2>> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.error.log &');
+        }
+    }
+
+    private function pushToRedis($ns, $data)
+    {
+        $this->redis->rPush($this->settings['redis_namespace'] . $ns, $data);
+        return true;
+    }
+
+    /**
+     * @param array $settings
+     * @return Redis
+     */
+    private function createRedisConnection(array $settings)
+    {
+        $redis = new Redis();
+        $redis->connect($settings['redis_host'], $settings['redis_port']);
+        $redisPassword = $settings['redis_password'];
+        if (!empty($redisPassword)) {
+            $redis->auth($redisPassword);
+        }
+        $redis->select($settings['redis_database']);
+        return $redis;
+    }
+
+    /**
+     * @param array $settings
+     * @throws Exception
+     */
+    private function saveSettingToFile(array $settings)
+    {
+        $settingFilePath = self::SCRIPTS_TMP . 'mispzmq_settings.json';
+        $settingsFile = new File($settingFilePath, true, 0644);
+        if (!$settingsFile->exists()) {
+            throw new Exception("Could not create zmq config file '$settingFilePath'.");
+        }
+        // Because setting file contains secrets, it should be readable just by owner. But because in Travis test,
+        // config file is created under one user and then changed under other user, file must be readable and writable
+        // also by group.
+        chmod($settingsFile->pwd(), 0660);
+        if (!$settingsFile->write(json_encode($settings))) {
+            throw new Exception("Could not write zmq config file '$settingFilePath'.");
+        }
+        $settingsFile->close();
+    }
+
+    private function getSetSettings()
+    {
+        $settings = array(
+            'redis_host' => 'localhost',
+            'redis_port' => '6379',
+            'redis_password' => '',
+            'redis_database' => '1',
+            'redis_namespace' => 'mispq',
+            'port' => '50000',
+            'username' => null,
+            'password' => null,
+        );
+
+        foreach ($settings as $key => $setting) {
+            $temp = Configure::read('Plugin.ZeroMQ_' . $key);
+            if ($temp) {
+                $settings[$key] = $temp;
+            }
+        }
+        return $settings;
     }
 }
