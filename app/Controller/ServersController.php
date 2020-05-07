@@ -1624,6 +1624,7 @@ class ServersController extends AppController
         $result = $pubSubTool->statusCheck();
         if (!empty($result)) {
             $this->set('events', $result['publishCount']);
+            $this->set('messages', $result['messageCount']);
             $this->set('time', date('Y/m/d H:i:s', $result['timestamp']));
             $this->set('time2', date('Y/m/d H:i:s', $result['timestampSettings']));
         }
