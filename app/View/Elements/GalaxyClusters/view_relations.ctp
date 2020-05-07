@@ -158,9 +158,9 @@ echo $this->element('genericElements/assetLoader', array(
             .style("stroke-width", function(d) {
                 var linkWidth = 2;
                 var linkMaxWidth = 4;
-                if (d.source.Relation !== undefined) {
+                if (d.source.Relation !== undefined && d.source.Relation.Tag !== undefined) {
                     linkWidth = d.source.Relation.Tag.numerical_value / 100 * linkMaxWidth;
-                } else if (d.target.Relation !== undefined) {
+                } else if (d.target.Relation !== undefined && d.target.Relation.Tag !== undefined) {
                     linkWidth = d.target.Relation.Tag.numerical_value / 100 * linkMaxWidth;
                 }
                 return linkWidth + 'px';
@@ -194,8 +194,8 @@ echo $this->element('genericElements/assetLoader', array(
     function drawRelation(gEnter) {
         var paddingX = 9;
         gEnter.append("foreignObject")
-        .attr("height", 50)
-            .attr("y", -24)
+        .attr("height", 40)
+            .attr("y", -20)
             .attr("width", function(d) { return getTextWidth(d.Relation.referenced_galaxy_cluster_type) + 2*paddingX + 'px'; })
             .append("xhtml:div")
             .append("div")

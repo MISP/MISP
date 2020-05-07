@@ -17,16 +17,21 @@ class GalaxyClusterRelation extends AppModel
                 'rule' => array('stringNotEmpty')
             )
         ),
+        'galaxy_cluster_id' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            )
+        ),
+        'referenced_galaxy_cluster_id' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            )
+        ),
         'referenced_galaxy_cluster_uuid' => array(
             'uuid' => array(
                 'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
                 'message' => 'Please provide a valid UUID'
             ),
-            'unique' => array(
-                'rule' => 'isUnique',
-                'message' => 'The UUID provided is not unique',
-                'required' => 'create'
-            )
         ),
         'distribution' => array(
             'rule' => array('inList', array('0', '1', '2', '3', '4')),
@@ -95,6 +100,40 @@ class GalaxyClusterRelation extends AppModel
         return $conditions;
     }
 
+    public function fetchRelations($user, $options)
+    {
+        $params = array(
+            'conditions' => $this->buildConditions($user),
+            'recursive' => -1
+        );
+        if (!empty($options['contain'])) {
+            $params['contain'] = $options['contain'];
+        }
+        if (isset($options['fields'])) {
+            $params['fields'] = $options['fields'];
+        }
+        if (isset($options['conditions'])) {
+            $params['conditions']['AND'][] = $options['conditions'];
+        }
+        if (isset($options['group'])) {
+            $params['group'] = empty($options['group']) ? $options['group'] : false;
+        }
+        $relations = $this->find('all', $params);
+        foreach ($relations as $i => $relation) {
+            if ($relation['GalaxyCluster']['distribution'] != 4) {
+                unset($relation[$i]['SharingGroup']);
+            }
+            // if ($cluster['GalaxyCluster']['org_id'] == 0) {
+            //     unset($clusters[$i]['Org']);
+            // }
+            // if ($cluster['GalaxyCluster']['orgc_id'] == 0) {
+            //     unset($clusters[$i]['Orgc']);
+            // }
+            // $clusters[$i] = $this->GalaxyClusterRelation->massageRelationTag($clusters[$i]);
+        }
+        return $relations;
+    }
+
     public function getExistingRelationships()
     {
         $existingRelationships = $this->find('list', array(
@@ -149,5 +188,40 @@ class GalaxyClusterRelation extends AppModel
             }
         }
         return $cluster;
+    }
+
+    public function saveRelation($user, $relation)
+    {
+        if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
+            return false;
+        }
+        $relation['GalaxyClusterRelation']['org_id'] = $user['org_id'];
+        if (!isset($relation['GalaxyClusterRelation']['orgc_id'])) {
+            if (isset($relation['Orgc']['uuid'])) {
+                $orgc_id = $this->Orgc->find('first', array('conditions' => array('Orgc.uuid' => $user['Orgc']['uuid']), 'fields' => array('Orgc.id'), 'recursive' => -1));
+            } else {
+                $orgc_id = $user['org_id'];
+            }
+            $relation['GalaxyClusterRelation']['orgc_id'] = $orgc_id;
+        }
+        $existingRelation = $this->find('first', array('conditions' => array(
+            'GalaxyClusterRelation.galaxy_cluster_id' => $relation['GalaxyClusterRelation']['galaxy_cluster_id'],
+            'GalaxyClusterRelation.referenced_galaxy_cluster_id' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'],
+            'GalaxyClusterRelation.referenced_galaxy_cluster_type' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_type'],
+            'GalaxyClusterRelation.org_id' => $relation['GalaxyClusterRelation']['org_id'],
+        )));
+        if (!empty($existingRelation)) {
+            return false;
+        }
+        $this->create();
+        $saveSuccess = $this->save($relation);
+        if ($saveSuccess) {
+            $savedRelation = $this->find('first', array(
+                'conditions' => array('id' =>  $this->id),
+                'recursive' => -1
+            ));
+            // TODO: save tags as well
+        }
+        return $saveSuccess;
     }
 }

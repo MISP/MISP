@@ -1255,7 +1255,7 @@
                     if ($hostOrgUser) { 
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'view',
+                            'element_id' => 'add',
                             'url' => '/galaxy_cluster_relations/add/',
                             'text' => __('Add Relationships')
                         ));

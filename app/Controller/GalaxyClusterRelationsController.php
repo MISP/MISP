@@ -85,7 +85,78 @@ class GalaxyClusterRelationsController extends AppController
 
     public function add()
     {
+        $this->loadModel('Attribute');
+        $distributionLevels = $this->Attribute->distributionLevels;
+        unset($distributionLevels[5]);
+        $initialDistribution = 3;
+        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
+        if ($configuredDistribution != null && $configuredDistribution != 'event') {
+            $initialDistribution = $configuredDistribution;
+        }
+        $this->loadModel('SharingGroup');
+        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
 
+        if ($this->request->is('post')) {
+            if (empty($this->request->data['GalaxyClusterRelation'])) {
+                $this->request->data = array('GalaxyClusterRelation' => $this->request->data);
+            }
+            $relation = $this->request->data;
+            if ($relation['GalaxyClusterRelation']['distribution'] != 4) {
+                $relation['GalaxyClusterRelation']['sharing_group_id'] = null;
+            }
+
+            // Fetch cluster source and adapt IDs
+            $conditions = array();
+            if (!is_numeric($relation['GalaxyClusterRelation']['source_id'])) {
+                $conditions['GalaxyCluster.uuid'] = $relation['GalaxyClusterRelation']['source_id'];
+            } else {
+                $conditions['GalaxyCluster.id'] = $relation['GalaxyClusterRelation']['source_id'];
+            }
+            $clusterSource = $this->GalaxyClusterRelation->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
+            if (empty($clusterSource)) {
+                throw new NotFoundException('Source cluster not found.');
+            }
+            $clusterSource = $clusterSource[0];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterSource['GalaxyCluster']['id'];
+            unset($relation['GalaxyClusterRelation']['source_id']);
+
+            // Fetch cluster target and adapt IDs
+            $conditions = array();
+            if (!is_numeric($relation['GalaxyClusterRelation']['target_id'])) {
+                $conditions['GalaxyCluster.uuid'] = $relation['GalaxyClusterRelation']['target_id'];
+            } else {
+                $conditions['GalaxyCluster.id'] = $relation['GalaxyClusterRelation']['target_id'];
+            }
+            $clusterTarget = $this->GalaxyClusterRelation->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
+            if (empty($clusterSource)) {
+                throw new NotFoundException('Target cluster not found.');
+            }
+            $clusterTarget = $clusterTarget[0];
+            $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $clusterTarget['GalaxyCluster']['id'];
+            unset($relation['GalaxyClusterRelation']['target_id']);
+
+            $saveSuccess = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $relation);
+            $message = $saveSuccess ? __('Relationship added.') : __('Relationship connection could not be added.');
+            if ($this->_isRest()) {
+                if ($result) {
+                    return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'add', $this->response->type(), $message);
+                } else {
+                    return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'add', $message, $this->response->type());
+                }
+            } else {
+                if ($saveSuccess) {
+                    $this->Flash->success($message);
+                    $this->redirect(array('action' => 'index'));
+                } else {
+                    $message .= __(' Reason: %s', json_encode($this->GalaxyClusterRelation->validationErrors, true));
+                    $this->Flash->error($message);
+                }
+            }
+        }
+        $this->set('distributionLevels', $distributionLevels);
+        $this->set('initialDistribution', $initialDistribution);
+        $this->set('sharingGroups', $sgs);
+        $this->set('action', 'add');
     }
 
     public function edit($id)
@@ -95,6 +166,29 @@ class GalaxyClusterRelationsController extends AppController
 
     public function delete($id)
     {
-
+        if ($this->request->is('post')) {
+            $relation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array('conditions' => array('id' => $id)));
+            if (empty($relation)) {
+                throw new NotFoundException('Target cluster not found.');
+            }
+            $result = $this->GalaxyCluster->delete($id, true);
+            if ($result) {
+                $message = 'Galaxy cluster relationship successfuly deleted.';
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'delete', $id, $this->response->type());
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect($this->here);
+                }
+            } else {
+                $message = 'Galaxy cluster relationship could not be deleted.';
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'delete', $id, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                    $this->redirect($this->here);
+                }
+            }
+        }
     }
 }
