@@ -41,28 +41,19 @@ class OpendataExport
             }
             $this->__url = $baseurl;
         }
+        if (!empty($this->__default_filters['delete'])) {
+            $this->__delete = true;
+            unset($this->__default_filters['delete']);
+        }
         return '';
     }
 
-    public function footer($options = array())
+    public function footer()
     {
         $authParam = ' --auth ' . $this->__auth;
-        $body = json_encode($this->__default_filters);
-        $bodyFilename = $this->__generateSetupFile($body);
-        $bodyParam = ' --body ' . $bodyFilename;
-        $levelParam = ' --level ' . strtolower($this->__scope) . 's';
-        $setup = json_encode($this->__setup);
-        $setupFilename = $this->__generateSetupFile($setup);
-        $setupParam = ' --setup ' . $setupFilename;
-        $urlParam = ' --url ' . $this->__url;
-
         $my_server = ClassRegistry::init('Server');
-        $cmd = $my_server->getPythonVersion() . ' ' . $this->__scripts_dir . $this->__script_name . $authParam . $bodyParam . $setupParam . $levelParam . $urlParam;
-        $results = shell_exec($cmd);
-
-        unlink($bodyFilename);
-        unlink($setupFilename);
-        return $results;
+        $cmd = $my_server->getPythonVersion() . ' ' . $this->__scripts_dir . $this->__script_name . $authParam;
+        return $this->__delete ? $this->__delete_query($cmd) : $this->__add_query($cmd);
     }
 
     public function handler()
@@ -73,6 +64,39 @@ class OpendataExport
     public function separator()
     {
         return '';
+    }
+
+    private function __add_query($cmd)
+    {
+        $body = json_encode($this->__default_filters);
+        $bodyFilename = $this->__generateSetupFile($body);
+        $bodyParam = ' --body ' . $bodyFilename;
+        $levelParam = ' --level ' . strtolower($this->__scope) . 's';
+        $setup = json_encode($this->__setup);
+        $setupFilename = $this->__generateSetupFile($setup);
+        $setupParam = ' --setup ' . $setupFilename;
+        $urlParam = ' --url ' . $this->__url;
+
+        $cmd .= $bodyParam . $setupParam . $levelParam . $urlParam;
+        $results = shell_exec($cmd);
+        unlink($bodyFilename);
+        unlink($setupFilename);
+        return $results;
+    }
+
+    private function __delete_query($cmd)
+    {
+        $cmd .= " -d '" . $this->__setup['dataset'] . "'";
+        if (!empty($this->__setup['resources'])) {
+            if (is_array($this->__setup['resources'])) {
+                foreach ($this->__setup['resources'] as $resource) {
+                    $cmd .= ' ' . $resource;
+                }
+            } else {
+                $cmd .= " '" . $this->__setup['resources'] . "'";
+            }
+        }
+        return shell_exec($cmd);
     }
 
     private function __generateRandomFileName()
