@@ -1540,7 +1540,7 @@ class User extends AppModel
                     'model' => 'User',
                     'model_id' => $added_by['id'],
                     'email' => $added_by['email'],
-                    'action' => 'failed_registration',
+                    'action' => 'registration_error',
                     'title' => 'User registration failed for ' . $user['email'] . '. Reason(s): ' . $error,
                     'change' => null,
             ));
@@ -1555,7 +1555,7 @@ class User extends AppModel
                 'model' => 'User',
                 'model_id' => $added_by['id'],
                 'email' => $added_by['email'],
-                'action' => 'succeeded_registration',
+                'action' => 'registration',
                 'title' => sprintf('User registration success for %s (id=%s)', $user['User']['email'], $user['User']['id']),
                 'change' => null,
             ));
