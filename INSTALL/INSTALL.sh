@@ -377,18 +377,19 @@ EOF
 checkInstaller () {
   # Workaround: shasum is not available on RHEL, only checking sha512
   if [[ $FLAVOUR == "rhel" ]] || [[ $FLAVOUR == "centos" ]]; then
-	INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
-	/usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
+  INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
+  /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
         chsum=$(cat /tmp/INSTALL.sh.sha512)
-	if [[ "${chsum}" == "${INSTsum}" ]]; then
-		echo "SHA512 matches"
-	else
-		echo "SHA512: ${chsum} does not match the installer sum of: ${INSTsum}"
-		# exit 1 # uncomment when/if PR is merged
-	fi
+  if [[ "${chsum}" == "${INSTsum}" ]]; then
+    echo "SHA512 matches"
+  else
+    echo "SHA512: ${chsum} does not match the installer sum of: ${INSTsum}"
+    # exit 1 # uncomment when/if PR is merged
+  fi
   else
     # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
     if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
+      sudo apt update
       sudo apt install libdigest-sha-perl -qyy
     fi
     # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
@@ -672,8 +673,7 @@ setBaseURL () {
   CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
   IFACE=`echo $CONN |awk {'print $1'}`
   IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
-  # TODO: Consider "QEMU"
-  if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]]; then
+  if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]] && [[ "$(checkManufacturer)" != "QEMU" ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
@@ -701,12 +701,20 @@ setBaseURL () {
     MISP_BASEURL="https://misp.local"
     # Webserver configuration
     FQDN='misp.local'
-  else
+  elif [[ "$(checkManufacturer)" == "innotek GmbH" ]]; then
     MISP_BASEURL='https://localhost:8443'
     IP=$(ip addr show | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}' |grep -v "127.0.0.1" |tail -1)
     sudo iptables -t nat -A OUTPUT -p tcp --dport 8443 -j DNAT --to ${IP}:443
     # Webserver configuration
     FQDN='localhost.localdomain'
+  elif [[ "$(checkManufacturer)" == "VMware, Inc." ]]; then
+    MISP_BASEURL='""'
+    # Webserver configuration
+    FQDN='misp.local'
+  else
+    MISP_BASEURL='""'
+    # Webserver configuration
+    FQDN='misp.local'
   fi
 }
 
@@ -1651,10 +1659,27 @@ WantedBy=multi-user.target" | sudo tee /etc/systemd/system/misp-workers.service
 # Main MISP Modules install function
 mispmodules () {
   cd /usr/local/src/
+  sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   ## TODO: checkUsrLocalSrc in main doc
   debug "Cloning misp-modules"
   $SUDO_CMD git clone https://github.com/MISP/misp-modules.git
-  cd misp-modules
+  $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git
+  $SUDO_CMD git clone git://github.com/stricaud/faup.git
+  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+  # Install gtcaca
+  cd gtcaca
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  cd ../../faup
+  # Install faup
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  sudo ldconfig
+  cd ../../misp-modules
   # some misp-modules dependencies
   sudo apt install libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y
   # If you build an egg, the user you build it as need write permissions in the CWD
@@ -1809,8 +1834,8 @@ mail2misp () {
   cd /usr/local/src/
   sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   $SUDO_CMD git clone https://github.com/MISP/mail_to_misp.git
-  $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
-  $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+  [[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
   sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
   cd gtcaca
   $SUDO_CMD mkdir -p build
@@ -2651,21 +2676,21 @@ installSupported () {
 
   if [[ "$1" =~ ^PHP= ]]; then
     PHP_VER=$(echo $1 |cut -f2 -d=)
-    if [[ "$PHP_VER" == "7.2" ]]; then
+    if [[ "$PHP_VER" == 7.2 ]]; then
       # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
-    elif [[ "$PHP_VER" == "7.3" ]]; then
+    elif [[ "$PHP_VER" == 7.3 ]]; then
       # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
-      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
-    elif [[ "$PHP_VER" == "7.4" ]]; then
-      # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
-    elif [[ "$PHP_VER" == "7.0" ]]; then
+    elif [[ "$PHP_VER" == 7.4 ]]; then
+      # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
+    elif [[ "$PHP_VER" == 7.0 ]]; then
       # Install PHP 7.0 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp70
     fi
   else
-      # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+      # Install PHP 7.2 Dependencies by dangerous default - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
   fi
   progress 4
@@ -3173,6 +3198,7 @@ x86_64-fedora-30
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
+x86_64-ubuntu-focal
 x86_64-kali-2019.1
 x86_64-kali-2019.2
 x86_64-kali-2019.3
@@ -3187,6 +3213,7 @@ armv7l-debian-jessie
 armv7l-debian-stretch
 armv7l-debian-buster
 armv7l-ubuntu-bionic
+armv7l-ubuntu-focal
 "
 
 # Check if we actually support this configuration
@@ -3208,12 +3235,18 @@ if [ "${FLAVOUR}" == "ubuntu" ]; then
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
   fi
+  if [ "${RELEASE}" == "20.04" ]; then
+    echo "Install on Ubuntu 20.04 LTS fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installSupported PHP="7.4" && exit || exit
+  fi
   if [ "${RELEASE}" == "18.10" ]; then
     echo "Install on Ubuntu 18.10 partially supported, bye."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
   fi
   if [ "${RELEASE}" == "19.04" ]; then
-    echo "Install on Ubuntu 19.04 under development."
+    echo "Install on Ubuntu 19.04 partially supported bye."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
     exit 1

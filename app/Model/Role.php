@@ -84,7 +84,8 @@ class Role extends AppModel
             'id' => 'RolePermAuth',
             'text' => 'Auth key access',
             'readonlyenabled' => true,
-            'title' => 'Users with this permission have access to authenticating via their Auth keys, granting them access to the API.'
+            'title' => 'Users with this permission have access to authenticating via their Auth keys, granting them access to the API.',
+            'site_admin_optional' => true
         ),
         'perm_regexp_access' => array(
             'id' => 'RolePermRegexpAccess',

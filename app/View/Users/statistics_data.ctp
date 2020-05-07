@@ -35,6 +35,8 @@
         <dd><?php echo h($stats['org_count']); ?>&nbsp;</dd>
         <dt><?php echo __('Local Organisations'); ?></dt>
         <dd><?php echo h($stats['local_org_count']); ?>&nbsp;</dd>
+        <dt><?php echo __('Event creator orgs'); ?></dt>
+        <dd><?php echo h($stats['contributing_org_count']); ?>&nbsp;</dd>
         <dt><?php echo __('Average Users / Org'); ?></dt>
         <dd><?php echo h($stats['average_user_per_org']); ?>&nbsp;</dd>
         <dt><?php echo __('Discussion threads'); ?></dt>

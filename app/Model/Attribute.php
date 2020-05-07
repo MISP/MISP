@@ -699,7 +699,7 @@ class Attribute extends AppModel
              * Only recorrelate if:
              * - We are dealing with a new attribute OR
              * - The existing attribute's previous state is known AND
-             *   value, type or disable correlation have changed
+             *   value, type, disable correlation or distribution have changed
              * This will avoid recorrelations when it's not really needed, such as adding a tag
              */
             if (!$created) {
@@ -707,7 +707,9 @@ class Attribute extends AppModel
                     empty($this->old) ||
                     $this->data['Attribute']['value'] != $this->old['Attribute']['value'] ||
                     $this->data['Attribute']['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
-                    $this->data['Attribute']['type'] != $this->old['Attribute']['type']
+                    $this->data['Attribute']['type'] != $this->old['Attribute']['type'] ||
+                    $this->data['Attribute']['distribution'] != $this->old['Attribute']['distribution'] ||
+                    $this->data['Attribute']['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']
                 ) {
                     $this->__beforeSaveCorrelation($this->data['Attribute']);
                     $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
@@ -4414,7 +4416,8 @@ class Attribute extends AppModel
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
-                    'published' => array('function' => 'set_filter_published')
+                    'published' => array('function' => 'set_filter_published'),
+                    'threat_level_id' => array('function' => 'set_filter_threat_level_id')
                 ),
                 'Object' => array(
                     'object_name' => array('function' => 'set_filter_object_name'),
