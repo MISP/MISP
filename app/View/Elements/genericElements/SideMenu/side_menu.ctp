@@ -1145,6 +1145,10 @@
                         'url' => '/galaxies/index',
                         'text' => __('List Galaxies')
                     ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/galaxy_cluster_relations/index',
+                        'text' => __('List Relationships')
+                    ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
@@ -1233,6 +1237,27 @@
                             'element_id' => 'view_cluster',
                             'url' => '/galaxy_clusters/view/' . h($clusterId),
                             'text' => __('View Cluster')
+                        ));
+                    }
+                    break;
+
+                case 'galaxy_cluster_relations':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'galaxy_index',
+                        'url' => '/galaxies/index',
+                        'text' => __('List Galaxies')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => '/galaxy_cluster_relations/index',
+                        'text' => __('List Relationships')
+                    ));
+                    if ($hostOrgUser) { 
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => '/galaxy_cluster_relations/add/',
+                            'text' => __('Add Relationships')
                         ));
                     }
                     break;

@@ -12,12 +12,51 @@ class GalaxyClusterRelation extends AppModel
     );
 
     public $validate = array(
+        'referenced_galaxy_cluster_type' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            )
+        ),
+        'referenced_galaxy_cluster_uuid' => array(
+            'uuid' => array(
+                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                'message' => 'Please provide a valid UUID'
+            ),
+            'unique' => array(
+                'rule' => 'isUnique',
+                'message' => 'The UUID provided is not unique',
+                'required' => 'create'
+            )
+        ),
+        'distribution' => array(
+            'rule' => array('inList', array('0', '1', '2', '3', '4')),
+            'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group',
+            'required' => true
+        )
     );
 
     public $belongsTo = array(
             'GalaxyCluster' => array(
                 'className' => 'GalaxyCluster',
                 'foreignKey' => 'galaxy_cluster_id',
+            ),
+            'ReferencedGalaxyCluster' => array(
+                'className' => 'GalaxyCluster',
+                'foreignKey' => 'referenced_galaxy_cluster_id',
+            ),
+            'Org' => array(
+                'className' => 'Organisation',
+                'foreignKey' => 'org_id',
+                'conditions' => array('GalaxyClusterRelation.org_id !=' => 0),
+            ),
+            'Orgc' => array(
+                'className' => 'Organisation',
+                'foreignKey' => 'orgc_id',
+                'conditions' => array('GalaxyClusterRelation.orgc_id !=' => 0),
+            ),
+            'SharingGroup' => array(
+                    'className' => 'SharingGroup',
+                    'foreignKey' => 'sharing_group_id'
             )
     );
 
@@ -29,6 +68,31 @@ class GalaxyClusterRelation extends AppModel
     {
         parent::beforeValidate();
         return true;
+    }
+
+    public function buildConditions($user)
+    {
+        $this->Event = ClassRegistry::init('Event');
+        $conditions = array();
+        if (!$user['Role']['perm_site_admin']) {
+            $sgids = $this->Event->cacheSgids($user, true);
+            $conditions['AND']['OR'] = array(
+                'GalaxyClusterRelation.org_id' => $user['org_id'],
+                array(
+                    'AND' => array(
+                        'GalaxyClusterRelation.distribution >' => 0,
+                        'GalaxyClusterRelation.distribution <' => 4
+                    ),
+                ),
+                array(
+                    'AND' => array(
+                        'GalaxyClusterRelation.sharing_group_id' => $sgids,
+                        'GalaxyClusterRelation.distribution' => 4
+                    )
+                )
+            );
+        }
+        return $conditions;
     }
 
     public function getExistingRelationships()

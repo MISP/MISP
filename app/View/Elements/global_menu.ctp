@@ -97,7 +97,11 @@
                     array(
                         'text' => __('List Galaxies'),
                         'url' => '/galaxies/index'
-                    )
+                    ),
+                    array(
+                        'text' => __('List Relationships'),
+                        'url' => '/galaxy_cluster_relations/index'
+                    ),
                 )
             ),
             array(

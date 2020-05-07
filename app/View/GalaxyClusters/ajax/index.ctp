@@ -23,7 +23,7 @@
                             array(
                                 'active' => $context === 'custom',
                                 'url' => sprintf('%s/galaxies/view/%s/context:custom', $baseurl, $galaxy_id),
-                                'text' => __('Custom Galaxy Clusters'),
+                                'text' => __('All Custom Galaxy Clusters'),
                             ),
                             array(
                                 'active' => $context === 'org',

@@ -33,8 +33,8 @@ class GalaxyCluster extends AppModel
             )
         ),
         'distribution' => array(
-            'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
-            'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
+            'rule' => array('inList', array('0', '1', '2', '3', '4')),
+            'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group',
             'required' => true
         )
     );

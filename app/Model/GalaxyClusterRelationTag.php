@@ -20,8 +20,12 @@ class GalaxyClusterRelationTag extends AppModel
     );
 
     public $belongsTo = array(
-        'GalaxyClusterRelation',
-        'Tag'
+        'GalaxyClusterRelation' => array(
+            'className' => 'GalaxyClusterRelation',
+        ),
+        'Tag' => array(
+            'className' => 'Tag',
+        ),
     );
 
     public function afterSave($created, $options = array())
