@@ -100,46 +100,28 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation']['sharing_group_id'] = null;
             }
 
-            // Fetch cluster source and adapt IDs
-            $conditions = array();
-            if (!is_numeric($relation['GalaxyClusterRelation']['source_id'])) {
-                $conditions['GalaxyCluster.uuid'] = $relation['GalaxyClusterRelation']['source_id'];
-            } else {
-                $conditions['GalaxyCluster.id'] = $relation['GalaxyClusterRelation']['source_id'];
-            }
-            $clusterSource = $this->GalaxyClusterRelation->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
-            if (empty($clusterSource)) {
-                throw new NotFoundException('Source cluster not found.');
-            }
-            $clusterSource = $clusterSource[0];
-            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterSource['GalaxyCluster']['id'];
-            unset($relation['GalaxyClusterRelation']['source_id']);
+            $adpatedRelation = $this->adaptIds($relation);
+            $relation = $adpatedRelation['relation'];
+            $clusterSource = $adpatedRelation['clusterSource'];
+            $clusterTarget = $adpatedRelation['clusterTarget'];
 
-            // Fetch cluster target and adapt IDs
-            $conditions = array();
-            if (!is_numeric($relation['GalaxyClusterRelation']['target_id'])) {
-                $conditions['GalaxyCluster.uuid'] = $relation['GalaxyClusterRelation']['target_id'];
-            } else {
-                $conditions['GalaxyCluster.id'] = $relation['GalaxyClusterRelation']['target_id'];
-            }
-            $clusterTarget = $this->GalaxyClusterRelation->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
-            if (empty($clusterSource)) {
-                throw new NotFoundException('Target cluster not found.');
-            }
-            $clusterTarget = $clusterTarget[0];
-            $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $clusterTarget['GalaxyCluster']['id'];
-            unset($relation['GalaxyClusterRelation']['target_id']);
-
-            $saveSuccess = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $relation);
-            $message = $saveSuccess ? __('Relationship added.') : __('Relationship could not be added.');
+            $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $relation);
+            $message = empty($errors) ? __('Relationship added.') : __('Relationship could not be added.');
             if ($this->_isRest()) {
-                if ($result) {
+                if (empty($errors)) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'add', $this->response->type(), $message);
                 } else {
                     return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'add', $message, $this->response->type());
                 }
+            } elseif ($this->request->is('ajax')) {
+                $this->autoRender = false;
+                if (empty($errors)) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => '')),'status' => 200, 'type' => 'json'));
+                } else {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not save relation, reason: ' . json_encode(array_merge($errors, $this->GalaxyClusterRelation->validationErrors)))),'status' => 200, 'type' => 'json'));
+                }
             } else {
-                if ($saveSuccess) {
+                if (empty($errors)) {
                     $this->Flash->success($message);
                     $this->redirect(array('action' => 'index'));
                 } else {
@@ -181,6 +163,12 @@ class GalaxyClusterRelationsController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $relation = $this->request->data;
             $relation['GalaxyClusterRelation']['id'] = $id;
+            if ($relation['GalaxyClusterRelation']['distribution'] != 4) {
+                $relation['GalaxyClusterRelation']['sharing_group_id'] = null;
+            }
+            $adpatedRelation = $this->adaptIds($relation);
+            $relation = $adpatedRelation['relation'];
+
             $errors = $this->GalaxyClusterRelation->editRelation($this->Auth->user(), $relation);
             $message = empty($errors) ? __('Relationship saved.') : __('Relationship could not be edited.');
             if ($this->_isRest()) {
@@ -235,5 +223,43 @@ class GalaxyClusterRelationsController extends AppController
                 }
             }
         }
+    }
+
+    public function adaptIds($relation)
+    {
+        // Fetch cluster source and adapt IDs
+        $conditions = array();
+        if (!is_numeric($relation['GalaxyClusterRelation']['source_id'])) {
+            $conditions['GalaxyCluster.uuid'] = $relation['GalaxyClusterRelation']['source_id'];
+        } else {
+            $conditions['GalaxyCluster.id'] = $relation['GalaxyClusterRelation']['source_id'];
+        }
+        $clusterSource = $this->GalaxyClusterRelation->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
+        if (empty($clusterSource)) {
+            throw new NotFoundException('Source cluster not found.');
+        }
+        $clusterSource = $clusterSource[0];
+        $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterSource['GalaxyCluster']['id'];
+        unset($relation['GalaxyClusterRelation']['source_id']);
+
+        // Fetch cluster target and adapt IDs
+        $conditions = array();
+        if (!is_numeric($relation['GalaxyClusterRelation']['target_id'])) {
+            $conditions['GalaxyCluster.uuid'] = $relation['GalaxyClusterRelation']['target_id'];
+        } else {
+            $conditions['GalaxyCluster.id'] = $relation['GalaxyClusterRelation']['target_id'];
+        }
+        $clusterTarget = $this->GalaxyClusterRelation->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
+        if (empty($clusterSource)) {
+            throw new NotFoundException('Target cluster not found.');
+        }
+        $clusterTarget = $clusterTarget[0];
+        $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $clusterTarget['GalaxyCluster']['id'];
+        unset($relation['GalaxyClusterRelation']['target_id']);
+        return array(
+            'clusterSource' => $clusterSource,
+            'clusterTarget' => $clusterTarget,
+            'relation' => $relation,
+        );
     }
 }

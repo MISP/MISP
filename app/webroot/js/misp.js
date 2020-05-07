@@ -4815,7 +4815,7 @@ function changeTaxonomyRequiredState(checkbox) {
     });
 }
 
-function fetchFormDataAjax(url, callback) {
+function fetchFormDataAjax(url, callback, errorCallback) {
     var formData = false;
     $.ajax({
         data: '[]',
@@ -4824,6 +4824,9 @@ function fetchFormDataAjax(url, callback) {
         },
         error:function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+            if (errorCallback !== undefined) {
+                errorCallback();
+            }
         },
         async: false,
         type:"get",

@@ -192,8 +192,10 @@ class GalaxyClusterRelation extends AppModel
 
     public function saveRelation($user, $relation)
     {
+        $errors = array();
         if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
-            return false;
+            $errors[] = __('Incorrect permission');
+            return $errors;
         }
         $relation['GalaxyClusterRelation']['org_id'] = $user['org_id'];
         if (!isset($relation['GalaxyClusterRelation']['orgc_id'])) {
@@ -211,18 +213,21 @@ class GalaxyClusterRelation extends AppModel
             'GalaxyClusterRelation.org_id' => $relation['GalaxyClusterRelation']['org_id'],
         )));
         if (!empty($existingRelation)) {
-            return false;
+            $errors[] = __('Relation already exists');
+            return $errors;
         }
-        $this->create();
-        $saveSuccess = $this->save($relation);
-        if ($saveSuccess) {
-            $savedRelation = $this->find('first', array(
-                'conditions' => array('id' =>  $this->id),
-                'recursive' => -1
-            ));
-            // TODO: save tags as well
+        if (empty($errors)) {
+            $this->create();
+            $saveSuccess = $this->save($relation);
+            if ($saveSuccess) {
+                $savedRelation = $this->find('first', array(
+                    'conditions' => array('id' =>  $this->id),
+                    'recursive' => -1
+                ));
+                // TODO: save tags as well
+            }
         }
-        return $saveSuccess;
+        return $errors;
     }
 
     public function editRelation($user, $relation, $fieldList=array())

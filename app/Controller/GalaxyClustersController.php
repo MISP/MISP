@@ -849,5 +849,10 @@ class GalaxyClustersController extends AppController
         $this->set('existingRelations', $existingRelations);
         $this->set('cluster', $cluster);
         $this->set('tree', $tree);
+        $this->loadModel('Attribute');
+        $distributionLevels = $this->Attribute->distributionLevels;
+        unset($distributionLevels[4]);
+        unset($distributionLevels[5]);
+        $this->set('distributionLevels', $distributionLevels);
     }
 }

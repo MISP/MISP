@@ -37,6 +37,9 @@
                     'label' => __('Tags'),
                     'type' => 'text',
                 ),
+            ),
+            'submit' => array(
+                'ajaxSubmit' => ''
             )
         )
     ));
