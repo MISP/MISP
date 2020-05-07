@@ -832,7 +832,9 @@ class GalaxyClustersController extends AppController
         $cluster = $cluster[0];
         $existingRelations = $this->GalaxyCluster->GalaxyClusterRelation->getExistingRelationships();
         $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
-        $tree = array(array(
+        debug($existingRelations);
+
+        $treeRight = array(array(
             'GalaxyCluster' => $cluster['GalaxyCluster'],
             'children' => array()
         ));
@@ -844,8 +846,14 @@ class GalaxyClustersController extends AppController
                     array('GalaxyCluster' => $relation['GalaxyCluster']),
                 )
             );
-            $tree[0]['children'][] = $tmp;
+            $treeRight[0]['children'][] = $tmp;
         }
+
+        $treeLeft = array();
+        $tree = array(
+            'right' => $treeRight,
+            'left' => $treeLeft,
+        );
         $this->set('existingRelations', $existingRelations);
         $this->set('cluster', $cluster);
         $this->set('tree', $tree);
