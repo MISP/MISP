@@ -4215,7 +4215,7 @@ function checkRolePerms() {
         $('.permFlags').show();
     }
     if ($("#RolePermSiteAdmin").prop('checked')) {
-        $('.checkbox').prop('checked', true);
+        $('.site_admin_enforced').prop('checked', true);
     }
 }
 

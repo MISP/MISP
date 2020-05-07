@@ -1437,11 +1437,15 @@ class MispObject extends AppModel
     {
         $continue = true;
         while ($continue) {
+            $temp = '';
             $this->Whitelist = ClassRegistry::init('Whitelist');
             $results = $this->fetchObjects($user, $params, $continue);
             if (empty($results)) {
                 $loop = false;
                 return true;
+            }
+            if ($elementCounter !== 0 && !empty($results)) {
+                $temp .= $exportTool->separator($exportToolParams);
             }
             if ($params['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
@@ -1451,7 +1455,6 @@ class MispObject extends AppModel
             $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
             $results = array_values($results);
             $i = 0;
-            $temp = '';
             foreach ($results as $object) {
                 $elementCounter++;
                 $handlerResult = $exportTool->handler($object, $exportToolParams);
@@ -1465,9 +1468,6 @@ class MispObject extends AppModel
             }
             if (!$loop) {
                 $continue = false;
-            }
-            if ($continue) {
-                $temp .= $exportTool->separator($exportToolParams);
             }
             fwrite($tmpfile, $temp);
         }
