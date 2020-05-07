@@ -9,11 +9,6 @@ class GalaxyClusterRelationsController extends AppController
             'limit' => 60,
             'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'recursive' => -1,
-            'order' => array(
-                // 'GalaxyCluster.value' => 'ASC'
-            ),
-            'contain' => array(
-            )
     );
 
     public function index()
@@ -71,7 +66,7 @@ class GalaxyClusterRelationsController extends AppController
             $this->paginate['conditions']['AND'][] = $contextConditions;
             $this->paginate['conditions']['AND'][] = $searchConditions;
             $this->paginate['conditions']['AND'][] = $aclConditions;
-            $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc', 'SharingGroup', 'GalaxyCluster', 'ReferencedGalaxyCluster', 'GalaxyClusterRelationTag' => array('Tag')));
+            $this->paginate['contain'] = array('Org', 'Orgc', 'SharingGroup', 'GalaxyCluster', 'ReferencedGalaxyCluster', 'GalaxyClusterRelationTag' => array('Tag'));
             $relations = $this->paginate();
             $this->loadModel('SharingGroup');
             $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
@@ -136,7 +131,7 @@ class GalaxyClusterRelationsController extends AppController
             unset($relation['GalaxyClusterRelation']['target_id']);
 
             $saveSuccess = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $relation);
-            $message = $saveSuccess ? __('Relationship added.') : __('Relationship connection could not be added.');
+            $message = $saveSuccess ? __('Relationship added.') : __('Relationship could not be added.');
             if ($this->_isRest()) {
                 if ($result) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'add', $this->response->type(), $message);
@@ -161,7 +156,57 @@ class GalaxyClusterRelationsController extends AppController
 
     public function edit($id)
     {
+        $conditions = array('conditions' => array('GalaxyClusterRelation.id' => $id));
+        $existingRelation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), $conditions);
+        if (empty($existingRelation)) {
+            throw new NotFoundException(__('Invalid cluster relation'));
+        }
+        $existingRelation = $existingRelation[0];
+        $id = $existingRelation['GalaxyClusterRelation']['id'];
+        if ($existingRelation['GalaxyClusterRelation']['default']) {
+            throw new MethodNotAllowedException(__('Default cluster relation cannot be edited'));
+        }
 
+        $this->loadModel('Attribute');
+        $distributionLevels = $this->Attribute->distributionLevels;
+        unset($distributionLevels[5]);
+        $initialDistribution = 3;
+        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
+        if ($configuredDistribution != null && $configuredDistribution != 'event') {
+            $initialDistribution = $configuredDistribution;
+        }
+        $this->loadModel('SharingGroup');
+        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $relation = $this->request->data;
+            $relation['GalaxyClusterRelation']['id'] = $id;
+            $errors = $this->GalaxyClusterRelation->editRelation($this->Auth->user(), $relation);
+            $message = empty($errors) ? __('Relationship saved.') : __('Relationship could not be edited.');
+            if ($this->_isRest()) {
+                if (empty($errors)) {
+                    return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'edit', $this->response->type(), $message);
+                } else {
+                    return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'edit', $message, $this->response->type());
+                }
+            } else {
+                if (empty($errors)) {
+                    $this->Flash->success($message);
+                    $this->redirect(array('action' => 'index'));
+                } else {
+                    $message .= __(' Reason: %s', json_encode($this->GalaxyClusterRelation->validationErrors, true));
+                    $this->Flash->error($message);
+                }
+            }
+        }
+        $this->request->data = $existingRelation;
+        $this->request->data['GalaxyClusterRelation']['source_id'] = $existingRelation['GalaxyClusterRelation']['galaxy_cluster_id'];
+        $this->request->data['GalaxyClusterRelation']['target_id'] = $existingRelation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'];
+        $this->set('distributionLevels', $distributionLevels);
+        $this->set('initialDistribution', $initialDistribution);
+        $this->set('sharingGroups', $sgs);
+        $this->set('action', 'edit');
+        $this->render('add');
     }
 
     public function delete($id)

@@ -120,7 +120,7 @@ class GalaxyClusterRelation extends AppModel
         }
         $relations = $this->find('all', $params);
         foreach ($relations as $i => $relation) {
-            if ($relation['GalaxyCluster']['distribution'] != 4) {
+            if ($relation['GalaxyClusterRelation']['distribution'] != 4) {
                 unset($relation[$i]['SharingGroup']);
             }
             // if ($cluster['GalaxyCluster']['org_id'] == 0) {
@@ -223,5 +223,50 @@ class GalaxyClusterRelation extends AppModel
             // TODO: save tags as well
         }
         return $saveSuccess;
+    }
+
+    public function editRelation($user, $relation, $fieldList=array())
+    {
+        $this->SharingGroup = ClassRegistry::init('SharingGroup');
+        $errors = array();
+        if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
+            $errors[] = __('Incorrect permission');
+        }
+        if (isset($relation['GalaxyClusterRelation']['id'])) {
+            $existingRelation = $this->find('first', array('conditions' => array('GalaxyClusterRelation.id' => $relation['GalaxyClusterRelation']['id'])));
+        } else {
+            $errors[] = __('UUID not provided');
+        }
+        if (empty($existingRelation)) {
+            $errors[] = __('Unkown ID');
+        } else {
+            // For users that are of the creating org of the cluster, always allow the edit
+            // For users that are sync users, only allow the edit if the cluster is locked
+            if ($existingRelation['GalaxyClusterRelation']['orgc_id'] === $user['org_id']
+            || ($user['Role']['perm_sync'] && $existingRelation['GalaxyClusterRelation']['locked']) || $user['Role']['perm_site_admin']) {
+                if ($user['Role']['perm_sync']) {
+                    if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $relation['GalaxyClusterRelation']['sharing_group_id'])) {
+                        $errors[] = array(__('Galaxy Cluster Relation could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.'));
+                    }
+                }
+            } else {
+                $errors[] = array(__('Galaxy Cluster Relation could not be saved: The user used to edit the cluster relation is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the cluster relation whilst also not being a site administrator.'));
+            }
+            $relation['GalaxyClusterRelation']['id'] = $existingRelation['GalaxyClusterRelation']['id'];
+            
+            if (empty($errors)) {
+                $relation['GalaxyClusterRelation']['default'] = false;
+                if (empty($fieldList)) {
+                    $fieldList = array('galaxy_cluster_id', 'referenced_galaxy_cluster_id', 'referenced_galaxy_cluster_type', 'distribution', 'sharing_group_id');
+                }
+                $saveSuccess = $this->save($relation, array('fieldList' => $fieldList));
+                if (!$saveSuccess) {
+                    foreach($this->validationErrors as $validationError) {
+                        $errors[] = $validationError[0];
+                    }
+                }
+            }
+        }
+        return $errors;
     }
 }

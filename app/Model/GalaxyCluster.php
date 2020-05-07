@@ -182,7 +182,7 @@ class GalaxyCluster extends AppModel
                     }
                 }
             } else {
-                $errors[] = array(__('Galaxy Cluster could not be saved: The user used to edit the cluster is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the galaxy whilst also not being a site administrator.'));
+                $errors[] = array(__('Galaxy Cluster could not be saved: The user used to edit the cluster is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the cluster whilst also not being a site administrator.'));
             }
             $cluster['GalaxyCluster']['id'] = $existingCluster['GalaxyCluster']['id'];
 

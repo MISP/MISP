@@ -319,7 +319,7 @@ class GalaxyClustersController extends AppController
                 'conditions' => array('GalaxyCluster.uuid' => $id)
             ));
             if ($temp === null) {
-                throw new NotFoundException('Invalid galaxy cluster');
+                throw new NotFoundException(__('Invalid galaxy cluster'));
             }
             $id = $temp['GalaxyCluster']['id'];
         } elseif (!is_numeric($id)) {
@@ -328,7 +328,7 @@ class GalaxyClustersController extends AppController
         $conditions = array('conditions' => array('GalaxyCluster.id' => $id));
         $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, true);
         if (empty($cluster)) {
-            throw new NotFoundException('Invalid galaxy cluster');
+            throw new NotFoundException(__('Invalid galaxy cluster'));
         }
         $cluster = $cluster[0];
         if ($cluster['GalaxyCluster']['default']) {
