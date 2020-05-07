@@ -46,8 +46,8 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '104';
-    public $pyMispVersion = '2.4.123';
+    private $__queryVersion = '106';
+    public $pyMispVersion = '2.4.125';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $pythonmin = '3.6';
@@ -56,6 +56,8 @@ class AppController extends Controller
 
     public $baseurl = '';
     public $sql_dump = false;
+
+    private $isRest = null;
 
     // Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
     // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -361,7 +363,11 @@ class AppController extends Controller
                 }
             }
         } else {
-            if ($this->params['controller'] !== 'users' || !in_array($this->params['action'], array('login', 'register'))) {
+            $pre_auth_actions = array('login', 'register');
+            if (!empty(Configure::read('Security.email_otp_enabled'))) {
+                $pre_auth_actions[] = 'email_otp';
+            }
+            if ($this->params['controller'] !== 'users' || !in_array($this->params['action'], $pre_auth_actions)) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
@@ -680,6 +686,11 @@ class AppController extends Controller
 
     protected function _isRest()
     {
+        // This method is surprisingly slow and called many times for one request, so it make sense to cache the result.
+        if ($this->isRest !== null) {
+            return $this->isRest;
+        }
+
         $api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
         if (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson() || $this->_isCsv())) {
             if ($this->_isJson()) {
@@ -687,8 +698,10 @@ class AppController extends Controller
                     throw new MethodNotAllowedException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.');
                 }
             }
+            $this->isRest = true;
             return true;
         } else {
+            $this->isRest = false;
             return false;
         }
     }

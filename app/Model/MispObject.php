@@ -506,7 +506,10 @@ class MispObject extends AppModel
                 )
             ),
         );
-        if (empty($options['includeAllTags'])) {
+        if (!empty($options['metadata'])) {
+            unset($params['contain']['Attribute']);
+        }
+        if (empty($options['metadata']) && empty($options['includeAllTags'])) {
             $params['contain']['Attribute']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
         if (isset($options['contain'])) {
@@ -514,7 +517,12 @@ class MispObject extends AppModel
         } else {
             $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
         }
-        if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
+        if (
+            empty($options['metadata']) &&
+            Configure::read('MISP.proposals_block_attributes') &&
+            isset($options['conditions']['AND']['Attribute.to_ids']) &&
+            $options['conditions']['AND']['Attribute.to_ids'] == 1
+        ) {
             $this->Attribute->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
                     'ShadowAttribute' => array(
@@ -544,7 +552,7 @@ class MispObject extends AppModel
         if (!isset($options['enforceWarninglist'])) {
             $options['enforceWarninglist'] = false;
         }
-        if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
+        if (empty($options['metadata']) && (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted'])) {
             $params['contain']['Attribute']['conditions']['AND']['Attribute.deleted'] = 0;
         }
         if (isset($options['group'])) {
@@ -566,23 +574,25 @@ class MispObject extends AppModel
         }
         $results = array_values($results);
         $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
-        foreach ($results as $key => $objects) {
-            foreach ($objects as $key2 => $attribute) {
-                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
-                    unset($results[$key][$key2]);
-                    continue;
-                }
-                if ($proposals_block_attributes) {
-                    if (!empty($attribute['ShadowAttribute'])) {
+        if (empty($options['metadata'])) {
+            foreach ($results as $key => $objects) {
+                foreach ($objects as $key2 => $attribute) {
+                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
                         unset($results[$key][$key2]);
-                    } else {
-                        unset($results[$key][$key2]['ShadowAttribute']);
+                        continue;
                     }
-                }
-                if ($options['withAttachments']) {
-                    if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
-                        $encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
-                        $results[$key][$key2]['Attribute']['data'] = $encodedFile;
+                    if ($proposals_block_attributes) {
+                        if (!empty($attribute['ShadowAttribute'])) {
+                            unset($results[$key][$key2]);
+                        } else {
+                            unset($results[$key][$key2]['ShadowAttribute']);
+                        }
+                    }
+                    if ($options['withAttachments']) {
+                        if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
+                            $encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
+                            $results[$key][$key2]['Attribute']['data'] = $encodedFile;
+                        }
                     }
                 }
             }
@@ -1344,7 +1354,8 @@ class MispObject extends AppModel
                 'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
                 'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
                 'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
-                'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0
+                'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0,
+                'metadata' => !empty($filters['metadata']) ? $filters['metadata'] : 0,
         );
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];
@@ -1376,6 +1387,9 @@ class MispObject extends AppModel
         }
         if (!empty($filters['score'])) {
             $params['score'] = $filters['score'];
+        }
+        if (!empty($filters['metadata'])) {
+            $params['metadata'] = $filters['metadata'];
         }
         if ($paramsOnly) {
             return $params;
@@ -1423,8 +1437,16 @@ class MispObject extends AppModel
     {
         $continue = true;
         while ($continue) {
+            $temp = '';
             $this->Whitelist = ClassRegistry::init('Whitelist');
             $results = $this->fetchObjects($user, $params, $continue);
+            if (empty($results)) {
+                $loop = false;
+                return true;
+            }
+            if ($elementCounter !== 0 && !empty($results)) {
+                $temp .= $exportTool->separator($exportToolParams);
+            }
             if ($params['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $results = $this->Sightingdb->attachToObjects($results, $user);
@@ -1433,7 +1455,6 @@ class MispObject extends AppModel
             $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
             $results = array_values($results);
             $i = 0;
-            $temp = '';
             foreach ($results as $object) {
                 $elementCounter++;
                 $handlerResult = $exportTool->handler($object, $exportToolParams);
@@ -1447,9 +1468,6 @@ class MispObject extends AppModel
             }
             if (!$loop) {
                 $continue = false;
-            }
-            if ($continue) {
-                $temp .= $exportTool->separator($exportToolParams);
             }
             fwrite($tmpfile, $temp);
         }

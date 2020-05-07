@@ -278,21 +278,21 @@ installSupported () {
 
   if [[ "$1" =~ ^PHP= ]]; then
     PHP_VER=$(echo $1 |cut -f2 -d=)
-    if [[ "$PHP_VER" == "7.2" ]]; then
+    if [[ "$PHP_VER" == 7.2 ]]; then
       # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
-    elif [[ "$PHP_VER" == "7.3" ]]; then
+    elif [[ "$PHP_VER" == 7.3 ]]; then
       # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
-      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
-    elif [[ "$PHP_VER" == "7.4" ]]; then
-      # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
-    elif [[ "$PHP_VER" == "7.0" ]]; then
+    elif [[ "$PHP_VER" == 7.4 ]]; then
+      # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
+    elif [[ "$PHP_VER" == 7.0 ]]; then
       # Install PHP 7.0 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp70
     fi
   else
-      # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+      # Install PHP 7.2 Dependencies by dangerous default - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
   fi
   progress 4
@@ -500,7 +500,7 @@ installMISPonKali () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git 2> /dev/null > /dev/null
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief 2> /dev/null > /dev/null
 
   # install python-magic
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
@@ -800,6 +800,7 @@ x86_64-fedora-30
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
+x86_64-ubuntu-focal
 x86_64-kali-2019.1
 x86_64-kali-2019.2
 x86_64-kali-2019.3
@@ -814,6 +815,7 @@ armv7l-debian-jessie
 armv7l-debian-stretch
 armv7l-debian-buster
 armv7l-ubuntu-bionic
+armv7l-ubuntu-focal
 "
 
 # Check if we actually support this configuration
@@ -835,12 +837,18 @@ if [ "${FLAVOUR}" == "ubuntu" ]; then
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
   fi
+  if [ "${RELEASE}" == "20.04" ]; then
+    echo "Install on Ubuntu 20.04 LTS fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installSupported PHP="7.4" && exit || exit
+  fi
   if [ "${RELEASE}" == "18.10" ]; then
     echo "Install on Ubuntu 18.10 partially supported, bye."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
   fi
   if [ "${RELEASE}" == "19.04" ]; then
-    echo "Install on Ubuntu 19.04 under development."
+    echo "Install on Ubuntu 19.04 partially supported bye."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
     exit 1

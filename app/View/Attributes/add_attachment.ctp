@@ -67,9 +67,11 @@
         <?php
             echo $this->Form->input('advanced', array(
                     'type' => 'checkbox',
-                    'checked' => false,
+                    'checked' => true,
+                    'disabled' => !$advancedExtractionAvailable,
+                    'data-disabled-reason' => !$advancedExtractionAvailable ? __('Advanced extraction is not installed') : '',
                     'div' => array('id' => 'advanced_input', 'style' => 'display:none'),
-                    'label' => __('Advanced extraction (if installed)'),
+                    'label' => __('Advanced extraction'),
             ));
         ?>
     </fieldset>
@@ -131,7 +133,7 @@ $(document).ready(function() {
     $("#AttributeCategory, #AttributeDistribution").change(function() {
         initPopoverContent('Attribute');
     });
-    
+
     $("#AttributeMalware").change(function () {
         if (this.checked) {
             $('#advanced_input').show();

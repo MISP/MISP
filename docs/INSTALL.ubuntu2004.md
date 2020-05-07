@@ -20,7 +20,7 @@ bash /tmp/INSTALL.sh -c
 ### 0/ MISP Ubuntu 20.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20200427
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20200501
 
 !!! notice
     This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
@@ -115,7 +115,7 @@ installDepsPhp74 () {
   libapache2-mod-php \
   php php-cli \
   php-dev \
-  php-json php-xml php-mysql php7.4-opcache php-readline php-mbstring \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
   php-redis php-gnupg \
   php-gd
 
@@ -181,7 +181,7 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
 
   # install zmq needed by mispzmq
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq redis

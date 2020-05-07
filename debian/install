@@ -6,3 +6,4 @@ cti-python-stix2 usr/share/misp
 PyMISP usr/share/misp
 INSTALL/MYSQL.sql usr/share/doc/misp
 INSTALL/misp-workers.service usr/share/doc/misp
+INSTALL/setup/config.php usr/share/misp/app/Plugin/CakeResque/Config
