@@ -853,14 +853,16 @@ class GalaxyClustersController extends AppController
             'GalaxyCluster' => $cluster['GalaxyCluster'],
             'children' => array()
         ));
-        foreach($cluster['ReferencingGalaxyClusterRelation'] as $relation) {
-            $tmp = array(
-                'Relation' => array_diff_key($relation, array_flip(array('GalaxyCluster'))),
-                'children' => array(
-                    array('GalaxyCluster' => $relation['GalaxyCluster']),
-                )
-            );
-            $treeLeft[0]['children'][] = $tmp;
+        if (!empty($cluster['ReferencingGalaxyClusterRelation'])) {
+            foreach($cluster['ReferencingGalaxyClusterRelation'] as $relation) {
+                $tmp = array(
+                    'Relation' => array_diff_key($relation, array_flip(array('GalaxyCluster'))),
+                    'children' => array(
+                        array('GalaxyCluster' => $relation['GalaxyCluster']),
+                    )
+                );
+                $treeLeft[0]['children'][] = $tmp;
+            }
         }
 
         $tree = array(

@@ -602,11 +602,17 @@ class GalaxyCluster extends AppModel
 
     public function attachReferencingRelations($user, $cluster)
     {
-        $referencingRelations = $this->GalaxyClusterRelation->fetchRelations($user, array('conditions' => array(
-            'referenced_galaxy_cluster_id' => $cluster['GalaxyCluster']['id']
-        )));
+        $referencingRelations = $this->GalaxyClusterRelation->fetchRelations($user, array(
+            'conditions' => array(
+                'referenced_galaxy_cluster_id' => $cluster['GalaxyCluster']['id']
+            ),
+            'contain' => array('GalaxyClusterRelationTag' => 'Tag')
+        ));
         if (!empty($referencingRelations)) {
             foreach ($referencingRelations as $k => $relation) {
+                if (!empty($relation['GalaxyClusterRelationTag'])) {
+                    $relation['GalaxyClusterRelation']['Tag'] = $relation['GalaxyClusterRelationTag'][0]['Tag'];
+                }
                 $cluster['ReferencingGalaxyClusterRelation'][] = $relation['GalaxyClusterRelation'];
             }
         }

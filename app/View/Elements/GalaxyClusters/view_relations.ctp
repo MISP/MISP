@@ -122,87 +122,107 @@ echo $this->element('genericElements/assetLoader', array(
         var $tree = $('#treeSVG');
         treeWidth = $tree.width() - margin.right - margin.left;
         treeHeight = $tree.height() - margin.top - margin.bottom;
-        var leftShift, childrenBothSides;
+        var leftShift;
+        var childrenBothSides, side;
 
         var finalData = treeData.right;
         if (treeData.left[0].children === undefined || treeData.left[0].children.length == 0) {
             leftShift = 0;
             childrenBothSides = false;
+            side = 'right';
         } else {
             if (treeData.right[0].children === undefined || treeData.right[0].children.length == 0) {
                 leftShift = treeWidth;
                 childrenBothSides = false;
+                side = 'left';
             } else {
                 leftShift = treeWidth/2;
                 childrenBothSides = true;
+                side = 'both';
             }
         }
-        // drawTree(treeData.right, false, leftShift, childrenBothSides);
-        // drawTree(treeData.left, true, leftShift, childrenBothSides);
-        var data = genHierarchy(treeData, leftShift, childrenBothSides);
+        var data = genHierarchy(treeData, leftShift, childrenBothSides, side);
         drawTree(data, leftShift, childrenBothSides);
     }
 
-    function genHierarchy(data, leftShift, childrenBothSides) {
-        var treeRight = d3.layout.tree(data.right)
-            .size([treeHeight, (childrenBothSides ? treeWidth/2 : treeWidth)]);
-        var rootRight = data.right[0];
-        rootRight.isRoot = true;
-        rootRight.x0 = treeHeight / 2;
-        rootRight.y0 = 0;
-        var nodesRight = treeRight.nodes(rootRight).reverse();
-        var linksRight = treeRight.links(nodesRight);
-        var maxDepthRight = 0;
-        var leftMaxTextLengthRight = 0;
-        nodesRight.forEach(function(d) {
-            maxDepthRight = maxDepthRight > d.depth ? maxDepthRight : d.depth;
-            if (d.GalaxyCluster !== undefined) {
-                var clusterLength = d.GalaxyCluster.type.length > d.GalaxyCluster.value.length ? d.GalaxyCluster.type.length : d.GalaxyCluster.value.length;
-                leftMaxTextLengthRight = leftMaxTextLengthRight > clusterLength ? leftMaxTextLengthRight : clusterLength;
-            } else if (d.Relation !== undefined) {
-                var tagLength = 0;
-                if (d.Relation.Tag !== undefined) {
-                    tagLength = d.Relation.Tag.name / 2;
+    function genHierarchy(data, leftShift, childrenBothSides, side) {
+        var rightOffset = 0;
+        if (side !== 'left') {
+            var treeRight = d3.layout.tree(data.right)
+                .size([treeHeight, (childrenBothSides ? treeWidth/2 : treeWidth)]);
+            var rootRight = data.right[0];
+            rootRight.isRoot = true;
+            rootRight.x0 = treeHeight / 2;
+            rootRight.y0 = 0;
+            var nodesRight = treeRight.nodes(rootRight).reverse();
+            var linksRight = treeRight.links(nodesRight);
+            var maxDepthRight = 0;
+            var leftMaxTextLengthRight = 0;
+            nodesRight.forEach(function(d) {
+                maxDepthRight = maxDepthRight > d.depth ? maxDepthRight : d.depth;
+                if (d.GalaxyCluster !== undefined) {
+                    var clusterLength = d.GalaxyCluster.type.length > d.GalaxyCluster.value.length ? d.GalaxyCluster.type.length : d.GalaxyCluster.value.length;
+                    leftMaxTextLengthRight = leftMaxTextLengthRight > clusterLength ? leftMaxTextLengthRight : clusterLength;
+                } else if (d.Relation !== undefined) {
+                    var tagLength = 0;
+                    if (d.Relation.Tag !== undefined) {
+                        tagLength = d.Relation.Tag.name / 2;
+                    }
+                    var relationLength = tagLength > d.Relation.referenced_galaxy_cluster_type.length ? tagLength : d.Relation.referenced_galaxy_cluster_type.length;
+                    leftMaxTextLengthRight = leftMaxTextLengthRight > relationLength ? leftMaxTextLengthRight : relationLength;
                 }
-                var relationLength = tagLength > d.Relation.referenced_galaxy_cluster_type.length ? tagLength : d.Relation.referenced_galaxy_cluster_type.length;
-                leftMaxTextLengthRight = leftMaxTextLengthRight > relationLength ? leftMaxTextLengthRight : relationLength;
-            }
-        })
-        var offsetLeafLengthRight = leftMaxTextLengthRight * 6.7; // font-size of body is 12px
-        var ratioFactor = (treeWidth - offsetLeafLengthRight) / (maxDepthRight * (childrenBothSides ? 2 : 1));
-        nodesRight.forEach(function(d) { d.y = d.depth * ratioFactor; });
+            })
+            var offsetLeafLengthRight = leftMaxTextLengthRight * 6.7; // font-size of body is 12px
+            var ratioFactor = (treeWidth - offsetLeafLengthRight) / (maxDepthRight * (childrenBothSides ? 2 : 1));
+            nodesRight.forEach(function(d) { d.y = d.depth * ratioFactor; });
+            rightOffset = side === 'right' ? -leftMaxTextLengthRight : 0;
+        }
 
-        var treeLeft = d3.layout.tree(data.left)
-        .size([treeHeight, (childrenBothSides ? treeWidth/2 : treeWidth)]);
-        var rootLeft = data.left[0];
-        rootLeft.isRoot = true;
-        rootLeft.x0 = treeHeight / 2;
-        rootLeft.y0 = 0;
-        var nodesLeft = treeLeft.nodes(rootLeft).reverse();
-        var linksLeft = treeLeft.links(nodesLeft);
-        var maxDepthLeft = 0;
-        var leftMaxTextLengthLeft = 0;
-        nodesLeft.forEach(function(d) {
-            maxDepthLeft = maxDepthLeft > d.depth ? maxDepthLeft : d.depth;
-            if (d.GalaxyCluster !== undefined) {
-                var clusterLength = d.GalaxyCluster.type.length > d.GalaxyCluster.value.length ? d.GalaxyCluster.type.length : d.GalaxyCluster.value.length;
-                leftMaxTextLengthLeft = leftMaxTextLengthLeft > clusterLength ? leftMaxTextLengthLeft : clusterLength;
-            } else if (d.Relation !== undefined) {
-                var tagLength = 0;
-                if (d.Relation.Tag !== undefined) {
-                    tagLength = d.Relation.Tag.name / 2;
+        if (side !== 'right') {
+            var treeLeft = d3.layout.tree(data.left)
+                .size([treeHeight, (childrenBothSides ? treeWidth/2 : treeWidth)]);
+            var rootLeft = data.left[0];
+            rootLeft.isRoot = true;
+            rootLeft.x0 = treeHeight / 2;
+            rootLeft.y0 = 0;
+            var nodesLeft = treeLeft.nodes(rootLeft).reverse();
+            var linksLeft = treeLeft.links(nodesLeft);
+            var maxDepthLeft = 0;
+            var leftMaxTextLengthLeft = 0;
+            nodesLeft.forEach(function(d) {
+                maxDepthLeft = maxDepthLeft > d.depth ? maxDepthLeft : d.depth;
+                if (d.GalaxyCluster !== undefined) {
+                    var clusterLength = d.GalaxyCluster.type.length > d.GalaxyCluster.value.length ? d.GalaxyCluster.type.length : d.GalaxyCluster.value.length;
+                    leftMaxTextLengthLeft = leftMaxTextLengthLeft > clusterLength ? leftMaxTextLengthLeft : clusterLength;
+                } else if (d.Relation !== undefined) {
+                    var tagLength = 0;
+                    if (d.Relation.Tag !== undefined) {
+                        tagLength = d.Relation.Tag.name / 2;
+                    }
+                    var relationLength = tagLength > d.Relation.referenced_galaxy_cluster_type.length ? tagLength : d.Relation.referenced_galaxy_cluster_type.length;
+                    leftMaxTextLengthLeft = leftMaxTextLengthLeft > relationLength ? leftMaxTextLengthLeft : relationLength;
                 }
-                var relationLength = tagLength > d.Relation.referenced_galaxy_cluster_type.length ? tagLength : d.Relation.referenced_galaxy_cluster_type.length;
-                leftMaxTextLengthLeft = leftMaxTextLengthLeft > relationLength ? leftMaxTextLengthLeft : relationLength;
-            }
-        })
-        var offsetLeafLengthLeft = leftMaxTextLengthLeft * 6.7; // font-size of body is 12px
-        var ratioFactor = (treeWidth - offsetLeafLengthLeft) / (maxDepthLeft  * (childrenBothSides ? 2 : 1));
-        nodesLeft.forEach(function(d) { d.y = -d.depth * ratioFactor; });
-        nodesLeft = nodesLeft.filter(function(d) { return d.depth !== 0}); // filter out duplicate root
-        var nodes = nodesRight.concat(nodesLeft);
-        var links = linksRight.concat(linksLeft);
+            })
+            var offsetLeafLengthLeft = leftMaxTextLengthLeft * 6.7; // font-size of body is 12px
+            var ratioFactor = (treeWidth - offsetLeafLengthLeft) / (maxDepthLeft  * (childrenBothSides ? 2 : 1));
+            nodesLeft.forEach(function(d) { d.y = -d.depth * ratioFactor; });
+            rightOffset = side === 'left' ? leftMaxTextLengthLeft : 0;
+        }
+
+        var nodes, links;
+        if (side === 'both') {
+            nodesLeft = nodesLeft.filter(function(d) { return d.depth !== 0}); // filter out duplicate root
+            nodes = nodesRight.concat(nodesLeft);
+            links = linksRight.concat(linksLeft);
+        } else if (side === 'right') {
+            nodes = nodesRight;
+            links = linksRight;
+        } else {
+            nodes = nodesLeft;
+            links = linksLeft;
+        }
         return {
+            rightOffset: rightOffset,
             nodes: nodes,
             links: links
         };
@@ -219,7 +239,7 @@ echo $this->element('genericElements/assetLoader', array(
             .attr("width", treeWidth + margin.right + margin.left)
             .attr("height", treeHeight + margin.top + margin.bottom)
             .append("g")
-                .attr("transform", "translate(" + (leftShift + margin.left) + "," + margin.top + ")");
+                .attr("transform", "translate(" + (leftShift + margin.left - 2*data.rightOffset) + "," + margin.top + ")");
 
                 defs = svg.append("defs")
 
@@ -316,7 +336,7 @@ echo $this->element('genericElements/assetLoader', array(
             window.open(url + d.GalaxyCluster.id, '_blank');
         })
         gEnter.append("circle")
-            .attr("r", 5)
+            .attr("r", function(d) { return d.isRoot ? 10 : 5; })
             .style("fill", function(d) { return colors(d.GalaxyCluster.type); })
             .style("stroke", "#000")
             .style("stroke-width", "2px");
