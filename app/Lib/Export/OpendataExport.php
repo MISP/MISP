@@ -71,6 +71,7 @@ class OpendataExport
 
     private function __add_query($cmd)
     {
+        unset($this->__default_filters['returnFormat']);
         $body = json_encode($this->__default_filters);
         $bodyFilename = $this->__generateSetupFile($body);
         $bodyParam = ' --body ' . $bodyFilename;
