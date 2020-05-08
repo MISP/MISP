@@ -3837,7 +3837,6 @@ class Attribute extends AppModel
                 $pipeline->sadd('misp:cidr_cache_list', $cidr);
             }
             $pipeline->exec();
-            $redis->smembers('misp:cidr_cache_list');
         }
         return $cidrList;
     }
@@ -3846,8 +3845,8 @@ class Attribute extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis) {
-            if (!$redis->exists('misp:cidr_cache_list') || $redis->sCard('misp:cidr_cache_list') == 0) {
-                $cidrList = $this->setCIDRList($redis);
+            if ($redis->sCard('misp:cidr_cache_list') === 0) {
+                $cidrList = $this->setCIDRList();
             } else {
                 $cidrList = $redis->smembers('misp:cidr_cache_list');
             }
