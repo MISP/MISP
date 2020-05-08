@@ -29,7 +29,10 @@ class OpendataExport
         }
         if (isset($this->__default_filters['setup'])) {
             $this->__setup = $this->__default_filters['setup'];
+            $this->__check_setup_filter();
             unset($this->__default_filters['setup']);
+        } else {
+            throw new Exception('Missing "setup" filter containing the dataset and resource(s) information.');
         }
         if (isset($this->__default_filters['url'])) {
             $this->__url = $this->__default_filters['url'];
@@ -82,6 +85,20 @@ class OpendataExport
         unlink($bodyFilename);
         unlink($setupFilename);
         return $results;
+    }
+
+    private function __check_setup_filter()
+    {
+        if (empty($this->__setup['dataset'])) {
+            throw new Exception('Missing dataset filter in the setup filter. Please provide the dataset setup.');
+        }
+        if (!empty($this->__setup['resources']) && !empty($this->__setup['resource'])) {
+            throw new Exception('Please provide the resource setup in a single field called "resources".');
+        }
+        if (!empty($this->__setup['resource']) && empty($this->__setup['resources'])) {
+            $this->__setup['resources'] = $this->__setup['resource'];
+            unset($this->__setup['resource']);
+        }
     }
 
     private function __delete_query($cmd)
