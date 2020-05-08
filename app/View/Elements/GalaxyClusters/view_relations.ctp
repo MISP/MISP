@@ -172,9 +172,12 @@ echo $this->element('genericElements/assetLoader', array(
         var ratioFactor = (treeWidth - offsetLeafLengthRight) / (maxDepthRight * (childrenBothSides ? 2 : 1));
         nodesRight.forEach(function(d) { d.y = d.depth * ratioFactor; });
 
-        var rootLeft = data.left[0];
         var treeLeft = d3.layout.tree(data.left)
-            .size([treeHeight, (childrenBothSides ? treeWidth/2 : treeWidth)]);
+        .size([treeHeight, (childrenBothSides ? treeWidth/2 : treeWidth)]);
+        var rootLeft = data.left[0];
+        rootLeft.isRoot = true;
+        rootLeft.x0 = treeHeight / 2;
+        rootLeft.y0 = 0;
         var nodesLeft = treeLeft.nodes(rootLeft).reverse();
         var linksLeft = treeLeft.links(nodesLeft);
         var maxDepthLeft = 0;
@@ -222,13 +225,26 @@ echo $this->element('genericElements/assetLoader', array(
 
         defs.append("marker")
             .attr({
-                "id":"arrow",
+                "id":"arrowEnd",
                 "viewBox":"0 -5 10 10",
                 "refX": 10+10,
                 "refY": 0,
                 "markerWidth": 5,
-                "markerHeight":5,
+                "markerHeight": 5,
                 "orient":"auto"
+            })
+            .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("class","arrowHead");
+        defs.append("marker")
+            .attr({
+                "id":"arrowStart",
+                "viewBox":"0 -5 10 10",
+                "refX": 10+10,
+                "refY": 0,
+                "markerWidth": 5,
+                "markerHeight": 5,
+                "orient": 0
             })
             .append("path")
                 .attr("d", "M0,-5L10,0L0,5")
@@ -252,11 +268,20 @@ echo $this->element('genericElements/assetLoader', array(
             .data(links, function(d) { return getId(d.target); });
 
         link.enter().insert("path", "g")
-            .attr("class", function(d) {
-                return "link " + (d.target.children === undefined || d.target.children.length === 0 ? "arrow" : "")
-            })
+            .attr("class", "link")
             .attr("marker-end", function(d) {
-                return d.target.children === undefined || d.target.children.length === 0 ? "url(#arrow)" : ""
+                if ((d.target.children === undefined || d.target.children.length === 0) && d.target.y > 0) {
+                    return "url(#arrowEnd)"
+                } else {
+                    return ""
+                }
+            })
+            .attr("marker-start", function(d) {
+                if (d.source.isRoot && d.target.y < 0) {
+                    return "url(#arrowStart)"
+                } else {
+                    return ""
+                }
             })
             .style("fill", "none")
             .style("stroke", "#ccc")
@@ -281,6 +306,15 @@ echo $this->element('genericElements/assetLoader', array(
     }
 
     function drawCluster(gEnter) {
+        gEnter
+        .classed('useCursorPointer', true)
+        .on('dblclick', function(d) {
+            if (d.isRoot) {
+                return;
+            }
+            var url = "<?= sprintf('%s/galaxy_clusters/view/', $baseurl) ?>"
+            window.open(url + d.GalaxyCluster.id, '_blank');
+        })
         gEnter.append("circle")
             .attr("r", 5)
             .style("fill", function(d) { return colors(d.GalaxyCluster.type); })
@@ -299,12 +333,14 @@ echo $this->element('genericElements/assetLoader', array(
     function drawRelation(gEnter) {
         var paddingX = 9;
         gEnter.append("foreignObject")
-        .attr("height", 40)
-            .attr("y", -20)
+            .attr("height", 40)
+            .attr("y", -15)
+            .attr("x", function(d) { return  -(getTextWidth(d.Relation.referenced_galaxy_cluster_type) + 2*paddingX/2)/2 + 'px'; })
             .attr("width", function(d) { return getTextWidth(d.Relation.referenced_galaxy_cluster_type) + 2*paddingX + 'px'; })
             .append("xhtml:div")
             .append("div")
             .attr("class", "well well-small")
+            .style('padding', '4px 9px')
             // .attr("title", function(d) { return d.children ? "Version" : "<?= __('Latest version of the parent cluster') ?>" })
             .html(function(d) { return d.Relation.referenced_galaxy_cluster_type; })
             
