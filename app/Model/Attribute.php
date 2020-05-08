@@ -1970,7 +1970,8 @@ class Attribute extends AppModel
                 'order' => false
             ));
             foreach ($ipList as $ipToCheck) {
-                if (filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && $ip_version == 4) {
+                $ipToCheckVersion = filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+                if ($ipToCheckVersion === $ip_version) {
                     if ($ip_version == 4) {
                         if ($this->__ipv4InCidr($ipToCheck, $ip)) {
                             $ipValues[] = $ipToCheck;
