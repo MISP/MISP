@@ -760,7 +760,7 @@ class Attribute extends AppModel
                 }
             }
         }
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst')) && strpos($this->data['Attribute']['value'], '/')) {
             $this->setCIDRList();
         }
         if ($created && isset($this->data['Attribute']['event_id']) && empty($this->data['Attribute']['skip_auto_increment'])) {
@@ -813,7 +813,7 @@ class Attribute extends AppModel
 
     public function afterDelete()
     {
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst')) && strpos($this->data['Attribute']['value'], '/')) {
             $this->setCIDRList();
         }
         if (isset($this->data['Attribute']['event_id'])) {
@@ -1958,23 +1958,17 @@ class Attribute extends AppModel
     private function __cidrCorrelation($a)
     {
         $ipValues = array();
-        $ip = $a['type'] == 'domain-ip' ? $a['value2'] : $a['value1'];
+        $ip = $a['value1'];
         if (strpos($ip, '/') !== false) {
             $ip_array = explode('/', $ip);
             $ip_version = filter_var($ip_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $ipList = $this->find('list', array(
                 'conditions' => array(
-                    'type' => array('ip-src', 'ip-dst', 'domain_ip'),
+                    'type' => array('ip-src', 'ip-dst'),
                 ),
-                'fields' => array('value1', 'value2'),
+                'fields' => array('value1'),
                 'order' => false
             ));
-            $ipList = array_merge(array_keys($ipList), array_values($ipList));
-            foreach ($ipList as $key => $value) {
-                if ($value == '') {
-                    unset($ipList[$key]);
-                }
-            }
             foreach ($ipList as $ipToCheck) {
                 if (filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && $ip_version == 4) {
                     if ($ip_version == 4) {
@@ -2037,7 +2031,7 @@ class Attribute extends AppModel
             if (!empty($event['Event']['disable_correlation']) && $event['Event']['disable_correlation']) {
                 return true;
             }
-            if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'domain-ip'))) {
+            if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst'))) {
                 $extraConditions = $this->__cidrCorrelation($a);
             }
             if ($a['type'] == 'ssdeep') {
