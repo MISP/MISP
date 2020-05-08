@@ -3833,11 +3833,15 @@ class Attribute extends AppModel
         if ($redis) {
             $redis->del('misp:cidr_cache_list');
             $cidrList = $this->__getCIDRList();
-            $pipeline = $redis->multi(Redis::PIPELINE);
-            foreach ($cidrList as $cidr) {
-                $pipeline->sadd('misp:cidr_cache_list', $cidr);
+            if (method_exists($redis, 'saddArray')) {
+                $redis->sAddArray('misp:cidr_cache_list', $cidrList);
+            } else {
+                $pipeline = $redis->multi(Redis::PIPELINE);
+                foreach ($cidrList as $cidr) {
+                    $pipeline->sadd('misp:cidr_cache_list', $cidr);
+                }
+                $pipeline->exec();
             }
-            $pipeline->exec();
         }
         return $cidrList;
     }
