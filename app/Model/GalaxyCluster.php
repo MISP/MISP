@@ -579,13 +579,35 @@ class GalaxyCluster extends AppModel
 
     public function attachClusterToRelations($user, $cluster)
     {
-        if (isset($cluster['GalaxyClusterRelation'])) {
+        if (!empty($cluster['GalaxyClusterRelation'])) {
             foreach ($cluster['GalaxyClusterRelation'] as $k => $relation) {
                 $conditions = array('conditions' => array('GalaxyCluster.id' => $relation['referenced_galaxy_cluster_id']));
                 $relatedCluster = $this->fetchGalaxyClusters($user, $conditions, false);
                 if (!empty($relatedCluster)) {
                     $cluster['GalaxyClusterRelation'][$k]['GalaxyCluster'] = $relatedCluster[0]['GalaxyCluster'];
                 }
+            }
+        }
+        if (!empty($cluster['ReferencingGalaxyClusterRelation'])) {
+            foreach ($cluster['ReferencingGalaxyClusterRelation'] as $k => $relation) {
+                $conditions = array('conditions' => array('GalaxyCluster.id' => $relation['galaxy_cluster_id']));
+                $relatedCluster = $this->fetchGalaxyClusters($user, $conditions, false);
+                if (!empty($relatedCluster)) {
+                    $cluster['ReferencingGalaxyClusterRelation'][$k]['GalaxyCluster'] = $relatedCluster[0]['GalaxyCluster'];
+                }
+            }
+        }
+        return $cluster;
+    }
+
+    public function attachReferencingRelations($user, $cluster)
+    {
+        $referencingRelations = $this->GalaxyClusterRelation->fetchRelations($user, array('conditions' => array(
+            'referenced_galaxy_cluster_id' => $cluster['GalaxyCluster']['id']
+        )));
+        if (!empty($referencingRelations)) {
+            foreach ($referencingRelations as $k => $relation) {
+                $cluster['ReferencingGalaxyClusterRelation'][] = $relation['GalaxyClusterRelation'];
             }
         }
         return $cluster;

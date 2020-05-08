@@ -52,8 +52,6 @@ echo $this->element('genericElements/assetLoader', array(
 
 <script>
     var treeData = <?= json_encode($tree) ?>;
-    var treeRight = treeData.right;
-    var treeLeft = treeData.left;
     var margin = {top: 10, right: 10, bottom: 10, left: 20};
     var treeWidth, treeHeight;
     var colors = d3.scale.category10();
@@ -121,11 +119,16 @@ echo $this->element('genericElements/assetLoader', array(
     }
 
     function buildTree() {
+        // drawTree(treeData.right, false);
+        drawTree(treeData.left, true);
+    }
+    
+    function drawTree(data, orientationLeft) {
         var $tree = $('#treeSVG');
         treeWidth = $tree.width() - margin.right - margin.left;
         treeHeight = $tree.height() - margin.top - margin.bottom;
 
-        var tree = d3.layout.tree(treeRight)
+        var tree = d3.layout.tree(data)
             .size([treeHeight, treeWidth]);
         
         var diagonal = function link(d) {
@@ -141,7 +144,7 @@ echo $this->element('genericElements/assetLoader', array(
             .append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        var root = treeRight[0];
+        var root = data[0];
         root.isRoot = true;
         root.x0 = treeHeight / 2;
         root.y0 = 0;
