@@ -108,6 +108,8 @@ install:
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_database" 13'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_password" ""'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.homedir" "`pwd`/.gnupg"'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.password" "travistest"'
     - sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
     - sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
     - sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
