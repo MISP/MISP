@@ -1500,8 +1500,8 @@ class Attribute extends AppModel
                 if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                     // convert IPv6 address to compressed format
                     $parts[1] = inet_ntop(inet_pton($value));
-                    $value = implode('|', $parts);
                 }
+                $value = implode('|', $parts);
                 break;
             case 'filename|md5':
             case 'filename|sha1':
