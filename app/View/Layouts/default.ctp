@@ -13,7 +13,6 @@
             //'bootstrap4',
             'bootstrap-datepicker',
             'bootstrap-colorpicker',
-            'famfamfam-flags',
             'font-awesome',
             'jquery-ui',
             'chosen.min',
