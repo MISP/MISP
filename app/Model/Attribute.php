@@ -1959,20 +1959,22 @@ class Attribute extends AppModel
     {
         $ipValues = array();
         $ip = $a['value1'];
-        if (strpos($ip, '/') !== false) {
+        if (strpos($ip, '/') !== false) { // IP is CIDR
             $ip_array = explode('/', $ip);
             $ip_version = filter_var($ip_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $ipList = $this->find('list', array(
                 'conditions' => array(
                     'type' => array('ip-src', 'ip-dst'),
+                    'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
                 ),
+                'group' => 'value1', // return just unique values
                 'fields' => array('value1'),
                 'order' => false
             ));
             foreach ($ipList as $ipToCheck) {
                 $ipToCheckVersion = filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
                 if ($ipToCheckVersion === $ip_version) {
-                    if ($ip_version == 4) {
+                    if ($ip_version === 4) {
                         if ($this->__ipv4InCidr($ipToCheck, $ip)) {
                             $ipValues[] = $ipToCheck;
                         }
@@ -1984,19 +1986,18 @@ class Attribute extends AppModel
                 }
             }
         } else {
-            $ip = $a['value1'];
             $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $cidrList = $this->getSetCIDRList();
             foreach ($cidrList as $cidr) {
                 $cidr_ip = explode('/', $cidr)[0];
                 if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    if ($ip_version == 4) {
+                    if ($ip_version === 4) {
                         if ($this->__ipv4InCidr($ip, $cidr)) {
                             $ipValues[] = $cidr;
                         }
                     }
                 } else {
-                    if ($ip_version == 6) {
+                    if ($ip_version === 6) {
                         if ($this->__ipv6InCidr($ip, $cidr)) {
                             $ipValues[] = $cidr;
                         }
