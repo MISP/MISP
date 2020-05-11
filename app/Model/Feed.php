@@ -991,8 +991,8 @@ class Feed extends AppModel
         foreach ($data as $k => $chunk) {
             $this->Event->Attribute->create();
             $this->Event->Attribute->save($chunk);
-            if ($k % 100 == 0) {
-                $this->jobProgress($jobId, null, 50 + round((50 * ((($k + 1) * 100) / count($data)))));
+            if ($k % 100 === 0) {
+                $this->jobProgress($jobId, null, 50 + round(($k + 1) / count($data) * 50));
             }
         }
         if (!empty($data)) {
