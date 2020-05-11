@@ -241,16 +241,16 @@ echo $this->element('genericElements/assetLoader', array(
             .append("g")
                 .attr("transform", "translate(" + (leftShift + margin.left - 2*data.rightOffset) + "," + margin.top + ")");
 
-                defs = svg.append("defs")
-
+        defs = svg.append("defs")
         defs.append("marker")
             .attr({
                 "id":"arrowEnd",
                 "viewBox":"0 -5 10 10",
-                "refX": 10+10,
+                "refX": 10+7,
                 "refY": 0,
-                "markerWidth": 5,
-                "markerHeight": 5,
+                "markerWidth": 10,
+                "markerHeight": 10,
+                "markerUnits": "userSpaceOnUse",
                 "orient":"auto"
             })
             .append("path")
@@ -260,10 +260,11 @@ echo $this->element('genericElements/assetLoader', array(
             .attr({
                 "id":"arrowStart",
                 "viewBox":"0 -5 10 10",
-                "refX": 10+10,
+                "refX": 10+7,
                 "refY": 0,
-                "markerWidth": 5,
-                "markerHeight": 5,
+                "markerWidth": 10,
+                "markerHeight": 10,
+                "markerUnits": "userSpaceOnUse",
                 "orient": 0
             })
             .append("path")

@@ -14,8 +14,9 @@ echo $this->element('genericElements/assetLoader', array(
     <?= __('There are no relations in this Galaxy'); ?>
 </div>
 <?php else: ?>
-<div style="margin-bottom: 10px;">
+<div style="margin-bottom: 10px; position: relative">
     <div id="graphContainer" style="height: 70vh; border: 1px solid #ddd; "></div>
+    <div id="tooltipContainer" style="max-height: 400px; width: 200px; position: absolute; top: 10px; right: 10px; border: 1px solid #999; border-radius: 3px; background-color: #f5f5f5ee; overflow: auto;"></div>
 </div>
 
 <script>
@@ -62,8 +63,10 @@ function initGraph() {
         .size([width, height])
         .charge(-1000)
         .friction(0.3)
-        .theta(0.9)
+        .theta(0.3)
+        // .theta(0.9)
         .linkDistance(60)
+        .linkStrength(0.7)
         .on("tick", tick)
 
     vis = d3.select("#graphContainer");
@@ -75,6 +78,22 @@ function initGraph() {
     zoom = d3.behavior.zoom()
         .on("zoom", zoomHandler);
     svg.call(zoom);
+
+    defs = svg.append("defs")
+    defs.append("marker")
+        .attr({
+            "id":"arrowEnd",
+            "viewBox":"0 -5 10 10",
+            "refX": 10+5,
+            "refY": 0,
+            "markerWidth": 8,
+            "markerHeight": 8,
+            "markerUnits": "userSpaceOnUse",
+            "orient":"auto"
+        })
+        .append("path")
+            .attr("d", "M0,-5L10,0L0,5")
+            .attr("class","arrowHead");
 
     svg.append('g')
         .classed('legendContainer', true)
@@ -112,11 +131,26 @@ function update() {
 
     var linkEnter = links.enter()
         .append("line")
+        .on('click', clickHandlerLink)
         .attr("class", "link")
-        .attr("class", d => { return "link" })
+        .classed('useCursorPointer', true)
+        .attr("marker-end", "url(#arrowEnd)")
         .attr("stroke", "#999")
-        .attr("stroke-opacity", 0.6)
-        .style("stroke-width", function(d) { return Math.sqrt(d.weight ? d.weight : 1) })
+        .attr("stroke-width", function(d) {
+            var linkWidth = 1;
+            var linkMaxWidth = 5;
+            if (d.tag !== undefined && d.tag !== undefined) {
+                linkWidth = d.tag.numerical_value / 100 * linkMaxWidth;
+            }
+            return linkWidth + 'px';
+        })
+        .attr("stroke-opacity", function(d) {
+            var opacity = 0.6;
+            if (d.tag !== undefined && d.tag !== undefined) {
+                opacity = Math.min(0.8, Math.max(0.2, d.tag.numerical_value / 100));
+            }
+            return opacity;
+        })
         
     nodes = container.append("g")
         .attr("class", "nodes")
@@ -125,16 +159,10 @@ function update() {
     nodes.exit().remove();
     var nodesEnter = nodes.enter()
         .append('g')
+        .classed('useCursorPointer', true)
         .call(drag(force))
+        .on('click', clickHandlerNode);
 
-    // nodesEnter.append("foreignObject")
-    //     .attr("height", nodeHeight)
-    //     .attr("width", nodeWidth)
-    //     .classed("nodeFO", true)
-    //     .append("xhtml:div")
-    //     .html(function(d) {
-    //         return '<span class="label label-info">' + d.value + '</span>'
-    //     })
     nodesEnter.append("circle")
         .attr("r", 5)
         .style("fill", function(d) { return colors(d.group); })
@@ -191,6 +219,62 @@ function drag(force) {
         .on("dragstart", dragstart)
         .on("drag", dragmove)
         .on("dragend", dragend)
+}
+
+function clickHandlerNode(d) {
+    generateTooltip(d, 'node');
+}
+
+function clickHandlerLink(d) {
+    generateTooltip(d, 'link');
+}
+
+function generateTooltip(d, type) {
+    $div =  $('#tooltipContainer');
+    $div.empty();
+    tableArray = [];
+    title = '';
+    if (type === 'node') {
+        title = d.value;
+        tableArray = [
+            {label: '<?= __('Name') ?>', value: d.value},
+            {label: '<?= __('Galaxy') ?>', value: d.type},
+            {label: '<?= __('Default') ?>', value: d.default},
+            {label: '<?= __('Tag name') ?>', value: d.tag_name},
+            {label: '<?= __('Version') ?>', value: d.version},
+            {label: '<?= __('UUID') ?>', value: d.uuid}
+        ]
+    } else if (type === 'link') {
+        title = d.type;
+        tableArray = [
+            {label: '<?= __('Source') ?>', value: d.source.value},
+            {label: '<?= __('Target') ?>', value: d.target.value},
+            {label: '<?= __('Type') ?>', value: d.type},
+        ]
+        if (d.tag !== undefined) {
+            tableArray.push({label: '<?= __('Tag name') ?>', value: d.tag.name});
+            if (d.tag.numerical_value !== undefined) {
+                tableArray.push({label: '<?= __('Numerical value') ?>', value: d.tag.numerical_value});
+            }
+        }
+    }
+    $div.append($('<h6></h6>').css({'text-align': 'center'}).text(title));
+    if (tableArray.length > 0) {
+        var $table = $('<table class="table table-condensed"></table>');
+        $body = $('<tbody></tbody>');
+        tableArray.forEach(function(v) {
+            $body.append(
+                $('<tr></tr>').append(
+                    $('<td></td>').text(v.label),
+                    $('<td></td>').text(v.value)
+                )
+            )
+        })
+        $table.append($body);
+        $div.append(
+            $table
+        );
+    }
 }
 
 function drawLabels() {

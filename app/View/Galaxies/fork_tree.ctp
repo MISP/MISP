@@ -239,7 +239,6 @@ function nodeDbclick(d) {
 function nodeHover(d) {
     var $d3Element = $(this);
     var hasTooltip = $d3Element.data('tooltip') !== undefined
-    window.ddd = $d3Element;
     if (!d.isRoot && d.isVersion !== true && !hasTooltip) {
         $d3Element.tooltip({
             html: true,

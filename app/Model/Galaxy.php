@@ -621,14 +621,14 @@ class Galaxy extends AppModel
                                 'source' => $relation['galaxy_cluster_id'],
                                 'target' =>   $referencedClusterId,
                                 'type' => $relation['referenced_galaxy_cluster_type'],
-                                'tags' =>  $relation['Tag'],
+                                'tag' =>  $relation['Tag'],
                             );
                         } else {
                             $invalid[] = array(
                                 'source' => $relation['galaxy_cluster_id'],
                                 'target' =>   $referencedClusterId,
                                 'type' => $relation['referenced_galaxy_cluster_type'],
-                                'tags' =>  $relation['Tag'],
+                                'tag' =>  $relation['Tag'],
                                 'originalCluster' => $cluster['GalaxyCluster']
                             );
                         }
