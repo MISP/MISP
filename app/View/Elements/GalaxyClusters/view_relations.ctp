@@ -55,6 +55,7 @@ echo $this->element('genericElements/assetLoader', array(
     var margin = {top: 10, right: 10, bottom: 10, left: 20};
     var treeWidth, treeHeight;
     var colors = d3.scale.category10();
+    var hasBeenBuilt = false;
     $(document).ready(function() {
         // $('#relationsQuickAddForm select').chosen();
         $('#relationsQuickAddForm #RelationshipType').change(function() {
@@ -119,6 +120,10 @@ echo $this->element('genericElements/assetLoader', array(
     }
 
     function buildTree() {
+        if (hasBeenBuilt) {
+            return;
+        }
+        hasBeenBuilt = true;
         var $tree = $('#treeSVG');
         treeWidth = $tree.width() - margin.right - margin.left;
         treeHeight = $tree.height() - margin.top - margin.bottom;

@@ -274,4 +274,58 @@ class GalaxyClusterRelation extends AppModel
         }
         return $errors;
     }
+
+    function generateRelationsGraph($user, $clusters, $keepNotLinkedClusters=false)
+    {
+        $nodes = array();
+        $links = array();
+        $lookup = array();
+        $invalid = array();
+        foreach ($clusters as $cluster) {
+            $lookup[$cluster['GalaxyCluster']['id']] = $cluster;
+        }
+        foreach ($clusters as $cluster) {
+            if (!empty($cluster['GalaxyClusterRelation'])) {
+                foreach($cluster['GalaxyClusterRelation'] as $relation) {
+                    $referencedClusterId = $relation['referenced_galaxy_cluster_id'];
+                    if (!isset($lookup[$referencedClusterId])) {
+                        $referencedCluster = $this->GalaxyCluster->fetchGalaxyClusters($user, array(
+                            'conditions' => array('GalaxyCluster.id' => $referencedClusterId)
+                        ));
+                        $lookup[$referencedClusterId] = !empty($referencedCluster) ? $referencedCluster[0] : array();
+                    }
+                    $referencedCluster = $lookup[$referencedClusterId];
+                    if (!empty($referencedCluster)) {
+                        unset($referencedCluster['GalaxyCluster']['description']);
+                        $nodes[$referencedClusterId] = $referencedCluster['GalaxyCluster'];
+                        $nodes[$referencedClusterId]['group'] = $referencedCluster['GalaxyCluster']['type'];
+                        $nodes[$relation['galaxy_cluster_id']] = $cluster['GalaxyCluster'];
+                        $nodes[$relation['galaxy_cluster_id']]['group'] = $cluster['GalaxyCluster']['type'];
+                        if (true) {
+                            $links[] = array(
+                                'source' => $relation['galaxy_cluster_id'],
+                                'target' =>   $referencedClusterId,
+                                'type' => $relation['referenced_galaxy_cluster_type'],
+                                'tag' =>  isset($relation['Tag']) ? $relation['Tag'] : array(),
+                            );
+                        } else {
+                            $invalid[] = array(
+                                'source' => $relation['galaxy_cluster_id'],
+                                'target' =>   $referencedClusterId,
+                                'type' => $relation['referenced_galaxy_cluster_type'],
+                                'tag' =>  $relation['Tag'],
+                                'originalCluster' => $cluster['GalaxyCluster']
+                            );
+                        }
+                    }
+                }
+            } elseif ($keepNotLinkedClusters) {
+                if (!isset($nodes[$cluster['GalaxyCluster']['id']])) {
+                    $nodes[$cluster['GalaxyCluster']['id']] = $cluster['GalaxyCluster'];
+                    $nodes[$cluster['GalaxyCluster']['id']]['group'] = $cluster['GalaxyCluster']['type'];
+                }
+            }
+        }
+        return array('nodes' => array_values($nodes), 'links' => $links, 'invalid' => $invalid);
+    }
 }

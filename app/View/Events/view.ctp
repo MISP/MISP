@@ -517,6 +517,9 @@
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attackmatrix_toggle" data-toggle-type="attackmatrix" onclick="enable_attack_matrix();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>" style="vertical-align:top;"></span><?php echo __('ATT&CK matrix');?>
         </button>
+        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="clusterrelation_toggle" data-toggle-type="clusterrelation" onclick="enable_galaxy_relations();">
+            <span class="icon-plus icon-white" title="<?php echo __('Toggle Cluster relationships');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Cluster relationships');?>" style="vertical-align:top;"></span><?php echo __('Cluster relations');?>
+        </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
             <span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
         </button>
@@ -542,6 +545,8 @@
     <div id="correlationgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>
     <div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false" data-mitre-attack-galaxy-id="<?php echo h($mitreAttackGalaxyId)?>">
+    </div>
+    <div id="clusterrelation_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>
     <div id="attributes_div">
         <?php echo $this->element('eventattribute'); ?>
@@ -570,14 +575,20 @@ $(document).ready(function () {
 });
 
 function enable_correlation_graph() {
-    $.get("/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
+    $.get("<?= $baseurl ?>/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
         $("#correlationgraph_div").html(data);
     });
 }
 
 function enable_attack_matrix() {
-    $.get("/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
+    $.get("<?= $baseurl ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
         $("#attackmatrix_div").html(data);
+    });
+}
+
+function enable_galaxy_relations() {
+    $.get("<?= $baseurl ?>/events/viewGalaxyRelations/<?php echo h($event['Event']['id']); ?>", function(data) {
+        $("#clusterrelation_div").html(data);
     });
 }
 </script>

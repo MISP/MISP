@@ -4783,6 +4783,34 @@ class EventsController extends AppController
             $this->render('/Elements/view_galaxy_matrix');
         }
     }
+    public function viewGalaxyRelations($eventId)
+    {
+        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'flatten' => true));
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid Event.'));
+        }
+        $event = $event[0];
+        $clusterIds = array();
+        foreach($event['Galaxy'] as $galaxy) {
+            foreach($galaxy['GalaxyCluster'] as $cluster) {
+                $clusterIds[$cluster['id']] = $cluster['id'];
+            }
+        }
+        foreach($event['Attribute'] as $attribute) {
+            foreach($attribute['Galaxy'] as $galaxy) {
+                foreach($galaxy['GalaxyCluster'] as $cluster) {
+                    $clusterIds[$cluster['id']] = $cluster['id'];
+                }
+            }
+        }
+        $this->loadModel('GalaxyCluster');
+        $clusters = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.id' => $clusterIds)), $full=true);
+        $relations = $this->GalaxyCluster->GalaxyClusterRelation->generateRelationsGraph($this->Auth->user(), $clusters, $keepNotLinkedClusters=true);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($relations, $this->response->type());
+        }
+        $this->set('relations', $relations);
+    }
 
     public function delegation_index()
     {
