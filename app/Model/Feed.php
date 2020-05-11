@@ -846,6 +846,10 @@ class Feed extends AppModel
                 return false;
             }
 
+            if (empty($temp)) {
+                return true;
+            }
+
             $data = array();
             foreach ($temp as $value) {
                 $data[] = array(
@@ -855,14 +859,11 @@ class Feed extends AppModel
                     'to_ids' => $value['to_ids']
                 );
             }
-            if (empty($data)) {
-                return true;
-            }
 
             $this->jobProgress($jobId, 'Saving data.', 50);
 
             try {
-                $result = $this->saveFreetextFeedData($this->data, $data, $user);
+                $result = $this->saveFreetextFeedData($this->data, $data, $user, $jobId);
             } catch (Exception $e) {
                 $this->logException("Could not save freetext feed data for feed $feedId.", $e);
                 return false;
@@ -936,7 +937,7 @@ class Feed extends AppModel
             }
         }
         if ($feed['Feed']['fixed_event']) {
-            $temp = $this->Event->Attribute->find('all', array(
+            $existsAttributes = $this->Event->Attribute->find('all', array(
                 'conditions' => array(
                     'Attribute.deleted' => 0,
                     'Attribute.event_id' => $event['Event']['id']
@@ -944,28 +945,29 @@ class Feed extends AppModel
                 'recursive' => -1,
                 'fields' => array('id', 'value1', 'value2')
             ));
-            $event['Attribute'] = array();
-            foreach ($temp as $t) {
+            $existsAttributesValueToId = array();
+            foreach ($existsAttributes as $t) {
                 if (!empty($t['Attribute']['value2'])) {
                     $value = $t['Attribute']['value1'] . '|' . $t['Attribute']['value2'];
                 } else {
                     $value = $t['Attribute']['value1'];
                 }
-                $event['Attribute'][$t['Attribute']['id']] = $value;
+                // Since event values are unique, it is OK to put value into key
+                $existsAttributesValueToId[$value] = $t['Attribute']['id'];
             }
-            unset($temp);
+            unset($existsAttributes);
+
+            // Create event diff. After this cycle, `$data` will contains just attributes that do not exists in current
+            // event and in `$existsAttributesValueToId` will contains just attributes that do not exists in current feed.
             foreach ($data as $k => $dataPoint) {
-                $finder = array_search($dataPoint['value'], $event['Attribute']);
-                if ($finder !== false) {
+                if (isset($existsAttributesValueToId[$dataPoint['value']])) {
                     unset($data[$k]);
-                    unset($event['Attribute'][$finder]);
+                    unset($existsAttributesValueToId[$dataPoint['value']]);
                 }
             }
-            if ($feed['Feed']['delta_merge']) {
-                $to_delete = array_keys($event['Attribute']);
-                if (!empty($to_delete)) {
-                    $this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete, 'Attribute.deleted' => 0));
-                }
+            if ($feed['Feed']['delta_merge'] && !empty($existsAttributesValueToId)) {
+                $to_delete = array_values($existsAttributesValueToId);
+                $this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete, 'Attribute.deleted' => 0));
             }
         }
         if (empty($data)) {
