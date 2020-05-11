@@ -258,8 +258,8 @@ function generateTooltip(d, type) {
     if (type === 'node') {
         title = d.value;
         tableArray = [
-            {label: '<?= __('Name') ?>', value: d.value},
-            {label: '<?= __('Galaxy') ?>', value: d.type},
+            {label: '<?= __('Name') ?>', value: d.value, url: {path: '<?= sprintf('%s/galaxy_clusters/view/', $baseurl) ?>', id: d.id}},
+            {label: '<?= __('Galaxy') ?>', value: d.type, url: {path: '<?= sprintf('%s/galaxies/view/', $baseurl) ?>', id: d.galaxy_id}},
             {label: '<?= __('Default') ?>', value: d.default},
             {label: '<?= __('Tag name') ?>', value: d.tag_name},
             {label: '<?= __('Version') ?>', value: d.version},
@@ -273,7 +273,7 @@ function generateTooltip(d, type) {
             {label: '<?= __('Type') ?>', value: d.type},
         ]
         if (d.tag !== undefined) {
-            tableArray.push({label: '<?= __('Tag name') ?>', value: d.tag.name});
+            tableArray.push({label: '<?= __('Tag name') ?>', value: (d.tag.name !== undefined ? d.tag.name : '- none -')});
             if (d.tag.numerical_value !== undefined) {
                 tableArray.push({label: '<?= __('Numerical value') ?>', value: d.tag.numerical_value});
             }
@@ -287,13 +287,21 @@ function generateTooltip(d, type) {
     if (tableArray.length > 0) {
         var $table = $('<table class="table table-condensed"></table>');
         $body = $('<tbody></tbody>');
-        tableArray.forEach(function(v) {
+        tableArray.forEach(function(row) {
+            var $cell1 = $('<td></td>').text(row.label);
+            var $cell2 = $('<td></td>');
+            if (row.url !== undefined) {
+                var completeUrl = row.url.path + (row.url.id !== undefined ? row.url.id : '');
+                $cell2.append($('<a></a>').attr('href', completeUrl).attr('target', '_blank').text(row.value));
+            } else {
+                $cell2.text(row.value);
+            }
             $body.append(
                 $('<tr></tr>').append(
-                    $('<td></td>').text(v.label),
-                    $('<td></td>').text(v.value)
+                    $cell1,
+                    $cell2
                 )
-            )
+            );
         })
         $table.append($body);
         $div.append(
