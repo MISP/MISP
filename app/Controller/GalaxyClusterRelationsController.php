@@ -125,7 +125,8 @@ class GalaxyClusterRelationsController extends AppController
             } else {
                 if (empty($errors)) {
                     $this->Flash->success($message);
-                    $this->redirect(array('action' => 'index'));
+                    // $this->redirect(array('action' => 'index'));
+                    $this->redirect($this->referer());
                 } else {
                     $message .= __(' Reason: %s', json_encode($this->GalaxyClusterRelation->validationErrors, true));
                     $this->Flash->error($message);
@@ -182,7 +183,8 @@ class GalaxyClusterRelationsController extends AppController
             } else {
                 if (empty($errors)) {
                     $this->Flash->success($message);
-                    $this->redirect(array('action' => 'index'));
+                    // $this->redirect(array('action' => 'index'));
+                    $this->redirect($this->referer());
                 } else {
                     $message .= __(' Reason: %s', json_encode($this->GalaxyClusterRelation->validationErrors, true));
                     $this->Flash->error($message);
@@ -206,14 +208,14 @@ class GalaxyClusterRelationsController extends AppController
             if (empty($relation)) {
                 throw new NotFoundException('Target cluster not found.');
             }
-            $result = $this->GalaxyCluster->delete($id, true);
+            $result = $this->GalaxyClusterRelation->delete($id, true);
             if ($result) {
                 $message = 'Galaxy cluster relationship successfuly deleted.';
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'delete', $id, $this->response->type());
                 } else {
                     $this->Flash->success($message);
-                    $this->redirect($this->here);
+                    $this->redirect($this->referer());
                 }
             } else {
                 $message = 'Galaxy cluster relationship could not be deleted.';
@@ -221,7 +223,7 @@ class GalaxyClusterRelationsController extends AppController
                     return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'delete', $id, $message, $this->response->type());
                 } else {
                     $this->Flash->error($message);
-                    $this->redirect($this->here);
+                    $this->redirect($this->referer());
                 }
             }
         }

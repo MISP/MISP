@@ -424,6 +424,7 @@ class GalaxyCluster extends AppModel
         );
         if ($full) {
             $params['contain'] = array(
+                'Galaxy',
                 'GalaxyElement',
                 'GalaxyClusterRelation' => array('GalaxyClusterRelationTag' => array('Tag')),
                 'Orgc',

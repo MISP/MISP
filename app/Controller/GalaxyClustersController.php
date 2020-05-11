@@ -871,6 +871,13 @@ class GalaxyClustersController extends AppController
         );
         $this->set('existingRelations', $existingRelations);
         $this->set('cluster', $cluster);
+        $relations = $this->GalaxyCluster->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array(
+            'conditions' => array(
+                'GalaxyClusterRelation.galaxy_cluster_id' => $cluster['GalaxyCluster']['id']
+            ),
+            'contain' => array('Org', 'Orgc', 'SharingGroup', 'ReferencedGalaxyCluster')
+        ));
+        $this->set('relations', $relations);
         $this->set('tree', $tree);
         $this->loadModel('Attribute');
         $distributionLevels = $this->Attribute->distributionLevels;

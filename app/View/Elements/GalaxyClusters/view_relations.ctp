@@ -98,7 +98,9 @@ echo $this->element('genericElements/assetLoader', array(
                 $.ajax({
                     data: $('#GalaxyClusterRelationAddForm').serialize(),
                     success:function (data) {
-                        console.log(data);
+                        $.get("/galaxy_clusters/viewRelations/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
+                            $("#relations_container").html(data);
+                        });
                     },
                     error:function(jqXHR, textStatus, errorThrown) {
                         showMessage('fail', textStatus + ": " + errorThrown);
@@ -118,7 +120,11 @@ echo $this->element('genericElements/assetLoader', array(
     }
 
     function toggleLoadingButton(loading) {
-
+        if (loading) {
+            $('#buttonAddRelationship > i').removeClass('fa-plus').addClass('fa-spinner fa-spin');
+        } else {
+            $('#buttonAddRelationship > i').removeClass('fa-spinner fa-spin').addClass('fa-plus');
+        }
     }
 
     function buildTree() {
