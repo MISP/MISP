@@ -90,6 +90,21 @@ function initGraph() {
         .append("path")
             .attr("d", "M0,-5L10,0L0,5")
             .attr("class","arrowHead");
+    
+    defs.append("marker")
+        .attr({
+            "id":"arrowEndForHexa",
+            "viewBox":"0 -5 10 10",
+            "refX": 10+15,
+            "refY": 0,
+            "markerWidth": 8,
+            "markerHeight": 8,
+            "markerUnits": "userSpaceOnUse",
+            "orient":"auto"
+        })
+        .append("path")
+            .attr("d", "M0,-5L10,0L0,5")
+            .attr("class","arrowHead");
 
     svg.append('g')
         .classed('legendContainer', true)
@@ -131,7 +146,7 @@ function update() {
         .attr("data-id",function(d,i) { return i; })
         .attr("class", "link useCursorPointer")
         .on('click', clickHandlerLink)
-        .attr("marker-end", "url(#arrowEnd)")
+        .attr("marker-end", function(d) { return d.target.isRoot ? "url(#arrowEndForHexa)" : "url(#arrowEnd)"; })
         .attr("stroke", "#999")
         .attr("stroke-width", function(d) {
             var linkWidth = 1;

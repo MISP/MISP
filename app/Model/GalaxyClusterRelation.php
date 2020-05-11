@@ -100,7 +100,7 @@ class GalaxyClusterRelation extends AppModel
         return $conditions;
     }
 
-    public function fetchRelations($user, $options)
+    public function fetchRelations($user, $options, $full=false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -108,6 +108,8 @@ class GalaxyClusterRelation extends AppModel
         );
         if (!empty($options['contain'])) {
             $params['contain'] = $options['contain'];
+        } elseif($full) {
+            $params['contain'] = array('Org', 'Orgc', 'SharingGroup', 'GalaxyCluster', 'ReferencedGalaxyCluster');
         }
         if (isset($options['fields'])) {
             $params['fields'] = $options['fields'];
@@ -275,7 +277,7 @@ class GalaxyClusterRelation extends AppModel
         return $errors;
     }
 
-    function generateRelationsGraph($user, $clusters, $rootNodeIds=array(), $keepNotLinkedClusters=false)
+    function generateRelationsGraph($user, $clusters, $rootNodeIds=array(), $keepNotLinkedClusters=false, $includeReferencingRelation=false)
     {
         $nodes = array();
         $links = array();
@@ -296,7 +298,6 @@ class GalaxyClusterRelation extends AppModel
                     }
                     $referencedCluster = $lookup[$referencedClusterId];
                     if (!empty($referencedCluster)) {
-                        unset($referencedCluster['GalaxyCluster']['description']);
                         $nodes[$referencedClusterId] = $referencedCluster['GalaxyCluster'];
                         $nodes[$referencedClusterId]['group'] = $referencedCluster['GalaxyCluster']['type'];
                         $nodes[$relation['galaxy_cluster_id']] = $cluster['GalaxyCluster'];
@@ -304,22 +305,12 @@ class GalaxyClusterRelation extends AppModel
                         if (isset($rootNodeIds[$relation['galaxy_cluster_id']])) {
                             $nodes[$relation['galaxy_cluster_id']]['isRoot'] = true;
                         }
-                        if (true) {
-                            $links[] = array(
-                                'source' => $relation['galaxy_cluster_id'],
-                                'target' =>   $referencedClusterId,
-                                'type' => $relation['referenced_galaxy_cluster_type'],
-                                'tag' =>  isset($relation['Tag']) ? $relation['Tag'] : array(),
-                            );
-                        } else {
-                            $invalid[] = array(
-                                'source' => $relation['galaxy_cluster_id'],
-                                'target' =>   $referencedClusterId,
-                                'type' => $relation['referenced_galaxy_cluster_type'],
-                                'tag' =>  $relation['Tag'],
-                                'originalCluster' => $cluster['GalaxyCluster']
-                            );
-                        }
+                        $links[] = array(
+                            'source' => $relation['galaxy_cluster_id'],
+                            'target' =>   $referencedClusterId,
+                            'type' => $relation['referenced_galaxy_cluster_type'],
+                            'tag' =>  isset($relation['Tag']) ? $relation['Tag'] : array(),
+                        );
                     }
                 }
             } elseif ($keepNotLinkedClusters) {
@@ -328,6 +319,36 @@ class GalaxyClusterRelation extends AppModel
                     $nodes[$cluster['GalaxyCluster']['id']]['group'] = $cluster['GalaxyCluster']['type'];
                     if (isset($rootNodeIds[$cluster['GalaxyCluster']['id']])) {
                         $nodes[$cluster['GalaxyCluster']['id']]['isRoot'] = true;
+                    }
+                }
+            }
+
+            if ($includeReferencingRelation) { // fetch and add clusters referrencing the current graph
+                $referencingRelations = $this->fetchRelations($user, array(
+                    'conditions' => array(
+                        'referenced_galaxy_cluster_id' => $cluster['GalaxyCluster']['id']
+                    )
+                ));
+                if (!empty($referencingRelations)) {
+                    foreach($referencingRelations as $relation) {
+                        $referencingClusterId = $relation['GalaxyClusterRelation']['galaxy_cluster_id'];
+                        if (!isset($lookup[$referencingClusterId])) {
+                            $referencedCluster = $this->GalaxyCluster->fetchGalaxyClusters($user, array(
+                                'conditions' => array('GalaxyCluster.id' => $referencingClusterId)
+                            ));
+                            $lookup[$referencingClusterId] = !empty($referencedCluster) ? $referencedCluster[0] : array();
+                        }
+                        $referencingCluster = $lookup[$referencingClusterId];
+                        if (!empty($referencingCluster)) {
+                            $nodes[$referencingClusterId] = $referencingCluster['GalaxyCluster'];
+                            $nodes[$referencingClusterId]['group'] = $referencingCluster['GalaxyCluster']['type'];
+                            $links[] = array(
+                                'source' => $referencingClusterId,
+                                'target' =>   $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'],
+                                'type' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_type'],
+                                'tag' =>  isset($relation['Tag']) ? $relation['Tag'] : array(),
+                            );
+                        }
                     }
                 }
             }
