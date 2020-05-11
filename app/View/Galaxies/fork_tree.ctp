@@ -51,7 +51,7 @@ function buildTree() {
     root.y0 = 0;
     var nodes = tree.nodes(root).reverse();
     var links = tree.links(nodes);
-    var maxDepth = 0;
+    var maxDepth = 1;
     var leftMaxTextLength = 0;
     nodes.forEach(function(d) {
         maxDepth = maxDepth > d.depth ? maxDepth : d.depth;
