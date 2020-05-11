@@ -6724,11 +6724,15 @@ class Event extends AppModel
         $subqueryElements = $this->harvestSubqueryElements($filters);
         $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements);
 
-        $filters['include_attribute_count'] = 1;
-        $eventid = $this->filterEventIds($user, $filters, $elementCounter);
-        $eventCount = count($eventid);
-        $eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
-        unset($eventid);
+        if (empty($exportTool->only_metadata_export)) {
+            $filters['include_attribute_count'] = 1;
+            $eventid = $this->filterEventIds($user, $filters, $elementCounter);
+            $eventCount = count($eventid);
+            $eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
+            unset($eventid);
+        } else {
+            $eventids_chunked = array();
+        }
         if (!empty($exportTool->additional_params)) {
             $filters = array_merge($filters, $exportTool->additional_params);
         }

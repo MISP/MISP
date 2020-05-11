@@ -4,6 +4,7 @@ class OpendataExport
 {
     public $non_restrictive_export = true;
     public $use_default_filters = true;
+    public $only_metadata_export = true;
     private $__default_filters = null;
 
     private $__auth = null;
@@ -57,11 +58,6 @@ class OpendataExport
         $my_server = ClassRegistry::init('Server');
         $cmd = $my_server->getPythonVersion() . ' ' . $this->__scripts_dir . $this->__script_name . $authParam;
         return $this->__delete ? $this->__delete_query($cmd) : $this->__add_query($cmd);
-    }
-
-    public function handler()
-    {
-        return '';
     }
 
     public function separator()

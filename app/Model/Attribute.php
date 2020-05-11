@@ -4562,7 +4562,9 @@ class Attribute extends AppModel
             $loop = true;
             $params['page'] = 1;
         }
-        $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+        if (empty($exportTool->only_metadata_export)) {
+            $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+        }
         fwrite($tmpfile, $exportTool->footer($exportToolParams));
         fseek($tmpfile, 0);
         if (fstat($tmpfile)['size']) {
