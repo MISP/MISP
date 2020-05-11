@@ -14,7 +14,7 @@ var hexagonPoints = '30,15 22.5,28 7.5,28 0,15 7.5,2.0 22.5,2'
 var hexagonPointsSmaller = '21,10.5 15.75,19.6 5.25,19.6 0,10.5 5.25,1.4 15.75,1.4'
 var hexagonTranslate = -10.5;
 var graph = <?= json_encode($relations) ?>;
-var nodes, links, edgepaths;
+var nodes, links, edgepaths, edgelabels;
 var width, height, margin;
 var vis, svg, plotting_area, force, container, zoom;
 var legendLabels, labels;
@@ -178,7 +178,7 @@ function update() {
             .attr('data-id', function (d, i) { return i; })
             .style("pointer-events", "none");
 
-        var edgelabels = container.append("g")
+        edgelabels = container.append("g")
             .attr("class", "edgelabels")
             .selectAll(".edgelabel")
             .data(graph.links)
@@ -242,6 +242,16 @@ function tick() {
 
     nodes.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
     edgepaths.attr('d', d => 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y);
+    edgelabels.attr("transform", function(d) {
+        if (d.target.x < d.source.x){
+            bbox = this.getBBox();
+            rx = bbox.x+bbox.width/2;
+            ry = bbox.y+bbox.height/2;
+            return 'rotate(180 '+rx+' '+ry+')';
+        } else {
+            return 'rotate(0)';
+        }
+    });
 }
 
 function drag(force) {
