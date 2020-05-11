@@ -4803,9 +4803,10 @@ class EventsController extends AppController
                 }
             }
         }
+        $rootNodeIds = $clusterIds; 
         $this->loadModel('GalaxyCluster');
         $clusters = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.id' => $clusterIds)), $full=true);
-        $relations = $this->GalaxyCluster->GalaxyClusterRelation->generateRelationsGraph($this->Auth->user(), $clusters, $keepNotLinkedClusters=true);
+        $relations = $this->GalaxyCluster->GalaxyClusterRelation->generateRelationsGraph($this->Auth->user(), $clusters, $rootNodeIds=$rootNodeIds, $keepNotLinkedClusters=true);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($relations, $this->response->type());
         }

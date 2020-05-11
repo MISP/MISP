@@ -536,7 +536,8 @@ class GalaxiesController extends AppController
             'recursive' => -1,
             'conditions' => array('Galaxy.id' => $galaxyId)
         ));
-        $relations = $this->Galaxy->GalaxyCluster->GalaxyClusterRelation->generateRelationsGraph($this->Auth->user(), $clusters); // moved this to Lib/Tool
+        $rootNodeIds = Hash::combine($clusters, '{n}.GalaxyCluster.id', '{n}.GalaxyCluster.id');
+        $relations = $this->Galaxy->GalaxyCluster->GalaxyClusterRelation->generateRelationsGraph($this->Auth->user(), $clusters, $rootNodeIds=$rootNodeIds); // moved this to Lib/Tool
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($relations, $this->response->type());
         }

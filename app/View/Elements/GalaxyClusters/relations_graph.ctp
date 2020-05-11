@@ -10,6 +10,9 @@ echo $this->element('genericElements/assetLoader', array(
 ?>
 
 <script>
+var hexagonPoints = '30,15 22.5,28 7.5,28 0,15 7.5,2.0 22.5,2'
+var hexagonPointsSmaller = '21,10.5 15.75,19.6 5.25,19.6 0,10.5 5.25,1.4 15.75,1.4'
+var hexagonTranslate = -10.5;
 var graph = <?= json_encode($relations) ?>;
 var nodes, links, edgepaths;
 var width, height, margin;
@@ -192,13 +195,19 @@ function update() {
         .call(drag(force))
         .on('click', clickHandlerNode);
 
-    nodesEnter.append("circle")
+    nodesEnter.filter(function(node) { return !node.isRoot }).append("circle")
         .attr("r", 5)
         .style("fill", function(d) { return colors(d.group); })
         .style("stroke", "black")
         .style("stroke-width", "1px");
+    nodesEnter.filter(function(node) { return node.isRoot }).append('polygon')
+        .attr('points', hexagonPointsSmaller)
+        .attr("transform", 'translate(' + hexagonTranslate + ', ' + hexagonTranslate + ')')
+        .style("fill", function(d) { return colors(d.group); })
+        .style("stroke", "black")
+        .style("stroke-width", "2px");
     nodesEnter.append("text")
-        .attr("dy", "20px")
+        .attr("dy", "25px")
         .attr("dx", "")
         .attr("x", "")
         .attr("y", "")
@@ -308,6 +317,7 @@ function generateTooltip(d, type) {
         }
     } else if (type == 'hide') {
         $div.hide();
+        unselectAll();
         return;
     }
     $div.append($('<button></button>').css({'margin-right': '2px'}).addClass('close').text('×').click(function() { generateTooltip(null, 'hide') }));

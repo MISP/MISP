@@ -51,6 +51,8 @@ echo $this->element('genericElements/assetLoader', array(
 </div>
 
 <script>
+    var hexagonPoints = '21,10.5 15.75,19.6 5.25,19.6 0,10.5 5.25,1.4 15.75,1.4'
+    var hexagonTranslate = -10.5;
     var treeData = <?= json_encode($tree) ?>;
     var margin = {top: 10, right: 10, bottom: 10, left: 20};
     var treeWidth, treeHeight;
@@ -342,8 +344,14 @@ echo $this->element('genericElements/assetLoader', array(
             var url = "<?= sprintf('%s/galaxy_clusters/view/', $baseurl) ?>"
             window.open(url + d.GalaxyCluster.id, '_blank');
         })
-        gEnter.append("circle")
+        gEnter.filter(function(node) {return !node.isRoot; }).append("circle")
             .attr("r", function(d) { return d.isRoot ? 10 : 5; })
+            .style("fill", function(d) { return colors(d.GalaxyCluster.type); })
+            .style("stroke", "#000")
+            .style("stroke-width", "2px");
+        gEnter.filter(function(node) {return node.isRoot; }).append('polygon')
+            .attr('points', hexagonPoints)
+            .attr("transform", 'translate(' + hexagonTranslate + ', ' + hexagonTranslate + ')')
             .style("fill", function(d) { return colors(d.GalaxyCluster.type); })
             .style("stroke", "#000")
             .style("stroke-width", "2px");

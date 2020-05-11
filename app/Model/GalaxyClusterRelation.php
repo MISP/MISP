@@ -275,7 +275,7 @@ class GalaxyClusterRelation extends AppModel
         return $errors;
     }
 
-    function generateRelationsGraph($user, $clusters, $keepNotLinkedClusters=false)
+    function generateRelationsGraph($user, $clusters, $rootNodeIds=array(), $keepNotLinkedClusters=false)
     {
         $nodes = array();
         $links = array();
@@ -301,6 +301,9 @@ class GalaxyClusterRelation extends AppModel
                         $nodes[$referencedClusterId]['group'] = $referencedCluster['GalaxyCluster']['type'];
                         $nodes[$relation['galaxy_cluster_id']] = $cluster['GalaxyCluster'];
                         $nodes[$relation['galaxy_cluster_id']]['group'] = $cluster['GalaxyCluster']['type'];
+                        if (isset($rootNodeIds[$relation['galaxy_cluster_id']])) {
+                            $nodes[$relation['galaxy_cluster_id']]['isRoot'] = true;
+                        }
                         if (true) {
                             $links[] = array(
                                 'source' => $relation['galaxy_cluster_id'],
@@ -323,6 +326,9 @@ class GalaxyClusterRelation extends AppModel
                 if (!isset($nodes[$cluster['GalaxyCluster']['id']])) {
                     $nodes[$cluster['GalaxyCluster']['id']] = $cluster['GalaxyCluster'];
                     $nodes[$cluster['GalaxyCluster']['id']]['group'] = $cluster['GalaxyCluster']['type'];
+                    if (isset($rootNodeIds[$cluster['GalaxyCluster']['id']])) {
+                        $nodes[$cluster['GalaxyCluster']['id']]['isRoot'] = true;
+                    }
                 }
             }
         }
