@@ -47,6 +47,8 @@ class GalaxyClusterRelationsController extends AppController
                     'LOWER(GalaxyClusterRelation.referenced_galaxy_cluster_type) LIKE' => $searchall,
                     'LOWER(GalaxyCluster.value) LIKE' => $searchall,
                     'LOWER(ReferencedGalaxyCluster.value) LIKE' => $searchall,
+                    'LOWER(GalaxyCluster.tag_name) LIKE' => $searchall,
+                    'LOWER(ReferencedGalaxyCluster.tag_name) LIKE' => $searchall,
                 ),
             );
         }
