@@ -42,4 +42,4 @@
 	url = https://github.com/MISP/misp-decaying-models.git
 [submodule "app/files/scripts/misp-opendata"]
 	path = app/files/scripts/misp-opendata
-	url = git@github.com:misp/misp-opendata
+	url = https://github.com/MISP/misp-opendata
