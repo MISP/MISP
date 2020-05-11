@@ -11,7 +11,7 @@ echo $this->element('genericElements/assetLoader', array(
 
 <script>
 var graph = <?= json_encode($relations) ?>;
-var nodes, links;
+var nodes, links, edgepaths;
 var width, height, margin;
 var vis, svg, plotting_area, force, container, zoom;
 var legendLabels, labels;
@@ -56,7 +56,7 @@ function initGraph() {
         .friction(0.3)
         .theta(0.3)
         // .theta(0.9)
-        .linkDistance(80)
+        .linkDistance(100)
         // .linkStrength(0.7)
         .on("tick", tick)
 
@@ -119,14 +119,15 @@ function update() {
     links = container.append("g")
         .attr("class", "links")
         .selectAll("line")
-        .data(graph.links)
-        links.exit().remove();
+        .data(graph.links);
+    links.exit().remove();
 
     var linkEnter = links.enter()
         .append("line")
+        .attr("id",function(d,i) { return "linkId_" + i; })
+        .attr("data-id",function(d,i) { return i; })
+        .attr("class", "link useCursorPointer")
         .on('click', clickHandlerLink)
-        .attr("class", "link")
-        .classed('useCursorPointer', true)
         .attr("marker-end", "url(#arrowEnd)")
         .attr("stroke", "#999")
         .attr("stroke-width", function(d) {
@@ -144,7 +145,42 @@ function update() {
             }
             return opacity;
         })
-        
+
+        edgepaths = container.append("g")
+            .attr("class", "edgepaths")
+            .selectAll(".edgepath") //make path go along with the link provide position for link labels
+            .data(graph.links);
+        edgepaths.exit().remove();
+        edgepaths.enter()
+            .append('path')
+            .attr('class', 'edgepath')
+            .attr('fill-opacity', 0)
+            .attr('stroke-opacity', 0)
+            .attr('id', function (d, i) { return "edgepathId_" + i; })
+            .attr('data-id', function (d, i) { return i; })
+            .style("pointer-events", "none");
+
+        var edgelabels = container.append("g")
+            .attr("class", "edgelabels")
+            .selectAll(".edgelabel")
+            .data(graph.links)
+        edgelabels.exit().remove();
+        edgelabels.enter()
+            .append('text')
+            .attr('class', 'edgelabel')
+            .attr('dy', '-3')
+            .attr('id', function (d, i) {return 'edgelabelId_' + i})
+            .attr('font-size', 10)
+            .attr('fill', '#aaa');
+
+        edgelabels.append('textPath') //To render text along the shape of a <path>, enclose the text in a <textPath> element that has an href attribute with a reference to the <path> element.
+            .attr('xlink:href', function (d, i) {return '#edgepathId_' + i})
+            .style("text-anchor", "middle")
+            .attr("startOffset", "50%")
+            .attr('class', 'useCursorPointer')
+            .on('click', clickHandlerLink)
+            .text(d => d.type);
+
     nodes = container.append("g")
         .attr("class", "nodes")
         .selectAll("div")
@@ -181,6 +217,7 @@ function tick() {
         .attr("y2", function(d) { return d.target.y; });
 
     nodes.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+    edgepaths.attr('d', d => 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y);
 }
 
 function drag(force) {
@@ -217,6 +254,7 @@ function drag(force) {
 function unselectAll() {
     $('#graphContainer g.nodes > g.node').removeClass('selected');
     $('#graphContainer g.links > line.link').removeClass('selected');
+    $('#graphContainer g.edgelabels > text').removeClass('selected');
 }
 
 function clickHandlerSvg(e) {
@@ -232,10 +270,10 @@ function clickHandlerNode(d) {
     generateTooltip(d, 'node');
 }
 
-function clickHandlerLink(d) {
-    var $d3Element = $(this);
+function clickHandlerLink(d, i) {
     unselectAll();
-    $d3Element.addClass('selected');
+    $('#graphContainer g.links #linkId_'+i).addClass('selected');
+    $('#graphContainer g.edgelabels #edgelabelId_'+i).addClass('selected');
     generateTooltip(d, 'link');
 }
 
@@ -362,5 +400,9 @@ function drawLabels() {
 
 #graphContainer line.link.selected {
     stroke-width: 3;
+}
+
+#graphContainer g.edgelabels text.selected {
+    font-weight: bold;
 }
 </style>

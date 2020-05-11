@@ -294,6 +294,7 @@ echo $this->element('genericElements/assetLoader', array(
             .data(links, function(d) { return getId(d.target); });
 
         link.enter().insert("path", "g")
+            .attr("id",function(d,i) { return "linkId_" + i; })
             .attr("class", "link")
             .attr("marker-end", function(d) {
                 if ((d.target.children === undefined || d.target.children.length === 0) && d.target.y > 0) {
