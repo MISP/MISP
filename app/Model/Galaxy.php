@@ -609,9 +609,6 @@ class Galaxy extends AppModel
                     $referencedCluster = $lookup[$referencedClusterId];
                     if (!empty($referencedCluster)) {
                         unset($referencedCluster['GalaxyCluster']['description']);
-                        // debug($referencedCluster['GalaxyCluster']);
-                        // $cluster['GalaxyCluster']['name'] = $cluster['GalaxyCluster']['uuid'];
-                        // $referencedCluster['GalaxyCluster']['name'] = $referencedCluster['GalaxyCluster']['uuid'];
                         $nodes[$referencedClusterId] = $referencedCluster['GalaxyCluster'];
                         $nodes[$referencedClusterId]['group'] = $referencedCluster['GalaxyCluster']['type'];
                         $nodes[$relation['galaxy_cluster_id']] = $cluster['GalaxyCluster'];
@@ -621,7 +618,7 @@ class Galaxy extends AppModel
                                 'source' => $relation['galaxy_cluster_id'],
                                 'target' =>   $referencedClusterId,
                                 'type' => $relation['referenced_galaxy_cluster_type'],
-                                'tag' =>  $relation['Tag'],
+                                'tag' =>  isset($relation['Tag']) ? $relation['Tag'] : array(),
                             );
                         } else {
                             $invalid[] = array(

@@ -35,6 +35,7 @@ $(document).ready( function() {
     margin = {top: 5, right: 5, bottom: 5, left: 5},
     width = $('#graphContainer').width() - margin.left - margin.right,
     height = $('#graphContainer').height() - margin.top - margin.bottom;
+    $('#tooltipContainer').hide();
     if (graph.nodes.length > 0) {
         initGraph();
     }
@@ -65,16 +66,18 @@ function initGraph() {
         .friction(0.3)
         .theta(0.3)
         // .theta(0.9)
-        .linkDistance(60)
-        .linkStrength(0.7)
+        // .linkDistance(60)
+        // .linkStrength(0.7)
         .on("tick", tick)
 
     vis = d3.select("#graphContainer");
 
     svg = vis.append("svg")
+        .attr("id", "relationGraphSVG")
         .attr("width", width)
         .attr("height", height)
-    container = svg.append("g").attr("class", "zoomContainer")
+    container = svg.append("g").attr("class", "zoomContainer");
+    svg.on('click', clickHandlerSvg);
     zoom = d3.behavior.zoom()
         .on("zoom", zoomHandler);
     svg.call(zoom);
@@ -139,14 +142,14 @@ function update() {
         .attr("stroke-width", function(d) {
             var linkWidth = 1;
             var linkMaxWidth = 5;
-            if (d.tag !== undefined && d.tag !== undefined) {
+            if (d.tag !== undefined && d.tag.numerical_value !== undefined) {
                 linkWidth = d.tag.numerical_value / 100 * linkMaxWidth;
             }
             return linkWidth + 'px';
         })
         .attr("stroke-opacity", function(d) {
             var opacity = 0.6;
-            if (d.tag !== undefined && d.tag !== undefined) {
+            if (d.tag !== undefined && d.tag.numerical_value !== undefined) {
                 opacity = Math.min(0.8, Math.max(0.2, d.tag.numerical_value / 100));
             }
             return opacity;
@@ -159,7 +162,7 @@ function update() {
     nodes.exit().remove();
     var nodesEnter = nodes.enter()
         .append('g')
-        .classed('useCursorPointer', true)
+        .classed('useCursorPointer node', true)
         .call(drag(force))
         .on('click', clickHandlerNode);
 
@@ -221,11 +224,28 @@ function drag(force) {
         .on("dragend", dragend)
 }
 
+function unselectAll() {
+    $('#graphContainer g.nodes > g.node').removeClass('selected');
+    $('#graphContainer g.links > line.link').removeClass('selected');
+}
+
+function clickHandlerSvg(e) {
+    // if (d3.event.target.id == 'relationGraphSVG') {
+    //     generateTooltip(null, 'hide');
+    // }
+}
+
 function clickHandlerNode(d) {
+    var $d3Element = $(this);
+    unselectAll();
+    $d3Element.addClass('selected');
     generateTooltip(d, 'node');
 }
 
 function clickHandlerLink(d) {
+    var $d3Element = $(this);
+    unselectAll();
+    $d3Element.addClass('selected');
     generateTooltip(d, 'link');
 }
 
@@ -234,6 +254,7 @@ function generateTooltip(d, type) {
     $div.empty();
     tableArray = [];
     title = '';
+    $div.show();
     if (type === 'node') {
         title = d.value;
         tableArray = [
@@ -257,7 +278,11 @@ function generateTooltip(d, type) {
                 tableArray.push({label: '<?= __('Numerical value') ?>', value: d.tag.numerical_value});
             }
         }
+    } else if (type == 'hide') {
+        $div.hide();
+        return;
     }
+    $div.append($('<button></button>').css({'margin-right': '2px'}).addClass('close').text('×').click(function() { generateTooltip(null, 'hide') }));
     $div.append($('<h6></h6>').css({'text-align': 'center'}).text(title));
     if (tableArray.length > 0) {
         var $table = $('<table class="table table-condensed"></table>');
@@ -327,3 +352,18 @@ function drawLabels() {
 }
 </script>
 <?php endif; ?>
+
+<style>
+#graphContainer g.node.selected > circle {
+    r: 7;
+    stroke-width: 2px !important;
+}
+
+#graphContainer g.node.selected > text {
+    font-weight: bold;
+}
+
+#graphContainer line.link.selected {
+    stroke-width: 3;
+}
+</style>
